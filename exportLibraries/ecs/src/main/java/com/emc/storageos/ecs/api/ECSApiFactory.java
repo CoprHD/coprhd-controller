@@ -185,6 +185,15 @@ public class ECSApiFactory {
      * //String retentionPeriod, String blkSizeHQ, String notSizeSQ) throws ECSException {
      * ecsApi.createBucket("m1", "s3", "urn:storageos:ReplicationGroupInfo:b3bf2d47-d732-457c-bb9b-d260eb53a76a:global",
      * "4", "99", "55", "testlogin");
+     * 
+     * }
+     * 
+     * 
+     * 
+     * createBucket(String name, String namespace, String repGroup,
+     * String retentionPeriod, String blkSizeHQ, String notSizeSQ) throws ECSException {
+     * ecsApi.createBucket("m1", "s3", "urn:storageos:ReplicationGroupInfo:b3bf2d47-d732-457c-bb9b-d260eb53a76a:global",
+     * "4", "99", "55", "testlogin");
      * ecsApi.deleteBucket("esc_myproj_bucket1");
      * }
      */

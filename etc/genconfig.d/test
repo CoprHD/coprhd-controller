@@ -67,6 +67,7 @@ _get_subnet_ipvx(){
 _test_multivdc_ipchange() {
     case ${_GENCONFIG_node_id} in 'standalone') return 0 ; esac
     local vdc=${_GENCONFIG_vdc_myid}
+    local site=${_GENCONFIG_site_myid}
     # If the local VDC is the only VDC just retrun 0 no need to check
     [ "${vdc}" == "${_GENCONFIG_vdc_ids}" ] && return 0
     local changed_ips=""
@@ -74,22 +75,22 @@ _test_multivdc_ipchange() {
     for index in ${_GENCONFIG_node_indexes} ; do
         local var="_GENCONFIG_network_${index}_ipaddr"
         local new_ipaddr=${!var}
-        var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr"
+        var="_GENCONFIG_vdc_${vdc}_${site}_network_${index}_ipaddr"
         local old_ipaddr=${!var}
         var="_GENCONFIG_network_${index}_ipaddr6"
         local new_ipaddr6=${!var}
-        var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr6"
-        local old_ipaddr6=${!var}
+        var="_GENCONFIG_vdc_${vdc}_${site}_network_${index}_ipaddr6"
+        local old_ipaddr6=$(_get_ipv6_uncompressed ${!var})
         [ "${new_ipaddr}" != "${old_ipaddr}" ] && changed_ips="${changed_ips}Server ${index} IPv4 address changed from ${old_ipaddr:-"0.0.0.0"} to ${new_ipaddr:-"0.0.0.0"}\n"
         [ "${new_ipaddr6}" != "${old_ipaddr6}" ] && changed_ips="${changed_ips}Server ${index} IPv6 address changed from ${old_ipaddr6:-"::0"} to ${new_ipaddr6:-"::0"}\n"
     done
 
     local new_vip=${_GENCONFIG_network_vip}
-    var="_GENCONFIG_vdc_${vdc}_network_vip"
+    var="_GENCONFIG_vdc_${vdc}_${site}_network_vip"
     local old_vip=${!var}
     local new_vip6=${_GENCONFIG_network_vip6}
-    var="_GENCONFIG_vdc_${vdc}_network_vip6"
-    local old_vip6=${!var}
+    var="_GENCONFIG_vdc_${vdc}_${site}_network_vip6"
+    local old_vip6=$(_get_ipv6_uncompressed ${!var})
     [ "${old_vip}" != "" ] && [ "${new_vip}" != "${old_vip}" ] && changed_ips="${changed_ips}Virtual IPv4 address changed from ${old_vip:-"0.0.0.0"} to ${new_vip:-"0.0.0.0"}\n"
     [ "${old_vip6}" != "" ] && [ "${new_vip6}" != "${old_vip6}" ] && changed_ips="${changed_ips}Virtual IPv6 address changed from ${old_vip6:-"::0"} to ${new_vip6:-"::0"}\n"
 

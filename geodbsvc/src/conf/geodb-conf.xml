@@ -58,6 +58,7 @@
         <property name="geoContext" ref="geodbclientcontext"/>
         <property name="encryptionProvider" ref="encryptionProvider"/>
         <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
 
     <bean id="globalGC" class="com.emc.storageos.db.gc.GlobalGCExecutorLoop">
@@ -82,8 +83,12 @@
         <property name="jmxServerWrapper" ref="jmxServerWrapper"/>
         <property name="dbClient" ref="dbclient"/>
         <property name="beacon" ref="beacon"/>
+        <property name="backCompatPreYoda" ref="backCompatPreYoda" />
     </bean>
 
-    <bean id="dbManager" class="com.emc.storageos.db.server.impl.DbManager"/>
-
+    <bean id="dbManager" class="com.emc.storageos.db.server.impl.DbManager">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="schemaUtil" ref="dbschemautil"/>
+    </bean>
+	
 </beans>

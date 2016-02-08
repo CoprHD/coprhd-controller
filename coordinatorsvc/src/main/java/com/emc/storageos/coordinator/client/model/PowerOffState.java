@@ -15,7 +15,10 @@ package com.emc.storageos.coordinator.client.model;
  */
 public class PowerOffState implements CoordinatorSerializable {
     private State _powerOffState = null;
-
+    public static final String CONFIG_KIND = "upgradepoweroff";
+    public static final String CONFIG_ID = "global";
+    public static final String CONFIG_ATTR = "poweroff";
+    
     public PowerOffState() {
     }
 
@@ -54,7 +57,7 @@ public class PowerOffState implements CoordinatorSerializable {
 
     @Override
     public CoordinatorClassInfo getCoordinatorClassInfo() {
-        return new CoordinatorClassInfo("global", "upgradepoweroff", "poweroff");
+        return new CoordinatorClassInfo(CONFIG_ID, CONFIG_KIND, CONFIG_ATTR);
     }
 
     public String toString() {

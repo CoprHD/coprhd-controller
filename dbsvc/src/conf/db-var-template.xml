@@ -33,6 +33,7 @@
         </property>
         <property name="dbCommonInfo" ref="dbcommoninfo"/>
         <property name="passwordUtils" ref="passwordUtils"/>
+        <property name="drUtil" ref="drUtil"/>
     </bean>
 
     <bean id="passwordUtils" class="com.emc.storageos.security.password.PasswordUtils">
@@ -40,5 +41,18 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="dbClient" ref="dbclient"/>
     </bean>
+	
+	<bean id="keyGenerator" class="com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator">
+        <property name="coordinator" ref="coordinator"/>
+	</bean>
 
+    <bean id="dbRebuildRunnable" class="com.emc.storageos.db.server.impl.DbRebuildRunnable">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="nodeCount" ref="nodeCount"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+    
+    <bean id="backCompatPreYoda" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="${back_compat_preyoda}" />
+    </bean>
 </beans>

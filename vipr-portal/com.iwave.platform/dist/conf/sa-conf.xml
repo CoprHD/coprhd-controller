@@ -142,10 +142,6 @@
     <bean id="userFromRequestHelper" class="com.emc.storageos.security.authentication.UserFromRequestHelper" >
         <property name="permissionsHelper" ref="permissionsHelper"/>
     </bean>
-    
-    <bean id="permissionsFilterFactory" class="com.emc.storageos.api.service.authorization.PermissionsFilterFactory">
-        <property name="permissionsHelper" ref="permissionsHelper"/>
-    </bean>
 
     <bean id="responseFilter" class="com.emc.storageos.api.errorhandling.filters.TaskResponseFilter"/>    
 
@@ -196,6 +192,7 @@
     <bean id="auditLogManager"
         class="com.emc.storageos.security.audit.AuditLogManager">
       <property name="dbClient" ref="dbclient"/>
+      <property name="coordinator" ref="coordinator" />
     </bean>    
 
     <bean id="recordableEventManager"
@@ -214,4 +211,19 @@
     <bean id="catalogConfigUtils" class="com.emc.sa.api.utils.CatalogConfigUtils">
         <property name="coordinator" ref="coordinator"/>
     </bean>
+    
+    <bean id="drOrderCleanupHandler" class="com.emc.sa.engine.OrderCleanupHandler">
+    	<property name="name" value="SasvcOrderCleanupHandler"/>
+    </bean>
+    
+    <bean id="drQueueCleanupHandler" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler">
+    	<property name="name" value="SasvcQueueCleanupHandler"/>
+    	<property name="queueNames">
+    		<list>
+    			<value>OrderCompletionQueue</value>
+    			<value>OrderExecutionQueue</value>
+    		</list>
+    	</property>
+    </bean>
+    
 </beans>

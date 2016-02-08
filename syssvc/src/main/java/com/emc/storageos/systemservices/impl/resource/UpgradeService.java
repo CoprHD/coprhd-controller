@@ -24,11 +24,15 @@ import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import static com.emc.storageos.coordinator.client.model.Constants.DOWNLOADINFO_KIND;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.model.DownloadingInfo;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.vipr.model.sys.NodeProgress.DownloadStatus;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
@@ -40,6 +44,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceUnavailableExceptio
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import com.emc.storageos.systemservices.impl.upgrade.*;
+import com.emc.storageos.systemservices.impl.vdc.VdcManager;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.upgradevoter.UpgradeVoter;
@@ -61,6 +66,7 @@ public class UpgradeService {
     private static final String EVENT_SERVICE_TYPE = "upgrade";
     private CoordinatorClientExt _coordinator = null;
     private UpgradeManager _upgradeManager = null;
+    private DrUtil drUtil;
     private final static String FORCE = "1";
 
     @Autowired
@@ -69,6 +75,8 @@ public class UpgradeService {
     private SecretsManager _secretsManager;
     @Autowired
     private PropertyManager _propertyManager;
+    @Autowired
+    private VdcManager _vdcManager;
 
     /**
      * Callback for other components to register itself for upgrade check before upgrade process starts.
@@ -87,6 +95,10 @@ public class UpgradeService {
         _upgradeVoters = voters;
     }
 
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
+
     /**
      * Upgrade target version. Refer to product documentation for valid upgrade paths.
      * 
@@ -99,7 +111,7 @@ public class UpgradeService {
     @PUT
     @Path("target-version/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public Response setTargetVersion(@QueryParam("version") String version, @QueryParam("force") String forceGeoUpgrade) throws IOException {
+    public Response setTargetVersion(@QueryParam("version") String version, @QueryParam("force") String forceUpgrade) throws IOException {
         SoftwareVersion targetVersion = null;
         try {
             targetVersion = new SoftwareVersion(version);
@@ -133,8 +145,8 @@ public class UpgradeService {
         }
 
         // Check if allowed from upgrade voter and force option can veto
-        if (FORCE.equals(forceGeoUpgrade)) {
-            _log.info("Force option supplied, skipping all multi-VDC pre-checks");
+        if (FORCE.equals(forceUpgrade)) {
+            _log.info("Force option supplied, skipping all geo/dr pre-checks");
         } else {
             for (UpgradeVoter voter : _upgradeVoters) {
                 voter.isOKForUpgrade(current.toString(), version);
@@ -152,17 +164,11 @@ public class UpgradeService {
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, targetVersion.toString());
 
-        /* wake up all */
-        _upgradeManager.wakeupOtherNodes();
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
         }
-        try {
-            return toClusterResponse(clusterInfo);
-        } finally {
-            _upgradeManager.wakeup();
-        }
+        return toClusterResponse(clusterInfo);
     }
 
     /**
@@ -201,8 +207,9 @@ public class UpgradeService {
     @Path("cluster-state/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ClusterInfo getClusterState(@QueryParam("force") String forceShow) throws IOException {
-        ClusterInfo clusterInfo = _coordinator.getClusterInfo();
+    public ClusterInfo getClusterState(@QueryParam("force") String forceShow, @QueryParam("site") String siteId)
+            throws IOException {
+        ClusterInfo clusterInfo = _coordinator.getClusterInfo(siteId);
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
         }
@@ -241,6 +248,7 @@ public class UpgradeService {
         } catch (InvalidSoftwareVersionException e) {
             throw APIException.badRequests.parameterIsNotValid("version");
         }
+        checkClusterState();
         RepositoryInfo repoInfo = null;
         try {
             repoInfo = _coordinator.getTargetInfo(RepositoryInfo.class);
@@ -287,13 +295,27 @@ public class UpgradeService {
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, versionStr);
 
-        /* wakeup all nodes */
-        _upgradeManager.wakeupAllNodes();
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
         }
         return toClusterResponse(clusterInfo);
+    }
+
+    private void checkClusterState() {
+        for (Site site : drUtil.listSites()) {
+            // don't check cluster state for paused sites.
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                continue;
+            }
+            int nodeCount = site.getNodeCount();
+            ClusterInfo.ClusterState state = _coordinator.getCoordinatorClient().getControlNodesState(site.getUuid(),
+                    nodeCount);
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                _log.error("Site {} is not stable: {}", site.getUuid(), state);
+                throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), state.toString());
+            }
+        }
     }
 
     /**
@@ -335,7 +357,7 @@ public class UpgradeService {
 
     /**
      * For download progress monitoring, The zookeeper structure used in the setNodeGlobalScopeInfo() and getNodeGlobalScopeInfo() is
-     * config/downloadinfo/(svcId)
+     * /sites/(site_uuid)/config/downloadinfo/(svcId)
      * Each node has a entry in the coordinator indicated by its svcId.
      * The remote download and internode download are monitored in the same way, because the process is the same in the UpgradeImageCommon
      * class.
@@ -356,7 +378,8 @@ public class UpgradeService {
     @Path("image/download/progress/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public DownloadProgress checkDownloadProgress(@Context HttpHeaders headers) throws Exception {
+    public DownloadProgress checkDownloadProgress(@QueryParam("site") String siteId, @Context HttpHeaders headers)
+            throws Exception {
         _log.info("checkDownloadProgress()");
         DownloadProgress progress = new DownloadProgress();
         DownloadingInfo targetDownloadInfo = _coordinator.getTargetInfo(DownloadingInfo.class);
@@ -366,8 +389,9 @@ public class UpgradeService {
         }
         progress.setImageSize(targetDownloadInfo._size);
 
-        for (String svcId : _coordinator.getAllNodes()) {
-            DownloadingInfo downloadInfo = _coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, "downloadinfo", svcId);
+        for (String svcId : _coordinator.getAllNodes(siteId)) {
+            DownloadingInfo downloadInfo = _coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, siteId,
+                    DOWNLOADINFO_KIND, svcId);
             if (null == downloadInfo) {
                 progress.addNodeProgress(svcId, new NodeProgress(0, DownloadStatus.NORMAL, 0, 0));
             } else {
@@ -410,7 +434,7 @@ public class UpgradeService {
         for (String svcId : _coordinator.getAllNodes()) {
             DownloadingInfo tmpInfo;
             try {
-                tmpInfo = _coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, "downloadinfo", svcId);
+                tmpInfo = _coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, DOWNLOADINFO_KIND, svcId);
             } catch (Exception e) {
                 throw APIException.internalServerErrors.getObjectFromError("Node downloading info", "coordinator", e);
             }
@@ -482,8 +506,6 @@ public class UpgradeService {
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, versionStr, FORCE.equals(forceRemove));
 
-        /* wakeup all nodes */
-        _upgradeManager.wakeupAllNodes();
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
@@ -543,10 +565,14 @@ public class UpgradeService {
             case "property":
                 _propertyManager.wakeup();
                 break;
+            case "vdc":
+                _vdcManager.wakeup();
+                break;
             default:
                 _upgradeManager.wakeup();
                 _secretsManager.wakeup();
                 _propertyManager.wakeup();
+                _vdcManager.wakeup();
         }
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
@@ -623,13 +649,11 @@ public class UpgradeService {
                 newList.add(newVersion);
                 _coordinator.setTargetInfo(new RepositoryInfo(targetInfo.getCurrentVersion(), newList));
 
-                DownloadingInfo temp = _coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, "downloadinfo", svcId);
+                DownloadingInfo temp = _coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, DOWNLOADINFO_KIND, svcId);
                 _coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(version, versionSize, versionSize, DownloadStatus.COMPLETED,
-                        temp._errorCounter), "downloadinfo", svcId);
+                        temp._errorCounter), DOWNLOADINFO_KIND, svcId);
 
                 _coordinator.setTargetInfo(new DownloadingInfo(version, versionSize), false);
-                // wake up all
-                _upgradeManager.wakeupAllNodes();
             }
             _log.info("uploadImage to {} end", svcId);
 
@@ -662,8 +686,11 @@ public class UpgradeService {
      */
     private void initializeDownloadProgress(String version, long versionSize) {
         _coordinator.setTargetInfo(new DownloadingInfo(version, versionSize));
-        for (String nodeId : _coordinator.getAllNodes()) {
-            _coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(version, versionSize), "downloadinfo", nodeId);
+        for (Site site : drUtil.listSites()) {
+            for (String nodeId : _coordinator.getAllNodes(site.getUuid())) {
+                _coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(version, versionSize), site.getUuid(),
+                        DOWNLOADINFO_KIND, nodeId);
+            }
         }
     }
 
@@ -673,7 +700,7 @@ public class UpgradeService {
      * @param auditType Type of AuditLog
      * @param operationalStatus Status of operation
      * @param description Description for the AuditLog
-     * @param descparams Description paramters
+     * @param descparams Description parameters
      */
     public void auditUpgrade(OperationTypeEnum auditType,
             String operationalStatus,

@@ -18,7 +18,6 @@ public class VirtualArrayRelatedResourceRep extends RelatedResourceRep {
     /**
      * Virtual array where this Block object exists.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varray")

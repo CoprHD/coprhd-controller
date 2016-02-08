@@ -17,6 +17,7 @@ import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,10 +76,13 @@ public class VnxCloneOperations extends AbstractCloneOperations {
         try {
             final Volume first = _dbClient.queryObject(Volume.class, cloneList.get(0));
             Volume sourceVolume = _dbClient.queryObject(Volume.class, first.getAssociatedSourceVolume());
-            sourceGroupName = _helper.getConsistencyGroupName(sourceVolume, storage);
+            sourceGroupName = _helper.getSourceConsistencyGroupName(sourceVolume);
 
-            // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
-            ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);
+            if (!StringUtils.startsWith(sourceGroupName, SmisConstants.VNX_VIRTUAL_RG)) {
+                // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
+                ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);
+            }
+
             // Group volumes by pool and size
             List<String> sourceIds = new ArrayList<String>();
             List<Volume> clones = _dbClient.queryObject(Volume.class, cloneList);
@@ -94,7 +98,8 @@ public class VnxCloneOperations extends AbstractCloneOperations {
                 // Create target devices
                 final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(),
                         createInactive,
-                        1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), null, taskCompleter, _dbClient, _helper, _cimPath);
+                        1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), source, taskCompleter, _dbClient, _helper,
+                        _cimPath);
 
                 targetDeviceIds.addAll(newDeviceIds);
             }

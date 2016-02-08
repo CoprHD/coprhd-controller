@@ -1,0 +1,44 @@
+#{if filePolicies}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.filesystem.policy.name'}</th>
+      <th>&{'resources.filesystem.snapshot.pattern'}</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th style="text-align:right;">&{'resources.actions'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:filePolicies, as:'filePolicy'}
+      <tr>
+        <td>
+           ${filePolicy.policyName}
+        </td>
+        <td>
+          ${filePolicy.snapshotPattern}
+        </td>        
+        <td>
+         
+        </td>
+        <td>
+        </td>
+        <td>
+          
+        </td>
+        <td style="text-align:right;">
+          <a href="@{unassignPolicyToFileSystem(params.fileSystemId, filePolicy.policyId)}" 
+            class="btn btn-danger btn-xs"
+            onclick="return confirm('&{'resources.filesystem.policy.unassign.confirm'}')"
+          >&{'button.unassignPolicy'}</a>
+        </td>        
+      </tr>
+    #{/list}
+    </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.filesystem.policy.none'}
+#{/else}
+<div class="pull-right"><button type="button" onclick="showAssignPolicyDialog()" class="btn btn-xs btn-success"><i v-icon=plus></i> &{'button.assignPolicy'}</button></div>

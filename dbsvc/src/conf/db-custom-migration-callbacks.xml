@@ -103,10 +103,21 @@
         </entry>
         <entry key="2.4">
             <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.QualityOfServiceMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualPoolVarrayIndexFix"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.SRDFTargetVolumeRDFGroupMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.BlockSnapshotSessionMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.FCZoneReferenceMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.ComputeImageMigration"/>
             </list>
         </entry>
-
+        <entry key="2.4.1">
+            <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.BackupSchedulerConfigMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VolumesInCGMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VdcConfigMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualNASMultipleProjectsAssociationMigration"/>
+            </list>
+        </entry>
     </util:map>
 </beans>

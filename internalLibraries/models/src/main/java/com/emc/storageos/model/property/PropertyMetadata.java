@@ -33,6 +33,7 @@ public class PropertyMetadata {
     private String[] notifiers = new String[0];
     private String value;
     private Boolean controlNodeOnly = false;    // Control node only property flag
+    private Boolean siteSpecific = false; // Site specific attribute
 
     public PropertyMetadata() {
     }
@@ -207,6 +208,16 @@ public class PropertyMetadata {
         return controlNodeOnly;
     }
 
+    @XmlElement(name = "siteSpecific")
+    @JsonProperty("siteSpecific")
+    public Boolean getSiteSpecific() {
+        return siteSpecific;
+    }
+
+    public void setSiteSpecific(Boolean siteSpecific) {
+        this.siteSpecific = siteSpecific;
+    }
+
     /**
      * Get default value
      * 
@@ -231,9 +242,9 @@ public class PropertyMetadata {
      * 
      * For String : if no default value defined in metadata
      * case 1: minLen is null or 0, return ""
-     * case 2: minLen > 0, its value should have been set during deployment
-     * For URL & Email & License & Hostname & Iplist : same as String
-     * For UNIT64 & UINT32 & PERCENT : if no default, set to 0
+     * case 2: minLen greater than 0, its value should have been set during deployment
+     * For URL and Email and License and  Hostname and Iplist : same as String
+     * For UNIT64 and UINT32 and PERCENT : if no default, set to 0
      * 
      * @return default value string. Null when no default values needed.
      */

@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -30,11 +31,21 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -58,6 +69,7 @@ import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
@@ -166,27 +178,30 @@ public class RPHelper {
         List<Volume> allVolumesInRSet = new ArrayList<Volume>();
 
         Volume sourceVol = null;
-        if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
+        if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
             sourceVol = volume;
         } else {
             sourceVol = getRPSourceVolumeFromTarget(_dbClient, volume);
         }
+
         if (sourceVol != null) {
             allVolumesInRSet.add(sourceVol);
-        }
 
-        for (String tgtVolId : sourceVol.getRpTargets()) {
-            if (tgtVolId.equals(volume.getId().toString())) {
-                allVolumesInRSet.add(volume);
-            } else {
-                Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
-                if (tgt != null && !tgt.getInactive()) {
-                    allVolumesInRSet.add(tgt);
-                }
+            if (sourceVol.getRpTargets() != null) {
+                for (String tgtVolId : sourceVol.getRpTargets()) {
+                    if (tgtVolId.equals(volume.getId().toString())) {
+                        allVolumesInRSet.add(volume);
+                    } else {
+                        Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
+                        if (tgt != null && !tgt.getInactive()) {
+                            allVolumesInRSet.add(tgt);
+                        }
 
-                // if this target was previously the Metropoint active source, go out and get the standby copy
-                if (tgt != null && isMetroPointVolume(tgt)) {
-                    allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
+                        // if this target was previously the Metropoint active source, go out and get the standby copy
+                        if (tgt != null && isMetroPointVolume(tgt)) {
+                            allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
+                        }
+                    }
                 }
             }
         }
@@ -1085,16 +1100,17 @@ public class RPHelper {
         Map<Long, List<Volume>> cgTargetJournalsBySize = new TreeMap<Long, List<Volume>>(Collections.reverseOrder());
 
         for (Volume cgTargetVolume : cgTargetVolumes) {
-            // Make sure we only consider existing CG target volumes from the same virtual array
-            if (cgTargetVolume.getVirtualArray().equals(varray)
-                    && cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
-                if (null != cgTargetVolume.getRpJournalVolume()) {
-                    Volume targetJournal = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
-                    if (!cgTargetJournalsBySize.containsKey(targetJournal.getProvisionedCapacity())) {
-                        cgTargetJournalsBySize.put(targetJournal.getProvisionedCapacity(), new ArrayList<Volume>());
-                    }
-                    cgTargetJournalsBySize.get(targetJournal.getProvisionedCapacity()).add(targetJournal);
-                    validExistingTargetJournalVolumes.add(targetJournal);
+        	if (!NullColumnValueGetter.isNullURI(cgTargetVolume.getRpJournalVolume())) {
+	            // Make sure we only consider existing CG target journal volumes from the same virtual array
+	        	Volume existingTgtJournalVolume = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
+	            if (existingTgtJournalVolume.getVirtualArray().equals(varray)
+	            		&& cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
+                                   
+                    if (!cgTargetJournalsBySize.containsKey(existingTgtJournalVolume.getProvisionedCapacity())) {
+                        cgTargetJournalsBySize.put(existingTgtJournalVolume.getProvisionedCapacity(), new ArrayList<Volume>());
+                	 }
+                    cgTargetJournalsBySize.get(existingTgtJournalVolume.getProvisionedCapacity()).add(existingTgtJournalVolume);
+                    validExistingTargetJournalVolumes.add(existingTgtJournalVolume);
                 }
             }
         }
@@ -1108,6 +1124,8 @@ public class RPHelper {
         if (null == existingCGTargetJournalVolume) {
             existingCGTargetJournalVolume = validExistingTargetJournalVolumes.get(0);
         }
+        
+        _log.info(String.format("selectExistingJournalsForTargetVolume :: Found we can use journal volume : %s", existingCGTargetJournalVolume));
         return existingCGTargetJournalVolume;
     }
 
@@ -1845,17 +1863,19 @@ public class RPHelper {
      * @return a journal name unique within the site
      */
     public String createJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
-        String journalPrefix = new StringBuilder(varray.getLabel()).append(VOL_DELIMITER).append(consistencyGroup.getLabel())
+        String journalPrefix = new StringBuilder(consistencyGroup.getLabel()).append(VOL_DELIMITER).append(varray.getLabel())
                 .append(VOL_DELIMITER)
                 .append(JOURNAL).toString();
         List<Volume> existingJournals = getJournalVolumesForSite(varray, consistencyGroup);
 
         // filter out old style journal volumes
         // new style journal volumes are named with the virtual array as the first component
+        // some journals may be ingested and not fit either style.  Avoid those too.
         List<Volume> newStyleJournals = new ArrayList<Volume>();
         for (Volume journalVol : existingJournals) {
             String volName = journalVol.getLabel();
-            if (volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
+            if (volName != null && volName.length() >= journalPrefix.length() && 
+                volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
                 newStyleJournals.add(journalVol);
             }
         }
@@ -1911,4 +1931,167 @@ public class RPHelper {
         }
         return false;
     }
+
+    /**
+     * Returns a set of all RP ports as their related Initiator URIs.
+     * 
+     * @param dbClient - database client instance
+     * @return a Set of Initiator URIs
+     */
+    public static Set<URI> getBackendPortInitiators(DbClient dbClient) {
+        _log.info("Finding backend port initiators for all RP systems");
+        Set<URI> initiators = new HashSet<URI>();
+        
+        List<URI> rpSystemUris = dbClient.queryByType(ProtectionSystem.class, true);
+        List<ProtectionSystem> rpSystems = dbClient.queryObject(ProtectionSystem.class, rpSystemUris);
+        for (ProtectionSystem rpSystem : rpSystems ) {
+            for (Entry<String, AbstractChangeTrackingSet<String>> rpSitePorts : rpSystem.getSiteInitiators().entrySet()) {
+                for (String port : rpSitePorts.getValue()) {
+                    Initiator initiator = ExportUtils.getInitiator(port, dbClient);
+                    if (initiator != null) {
+                        // Review: OK to reduce to debug level
+                        _log.info("Adding initiator " + initiator.getId() + " with port: " + port);
+                        initiators.add(initiator.getId());
+                    }
+                }
+            }
+        }
+        return initiators;
+    }    
+
+    /**
+     * Does this snapshot require any sort of protection intervention? If it's a local array-based
+     * snapshot, probably not. If it's a protection-based snapshot or a remote array-based snapshot
+     * that requires protection intervention to ensure consistency between the source and target, then
+     * you should go to the protection controller
+     * 
+     * @param volume source volume
+     * @param snapshotType The snapshot technology type.
+     * 
+     * @return true if this is a protection based snapshot, false otherwise.
+     */
+    public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
+        // This is a protection based snapshot request if:
+        // The volume allows for bookmarking (it's under protection) and
+        // - The param either asked for a bookmark, or
+        // - The param didn't ask for a bookmark, but the volume is a remote volume
+        if (volume.getProtectionController() != null
+                && (snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString()) || volume
+                        .getPersonality().equals(Volume.PersonalityTypes.TARGET.toString()))) {
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Fetch the RP Protected target virtual pool uris.
+     * 
+     * @param dbClient db client
+     * @return set of vpools that are RP target virtual pools
+     */
+    public static Set<URI> fetchRPTargetVirtualPools(DbClient dbClient) {
+        Set<URI> rpProtectedTargetVPools = new HashSet<URI>();
+        try {
+            List<URI> vpoolProtectionSettingsURIs = dbClient.queryByType(VpoolProtectionVarraySettings.class,
+                    true);
+            Iterator<VpoolProtectionVarraySettings> vPoolProtectionSettingsItr = dbClient
+                    .queryIterativeObjects(VpoolProtectionVarraySettings.class, vpoolProtectionSettingsURIs,
+                            true);
+            while (vPoolProtectionSettingsItr.hasNext()) {
+                VpoolProtectionVarraySettings rSetting = vPoolProtectionSettingsItr.next();
+                if (null != rSetting && !NullColumnValueGetter.isNullURI(rSetting.getVirtualPool())) {
+                    rpProtectedTargetVPools.add(rSetting.getVirtualPool());
+                }
+
+            }
+        } catch (Exception ex) {
+            _log.error("Exception occurred while fetching RP enabled virtualpools", ex);
+        }
+        return rpProtectedTargetVPools;
+    }
+
+    /**
+     * Creates an export group with the proper settings for RP usage
+     * 
+     * @param internalSiteName internal site name of export
+     * @param virtualArray virtual array 
+     * @param project project
+     * @param protectionSystem protection system
+     * @param storageSystem storage system
+     * @param numPaths number of paths
+     * @return an export group
+     */
+    public static ExportGroup createRPExportGroup(String internalSiteName, VirtualArray virtualArray, Project project, ProtectionSystem protectionSystem,
+            StorageSystem storageSystem, Integer numPaths, boolean isJournalExport) {
+        ExportGroup exportGroup;
+        exportGroup = new ExportGroup();
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE, Flag.RECOVERPOINT);
+        exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+        exportGroup.setVirtualArray(virtualArray.getId());
+        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
+        // This name generation needs to match ingestion code found in RPDeviceController until
+        // we come up with better export group matching criteria.
+        String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
+        String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
+                + "_"
+                + virtualArray.getLabel();
+        // Remove all non alpha-numeric characters, excluding "_".
+        exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
+        exportGroup.setGeneratedName(exportGroupGeneratedName);
+        // When created by CoprHD natively, it's usually the CG name.
+        exportGroup.setLabel(exportGroupGeneratedName);
+        exportGroup.setVolumes(new StringMap());
+        exportGroup.setOpStatus(new OpStatusMap());
+        // TODO: May need to use a default size or compute based on the contents of the export mask.
+        exportGroup.setNumPaths(numPaths);
+        exportGroup.setType(ExportGroupType.Cluster.name());
+        exportGroup.setZoneAllInitiators(true);
+        
+        //If this is an exportGroup intended only for journal volumes, set the RECOVERPOINT_JOURNAL flag
+        if (isJournalExport) {
+        	exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
+        	String egName = exportGroup.getGeneratedName() + "_JOURNAL";
+        	exportGroup.setGeneratedName(egName);
+        	exportGroup.setLabel(egName);
+        }
+        
+        return exportGroup;
+    }
+
+    /**
+     * Get the name of the copy associated with the varray ID and personality of the incoming volume.
+     * 
+     * @param dbClient db client
+     * @param consistencyGroup cg
+     * @param varrayId varray ID
+     * @param productionCopy is this a production volume
+     * @return String associated with the existing copy name
+     */
+    public static String getCgCopyName(DbClient dbClient, BlockConsistencyGroup consistencyGroup, URI varrayId, boolean productionCopy) {
+        List<Volume> cgVolumes = RPHelper.getCgVolumes(consistencyGroup.getId(), dbClient);
+        if (cgVolumes == null) {
+            return null;
+        }
+        
+        for (Volume cgVolume : cgVolumes) {
+            if (cgVolume.getPersonality() == null) {
+                continue;
+            }
+            
+            if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
+                continue;
+            }
+            
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
+                return cgVolume.getRpCopyName();
+            }
+
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString()) && !productionCopy) {
+                return cgVolume.getRpCopyName();
+            }
+        }
+        return null;
+    }
+
 }

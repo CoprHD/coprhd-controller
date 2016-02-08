@@ -674,7 +674,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
                 ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 mask.removeVolumes(volumeURIList);
-                _dbClient.updateAndReindexObject(mask);
+                _dbClient.updateObject(mask);
                 taskCompleter.error(_dbClient, DeviceControllerException.errors
                         .vmaxStorageGroupNameNotFound(maskingViewName));
                 return;
@@ -1056,7 +1056,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 if (null == parentGroupName) {
                     ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                     mask.removeVolumes(volumeURIList);
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                     taskCompleter.error(_dbClient, DeviceControllerException.errors
                             .vmaxStorageGroupNameNotFound(maskingViewName));
                     return;
@@ -1348,7 +1348,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _log.info(String.format("Target ports already added to port group %s, likely by a previous operation.", pgGroupName));
                 }
 
-                _dbClient.updateAndReindexObject(exportMask);
+                _dbClient.updateObject(exportMask);
             }
             _log.info(String.format("addInitiator succeeded - maskName: %s", exportMaskURI.toString()));
             taskCompleter.ready(_dbClient);
@@ -1534,7 +1534,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * 
      * @param storage [in] - StorageSystem object representing the array
      * @param initiatorNames [in] - Port identifiers (WWPN or iSCSI name)
-     * @param mustHaveAllPorts [in] - Indicates if true, *all* the passed in initiators
+     * @param mustHaveAllInitiators [in] - Indicates if true, *all* the passed in initiators
      *            have to be in the existing matching mask. If false,
      *            a mask with *any* of the specified initiators will be
      *            considered a hit.
@@ -1543,7 +1543,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
-            boolean mustHaveAllPorts) {
+            boolean mustHaveAllInitiators) {
         long startTime = System.currentTimeMillis();
         Map<String, Set<URI>> matchingMasks = new HashMap<String, Set<URI>>();
         Map<URI, ExportMask> maskMap = new HashMap<>();
@@ -1620,8 +1620,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts);
                         exportMask.setStoragePorts(storagePortURIs);
                         // Add the mask name to the list for which volumes are already updated
-                        maskNames.add(name);
-                        maskMap.put(exportMask.getId(), exportMask);
+                        maskNames.add(name);                        
                     }
                     exportMask.addToExistingInitiatorsIfAbsent(initiatorName);
 
@@ -1632,28 +1631,64 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                         initiatorName, name));
                         continue;
                     }
-                    exportMask.addInitiator(existingInitiator);
+                    exportMask.addInitiator(existingInitiator);    
+                    
+                    // Update the maskMap with the latest in-memory exportMask reference. 
+                    maskMap.put(exportMask.getId(), exportMask);
+                    
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
-                        _dbClient.updateAndReindexObject(exportMask);
+                        _dbClient.updateObject(exportMask);
                     } else {
                         _dbClient.createObject(exportMask);
                     }
 
-                    if (matchesSearchCriteria(exportMask, Collections.singletonList(initiatorName), mustHaveAllPorts)) {
-                        Set<URI> maskURIs = matchingMasks.get(initiatorName);
-                        if (maskURIs == null) {
-                            maskURIs = new HashSet<URI>();
-                            matchingMasks.put(initiatorName, maskURIs);
+                    Set<URI> maskURIs = matchingMasks.get(initiatorName);
+                    if (maskURIs == null) {
+                        maskURIs = new HashSet<>();
+                        matchingMasks.put(initiatorName, maskURIs);
+                    }
+                    maskURIs.add(exportMask.getId());
+                }
+            }
+
+            // COP-19514 - After we've found all ExportMasks that are related to a given set of initiators, we
+            // need to eliminate any that do not have all the initiators if mustHaveAllInitiators=true. The
+            // masksNotContainingAllInitiators set is used to hold references to those ExportMasks that do not
+            // match the criteria of having all the initiators.
+            Set<URI> masksNotContainingAllInitiators = new HashSet<>();
+            if (mustHaveAllInitiators) {
+                // Check if each ExportMask has all the ports. If not, add it to masksNotContainingAllInitiators
+                for (URI exportMaskURI : maskMap.keySet()) {
+                    ExportMask mask = maskMap.get(exportMaskURI);
+                    if (!matchesSearchCriteria(mask, initiatorNames, true)) {
+                        masksNotContainingAllInitiators.add(exportMaskURI);
+                    }
+                }
+                // Adjust the matchingMap if there are any masksNotContainingAllInitiators
+                if (!masksNotContainingAllInitiators.isEmpty()) {
+                    _log.info("ExportMasks not containing all initiators requested: {}", masksNotContainingAllInitiators);
+                    // Remove references to the ExportMask URIs from the matchingMasks map entries
+                    Iterator<Entry<String, Set<URI>>> matchingMapEntryIterator = matchingMasks.entrySet().iterator();
+                    while (matchingMapEntryIterator.hasNext()) {
+                        Entry<String, Set<URI>> matchingMapEntry = matchingMapEntryIterator.next();
+                        Set<URI> maskURIs = matchingMapEntry.getValue();
+                        maskURIs.removeAll(masksNotContainingAllInitiators);
+                        // If all the ExportMask keys are cleared out, then we need to remove the whole entry
+                        if (maskURIs.isEmpty()) {
+                           matchingMapEntryIterator.remove();
                         }
-                        maskURIs.add(exportMask.getId());
                     }
                 }
             }
+
             StringBuilder builder = new StringBuilder();
             for (URI exportMaskURI : maskMap.keySet()) {
                 ExportMask exportMask = maskMap.get(exportMaskURI);
-                builder.append(String.format("\nXM:%s is matching: ", exportMask.getMaskName())).append('\n').append(exportMask.toString());
+                String qualifier = (masksNotContainingAllInitiators.contains(exportMaskURI))
+                        ? ", but not containing all initiators we're looking for" : SmisConstants.EMPTY_STRING;
+                builder.append(String.format("\nXM:%s is matching%s: ", exportMask.getMaskName(), qualifier)).append('\n')
+                        .append(exportMask.toString());
             }
             _log.info(builder.toString());
         } catch (Exception e) {
@@ -1829,7 +1864,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.getStoragePorts().addAll(storagePortsToAdd);
                     mask.getStoragePorts().removeAll(storagePortsToRemove);
                     ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }

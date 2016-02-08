@@ -61,21 +61,40 @@ public interface DbClient {
     <T extends DataObject> T queryObject(Class<T> clazz, NamedURI id);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
+     * Queries for objects with given URI's. Deserializes into a data object of given
+     * class. Please use queryIterativeObjects instead if too many records in db
+     * 
+     *
+     * @param clazz object type
+     * @param ids object ids
+     * @param <T> object type
+     * @return deserialized object list. non matching records are not returned
+     * @throws DatabaseException 
      */
-    @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
+     * Same as queryObject(Class, List<URI>). Filters on activeOnly record if specified.
+     * Please use queryIterativeObjects instead if too many records in db.
+     *
+     * @param clazz object type
+     * @param ids object ids
+     * @param activeOnly
+     * @return deserialized object list
+     * @throws DatabaseException
      */
     @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly);
 
     /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
+     * Same as queryObject(Class, List<URI>).
+     * Please use queryIterativeObjects instead if too many records in db.
+     *
+     * @param clazz object type
+     * @param id object id
+     * @return deserialized object list
+     * @throws DatabaseException
      */
-    @Deprecated
     <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id);
 
     /**
@@ -652,4 +671,10 @@ public interface DbClient {
      *         the features for geoVersion can be enabled. Otherwise false;
      * */
     boolean checkGeoCompatible(String expectVersion);
+    
+    /**
+     * Check whether there is active and useful data in database. Don't check the data whose type is in excludeClasses
+     * @return true if there are useful data
+     */
+    boolean hasUsefulData();
 }

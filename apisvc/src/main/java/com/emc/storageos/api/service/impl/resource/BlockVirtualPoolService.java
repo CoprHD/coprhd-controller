@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
+ * Copyright 2012 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -29,6 +42,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.volumecontroller.AttributeMatcher;
+import com.emc.storageos.api.service.impl.resource.cinder.QosService;
+import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
+import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,17 +56,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
@@ -76,6 +83,7 @@ import com.emc.storageos.model.vpool.VirtualPoolPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionMirrorParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -101,11 +109,11 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     /**
      * Returns all potential virtual pools, which supported the given virtual pool change operation
      * for a virtual pool change of the volumes specified in the request
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param param
-     * 
+     *
      * @brief Show potential virtual pools
      * @return A VirtualPoolChangeList that identifies each potential virtual
      *         pool, whether or not a change is allowed for the virtual pool,
@@ -156,7 +164,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * Creates a block store virtual pool
-     * 
+     *
      * @prereq none
      * @param param VirtualPool parameters
      * @brief Create block store virtual pool
@@ -178,7 +186,6 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         List<VpoolProtectionVarraySettings> protectionSettings = new ArrayList<VpoolProtectionVarraySettings>();
         Map<URI, VpoolProtectionVarraySettings> protectionSettingsMap = new HashMap<URI, VpoolProtectionVarraySettings>();
         VirtualPool vpool = prepareVirtualPool(param, remoteSettingsMap, protectionSettingsMap, protectionSettings);
-
         // Set the underlying protection setting objects
         if (!protectionSettings.isEmpty()) {
             _dbClient.createObject(protectionSettings);
@@ -186,15 +193,18 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (!remoteSettingsMap.isEmpty()) {
             _dbClient.createObject(new ArrayList(remoteSettingsMap.values()));
         }
-
         // update the implicit pools matching with this VirtualPool.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
         Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
+        Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient);
         }
 
         _dbClient.createObject(vpool);
+
+        // Creates a new QoS object in DB based on data from given Virtual Pool
+        QosService.createQosSpecification(vpool, _dbClient);
 
         recordOperation(OperationTypeEnum.CREATE_VPOOL, VPOOL_CREATED_DESCRIPTION, vpool);
         return toBlockVirtualPool(_dbClient, vpool, VirtualPool.getProtectionSettings(vpool, _dbClient),
@@ -204,7 +214,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     /**
      * Return the matching pools for a given set of VirtualPool attributes.
      * This API is useful for user to find the matching pools before creating a VirtualPool.
-     * 
+     *
      * @prereq none
      * @param param : VirtualPoolAttributeParam
      * @brief List matching pools for virtual pool properties
@@ -228,7 +238,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
                 protectionSettingsMap,
                 remoteSettingsMap,
-                _dbClient, _coordinator);
+                null,
+                _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }
@@ -237,7 +248,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * List the virtual pools for Block Store
-     * 
+     *
      * @prereq none
      * @brief List virtual pools for block store
      * @return Returns the VirtualPool user is authorized to see
@@ -251,7 +262,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * Get info for block store virtual pool
-     * 
+     *
      * @prereq none
      * @param id the URN of a ViPR VirtualPool
      * @brief Show block store virtual pool
@@ -277,7 +288,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * Deactivate block store virtual pool, this will move the virtual pool to a "marked-for-deletion" state,
      * and no more resource may be created using it.
      * The virtual pool will be deleted when all references to this virtual pool of type Volume are deleted
-     * 
+     *
      * @prereq Dependent resources such as volumes and snapshots must be deleted
      * @param id the URN of a ViPR VirtualPool
      * @brief Delete block store virtual pool
@@ -293,7 +304,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * Get block store virtual pool ACL
-     * 
+     *
      * @prereq none
      * @param id the URN of a ViPR VirtualPool
      * @brief Show ACL assignment for block store virtual pool
@@ -309,7 +320,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * Add or remove individual block store virtual pool ACL entry(s). Request body must include at least one add or remove operation.
-     * 
+     *
      * @prereq none
      * @param id the URN of a ViPR VirtualPool
      * @param changes ACL assignment changes
@@ -328,10 +339,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     /**
      * Returns list of computed id's for all storage pools matching with the virtual pool.
      * This list of pools will be used when creating volumes.
-     * 
+     *
      * @prereq none
      * @param id the URN of a ViPR VirtualPool.
-     * 
+     *
      * @brief List storage pool ids matching the virtual pool
      * @return The ids for all storage pools that satisfy the VirtualPool.
      */
@@ -345,9 +356,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * This method re-computes the matched pools for this virtual pool and returns this information.
-     * 
+     *
      * Where as getStoragePools {id}/storage-pools returns whatever is already computed, for matched pools.
-     * 
+     *
      * @prereq none
      * @param id : the URN of a ViPR Block VirtualPool
      * @brief Refresh list of storage pools matching the virtual pool
@@ -363,7 +374,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * The block virtual pool can be modified only if there are no associated resources.
-     * 
+     *
      * @prereq No associated resources such as volumes or snapshots should exist
      * @param param VirtualPool parameters
      * @brief Update block store virtual pool
@@ -385,12 +396,15 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }
 
+        // Get the QoS for the VirtualPool, otherwise throw exception.
+        QosSpecification qosSpecification = QosService.getQos(vpool.getId(), _dbClient);
+
         URIQueryResultList resultList = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(id), resultList);
         boolean isActiveVolumePartOfPool = false;
-        for (Iterator<URI> volumeItr = resultList.iterator(); volumeItr.hasNext();) {
-            Volume volume = _dbClient.queryObject(Volume.class, volumeItr.next());
+        for (URI uri : resultList) {
+            Volume volume = _dbClient.queryObject(Volume.class, uri);
             if (!volume.getInactive()) {
                 isActiveVolumePartOfPool = true;
                 break;
@@ -487,7 +501,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         // Update Protection settings.
         if (null != param.getProtection()) {
-            updateProtectionParamsForVirtualPool(vpool, param.getProtection());
+            updateProtectionParamsForVirtualPool(vpool, param.getProtection(), param.getHighAvailability());
         }
 
         // Validate Block VirtualPool update params.
@@ -498,7 +512,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
             Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
+            Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient);
         }
 
         // Validate Mirror Vpool
@@ -513,7 +528,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             validateMaxNativeContinuousCopies(vpool.getMaxNativeContinuousCopies(), vpool.getHighAvailability());
         }
 
-        _dbClient.updateAndReindexObject(vpool);
+        _dbClient.updateObject(vpool);
+
+        // Update VirtualPool and QoS with new parameters
+        QosService.updateQos(vpool, qosSpecification, _dbClient);
 
         recordOperation(OperationTypeEnum.UPDATE_VPOOL, VPOOL_UPDATED_DESCRIPTION, vpool);
         return toBlockVirtualPool(_dbClient, vpool, VirtualPool.getProtectionSettings(vpool, _dbClient),
@@ -523,7 +541,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     /**
      * Updates the virtual pool high availability parameters based
      * values of the update request.
-     * 
+     *
      * @param vPool A reference to the virtual pool to update.
      * @param haParam The HA update parameters.
      */
@@ -702,7 +720,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * When updating a virtual pool, this function verifies that if there is
      * and update to the HA virtual pool, that the specified pool is valid
      * for the virtual pool being updated.
-     * 
+     *
      * @param vPoolBeingUpdated The vpool being updated.
      * @param newHAVpoolId The non-null id of the new HA vpool.
      */
@@ -744,12 +762,12 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * Performs the protection updates on <code>VirtualPool</code>.
-     * 
+     *
      * @param virtualPool Reference to the virtual pool to update.
      * @param param The updates that need to be applied to the virtual pool.
      */
     private void updateProtectionParamsForVirtualPool(VirtualPool virtualPool,
-            BlockVirtualPoolProtectionUpdateParam param) {
+            BlockVirtualPoolProtectionUpdateParam param, VirtualPoolHighAvailabilityParam haParam) {
 
         // If the update specifies protection, we need to process the update.
         if (param != null) {
@@ -818,38 +836,63 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                     // RP protection so remove it.
                     deleteVPoolProtectionVArraySettings(virtualPool);
                 } else {
-                    // If the source policy is omitted, do nothing. If it is provided with
-                    // no journal size (i.e. <source_policy/>) we remove the source policy
-                    // from the virtual pool.
+                    // If the source policy is omitted, do nothing.
                     ProtectionSourcePolicy sourcePolicy = param.getRecoverPoint().getSourcePolicy();
                     if (sourcePolicy != null) {
                         String nullValue = NullColumnValueGetter.getNullStr();
                         virtualPool.setJournalSize(StringUtils.defaultString(sourcePolicy.getJournalSize(), nullValue));
-                        virtualPool.setJournalVarray(sourcePolicy.getJournalVarray() != null ? sourcePolicy.getJournalVarray().toString()
-                                : null);
-                        if (virtualPool.getJournalVarray() == null) {
+                        virtualPool.setJournalVarray(!NullColumnValueGetter.isNullURI(sourcePolicy.getJournalVarray()) ? sourcePolicy
+                                .getJournalVarray().toString()
+                                : nullValue);
+                        if (NullColumnValueGetter.isNullValue(virtualPool.getJournalVarray())) {
                             // If the journal varray is null, the journal vpool has to be null too.
-                            virtualPool.setJournalVpool(null);
-                        }
-                        else {
-                            virtualPool.setJournalVpool(sourcePolicy.getJournalVpool() != null ? sourcePolicy.getJournalVpool().toString()
-                                    : virtualPool.getId().toString());
+                            virtualPool.setJournalVpool(nullValue);
+                        } else {
+                            // Set the journal virtual pool. If none is specified, we must determine the default, which
+                            // will be the parent vpool or the ha vpool.
+                            String defaultVpoolId = nullValue;
+                            if (haParam == null || Boolean.TRUE.equals(haParam.getMetroPoint())) {
+                                // Default the virtual pool to the parent virtual pool in cases where no high availability
+                                // is specified or when HA is specified but not MetroPoint.
+                                defaultVpoolId = virtualPool.getId().toString();
+                            } else if (Boolean.FALSE.equals(haParam.getMetroPoint()) && haParam.getHaVirtualArrayVirtualPool() != null
+                                    && Boolean.TRUE.equals(haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite())) {
+                                // If active protection at HA site is specified, our default vpool should be the HA
+                                // virtual pool.
+                                if (haParam.getHaVirtualArrayVirtualPool().getVirtualPool() != null) {
+                                    defaultVpoolId = haParam.getHaVirtualArrayVirtualPool().getVirtualPool().toString();
+                                }
+                            }
+
+                            virtualPool.setJournalVpool(!NullColumnValueGetter.isNullURI(sourcePolicy.getJournalVpool()) ? sourcePolicy
+                                    .getJournalVpool().toString()
+                                    : defaultVpoolId);
                         }
 
-                        if (NullColumnValueGetter.isNotNullValue(virtualPool.getHighAvailability())
-                                && (virtualPool.getMetroPoint() != null)
-                                && virtualPool.getMetroPoint()) {
+                        if (NullColumnValueGetter.isNotNullValue(virtualPool.getHighAvailability())) {
                             virtualPool.setStandbyJournalVarray(
-                                    sourcePolicy.getStandbyJournalVarray() != null ? sourcePolicy.getStandbyJournalVarray().toString()
-                                            : null);
-                            if (virtualPool.getStandbyJournalVarray() == null) {
+                                    !NullColumnValueGetter.isNullURI(sourcePolicy.getStandbyJournalVarray()) ? sourcePolicy
+                                            .getStandbyJournalVarray().toString()
+                                            : nullValue);
+                            if (NullColumnValueGetter.isNullValue(virtualPool.getStandbyJournalVarray())) {
                                 // If the ha journal varray is null, the ha journal vpool has to be null too.
-                                virtualPool.setStandbyJournalVpool(null);
-                            }
-                            else {
+                                virtualPool.setStandbyJournalVpool(nullValue);
+                            } else {
+
+                                String defaultHaVpool = nullValue;
+                                // Obtain the default HA virtual pool
+                                Map<String, String> haVarrayVpoolMap = virtualPool.getHaVarrayVpoolMap();
+                                if (haVarrayVpoolMap != null && !haVarrayVpoolMap.isEmpty()) {
+                                    if (NullColumnValueGetter.isNotNullValue(haVarrayVpoolMap.get(virtualPool.getStandbyJournalVarray()))) {
+                                        defaultHaVpool = haVarrayVpoolMap.get(virtualPool.getStandbyJournalVarray());
+                                    }
+                                }
+
+                                // By default, if no standby vpool is set, set the HA journal vpool to the HA vpool.
                                 virtualPool.setStandbyJournalVpool(
-                                        sourcePolicy.getStandbyJournalVpool() != null ? sourcePolicy.getStandbyJournalVpool().toString()
-                                                : null);
+                                        !NullColumnValueGetter.isNullURI(sourcePolicy.getStandbyJournalVpool()) ? sourcePolicy
+                                                .getStandbyJournalVpool().toString()
+                                                : defaultHaVpool);
                             }
                         }
                         virtualPool.setRpCopyMode(StringUtils.defaultString(sourcePolicy.getRemoteCopyMode(), nullValue));
@@ -1053,13 +1096,13 @@ public class BlockVirtualPoolService extends VirtualPoolService {
     }
 
     /**
-     * 
+     *
      * Check if any VirtualPool attribute values have changed.
-     * 
+     *
      * @TODO Whenever a new attribute is added to VirtualPool, we should change this
      *       logic. Constraint to check: can we change new attribute, if there
      *       are resources associated with VirtualPool?
-     * 
+     *
      * @param param
      * @param vpool : VirtualPool in DB.
      * @return : flag to check whether to update VirtualPool or not.
@@ -1081,7 +1124,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * check the if there is any change in VirtualPool maxPaths, minPaths, pathsPerInitiator attributes.
-     * 
+     *
      * @param vpoolValue
      * @param paramValue
      */
@@ -1103,7 +1146,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * This method allows a user to update assigned matched pools.
-     * 
+     *
      * @prereq none
      * @param param
      *            : VirtualPool parameter
@@ -1122,14 +1165,14 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * Gets storage capacity information for specified virtual pool and neighborhood instances.
-     * 
+     *
      * The method returns set of metrics for capacity available for block storage provisioning:
      * - free_gb : free storage capacity
      * - used_gb : used storage capacity
      * - provisioned_gb : subscribed storage capacity (may be larger than usable capacity)
      * - percent_used : percent of usable capacity which is used
      * - percent_subscribed : percent of usable capacity which is subscribed (may be more than 100)
-     * 
+     *
      * @prereq none
      * @param id the URN of a ViPR VirtualPool.
      * @param varrayId The id of VirtualArray.
@@ -1157,7 +1200,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * List all instances of block virtual pools
-     * 
+     *
      * @prereq none
      * @brief List all instances of block virtual pools
      */
@@ -1172,7 +1215,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * Show quota and available capacity before quota is exhausted
-     * 
+     *
      * @prereq none
      * @param id the URN of a ViPR VirtualPool.
      * @brief Show quota and available capacity before quota is exhausted
@@ -1188,7 +1231,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
     /**
      * Updates quota and available capacity before quota is exhausted
-     * 
+     *
      * @prereq none
      * @param id the URN of a ViPR VirtualPool.
      * @param param new values for the quota
@@ -1290,7 +1333,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * 1. If minPaths or pathsPerInitiator are specified, maxPaths must be specified
      * 2. The resulting minPaths cannot be greater than maxPaths
      * 3. The resulting pathsPerInitiator cannot be greater than maxPaths
-     * 
+     *
      * @param vpool
      * @param maxPaths
      * @param minPaths
@@ -1483,7 +1526,29 @@ public class BlockVirtualPoolService extends VirtualPoolService {
                         if (!NullColumnValueGetter.isNullURI(sourcePolicy.getJournalVpool())) {
                             vpool.setJournalVpool(sourcePolicy.getJournalVpool().toString());
                         } else {
-                            vpool.setJournalVpool(vpool.getId().toString());
+                            String journalVpoolId = NullColumnValueGetter.getNullStr();
+
+                            if (param.getHighAvailability() == null || Boolean.TRUE.equals(param.getHighAvailability().getMetroPoint())) {
+                                // In cases of MetroPoint or when high availability is not specified, default the journal virtual pool
+                                // to the parent virtual pool
+                                journalVpoolId = vpool.getId().toString();
+                            } else if (Boolean.FALSE.equals(param.getHighAvailability().getMetroPoint())
+                                    && param.getHighAvailability().getHaVirtualArrayVirtualPool() != null
+                                    && Boolean.TRUE.equals(param.getHighAvailability().getHaVirtualArrayVirtualPool()
+                                            .getActiveProtectionAtHASite())) {
+                                // If active protection at HA site is specified (not MetroPoint), our default ha journal vpool should be the
+                                // HA virtual pool.
+                                if (param.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool() != null) {
+                                    journalVpoolId = param.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualPool()
+                                            .toString();
+                                }
+                            } else {
+                                // In cases of MetroPoint or when high availability is not specified, default the journal virtual pool
+                                // to the parent virtual pool
+                                journalVpoolId = vpool.getId().toString();
+                            }
+
+                            vpool.setJournalVpool(journalVpoolId);
                         }
                     }
 

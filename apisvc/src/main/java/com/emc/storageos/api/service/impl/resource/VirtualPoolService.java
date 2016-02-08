@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
+ * Copyright 2008-2013 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -9,19 +22,18 @@ import static com.emc.storageos.api.mapper.BlockMapper.toVirtualPoolResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.api.service.impl.resource.cinder.QosService;
+import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
+import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.util.UriUtils;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -39,12 +51,12 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.VirtualPool.ProvisioningType;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
 import com.emc.storageos.db.client.model.Volume;
@@ -70,6 +82,7 @@ import com.emc.storageos.model.vpool.VirtualPoolCommonParam;
 import com.emc.storageos.model.vpool.VirtualPoolList;
 import com.emc.storageos.model.vpool.VirtualPoolPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
@@ -224,7 +237,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
 
         ArgValidator.checkFieldValueWithExpected(!VirtualPool.ProvisioningType.NONE.name()
-                .equalsIgnoreCase(param.getProvisionType()), VPOOL_PROVISIONING_TYPE, param.getProvisionType(),
+                        .equalsIgnoreCase(param.getProvisionType()), VPOOL_PROVISIONING_TYPE, param.getProvisionType(),
                 VirtualPool.ProvisioningType.Thick, VirtualPool.ProvisioningType.Thin);
 
         if (null != param.getProtocolChanges()) {
@@ -452,7 +465,8 @@ public abstract class VirtualPoolService extends TaggedResource {
                         _dbClient);
             } else if (vpool.getType().equals(VirtualPool.Type.block.name())) {
                 Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
-                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
+                Set<URI> allRpTargetVpools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
+                ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVpools, _dbClient);
             }
 
             _dbClient.updateAndReindexObject(vpool);
@@ -787,6 +801,13 @@ public abstract class VirtualPoolService extends TaggedResource {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }
 
+        QosSpecification qosSpecification = null;
+        // Check if Virtual Pool type equals block type
+        if(vpool.getType().equalsIgnoreCase(Type.block.name())){
+            // Get the QoS for the VirtualPool, otherwise throw exception
+            qosSpecification = QosService.getQos(vpool.getId(), _dbClient);
+        }
+
         // make sure vpool is unused by volumes/fileshares
         ArgValidator.checkReference(VirtualPool.class, id, checkForDelete(vpool));
 
@@ -810,6 +831,11 @@ public abstract class VirtualPoolService extends TaggedResource {
             // Delete all settings associated with the protection settings
             deleteVPoolProtectionVArraySettings(vpool);
         }
+        
+        if (vpool.getFileRemoteCopySettings() != null) {
+            // Delete all settings associated with the protection settings
+        	deleteFileVPoolRemoteCopyProtectionSettings(vpool);
+        }
 
         // We also check to see if this virtual pool is specified as the HA virtual pool
         // for some other virtual pool that specifies VPLEX distributed high availability.
@@ -827,6 +853,11 @@ public abstract class VirtualPoolService extends TaggedResource {
                     throw APIException.badRequests.cantDeleteVPlexHaVPool(activeVPool.getLabel());
                 }
             }
+        }
+
+        if(vpool.getType().equalsIgnoreCase(Type.block.name()) && qosSpecification != null){
+            // Remove Qos associated to this Virtual Pool
+            _dbClient.removeObject(qosSpecification);
         }
 
         _dbClient.markForDeletion(vpool);
@@ -850,6 +881,27 @@ public abstract class VirtualPoolService extends TaggedResource {
 
             vpool.getProtectionVarraySettings().clear();
         }
+    }
+    
+    /**
+     * Deletes all File Replication VpoolRemoteCopyProtectionSettings objects associated with a VirtualPool.
+     * 
+     * @param vpool the VirtualPool from which to delete the
+     *            VpoolRemoteCopyProtectionSettings.
+     */
+    protected void deleteFileVPoolRemoteCopyProtectionSettings(VirtualPool vpool) {
+        // Delete all settings associated with the protection settings
+    	if (vpool.getFileRemoteCopySettings() != null && !vpool.getFileRemoteCopySettings().isEmpty()) {
+    		for (String protectionVirtualArray : vpool.getFileRemoteCopySettings().keySet()) {
+                String strRemoteSettings = vpool.getFileRemoteCopySettings().get(protectionVirtualArray);
+                URI uriRemoteSettings = URI.create(strRemoteSettings);
+                VpoolRemoteCopyProtectionSettings remoteSettings = _dbClient.queryObject(VpoolRemoteCopyProtectionSettings.class, uriRemoteSettings);
+                if (remoteSettings != null && !remoteSettings.getInactive()) {
+                	_dbClient.markForDeletion(remoteSettings);
+                }
+            }
+    		vpool.getFileRemoteCopySettings().clear();
+    	}
     }
 
     /**

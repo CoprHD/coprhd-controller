@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbAggregatorItf;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.TimeSeriesMetadata;
@@ -46,6 +47,7 @@ import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.constraint.impl.ConstraintImpl;
 import com.emc.storageos.db.client.model.AllowedGeoVersion;
+import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.db.client.model.Host;
@@ -54,14 +56,20 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.NoInactiveIndex;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProjectResource;
 import com.emc.storageos.db.client.model.ProjectResourceSnapshot;
+import com.emc.storageos.db.client.model.PropertyListDataObject;
+import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.TenantResource;
 import com.emc.storageos.db.client.model.TimeSeries;
 import com.emc.storageos.db.client.model.TimeSeriesSerializer;
+import com.emc.storageos.db.client.model.Token;
+import com.emc.storageos.db.client.model.VdcVersion;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.KeyspaceUtil;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
@@ -108,6 +116,10 @@ public class DbClientImpl implements DbClient {
     private static final int DEFAULT_TS_PAGE_SIZE = 100;
     private static final int DEFAULT_BATCH_SIZE = 1000;
     protected static final int DEFAULT_PAGE_SIZE = 100;
+    
+    static private final List<Class<? extends DataObject>> excludeClasses = Arrays.asList(
+            Token.class, StorageOSUserDAO.class, VirtualDataCenter.class,
+            PropertyListDataObject.class, PasswordHistory.class, CustomConfig.class, VdcVersion.class);
 
     protected DbClientContext localContext;
     protected DbClientContext geoContext;
@@ -121,7 +133,7 @@ public class DbClientImpl implements DbClient {
     private boolean _bypassMigrationLock;
 
     protected CoordinatorClient _coordinator;
-
+    
     protected IndexCleaner _indexCleaner;
 
     protected EncryptionProvider _encryptionProvider;
@@ -129,7 +141,10 @@ public class DbClientImpl implements DbClient {
 
     private boolean initDone = false;
     private String _geoVersion;
-
+    private DrUtil drUtil;
+    // whether to retry once with LOCAL_QUORUM for write failure 
+    protected boolean retryFailedWriteWithLocalQuorum = false; 
+    
     public String getGeoVersion() {
         if (this._geoVersion == null) {
             this._geoVersion = VdcUtil.getMinimalVdcVersion();
@@ -220,6 +235,10 @@ public class DbClientImpl implements DbClient {
     public void setBypassMigrationLock(boolean bypassMigrationLock) {
         _bypassMigrationLock = bypassMigrationLock;
     }
+    
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
 
     @Override
     public synchronized void start() {
@@ -245,7 +264,16 @@ public class DbClientImpl implements DbClient {
         setupContext();
 
         _indexCleaner = new IndexCleaner();
-
+        
+        if (drUtil.isMultivdc()) {
+            // No need to retry for multi-vdc 
+            retryFailedWriteWithLocalQuorum = false;
+        } else {
+            // retry in DR configuration (default)
+            retryFailedWriteWithLocalQuorum = true;
+        }
+        _log.info("Retry for failed write with LOCAL_QUORUM: {}", retryFailedWriteWithLocalQuorum);
+        
         initDone = true;
     }
 
@@ -385,29 +413,17 @@ public class DbClientImpl implements DbClient {
         return objs.get(0);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, URI... id) {
         return queryObject(clazz, Arrays.asList(id));
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids) {
         return queryObject(clazz, ids, false);
     }
 
-    /**
-     * @deprecated use {@link DbClient#queryIterativeObjects(Class, Collection, boolean)} instead
-     */
     @Override
-    @Deprecated
     public <T extends DataObject> List<T> queryObject(Class<T> clazz, Collection<URI> ids, boolean activeOnly) {
         DataObjectType doType = TypeMap.getDoType(clazz);
 
@@ -444,7 +460,7 @@ public class DbClientImpl implements DbClient {
             }
         }
         if (!cleanList.isEmpty()) {
-            RowMutator mutator = new RowMutator(ks);
+            RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndexAsync(mutator, doType, indexCleanUpRef);
         }
@@ -1106,7 +1122,7 @@ public class DbClientImpl implements DbClient {
     protected <T extends DataObject> List<URI> insertNewColumns(Keyspace ks, Collection<T> dataobjects) {
 
         List<URI> objectsToCleanup = new ArrayList<URI>();
-        RowMutator mutator = new RowMutator(ks);
+        RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
         for (T object : dataobjects) {
             checkGeoVersionForMutation(object);
             DataObjectType doType = TypeMap.getDoType(object.getClass());
@@ -1149,7 +1165,7 @@ public class DbClientImpl implements DbClient {
             doType.deserialize(clazz, row, cleanList, new LazyLoader(this));
         }
         if (!cleanList.isEmpty()) {
-            RowMutator cleanupMutator = new RowMutator(ks);
+            RowMutator cleanupMutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             SoftReference<IndexCleanupList> indexCleanUpRef = new SoftReference<IndexCleanupList>(cleanList);
             _indexCleaner.cleanIndex(cleanupMutator, doType, indexCleanUpRef);
         }
@@ -1326,7 +1342,7 @@ public class DbClientImpl implements DbClient {
             }
         }
         if (!removedList.isEmpty()) {
-            RowMutator mutator = new RowMutator(ks);
+            RowMutator mutator = new RowMutator(ks, retryFailedWriteWithLocalQuorum);
             _indexCleaner.removeColumnAndIndex(mutator, doType, removedList);
         }
     }
@@ -1712,6 +1728,46 @@ public class DbClientImpl implements DbClient {
     }
 
     @Override
+    public boolean hasUsefulData() {
+        Collection<DataObjectType> doTypes = TypeMap.getAllDoTypes();
+
+        for (DataObjectType doType : doTypes) {
+            Class clazz = doType.getDataObjectClass();
+
+            if (hasDataInCF(clazz)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
+    private <T extends DataObject> boolean hasDataInCF(Class<T> clazz) {
+        if (excludeClasses.contains(clazz)) {
+            return false; // ignore the data in those CFs
+        }
+
+        // true: query only active object ids, for below reason:
+        // add site should succeed just when remove the data in site2.
+        List<URI> ids = queryByType(clazz, true, null, 2);
+
+        if (clazz.equals(TenantOrg.class)) {
+            if (ids.size() > 1) {
+                // at least one non-root tenant exist
+                return true;
+            }
+
+            return false;
+        }
+
+        if (!ids.isEmpty()) {
+            _log.info("The class {} has data e.g. id={}", clazz.getSimpleName(), ids.get(0));
+            return true;
+        }
+
+        return false;
+    }
+
     public boolean checkGeoCompatible(String expectVersion) {
         _geoVersion = VdcUtil.getMinimalVdcVersion();
         return VdcUtil.VdcVersionComparator.compare(_geoVersion, expectVersion) >= 0;

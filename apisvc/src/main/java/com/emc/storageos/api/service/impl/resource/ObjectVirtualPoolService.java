@@ -24,6 +24,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,6 +133,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         if (null != vpool.getMaxRetention()) {
             restRep.setMaxRetention(vpool.getMaxRetention());
         }
+        if (null != vpool.getMinDataCenters()) {
+            restRep.setMinDataCenters(vpool.getMinDataCenters());
+        }
         return restRep;
     }
 
@@ -175,8 +179,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
                 allPools,
                 null,
                 null,
+                null,
                 _dbClient,
-                _coordinator);
+                _coordinator, AttributeMatcher.VPOOL_MATCHERS);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
         }
@@ -285,6 +290,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         populateCommonVirtualPoolUpdateParams(cos, param);
         if (null != param.getMaxRetention()) {
             cos.setMaxRetention(param.getMaxRetention());
+        }
+        if (null != param.getMinDataCenters()) {
+            cos.setMinDataCenters(param.getMinDataCenters());
         }
         
         if (null != param.getSystemType()) {
@@ -504,6 +512,10 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         }
         if (null != param.getMaxRetention()) {
             vPool.setMaxRetention(param.getMaxRetention());
+        }
+        
+        if (null != param.getMinDataCenters()) {
+            vPool.setMinDataCenters(param.getMinDataCenters());
         }
 
         return vPool;

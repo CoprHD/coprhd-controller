@@ -63,7 +63,8 @@ public enum ResourceOperationTypeEnum {
     RESTORE_VOLUME_FULL_COPY("RESTORE VOLUME FULL COPY", "restore a volume from a full copy"),
     RESTORE_CONSISTENCY_GROUP_FULL_COPY("RESTORE CONSISTENCY GROUP FULL COPY", "restore a consistency group from a full copy"),
     RESYNCHRONIZE_VOLUME_FULL_COPY("RESYNCHRONIZE VOLUME FULL COPY", "resynchronize a full copy from its source"),
-    RESYNCHRONIZE_CONSISTENCY_GROUP_FULL_COPY("RESYNCHRONIZE CONSISTENCY GROUP FULL COPY", "resynchronize full copies from a consistency group"),
+    RESYNCHRONIZE_CONSISTENCY_GROUP_FULL_COPY("RESYNCHRONIZE CONSISTENCY GROUP FULL COPY",
+            "resynchronize full copies from a consistency group"),
     ESTABLISH_VOLUME_FULL_COPY("ESTABLISH VOLUME FULL COPY GROUP", "establish group relation between volume group and full copy group"),
     CREATE_VOLUME_SNAPSHOT("CREATE VOLUME SNAPSHOT", "create a volume snapshot"),
     ASSIGN_VOLUME_TAG("ASSIGN VOLUME TAG", "tag a volume"),
@@ -74,6 +75,8 @@ public enum ResourceOperationTypeEnum {
     DEACTIVATE_VOLUME_SNAPSHOT("DEACTIVATE VOLUME SNAPSHOT", "deactivate volume snapshot"),
     ESTABLISH_VOLUME_SNAPSHOT("ESTABLISH VOLUME SNAPSHOT GROUP", "establish group relation between volume group and snapshot group"),
     ASSIGN_VOLUME_SNAPSHOT_TAG("TAG VOLUME SNAPSHOT", "tag a volume snapshot"),
+    CREATE_VOLUME_GROUP_FULL_COPY("CREATE VOLUME GROUP FULL COPY", "create a volume group full copy"),
+    DETACH_VOLUME_GROUP_FULL_COPY("DETACH VOLUME GROUP FULL COPY", "detach a volume group full copy"),
     CREATE_EXPORT_GROUP("CREATE EXPORT GROUP", "create export group operation"),
     DELETE_EXPORT_GROUP("DELETE EXPORT GROUP", "delete export group operation"),
     ADD_EXPORT_VOLUME("ADD VOLUME TO EXPORT GROUP", "add volume to export group"),
@@ -87,8 +90,18 @@ public enum ResourceOperationTypeEnum {
     UPDATE_EXPORT_GROUP("UPDATE EXPORT GROUP", "update export group operation"),
     DELETE_EXPORT_VOLUME("DELETE VOLUME FROM EXPORTGROUP", "delete volume from the export group"),
     CREATE_FILE_SYSTEM("CREATE FILESYSTEM", "create filesystem operation"),
+    UPDATE_FILE_SYSTEM("UPDATE FILESYSTEM", "update filesystem operation"),
     DELETE_FILE_SYSTEM("DELETE FILESYSTEM", "delete filesystem operation"),
     EXPORT_FILE_SYSTEM("EXPORT FILESYSTEM", "export filesystem operation"),
+    FILE_PROTECTION_ACTION("FILE PROTECTION ACTION", "perform unspecified link management"),
+    FILE_PROTECTION_ACTION_STOP("FILE PROTECTION ACTION STOP", "stop the replication link between source and target"),
+    FILE_PROTECTION_ACTION_START("FILE PROTECTION ACTION START", "start the replication link between source and target"),
+    FILE_PROTECTION_ACTION_PAUSE("FILE PROTECTION ACTION PAUSE", "pause the replication link between source and target"),
+    FILE_PROTECTION_ACTION_SUSPEND("FILE PROTECTION ACTION SUSPEND", "suspend the replication link between source and target"),
+    FILE_PROTECTION_ACTION_RESUME("FILE PROTECTION ACTION RESUME", "resume the replication link between source and target"),
+    FILE_PROTECTION_ACTION_FAILOVER("FILE PROTECTION ACTION FAILOVER", "failover target fileshare(s)"),
+    FILE_PROTECTION_ACTION_FAILBACK("FILE PROTECTION ACTION FAILBACK", "failback the replication link source and target fileshare(s)"),
+    FILE_PROTECTION_ACTION_REFRESH("FILE PROTECTION ACTION REFRESH","refresh the replication link between source and target"),
     UPDATE_EXPORT_RULES_FILE_SYSTEM("UPDATE EXPORT RULES FILESYSTEM", "Update export rules filesystem operation"),
     EXPAND_FILE_SYSTEM("EXPAND FILESYSTEM", "expand filesystem operation"),
     CREATE_FILE_SYSTEM_SHARE("CREATE FILESHARE", "create fileshare operation"),
@@ -107,9 +120,15 @@ public enum ResourceOperationTypeEnum {
     UPDATE_BUCKET("UPDATE BUCKET", "update bucket operation"),
     DELETE_BUCKET("DELETE BUCKET", "delete bucket operation"),
     CREATE_BUCKET("CREATE BUCKET", "create bucket operation"),
+    UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "update bucket ACL operation"),
+    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "delete bucket ACL operation"),
 
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "tag a filesystem"),
     DELETE_FILE_SNAPSHOT("DELETE FILESYSTEM SNAPSHOT", "delete filesystem snapshot"),
+    ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("ASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
+            "assign snapshot schedule policy to a filesystem"),
+    UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("UNASSIGN SNAPSHOT SCHEDULE POLICY TO A FILESYSTEM",
+            "unassign snapshot schedule policy to a filesystem"),
     UNEXPORT_FILE_SYSTEM("UNEXPORT FILESYSTEM", "unexport filesystem operation"),
     DELETE_FILE_SYSTEM_SHARE("DELETE FILESHARE", "delete fileshare"),
     EXPORT_FILE_SNAPSHOT("EXPORT FILESYSTEM SNAPSHOT", "export fileshare snapshot"),
@@ -284,6 +303,7 @@ public enum ResourceOperationTypeEnum {
     REMOVE_VDC("REMOVE VDC", "remove a VDC from ViPR"),
     DISCONNECT_VDC("DISCONNECT VDC", "temporarily disconnect a VDC from ViPR"),
     RECONNECT_VDC("RECONNECT VDC", "reconnect a VDC to ViPR"),
+    REBUILD_SET_TRANSFER_SPEED("REBUILD_SET_TRANSFER_SPEED", "Rebuild Set Transfer Speed"),
     UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED("UPGRADE VPLEX LOCAL TO DISTRIBUTED", "Upgrade a VPLEX local volume to distributed"),
     WAIT_ON_VPLEX_VOLUME_REBUILD("WAIT ON VPLEX VOLUME REBUILD", "Wait on VPLEX volume rebuild"),
     ADD_ALIAS("ADD ALIAS", "add one or more aliases"),
@@ -291,13 +311,29 @@ public enum ResourceOperationTypeEnum {
     UPDATE_ALIAS("UPDATE ALIAS", "update one or more aliases"),
     CREATE_BACKUP("CREATE BACKUP", "create ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "upload ViPR backup to external location"),
+    PULL_BACKUP("PULL BACKUP", "operation to download ViPR backup from external location"),
+    PULL_BACKUP_CANCEL("PULL BACKUP CANCEL", "operation to cancel the download of ViPR backup from external location"),
+    RESTORE_BACKUP("RESTORE BACKUP", "operation to restore ViPR backup"),
     CREATE_VCENTER_CLUSTER("CREATE VCENTER CLUSTER", "create a cluster in vCenter server"),
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
     SYS_EVENT("SYSTEM EVENT", "System Event"),
     CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER", "Create and verify a compute image server"),
     UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "Update and verify a compute image server"),
-    CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume");
+    CREATE_VPLEX_VOLUME_FROM_SNAPSHOT("CREATE VPLEX VOLUME FROM SNAPSHOT", "Create a VPLEX volume on top of a block snapshot target volume"),
+    UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "Update a volume group"),
+    CREATE_SNAPSHOT_SESSION("CREATE SNAPSHOT SESSION", "create a snapshot session"),
+    CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION("CREATE CONSISTENCY GROUP SNAPSHOT SESSION", "create a consistency group snapshot session"),
+    LINK_SNAPSHOT_SESSION_TARGETS("LINK SNAPSHOT SESSION TARGETS", "links target volumes to a snapshot session"),
+    RELINK_SNAPSHOT_SESSION_TARGETS("RELINK SNAPSHOT SESSION TARGETS", "re-links target volumes to a snapshot session"),
+    RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS("RELINK CONSISTENCY GROUP SNAPSHOT SESSION TARGETS", "re-links consistency group target volumes to a snapshot session"),
+    UNLINK_SNAPSHOT_SESSION_TARGETS("UNLINK SNAPSHOT SESSION TARGETS", "unlinks target volumes from a snapshot session"),
+    RESTORE_SNAPSHOT_SESSION("RESTORE SNAPSHOT SESSION", "restore source from snapshot session"),
+    DELETE_SNAPSHOT_SESSION("DELETE SNAPSHOT SESSION", "delete snapshot session"),
+    DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION("DELETE CONSISTENCY GROUP SNAPSHOT SESSION", "delete consistency group snapshot session"),
+    CHANGE_FILE_SYSTEM_VPOOL("CHANGE FILE SYSTEM VPOOL", "change file system vpool operation"),
+    CREATE_FILE_SYSTEM_MIRROR_COPIES("CREATE FILE SYSTEM MIRROR COPIES", "create file system mirror copies operation"),
+    DELETE_MIRROR_FILE_SYSTEMS("DELETE MIRROR FILE SYSTEMS", "delete mirror file systems operation");
 
     private final String name;
     private final String description;
@@ -310,7 +346,6 @@ public enum ResourceOperationTypeEnum {
     /**
      * The name of the resource operation
      * 
-     * @valid none
      */
     @XmlElement
     public String getName() {

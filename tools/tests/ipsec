@@ -1,0 +1,67 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+import time
+
+def ipsec_key_rotate(vip):
+    """ a test on ipsec key rotation """
+    bourne.connect(vip)
+    version = bourne.ipsec_rotate_key()
+    print "Key rotation is submitted successfully at version %s" % version
+
+def ipsec_check(vip):
+    """ a test on ipsec key checking status """
+    bourne.connect(vip)
+    ipsec_status = bourne.ipsec_check()
+    bourne.pretty_print_json(ipsec_status)
+
+def ipsec_change_status(vip, status):
+    """ a test on ipsec changing status """
+    bourne.connect(vip)
+    ipsec_status = bourne.ipsec_change_status(status)
+    print "ipsec status change to %s" % ipsec_status
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# dr <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne ipsec cli usage.')
+parser.add_argument('cmd', help = 'cmd = (keyrotate|check|enable|disable)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+if (len(sys.argv) > 1):
+    cmd = sys.argv[1]
+else:
+    cmd = None
+
+args = parser.parse_args()
+bourne = Bourne()
+
+if (cmd == "keyrotate"):
+    ipsec_key_rotate(args.ip)
+elif (cmd == "check"):
+    ipsec_check(args.ip)
+elif (cmd == "enable"):
+    ipsec_change_status(args.ip, "enabled")
+elif (cmd == "disable"):
+    ipsec_change_status(args.ip, "disabled")
+else:
+    parser.print_help()

@@ -13,7 +13,9 @@ import com.emc.storageos.services.util.Strings;
 import com.emc.storageos.systemservices.TestProductName;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -65,7 +67,8 @@ public class BackupSchedulerTest {
         BackupExecutor bakExec = new BackupExecutor(cfg, cli);
 
         for (int i = 0; i < 365; i++) {
-            bakExec.runOnce();
+            bakExec.create();
+            bakExec.reclaim();
 
             // Advance time
             cfg.currentTime.add(Calendar.DAY_OF_MONTH, 1);
@@ -74,15 +77,17 @@ public class BackupSchedulerTest {
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(
                     String.format("Missing backup: %s in %s", aliveBackupsAt20141231[i],
-                            Strings.join(",", cli.localBackups.toArray(new String[1]))),
+                            StringUtils.join(cli.localBackups, ',')),
                     cli.localBackups.contains(aliveBackupsAt20141231[i]));
         }
 
         Set<String> tags = cli.getClusterBackupTags(false);
-        Assert.assertEquals(String.format("Incorrect local backup copies: {%s}", Strings.join(",", tags.toArray(new String[tags.size()]))),
+        Assert.assertEquals(String.format("Incorrect local backup copies: {%s}", StringUtils.join(tags, ',')),
                 aliveBackupsAt20141231.length, cli.localBackups.size());
     }
 
+    // The following test requires a secure ftp server, which public/external build machines may not have.  Therefore, ignoring by default. 
+    @Ignore
     @Test
     public void testUpload() throws Exception {
         new TestProductName();
@@ -117,12 +122,12 @@ public class BackupSchedulerTest {
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
         // not retire backups in cluster.
-        upExec.runOnce();
+        upExec.upload();
 
         // Verify the backups are uploaded
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
             Assert.assertTrue(String.format("Backup %s is not uploaded: %s", aliveBackupsAt20141231[i],
-                    Strings.join(",", uploader.fileMap.keySet().toArray(new String[uploader.fileMap.size()]))),
+                    StringUtils.join(uploader.fileMap.keySet(),',')),
                     uploader.fileMap.containsKey(aliveBackupsAt20141231[i] + "-1-1.zip")
                     );
         }
@@ -174,7 +179,7 @@ public class BackupSchedulerTest {
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
         // not retire backups in cluster.
-        upExec.runOnce();
+        upExec.upload();
 
         Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[0]));
         Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[1]));
@@ -302,7 +307,7 @@ class FakeBackupClient extends BackupScheduler {
     @Override
     public String generateZipFileName(String tag, BackupFileSet files) {
         Set<String> availableNodes = files.uniqueNodes();
-        return ScheduledBackupTag.toZipFileName(tag, 1, availableNodes.size());
+        return ScheduledBackupTag.toZipFileName(tag, 1, availableNodes.size(), "");
     }
 
     @Override
@@ -325,7 +330,7 @@ class FakeConfiguration extends SchedulerConfig {
     }
 
     @Override
-    public String getUploadPassword() {
+    public String getExternalServerPassword() {
         return "Passwd";
     }
 

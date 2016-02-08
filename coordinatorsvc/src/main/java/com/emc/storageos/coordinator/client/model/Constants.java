@@ -7,34 +7,50 @@ package com.emc.storageos.coordinator.client.model;
 
 import java.util.regex.Pattern;
 
+import com.emc.storageos.services.util.FileUtils;
+
 public interface Constants {
 
     public static final String SOFTWARE_IMAGE_SUFFIX = ".img";
 
-    public static final String DOWNLOAD_DIR = "/tmp/downloads";
+    public static final String DOWNLOAD_DIR = FileUtils.generateTmpFileName("downloads");
 
     public static final String LINE_DELIMITER = "\n";
 
     public static final String REMOTE_DOWNLOAD_LEADER = "remoteDownloadLeader";
     public static final String TARGET_INFO = "targetInfo";
+    String DOWNLOADINFO_KIND = "downloadinfo";
     public static final String NODE_INFO = "nodeInfo";
 
     public static final String TARGET_INFO_LOCK = "targetInfoLock";
     public static final String REMOTE_DOWNLOAD_LOCK = "remoteDownloadLock";
     public static final String NEW_VERSIONS_LOCK = "newVersionsLock";
     public static final String DISTRIBUTED_UPGRADE_LOCK = "controlNodeUpgradeLock";
-    public static final String DISTRIBUTED_PROPERTY_LOCK = "controlNodePropertyLock";
+    public static final String DISTRIBUTED_REBOOT_LOCK = "controlNodeRebootLock";
 
     // service config constants
     // category name under which upgrade target configurations are stored
-    public static final String VDC_PROPERTY_DIR = "/tmp/vdcconfig.properties.new";
-    public static final String SSL_PROPERTY_TMP = "/tmp/sslconfig.properties.new";
-    public static final String TMP_CONFIG_USER_CHANGED_PROPS_PATH = "/tmp/config-override.properties";
-    public static final String TMP_CONFIG_CONTROLLER_OVF_PROPS_PATH = "/tmp/controller-ovf.properties";
+    public static final String VDC_PROPERTY_DIR = FileUtils.generateTmpFileName("vdcconfig.properties.new");
+    public static final String SSL_PROPERTY_TMP = FileUtils.generateTmpFileName("sslconfig.properties.new");
+    public static final String TMP_CONFIG_USER_CHANGED_PROPS_PATH = FileUtils.generateTmpFileName("config-override.properties");
+    public static final String TMP_CONFIG_CONTROLLER_OVF_PROPS_PATH = FileUtils.generateTmpFileName("controller-ovf.properties");
+    public static final String DATA_REVISION_TMP = FileUtils.generateTmpFileName("datarevisionconfig.properties.new");
+    public static final String KEY_DATA_REVISION = "target_data_revision";
+    public static final String KEY_DATA_REVISION_COMMITTED = "target_data_revision_committed";
 
+    //ipsec command constants
+    public static final String VDC_CONFIG_VERSION = "vdc_config_version";
+    public static final String IPSEC_KEY = "ipsec_key";
+    public static final String IPSEC_STATUS = "ipsec_status";
+    public static final String IPSEC_CHECK_CONNECTION = "check-connection";
+    public static final String IPSEC_GET_PROPS = "get-props";
+    public static final String IPSEC_SYNC_KEY = "sync-key";
+    public static final String IPSEC_SYNC_STATUS = "sync-status";
+
+            
     // upload image
     public static final long MAX_UPLOAD_SIZE = 800000000L;
-    public static final String UPLOAD_DIR = "/tmp/uploads";
+    public static final String UPLOAD_DIR = FileUtils.generateTmpFileName("uploads");
 
     public static final int TRAILER_SHA_OFFSET = 0;
     public static final int TRAILER_SHA_SIZE = 20;
@@ -111,8 +127,36 @@ public interface Constants {
     // to notify portal service to update its cache after catalog acl change
     public static final String CATALOG_CONFIG = "catalog";
     public static final String CATALOG_ACL_CHANGE = "acl_change";
+    
+    public static final String CONFIG_DR_ACTIVE_KIND = "disasterRecoveryActive";
+    public static final String CONFIG_DR_ACTIVE_ID = "global";
+    public static final String CONFIG_DR_ACTIVE_SITEID = "siteId";
 
-    // Db downtime tracker
+    String CONFIG_GEO_LOCAL_VDC_KIND = "geoLocalVDC";
+    String CONFIG_GEO_LOCAL_VDC_ID = "global";
+    String CONFIG_GEO_LOCAL_VDC_SHORT_ID = "vdcShortId";
+    
+    public static final String CONFIG_GEO_FIRST_VDC_SHORT_ID = "vdc1";
+    public static final String CONFIG_DR_FIRST_SITE_SHORT_ID = "site1";
+    
+    public static final String SITE_STATE = "state";
+    public static final String SITE_ID_FILE= "site_id_file";
+    
+    public static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = "keyCertificatePairConfig";
+    public static final String ZK_OBSERVER_CONFIG_SUFFIX= ":2888:2889:observer;2181";
+    public static final String MY_VDC_ID_KEY= "vdc_myid";
+    public static final String VDC_NODECOUNT_KEY_TEMPLATE= "vdc_%s_node_count";
+    public static final String ZK_SERVER_CONFIG_PREFIX= "server.";
+    public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
+    
+    public static final String SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED = "switchoverBarrierSetStateToSynced";
+    public static final String SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER = "switchoverBarrierSetStateToStandbySwitchingOver";
+    public static final String SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE = "switchoverBarrierSetStateToActive";
+    public static final String SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE = "switchoverStandbySiteRemoveBarrier";
+    public static final String SWITCHOVER_BARRIER_RESTART = "switchoverRestartBarrier";
+    public static final String RESUME_BARRIER_RESTART_DBSVC = "resumeRestartDbsvcBarrier";
+    public static final String FAILOVER_BARRIER = "failoverBarrier";
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
-    public static final String  DB_CONSISTENCY_STATUS = "dbconsistencystatus";
+    public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";
+    public static final String FAILBACK_DETECT_LEADER = "failbackDetectLeader";
 }

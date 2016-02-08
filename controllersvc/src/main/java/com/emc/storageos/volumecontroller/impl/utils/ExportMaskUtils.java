@@ -4,6 +4,19 @@
  */
 package com.emc.storageos.volumecontroller.impl.utils;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -18,13 +31,13 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -47,22 +60,7 @@ import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import sun.net.util.IPAddressUtil;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 
 public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
@@ -432,9 +430,9 @@ public class ExportMaskUtils {
         if (!Strings.isNullOrEmpty(cluster) && Strings.isNullOrEmpty(host)) {
             cluster = String.format("%s_%s", cluster, lastDigitsOfSerialNo);
         }
-
+    
         String alternateName = (cluster == null && host == null) ? exportGroup.getLabel() : null;
-
+        
         return nameGenerator.generate(cluster, host, alternateName);
     }
 
@@ -479,8 +477,14 @@ public class ExportMaskUtils {
         // Create a set of unique host and cluster names
         Set<String> hosts = new HashSet<String>();
         Set<String> clusters = new HashSet<String>();
+        boolean rp = false;
         for (Initiator initiator : initiators) {
             String host = initiator.getHostName();
+            
+            if (initiator.checkInternalFlags(Flag.RECOVERPOINT)) {
+                rp = true;
+            }
+            
             if (host != null) {
                 hosts.add(host);
             }
@@ -501,6 +505,15 @@ public class ExportMaskUtils {
         // If there is a unique host name, append to the name
         if (hosts.size() == 1) {
             host = hosts.iterator().next();
+        }
+
+        // In the case of RP, we want the naming defaults to use the cluster name as the hostname.
+        // This assumes: 
+        // 1. initiator list is all RP initiators
+        // 2. cluster name is filled-in in each initiator
+        // 3. Default custom naming is being used 
+        if (rp && clusters.iterator().hasNext()) {
+            host = clusters.iterator().next();
         }
 
         return factory.createExportMaskDataSource(configName, host, cluster, storage);
@@ -697,7 +710,7 @@ public class ExportMaskUtils {
         ref.setGroupUri(exportGroup.getId());
         ref.setZoneName(info.getZoneName());
         ref.setId(URIUtil.createId(FCZoneReference.class));
-        ref.setLabel(ref.getPwwnKey());
+        ref.setLabel(FCZoneReference.makeLabel(ref.getPwwnKey(), volume.getId().toString()));
         ref.setExistingZone(true);
         return ref;
     }

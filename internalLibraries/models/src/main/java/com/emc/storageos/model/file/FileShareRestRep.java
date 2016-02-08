@@ -5,13 +5,21 @@
 
 package com.emc.storageos.model.file;
 
-import javax.xml.bind.annotation.*;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
-import com.emc.storageos.model.RelatedResourceRep;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
+
 import org.codehaus.jackson.annotate.JsonProperty;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "filesystem")
@@ -20,6 +28,10 @@ public class FileShareRestRep extends FileObjectRestRep {
     private RelatedResourceRep tenant;
     private String capacity;
     private String usedCapacity;
+    private Long softLimit;
+    private Integer softGrace;
+    private Long notificationLimit;
+    private Boolean softLimitExceeded;
     private RelatedResourceRep vpool;
     private RelatedResourceRep varray;
     private Set<String> protocols;
@@ -30,11 +42,11 @@ public class FileShareRestRep extends FileObjectRestRep {
     private Boolean thinlyProvisioned;
     private String nativeId;
     private RelatedResourceRep virtualNAS;
+    private FileProtectionRestRep protection;
 
     /**
      * File system's actual path on the array.
      * 
-     * @valid none
      */
     @XmlElement(name = "native_id")
     public String getNativeId() {
@@ -48,7 +60,6 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * Total capacity of the file system in GB
      * 
-     * @valid none
      */
     @XmlElement(name = "capacity_gb")
     public String getCapacity() {
@@ -62,7 +73,6 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * Used capacity of the file system in GB
      * 
-     * @valid none
      */
     @XmlElement(name = "used_capacity_gb")
     public String getUsedCapacity() {
@@ -73,10 +83,45 @@ public class FileShareRestRep extends FileObjectRestRep {
         this.usedCapacity = usedCapacity;
     }
 
+    @XmlElement(name = "soft_limit", required = false)
+    public Long getSoftLimit() {
+        return softLimit;
+    }
+
+    public void setSoftLimit(Long softLimit) {
+        this.softLimit = softLimit;
+    }
+
+    @XmlElement(name = "soft_grace", required = false)
+    public Integer getSoftGrace() {
+        return softGrace;
+    }
+
+    public void setSoftGrace(Integer softGrace) {
+        this.softGrace = softGrace;
+    }
+
+    @XmlElement(name = "notification_limit", required = false)
+    public Long getNotificationLimit() {
+        return notificationLimit;
+    }
+
+    public void setNotificationLimit(Long notificationLimit) {
+        this.notificationLimit = notificationLimit;
+    }
+
+    @XmlElement(name = "soft_limit_exceeded", required = false)
+    public Boolean getSoftLimitExceeded() {
+        return softLimitExceeded;
+    }
+
+    public void setSoftLimitExceeded(Boolean softLimitExceeded) {
+        this.softLimitExceeded = softLimitExceeded;
+    }
+
     /**
      * URI for the virtual pool the file share resides on.
      * 
-     * @valid none
      */
     @XmlElement(name = "vpool")
     @JsonProperty("vpool")
@@ -91,7 +136,6 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * Not currently used
      * 
-     * @valid none
      */
     @XmlElement(name = "data_protection")
     public String getDataProtection() {
@@ -105,7 +149,6 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * URI for the virtual array containing the virtual pool and the file share.
      * 
-     * @valid none
      */
     @XmlElement(name = "varray")
     @JsonProperty("varray")
@@ -120,7 +163,6 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * URI for the storage pool containing storage allocated for the file system.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_pool")
     public RelatedResourceRep getPool() {
@@ -134,7 +176,6 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * URI for the project containing the file system.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getProject() {
@@ -148,8 +189,9 @@ public class FileShareRestRep extends FileObjectRestRep {
     @XmlElementWrapper(name = "protocols")
     /**
      * Set of valid protocols.
-     * @valid CIFS = Common Interface File System 
-     * @valid NFS = Network File System
+     * Valid values:
+     *   CIFS = Common Interface File System 
+     *   NFS = Network File System
      */
     @XmlElement(name = "protocol")
     public Set<String> getProtocols() {
@@ -166,7 +208,6 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * URI representing the storage system supporting the file system.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public RelatedResourceRep getStorageSystem() {
@@ -180,7 +221,6 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * URI representing the storage port.
      * 
-     * @valid 1 - 65535
      */
     @XmlElement(name = "storage_port")
     public RelatedResourceRep getStoragePort() {
@@ -194,7 +234,6 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * The URI of the tenant to which the file system belongs.
      * 
-     * @valid none
      */
     @XmlElement
     public RelatedResourceRep getTenant() {
@@ -211,8 +250,6 @@ public class FileShareRestRep extends FileObjectRestRep {
      * is initially allocated. Additional storage is allocated
      * later as needed.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "thinly_provisioned")
     public Boolean getThinlyProvisioned() {
@@ -224,13 +261,88 @@ public class FileShareRestRep extends FileObjectRestRep {
     }
 
     @XmlElement(name = "virtual_nas")
-	public RelatedResourceRep getVirtualNAS() {
-		return virtualNAS;
-	}
+    public RelatedResourceRep getVirtualNAS() {
+        return virtualNAS;
+    }
 
-	public void setVirtualNAS(RelatedResourceRep virtualNAS) {
-		this.virtualNAS = virtualNAS;
-	}
-    
-    
+    public void setVirtualNAS(RelatedResourceRep virtualNAS) {
+        this.virtualNAS = virtualNAS;
+    }
+
+    /**
+     * File system replication info
+     * 
+     */
+    @XmlElement(name = "file_replication")
+    public FileProtectionRestRep getProtection() {
+        return protection;
+    }
+
+    public void setProtection(FileProtectionRestRep protection) {
+        this.protection = protection;
+    }
+
+    // Fields specific to protection characteristics of the file system!!
+    public static class FileProtectionRestRep {
+        private String personality;
+        private String mirrorStatus;
+        private String accessState;
+        private RelatedResourceRep parentFileSystem;
+        private List<VirtualArrayRelatedResourceRep> targetFileSystems;
+
+        /**
+         * SOURCE
+         * TARGET
+         * 
+         */
+        @XmlElement(name = "personality")
+        public String getPersonality() {
+            return personality;
+        }
+
+        public void setPersonality(String personality) {
+            this.personality = personality;
+        }
+
+        @XmlElement(name = "access_state")
+        public String getAccessState() {
+            return accessState;
+        }
+
+        public void setAccessState(String accessState) {
+            this.accessState = accessState;
+        }
+
+        @XmlElement(name = "mirror_status")
+        public String getMirrorStatus() {
+            return mirrorStatus;
+        }
+
+        public void setMirrorStatus(String mirrorStatus) {
+            this.mirrorStatus = mirrorStatus;
+        }
+
+        @XmlElement(name = "parent_file_system")
+        public RelatedResourceRep getParentFileSystem() {
+            return parentFileSystem;
+        }
+
+        public void setParentFileSystem(RelatedResourceRep parentFileSystem) {
+            this.parentFileSystem = parentFileSystem;
+        }
+
+        @XmlElementWrapper(name = "target_file_systems")
+        @XmlElement(name = "file_system")
+        public List<VirtualArrayRelatedResourceRep> getTargetFileSystems() {
+            if (targetFileSystems == null) {
+                targetFileSystems = new ArrayList<VirtualArrayRelatedResourceRep>();
+            }
+            return targetFileSystems;
+        }
+
+        public void setTargetFileSystems(List<VirtualArrayRelatedResourceRep> targetFileSystems) {
+            this.targetFileSystems = targetFileSystems;
+        }
+    }
+
 }

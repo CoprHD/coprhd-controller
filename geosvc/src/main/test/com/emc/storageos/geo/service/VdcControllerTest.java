@@ -35,8 +35,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import sun.security.x509.CertAndKeyGen;
+import sun.security.tools.keytool.CertAndKeyGen;
 import sun.security.x509.X500Name;
 
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
@@ -88,6 +87,7 @@ import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
  * Unit test for VdcControllerImpl with mock object
  */
 public class VdcControllerTest {
+
     private final static Logger log = LoggerFactory.getLogger(VdcControllerTest.class);
 
     VdcControllerImpl vdcController;
@@ -869,7 +869,7 @@ public class VdcControllerTest {
             return ClusterInfo.ClusterState.STABLE;
         }
 
-        public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
+        public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws CoordinatorException {
             if (RepositoryInfo.class.equals(clazz)) {
                 SoftwareVersion current = new SoftwareVersion("vipr-2.3.0.0.100");
                 List<SoftwareVersion> versions = new ArrayList<SoftwareVersion>();

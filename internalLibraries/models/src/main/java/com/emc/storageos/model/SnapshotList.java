@@ -16,7 +16,6 @@ public class SnapshotList {
     /**
      * List of Snapshots.
      * 
-     * @valid none
      */
     private List<NamedRelatedResourceRep> snapList;
 

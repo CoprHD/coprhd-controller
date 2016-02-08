@@ -1,28 +1,30 @@
 /*
- * Copyright (c) 2008-2013 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.authorization;
 
 import java.net.URI;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.vipr.client.core.BlockSnapshotSessions;
 import com.sun.jersey.spi.container.ContainerRequest;
-
+import com.sun.jersey.spi.container.ContainerRequestFilter;
+import com.sun.jersey.spi.container.ContainerResponseFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.impl.resource.*;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.security.SecurityDisabler;
 import com.emc.storageos.security.authorization.*;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -42,6 +44,11 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
     private @Context
     UriInfo uriInfo;
 
+    @Autowired
+    private DrUtil drUtil;
+
+    private boolean isStandby; // default to false
+    
     /**
      * PermissionsFilter for apisvc
      */
@@ -217,8 +224,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromResourceId(uriStr, BlockService.getBlockServiceResourceClass(uriStr));
                     } else if (_resourceClazz.isAssignableFrom(BlockConsistencyGroupService.class)) {
                         return getProjectIdFromResourceId(uriStr, BlockConsistencyGroup.class);
-                    }
-                    if (_resourceClazz.isAssignableFrom(BlockSnapshotService.class)) {
+                    } else if (_resourceClazz.isAssignableFrom(BlockSnapshotService.class)) {
                         return getProjectIdFromResourceBlockSnapshotId(uriStr, BlockSnapshot.class);
                     } else if (_resourceClazz.isAssignableFrom(FileSnapshotService.class)) {
                         return getProjectIdFromResourceSnapshotId(uriStr, Snapshot.class);
@@ -232,7 +238,9 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromComputeResources(uriStr);
                     } else if (_resourceClazz.isAssignableFrom(BucketService.class)) {
                         return getProjectIdFromResourceId(uriStr, Bucket.class);
-                    } 
+                    } else if (_resourceClazz.isAssignableFrom(BlockSnapshotSessionService.class)) {
+                        return getProjectIdFromResourceBlockSnapshotId(uriStr, BlockSnapshotSession.class);
+                    }
                 } else {
                     _log.warn("project id not available for this resource type");
                 }
@@ -351,6 +359,10 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
         this.disableLicenseCheck = disableLicenseCheck;
     }
 
+    public void setIsStandby(boolean isStandby) {
+        this.isStandby = isStandby;
+    }
+
     @Override
     protected boolean isSecurityDisabled() {
         return (_disabler != null);
@@ -363,7 +375,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
 
     @Override
     protected ResourceFilter getPreFilter() {
-        return null;
+        return new StandbyApisvcFilter();
     }
 
     @Override
@@ -380,5 +392,48 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
     @Override
     protected AbstractLicenseFilter getLicenseFilter() {
         return new ApisvcLicenseFilter();
+    }
+    
+    /**
+     * Request filter for apisvc on standby node. We disable all post request except bulk API and DR API
+     */
+    private class StandbyApisvcFilter implements ResourceFilter, ContainerRequestFilter {
+        @Override
+        public ContainerRequest filter(ContainerRequest request) {
+            // allow all request on active site
+            // use a injected variable rather than querying with DrUtil every time
+            // because if a ZK quorum is lost on the active site all the ZK accesses will fail
+            // note that readonly mode is not enabled on the active site.
+            if (!isStandby) {
+                return request;
+            }
+            String path = request.getPath();
+            // allow all requests for DR
+            if (path.startsWith("site")) {
+                return request;
+            }
+            String method = request.getMethod();
+            // allow keystore related operation
+            if (path.contains("keystore")) {
+                return request;
+            }
+            // allow all GET request or bulk request
+            if (method.equalsIgnoreCase("GET") || path.endsWith("/bulk")) {
+                return request;
+            }
+            // disallowed operation
+            Site activeSite = drUtil.getActiveSite();
+            throw APIException.forbidden.disallowOperationOnDrStandby(activeSite.getVipEndPoint());
+        }
+        
+        @Override
+        public ContainerRequestFilter getRequestFilter() {
+            return this;
+        }
+
+        @Override
+        public ContainerResponseFilter getResponseFilter() {
+            return null;
+        }
     }
 }

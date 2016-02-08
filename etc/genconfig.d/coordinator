@@ -10,12 +10,144 @@
 # it is provided by or on behalf of EMC.
 
 _get_coordinator_var() {
-    for i in ${_GENCONFIG_node_indexes} ; do
-        local var="_GENCONFIG_network_${i}_ipaddr_service"
-        echo "network_${i}_ipaddr_service=${!var}"
-    done
+    local drmode="${_GENCONFIG_dr_coordinator_type}"
+    if [ "${drmode}" == "participant" ]; then
+        _get_coordinator_var_participant
+    else
+        _get_coordinator_var_normal
+    fi
+    _get_props node_id node_index site_is_standby vdc_myid network_vip_service network_vip_effective
+}
 
-    _get_props node_id node_index
+_get_coordinator_var_normal() {
+    # generate participants for nodes in primary site 
+    local cursite_begin_index="0"
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
+    local primary_cnt="${!var}"
+    if [ -z "${primary_cnt}" ]; then
+       var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
+       primary_cnt="${!var}"
+    fi
+    if [ -n "${_GENCONFIG_site_ids}" ] && [[ "${_GENCONFIG_site_ids}" == *,*  ]] && [ "${primary_cnt}" == "1" ]; then
+        # DR dual coordinator hack for 1+0. See CoordinatorImpl.java for
+        # more description
+        primary_cnt="2"
+        echo "--foreach:iter_primary:$(seq --separator=',' 2)"
+        local ipaddr=''
+        if [ "${_GENCONFIG_site_is_standby}" == "false" ]; then
+            # use ipaddr from ovf-env
+            ipaddr="${_GENCONFIG_network_1_ipaddr_service}"
+        else
+            local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr"
+            local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_1_ipaddr6"
+            ipaddr="${!var}"
+            [ -z "${ipaddr}" -o "${ipaddr}" = "0.0.0.0" ] && ipaddr="[${!var6}]"
+        fi
+        echo "primary_1_ipaddr_service=${ipaddr},2888,2889,participant"
+        echo "primary_2_ipaddr_service=${ipaddr},2898,2899,participant"
+    else
+        echo "--foreach:iter_primary:$(seq --separator=',' ${primary_cnt})"
+	for i in $(seq ${primary_cnt}) ; do
+            local ipaddr=''
+            if [ "${_GENCONFIG_site_is_standby}" == "false" ]; then
+                # use ipaddr from ovf-env
+                local var="_GENCONFIG_network_${i}_ipaddr_service"
+                ipaddr="${!var}"
+            else
+                local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_${i}_ipaddr"
+	        local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_${i}_ipaddr6"
+                ipaddr="${!var}"
+                [ -z "${ipaddr}" -o "${ipaddr}" = "0.0.0.0" ] && ipaddr="[${!var6}]"
+            fi
+            echo "primary_${i}_ipaddr_service=${ipaddr},2888,2889,participant"
+        done
+    fi
+
+    # generate observers for standby sites
+    OLD_IFS="${IFS}"
+    IFS=","
+    if [ -n "${_GENCONFIG_site_ids}" ] ; then
+        local begin="${primary_cnt}" # begin index in all node list
+        local total="0"              # total number of all standby nodes
+        for site in ${_GENCONFIG_site_ids}; do
+            [ "${site}" == "${_GENCONFIG_site_active_id}" ] && continue
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_node_count"
+            local standby_cnt="${!var}"
+            total="$((${standby_cnt} + ${total}))"
+        done
+        echo "--foreach:iter_standby:$(seq --separator=',' $((${begin} + 1)) $((${begin} + ${total})) )"
+        for site in ${_GENCONFIG_site_ids} ; do
+            [ "${site}" == "${_GENCONFIG_site_active_id}" ] && continue
+            if [ "${_GENCONFIG_site_myid}" == "${site}" ] ; then
+                cursite_begin_index="$((${begin}))"
+            fi
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_node_count"
+            local standby_cnt="${!var}"
+            for standby_index in $(seq --separator=',' $((${begin} + 1)) $((${begin} + ${standby_cnt}))); do
+                var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_network_$((${standby_index} - ${begin}))_ipaddr"
+                var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_network_$((${standby_index} - ${begin}))_ipaddr6"
+                local ipaddr="${!var}"
+                [ -z "${ipaddr}" -o "${ipaddr}" = "0.0.0.0" ] && ipaddr="[${!var6}]"
+                echo "standby_${standby_index}_ipaddr_service=${ipaddr}"
+            done
+            begin="$((${begin} + ${standby_cnt}))"
+        done
+    else
+        # no standby defined
+        echo "--foreach:iter_standby:"
+    fi
+    IFS="${OLD_IFS}"
+
+    echo "coordinator_node_index=$((${_GENCONFIG_node_index} + ${cursite_begin_index}))"
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
+        echo "peer_type=observer"
+    else
+        echo "peer_type=participant"
+    fi
+}
+
+# for DR standby site only, switch to participant mode for read/write
+# transactions on standby site when primary site is down
+_get_coordinator_var_participant() {
+    # generate participants for nodes in primary site
+    local cursite_begin_index="0"
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
+    local primary_cnt="${!var}"
+
+    # generate observers for standby sites
+    OLD_IFS="${IFS}"
+    IFS=","
+    if [ -n "${_GENCONFIG_site_ids}" ] ; then
+        local begin="${primary_cnt}" # begin index in all node list
+
+        for site in ${_GENCONFIG_site_ids} ; do
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_node_count"
+            local standby_cnt="${!var}"
+
+            if [ "${_GENCONFIG_site_myid}" == "${site}" ] ; then
+                cursite_begin_index="$((${begin}))"
+
+                echo "--foreach:iter_primary:$(seq --separator=',' $((${begin} + 1)) $((${standby_cnt} + ${begin})))"
+                for standby_index in $(seq --separator=',' $((${begin} + 1)) $((${begin} + ${standby_cnt}))); do
+                   var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_network_$((${standby_index} - ${begin}))_ipaddr"
+                   var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_network_$((${standby_index} - ${begin}))_ipaddr6"
+                   local ipaddr="${!var}"
+                   [ -z "${ipaddr}" -o "${ipaddr}" = "0.0.0.0" ] && ipaddr="[${!var6}]"
+                   echo "primary_${standby_index}_ipaddr_service=${ipaddr},2888,2889,participant"
+                done
+            fi
+
+            begin="$((${begin} + ${standby_cnt}))"
+        done
+    else
+        # no standby defined
+        echo "--foreach:iter_primary:"
+    fi
+    IFS="${OLD_IFS}"
+
+    echo "coordinator_node_index=$((${_GENCONFIG_node_index} + ${cursite_begin_index}))"
+    echo "peer_type=participant"
+    echo "--foreach:iter_standby:"
 }
 
 _get_coordinator_jmx_props() {
@@ -37,8 +169,7 @@ _get_coordinatorclient_var() {
         local var="_GENCONFIG_network_${i}_ipaddr_service"
         echo "network_${i}_ipaddr_service=${!var}"
     done
-
-    echo "node_count=${_GENCONFIG_node_count}"
+    _get_props node_count vdc_myid network_vip_service network_vip_effective
 }
 
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/coordinator-var.xml         $(_get_coordinator_var)

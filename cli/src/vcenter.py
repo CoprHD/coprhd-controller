@@ -500,7 +500,6 @@ def create_parser(subcommand_parsers, common_parser):
 
     create_parser.add_argument('-cascade_tenancy', '-cascade',
                                dest='cascade_tenancy',
-                               metavar='<cascade_tenancy>',
                                choices=['true', 'false'],
                                help='Specify true, to cascade the vCenter tenancy to all its Datacenters, Clusters and Hosts. Specify false otherwise')
 
@@ -515,6 +514,7 @@ def vcenter_create(args):
     obj = VCenter(args.ip, args.port)
 
     try:
+        validate_tenant = obj.get_tenant_uri_from_name(args.tenant)
         res = obj.vcenter_create(args.name, args.tenant, args.vcenter_ip,
                                  args.vcenter_port, args.user, passwd,
                                  args.osversion, args.usessl, args.cascade_tenancy)
@@ -1122,7 +1122,6 @@ def update_parser(subcommand_parsers, common_parser):
 
     update_parser.add_argument('-cascade_tenancy', '-cascade',
                                dest='cascade_tenancy',
-                               metavar='<cascade_tenancy>',
                                help='Specify true, to cascade the vCenter tenancy to all its Datacenters, Clusters and Hosts. Specify false otherwise',
                                choices=['true', 'false'],
                                default=None)

@@ -48,6 +48,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
     private static final int LOCK_RETRY_WAIT_TIME_SECONDS = 60;
     private static final int DEFAULT_CONTROLLER_MAX_ITEM = 1000;
     private static final int MAX_WORKFLOW_STEPS = 10000;
+    private static final long STALE_ITEM_THRESHOLD = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
     // Define the Queues used by the Dispatcher.
     // To add a new Queue, add it's name to the QueueName enum, and then add a constructor
@@ -215,6 +216,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
             boolean bRetryLease = false;
             boolean bInvocationProblem = false;
             boolean bRetryLock = false;
+            boolean isStale = false;
             try {
                 // Reset the thread name temporarily so that the log lines don't
                 // reference a thread name that may have already completed its work.
@@ -246,21 +248,29 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                     Thread.currentThread().setName(threadNameBuilder.toString());
                 }
                 ControllerUtils.setThreadLocalLogData(resourceId, opId);
-                if (_deviceSemaphore == null) {
-                    // this device did not specify maxConnections.
-                    _log.info("Dispatching task {}: {}", _method.getName(), _args);
-                    _method.invoke(_innerController, _args);
-                } else {
-                    lease = _deviceSemaphore.acquireLease(_acquireLeaseWaitTimeSeconds, TimeUnit.SECONDS);
-                    if (lease != null) {
+                long now = System.currentTimeMillis();
+                long timeSinceItemCreation = now - _item.getTimestamp();
+                if (timeSinceItemCreation < STALE_ITEM_THRESHOLD) {
+                    if (_deviceSemaphore == null) {
+                        // this device did not specify maxConnections.
                         _log.info("Dispatching task {}: {}", _method.getName(), _args);
                         _method.invoke(_innerController, _args);
                     } else {
-                        // Could not get a lease. Retry.
-                        _log.info("Rescheduling task {}: {}", _method.getName(), _args);
-                        _queue.getMethodPoolExecutor().schedule(this, _acquireLeaseRetryWaitTimeSeconds, TimeUnit.SECONDS);
-                        bRetryLease = true;
+                        lease = _deviceSemaphore.acquireLease(_acquireLeaseWaitTimeSeconds, TimeUnit.SECONDS);
+                        if (lease != null) {
+                            _log.info("Dispatching task {}: {}", _method.getName(), _args);
+                            _method.invoke(_innerController, _args);
+                        } else {
+                            // Could not get a lease. Retry.
+                            _log.info("Rescheduling task {}: {}", _method.getName(), _args);
+                            _queue.getMethodPoolExecutor().schedule(this, _acquireLeaseRetryWaitTimeSeconds, TimeUnit.SECONDS);
+                            bRetryLease = true;
+                        }
                     }
+                } else {
+                    _log.info(String.format("Task %s is stale and will not be executed. Timestamp for request was %d (%s), now = %d",
+                            _method.getName(), _item.getTimestamp(), new Date(_item.getTimestamp()).toString(), now));
+                    isStale = true;
                 }
             } catch (InvocationTargetException e) {
                 Throwable cause = e.getCause();
@@ -284,7 +294,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                     if (_deviceSemaphore != null && lease != null) {
                         _deviceSemaphore.returnLease(lease);
                     }
-                    if (!bRetryLease && !bInvocationProblem && !bRetryLock) {
+                    if ((!bRetryLease && !bInvocationProblem && !bRetryLock) || isStale) {
                         // The method was invoked. Cleanup.
                         _callback.itemProcessed();
                         _log.info("Done with task {}: {}", _method.getName(), _args);

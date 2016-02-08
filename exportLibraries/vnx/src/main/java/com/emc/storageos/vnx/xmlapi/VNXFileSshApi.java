@@ -929,6 +929,8 @@ public class VNXFileSshApi {
         // added for eNAS
         cmd.append(" -option ");
         cmd.append(" slice=y ");
+        cmd.append(" log_type=split ");
+
         return cmd.toString();
 
         // nas_fs -name sebastian_test -type uxfs -create size=10M pool=tsi_pool1

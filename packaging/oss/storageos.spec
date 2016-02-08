@@ -5,7 +5,7 @@ Vendor: EMC Corp.
 Summary: %{product_name}-%{product_version}.%{product_release}
 License: FIXME
 Group: System
-Requires: java-1.7.0, telnet, openssh
+Requires: java-1.8.0, telnet, openssh
 # Bypass RPM automatic dependency generation to avoid it
 # mess up for java libs
 Autoreq: 0
@@ -94,12 +94,14 @@ fi
 /etc/genconfig.d/ssh_auth_key
 /etc/genconfig.d/ssl
 /etc/genconfig.d/syssvc
+/etc/genconfig.d/ipsec
 /etc/genconfig.d/test
 /etc/genconfig.d/boot.manifest
 /etc/gentmpl
 /etc/systool
 /etc/diagtool
 /etc/powerofftool
+/etc/ipsectool
 /etc/gatherheapdumps
 /etc/getnic
 %config /etc/sysconfig/SuSEfirewall2-template

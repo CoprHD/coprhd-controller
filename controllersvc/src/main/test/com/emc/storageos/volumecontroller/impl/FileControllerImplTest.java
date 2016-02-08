@@ -58,7 +58,7 @@ public class FileControllerImplTest {
     protected static class StubDispatcher extends Dispatcher {
         @Override
         public void queue(final QueueName queueName, final URI deviceURI, final String deviceType,
-                Object target, String method, Object... args) throws ControllerException {
+                boolean lockDevice, Object target, String method, Object... args) throws ControllerException {
             runcount++;
             if (runcount == 1) {
                 throw ClientControllerException.retryables.queueToBusy();
@@ -389,6 +389,12 @@ public class FileControllerImplTest {
         @Override
         public boolean checkGeoCompatible(String expectVersion) {
             return true;
+        }
+
+        @Override
+        public boolean hasUsefulData() {
+            // TODO Auto-generated method stub
+            return false;
         }
     }
 

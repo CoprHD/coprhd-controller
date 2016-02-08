@@ -45,7 +45,7 @@ public class CifsShareRequests extends KHRequests<VNXeCifsShare> {
      */
     public List<VNXeCifsShare> getCifsShareByName(String shareName) {
         MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + shareName);
+        queryParams.add(VNXeConstants.FILTER, VNXeConstants.NAME_FILTER + "\"" + shareName + "\"");
         setQueryParameters(queryParams);
         return getDataForObjects(VNXeCifsShare.class);
     }

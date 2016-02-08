@@ -23,6 +23,7 @@ import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.mail.MailHelper;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryConstants;
@@ -30,6 +31,7 @@ import com.emc.vipr.model.sys.recovery.RecoveryStatus;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +61,7 @@ public class SchedulerConfig {
     private static final int MAX_VERSION_RETRY_TIMES = 5;
     private static final int MAX_VERSION_RETRY_INTERVAL = 1000*30;
 
-    private CoordinatorClient coordinatorClient;
+    private CoordinatorClientExt coordinator;
     private EncryptionProvider encryptionProvider;
     private DbClient dbClient;
 
@@ -82,19 +84,30 @@ public class SchedulerConfig {
     public TreeSet<String> retainedBackups = new TreeSet<>(new ScheduledBackupTag.TagComparator());
     public Set<String> uploadedBackups = new HashSet<>();
 
-    public SchedulerConfig(CoordinatorClient coordinatorClient, EncryptionProvider encryptionProvider, DbClient dbClient) {
-        this.coordinatorClient = coordinatorClient;
+    public SchedulerConfig(CoordinatorClientExt coordinatorClient, EncryptionProvider encryptionProvider, DbClient dbClient) {
+        this.coordinator = coordinatorClient;
         this.encryptionProvider = encryptionProvider;
         this.dbClient = dbClient;
-        this.mailHelper = new MailHelper(coordinatorClient);
+        this.mailHelper = new MailHelper(coordinator == null ? null : coordinator.getCoordinatorClient());
     }
 
-    public String getUploadPassword() {
-        if (this.uploadPassword == null) {
+    public String getExternalServerUrl() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        return getExternalServerUrl(propInfo);
+    }
+
+    public String getExternalServerUserName() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        return getExternalServerUserName(propInfo);
+    }
+
+    public String getExternalServerPassword() {
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
+        byte[] password = getExternalServerPassword(propInfo);
+        if (password == null) {
             return "";
         }
-
-        return this.encryptionProvider.decrypt(Base64.decodeBase64(this.uploadPassword));
+        return this.encryptionProvider.decrypt(Base64.decodeBase64(password));
     }
 
     public Calendar now() {
@@ -106,18 +119,23 @@ public class SchedulerConfig {
         
         getSofttwareWithRetry();
 
-        PropertyInfo propInfo = this.coordinatorClient.getPropertyInfo();
+        PropertyInfo propInfo = coordinator.getCoordinatorClient().getPropertyInfo();
 
-        this.nodeCount = Integer.parseInt(propInfo.getProperty("node_count"));
+        this.nodeCount = coordinator.getNodeCount();
 
-        String startTimeStr = propInfo.getProperty(BackupConstants.SCHEDULE_TIME);
+        initBackupInterval(propInfo);
+        this.schedulerEnabled = isSchedulerEnabled(propInfo);
+        this.startOffsetMinutes = getStartOffsetMinutes(propInfo);
+        this.copiesToKeep = getCopiesToKeep(propInfo);
+        this.uploadUrl = getExternalServerUrl(propInfo);
+        this.uploadUserName = getExternalServerUserName(propInfo);
+        this.uploadPassword = getExternalServerPassword(propInfo);
+
+        initRetainedAndUploadedBackups();
+    }
+
+    private void initBackupInterval(PropertyInfo propInfo) {
         String intervalStr = propInfo.getProperty(BackupConstants.SCHEDULE_INTERVAL);
-        String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
-        String urlStr = propInfo.getProperty(BackupConstants.UPLOAD_URL);
-        String usernameStr = propInfo.getProperty(BackupConstants.UPLOAD_USERNAME);
-        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWD);
-        String enableStr = propInfo.getProperty(BackupConstants.SCHEDULER_ENABLED);
-
         this.interval = ScheduleTimeRange.ScheduleInterval.DAY;
         this.intervalMultiple = 1;
         if (intervalStr != null && !intervalStr.isEmpty()) {
@@ -128,17 +146,21 @@ public class SchedulerConfig {
                 digitLen++;
             }
 
-            this.intervalMultiple = digitLen > 0 ? Integer.parseInt(intervalStr.substring(0, digitLen)) : 1;
-            if (this.intervalMultiple <= 0) {
-                log.warn("The interval string {} parse to non-positive ({}) multiple of intervals", intervalStr, this.intervalMultiple);
-                this.intervalMultiple = 1;
-            }
+            this.intervalMultiple = Integer.parseInt(intervalStr.substring(0, digitLen));
             this.interval = ScheduleTimeRange.parseInterval(intervalStr.substring(digitLen));
         } else {
             log.warn("The interval string is absent or empty, daily backup (\"1day\") is used as default.");
         }
+    }
 
-        this.startOffsetMinutes = 0;
+    private boolean isSchedulerEnabled(PropertyInfo propInfo) {
+        String enableStr = propInfo.getProperty(BackupConstants.SCHEDULER_ENABLED);
+        return (enableStr == null || enableStr.length() == 0) ? false : Boolean.parseBoolean(enableStr);
+    }
+
+    private int getStartOffsetMinutes(PropertyInfo propInfo) {
+        int startOffset = 0;
+        String startTimeStr = propInfo.getProperty(BackupConstants.SCHEDULE_TIME);
         if (startTimeStr != null && startTimeStr.length() > 0) {
             // Format is ...dddHHmm
             int raw = Integer.parseInt(startTimeStr);
@@ -147,32 +169,56 @@ public class SchedulerConfig {
             int hour = raw % 100;
             int day = raw / 100;
 
-            this.startOffsetMinutes = (day * 24 + hour) * 60 + minute;
+            startOffset = (day * 24 + hour) * 60 + minute;
         }
+        return startOffset;
+    }
 
-        this.copiesToKeep = BackupConstants.DEFAULT_BACKUP_COPIES_TO_KEEP;
+    private int getCopiesToKeep(PropertyInfo propInfo) {
+        int retentionNumber = BackupConstants.DEFAULT_BACKUP_COPIES_TO_KEEP;
+        String copiesStr = propInfo.getProperty(BackupConstants.COPIES_TO_KEEP);
         if (copiesStr != null && copiesStr.length() > 0) {
-            this.copiesToKeep = Integer.parseInt(copiesStr);
+            retentionNumber = Integer.parseInt(copiesStr);
         }
+        return retentionNumber;
+    }
 
+    private String getExternalServerUrl(PropertyInfo propInfo) {
+        String url;
+        String urlStr = propInfo.getProperty(BackupConstants.UPLOAD_URL);
         if (urlStr == null || urlStr.length() == 0) {
-            this.uploadUrl = null;
+            url = null;
         } else if (urlStr.endsWith("/")) {
-            this.uploadUrl = urlStr;
+            url = urlStr;
         } else {
-            this.uploadUrl = urlStr + "/";
+            url = urlStr + "/";
         }
+        return url;
+    }
 
-        this.uploadUserName = usernameStr;
-        this.uploadPassword = null;
+    private String getExternalServerUserName(PropertyInfo propInfo) {
+        return propInfo.getProperty(BackupConstants.UPLOAD_USERNAME);
+    }
+
+    private byte[] getExternalServerPassword(PropertyInfo propInfo) {
+        byte[] password = null;
+        String passwordStr = propInfo.getProperty(BackupConstants.UPLOAD_PASSWD);
         if (passwordStr != null && passwordStr.length() > 0) {
-            this.uploadPassword = passwordStr.getBytes("UTF-8");
+            try {
+                password = passwordStr.getBytes("UTF-8");
+            } catch (Exception ex) {
+                log.error("Failed to parse upload password: {}", passwordStr, ex);
+            }
         }
+        return password;
+    }
 
-        this.schedulerEnabled = enableStr == null || enableStr.length() == 0 ? false : Boolean.parseBoolean(enableStr);
+    private void initRetainedAndUploadedBackups() {
         this.retainedBackups.clear();
         this.uploadedBackups.clear();
-        Configuration cfg = this.coordinatorClient.queryConfiguration(Constants.BACKUP_SCHEDULER_CONFIG, Constants.GLOBAL_ID);
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+        Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
+                Constants.BACKUP_SCHEDULER_CONFIG, Constants.GLOBAL_ID);
         if (cfg != null) {
             String succBackupStr = cfg.getConfig(BackupConstants.BACKUP_TAGS_RETAINED);
             if (succBackupStr != null && succBackupStr.length() > 0) {
@@ -196,18 +242,18 @@ public class SchedulerConfig {
     }
 
     public void persist() {
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
         ConfigurationImpl cfg = new ConfigurationImpl();
         cfg.setKind(Constants.BACKUP_SCHEDULER_CONFIG);
         cfg.setId(Constants.GLOBAL_ID);
-        cfg.setConfig(BackupConstants.BACKUP_TAGS_RETAINED,
-                Strings.join(",", this.retainedBackups.toArray(new String[this.retainedBackups.size()])));
-        cfg.setConfig(BackupConstants.BACKUP_TAGS_UPLOADED,
-                Strings.join(",", this.uploadedBackups.toArray(new String[this.uploadedBackups.size()])));
-        this.coordinatorClient.persistServiceConfiguration(cfg);
+        cfg.setConfig(BackupConstants.BACKUP_TAGS_RETAINED, StringUtils.join(this.retainedBackups, ','));
+        cfg.setConfig(BackupConstants.BACKUP_TAGS_UPLOADED, StringUtils.join(this.uploadedBackups, ','));
+        coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), cfg);
     }
 
     public AutoCloseable lock() throws Exception {
-        return new InterProcessLockHolder(this.coordinatorClient, BACKUP_SCHEDULER_LOCK, this.log);
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+        return new InterProcessLockHolder(coordinatorClient, BACKUP_SCHEDULER_LOCK, this.log, true);
     }
 
     public void sendBackupFailureToRoot(String tag, String errMsg) {
@@ -316,6 +362,7 @@ public class SchedulerConfig {
     }
 
     private boolean isClusterUpgrading() {
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
         String currentVersion = coordinatorClient.getCurrentDbSchemaVersion();
         String targetVersion = coordinatorClient.getTargetDbSchemaVersion();
         log.info("Current version: {}, target version: {}.", currentVersion,
@@ -336,6 +383,7 @@ public class SchedulerConfig {
 
     private boolean isClusterNodeRecovering() {
         RecoveryStatus.Status status = null;
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
         Configuration cfg = coordinatorClient.queryConfiguration(Constants.NODE_RECOVERY_STATUS, Constants.GLOBAL_ID);
         if (cfg != null) {
             String statusStr = cfg.getConfig(RecoveryConstants.RECOVERY_STATUS);
@@ -362,9 +410,10 @@ public class SchedulerConfig {
 	private void getSofttwareWithRetry() throws Exception, InterruptedException {
         int retryTimes = 0;
         RepositoryInfo targetInfo = null;
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
         while (retryTimes <= MAX_VERSION_RETRY_TIMES) {
             retryTimes++;
-            targetInfo = this.coordinatorClient.getTargetInfo(RepositoryInfo.class);
+            targetInfo = coordinatorClient.getTargetInfo(RepositoryInfo.class);
             if (targetInfo == null){
                 log.info("can't get version, try {} seconds later", MAX_VERSION_RETRY_INTERVAL/1000);
                 Thread.sleep(MAX_VERSION_RETRY_INTERVAL);
@@ -384,7 +433,8 @@ public class SchedulerConfig {
      * Query upload status from ZK
      */
     public BackupUploadStatus queryBackupUploadStatus() {
-        Configuration cfg = coordinatorClient.queryConfiguration(
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+        Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
                 BackupConstants.BACKUP_UPLOAD_STATUS, Constants.GLOBAL_ID);
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
         BackupUploadStatus uploadStatus = new BackupUploadStatus(allItems);
@@ -408,7 +458,8 @@ public class SchedulerConfig {
         for (Map.Entry<String, String> entry : allItems.entrySet()) {
             config.setConfig(entry.getKey(), entry.getValue());
         }
-        coordinatorClient.persistServiceConfiguration(config);
+        CoordinatorClient coordinatorClient = coordinator.getCoordinatorClient();
+        coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
         log.info("Persist backup upload status to zk successfully");
     }
 }

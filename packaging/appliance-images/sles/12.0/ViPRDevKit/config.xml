@@ -50,9 +50,6 @@
   <repository type="yast2" priority="3">
     <source path="/slesmedia/12-SLES-DVD1"/>
   </repository>
-  <repository type="rpm-md" priority="2">
-    <source path="http://lglaf020.lss.emc.com/kiwi_build_requires"/>
-  </repository>
   <packages type="image" profiles="base,appliance">
     <package name="audit"/>
 	<package name="apache-commons-daemon"/>

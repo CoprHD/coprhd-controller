@@ -100,7 +100,7 @@ _start_services() {
     done
     echo " Done"
 } 
- 
+
 # Stop services
 _stop_services() {
     echo -n "Stopping @product_brand@ ${STORAGEOS_VARIANT} services "

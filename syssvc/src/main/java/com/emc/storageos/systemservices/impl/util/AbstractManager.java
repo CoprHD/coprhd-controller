@@ -7,19 +7,26 @@ package com.emc.storageos.systemservices.impl.util;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.services.util.Waiter;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
+
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 /**
@@ -35,17 +42,36 @@ public abstract class AbstractManager implements Runnable {
     // bean properties
     protected long loopInterval;
     protected long retryInterval;
-
+    
+    // bean properties
+    private long powerOffStateChangeTimeout;
+    private long powerOffStateProbeInterval;
+    
     protected CoordinatorClientExt coordinator;
     protected LocalRepository localRepository;
 
     protected volatile boolean doRun = true;
 
     protected int nodeCount;
+    protected DrUtil drUtil;
+    
+    private final static int TIME_LIMIT_FOR_INITIATING_POWEROFF = 60000;
+    private static final int SLEEP_MS = 100;
+    
+    private HashSet<String> poweroffAgreementsKeeper = new HashSet<>();
 
-    protected final String upgradeLockId = DISTRIBUTED_UPGRADE_LOCK;
-    protected final String propertyLockId = DISTRIBUTED_PROPERTY_LOCK;
+    public HashSet<String> getPoweroffAgreementsKeeper() {
+        return poweroffAgreementsKeeper;
+    }
 
+    public void setPowerOffStateChangeTimeout(long powerOffStateChangeTimeout) {
+        this.powerOffStateChangeTimeout = powerOffStateChangeTimeout;
+    }
+
+    public void setPowerOffStateProbeInterval(long powerOffStateProbeInterval) {
+        this.powerOffStateProbeInterval = powerOffStateProbeInterval;
+    }
+    
     public void setCoordinator(CoordinatorClientExt coordinator) {
         this.coordinator = coordinator;
     }
@@ -68,6 +94,10 @@ public abstract class AbstractManager implements Runnable {
 
     public void setNodeCount(int nodeCount) {
         this.nodeCount = nodeCount;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
     }
 
     abstract protected URI getWakeUpUrl();
@@ -175,6 +205,209 @@ public abstract class AbstractManager implements Runnable {
         doRun = false;
     }
 
+    protected void reachAgreementOnPoweroff(boolean forceSet) {
+        if (checkAllNodesAgreeToPowerOff(forceSet) && initiatePoweroff(forceSet)) {
+            resetTargetPowerOffState();
+        } else {
+            log.warn("Failed to reach agreement among all the nodes. Proceed with best-effort poweroff");
+            initiatePoweroff(true);
+            resetTargetPowerOffState();
+        }
+    }
+    
+    public boolean initiatePoweroff(boolean forceSet) {
+        final List<String> svcIds = coordinator.getAllNodes();
+        final String mySvcId = coordinator.getMySvcId();
+        svcIds.remove(mySvcId);
+        Set<String> controlerSyssvcIdSet = new HashSet<String>();
+        for (String svcId : svcIds) {
+            if (svcId.matches("syssvc-\\d")) {
+                controlerSyssvcIdSet.add(svcId);
+            }
+        }
+
+        log.info("Tell other node it's ready to power off");
+
+        for (String svcId : controlerSyssvcIdSet) {
+            try {
+                SysClientFactory.getSysClient(coordinator.getNodeEndpointForSvcId(svcId))
+                        .post(URI.create(SysClientFactory.URI_SEND_POWEROFF_AGREEMENT.getPath() + "?sender=" + mySvcId), null, null);
+            } catch (SysClientException e) {
+                throw APIException.internalServerErrors.poweroffError(svcId, e);
+            }
+        }
+        long endTime = System.currentTimeMillis() + TIME_LIMIT_FOR_INITIATING_POWEROFF;
+        while (true) {
+            if (System.currentTimeMillis() > endTime) {
+                if (forceSet) {
+                    return true;
+                } else {
+                    log.error("Timeout. initiating poweroff failed.");
+                    log.info("The received agreements are: " + this.getPoweroffAgreementsKeeper().toString());
+                    return false;
+                }
+            }
+            if (poweroffAgreementsKeeper.containsAll(controlerSyssvcIdSet)) {
+                return true;
+            } else {
+                log.debug("Sleep and wait for poweroff agreements for other nodes");
+                sleep(SLEEP_MS);
+            }
+        }
+    }
+
+    /**
+     * Check all nodes agree to power off
+     * Work flow:
+     * Each node publishes NOTICED, then wait to see if all other nodes got the NOTICED.
+     * If true, continue to publish ACKNOWLEDGED; if false, return false immediately. Poweroff will fail.
+     * Same for ACKNOWLEDGED.
+     * After a node see others have the ACKNOWLEDGED published, it can power off.
+     * 
+     * If we let the node which first succeeded to see all ACKNOWLEDGED to power off first,
+     * other nodes may fail to see the ACKNOWLEDGED signal since the 1st node is shutting down.
+     * So we defined an extra STATE.POWEROFF state, which won't check the count of control nodes.
+     * Nodes in POWEROFF state are free to poweroff.
+     * 
+     * @param forceSet
+     * @return true if all node agree to poweroff; false otherwise
+     */
+    protected boolean checkAllNodesAgreeToPowerOff(boolean forceSet) {
+        while (true) {
+            try {
+                // Send NOTICED signal and verify
+                publishNodePowerOffState(PowerOffState.State.NOTICED);
+                poweroffAgreementsKeeper = new HashSet<>();
+                if (!waitClusterPowerOffStateNotLessThan(PowerOffState.State.NOTICED, !forceSet)) {
+                    log.error("Failed to get {} signal from all other nodes", PowerOffState.State.NOTICED);
+                    return false;
+                }
+                // Send ACKNOWLEDGED signal and verify
+                publishNodePowerOffState(PowerOffState.State.ACKNOWLEDGED);
+                if (!waitClusterPowerOffStateNotLessThan(PowerOffState.State.ACKNOWLEDGED, !forceSet)) {
+                    log.error("Failed to get {} signal from all other nodes", PowerOffState.State.ACKNOWLEDGED);
+                    return false;
+                }
+
+                // Send POWEROFF signal and verify
+                publishNodePowerOffState(PowerOffState.State.POWEROFF);
+                if (!waitClusterPowerOffStateNotLessThan(PowerOffState.State.POWEROFF, !forceSet)) {
+                    log.error("Failed to get {} signal from all other nodes", PowerOffState.State.POWEROFF);
+                    return false;
+                }
+
+                return true;
+            } catch (Exception e) {
+                log.error("Step2: checkAllNodesAgreeToPowerOff failed: {} ", e);
+            }
+        }
+    }
+
+    /**
+     * Reset target power off state back to NONE
+     */
+    protected void resetTargetPowerOffState() {
+        poweroffAgreementsKeeper = new HashSet<String>();
+        while (true) {
+            try {
+                if (coordinator.isControlNode()) {
+                    try {
+                        coordinator.setTargetInfo(new PowerOffState(PowerOffState.State.NONE), false);
+                        log.info("Step2: Target poweroff state change to: {}", PowerOffState.State.NONE);
+                    } catch (CoordinatorClientException e) {
+                        log.info("Step2: Wait another control node to set target poweroff state");
+                        retrySleep();
+                    }
+                } else {
+                    log.info("Wait control node to set target poweroff state");
+                    retrySleep();
+                }
+
+                // exit only when target poweroff state is NONE
+                if (coordinator.getTargetInfo(PowerOffState.class).getPowerOffState() == PowerOffState.State.NONE) {
+                    break;
+                }
+            } catch (Exception e) {
+                retrySleep();
+                log.info("reset cluster poweroff state retrying. {}", e);
+            }
+        }
+    }
+
+    /**
+     * Publish node power off state
+     * 
+     * @param toState
+     * @throws com.emc.storageos.systemservices.exceptions.CoordinatorClientException
+     */
+    protected void publishNodePowerOffState(PowerOffState.State toState) throws CoordinatorClientException {
+        log.info("Send {} signal", toState);
+        coordinator.setNodeSessionScopeInfo(new PowerOffState(toState));
+    }
+
+    /**
+     * Wait cluster power off state change to a state not less than specified state
+     * 
+     * @param state
+     * @param checkNumOfControlNodes
+     * @return true if all nodes' poweroff state are equal to specified state
+     */
+    private boolean waitClusterPowerOffStateNotLessThan(PowerOffState.State state, boolean checkNumOfControlNodes) {
+        long expireTime = System.currentTimeMillis() + powerOffStateChangeTimeout;
+        while (true) {
+            if (coordinator.verifyNodesPowerOffStateNotBefore(state, checkNumOfControlNodes)) {
+                return true;
+            }
+
+            sleep(powerOffStateProbeInterval);
+            if (System.currentTimeMillis() >= expireTime) {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Try to acquire the reboot lock for rolling reboot
+     *
+     * @param svcId
+     * @return
+     */
+    protected boolean getRebootLock(String svcId) {
+        if (!coordinator.getPersistentLock(svcId, DISTRIBUTED_REBOOT_LOCK)) {
+            log.info("Acquiring reboot lock failed. Retrying...");
+            return false;
+        }
+
+        log.info("Successfully acquired the reboot lock.");
+        return true;
+    }
+
+    /**
+     * Try to release the reboot lock after rolling reboot the current node
+     *
+     * @param svcId
+     * @return
+     */
+    protected void releaseRebootLock(String svcId) {
+        try {
+            coordinator.releasePersistentLock(svcId, DISTRIBUTED_REBOOT_LOCK);
+        } catch (Exception e) {
+            log.error("Failed to release the reboot lock:", e);
+        }
+    }
+
+    /**
+     * See if the current node has the reboot lock.
+     * Exception should be caught by the caller.
+     *
+     * @param svcId
+     * @return
+     * @throws Exception
+     */
+    protected boolean hasRebootLock(String svcId) throws Exception {
+        return coordinator.hasPersistentLock(svcId, DISTRIBUTED_REBOOT_LOCK);
+    }
+    
     protected void retrySleep() {
         sleep(retryInterval);
     }

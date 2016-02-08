@@ -19,6 +19,7 @@ import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.model.DiscoveredSystemObjectRestRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.RecoverPointRestRep;
@@ -236,7 +237,15 @@ public class BlockProviderUtils {
         PersonalityTypes personality = getVolumePersonality(volume);
         return personality != null && PersonalityTypes.TARGET.equals(personality);
     }
-
+    
+    public static boolean isSnapshotSessionSupportedForVolume(VolumeRestRep volume) {        
+        return ((volume.getSupportsSnapshotSessions() != null) && volume.getSupportsSnapshotSessions());
+    }
+        
+    public static boolean isSnapshotSessionSupportedForCG(BlockConsistencyGroupRestRep cg) {        
+        return ((cg.getSupportsSnapshotSessions() != null) && cg.getSupportsSnapshotSessions());
+    }
+    
     public static RecoverPointRestRep getVolumeRPRep(VolumeRestRep volume) {
         if (volume.getProtection() != null &&
                 volume.getProtection().getRpRep() != null) {
@@ -330,5 +339,4 @@ public class BlockProviderUtils {
     public static boolean isType(URI uri, String name) {
         return uri.toString().startsWith("urn:storageos:" + name);
     }
-
 }

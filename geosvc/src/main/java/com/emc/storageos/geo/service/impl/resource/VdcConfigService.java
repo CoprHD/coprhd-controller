@@ -7,11 +7,7 @@ package com.emc.storageos.geo.service.impl.resource;
 
 import java.net.InetAddress;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -24,26 +20,22 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.emc.storageos.db.client.model.VdcVersion;
+
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.db.client.impl.DataObjectType;
-import com.emc.storageos.db.client.impl.TypeMap;
-import com.emc.storageos.db.client.model.CustomConfig;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.PasswordHistory;
-import com.emc.storageos.db.client.model.PropertyListDataObject;
-import com.emc.storageos.db.client.model.StorageOSUserDAO;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.Token;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.geo.service.impl.GeoBackgroundTasks;
@@ -64,8 +56,13 @@ import com.emc.storageos.geomodel.VdcPreCheckResponse2;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.security.geo.exceptions.GeoException;
 import com.emc.storageos.services.util.Strings;
+import com.emc.storageos.services.util.SysUtils;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.google.common.net.InetAddresses;
+
+import static com.emc.storageos.coordinator.client.model.Constants.IPSEC_KEY;
+import static com.emc.storageos.coordinator.client.model.Constants.VDC_CONFIG_VERSION;
 
 @Path(GeoServiceClient.VDCCONFIG_URI)
 public class VdcConfigService {
@@ -85,12 +82,18 @@ public class VdcConfigService {
 
     @Autowired
     private VdcConfigHelper helper;
+    
+    @Autowired
+    private DrUtil drUtil;
 
     private Service service;
+    
+    private SysUtils sysUtils;
 
-    static private final List<Class<? extends DataObject>> excludeClasses = Arrays.asList(
-            Token.class, StorageOSUserDAO.class, VirtualDataCenter.class,
-            PropertyListDataObject.class, PasswordHistory.class, CustomConfig.class, VdcVersion.class);
+    private IPsecConfig ipsecConfig;
+    public void setIpsecConfig(IPsecConfig ipsecConfig) {
+        this.ipsecConfig = ipsecConfig;
+    }
 
     public void setService(Service service) {
         this.service = service;
@@ -136,7 +139,7 @@ public class VdcConfigService {
 
         boolean hasData = false;
         if (isFresher) {
-            hasData = hasDataInDb();
+            hasData = dbClient.hasUsefulData();
         }
 
         hasData |= hasDataService();
@@ -163,26 +166,6 @@ public class VdcConfigService {
     }
 
     /**
-     * Check if there are useful data in the DB
-     * we don't check the data whose type is in excludeClasses
-     * 
-     * @return true if there are data no matter inactive or not
-     */
-    private boolean hasDataInDb() {
-        Collection<DataObjectType> doTypes = TypeMap.getAllDoTypes();
-
-        for (DataObjectType doType : doTypes) {
-            Class clazz = doType.getDataObjectClass();
-
-            if (hasDataInCF(clazz)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * @return true if there are data services
      */
     private boolean hasDataService() {
@@ -197,32 +180,6 @@ public class VdcConfigService {
         }
 
         return true;
-    }
-
-    private <T extends DataObject> boolean hasDataInCF(Class<T> clazz) {
-        if (excludeClasses.contains(clazz)) {
-            return false; // ignore the data in those CFs
-        }
-
-        // true: query only active object ids, for below reason:
-        // add VDC should succeed just when remove the data in vdc2.
-        List<URI> ids = dbClient.queryByType(clazz, true, null, 2);
-
-        if (clazz.equals(TenantOrg.class)) {
-            if (ids.size() > 1) {
-                // at least one non-root tenant exist
-                return true;
-            }
-
-            return false;
-        }
-
-        if (!ids.isEmpty()) {
-            log.info("The class {} has data e.g. id={}", clazz.getSimpleName(), ids.get(0));
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -264,9 +221,10 @@ public class VdcConfigService {
                     URI targetVdcId = checkParam.getVdcIds().get(0);
                     log.info("Precheck2 to check the disconnect vdc {} is reachable", targetVdcId);
                     VirtualDataCenter targetVdc = dbClient.queryObject(VirtualDataCenter.class, targetVdcId);
-
+                    Site activeSite = drUtil.getActiveSite(targetVdc.getShortId());
+                    
                     resp2.setIsAllNodesNotReachable(!helper.areNodesReachable(getLocalVdc().getShortId(),
-                            targetVdc.getHostIPv4AddressesMap(), targetVdc.getHostIPv6AddressesMap(), checkParam.getIsAllNotReachable()));
+                            activeSite.getHostIPv4AddressMap(), activeSite.getHostIPv6AddressMap(), checkParam.getIsAllNotReachable()));
                     break;
                 }
                 if (precheckFailed) {
@@ -333,7 +291,7 @@ public class VdcConfigService {
 
     private boolean isDisconnectedEachOther(List<String> blackList, List<String> whiteList) {
         VirtualDataCenter myVdc = getLocalVdc();
-        Collection<String> addresses = myVdc.queryHostIPAddressesMap().values();
+        Collection<String> addresses = dbClient.queryHostIPAddressesMap(myVdc).values();
         log.info("local vdc IP addresses:{}", addresses);
 
         boolean found = false;
@@ -408,7 +366,7 @@ public class VdcConfigService {
                         updateBlackListForReconnectedVdc();
                         log.info("Reconnect ops: new blacklist is {}", dbClient.getBlacklist());
 
-                        helper.syncVdcConfig(param.getVirtualDataCenters(), null);
+                        helper.syncVdcConfig(param.getVirtualDataCenters(), null, param.getVdcConfigVersion(), param.getIpsecKey());
 
                         log.info("Current strategy options is {}", dbClient.getGeoStrategyOptions());
                         log.info("Current schema version for Geo is {}", dbClient.getGeoSchemaVersions());
@@ -439,6 +397,7 @@ public class VdcConfigService {
                     VirtualDataCenter existingVdc = dbClient.queryObject(VirtualDataCenter.class,
                             srcVdcId);
                     dbClient.markForDeletion(existingVdc);
+                    helper.deleteVdcConfigFromZk(existingVdc);
                     log.info("The existing vdc {} has been removed. The current vdc id will be {}.",
                             srcVdcId, assignedVdcId);
 
@@ -453,7 +412,7 @@ public class VdcConfigService {
                     throw GeoException.fatals.remoteVDCGeoEncryptionMissing();
                 }
 
-                helper.syncVdcConfig(param.getVirtualDataCenters(), assignedVdcId);
+                helper.syncVdcConfig(param.getVirtualDataCenters(), assignedVdcId, param.getVdcConfigVersion(), param.getIpsecKey());
 
                 if (isRemoveOp(param)) {
                     log.info("Disable grossip to avoid schema version disagreement errors");
@@ -543,18 +502,17 @@ public class VdcConfigService {
         log.info(String.format("Performing NAT check, client address connecting to VIP: %s. Client reports its IPv4 = %s, IPv6 = %s",
                 clientIp, ipv4Str, ipv6Str));
 
-        InetAddress ipv4Addr = parseInetAddress(ipv4Str);
-        InetAddress ipv6Addr = parseInetAddress(ipv6Str);
-        InetAddress directAddr = parseInetAddress(clientIp);
-        if (directAddr == null || ipv4Addr == null && ipv6Addr == null) {
-            String ipAddrsStr = Strings.join("|", ipv4Str, ipv6Addr);
-            log.error("checkParam is {}, X-Forwarded-For is {}", ipAddrsStr, clientIp);
-            throw GeoException.fatals.invalidNatCheckCall(ipAddrsStr, clientIp);
+        boolean isBehindNat = false;
+        try {
+            isBehindNat = sysUtils.checkIfBehindNat(ipv4Str, ipv6Str, clientIp);
+        } catch (Exception e) {
+            log.error("Fail to check NAT {}", e);
+            throw GeoException.fatals.invalidNatCheckCall(e.getMessage(), clientIp);
         }
 
         VdcNatCheckResponse resp = new VdcNatCheckResponse();
         resp.setSeenIp(clientIp);
-        resp.setBehindNAT(!directAddr.equals(ipv4Addr) && !directAddr.equals(ipv6Addr));
+        resp.setBehindNAT(isBehindNat);
 
         return resp;
     }
@@ -615,21 +573,6 @@ public class VdcConfigService {
         return StringUtils.join(vdcShortIds, ",");
     }
 
-    private String getVdcIps(List<VdcConfig> configs) {
-        StringBuilder builder = new StringBuilder();
-        for (VdcConfig config : configs) {
-            List<String> ips = new ArrayList<>();
-            ips.addAll(config.getHostIPv4AddressesMap().values());
-            ips.addAll(config.getHostIPv6AddressesMap().values());
-
-            builder.append('{');
-            builder.append(StringUtils.join(ips, ","));
-            builder.append("}");
-        }
-
-        return builder.toString();
-    }
-
     /**
      * @param from
      * @param areNodesReachable
@@ -650,20 +593,26 @@ public class VdcConfigService {
         if (from == null) {
             return null;
         }
+        Site activeSite = drUtil.getActiveSite(from.getShortId());
+        
         VdcPreCheckResponse to = new VdcPreCheckResponse();
 
         to.setId(from.getId());
         to.setConnectionStatus(from.getConnectionStatus().name());
         to.setVersion(from.getVersion());
         to.setShortId(from.getShortId());
-        to.setHostCount(from.getHostCount());
+        to.setHostCount(activeSite.getNodeCount());
 
-        to.setHostIPv4AddressesMap(new StringMap(from.getHostIPv4AddressesMap()));
-        to.setHostIPv6AddressesMap(new StringMap(from.getHostIPv6AddressesMap()));
+        StringMap ipv4Addr = new StringMap();
+        ipv4Addr.putAll(activeSite.getHostIPv4AddressMap());
+        to.setHostIPv4AddressesMap(ipv4Addr);
+        StringMap ipv6Addr = new StringMap();
+        ipv6Addr.putAll(activeSite.getHostIPv6AddressMap());
+        to.setHostIPv6AddressesMap(ipv6Addr);
 
         to.setName(from.getLabel());
         to.setDescription(from.getDescription());
-        to.setApiEndpoint(from.getApiEndpoint());
+        to.setApiEndpoint(activeSite.getVip());
         to.setSecretKey(from.getSecretKey());
         to.setHasData(hasData);
         to.setSoftwareVersion(localSoftVer.toString());
@@ -676,6 +625,8 @@ public class VdcConfigService {
         to.setClusterStable(clusterStable);
         log.info("current cluster stable {}", clusterStable);
 
+        to.setActiveSiteId(activeSite.getUuid());
+        
         return to;
     }
 
@@ -731,6 +682,23 @@ public class VdcConfigService {
         return String.valueOf(isClusterStable());
     }
 
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/ipsec-properties")
+    public PropertyInfoRestRep getIpsecProperties() throws Exception {
+        log.info("getting ipsec properties.");
+        Map<String, String> ipsecProps = new HashMap();
+        ipsecProps.put(IPSEC_KEY, ipsecConfig.getPreSharedKey());
+
+        SiteInfo siteInfo = coordinator.getTargetInfo(SiteInfo.class);
+        String vdcConfigVersion = String.valueOf(siteInfo.getVdcConfigVersion());
+        ipsecProps.put(VDC_CONFIG_VERSION, vdcConfigVersion);
+        log.info("ipsec key: " + ipsecConfig.getPreSharedKey()
+                + ", vdc config version: " + vdcConfigVersion);
+
+        return new PropertyInfoRestRep(ipsecProps);
+    }
+
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/resetblacklist")
@@ -749,4 +717,7 @@ public class VdcConfigService {
         }
     }
 
+    public void setSysUtils(SysUtils sysUtils) {
+        this.sysUtils = sysUtils;
+    }
 }

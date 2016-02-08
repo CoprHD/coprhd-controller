@@ -1,0 +1,123 @@
+#!/etc/genconfig
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+
+PORTS_PROTECTED_IN_CLUSTER="tcp/2181 tcp/2888 tcp/2889 tcp/7000 tcp/7100 tcp/7199 tcp/7200 tcp/7299 tcp/7300 tcp/7399 tcp/7400 tcp/9160 tcp/9260 tcp/10099 tcp/40201"
+PORTS_PROTECTED_ACROSS_SITE="tcp/2888 tcp/2889 tcp/7000 tcp/7100"
+IPSEC_CONF_FILE="/etc/ipsec.conf"
+IPSEC_SECRET_FILE="/etc/ipsec.secrets"
+
+#
+# common section for all connnections in ipsec.conf
+#
+LOCAL_IP=$(_get_local_ip)
+COMMON_SECTION=$(cat << EOF
+# common section for all connections
+conn %default
+    ikelifetime=60m
+    keylife=20m
+    rekeymargin=3m
+    keyingtries=1
+    keyexchange=ikev2
+    authby=secret
+    auto=route
+    type=transport
+    esp=aes128gcm16!
+    left=${LOCAL_IP}
+EOF
+)
+
+#
+# section specific to each connection
+#
+_gen_conn_sections() {
+    local ips=$1
+    local ports=""
+    if [[ ${ips} == *"${LOCAL_IP}"* ]] ; then
+        ports=${PORTS_PROTECTED_IN_CLUSTER}
+    else
+        ports=${PORTS_PROTECTED_ACROSS_SITE}
+    fi
+
+    for ip in ${ips}
+    do
+        # skip generate connections for itself
+        [ "${ip}" == "${LOCAL_IP}" ] && continue
+
+        for port in ${ports}
+        do
+            conn=$(cat << EOF
+
+conn ${LOCAL_IP}-${ip}-${port}
+    right=${ip}
+    rightprotoport=${port}
+conn ${ip}-${LOCAL_IP}-${port}
+    right=${ip}
+    leftprotoport=${port}
+
+EOF
+)
+            echo "${conn}"
+        done
+    done
+}
+
+#
+# generate ipsec.conf and ipsec.secrets
+#
+_gen_ipsec_conf() {
+
+    local start_ipsec
+    if [ "${_GENCONFIG_back_compat_preyoda}" == "true" ] ; then
+        # disable ipsec before yoda upgrade is done
+        export _GENCONFIG_ipsec_status="disabled"
+    fi 
+
+    if [ "${_GENCONFIG_ipsec_status}" == "disabled" ] ; then
+        rm -f ${IPSEC_CONF_FILE} ${IPSEC_SECRET_FILE}
+        start_ipsec=false	
+    else
+        start_ipsec=true		
+    fi
+
+    if [ "${start_ipsec}" = false ] ; then
+        return 0;
+    fi
+
+
+    local vdc_ids=$(echo ${_GENCONFIG_vdc_ids} | sed 's/,/ /g')
+    local site_ids=$(echo ${_GENCONFIG_site_ids} | sed 's/,/ /g')
+    local content="${COMMON_SECTION}"
+    for vdc in ${vdc_ids} ; do
+        for site in ${site_ids} ; do
+            local ips=$(_get_ips_in_specified_site "${vdc}" "${site}")
+            connections=$(_gen_conn_sections "${ips}")
+            content=$(cat << EOF
+${content}
+
+# ips in ${vdc}_${site}: ${ips}
+${connections}
+EOF
+)
+        done
+    done
+
+    # retrieve ipsec_key
+    # the priority sequence as:
+    #   1. from vdcconfig.properties
+    #   2. from ovfenv.properties
+    #   3. from psk.default
+    local ipsec_key=$(cat /opt/storageos/conf/psk.default)
+    if [ -n "${_GENCONFIG_ipsec_key}" ] ; then
+        ipsec_key="${_GENCONFIG_ipsec_key}"
+    elif [ -n "${_GENCONFIG_ipsec_key_ovfenv}" ] ; then
+        ipsec_key="${_GENCONFIG_ipsec_key_ovfenv}"
+    fi
+
+    _genconfig_write 400 root:root "${IPSEC_CONF_FILE}" "${content}"
+    _genconfig_write 400 root:root "${IPSEC_SECRET_FILE}" \
+        " : PSK ${ipsec_key}"
+}
+
+_gen_ipsec_conf

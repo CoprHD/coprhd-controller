@@ -20,6 +20,10 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     private String _hostName;
     // to do - This is temporary until initiator service is remove
     private String _clusterName;
+    // Lazily initialized, cached hashCode
+    private volatile int hashCode;
+    // COP-18937: Initiator may be registered to multiple storage systems using different names.
+    private StringMap initiatorNames;
 
     /**
      * Default Constructor. This is the constructor used by the API.
@@ -30,7 +34,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
 
     /**
      * Constructor.
-     * 
+     *
      * @param protocol The initiator port protocol.
      * @param port The initiator port identifier.
      * @param node The initiator node identifier.
@@ -47,7 +51,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
 
     /**
      * Constructor supports setting of optional cluster name.
-     * 
+     *
      * @param protocol The initiator port protocol.
      * @param port The initiator port identifier.
      * @param node The initiator node identifier.
@@ -68,7 +72,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     /**
      * Getter for the initiator port identifier. For FC, this is the port WWN.
      * For iSCSI, this is port name in IQN or EUI format.
-     * 
+     *
      * @return The initiator port identifier.
      */
     @Name("iniport")
@@ -79,7 +83,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
 
     /**
      * Setter for the initiator port identifier.
-     * 
+     *
      * @param port The initiator port identifier.
      */
     public void setInitiatorPort(String port) {
@@ -90,7 +94,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     /**
      * Getter for the initiator node identifier. For FC, this is the node WWN.
      * For iSCSI, this field is optional.
-     * 
+     *
      * @return The initiator node identifier.
      */
     @Name("ininode")
@@ -100,7 +104,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
 
     /**
      * Setter for the initiator node identifier.
-     * 
+     *
      * @param node The initiator node identifier.
      */
     public void setInitiatorNode(String node) {
@@ -111,7 +115,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     /**
      * Getter for the FQDN of the initiator host.
      * to do - This is temporary until initiator service is remove
-     * 
+     *
      * @return The FQDN of the initiator host.
      */
     @AlternateId("AltIdIndex")
@@ -123,7 +127,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     /**
      * Setter for the FQDN of the initiator host.
      * to do - This is temporary until initiator service is remove
-     * 
+     *
      * @param hostName The FQDN of the initiator host.
      */
     public void setHostName(String hostName) {
@@ -134,7 +138,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     /**
      * Getter for the FQDN of the initiator cluster.
      * to do - This is temporary until initiator service is remove
-     * 
+     *
      * @return The FQDN of the initiator cluster or null if not applicable.
      */
     @Name("clustername")
@@ -145,12 +149,58 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
     /**
      * Setter for the FQDN of the initiator cluster.
      * to do - This is temporary until initiator service is remove
-     * 
+     *
      * @param clusterName The FQDN of the initiator cluster.
      */
     public void setClusterName(String clusterName) {
         _clusterName = clusterName;
         setChanged("clustername");
+    }
+
+    /**
+     * Getter for the initiator names
+     *
+     * @return Map of storage system serial number to initiator name
+     */
+    @Name("initiatorNames")
+    public StringMap getInitiatorNames() {
+        if (initiatorNames == null) {
+            initiatorNames = new StringMap();
+        }
+        return initiatorNames;
+    }
+
+    /**
+     * Setter for the initiatorNames
+     *
+     * @param initiatorNames - map of storage system to initiator name
+     */
+    public void setInitiatorNames(StringMap initiatorNames) {
+        this.initiatorNames = initiatorNames;
+    }
+
+    /**
+     * Map the initiator name to the storage system
+     *
+     * @param storageSystemSerailNumber storage system serial number
+     * @param initiatorName initiator name for the storage system
+     */
+    public void mapInitiatorName(String storageSystemSerailNumber, String initiatorName) {
+        if (storageSystemSerailNumber != null && initiatorName != null && !initiatorName.isEmpty()) {
+            getInitiatorNames().put(storageSystemSerailNumber, initiatorName);
+        }
+    }
+
+    /**
+     * Get the initiator name for the given storage system if present.
+     * If there is no mapping for the storage system, return the initiator label.
+     *
+     * @param storageSystemSerailNumber
+     * @return initiator name for the storage system if present or the label
+     */
+    public String getMappedInitiatorName(String storageSystemSerailNumber) {
+        String initiatorName = getInitiatorNames().get(storageSystemSerailNumber);
+        return initiatorName != null ? initiatorName : getLabel();
     }
 
     @Override
@@ -165,7 +215,7 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
         String normalizedPort = port;
         if (WWNUtility.isValidWWN(port)) {
             normalizedPort = WWNUtility.getUpperWWNWithNoColons(port);
-        } else if(iSCSIUtility.isValidIQNPortName(port)) {
+        } else if (iSCSIUtility.isValidIQNPortName(port)) {
             normalizedPort = normalizedPort.toLowerCase();
         }
         return normalizedPort;
@@ -218,12 +268,24 @@ public class Initiator extends HostInterface implements Comparable<Initiator> {
         }
 
         Initiator that = (Initiator) object;
-        if (this._id.equals(that._id)) {
-            return true;
+        if (!this._id.equals(that._id)) {
+            return false;
         }
 
         String thisPort = this.getInitiatorPort();
         String thatPort = that.getInitiatorPort();
         return thisPort.equals(thatPort);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = hashCode;
+        if (result == 0) {
+            result = 17;
+            result = 31 * result + _id.hashCode();
+            result = 31 * result + this.getInitiatorPort().hashCode();
+            hashCode = result;
+        }
+        return result;
     }
 }

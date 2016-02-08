@@ -140,7 +140,7 @@ public class CinderUtils
         StringMap endPointKeys = provider.getKeys();
 
         String hostName = endPointKeys.get(CinderConstants.KEY_CINDER_HOST_NAME);
-        String password = endPointKeys.get(CinderConstants.KEY_CINDER_REST_PASS_WORD);
+        String password = endPointKeys.get(CinderConstants.KEY_CINDER_REST_PASSWORD);
         String userName = endPointKeys.get(CinderConstants.KEY_CINDER_REST_USER);
         String tenantName = endPointKeys.get(CinderConstants.KEY_CINDER_TENANT_NAME);
         String tenantId = endPointKeys.get(CinderConstants.KEY_CINDER_TENANT_ID);

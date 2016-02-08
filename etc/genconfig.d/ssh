@@ -119,10 +119,9 @@ _gen_ssh_known_hosts() {
 
     if [ -s "${publkey_filename}" ] ; then
         known_hosts="localhost,127.0.0.1"
-        for index in ${_GENCONFIG_node_indexes}; do
-            local var="_GENCONFIG_network_${index}_ipaddr_effective"
-            known_hosts+=",${!var}"
-        done
+        local all_nodes=$(_get_all_nodes_in_my_vdc);
+        all_nodes=$(echo ${all_nodes} | sed 's/ /,/g')
+        known_hosts+=",${all_nodes}"
         known_hosts+=" $(<${publkey_filename})"
 
         _genconfig_write 644 root:root "${1}" "${known_hosts}"

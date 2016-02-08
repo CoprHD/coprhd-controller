@@ -17,12 +17,16 @@ import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
@@ -69,8 +73,8 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * Begins creating a full copy of the given block volume.
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/full-copies</tt>
-     *
-     * @param id
+     * 
+     * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param input
      *            the create configuration.
@@ -254,13 +258,29 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
         final String url = getIdUrl() + "/protection/snapshots/{fcid}/restore";
         return postTask(url, consistencyGroupId, snapshotId);
     }
+    
+    /**
+     * Resynchronize consistency group snapshot
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshot/{fcid}/resynchronize</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group.
+     * @param snapshotId
+     *            the Id of the snapshot
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
+    public Task<BlockConsistencyGroupRestRep> resynchronizeSnapshot(URI consistencyGroupId, URI snapshotId) {
+        final String url = getIdUrl() + "/protection/snapshots/{fcid}/resynchronize";
+        return postTask(url, consistencyGroupId, snapshotId);
+    }
 
     /**
      * Begins initiating failover for a given consistency group.
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/failover</tt>
      *
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param input
      *            the input configuration.
@@ -276,7 +296,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/failover-cancel</tt>
      *
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param input
      *            the input configuration.
@@ -292,7 +312,7 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      * <p>
      * API Call: <tt>POST /block/consistency-groups/{id}/protection/continuous-copies/swap</tt>
      *
-     * @param id
+     * @param consistencyGroupId
      *            the ID of the consistency group.
      * @param input
      *            the input configuration.
@@ -344,5 +364,68 @@ public class BlockConsistencyGroups extends ProjectResources<BlockConsistencyGro
      */
     public Task<BlockConsistencyGroupRestRep> deactivate(URI id) {
         return doDeactivateWithTask(id);
+    }
+    
+    /**
+     * List snapshot sessions in the consistency group
+     * <p>
+     * API Call: <tt>GET /block/consistency-groups/{id}/protection/snapshot-sessions</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @return The list of snapshot sessions in the consistency group
+     */
+    public List<NamedRelatedResourceRep> getSnapshotSessions(URI consistencyGroupId) {
+        final String url = getIdUrl() + "/protection/snapshot-sessions";
+        BlockSnapshotSessionList response = client.get(BlockSnapshotSessionList.class, url, consistencyGroupId);
+        return response.getSnapSessionRelatedResourceList();
+    } 
+ 
+    /**
+     * Create consistency group snapshot session
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshot-sessions</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param input
+     *            the create snapshot session specification
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
+    public Tasks<BlockConsistencyGroupRestRep> createSnapshotSession(URI consistencyGroupId, SnapshotSessionCreateParam input) {
+        final String url = getIdUrl() + "/protection/snapshot-sessions";
+        return postTasks(input, url, consistencyGroupId);
+    }
+    
+    /**
+     * Deactivate consistency group snapshot session
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshot-sessions/{sid}/deactivate</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param snapshotSessionId
+     *            the ID of the snapshot session
+     * @return An asychronous operation realized as a <code>Tasks</code> object
+     */
+    public Tasks<BlockConsistencyGroupRestRep> deactivateSnapshotSession(URI consistencyGroupId, URI snapshotSessionId) {
+        final String url = getIdUrl() + "/protection/snapshot-sessions/{fcid}/deactivate";
+        return postTasks(url, consistencyGroupId, snapshotSessionId);
+    }
+    
+    /**
+     * Restore consistency group snapshot session
+     * <p>
+     * API Call: <tt>POST /block/consistency-groups/{id}/protection/snapshot-sessions/{sid}/restore</tt>
+     *
+     * @param consistencyGroupId
+     *            the ID of the consistency group
+     * @param snapshotSessionId
+     *            the ID of the snapshot session
+     * @return An asychronous operation realized as a <code>Task</code> object
+     */
+    public Task<BlockConsistencyGroupRestRep> restoreSnapshotSession(URI consistencyGroupId, URI snapshotSessionId) {
+        final String url = getIdUrl() + "/protection/snapshot-sessions/{fcid}/restore";
+        return postTask(url, consistencyGroupId, snapshotSessionId);
     }
 }

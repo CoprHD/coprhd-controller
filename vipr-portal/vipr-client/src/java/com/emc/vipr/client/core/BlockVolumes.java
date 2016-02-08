@@ -43,8 +43,8 @@ import com.emc.storageos.model.block.export.ITLRestRepList;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
@@ -56,7 +56,7 @@ import com.emc.vipr.client.impl.RestClient;
  * <p>
  * Base URL: <tt>/block/volumes</tt>
  */
-public class BlockVolumes extends ProjectResources<VolumeRestRep> implements TaskResources<VolumeRestRep> {
+public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements TaskResources<VolumeRestRep> {
 
     public BlockVolumes(ViPRCoreClient parent, RestClient client) {
         super(parent, client, VolumeRestRep.class, PathConstants.BLOCK_VOLUMES_URL);
@@ -279,7 +279,7 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * @return the list of exports.
      */
     public ITLBulkRep getExports(BulkIdParam ids) {
-        return client.post(ITLBulkRep.class, ids, baseUrl + "/exports/bulk");
+        return getBulkExports(ids);
     }
 
     /**
@@ -451,10 +451,15 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      *            the ID of the block volume.
      * @param input
      *            the copy configurations.
+     * @param type
+     *            {@code FULL} or {@code VIPR_ONLY}
+     * 
      * @return tasks for monitoring the progress of the operation.
      */
-    public Tasks<VolumeRestRep> deactivateContinuousCopies(URI id, CopiesParam input) {
-        return postTasks(input, getContinuousCopiesUrl() + "/deactivate", id);
+    public Tasks<VolumeRestRep> deactivateContinuousCopies(URI id, CopiesParam input, VolumeDeleteTypeEnum type) {
+        URI uri = client.uriBuilder(getContinuousCopiesUrl() + "/deactivate").queryParam("type", type).build(id);
+        TaskList tasks = client.postURI(TaskList.class, input, uri);
+        return new Tasks<>(client, tasks.getTaskList(), resourceClass);
     }
 
     /**
@@ -688,7 +693,9 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
      * @param input
      *            the migration configuration.
      * @return a task for monitoring the operation progress.
+     * @deprecated Use the Change Virtual Pool API instead
      */
+    @Deprecated
     public Task<VolumeRestRep> migrate(MigrationParam input) {
         return postTask(input, PathConstants.MIGRATION_URL);
     }

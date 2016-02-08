@@ -67,7 +67,10 @@ import vnasserver
 import computeimageserver
 import bucket
 import warnings
-
+import volumegroup
+import ipsecmanager
+import snapshotsession
+import schedulepolicy
 
 warnings.filterwarnings(
     'ignore',
@@ -128,6 +131,7 @@ def display_version():
 # register module specific parsers with the common_parser
 module_parsers = main_parser.add_subparsers(help='Use One Of Commands')
 
+volumegroup.volume_group_parser(module_parsers, common_parser)
 authentication.authenticate_parser(module_parsers, vipr_ip, vipr_port)
 authentication.logout_parser(module_parsers, vipr_ip, vipr_port)
 authentication.authentication_parser(module_parsers, common_parser)
@@ -175,6 +179,9 @@ truststore.truststore_parser(module_parsers, common_parser)
 vnasserver.vnasserver_parser(module_parsers, common_parser)
 computeimageserver.computeimageserver_parser(module_parsers, common_parser)
 bucket.bucket_parser(module_parsers, common_parser)
+ipsecmanager.ipsec_parser(module_parsers, common_parser)
+snapshotsession.snapshotsession_parser(module_parsers, common_parser)
+schedulepolicy.schedulepolicy_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
 

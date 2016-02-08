@@ -11,7 +11,7 @@ Defaults targetpw
 
 
 Cmnd_Alias    CMD_SVCUSER   = /etc/diagtool,/etc/getovfproperties, /etc/gatherheapdumps
-Cmnd_Alias    CMD_STORAGEOS = /etc/systool, /etc/mnttool, /etc/diagtool, /bin/df, /etc/powerofftool, /etc/ipchecktool, /opt/storageos/bin/zkutils, /etc/getovfproperties, /bin/cat, /bin/lsblk
+Cmnd_Alias    CMD_STORAGEOS = /etc/systool, /etc/mnttool, /etc/diagtool, /bin/df, /etc/powerofftool, /etc/ipsectool, /etc/ipchecktool, /opt/storageos/bin/zkutils, /etc/getovfproperties, /bin/cat, /bin/lsblk
 
 ALL           ALL=(ALL) ALL
 root          ALL=(ALL) ALL

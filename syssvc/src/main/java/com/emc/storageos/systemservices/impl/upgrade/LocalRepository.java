@@ -17,21 +17,23 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
+import com.emc.storageos.coordinator.client.service.PropertyInfoUtil;
+
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
 import com.emc.storageos.coordinator.exceptions.InvalidRepositoryInfoException;
 import com.emc.storageos.coordinator.exceptions.InvalidSoftwareVersionException;
-
 import com.emc.storageos.systemservices.exceptions.SyssvcException;
-
 import com.emc.storageos.systemservices.exceptions.LocalRepositoryException;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.Strings;
@@ -69,14 +71,22 @@ public class LocalRepository {
     private static final String _SYSTOOL_SET_VDC_PROPS = "--setvdcprops";
     private static final String _SYSTOOL_GET_SSL_PROPS = "--getsslprops";
     private static final String _SYSTOOL_SET_SSL_PROPS = "--setsslprops";
+    private static final String _SYSTOOL_SET_DATA_REVISION = "--set-data-revision";
+    private static final String _SYSTOOL_GET_DATA_REVISION = "--get-data-revision";
 
     private static final String _SYSTOOL_REBOOT = "--reboot";
     private static final String _SYSTOOL_POWEROFF = "--poweroff";
     private static final String _SYSTOOL_RECONFIG = "--reconfig";
     private static final String _SYSTOOL_RECONFIG_PROPS = "--reconfig-props";
     private static final String _SYSTOOL_RESTART = "--restart";
+    private static final String _SYSTOOL_STOP = "--stop";
     private static final String _SYSTOOL_RELOAD = "--reload";
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
+    private static final String _SYSTOOL_RECONFIG_COORDINATOR = "--reconfig-coordinator";
+    private static final String _SYSTOOL_REMOTE_SYSTOOL = "--remote-systool";
+    private static final String _SYSTOOL_RESTART_COORDINATOR = "--restart-coordinator";
+
+    private static final String _IPSECTOOL_CMD="/etc/ipsectool";
 
     // inject value from spring config.
     private String cmdZkutils;
@@ -386,6 +396,38 @@ public class LocalRepository {
     }
 
     /**
+     * Reconfig remote coordinatorsvc to observer(default mode), or pariticpant(when active site is down)
+     * For DR standby site only.
+     *
+     * @param nodeId
+     * @param type
+     * @throws LocalRepositoryException
+     */
+    public void remoteReconfigCoordinator(String nodeId,String type) throws LocalRepositoryException {
+        final String prefix = String.format("reconfigCoordinator(%s): on %s", type,nodeId);
+        _log.debug(prefix);
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeId, _SYSTOOL_RECONFIG_COORDINATOR, type };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+
+    /**
+     * Restart a service on remote node
+     *
+     * @param nodeId
+     * @param serviceName service name
+     * @throws LocalRepositoryException
+     */
+    public void remoteRestartCoordinator(String nodeId, String type) throws LocalRepositoryException {
+        final String prefix = String.format("restart(): type=%s on %s", type,nodeId);
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeId, _SYSTOOL_RESTART_COORDINATOR, type };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+
+    /**
      * Restart a service
      * 
      * @param serviceName service name
@@ -396,6 +438,21 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RESTART, serviceName };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+    
+    /**
+     * Stop a service
+     * 
+     * @param serviceName service name
+     * @throws LocalRepositoryException
+     */
+    public void stop(final String serviceName) throws LocalRepositoryException {
+        final String prefix = "stop(): serviceName=" + serviceName + " ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_STOP, serviceName };
         final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
         checkFailure(result, prefix);
     }
@@ -434,6 +491,152 @@ public class LocalRepository {
 
         _log.info(prefix + ret[0]);
         return Boolean.valueOf(ret[0]);
+    }
+
+    /***
+     * Update data revision property
+     *
+     * @param revisionTag
+     * @param committed 
+     * @throws LocalRepositoryException
+     */
+    public void setDataRevision(String revisionTag, boolean committed) throws LocalRepositoryException {
+        final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , revisionTag, committed);
+        _log.debug(prefix);
+
+        final Path tmpFilePath = FileSystems.getDefault().getPath(DATA_REVISION_TMP);
+        StringBuilder s = new StringBuilder();
+        s.append(KEY_DATA_REVISION);
+        s.append(PropertyInfoExt.ENCODING_EQUAL);
+        s.append(revisionTag == null ? "" : revisionTag);
+        s.append(PropertyInfoExt.ENCODING_NEWLINE);
+        s.append(KEY_DATA_REVISION_COMMITTED);
+        s.append(PropertyInfoExt.ENCODING_EQUAL);
+        s.append(String.valueOf(committed));
+        createTmpFile(tmpFilePath, s.toString(), prefix);
+
+        try {
+            final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_SET_DATA_REVISION, DATA_REVISION_TMP };
+            exec(prefix, cmd);
+            _log.info(prefix + " Success");
+        } finally {
+            cleanupTmpFile(tmpFilePath);
+        }
+    }
+
+    /***
+     * Get data revision from disk
+     * 
+     * @return DataRevisonTag
+     */
+    public String getDataRevision() throws LocalRepositoryException {
+        final String prefix = "getDataRevision(): ";
+        _log.debug(prefix);
+
+        final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_DATA_REVISION };
+        String[] props = exec(prefix, cmd1);
+
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        Map<String, String> map = PropertyInfoUtil.splitKeyValue(props);
+        String revision = map.get(KEY_DATA_REVISION);
+        String committed = map.get(KEY_DATA_REVISION_COMMITTED);
+        if (committed != null && Boolean.valueOf(committed)) {
+            return revision;
+        }
+        return SiteInfo.DEFAULT_TARGET_VERSION;
+    }
+
+    /**
+     * check ipsec connections between local machine and other nodes in vipr
+     *
+     * @return ips don't have ipsec connection with local machine
+     * @throws LocalRepositoryException
+     */
+    public String[] checkIpsecConnection() throws LocalRepositoryException {
+        final String prefix = "checkIpsecConnection(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_CONNECTION };
+        String[] ips = exec(prefix, cmd);
+
+        _log.debug(prefix + "ips without ipsec connection: ", Strings.repr(ips));
+        return ips;
+    }
+
+    /**
+     * get ipsec properties from specified node
+     *
+     * @param ip
+     * @return map of ipsec related properties: VDC_CONFIG_VERSION and IPSEC_KEY
+     */
+    public Map<String, String> getIpsecProperties(String ip) throws LocalRepositoryException {
+        final String prefix = "getIpsecPropertiesFromRemoteNode(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_GET_PROPS, ip };
+        String[] props = exec(prefix, cmd);
+
+        _log.debug(prefix + "properties={}", Strings.repr(props));
+        return PropertyInfoUtil.splitKeyValue(props);
+    }
+
+    /**
+     * write given ipsec key to local file system.
+     *
+     * @param ipsecKey
+     * @throws LocalRepositoryException
+     */
+    public void syncIpsecKeyToLocal(String ipsecKey) throws LocalRepositoryException {
+        final String prefix = "syncIpsecKeyToLocal(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_KEY, ipsecKey };
+        exec(prefix, cmd);
+        _log.info(prefix + "Success!");
+    }
+
+    /**
+     * write given ipsec state to local file system.
+     *
+     * @param ipsecStatus
+     * @throws LocalRepositoryException
+     */
+    public void syncIpsecStatusToLocal(String ipsecStatus) throws LocalRepositoryException {
+        final String prefix = "syncIpsecStateToLocal(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_STATUS, ipsecStatus };
+        exec(prefix, cmd);
+        _log.info(prefix + "Success!");
+    }
+
+    /**
+     * Reconfig local coordinatorsvc to observer(default mode), or pariticpant(when active site is down)
+     * For DR standby site only.  
+     * 
+     * @param type
+     * @throws LocalRepositoryException
+     */
+    public void reconfigCoordinator(String type) throws LocalRepositoryException {
+        final String prefix = String.format("reconfigCoordinator(%s): ", type);
+        _log.debug(prefix);
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RECONFIG_COORDINATOR, type };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+    
+    /**
+     * Reset coordinator and restart services on standby site. It applies on DR standby site only
+     * 
+     * @throws LocalRepositoryException
+     */
+    public void restartCoordinator(String type) throws LocalRepositoryException {
+        final String prefix = String.format("resetCoordinator (%s): ", type);
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RESTART_COORDINATOR, type};
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
     }
 
     /**
@@ -505,7 +708,7 @@ public class LocalRepository {
         try {
             Files.delete(filePath);
         } catch (Exception e) {
-            _log.warn("Failed to delete tmp file");
+            _log.warn("Failed to delete tmp file {}", filePath);
         }
     }
 }

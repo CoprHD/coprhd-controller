@@ -5,11 +5,11 @@
 
 package com.emc.storageos.db.client.model;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Representation for a ViPR VDC
@@ -132,7 +132,7 @@ public class VirtualDataCenter extends DataObject {
      * Last time this vdc can be seen
      */
     private Long lastSeenTimeInMillis;
-
+    
     @Name("apiEndpoint")
     public String getApiEndpoint() {
         return apiEndpoint;
@@ -215,36 +215,72 @@ public class VirtualDataCenter extends DataObject {
         setChanged("version");
     }
 
+    /**
+     * The method is deprecated. Use drUtil.getActiveSite(vdcShortId).getNodeCount()
+     * 
+     * @return numer of nodes in this vdc
+     */
+    @Deprecated
     @Name("hostCount")
     public Integer getHostCount() {
         return hostCount;
     }
 
+    /**
+     * The method is deprecated. You should not store node count in vdc object
+     */
+    @Deprecated
     public void setHostCount(Integer hostCount) {
         this.hostCount = hostCount;
         setChanged("hostCount");
     }
 
+    /**
+     * The method is deprecated. Use drUtil.getActiveSite(vdcShortId).getHostIPv4AddressMap()
+     * 
+     * @return IPv4 addresses for this vdc
+     */
+    @Deprecated
     @Name("hostIPv4AddressesMap")
     public StringMap getHostIPv4AddressesMap() {
         return hostIPv4AddressMap;
     }
 
+    /**
+     * The method is deprecated. You should not store node count in vdc object
+     */
+    @Deprecated
     public void setHostIPv4AddressesMap(StringMap hostIPv4AddressesMap) {
         this.hostIPv4AddressMap = hostIPv4AddressesMap;
         setChanged("hostIPv4AddressesMap");
     }
 
+    /**
+     * The method is deprecated. Use drUtil.getActiveSite(vdcShortId).getHostIPv6AddressMap()
+     * 
+     * @return IPv6 addresses for this vdc
+     */
+    @Deprecated
     @Name("hostIPv6AddressesMap")
     public StringMap getHostIPv6AddressesMap() {
         return hostIPv6AddressMap;
     }
 
+    /**
+     * The method is deprecated. You should not store node count in vdc object
+     */
+    @Deprecated
     public void setHostIPv6AddressesMap(StringMap hostIPv6AddressesMap) {
         this.hostIPv6AddressMap = hostIPv6AddressesMap;
         setChanged("hostIPv6AddressesMap");
     }
 
+    /**
+     * The method is deprecated. Use InternalDbClient.queryHostIPAddressMap(VirtualDataCenter)
+     * 
+     * @return Ipv4 or IPv6 addresses for this vdc
+     */
+    @Deprecated
     public Map<String, String> queryHostIPAddressesMap() {
         if (!hostIPv4AddressMap.isEmpty()) {
             return hostIPv4AddressMap;
@@ -359,13 +395,6 @@ public class VirtualDataCenter extends DataObject {
 
         builder.append("\n\tConnection Status:");
         builder.append(getConnectionStatus());
-
-        builder.append("\n\tIPv4AddressesMap:");
-        builder.append(getHostIPv4AddressesMap());
-
-        builder.append("\n\tIPv6AddressesMap:");
-        builder.append(getHostIPv6AddressesMap());
-        builder.append("\n");
 
         return builder.toString();
     }

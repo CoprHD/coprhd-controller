@@ -879,7 +879,14 @@ fix_workspace() {
 
 fix_enable_java_sslv3() {
     if [ -f /usr/lib64/jvm/java-1.7.0-oracle/jre/lib/security/java.security ] ; then
+        cp -p /usr/lib64/jvm/java-1.7.0-oracle/jre/lib/security/java.security /usr/lib64/jvm/java-1.7.0-oracle/jre/lib/security/java.security.orig
         xsed /usr/lib64/jvm/java-1.7.0-oracle/jre/lib/security/java.security 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/'
+        xsed /usr/lib64/jvm/java-1.7.0-oracle/jre/lib/security/java.security 's/^jdk.certpath.disabledAlgorithms=MD2, RSA keySize < 1024/jdk.certpath.disabledAlgorithms=MD2/'
+    fi
+	if [ -f /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security ] ; then
+        cp -p /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security.orig
+        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.tls.disabledAlgorithms=SSLv3/\#jdk.tls.disabledAlgorithms=SSLv3/'
+        xsed /usr/lib64/jvm/java-1.8.0-oracle/jre/lib/security/java.security 's/^jdk.certpath.disabledAlgorithms=MD2, MD5, RSA keySize < 1024/jdk.certpath.disabledAlgorithms=MD2/'
     fi
 }
 
@@ -1154,6 +1161,14 @@ mbkZBexAA/M8ek8iMWdw7jZnn/+1vphXp7VGrmLCrlkX0VxGTGgPFYWMGhuJ
 chmod 0400 /opt/storageos/conf/storageos.crt
 }
 
+#======================================
+# Fix /etc/sysctl.conf for strongswan ADS-4993
+#--------------------------------------
+vipr_fix_add_strongswan() {
+    echo "*** Fixing Adding strongswan parameter" >&2
+    echo "net.ipv4.xfrm4_gc_thresh=32768" >> /etc/sysctl.conf
+    echo "net.ipv6.xfrm6_gc_thresh=32768" >> /etc/sysctl.conf
+}
 
 #======================================
 # Fix /etc/devkit.README

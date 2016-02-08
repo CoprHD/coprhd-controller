@@ -5,11 +5,15 @@
 
 package com.emc.storageos.db.common;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.StringWriter;
 
+import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElements;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -21,7 +25,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.common.diff.DbSchemasDiff;
-import com.emc.storageos.db.common.schema.*;
+import com.emc.storageos.db.common.schema.DataObjectSchema;
+import com.emc.storageos.db.common.schema.DataPointSchema;
+import com.emc.storageos.db.common.schema.DbSchema;
+import com.emc.storageos.db.common.schema.DbSchemas;
+import com.emc.storageos.db.common.schema.TimeSeriesSchema;
 import com.emc.storageos.services.util.LoggingUtils;
 
 public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {

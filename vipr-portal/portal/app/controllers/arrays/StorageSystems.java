@@ -7,19 +7,20 @@ package controllers.arrays;
 import static com.emc.vipr.client.core.util.ResourceUtils.id;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+import static controllers.security.Security.isProjectAdmin;
+import static controllers.security.Security.isTenantAdmin;
 import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import models.BlockProtocols;
 import models.PoolTypes;
 import models.RegistrationStatus;
@@ -51,8 +52,8 @@ import util.StoragePoolUtils;
 import util.StoragePortUtils;
 import util.StorageSystemUtils;
 import util.StringOption;
-import util.VCenterUtils;
 import util.TenantUtils;
+import util.VCenterUtils;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
 
@@ -64,29 +65,23 @@ import com.emc.storageos.model.pools.StoragePoolUpdate;
 import com.emc.storageos.model.ports.StoragePortRequestParam;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.ports.StoragePortUpdate;
-import com.emc.storageos.model.project.VirtualNasParam;
 import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.storageos.model.project.VirtualNasParam;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRequestParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
 import com.emc.storageos.model.valid.Endpoint;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
+import com.emc.storageos.svcs.errorhandling.utils.MessageUtils;
 import com.emc.vipr.client.Task;
-import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import static controllers.security.Security.isProjectAdmin;
-import static controllers.security.Security.isTenantAdmin;
 
 import controllers.Common;
 import controllers.arrays.StorageProviders.StorageProviderForm;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
-import controllers.util.Models;
 import controllers.util.ViprResourceController;
 
 @With(Common.class)
@@ -113,7 +108,7 @@ public class StorageSystems extends ViprResourceController {
         renderArgs.put("smisStorageSystemTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
         renderArgs.put("nonSmisStorageSystemTypeList", Arrays.asList(StorageSystemTypes.NON_SMIS_OPTIONS));
         renderArgs.put("sslDefaultStorageSystemList", Arrays.asList(StorageSystemTypes.SSL_DEFAULT_OPTIONS));
-        renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));        
+        renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
         List<EnumOption> defaultStorageArrayPortMap = Arrays.asList(EnumOption.options(DefaultStorageArrayPortMap.values()));
         renderArgs.put("defaultStorageArrayPortMap", defaultStorageArrayPortMap);
 
@@ -126,7 +121,7 @@ public class StorageSystems extends ViprResourceController {
         renderArgs.put("dataTable", new StorageSystemsDataTable());
         render();
     }
-    
+
     public static class StorageSystemsDataTable extends StorageSystemDataTable {
         public StorageSystemsDataTable() {
             addColumn("actions").setRenderFunction("renderButtonBar");
@@ -176,10 +171,10 @@ public class StorageSystems extends ViprResourceController {
         if (storageSystem != null) {
             StorageSystemForm storageArray = new StorageSystemForm(storageSystem);
             if (storageArray.type.equals(SCALEIO)) {
-            	renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
+                renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
             }
             if (storageArray.type.equals("xtremio")) {
-            	renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
+                renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
             }
             if (storageArray.unregistered) {
                 flash.put("warning", MessagesUtils.get(NOT_REGISTERED, storageArray.name));
@@ -387,103 +382,99 @@ public class StorageSystems extends ViprResourceController {
             dataTable.configureForFile();
         }
         if (StorageSystemTypes.isECS(storageSystem.getSystemType())) {
-        	dataTable.configureForECS();
+            dataTable.configureForECS();
         }
         render("@listPools", storageSystem, dataTable);
     }
-	
+
     public static void virtualNasServers(String id) {
         addReferenceData();
 
         StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
         VirtualNasServerDataTable dataTable;
         if (isTenantAdmin() || isProjectAdmin()) {
-        	dataTable = new VirtualNasServerDataTable();
-        }else{
-        	dataTable = new VirtualNasForNonProjectAdminDataTable();
+            dataTable = new VirtualNasServerDataTable();
+        } else {
+            dataTable = new VirtualNasForNonProjectAdminDataTable();
         }
         renderArgs.put("storageId", id);
         renderArgs.put("expectedGeoVersion", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT));
         render("@listVirtualNasServers", storageSystem, dataTable);
     }
-    
-    public static class VirtualNasForNonProjectAdminDataTable extends VirtualNasServerDataTable {
-    	public VirtualNasForNonProjectAdminDataTable() {
-    	     alterColumn("project").hidden();
-    	}
-    }
-    
-    @FlashException(keep = true, referrer = { "virtualNasServers" })
-    public static void associateProject(String nasIds, String projectId, String storageId) {
 
+    public static class VirtualNasForNonProjectAdminDataTable extends VirtualNasServerDataTable {
+        public VirtualNasForNonProjectAdminDataTable() {
+            alterColumn("project").hidden();
+        }
+    }
+
+    @FlashException(keep = true, referrer = { "virtualNasServers" })
+    public static void associateProject(String nasIds, String projectIds, String storageId) throws Exception {
+
+        boolean error = false;
         Set<String> vnasServers = new TreeSet<String>();
+        String[] projectIdArray = null;
         if (nasIds != null && !nasIds.isEmpty()) {
             String[] nasArray = nasIds.split(",");
             Collections.addAll(vnasServers, nasArray);
         }
-        if (projectId != null && !projectId.isEmpty()) {
-            projectId = projectId.trim();
+        if (projectIds != null && !projectIds.isEmpty()) {
+            projectIds = projectIds.trim();
+            projectIdArray = projectIds.split(",");
         }
         VirtualNasParam vNasParam = new VirtualNasParam();
         vNasParam.setVnasServers(vnasServers);
-        getViprClient().virtualNasServers().assignVnasServers(uri(projectId), vNasParam);
+
+        if (projectIdArray != null && projectIdArray.length > 0) {
+            for (int i = 0; i < projectIdArray.length; i++) {
+                try {
+                    getViprClient().virtualNasServers().assignVnasServers(uri(projectIdArray[i].trim()), vNasParam);
+                } catch (Exception e) {
+                    error = true;
+                    continue;
+                }
+            }
+
+            if (error) {
+                String errorMsg = "Some Virtual NAS servers could not be associated with selected project(s). Please check the API logs for more information.";
+                throw new Exception(errorMsg);
+            }
+        }
 
         virtualNasServers(storageId);
     }
-    
+
     @FlashException(keep = true, referrer = { "virtualNasServers" })
-    public static void dissociateProject(@As(",") String[] ids, String storageId) {
+    public static void dissociateProject(@As(",") String[] projectIdsToDissociate, String nasIds, String storageId) {
 
-        List<URI> uris = Lists.newArrayList();
-        for (String id : ids) {
-            uris.add(uri(id));
-        }
-        Map<URI, Set<String>> projectVNas = Maps.newHashMap();
-        List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByIds(uris);
-        for (VirtualNASRestRep vnasServer : vNasServers) {
-            if (vnasServer.getProject() == null) {
-                continue;
-            }
-            URI projectId = vnasServer.getProject().getId();
-            URI vNasId = vnasServer.getId();
-
-            if (projectVNas.get(projectId) == null) {
-                Set<String> vnasIds = Sets.newTreeSet();
-                vnasIds.add(vNasId.toString());
-                projectVNas.put(projectId, vnasIds);
-            } else {
-                Set<String> vnasIds = projectVNas.get(projectId);
-                vnasIds.add(vNasId.toString());
-                projectVNas.put(projectId, vnasIds);
+        if (projectIdsToDissociate != null && projectIdsToDissociate.length > 0) {
+            for (String projectId : projectIdsToDissociate) {
+                Set<String> vNASSet = new HashSet<String>();
+                vNASSet.add(nasIds);
+                VirtualNasParam vNasParam = new VirtualNasParam();
+                vNasParam.setVnasServers(vNASSet);
+                getViprClient().virtualNasServers().unassignVnasServers(uri(projectId), vNasParam);
             }
         }
-        List<URI> projectIds = new ArrayList<URI>(projectVNas.keySet());
-        for (URI uri : projectIds) {
 
-            VirtualNasParam vNasParam = new VirtualNasParam();
-            vNasParam.setVnasServers(projectVNas.get(uri));
-
-            getViprClient().virtualNasServers().unassignVnasServers(uri, vNasParam);
-
-        }
         virtualNasServers(storageId);
     }
-    
+
     public static void virtualNasServersJson(String storageId) {
         List<VirtualNasServerInfo> results = Lists.newArrayList();
         List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByStorageSystem(uri(storageId));
         boolean isProjectAccessible = false;
         if (isTenantAdmin() || isProjectAdmin()) {
-        	isProjectAccessible = true;
+            isProjectAccessible = true;
         }
         for (VirtualNASRestRep vNasServer : vNasServers) {
-            results.add(new VirtualNasServerInfo(vNasServer,isProjectAccessible));
+            results.add(new VirtualNasServerInfo(vNasServer, isProjectAccessible));
         }
         renderArgs.put("storageId", storageId);
         renderArgs.put("expectedGeoVersion", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_VNAS_SUPPORT));
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
-    
+
     public static void getProjectsForNas() {
         List<URI> tenants = Lists.newArrayList();
         List<StringOption> allTenants = TenantUtils.getUserSubTenantOptions();
@@ -507,17 +498,17 @@ public class StorageSystems extends ViprResourceController {
 
             projectTenantOptions.add(new StringOption(projectOptions.toString(), tenantName));
         }
-       
+
         renderJSON(projectTenantOptions);
     }
-   
+
     public static void vNasMoreDetails(String id) {
         List<URI> ids = Lists.newArrayList();
         ids.add(uri(id));
         List<VirtualNASRestRep> vNasRep = getViprClient().virtualNasServers().getByIds(ids);
         VirtualNASRestRep vNas = new VirtualNASRestRep();
         if (!vNasRep.isEmpty()) {
-           vNas = vNasRep.get(0);
+            vNas = vNasRep.get(0);
         }
         render(vNas);
     }
@@ -722,6 +713,8 @@ public class StorageSystems extends ViprResourceController {
         public Integer resourceLimit;
         public String resourceType;
         public boolean unlimitResource;
+        public boolean supportsSoftLimit;
+        public boolean supportsNotificationLimit;
 
         //
         // a flag to set if unlimitResource control was previously visible.
@@ -755,6 +748,8 @@ public class StorageSystems extends ViprResourceController {
             this.id = storageArray.getId().toString();
             this.name = StorageSystemUtils.getName(storageArray);
             this.type = storageArray.getSystemType();
+            this.supportsSoftLimit = storageArray.getSupportsSoftLimit();
+            this.supportsNotificationLimit = storageArray.getSupportsNotificationLimit();
             // VNX Block uses the same select option as VMAX
             if (StorageSystemTypes.isVnxBlock(type)) {
                 this.type = StorageSystemTypes.VMAX;
@@ -780,7 +775,7 @@ public class StorageSystems extends ViprResourceController {
                 this.smisProviderUseSSL = storageArray.getSmisUseSSL();
                 this.smisProviderUserName = storageArray.getSmisUserName();
             }
-            
+
         }
 
         public boolean isNew() {
@@ -801,7 +796,6 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setIsUnlimitedResourcesSet(true);
                 storageArray.setMaxResources(null);
             }
-
             if (isVnxFile()) {
                 storageArray.setSmisProviderIP(smisProviderIpAddress);
                 storageArray.setSmisPortNumber(smisProviderPortNumber);
@@ -816,9 +810,9 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setPassword(StringUtils.trimToNull(userPassword));
                 storageArray.setUserName(StringUtils.trimToNull(userName));
             }
-            
+
             if (isScaleIOApi()) {
-            	storageArray.setPassword(secondaryPassword);
+                storageArray.setPassword(secondaryPassword);
             }
 
             return StorageSystemUtils.update(id, storageArray);
@@ -842,9 +836,9 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setSmisProviderIP(smisProviderIpAddress);
                 storageArray.setSmisUseSSL(smisProviderUseSSL);
             }
-            
+
             if (isScaleIOApi()) {
-            	storageArray.setPassword(secondaryPassword);
+                storageArray.setPassword(secondaryPassword);
             }
             return StorageSystemUtils.create(storageArray);
         }
@@ -887,28 +881,28 @@ public class StorageSystems extends ViprResourceController {
                 Validation.required(fieldName + ".smisProviderPortNumber", this.smisProviderPortNumber);
             }
 
-            if (isNew()) { 
-            	if (isScaleIOApi()) {
-            		Validation.required(fieldName + ".secondaryUsername", this.secondaryUsername);
-            		Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
-            		Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
-            	}
-            	else {
-            		Validation.required(fieldName + ".userName", this.userName);
-            		Validation.required(fieldName + ".userPassword", this.userPassword);
-            		Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
+            if (isNew()) {
+                if (isScaleIOApi()) {
+                    Validation.required(fieldName + ".secondaryUsername", this.secondaryUsername);
+                    Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
+                    Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
+                }
+                else {
+                    Validation.required(fieldName + ".userName", this.userName);
+                    Validation.required(fieldName + ".userPassword", this.userPassword);
+                    Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
 
-            		if (isVnxFile()) {
-            			Validation.required(fieldName + ".smisProviderUserName", this.smisProviderUserName);
-            			Validation.required(fieldName + ".smisProviderUserPassword", this.smisProviderUserPassword);
-            			Validation.required(fieldName + ".smisProviderConfirmPassword", this.smisProviderConfirmPassword);
-            		}
+                    if (isVnxFile()) {
+                        Validation.required(fieldName + ".smisProviderUserName", this.smisProviderUserName);
+                        Validation.required(fieldName + ".smisProviderUserPassword", this.smisProviderUserPassword);
+                        Validation.required(fieldName + ".smisProviderConfirmPassword", this.smisProviderConfirmPassword);
+                    }
 
-            		if (isScaleIO() && !isMatchingPasswords(secondaryPassword, secondaryPasswordConfirm)) {
-            			Validation.addError(fieldName + ".secondaryPasswordConfirm",
-            					MessagesUtils.get("storageArray.secondaryPassword.confirmPassword.not.match"));
-            		}
-            	}
+                    if (isScaleIO() && !isMatchingPasswords(secondaryPassword, secondaryPasswordConfirm)) {
+                        Validation.addError(fieldName + ".secondaryPasswordConfirm",
+                                MessagesUtils.get("storageArray.secondaryPassword.confirmPassword.not.match"));
+                    }
+                }
             }
             else {
                 if (!unlimitResource) {
@@ -948,9 +942,13 @@ public class StorageSystems extends ViprResourceController {
         private boolean isScaleIO() {
             return StorageSystemTypes.isScaleIO(type);
         }
-        
+
         private boolean isScaleIOApi() {
-        	return StorageSystemTypes.isScaleIOApi(type);
+            return StorageSystemTypes.isScaleIOApi(type);
+        }
+        
+        private boolean isIsilon() {
+            return StorageSystemTypes.isIsilon(type);
         }
     }
 
@@ -1049,10 +1047,10 @@ public class StorageSystems extends ViprResourceController {
         public void configureForFile() {
             alterColumns("driveTypes", "subscribedCapacity").hidden();
         }
-        
+
         public void configureForECS() {
-        	alterColumns("registrationStatus", "storageSystem", "volumeTypes", "driveTypes").hidden();
-        	alterColumn("status").setVisible(true);
+            alterColumns("registrationStatus", "storageSystem", "volumeTypes", "driveTypes").hidden();
+            alterColumn("status").setVisible(true);
         }
     }
 
@@ -1063,7 +1061,7 @@ public class StorageSystems extends ViprResourceController {
                 alterColumn("iqn").hidden();
             }
             if (StorageSystemTypes.isECS(storageSystem.getSystemType())) {
-            	alterColumns("portGroup", "iqn", "alias").hidden();
+                alterColumns("portGroup", "iqn", "alias").hidden();
             }
         }
     }

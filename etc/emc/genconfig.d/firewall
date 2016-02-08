@@ -30,13 +30,14 @@ _get_firewall_props() {
     local OLD_IFS="${IFS}"; IFS="${IFS},"
     for vdc in ${_GENCONFIG_vdc_ids}; do
         [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
-        local var="_GENCONFIG_vdc_${vdc}_node_count"
+        # assume only 1 site in multivdc config
+        local var="_GENCONFIG_vdc_${vdc}_site1_node_count"
         local vdc_node_count=${!var}
         for index in $(seq ${vdc_node_count}); do
-            var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr"
+            var="_GENCONFIG_vdc_${vdc}_site1_network_${index}_ipaddr"
             local ipaddr="${!var}"
             if [ "${ipaddr}" == "0.0.0.0" ]; then
-                ipaddr=''
+               ipaddr=''
             fi
             list+=" ${ipaddr}"
         done
@@ -48,10 +49,11 @@ _get_firewall_props() {
     list=''
     for vdc in ${_GENCONFIG_vdc_ids}; do
         [ "$vdc" == "${_GENCONFIG_vdc_myid}" ] && continue
-        local var="_GENCONFIG_vdc_${vdc}_node_count"
+        # assume only 1 site in multivdc config
+        local var="_GENCONFIG_vdc_${vdc}_site1_node_count"
         local vdc_node_count=${!var}
         for index in $(seq ${vdc_node_count}); do
-            var="_GENCONFIG_vdc_${vdc}_network_${index}_ipaddr6"
+            var="_GENCONFIG_vdc_${vdc}_site1_network_${index}_ipaddr6"
             ipaddr6="${!var}"
             if [ "${ipaddr6}" == "::0" ]; then
                 ipaddr6=""
@@ -59,10 +61,51 @@ _get_firewall_props() {
             list+=" ${ipaddr6}"
         done
     done
-    IFS="${OLD_IFS}"
     echo "vdc_nodes_ipaddr6=$(echo ${list})"
+
+    # List of IPv4 address of all nodes in primary/standby sites
+    # TODO - handle multiple standby sites
+    #'dr_nodes_ipaddr')
+    list=''
+    list6=''
+    # iterate all nodes in standby sites
+    for standby in ${_GENCONFIG_site_ids} ; do
+        if [ "${standby}" == "${_GENCONFIG_site_myid}" ] ; then
+            continue # ignore current site
+        fi
+        var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_node_count"
+        local standby_cnt="${!var}"
+        for standby_index in $(seq --separator=',' ${standby_cnt}); do
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr"
+            local ipaddr="${!var}"
+            list+=" ${ipaddr}"
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${standby}_network_${standby_index}_ipaddr6"
+            ipaddr6="${!var}"
+            if [ "${ipaddr6}" == "::0" ]; then
+               ipaddr6=""
+            fi
+            list6+=" ${ipaddr6}"
+        done
+    done
+    echo "dr_nodes_ipaddr=${list}"
+    echo "dr_nodes_ipaddr6=${list6}"
+
+    IFS="${OLD_IFS}"
     echo "network_nic_name=${_GENCONFIG_network_nic_name}"
-    _get_props network_vip network_vip6 network_nodes_ipv4 network_nodes_ipv6
+
+    # DR dual coordinator hack for 1+0. See CoordinatorImpl.java for more
+    # explanation 
+    local dual_coordinator="false"
+    if [ -n "${_GENCONFIG_site_ids}" ] && [ "${_GENCONFIG_site_is_standby}" != "true" ] ; then
+        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
+        local primary_cnt="${!var}"
+        if [ "${primary_cnt}" == "1" ]; then
+            dual_coordinator="true"
+        fi
+    fi
+    echo "dr_dual_coordinator=${dual_coordinator}"
+
+    _get_props network_vip network_vip6 network_nodes_ipv4 network_nodes_ipv6 back_compat_preyoda
 }
 
 # Modify firewall custom rules if the OVF property for firewall is set to yes

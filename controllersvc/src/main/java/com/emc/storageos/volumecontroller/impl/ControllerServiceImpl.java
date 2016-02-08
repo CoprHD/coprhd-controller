@@ -10,9 +10,9 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.coordinator.client.service.*;
-import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueItemNameGenerator;
-import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
+import org.apache.curator.framework.recipes.leader.LeaderSelector;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.eclipse.jetty.util.log.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -21,7 +21,18 @@ import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
+import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
+import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
+import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.QueueCleanupHandler;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
@@ -29,6 +40,7 @@ import com.emc.storageos.db.common.DataObjectScanner;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.hds.api.HDSApiFactory;
+import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.locking.DistributedOwnerLockServiceImpl;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
@@ -54,9 +66,6 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.xiv.XIVSmisCommandHelper;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
 import com.emc.storageos.workflow.WorkflowService;
-
-import org.apache.curator.framework.recipes.leader.LeaderSelector;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
 /**
  * Default controller service implementation
@@ -116,6 +125,7 @@ public class ControllerServiceImpl implements ControllerService {
     private CIMConnectionFactory _cimConnectionFactory;
     private VPlexApiFactory _vplexApiFactory;
     private HDSApiFactory hdsApiFactory;
+    private IsilonApiFactory isilonApiFactory;
     private CinderApiFactory cinderApiFactory;
     private VNXeApiClientFactory _vnxeApiClientFactory;
     private SmisCommandHelper _helper;
@@ -130,7 +140,10 @@ public class ControllerServiceImpl implements ControllerService {
     private DataObjectScanner _doScanner;
     private DistributedLockQueueManager _lockQueueManager;
     private ControlRequestTaskConsumer _controlRequestTaskConsumer;
-
+    private DrUtil _drUtil;
+    private ControllerWorkflowCleanupHandler _drWorkflowCleanupHandler;
+    private QueueCleanupHandler _drQueueCleanupHandler;
+    
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
 
@@ -429,31 +442,30 @@ public class ControllerServiceImpl implements ControllerService {
         // Watson
         Thread.sleep(30000);        // wait 30 seconds for database to connect
         _log.info("Waiting done");
+        _drQueueCleanupHandler.run();
+        
         _dispatcher.start();
 
         _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
-                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper));
+                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper, isilonApiFactory));
         _jobTracker.start();
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
         _workflowService.start();
         _distributedOwnerLockService.start();
-
+        
         /**
          * Lock used in making Scanning/Discovery mutually exclusive.
          */
-
         for (Lock lock : Lock.values()) {
             lock.setLock(_coordinator.getLock(lock.toString()));
         }
-
         /**
          * Discovery Queue, an instance of DistributedQueueImpl in
          * CoordinatorService,which holds Discovery Jobs. On starting
          * discoveryConsumer, a new ScheduledExecutorService is instantiated,
          * which schedules Loading Devices from DB every X minutes.
          */
-
         _discoverJobConsumer.start();
         _computeDiscoverJobConsumer.start();
         _scanJobConsumer.start();
@@ -466,12 +478,13 @@ public class ControllerServiceImpl implements ControllerService {
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(METERING_COREPOOLSIZE)), 200);
         _scanJobQueue = _coordinator.getQueue(SCAN_JOB_QUEUE_NAME, _scanJobConsumer,
                 new DataCollectionJobSerializer(), 1, 50);
+        
         /**
          * Monitoring use cases starts here
          */
         _monitoringJobQueue = _coordinator.getQueue(MONITORING_JOB_QUEUE_NAME, _monitoringJobConsumer,
                 new DataCollectionJobSerializer(), DEFAULT_MAX_THREADS);
-
+        
         /**
          * Adds listener class for zk connection state change.
          * This listener will release local CACHE while zk connection RECONNECT.
@@ -482,11 +495,13 @@ public class ControllerServiceImpl implements ControllerService {
          */
         _monitoringJobConsumer.start();
 
+        startLockQueueService();
+        
+        _drWorkflowCleanupHandler.run();
+        
         _jobScheduler.start();
 
         _svcBeacon.start();
-
-        startLockQueueService();
 
         startCapacityService();
         loadCustomConfigDefaults();
@@ -720,6 +735,22 @@ public class ControllerServiceImpl implements ControllerService {
 
     public void setControlRequestTaskConsumer(ControlRequestTaskConsumer consumer) {
         _controlRequestTaskConsumer = consumer;
+    }
+
+    public void setDrWorkflowCleanupHandler(ControllerWorkflowCleanupHandler drFailoverHandler) {
+        this._drWorkflowCleanupHandler = drFailoverHandler;
+    }
+    
+    public void setDrQueueCleanupHandler(QueueCleanupHandler drFailoverHandler) {
+        this._drQueueCleanupHandler = drFailoverHandler;
+    }
+    
+    public IsilonApiFactory getIsilonApiFactory() {
+        return isilonApiFactory;
+    }
+
+    public void setIsilonApiFactory(IsilonApiFactory isilonApiFactory) {
+        this.isilonApiFactory = isilonApiFactory;
     }
 
 }

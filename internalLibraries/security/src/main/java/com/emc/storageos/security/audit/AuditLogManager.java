@@ -7,15 +7,21 @@ package com.emc.storageos.security.audit;
 
 // Logger imports
 import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.AuditLog;
 import com.emc.storageos.db.client.model.AuditLogTimeSeries;
 import com.emc.storageos.db.exceptions.DatabaseException;
-
 import com.emc.storageos.services.OperationTypeEnum;
 
 /**
@@ -34,6 +40,9 @@ public class AuditLogManager {
     public static final String AUDITOP_BEGIN = "BEGIN";
     public static final String AUDITOP_MULTI_BEGIN = "MULTI_BEGIN";
     public static final String AUDITOP_END = "END";
+    // Site in these states should enable recording auditlog
+    private static final List<SiteState> ENABLE_AUDITLOG_SITESTATES =
+            Arrays.asList(SiteState.ACTIVE, SiteState.STANDBY_FAILING_OVER, SiteState.STANDBY_SWITCHING_OVER, SiteState.ACTIVE_SWITCHING_OVER);
 
     // auditlog version, to compatible with the possible changes in the future.
     public static final String AUDITLOG_VERSION = "1";
@@ -41,8 +50,12 @@ public class AuditLogManager {
     // A reference to the database client.
     private DbClient _dbClient;
 
+    private CoordinatorClient _coordinator;
+    
     // The logger.
     private static Logger s_logger = LoggerFactory.getLogger(AuditLogManager.class);
+
+    private DrUtil drUtil;
 
     /**
      * Default constructor.
@@ -61,20 +74,36 @@ public class AuditLogManager {
     }
 
     /**
+     * Setter for the data base client.
+     * 
+     * @param dbClient Reference to a database client.
+     */
+    public void setCoordinator(CoordinatorClient coordinator) {
+        _coordinator = coordinator;
+        drUtil = new DrUtil(_coordinator);
+    }
+
+    /**
      * Called to record auditlogs in the database.
      * 
      * @param events references to recordable auditlogs.
      */
     public void recordAuditLogs(RecordableAuditLog... auditlogs) {
+        if (!shouldRecordAuditLog()) {
+           s_logger.info("Ignore audit log on standby site");
+           return;
+        }
+        
         AuditLog dbAuditLogs[] = new AuditLog[auditlogs.length];
         int i = 0;
         for (RecordableAuditLog auditlog : auditlogs) {
             AuditLog dbAuditlog = AuditLogUtils.convertToAuditLog(auditlog);
             dbAuditLogs[i++] = dbAuditlog;
         }
-
+        
         // Now insert the events into the database.
         try {
+            _dbClient.start();
             String bucketId = _dbClient.insertTimeSeries(AuditLogTimeSeries.class, dbAuditLogs);
             s_logger.info("AuditLog(s) persisted into Cassandra with bucketId/rowId : {}", bucketId);
         } catch (DatabaseException e) {
@@ -145,8 +174,12 @@ public class AuditLogManager {
         try {
             recordAuditLogs(auditlog);
         } catch (Exception ex) {
-            _log.error("Failed to record auditlog. Auditlog description id: {}. Error: {}.",
-                    auditType.toString(), ex);
+            _log.error("Failed to record auditlog. Auditlog description id: {}", auditType.toString(), ex);
         }
+    }
+
+    private boolean shouldRecordAuditLog() {
+        Site site = drUtil.getLocalSite();
+        return ENABLE_AUDITLOG_SITESTATES.contains(site.getState());
     }
 }

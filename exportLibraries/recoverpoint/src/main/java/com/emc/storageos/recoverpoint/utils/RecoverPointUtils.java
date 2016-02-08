@@ -424,6 +424,7 @@ public class RecoverPointUtils {
                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                     String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
                     if (siteVolUID.equalsIgnoreCase(wwnString)) {
+                        logger.info("Found volume " + wwnString + " on site " + rpSite.getInternalSiteName() + " as volume ID: " + volume.getVolumeID().getId());
                         return volume.getVolumeID();
                     }
                 }
@@ -449,6 +450,27 @@ public class RecoverPointUtils {
                 .getClustersConfigurations()) {
             if (siteSettings.getInternalClusterName().equals(internalSiteName)) {
                 return siteSettings.getCluster();
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find the internal site name, given the cluster UID
+     * 
+     * @param impl the established connection to an appliance
+     * @param ClusterUID corresponding to the site that has that internal site name.
+     * @return string internal site name
+     * @throws FunctionalAPIActionFailedException_Exception
+     * @throws FunctionalAPIInternalError_Exception
+     */
+    public static String getInternalSiteName(FunctionalAPIImpl impl, ClusterUID clusterID)
+            throws FunctionalAPIActionFailedException_Exception, FunctionalAPIInternalError_Exception {
+        FullRecoverPointSettings fullRecoverPointSettings = impl.getFullRecoverPointSettings();
+        for (ClusterConfiguration siteSettings : fullRecoverPointSettings.getSystemSettings().getGlobalSystemConfiguration()
+                .getClustersConfigurations()) {
+            if (siteSettings.getCluster().getId() == clusterID.getId()) {
+                return siteSettings.getInternalClusterName();
             }
         }
         return null;

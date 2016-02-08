@@ -125,13 +125,12 @@ public class ComputeSystemDiscoveryEngine {
             } catch (CompatibilityException e) {
                 String errorMessage = adapter.getErrorMessage(e);
                 LOG.error("Device is incompatible: " + target.getLabel() + " [" + targetId + "]: " + errorMessage);
-                target.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
-                target.setLastDiscoveryStatusMessage(errorMessage);
-                dbClient.persistObject(target);
+                adapter.discoveryFailure(target, DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name(), errorMessage);
                 throw e;
             } catch (RuntimeException e) {
                 String errorMessage = adapter.getErrorMessage(e);
                 LOG.error("Discovery failed for " + target.getLabel() + " [" + targetId + "]: " + errorMessage, e);
+                adapter.discoveryFailure(target, DiscoveredDataObject.CompatibilityStatus.UNKNOWN.name(), errorMessage);
                 throw ComputeSystemControllerException.exceptions.discoverFailed(targetId, e);
             }
         }

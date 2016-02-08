@@ -304,7 +304,7 @@ public class Hosts extends ViprResourceController {
         }
 
         private boolean isManualHost() {
-            return HostTypes.isOther(this.type) || HostTypes.isHPUX(this.type) || HostTypes.isSUNVCS(this.type);
+            return HostTypes.isOther(this.type) || HostTypes.isSUNVCS(this.type);
         }
 
         public void validate(String formName) {

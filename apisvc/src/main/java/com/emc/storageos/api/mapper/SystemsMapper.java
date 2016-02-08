@@ -24,6 +24,7 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -35,6 +36,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
+import com.emc.storageos.model.object.ObjectNamespaceRestRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
@@ -168,7 +170,7 @@ public class SystemsMapper {
             to.setParentNASURI(toNamedRelatedResource(pNAS, pNAS.getNasName()));
         }
 
-        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
+        to.setAssociatedProjects(from.getAssociatedProjects());
 
         to.setProtocols(from.getProtocols());
         to.setRegistrationStatus(from.getRegistrationStatus());
@@ -276,6 +278,7 @@ public class SystemsMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         to.setCompatibilityStatus(from.getCompatibilityStatus());
         to.setDiscoveryStatus(from.getDiscoveryStatus());
+        to.setDataCenters(from.getDataCenters());
         to.setMaxPoolUtilizationPercentage((from.getMaxPoolUtilizationPercentage() != null) ? from
                 .getMaxPoolUtilizationPercentage() : Integer.valueOf(ControllerUtils.
                 getPropertyValueFromCoordinator(coordinatorClient, CapacityMatcher.MAX_POOL_UTILIZATION_PERCENTAGE)));
@@ -335,6 +338,23 @@ public class SystemsMapper {
         return to;
     }
 
+    public static ObjectNamespaceRestRep map(ObjectNamespace from) {
+        if (from == null) {
+            return null;
+        }
+
+        ObjectNamespaceRestRep to = new ObjectNamespaceRestRep();
+        to.setNsName(from.getNsName());
+        to.setNativeId(from.getNativeId());
+        to.setMapped(from.getMapped());
+        to.setTenant(from.getTenant());
+        to.setStorageDevice(from.getStorageDevice());
+        
+        return to;
+    }
+    
+    
+    
     public static StorageSystemRestRep map(StorageSystem from) {
         if (from == null) {
             return null;
@@ -355,6 +375,8 @@ public class SystemsMapper {
         to.setProtocols(from.getProtocols());
         to.setReachableStatus(from.getReachableStatus());
         to.setFirmwareVersion(from.getFirmwareVersion());
+        to.setSupportsSoftLimit(from.getSupportSoftLimit());
+        to.setSupportsNotificationLimit(from.getSupportNotificationLimit());
         to.setActiveProvider(toRelatedResource(ResourceTypeEnum.SMIS_PROVIDER, from.getActiveProviderURI()));
         if (from.getProviders() != null) {
             for (String provider : from.getProviders()) {

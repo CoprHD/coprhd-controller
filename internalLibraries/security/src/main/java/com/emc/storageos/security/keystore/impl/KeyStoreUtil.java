@@ -75,6 +75,7 @@ public class KeyStoreUtil {
         try {
             coordConfigStoringHelper.createOrUpdateConfig(selfGenerated,
                     DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_LOCK,
+                    coordConfigStoringHelper.getSiteId(),
                     DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_CONFIG_KIND,
                     DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_ID,
                     DistributedKeyStoreImpl.IS_SELF_GENERATED_KEY);
@@ -143,6 +144,7 @@ public class KeyStoreUtil {
         try {
             Boolean selfGenerated =
                     coordConfigStoringHelper.readConfig(
+                            coordConfigStoringHelper.getSiteId(),
                             DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_CONFIG_KIND,
                             DistributedKeyStoreImpl.KEY_CERTIFICATE_PAIR_ID,
                             DistributedKeyStoreImpl.IS_SELF_GENERATED_KEY);

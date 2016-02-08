@@ -7,8 +7,9 @@ package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
-
 import com.emc.storageos.services.util.Strings;
+
+import org.apache.commons.lang.StringUtils;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus.ErrorCode;
@@ -43,11 +44,11 @@ public class UploadExecutor {
         this.uploader = uploader;
     }
 
-    public void runOnce() throws Exception {
-        runOnce(null);
+    public void upload() throws Exception {
+        upload(null);
     }
 
-    public void runOnce(String backupTag) throws Exception {
+    public void upload(String backupTag) throws Exception {
         if (this.uploader == null) {
             setUploader(Uploader.create(cfg, cli));
             if (this.uploader == null) {
@@ -59,7 +60,7 @@ public class UploadExecutor {
         try (AutoCloseable lock = this.cfg.lock()) {
             this.cfg.reload();
             cleanupCompletedTags();
-            upload(backupTag);
+            doUpload(backupTag);
         } catch (Exception e) {
             log.error("Fail to run upload backup", e);
         }
@@ -118,7 +119,7 @@ public class UploadExecutor {
         return lastErrorMessage;
     }
 
-    private void upload(String backupTag) throws Exception {
+    private void doUpload(String backupTag) throws Exception {
         log.info("Begin upload");
 
         List<String> toUpload = getWaitingUploads(backupTag);
@@ -147,20 +148,18 @@ public class UploadExecutor {
         this.cfg.persist();
 
         if (!succUploads.isEmpty()) {
-            List<String> descParams = this.cli.getDescParams(
-                    Strings.join(", ", succUploads.toArray(new String[succUploads.size()])));
+            List<String> descParams = this.cli.getDescParams(StringUtils.join(succUploads, ", "));
             this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP,
                     AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         }
         if (!failureUploads.isEmpty()) {
-            String failureTags = Strings.join(", ", failureUploads.toArray(new String[failureUploads.size()]));
+            String failureTags = StringUtils.join(failureUploads, ", ");
             List<String> descParams = this.cli.getDescParams(failureTags);
-            descParams.add(Strings.join(", ", errMsgs.toArray(new String[errMsgs.size()])));
+            descParams.add(StringUtils.join(errMsgs, ", "));
             this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP,
                     AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
             log.info("Sending update failures to root user");
-            this.cfg.sendUploadFailureToRoot(failureTags,
-                    Strings.join("\r\n", errMsgs.toArray(new String[errMsgs.size()])));
+            this.cfg.sendUploadFailureToRoot(failureTags, StringUtils.join(errMsgs, "\r\n"));
         }
         log.info("Finish upload");
     }
@@ -211,8 +210,7 @@ public class UploadExecutor {
             throw new IllegalStateException("Invalid query parameter");
         }
         this.cfg.reload();
-        log.info("Current uploaded backup list: {}",
-                this.cfg.uploadedBackups.toArray(new String[this.cfg.uploadedBackups.size()]));
+        log.info("Current uploaded backup list: {}", this.cfg.uploadedBackups);
         if (this.cfg.uploadedBackups.contains(backupTag)) {
             log.info("{} is in the uploaded backup list", backupTag);
             return new BackupUploadStatus(backupTag, Status.DONE, 100, null);
@@ -258,7 +256,7 @@ public class UploadExecutor {
     }
 
     /**
-     * Mark invalid for stale incompleted backup file on server based on the input filename.
+     * Mark invalid for stale incomplete backup file on server based on the input filename.
      *
      * @param toUploadedFileName the filename about to upload,
      */

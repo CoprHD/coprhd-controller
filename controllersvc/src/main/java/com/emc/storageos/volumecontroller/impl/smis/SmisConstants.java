@@ -71,6 +71,7 @@ public interface SmisConstants {
     static final int INACTIVE_VALUE = 8;
     static final int PREPARED_VALUE = 11;
     static final int COPY_TO_TARGET_VALUE = 5;
+    static final int ATTACH_TO_TARGET_VALUE = 8;
     static final int PORT_WWN_ID_TYPE_VALUE = 2;
     static final int PORT_ISCSI_ID_TYPE_VALUE = 5;
     static final int CONCATENATED_META_VOLUME_TYPE = 2;
@@ -90,6 +91,9 @@ public interface SmisConstants {
     static final int CREATE_NEW_TARGET_VALUE = 2;
     static final int IMPLEMENTATION_DECIDES = 4;
     static final int STORAGE_ELEMENT_CAPACITY_EXPANSION_VALUE = 12;
+    static final int MODE_SYNCHRONOUS = 2;
+    static final int RELINK_TARGET_VALUE = 0x8001;
+    static final int COPY_METHODOLOGY_FULL_COPY = 3;
 
     static final String SE_REPLICATIONSETTING_DATA = "SE_ReplicationSettingData";
     static final String CP_REPLICATIONSETTING_DATA = "ReplicationSettingData";
@@ -247,6 +251,16 @@ public interface SmisConstants {
     public static final String EMC_BOUND_TO_THIN_STORAGE_POOL = "EMCBoundToThinStoragePool";
     static final String EMC_STORAGE_CONFIGURATION_CAPABILITIES = "EMC_StorageConfigurationCapabilities";
 
+    // Class and properties for SE_ReplicaPairView
+    String SE_REPLICA_PAIR_VIEW = "SE_ReplicaPairView";
+    String CP_SV_SOURCE_DEVICE_ID = "SVSourceDeviceID";
+    String CP_SV_TARGET_DEVICE_ID = "SVTargetDeviceID";
+    String CP_EMC_RG_SOURCE_INSTANCE_ID = "EMCRGSourceInstanceID";
+    String CP_EMC_RG_TARGET_INSTANCE_ID = "EMCRGTargetInstanceID";
+    String[] PS_REPLICA_PAIR_VIEW = new String[] {
+            CP_SV_SOURCE_DEVICE_ID, CP_SV_TARGET_DEVICE_ID,
+            CP_EMC_RG_SOURCE_INSTANCE_ID, CP_EMC_RG_TARGET_INSTANCE_ID};
+
     // Constants used for VMAX Masking names
     static public char MASK_NAME_DELIMITER = '_';
     static public String PORT_GROUP_SUFFIX = "PG";
@@ -266,6 +280,7 @@ public interface SmisConstants {
     static final String CP_SOURCE_ELEMENT = "SourceElement";
     static final String CP_SOURCE_ELEMENTS = "SourceElements";
     static final String CP_TARGET_ELEMENTS = "TargetElements";
+    static final String CP_TARGET_ELEMENT_COUNT = "TargetElementCount";
     static final String CP_INSTANCE_ID = "InstanceID";
     static final String CP_ELEMENT_TYPE = "ElementType";
     static final String CP_IN_POOL = "InPool";
@@ -389,6 +404,7 @@ public interface SmisConstants {
     static final String CP_MAX_UNITS_CONTROLLED = "MaxUnitsControlled";
     static final String CP_SUPPORTED_STORAGE_ELEMENT_FEATURES = "SupportedStorageElementFeatures";
     static final String CP_EMC_UNMAP_ELEMENTS = "EMCUnmapElements";
+    static final String CP_RELATIONSHIP_NAME = "RelationshipName";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";
@@ -478,5 +494,6 @@ public interface SmisConstants {
     public static int COPY_BEFORE_ACTIVATE = 10;
     public static int PROVISIONING_TARGET_SAME_AS_SOURCE = 5;
     public static int SMIS810_TF_DIFFERENTIAL_CLONE_VALUE = 32770;
-
+    public static String DEFAULT_REPLICATION_SETTING_DATA_ELEMENT_NAME = "DefaultReplicationSettingData";
+    public static final String VNX_VIRTUAL_RG = "VNXVirtualRG_";
 }

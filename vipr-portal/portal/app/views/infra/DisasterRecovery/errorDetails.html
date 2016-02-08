@@ -1,0 +1,64 @@
+#{if isError }
+<dl class="dl-horizontal">
+  <dt>&{'disasterRecovery.id'}</dt>
+  <dd>${uuid}</dd>
+  
+  <dt>&{'disasterRecovery.error.code'}</dt>
+  <dd>${disasterSiteError.serviceCode}</dd>
+  
+  <dt>&{'disasterRecovery.error.code.name'}</dt>
+  <dd>${disasterSiteError.serviceCodeName}</dd>
+  <dt>&{'disasterRecovery.error.creation.time'}</dt>
+  <dd id="errorCreationTime-${uuid}">--</dd>
+  #{if errorCreationTime }
+    <script>
+        var epocCreateVal = '${errorCreationTime}';
+        $('#errorCreationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateVal)));
+    </script>
+  #{/if}
+  <dt>&{'disasterRecovery.site.creation.time'}</dt>
+  <dd id="siteCreationTime-${uuid}">--</dd>
+  #{if siteCreationTime }
+    <script>
+        var epocCreateTime = '${siteCreationTime}';
+        $('#siteCreationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateTime)));
+    </script>
+  #{/if}
+  <dt>&{'disasterRecovery.error.message'}</dt>
+  <dd>${disasterSiteError.errorMessage}</dd>
+</dl>
+#{/if}
+#{else}
+<dl class="dl-horizontal">
+  <dt>&{'disasterRecovery.id'}</dt>
+  <dd>${uuid}</dd>
+  <dt>&{'disasterRecovery.cluster.state'}</dt>
+  <dd>${disasterSiteDetails.clusterState}</dd>
+  <dt>&{'disasterRecovery.site.creation.time'}</dt>
+  <dd id="creationTime-${uuid}">--</dd>
+  #{if creationTime }
+    <script>
+        var epocCreateTime = '${disasterSiteDetails.creationTime}';
+        $('#creationTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocCreateTime)));
+    </script>
+  #{/if}
+  <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
+  <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
+  #{if isActive == false}
+      <dt>&{'disasterRecovery.paused.time'}</dt>
+      <dd id="pausedTime-${uuid}">Not Available</dd>
+      #{if disasterSiteDetails.dataSynced}
+      <script>
+          $('#pausedTime-' + '${uuid}').text("Up To Date");
+      </script>
+      #{/if}
+      #{elseif pausedTime}
+      <script>
+          var epocPauseTime = '${disasterSiteDetails.pausedTime}';
+          $('#pausedTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocPauseTime)));
+      </script>
+      #{/elseif}
+  #{/if}
+</dl>
+#{/else}
+

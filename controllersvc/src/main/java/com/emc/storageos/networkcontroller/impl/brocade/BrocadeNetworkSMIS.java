@@ -47,6 +47,8 @@ import com.emc.storageos.networkcontroller.impl.mds.Zoneset;
 import com.emc.storageos.volumecontroller.impl.smis.CIMArgumentFactory;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BrocadeNetworkSMIS extends BaseSANCIMObject {
 
@@ -59,6 +61,8 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
     private static final String _name = "Name";
     private static final String _element_name = "ElementName";
     private static final String _CollectionAlias = "CollectionAlias";
+    private static final String _Brocade_PhysicalSwitch = "Brocade_PhysicalComputerSystem";
+    private static final String _Brocade_SwitchPCS = "Brocade_SwitchInPCS";
     private static final String _Brocade_TopologyViewInFabric = "Brocade_TopologyViewInFabric";
     private static final String _Brocade_ZoneInZoneSet = "Brocade_ZoneInZoneSet";
     private static final String _Brocade_ZoneInFabric = "Brocade_ZoneInFabric";
@@ -82,6 +86,8 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
     private static final String _AntecedentFCPortElementName = "AntecedentFCPortElementName";
     private static final String _AntecedentElementWWN = "AntecedentElementWWN";
     private static final String _AntecedentSystem = "AntecedentSystem";
+    private static final String _Parent = "Antecedent";
+    private static final String _Child = "Dependent";
     private static final String _GroupComponent = "GroupComponent";
     private static final String _PartComponent = "PartComponent";
     private static final String _SystemSpecificCollection = "SystemSpecificCollection";
@@ -117,8 +123,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
     private CIMArgumentFactory _cimArgumentFactory = new CIMArgumentFactory();
     private CIMPropertyFactory _cimProperty = new CIMPropertyFactory();
 
-    protected static final Log _log = LogFactory
-            .getLog(BrocadeNetworkSMIS.class);
+    private static final Logger _log = LoggerFactory.getLogger(BrocadeNetworkSMIS.class);
 
     public static String getNamespace() {
         return _namespace;
@@ -129,8 +134,6 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      * 
      * @param client
      *            - WBEM Client
-     * @param namespace
-     *            - Brocade namespace
      * @return List<String> containing fabric names
      * @throws javax.wbem.WBEMException
      */
@@ -259,10 +262,15 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
         Map<String, FCEndpoint> portConnections = null;
         Map<String, String> deviceNameCache = new HashMap<String, String>();
         Map<String, String> fabricsByIds = getFabricIdsMap(client);
+        Map<String, String> logicalToPhysicalSwitchMap =
+                getLogicalToPhysicalSwitcheMap(client);
+
         if (discoverEndpointsByFabric) {
-            portConnections = getFCEndpointsByFabric(client, routedConnections, fabricsByIds, deviceNameCache);
+            portConnections = getFCEndpointsByFabric(client, routedConnections, fabricsByIds, deviceNameCache,
+                    logicalToPhysicalSwitchMap);
         } else {
-            portConnections = getFCEndpointsByTopologyViewInFabric(client, routedConnections, fabricsByIds, deviceNameCache);
+            portConnections = getFCEndpointsByTopologyViewInFabric(client, routedConnections, fabricsByIds,
+                    deviceNameCache, logicalToPhysicalSwitchMap);
         }
         if (portConnections != null) {
             addEndpointAliasName(client, portConnections);
@@ -275,7 +283,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
     /**
      * Get FCEndpoints instances by getting TopologyView instances by fabric. This method
      * of getting TopologyView instances can be slow in some environments thus the need
-     * for the alternate function {@link #getFCEndpointsByTopologyViewInFabric(WBEMClient, Map, Map, Map)} which is faster but requires more
+     * for the alternate function {@link #getFCEndpointsByFabric(WBEMClient, Map, Map, Map, Map)} which is faster but requires more
      * memory. The user can select the function best suitable
      * using config item controller_ns_brocade_discovery_by_fabric_association
      * 
@@ -287,13 +295,16 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      *            a map of fabric name to fabric WWN
      * @param deviceNameCache
      *            a map to cache switch names
+     * @param logicalToPhysicalSwitchMap
+     *            a map to cache logical switches and their container physical switch
      * @return a map of endpoint Wwn to its FCEndpoint instance
      * @throws WBEMException
      */
     private Map<String, FCEndpoint> getFCEndpointsByFabric(WBEMClient client,
             Map<String, Set<String>> routedConnections,
             Map<String, String> fabricsByIds,
-            Map<String, String> deviceNameCache) throws WBEMException {
+            Map<String, String> deviceNameCache,
+            Map<String, String> logicalToPhysicalSwitchMap) throws WBEMException {
         long start = System.currentTimeMillis();
         _log.info("Getting topology by fabric");
         Map<String, FCEndpoint> portConnections = new HashMap<String, FCEndpoint>();
@@ -314,11 +325,11 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                     CIMInstance topins = null;
                     while (topit.hasNext()) {
                         topins = topit.next();
-                        _log.debug(topins);
+                        _log.debug(topins.toString());
                         processTopologyViewInstance(client, topins,
                                 portConnections, routedConnections,
                                 fabricsByIds.get(fabricWwn), fabricWwn,
-                                deviceNameCache);
+                                deviceNameCache, logicalToPhysicalSwitchMap);
                     }
                 } finally {
                     if (topit != null) {
@@ -340,7 +351,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      * and TopologyViewInfabric to sort them into their fabrics.
      * <p>
      * This method of getting TopologyView instances requires more memory that the alternate
-     * {@link #getFCEndpointsByFabric(WBEMClient, Map, Map, Map)} which can be slow. The user can select the function best suitable using
+     * {@link #getFCEndpointsByTopologyViewInFabric(WBEMClient, Map, Map, Map, Map)} which can be slow. The user can select the function best suitable using
      * config item controller_ns_brocade_discovery_by_fabric_association
      * 
      * @param client
@@ -351,6 +362,8 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      *            a map of fabric name to fabric WWN
      * @param deviceNameCache
      *            a map to cache switch names
+     * @param logicalToPhysicalSwitchMap
+     *            a map to cache logical switches and their container physical switch
      * @return a map of fabric Wwn to the TopologyView instances
      * @throws WBEMException
      */
@@ -358,7 +371,8 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
             WBEMClient client,
             Map<String, Set<String>> routedConnections,
             Map<String, String> fabricsByIds,
-            Map<String, String> deviceNameCache) throws WBEMException {
+            Map<String, String> deviceNameCache,
+            Map<String, String> logicalToPhysicalSwitchMap) throws WBEMException {
         long start = System.currentTimeMillis();
         _log.info("Getting topology by TopologyViewInFabric associations");
         Map<String, FCEndpoint> portConnections = new HashMap<String, FCEndpoint>();
@@ -375,7 +389,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
             assnIt = client.enumerateInstanceNames(assnPath);
             while (assnIt.hasNext()) {
                 CIMObjectPath assn = assnIt.next();
-                _log.debug(assn);
+                _log.debug(assn.toString());
                 // get the path of the TopologyView instance
                 String compPath = assn.getKeyValue(_PartComponent).toString();
                 // Trim the switch name when the path has /switchName/root/brocade/....
@@ -401,14 +415,14 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                     false, true, true, null);
             while (it.hasNext()) {
                 CIMInstance topins = it.next();
-                _log.debug(topins);
+                _log.debug(topins.toString());
                 String fabricPath = topInsToFabricPath.get(topins.getObjectPath().toString());
                 String fabricWwn = fabricPathToWwn.get(fabricPath);
                 if (fabricWwn != null) {
                     processTopologyViewInstance(client, topins,
                             portConnections, routedConnections,
                             fabricsByIds.get(fabricWwn), fabricWwn,
-                            deviceNameCache);
+                            deviceNameCache, logicalToPhysicalSwitchMap);
                 }
             }
         } finally {
@@ -420,11 +434,32 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
         return portConnections;
     }
 
+    /**
+     * generate port connections from the Topology details
+     * @param client
+     *            WBEMClient
+     * @param topins
+     *            toplogy instance
+     * @param portConnections
+     *            port connections
+     * @param routedConnections
+     *            routed connections
+     * @param fabricName
+     *            fabric name
+     * @param fabricWwn
+     *            fabric WWN
+     * @param deviceNameCache
+     *            a map to cache switch names
+     * @param logicalToPhysicalSwitchMap
+     *            a map to cache logical switches and container physical switch
+     * @throws WBEMException
+     */
     private void processTopologyViewInstance(WBEMClient client, CIMInstance topins,
             Map<String, FCEndpoint> portConnections,
             Map<String, Set<String>> routedConnections,
             String fabricName, String fabricWwn,
-            Map<String, String> deviceNameCache) throws WBEMException {
+            Map<String, String> deviceNameCache,
+            Map<String, String> logicalToPhysicalSwitchMap) throws WBEMException {
         if (_XlatePhantomPort.equals(cimStringProperty(topins,
                 _AntecedentFCPortElementName))) {
             Set<String> fabricRoutedEndpoints = routedConnections.get(fabricWwn);
@@ -472,6 +507,12 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
                 }
             }
         }
+        //Get the Physcial Switch Name for the Logical Switch
+        String physicalSwitchName = logicalToPhysicalSwitchMap.get(switchName);
+        _log.info("Switch Name : {} Physical SwitchName {}", switchName, physicalSwitchName);
+        if(physicalSwitchName != null ) {
+            switchName = physicalSwitchName;
+        }
         FCEndpoint conn = new FCEndpoint();
         conn.setFabricId(fabricName);
         conn.setRemotePortName(remotePortName);
@@ -517,7 +558,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
             while (it.hasNext()) {
                 count++;
                 ins = it.next();
-                _log.debug(ins);
+                _log.debug(ins.toString());
                 aliasPath = cimStringProperty(ins, _ManagedElement);
                 memberPath = cimStringProperty(ins, _SettingData);
                 wwn = formatWWN(getPropertyValueFromString(memberPath, SmisConstants.CP_NSNAME));
@@ -576,7 +617,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
             ZoneWwnAlias alias = null;
             while (it.hasNext()) {
                 ins = it.next();
-                _log.debug(ins);
+                _log.debug(ins.toString());
                 aliasPath = cimStringProperty(ins, _ManagedElement);
                 memberPath = cimStringProperty(ins, _SettingData);
                 wwn = getPropertyValueFromString(memberPath, SmisConstants.CP_FABRIC);
@@ -1375,7 +1416,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
      * @param zoneServiceIns an instance of zone service for the fabric
      * @param fabricWwn the fabric WWN
      * @param zonePath the CIM path of the zone object
-     * @param the member to be added to the zone or alias.
+     * @param member to be added to the zone or alias.
      * @return the CIM path to the newly created alias
      * @throws WBEMException
      */
@@ -1987,4 +2028,46 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
         _log.info("Removing instance " + path);
         client.deleteInstance(path);
     }
+
+    /**
+     * get Logical switches to physical switch map
+     * @param client an instance of WBEMClient
+     * @return a map of logical to physical switch name
+     * @throws WBEMException
+     */
+    public HashMap<String, String> getLogicalToPhysicalSwitcheMap(WBEMClient client) throws WBEMException {
+        HashMap<String, String> switchMap  = new HashMap<>();
+        CIMObjectPath path = new CIMObjectPath(null, null, null, _namespace, _Brocade_SwitchPCS, null);
+
+        CloseableIterator<CIMInstance> it = null;
+        try {
+            it = client.enumerateInstances(path, false, true, true, null);
+
+            while (it.hasNext()) {
+                CIMInstance ins = it.next();
+                String parentName = cimStringProperty(ins, _Parent);
+                String childName = cimStringProperty(ins, _Child);
+                _log.debug("Brocade Switch: Parent :  {} - Child : {} )", parentName, childName);
+
+                CIMProperty[] props = ins.getProperties();
+                for(int i=0; i < props.length; i++) {
+                    _log.debug("Switch property : " + props[i].getName() + ": value : " + props[i].getValue());
+                }
+
+                CIMInstance parentObject = client.getInstance(new CIMObjectPath(parentName), true, true, null);
+                CIMInstance childObject = client.getInstance(new CIMObjectPath(childName), true, true, null);
+
+                parentName = cimStringProperty(parentObject, _element_name);
+                childName = cimStringProperty(childObject, _element_name);
+                switchMap.put(childName, parentName);
+                _log.info("Brocade Switch: Logical Switch : " + childName + " In (" + parentName + ")");
+            }
+        } finally {
+            if (it != null) {
+                it.close();
+            }
+        }
+        return switchMap;
+    }
+
 }

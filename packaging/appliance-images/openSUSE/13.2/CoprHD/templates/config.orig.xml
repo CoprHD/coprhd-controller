@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<image schemaversion="6.1" name="__NAME__">
+    <description type="system">
+        <author>ADG</author>
+        <contact>ApplianceDevelopmentGroup@emc.com</contact>
+        <specification>__NAME__ - appliance</specification>
+    </description>
+    <profiles>
+        <profile name="appliance" description="VMX with default kernel" import="true"/>
+    </profiles>
+    <preferences>
+        <version>__VERSION__</version>
+        <packagemanager>zypper</packagemanager>
+        <locale>en_US</locale>
+        <keytable>us.map.gz</keytable>
+        <timezone>Europe/Berlin</timezone>
+        <hwclock>utc</hwclock>
+        <rpm-excludedocs>true</rpm-excludedocs>
+        <bootsplash-theme>openSUSE</bootsplash-theme>
+        <bootloader-theme>openSUSE</bootloader-theme>
+    </preferences>
+    <preferences profiles="appliance">
+        <type image="vmx" filesystem="ext3" boot="vmxboot/suse-13.2" format="vmdk" bootloader="grub2" kernelcmdline="splash">
+            <machine memory="8192" guestOS="suse">
+                <vmdisk controller="lsilogic" id="0"/>
+                <vmnic interface="e1000" mode="bridged"/>
+            </machine>
+            <size unit="G">60</size>
+        </type>
+    </preferences>
+    <users group="root">
+        <user password="$6$eBIu9aQ6$wBnn9Tn.CUuuoi/JZe.oAOmUDIVCqHpXeem7ZHO5R7dPg2hul8tNCBzwumKrFw8A0qm.LH8YvMJUaN2AL1JVc0" home="/root" name="root"/>
+    </users>
+    <repository type="yast2" priority="2">
+        <source path="__ISO__"/>
+    </repository>
+    <repository type="rpm-md" priority="1">
+        <source path="__REPO__"/>
+    </repository>
+    <packages type="image">
+        <package name="ifplugd"/>
+        <package name="iputils"/>
+        <package name="vim"/>
+        <package name="grub2"/>
+        <package name="syslinux"/>
+        <package name="lvm2"/>
+        <package name="plymouth"/>
+        <package name="fontconfig"/>
+        <package name="fonts-config"/>
+        <package name="tar"/>
+        <package name="parted"/>
+        <package name="openssh"/>
+        <package name="sysconfig"/>
+        <package name="dhcpcd"/>
+        <package name="net-tools"/>
+        <package name="sysconfig-netconfig"/>
+        <package name="netcfg"/>
+        <package name="iproute2"/>
+        <package name="nfs-client"/>
+        <package name="wget"/>
+        <package name="sudo"/>
+        <!-- DEV Environment -->
+        <!-- archive name="eclipse-java-luna-SR2-linux-gtk-x86_64.tar.gz"/ -->
+        <package name="xorg-x11-server"/>
+        <package name="xorg-x11-essentials"/>
+        <package name="xorg-x11-fonts"/>
+        <!-- ADG RPM installs -->
+        <package name="configure-network"/>
+        <package name="kernel-default"/>
+        <package name="kiwi"/>
+        <package name="libSDL-1_2-0"/>
+        <package name="libXmu6"/>
+        <package name="libaudiofile1"/>
+        <package name="libesd0"/>
+        <package name="libmng2"/>
+        <package name="libqt4"/>
+        <package name="libqt4-sql"/>
+        <package name="libqt4-x11"/>
+        <package name="libvpx1"/>
+        <package name="systemd-logger"/>
+        <package name="virtualbox"/>
+        <package name="virtualbox-host-kmp-default"/>
+        <package name="xbitmaps"/>
+        <!-- storageOS DevKit RPM installs -->
+        <package name="telnet"/>
+        <package name="atop"/>
+        <package name="GeoIP-data"/>
+        <package name="libGeoIP1"/>
+        <package name="GeoIP"/>
+        <!--package name="gradle"/-->
+        <package name="sipcalc"/>
+        <package name="python-cjson"/>
+        <!--package name="nginx"/-->
+        <package name="make"/>
+        <package name="ant"/>
+        <package name="apache2-mod_perl"/>
+        <package name="createrepo"/>
+        <package name="expect"/>
+        <package name="gcc-c++"/>
+        <package name="gpgme"/>
+        <package name="inst-source-utils"/>
+        <package name="java-1_8_0-openjdk"/>
+        <package name="java-1_8_0-openjdk-devel"/>
+        <package name="kernel-default-devel"/>
+        <package name="kernel-source"/>
+        <package name="kiwi-desc-isoboot"/>
+        <package name="kiwi-desc-oemboot"/>
+        <package name="kiwi-desc-vmxboot"/>
+        <package name="kiwi-templates"/>
+        <package name="libtool"/>
+        <package name="openssh-fips"/>
+        <package name="perl-Config-General"/>
+        <package name="perl-Tk"/>
+        <package name="python-libxml2"/>
+        <package name="python-py"/>
+        <package name="python-requests"/>
+        <package name="setools-libs"/>
+        <package name="python-setools"/>
+        <package name="qemu"/>
+        <package name="regexp"/>
+        <package name="rpm-build"/>
+        <package name="sshpass"/>
+        <package name="sysstat"/>
+        <package name="unixODBC"/>
+        <package name="xfsprogs"/>
+        <package name="xml-commons-jaxp-1.3-apis"/>
+        <package name="zlib-devel"/>
+        <package name="git"/>
+        <package name="git-core"/>
+        <package name="glib2-devel"/>
+        <package name="libgcrypt-devel"/>
+        <package name="libgpg-error-devel"/>
+        <package name="libopenssl-devel"/>
+        <package name="libserf-devel"/>
+        <package name="libuuid-devel"/>
+        <package name="libxml2-devel"/>
+        <package name="pam-devel"/>
+        <package name="pcre-devel"/>
+        <package name="perl-Error"/>
+        <package name="python-devel"/>
+        <package name="readline-devel"/>
+        <package name="subversion"/>
+        <package name="xmlstarlet"/>
+        <package name="xz-devel"/>
+        <package name="libpcrecpp0"/>
+        <package name="libpcreposix0"/>
+        <package name="ca-certificates-cacert"/>
+        <package name="ca-certificates-mozilla"/>
+        <package name="mozilla-nss-certs"/>
+        <package name="p7zip"/>
+        <package name="python-iniparse"/>
+        <package name="python-gpgme"/>
+        <package name="yum"/>
+        <package name="keepalived"/>
+        <package name="strongswan"/>
+        <package name="strongswan-ipsec"/>
+        <package name="strongswan-libs0"/>
+        <package name="SuSEfirewall2"/>
+        <!-- storageOS RPM install -->
+        <package name="storageos"/>
+        <!-- archives to build source -->
+        <archive name="nginx-1.6.2.tar.gz"/>
+        <archive name="v0.3.0.tar.gz"/>
+        <archive name="v0.25.tar.gz"/>
+    </packages>
+    <packages type="bootstrap">
+        <package name="udev"/>
+        <package name="filesystem"/>
+        <package name="glibc-locale"/>
+        <package name="cracklib-dict-full"/>
+        <package name="ca-certificates"/>
+    </packages>
+    <packages type="delete">
+        <package name="kernel-debug"/>
+    </packages>
+</image>

@@ -22,9 +22,11 @@ fw_custom_iptables() {
     NETWORK_NODES_IPV6="${network_nodes_ipv6} ${network_vip6}"
 
     # TCP ingres ports for inter-node communication:
+    #   500  - ipsec (UDP)
     #   2181 - coordinatorsvc
     #   2888 - coordinatorsvc (??? isn't it the source port)
     #   2889 - coordinatorsvc
+    #   4500 - ipsec (UDP)
     #   6443 - portalsvc (UI Portal) 
     #   7000 - dbsvc (storage non-SSL port)
     #   7001 - dbsvc (storage SSL port - dbsvc/src/conf/db-conf.yaml)
@@ -53,6 +55,7 @@ fw_custom_iptables() {
     #
     INGRES_PORTS_PART1="2181,2888,2889,6443,7000,7001,7100,7101,7199,7200,7299,7300,7399,7400"
     INGRES_PORTS_PART2="7443,8080,8443,8543,9093,9160,9260,9553,9993,10099,10199,40201"
+    INGRES_UDP_PORTS="500,4500"
 
     # TODO support multiple nics
     NIC_NAME="${network_nic_name}"
@@ -61,12 +64,16 @@ fw_custom_iptables() {
         iptables  -I input_ext -i ${NIC_NAME} -p vrrp -s ${sourceNode} -j ACCEPT
         iptables  -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART1} -j ACCEPT
         iptables  -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART2} -j ACCEPT
+        iptables  -I input_ext -i ${NIC_NAME} -p udp  -s ${sourceNode} -m multiport --dports ${INGRES_UDP_PORTS} -j ACCEPT
+        iptables  -I input_ext -i ${NIC_NAME} -p esp  -s ${sourceNode} -j ACCEPT
     done
     for sourceNode in ${NETWORK_NODES_IPV6} ; do
         ip6tables -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART1} -j ACCEPT
         ip6tables -I input_ext -i ${NIC_NAME} -p igmp -s ${sourceNode} -j ACCEPT
         ip6tables -I input_ext -i ${NIC_NAME} -p vrrp -s ${sourceNode} -j ACCEPT
         ip6tables -I input_ext -i ${NIC_NAME} -p tcp  -s ${sourceNode} -m multiport --dports ${INGRES_PORTS_PART2} -j ACCEPT
+        ip6tables -I input_ext -i ${NIC_NAME} -p udp  -s ${sourceNode} -m multiport --dports ${INGRES_UDP_PORTS} -j ACCEPT
+        ip6tables  -I input_ext -i ${NIC_NAME} -p esp  -s ${sourceNode} -j ACCEPT
     done
 
     # Section for inter VDC communication
@@ -74,16 +81,65 @@ fw_custom_iptables() {
     VDC_NODES_IPV6="${vdc_nodes_ipaddr6}"
 
     # TCP ingres ports for inter-VDC communication:
-    #   7101 - 
-    #
+    #   7100 - geodbsvc (storage non-SSL port)
+    #   7101 - geodbsvc (storage SSL port)
+    # UDP
+    #   500 -
+    #   4500- 
     # NOTE: The commands below must contain only one port. If multiple ports are needed, add the multiport option
-    INTERVDC_PORT="7101"
+    INTERVDC_PORT="7100"
+    INTERVDC_PORT_SSL="7101"
 
     for sourceNode in ${VDC_NODES_IPV4} ; do
         iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT} -j ACCEPT
+        if [ "${back_compat_preyoda}" == "true" ]; then
+            iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT_SSL} -j ACCEPT
+        fi
+        iptables  -I input_ext -p udp -i ${NIC_NAME} -s ${sourceNode} -m multiport --dport ${INGRES_UDP_PORTS} -j ACCEPT
+        iptables  -I input_ext -p esp -i ${NIC_NAME} -s ${sourceNode} -j ACCEPT
     done
     for sourceNode in ${VDC_NODES_IPV6} ; do
         ip6tables -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT} -j ACCEPT
+        if [ "${back_compat_preyoda}" == "true" ]; then
+            iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT_SSL} -j ACCEPT
+        fi
+        ip6tables -I input_ext -p udp -i ${NIC_NAME} -s ${sourceNode} -m multiport --dport ${INGRES_UDP_PORTS} -j ACCEPT
+        ip6tables -I input_ext -p esp -i ${NIC_NAME} -s ${sourceNode} -j ACCEPT
+    done
+
+    # Section for DR primary/standby site communication
+    DR_NODES_IPV4="${dr_nodes_ipaddr}"
+    DR_NODES_IPV6="${dr_nodes_ipaddr6}"
+
+    DR_DB_PORT="7000"
+    DR_GEODB_PORT="7100"
+    DR_ZK_PORT1="2888"
+    DR_ZK_PORT2="2889"
+    DR_ZK_PORT3="2898"
+    DR_ZK_PORT4="2899"
+    for sourceNode in ${DR_NODES_IPV4} ; do
+        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_DB_PORT} -j ACCEPT
+        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_GEODB_PORT} -j ACCEPT
+        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
+        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+        if [ "${dr_dual_coordinator}" == "true" ]; then
+           iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT3} -j ACCEPT
+           iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT4} -j ACCEPT
+        fi
+        iptables  -I input_ext -p udp -i ${NIC_NAME} -s ${sourceNode} -m multiport --dport ${INGRES_UDP_PORTS} -j ACCEPT
+        iptables  -I input_ext -p esp -i ${NIC_NAME} -s ${sourceNode} -j ACCEPT
+    done
+    for sourceNode in ${DR_NODES_IPV6} ; do
+        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_DB_PORT} -j ACCEPT
+        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_GEODB_PORT} -j ACCEPT
+        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
+        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+        if [ "${dr_dual_coordinator}" == "true" ]; then
+            ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT3} -j ACCEPT
+            ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT4} -j ACCEPT
+        fi
+        ip6tables  -I input_ext -p udp -i ${NIC_NAME} -s ${sourceNode} -m multiport --dport ${INGRES_UDP_PORTS} -j ACCEPT
+        ip6tables  -I input_ext -p esp -i ${NIC_NAME} -s ${sourceNode} -j ACCEPT
     done
     
     true

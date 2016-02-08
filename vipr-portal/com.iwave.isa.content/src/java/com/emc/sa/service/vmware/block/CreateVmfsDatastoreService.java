@@ -46,7 +46,6 @@ public class CreateVmfsDatastoreService extends VMwareHostService {
         exportBlockVolumeHelper.precheck();
 
         acquireHostLock();
-        vmware.refreshStorage(host, cluster);
         vmware.verifyDatastoreDoesNotExist(datacenter.getLabel(), datastoreName);
         vmware.verifySupportedMultipathPolicy(host, multipathPolicy);
         vmware.disconnect();

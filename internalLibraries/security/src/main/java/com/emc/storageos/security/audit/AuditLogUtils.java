@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.security.audit;
@@ -7,11 +7,11 @@ package com.emc.storageos.security.audit;
 import java.util.Arrays;
 import java.util.ResourceBundle;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.security.audit.RecordableAuditLog;
 
 /**
  * Utilities class encapsulates auditlog utility methods.
@@ -19,12 +19,12 @@ import com.emc.storageos.security.audit.RecordableAuditLog;
 public class AuditLogUtils {
 
     // Logger reference.
-    private static final Logger s_logger = LoggerFactory.getLogger(AuditLogUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(AuditLogUtils.class);
 
     /**
      * Converts a RecordableAuditLog to an AuditLog Model
      * 
-     * @param event
+     * @param auditlog
      * @return
      */
     public static AuditLog convertToAuditLog(RecordableAuditLog auditlog) {
@@ -61,30 +61,33 @@ public class AuditLogUtils {
 
             if (parameters[0].equals(AuditLogManager.AUDITLOG_VERSION)) {
                 // get specific-language description from resource file
-                String format_desc = resb.getString(parameters[1]);
+                String formatDesc = resb.getString(parameters[1]);
 
-                // changes are that the number of format specifiers (i.e. %s) doesn't
-                // match the number of actual paramters, in which case we will try to
+                // chances are that the number of format specifiers (i.e. %s) doesn't
+                // match the number of actual parameters, in which case we will try to
                 // generate something still readable (though incomplete).
                 int paramCount = parameters.length - 2;
-                int formatSpecCount = format_desc.split("%s").length - 1;
+                int formatSpecCount = StringUtils.countMatches(formatDesc, "%s");
                 if (formatSpecCount != paramCount) {
-                    s_logger.warn("Unexpected number of parameters for audit log {}. Expect {}, {} given."
-                            + " Filling the gap will nulls.",
-                            new Object[] { parameters[1], formatSpecCount, paramCount });
+                    log.warn("Unexpected number of parameters for audit log {}. Expect {}, {} given."
+                                    + " Filling the gap will nulls.",
+                            new Object[]{parameters[1], formatSpecCount, paramCount});
                 }
 
                 // set parameters into the description
                 String[] formatParams = Arrays.copyOfRange(parameters, 2,
                         formatSpecCount + 2);
-                String newdesc = String.format(format_desc, formatParams);
+                String newdesc = String.format(formatDesc, formatParams);
 
                 auditlog.setDescription(newdesc);
             }
         } catch (Exception e) {
-            s_logger.error("can not reset description for {}", origdesc, e);
+            log.error("can not reset description for {}", origdesc, e);
         }
-        return;
+    }
+
+    public static boolean isKeywordContained(AuditLog auditLog,String keyword){
+        return keyword == null || keyword.isEmpty() || auditLog.getDescription().contains(keyword);
     }
 
 }

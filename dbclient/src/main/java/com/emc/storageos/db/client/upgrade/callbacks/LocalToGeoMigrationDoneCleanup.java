@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Cleans up the obsolete LOCAL_TO_GEO_DONE flag from ZooKeeper.
@@ -25,16 +26,16 @@ public class LocalToGeoMigrationDoneCleanup extends BaseCustomMigrationCallback 
             LocalToGeoMigrationDoneCleanup.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         processZKFlagCleanup();
     }
 
     private void processZKFlagCleanup() {
-        Configuration config = coordinatorClient.queryConfiguration(DB_CONFIG, GLOBAL_ID);
+        Configuration config = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(), DB_CONFIG, GLOBAL_ID);
         if (config.getConfig(LOCAL_TO_GEO_DONE) != null) {
             log.info("Flag {} found in ZooKeeper. Removing...", LOCAL_TO_GEO_DONE);
             config.removeConfig(LOCAL_TO_GEO_DONE);
-            coordinatorClient.persistServiceConfiguration(config);
+            coordinatorClient.persistServiceConfiguration(coordinatorClient.getSiteId(), config);
             log.info("Flag {} removed from ZooKeeper", LOCAL_TO_GEO_DONE);
         } else {
             log.info("Flag {} not found in ZooKeeper.", LOCAL_TO_GEO_DONE);

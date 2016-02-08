@@ -32,6 +32,7 @@ public class SysClientFactory {
     public static final URI URI_WAKEUP_UPGRADE_MANAGER = URI.create("/upgrade/internal/wakeup?type=upgrade");
     public static final URI URI_WAKEUP_SECRETS_MANAGER = URI.create("/upgrade/internal/wakeup?type=secrets");
     public static final URI URI_WAKEUP_PROPERTY_MANAGER = URI.create("/upgrade/internal/wakeup?type=property");
+    public static final URI URI_WAKEUP_VDC_MANAGER = URI.create("/upgrade/internal/wakeup?type=vdc");
     public static final URI URI_GET_INTERNAL_NODE_HARDWARE = URI.create("/monitor/internal/node-hardware-info");
     public static final URI URI_NODE_LOGS = URI.create("/logs/internal/node-logs");
     public static final URI URI_LOG_LEVELS = URI.create("/logs/internal/log-level");
@@ -40,9 +41,12 @@ public class SysClientFactory {
     public static final URI URI_REBOOT_NODE = URI.create("/control/internal/node/reboot");
     public static final URI URI_SEND_POWEROFF_AGREEMENT = URI.create("/control/internal/node/poweroff-agreement");
     public static final URI URI_NODE_BACKUPS_DOWNLOAD = URI.create("/backupset/internal/node-backups/download");
+    public static final URI URI_NODE_BACKUPS_PULL = URI.create("/backupset/internal/pull");
     public static final URI URI_GET_PROPERTIES = URI.create("/config/internal/properties");
     public static final URI URI_GET_DBREPAIR_STATUS = URI.create("/control/internal/node/dbrepair-status");
     public static final String BASE_URL_FORMAT = "http://%1$s:%2$s";
+    public static final String URI_NODE_BACKUPS_RESTORE_TEMPLATE =
+            "/backupset/internal/restore?backupname=%s&isLocal=%s&password=%s&isgeofromscratch=%s";
 
     // URI for retrieving managed capacity for provisioning in apisvc
     public static final URI _URI_PROVISIONING_MANAGED_CAPACITY = URI.create

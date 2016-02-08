@@ -25,7 +25,11 @@ public class PlatformUtils {
     private static final String IS_VAPP = "--is-vapp";
     private static final String SYSTOOL_CMD = "/etc/systool";
     private static final String IS_APPLIANCE = "--test";
+    private static final String GET_VDCPROPS = "--getvdcprops";
     private static final String IS_APPLIANCE_OUTPUT = "Ok";
+
+    private static final String VDCPROP_SITEIDS = "site_ids";
+
     private static final long CMD_TIMEOUT = 120 * 1000;
     private static final long CMD_PARTITION_TIMEOUT = 600 * 1000;    // 10 min
     private static String PID_DIR = "/var/run/storageos/";
@@ -48,7 +52,15 @@ public class PlatformUtils {
         String[] props = getOvfenvPropertyStrings();
         Map<String, String> propMap = new HashMap<String, String>();
         for (String s : props) {
-            propMap.put(s.split(PropertyConstants.DELIMITER)[0], s.split(PropertyConstants.DELIMITER)[1]);
+            if(s.contains(PropertyConstants.DELIMITER)) {
+                if (s.split(PropertyConstants.DELIMITER).length == 2) {
+                    propMap.put(s.split(PropertyConstants.DELIMITER)[0], s.split(PropertyConstants.DELIMITER)[1]);
+                }else if(s.split(PropertyConstants.DELIMITER).length == 1) {
+                    propMap.put(s.split(PropertyConstants.DELIMITER)[0],"");
+                }else {
+                    log.error("ovf properties file contain line in unexpected format : {}", s);
+                }
+            }
         }
 
         // load major properties (network info etc.)
@@ -284,7 +296,36 @@ public class PlatformUtils {
         }
         return isOssBuild;
     }
-    
+
+    /**
+     * Checks if the env has multiple DR sites
+     *
+     * @return true if it has multiple DR sites
+     */
+    public static boolean hasMultipleSites() {
+        boolean hasMultipleSites = false;
+        final String[] cmds = { SYSTOOL_CMD, GET_VDCPROPS };
+        Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmds);
+        if (!result.exitedNormally() || result.getExitValue() != 0) {
+            log.error("Failed to get vdc properties with errcode: {}, error: {}",
+                    result.getExitValue(), result.getStdError());
+            throw new IllegalStateException("Failed to get vdc properties");
+        }
+
+        String[] props = result.getStdOutput().split("\n");
+        for (String s : props) {
+            String key = s.split(PropertyConstants.DELIMITER)[0];
+            String value = s.split(PropertyConstants.DELIMITER)[1];
+            if (!key.equals(VDCPROP_SITEIDS)) continue;
+
+            if (value.contains(",")) {
+                hasMultipleSites = true;
+                break;
+            }
+        }
+        return hasMultipleSites;
+    }
+
     /**
      * Get service process ID by service name.
      * 
@@ -311,7 +352,7 @@ public class PlatformUtils {
      * @return Product ident
      */
     public static String getProductIdent() throws IOException {
-        byte[] productIdent = FileUtils.readDataFromFile(PRODUCT_IDENT_PATH);
+    	byte[] productIdent = FileUtils.readDataFromFile(PRODUCT_IDENT_PATH);
         return new String(productIdent).trim();
     }
 }

@@ -51,6 +51,11 @@ public class ServiceBeaconImpl implements ServiceBeacon {
 
     private volatile boolean _bStarted = false;
 
+    // Service beacon should be created to site specific area(/sites/<uuid>/service) since yoda. But in order to make sure 
+    // rolling upgrade could work, we need temporarily create beacons at global area(/service). So we add this flag here
+    // to indicate where the beacon should be created - site specific aread(default), or global area in zk
+    private boolean siteSpecific = true;
+    
     /**
      * Reacts to connect/reconnect events by registering if necessary
      */
@@ -86,11 +91,12 @@ public class ServiceBeaconImpl implements ServiceBeacon {
      */
     public void setService(ServiceImpl service) {
         _service = service;
-        _serviceParentPath = String.format("%1$s/%2$s/%3$s",
-                ZkPath.SERVICE, _service.getName(), _service.getVersion());
-        _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
     }
 
+    public ServiceImpl getService() {
+        return _service;
+    }
+    
     /**
      * Set ZK cluster connection. Connection must be built but not started when
      * this setter is called
@@ -101,6 +107,14 @@ public class ServiceBeaconImpl implements ServiceBeacon {
         _zkConnection = zkConnection;
     }
 
+    public ZkConnection getZkConnection() {
+        return _zkConnection;
+    }
+    
+    public void setSiteSpecific(boolean siteSpecific) {
+        this.siteSpecific = siteSpecific;
+    }
+
     /**
      * Init method.
      * Add state change listener
@@ -108,16 +122,26 @@ public class ServiceBeaconImpl implements ServiceBeacon {
      * Remove stale service registration from zk
      */
     public void init() {
-        _bInitialized = true;
-
+        
         _zkConnection.curator().getConnectionStateListenable().addListener(_connectionListener);
         _zkConnection.connect();
 
+        if (siteSpecific) {
+            _serviceParentPath = String.format("%1$s/%2$s%3$s/%4$s/%5$s",
+                    ZkPath.SITES, _zkConnection.getSiteId(), ZkPath.SERVICE, _service.getName(), _service.getVersion());
+        } else {
+            _serviceParentPath = String.format("%1$s/%2$s/%3$s",
+                    ZkPath.SERVICE, _service.getName(), _service.getVersion());
+        }
+        _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
+        
         try {
             checkStaleRegistration();
         } catch (Exception ex) {
             _log.warn("Unable to remove stale service registration", ex);
         }
+        
+        _bInitialized = true;
     }
 
     /**
@@ -198,4 +222,5 @@ public class ServiceBeaconImpl implements ServiceBeacon {
         _executor.shutdown();
         // shouldn't close connection since it is likely shared with some other service
     }
+ 
 }

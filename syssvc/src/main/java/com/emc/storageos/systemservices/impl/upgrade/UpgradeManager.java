@@ -13,30 +13,28 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.*;
-import java.util.Map.Entry;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
-import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.DownloadingInfo;
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.systemservices.exceptions.*;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
-import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
-import com.emc.vipr.model.sys.ClusterInfo.NodeState;
 import com.emc.vipr.model.sys.NodeProgress.DownloadStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class UpgradeManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(UpgradeManager.class);
@@ -47,9 +45,9 @@ public class UpgradeManager extends AbstractManager {
     private final static int MAX_REPO_RETRIES = 3;
     // time out interval (in millisecond)
     private final static int TIMEOUT_INTERVAL = 5 * 60 * 1000;
-
-    @Autowired
-    PropertyManager propertyManager;
+    // standby site upgrade retry interval if the active site is not STABLE or the current site is not SYNCED
+    // we don't want to sleep for too long (default 10m) or too short (retry 3s) here
+    private final static int STANDBY_UPGRADE_RETRY_INTERVAL = 60 * 1000; // 1m
 
     private RemoteRepository remoteRepository;
 
@@ -58,11 +56,17 @@ public class UpgradeManager extends AbstractManager {
     private RepositoryInfo targetInfo;
 
     private static boolean isValidRepo;
+    private Service service;
 
     // current number of tries of connecting remote repository
     private int tryRepoCnt = 0;
     // timer expire time
     private long expireTime = 0;
+    private volatile boolean backCompatPreYoda; //default to false
+
+    public void setBackCompatPreYoda(boolean backCompatPreYoda) {
+        this.backCompatPreYoda = backCompatPreYoda;
+    }
 
     public LocalRepository getLocalRepository() {
         return localRepository;
@@ -72,18 +76,69 @@ public class UpgradeManager extends AbstractManager {
         return remoteRepository;
     }
 
+    public void setService(Service service) {
+        this.service = service;
+    }
+
     @Override
     protected URI getWakeUpUrl() {
         return SysClientFactory.URI_WAKEUP_UPGRADE_MANAGER;
     }
 
+    /**
+     * Register repository info listener to monitor repository version changes
+     */
+    private void addRepositoryInfoListener() {
+        try {
+            coordinator.getCoordinatorClient().addNodeListener(new RepositoryInfoListener());
+        } catch (Exception e) {
+            log.error("Fail to add node listener for repository info target znode", e);
+            throw APIException.internalServerErrors.addListenerFailed();
+        }
+        log.info("Successfully added node listener for repository info target znode");
+    }
+
+    /**
+     * the listener class to listen the repository target node change.
+     */
+    class RepositoryInfoListener implements NodeListener {
+        public String getPath() {
+            return String.format("/config/%s/%s", RepositoryInfo.CONFIG_KIND, RepositoryInfo.CONFIG_ID);
+        }
+
+        /**
+         * called when user update the target version
+         */
+        @Override
+        public void nodeChanged() {
+            log.info("Repository info changed. Waking up the upgrade manager...");
+            wakeup();
+        }
+
+        /**
+         * called when connection state changed.
+         */
+        @Override
+        public void connectionStateChanged(State state) {
+            log.info("Repository info connection state changed to {}", state);
+            if (state.equals(State.CONNECTED)) {
+                log.info("Curator (re)connected. Waking up the upgrade manager...");
+                wakeup();
+            }
+        }
+    }
+
     @Override
     protected void innerRun() {
-        final String svcId = coordinator.getMySvcId();
+        // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
+        // otherwise they might release locks acquired by others when they start
+        final String svcId = String.format("%s,upgrade", coordinator.getMySvcId());
         boolean dbEncrypted = false;
         boolean dbCurrentVersionEncrypted = false;
         boolean isDBMigrationDone = false;
         isValidRepo = localRepository.isValidRepository();
+
+        addRepositoryInfoListener();
 
         while (doRun) {
             log.debug("Main loop: Start");
@@ -122,31 +177,23 @@ public class UpgradeManager extends AbstractManager {
                 shortSleep = true;
             }
 
-            // Step1: check if we have the upgrade lock
+            // Step1: check if we have the reboot lock
             boolean hasLock;
             try {
-                hasLock = coordinator.hasPersistentLock(svcId, upgradeLockId);
+                hasLock = hasUpgradeLock(svcId);
             } catch (Exception e) {
-                log.info("Step1: Failed to verify if the current node has the upgrade lock ", e);
+                log.info("Step1: Failed to verify if the current node has the reboot lock ", e);
                 retrySleep();
                 continue;
             }
 
             if (hasLock) {
                 try {
-                    handleDataNodes();
-                } catch (Exception e) {
-                    log.info("Setting target version failed and will be retried: {}", e.getMessage());
-                    retrySleep();
-                    continue;
-                }
-
-                try {
-                    coordinator.releasePersistentLock(svcId, upgradeLockId);
-                    log.info("Step1: Released upgrade lock for node: {}", svcId);
+                    releaseUpgradeLock(svcId);
+                    log.info("Step1: Released reboot lock for node: {}", svcId);
                     wakeupOtherNodes();
                 } catch (Exception e) {
-                    log.info("Step1: Failed to release the upgrade lock and will retry: {}", e.getMessage());
+                    log.info("Step1: Failed to release the reboot lock and will retry: {}", e.getMessage());
                     retrySleep();
                     continue;
                 }
@@ -196,26 +243,37 @@ public class UpgradeManager extends AbstractManager {
             if (currentVersion != null && targetVersion != null && !currentVersion.equals(targetVersion)) {
                 log.info("Step4: Current version: {} != target version: {}. Switch version.", currentVersion, targetVersion);
 
-                if (!getUpgradeLock(svcId)) {
-                    retrySleep();
-                    continue;
-                }
-
-                if (!isQuorumMaintained()) {
-                    try {
-                        coordinator.releasePersistentLock(svcId, upgradeLockId);
-                    } catch (Exception e) {
-                        log.error("Failed to release the upgrade lock:", e);
+                // for standby site, check if the active site is stable and the local site is STANDBY_SYNCED
+                if (drUtil.isStandby()) {
+                    if (!coordinator.isActiveSiteHealthy()) {
+                        log.info("current site is standby and active site is not stable, sleep 1m and try again");
+                        sleep(STANDBY_UPGRADE_RETRY_INTERVAL);
+                        continue;
                     }
-                    retrySleep();
-                    continue;
+
+                    SiteState localSiteState = drUtil.getLocalSite().getState();
+                    if (!localSiteState.equals(SiteState.STANDBY_SYNCED)) {
+                        log.info("current site is standby and is in state {}, sleep 1m and try again", localSiteState);
+                        sleep(STANDBY_UPGRADE_RETRY_INTERVAL);
+                        continue;
+                    }
                 }
 
                 try {
+                    if (!getUpgradeLock(svcId)) {
+                        retrySleep();
+                        continue;
+                    }
+
+                    if (!isQuorumMaintained()) {
+                        releaseUpgradeLock(svcId);
+                        retrySleep();
+                        continue;
+                    }
                     updateCurrentVersion(targetVersion);
                 } catch (Exception e) {
                     log.info("Step4: Upgrade failed and will be retried: {}", e.getMessage());
-                    // Restart the loop immediately so that we release the upgrade lock.
+                    // Restart the loop immediately so that we release the reboot lock.
                     continue;
                 }
             }
@@ -225,26 +283,22 @@ public class UpgradeManager extends AbstractManager {
             if (!coordinator.isLocalNodeTokenAdjusted()) {
                 try {
                     if (!getUpgradeLock(svcId)) {
-                        log.info("Step5: Get upgrade lock for adjusting dbsvc num_tokens failed. Retry");
+                        log.info("Step5: Get reboot lock for adjusting dbsvc num_tokens failed. Retry");
                         retrySleep();
                         continue;
                     }
 
                     if (!areAllDbsvcActive()) {
-                        try {
-                            coordinator.releasePersistentLock(svcId, upgradeLockId);
-                        } catch (Exception e) {
-                            log.error("Failed to release the upgrade lock:", e);
-                        }
+                        releaseUpgradeLock(svcId);
                         retrySleep();
                         continue;
                     }
-
-                    if (new DbManagerOps(Constants.DBSVC_NAME).adjustNumTokens()) {
-                        log.info("Adjusted dbsvc num_tokens, restarting dbsvc...");
-                        localRepository.restart(Constants.DBSVC_NAME);
+                    try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {
+                        if (dbOps.adjustNumTokens()) {
+                            log.info("Adjusted dbsvc num_tokens, restarting dbsvc...");
+                            localRepository.restart(Constants.DBSVC_NAME);
+                        }
                     }
-
                     continue;
                 } catch (Exception e) {
                     log.error("Step5: Adjust dbsvc num_tokens failed", e);
@@ -259,71 +313,8 @@ public class UpgradeManager extends AbstractManager {
         }
     }
 
-    /**
-     * Handle datanodes after the first node is upgraded from 2.2-(exclusive) to 2.2+(inclusive).
-     * If datanodes are configured and previous version can be found, revert the upgrade.
-     * If datanodes are configured but previous version cannot be found, reset the system_datanode_ipaddrs property
-     * and proceed.
-     * 
-     * @throws Exception
-     */
-    private void handleDataNodes() throws Exception {
-        PropertyInfoExt targetPropInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
-        String datanodeList = targetPropInfo.getAllProperties().get("system_datanode_ipaddrs");
-        if (datanodeList != null && !datanodeList.isEmpty()) {
-            log.error("datanodeList is: {}", datanodeList);
-            log.error("There are datanodes configured in the system, the 2.2 version doesn't support this feature, roll back to previous version");
-            String previousVersion = getPreviousVersion();
-            if (previousVersion == null) {
-                log.warn("Cannot find previous version. Reset system_datanode_ipaddrs and proceed with upgrade.");
-                PropertyInfoExt removeDataNodeProp = coordinator.getTargetInfo(PropertyInfoExt.class);
-                removeDataNodeProp.addProperty("system_datanode_ipaddrs", "");
-                removeDataNodeProp.addProperty(PropertyInfoRestRep.CONFIG_VERSION, String.valueOf(System.currentTimeMillis()));
-                coordinator.setTargetInfo(removeDataNodeProp);
-                // There's no need to wake up other nodes, because
-                // a) All other nodes are in version <2.2 so there's no such concept as PropertyManager
-                // b) For most of the cases, this only happens on 1+0, in which there's no other nodes
-                // c) Even if there are, they will be rebooted shortly anyways
-                propertyManager.wakeup();
-            } else {
-                log.warn("Reverting to version {}", previousVersion);
-                RepositoryInfo revertedTargetInfo = new RepositoryInfo(new SoftwareVersion(previousVersion),
-                        coordinator.getTargetInfo(RepositoryInfo.class).getVersions());
-                coordinator.setTargetInfo(revertedTargetInfo, false);
-            }
-        }
-    }
-
-    /**
-     * Try to acquire the property lock, like upgrade lock, this also requires rolling reboot
-     * so upgrade lock should be acquired at the same time
-     * 
-     * @param svcId
-     * @return
-     */
-    private boolean getUpgradeLock(String svcId) {
-        if (!coordinator.getPersistentLock(svcId, upgradeLockId)) {
-            log.info("Acquiring upgrade lock failed. Retrying...");
-            return false;
-        }
-
-        if (!coordinator.getPersistentLock(svcId, propertyLockId)) {
-            log.info("Acquiring property lock failed. Retrying...");
-            return false;
-        }
-
-        // release the property lock
-        try {
-            coordinator.releasePersistentLock(svcId, propertyLockId);
-        } catch (Exception e) {
-            log.error("Failed to release the property lock:", e);
-        }
-        log.info("Successfully acquired the upgrade lock.");
-        return true;
-    }
-
     private void updateCurrentVersion(SoftwareVersion targetVersion) throws Exception {
-        log.info("Step4: Got upgrade lock. Update target version one more time");
+        log.info("Step4: Got reboot lock. Update target version one more time");
         // retrieve the target version once again, since it might have been changed (reverted to be specific)
         // by the first upgraded node holding the lock during upgrade from 2.0/2.1 to 2.2.
         targetInfo = coordinator.getTargetInfo(RepositoryInfo.class);
@@ -336,22 +327,6 @@ public class UpgradeManager extends AbstractManager {
             localRepository.setCurrentVersion(targetVersion);
             reboot();
         }
-    }
-
-    private String getPreviousVersion() {
-        String previousVersion = null;
-        log.info("Trying to find previous version from control nodes...");
-        Map<String, NodeState> nodestates = coordinator.getClusterInfo().getControlNodes();
-        for (Entry<String, NodeState> entry : nodestates.entrySet()) {
-            if (!entry.getKey().equals(coordinator.getMyNodeId())) {
-                previousVersion = entry.getValue().getCurrent();
-                if (previousVersion != null) {
-                    return previousVersion;
-                }
-            }
-        }
-
-        return null;
     }
 
     private void reconfigAndStartDBSerivces() {
@@ -452,12 +427,26 @@ public class UpgradeManager extends AbstractManager {
                     wakeupOtherNodes();
                 }
             } else if (coordinator.hasRemoteDownloadLock(svcId) || coordinator.getRemoteDownloadLock(svcId)) {
-                log.info("Step3a: Leader block");
                 try {
-                    if (syncWithRemote(localInfo, targetInfo, syncinfo)) {
-                        coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
-                        coordinator.releaseRemoteDownloadLock(svcId);
-                        wakeupOtherNodes();
+                    if (drUtil.isStandby()) {
+                        log.info("Step3a: sync'ing with active site as leader of standby site");
+                        Site activeSite = drUtil.getActiveSite();
+                        URI activeVipEndpoint = URI.create(String.format(SysClientFactory.BASE_URL_FORMAT,
+                                activeSite.getVipEndPoint(), service.getEndpoint().getPort()));
+                        if (!coordinator.isActiveSiteStable(activeSite)) {
+                            log.info("Step3a: software image {} not sync'ed on active site yet. Retry later", syncinfo);
+                        } else if (syncToNodeInSync(activeVipEndpoint, syncinfo)) {
+                            coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
+                            coordinator.releaseRemoteDownloadLock(svcId);
+                            wakeupOtherNodes();
+                        }
+                    } else {
+                        log.info("Step3a: sync'ing with remote repo as leader");
+                        if (syncWithRemote(localInfo, targetInfo, syncinfo)) {
+                            coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
+                            coordinator.releaseRemoteDownloadLock(svcId);
+                            wakeupOtherNodes();
+                        }
                     }
                 } catch (Exception e) {
                     log.error("Step3a: ", e);
@@ -475,9 +464,8 @@ public class UpgradeManager extends AbstractManager {
                 log.info("Step3a: Wait nodeInSync to finish download");
             }
         } else if (controlNodeInSync != null) {
-            // both control node and extra node can sync with controlNodeInSync if it's not null
             try {
-                if (syncToNodeInSync(localInfo, targetInfo, controlNodeInSync, syncinfo)) {
+                if (syncToNodeInSync(coordinator.getNodeEndpointForSvcId(controlNodeInSync), syncinfo)) {
                     coordinator.setNodeSessionScopeInfo(localRepository.getRepositoryInfo());
                     wakeupOtherNodes();
                 }
@@ -528,16 +516,18 @@ public class UpgradeManager extends AbstractManager {
         return true;
     }
 
-    private boolean syncToNodeInSync(final RepositoryInfo localInfo,
-            final RepositoryInfo leaderInfo, final String leader,
+    private boolean syncToNodeInSync(final URI leaderEndpoint,
             final SyncInfo syncinfo)
             throws SysClientException, LocalRepositoryException {
         // Step1 - if something to install, install
         if (syncinfo.getToInstall() != null && !syncinfo.getToInstall().isEmpty()) {
             final SoftwareVersion toInstall = syncinfo.getToInstall().get(0);
             File image = null;
-            if (toInstall != null && (image = getLeaderImage(toInstall, leader)) == null) {
-                return false;
+            if (toInstall != null) {
+                image = getLeaderImage(toInstall, leaderEndpoint);
+                if (image == null) {
+                    return false;
+                }
             }
             if (image != null) {
                 try {
@@ -565,10 +555,11 @@ public class UpgradeManager extends AbstractManager {
      * @throws Exception
      */
     private String getAControlNodeInSync(RepositoryInfo targetRepository) throws Exception {
-        final Map<Service, RepositoryInfo> localRepo = coordinator.getAllNodeInfos(RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
+        final Map<Service, RepositoryInfo> localRepo = coordinator.getAllNodeInfos(RepositoryInfo.class,
+                CONTROL_NODE_SYSSVC_ID_PATTERN);
         final List<SoftwareVersion> targetVersions = targetRepository.getVersions();
 
-        List<String> candidates = new ArrayList<String>();
+        List<String> candidates = new ArrayList<>();
         for (Map.Entry<Service, RepositoryInfo> entry : localRepo.entrySet()) {
             if (targetVersions.equals(entry.getValue().getVersions())) {
                 candidates.add(entry.getKey().getId());
@@ -600,8 +591,9 @@ public class UpgradeManager extends AbstractManager {
             } catch (Exception e) {
                 throw APIException.internalServerErrors.getObjectFromError("Node downloading info", "coordinator", e);
             }
-            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size, downloadingInfo._size,
-                    DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))), "downloadinfo", coordinator.getMySvcId());
+            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size,
+                    downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<>(Arrays.asList(0, 0))),
+                    DOWNLOADINFO_KIND, coordinator.getMySvcId());
             // Because the file exists, we set the downloadinfo directly to COMPLETED status
             log.info(prefix + "Success!");
             return file;
@@ -635,9 +627,11 @@ public class UpgradeManager extends AbstractManager {
         }
     }
 
-    private File getLeaderImage(final SoftwareVersion version, final String leader) throws SysClientException {
+    private File getLeaderImage(final SoftwareVersion version, final URI leaderEndpoint)
+            throws SysClientException {
         final File file = new File(DOWNLOAD_DIR + '/' + version + SOFTWARE_IMAGE_SUFFIX);
-        final String prefix = MessageFormat.format("Step3b(): path=\"{0}\" leader=\"{1}\": ", file, leader);
+        final String prefix = MessageFormat.format("Step3b(): path=\"{0}\" leaderEndpoint=\"{1}\": ",
+                file, leaderEndpoint);
 
         log.info(prefix);
 
@@ -648,12 +642,13 @@ public class UpgradeManager extends AbstractManager {
         if (file.exists()) {
             DownloadingInfo downloadingInfo;
             try {
-                downloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, "downloadinfo", coordinator.getMySvcId());
+                downloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, DOWNLOADINFO_KIND,
+                        coordinator.getMySvcId());
                 // if the downloading info is present and the version is the same then update the progress
                 if (downloadingInfo != null && version.toString().equals(downloadingInfo._version)) {
                     coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size,
-                            downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))), "downloadinfo",
-                            coordinator.getMySvcId());
+                            downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))),
+                            DOWNLOADINFO_KIND, coordinator.getMySvcId());
                 }
             } catch (Exception e) {
                 throw APIException.internalServerErrors.getObjectFromError("Node downloading info", "coordinator", e);
@@ -667,8 +662,7 @@ public class UpgradeManager extends AbstractManager {
         log.info(prefix + "Opening remote image stream");
         try {
             String uri = SysClientFactory.URI_GET_IMAGE + "?version=" + version;
-            final InputStream in = SysClientFactory.getSysClient(coordinator
-                    .getNodeEndpointForSvcId(leader))
+            final InputStream in = SysClientFactory.getSysClient(leaderEndpoint)
                     .get(new URI(uri),
                             InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 
@@ -718,6 +712,108 @@ public class UpgradeManager extends AbstractManager {
      */
     private boolean isRemoteDownloadAllowed() {
         return tryRepoCnt <= MAX_REPO_RETRIES || System.currentTimeMillis() >= expireTime;
+    }
+
+    /**
+     * Helper method to provide backward compatibility for upgrade from pre-Yoda releases
+     * This should be replaced with hasRebootLock() when pre-Yoda releases are no longer in the direct upgrade path
+     *
+     * @param svcId
+     * @throws Exception needs to be caught by the caller
+     * @return
+     */
+    private boolean hasUpgradeLock(String svcId) throws Exception {
+        if (backCompatPreYoda) {
+            log.info("Pre-yoda back compatible flag detected. Check upgrade lock from the global area");
+            // The lock content has changed in Yoda, previously there's only svcId in the lock node
+            String oldSvcId = coordinator.getMySvcId();
+            DistributedPersistentLock lock = coordinator.getCoordinatorClient()
+                    .getPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
+            log.info("Acquiring the upgrade lock for {}...", oldSvcId);
+
+            if (lock != null) {
+                String lockOwner = lock.getLockOwner();
+                if (lockOwner != null && lockOwner.equals(oldSvcId)) {
+                    log.info("Current owner of the upgrade lock: {} ", lockOwner);
+                    return true;
+                }
+            }
+            return false;
+        } else {
+            return hasRebootLock(svcId);
+        }
+    }
+
+    /**
+     * Helper method to provide backward compatibility for upgrade from pre-Yoda releases
+     * This should be replaced with getRebootLock() when pre-Yoda releases are no longer in the direct upgrade path
+     *
+     * @param svcId
+     * @throws Exception needs to be caught by the caller
+     * @return
+     */
+    private boolean getUpgradeLock(String svcId) throws Exception {
+        if (backCompatPreYoda) {
+            log.info("Pre-yoda back compatible flag detected. Check upgrade lock from the global area");
+            // The lock content has changed in Yoda, previously there's only svcId in the lock node
+            String oldSvcId = coordinator.getMySvcId();
+            DistributedPersistentLock lock = coordinator.getCoordinatorClient()
+                    .getPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
+            log.info("Acquiring the upgrade lock for {}...", oldSvcId);
+
+            boolean result = lock.acquireLock(oldSvcId);
+            if (!result) {
+                log.info("Acquiring reboot lock failed. Retrying...");
+                return false;
+            }
+
+            log.info("Successfully acquired the reboot lock.");
+            return true;
+        } else {
+            return getRebootLock(svcId);
+        }
+    }
+
+    /**
+     * Helper method to provide backward compatibility for upgrade from pre-Yoda releases
+     * This should be replaced with releaseRebootLock() when pre-Yoda releases are no longer in the direct upgrade path
+     *
+     * @param svcId
+     * @return
+     */
+    private void releaseUpgradeLock(String svcId) {
+        if (backCompatPreYoda) {
+            log.info("Pre-yoda back compatible flag detected. Check upgrade lock from the global area");
+            // The lock content has changed in Yoda, previously there's only svcId in the lock node
+            String oldSvcId = coordinator.getMySvcId();
+            try {
+                DistributedPersistentLock lock = coordinator.getCoordinatorClient()
+                        .getPersistentLock(DISTRIBUTED_UPGRADE_LOCK);
+                if (lock != null) {
+                    String lockOwner = lock.getLockOwner();
+
+                    if (lockOwner == null) {
+                        log.info("Upgrade lock is not held by any node");
+                        return;
+                    }
+
+                    if (!lockOwner.equals(oldSvcId)) {
+                        log.error("Lock owner is {}", lockOwner);
+                    } else {
+                        boolean result = lock.releaseLock(lockOwner);
+                        if (result) {
+                            log.info("Upgrade lock released by owner {} successfully", lockOwner);
+                        } else {
+                            log.info("Upgrade lock release failed for owner {}", lockOwner);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Failed to release the upgrade lock:", e);
+            }
+        } else {
+            releaseRebootLock(svcId);
+        }
     }
 
     @Override

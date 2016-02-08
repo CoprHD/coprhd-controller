@@ -17,8 +17,9 @@ GET     /dashboard                                      AdminDashboard.dashboard
 
 GET     /scheduledorders/edit/{id}              catalog.ScheduledOrders.edit
 
-GET     /backup/upload/{id}        Backup.upload
-*       /backup/{action}           Backup.{action}
+GET     /backup/upload/{id}                     Backup.upload
+GET     /backup/restore/name/{id}/type/{type}   Backup.restore
+*       /backup/{action}                        Backup.{action}
 
 GET     /hosts/edit/{id}       					compute.Hosts.edit
 *       /hosts/{action}        					compute.Hosts.{action}
@@ -127,6 +128,9 @@ GET     /filevirtualpools/edit/{id}             arrays.FileVirtualPools.edit
 GET     /objectvirtualpools/edit/{id}          arrays.ObjectVirtualPools.edit   
 *       /objectvirtualpools/{action}           arrays.ObjectVirtualPools.{action}
 
+GET     /site/edit/{id}          				infra.disasterrecovery.edit   
+*       /site/{action}           				infra.disasterrecovery.{action}
+
 GET     /virtualarrays/edit/{id}                VirtualArrays.edit
 *       /virtualarrays/networks/{id}            VirtualArrays.networks
 *       /virtualarrays/networksJson/{id}        VirtualArrays.networksJson
@@ -160,6 +164,7 @@ POST    /Catalog/service/delete                 catalog.EditCatalog.deleteServic
 
 
 *       /certificates/{action}        	        auth.Certificates.{action}
+*       /security/ipsec                         auth.IPsec.ipsec
 
 ## Execution Windows API
 ##begin

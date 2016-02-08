@@ -664,14 +664,26 @@ public class BucketService extends TaskResourceService {
         toTask(bucket, task, op);
         // Waiting till the task is ready to proceed.
         boolean breakLoop = false;
+        boolean failedOp = true;
+        long startTime = System.currentTimeMillis();
         while (!breakLoop) {
             Task dbTask = TaskUtils.findTaskForRequestId(_dbClient, bucket.getId(), task);
             if ("ready".equals(dbTask.getStatus())) {
                 breakLoop = true;
+                failedOp = false;
+            }
+            if ("error".equals(dbTask.getStatus())) {
+                breakLoop = true;
+            }
+            if((System.currentTimeMillis()-startTime)<1000){
+                breakLoop = true;
             }
         }
-        bucket.setVersion(_VERSION);
-        _dbClient.updateObject(bucket);
+        if(!failedOp){
+            bucket.setVersion(_VERSION);
+            _dbClient.updateObject(bucket);
+        }
+        
 
     }
 }

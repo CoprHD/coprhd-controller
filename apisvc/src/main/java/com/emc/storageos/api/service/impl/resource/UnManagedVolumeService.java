@@ -6,6 +6,8 @@ package com.emc.storageos.api.service.impl.resource;
 
 import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeGuid;
+import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -35,7 +37,10 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.CGIngestionDecoratorUtil;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockCGIngestDecorator;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockRPCGIngestDecorator;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockVolumeCGIngestDecorator;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg.BlockVplexCGIngestDecorator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.BaseIngestionRequestContext;
@@ -105,6 +110,19 @@ public class UnManagedVolumeService extends TaskResourceService {
     public static final String INGESTION_SUCCESSFUL_MSG = "Successfully ingested volume.";
     public static final DataObject.Flag[] INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] {
             Flag.INTERNAL_OBJECT, Flag.NO_PUBLIC_ACCESS, Flag.NO_METERING };
+
+    private static BlockCGIngestDecorator volumeCGDecorator = null;
+    private static BlockCGIngestDecorator vplexCGDecorator = null;
+    private static BlockCGIngestDecorator rpCGDecorator = null;
+
+    static {
+        rpCGDecorator = new BlockRPCGIngestDecorator();
+        vplexCGDecorator = new BlockVplexCGIngestDecorator();
+        volumeCGDecorator = new BlockVolumeCGIngestDecorator();
+
+        rpCGDecorator.setNextDecorator(vplexCGDecorator);
+        vplexCGDecorator.setNextDecorator(volumeCGDecorator);
+    }
 
     /**
      * Reference to logger
@@ -302,9 +320,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                 // Iterate through each CG & decorate its objects.
                 if (!requestContext.getCGObjectsToCreateMap().isEmpty()) {
                     for (Entry<String, BlockConsistencyGroup> cgEntry : requestContext.getCGObjectsToCreateMap().entrySet()) {
-                        _logger.info("Decorating CG {}", cgEntry.getKey());
                         BlockConsistencyGroup cg = cgEntry.getValue();
-                        CGIngestionDecoratorUtil.decorate(unManagedVolume, cg, requestContext, _dbClient);
+                        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
+                        Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
+                        _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
+                        rpCGDecorator.setDbClient(_dbClient);
+                        rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
                     }
                 }
                 requestContext.getVolumeContext().commit();
@@ -478,9 +499,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                 // Iterate through each CG & decorate its objects.
                 if (!requestContext.getCGObjectsToCreateMap().isEmpty()) {
                     for (Entry<String, BlockConsistencyGroup> cgEntry : requestContext.getCGObjectsToCreateMap().entrySet()) {
-                        _logger.info("Decorating CG {}", cgEntry.getKey());
                         BlockConsistencyGroup cg = cgEntry.getValue();
-                        CGIngestionDecoratorUtil.decorate(unManagedVolume, cg, requestContext, _dbClient);
+                        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
+                        Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
+                        _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
+                        rpCGDecorator.setDbClient(_dbClient);
+                        rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
                     }
                 }
 

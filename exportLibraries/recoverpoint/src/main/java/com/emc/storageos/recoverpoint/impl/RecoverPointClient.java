@@ -2375,7 +2375,7 @@ public class RecoverPointClient {
         String bookmarkName = copyToFailoverTo.getBookmarkName();
         Date apitTime = copyToFailoverTo.getApitTime();
         if (bookmarkName != null) {
-            logger.info("Failver copy to bookmark : " + bookmarkName);
+            logger.info("Failover copy to bookmark : " + bookmarkName);
         } else if (apitTime != null) {
             logger.info("Failover copy to APIT : " + apitTime.toString());
         } else {

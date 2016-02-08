@@ -57,6 +57,8 @@
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
         <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
 
+        <entry key="Discovery-externaldevice-all" value="discovery-externaldevice-context.xml" />
+
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
         <entry key="Discovery-rp-unmanaged_cgs" value="discovery-recoverpoint-context.xml" />
         <entry key="Metering-block" value="metering-block-context.xml" />

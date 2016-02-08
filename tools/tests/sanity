@@ -155,7 +155,8 @@ do
 done
 
 case $SS in
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application)
+
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -364,6 +365,8 @@ COS_VMAXBLOCK_THIN=cosvmaxb_thin
 COS_VMAXBLOCK_THICK=cosvmaxb_thick
 COS_VMAXBLOCK_SRDF_SOURCE=vpool_srdf_source
 COS_VMAXBLOCK_SRDF_TARGET=vpool_srdf_target
+COS_VMAXBLOCK_V3_SRDF_SOURCE=vpool_v3_srdf_source
+COS_VMAXBLOCK_V3_SRDF_TARGET=vpool_v3_srdf_target
 COS_RP=cos_rp
 COS_RP_BASE=cos_rp_base
 COS_HDS=coshds
@@ -604,6 +607,19 @@ BLK_CLIENT_FC_NODE=`nwwn ${seed2b}`
 HOSTNAME=`hostname`
 BLK_CLIENT_iSCSI=iqn.2010-01.com.emc.snafu-${HOSTNAME}_${seed}
 BLK_HOSTID=sanity-host-${HOSTNAME}-${seed}
+
+######################### Start of Driver Managed System configuration. ############################
+#
+
+#
+# Driver managed system setup (simulated)
+#
+DRIVER_SYSTEM_TYPE=driversystem
+DRIVER_SYSTEM_IP=10.20.30.40
+DRIVER_SYSTEM_PORT=8080
+DRIVER_SYSTEM_USER=user
+DRIVER_SYSTEM_PASSWORD=password
+######################### End of Driver Managed System configuration. ############################
 
 export BOURNE_IPADDR="$BOURNE_IP"
 
@@ -1210,6 +1226,10 @@ srdf_setup_once()
     smisprovider create $SRDF_VMAXA_SMIS_DEV $SRDF_VMAXA_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     smisprovider show $SRDF_VMAXB_SMIS_DEV &> /dev/null && return $?
     smisprovider create $SRDF_VMAXB_SMIS_DEV $SRDF_VMAXB_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider show $SRDF_V3_VMAXA_SMIS_DEV &> /dev/null && return $?
+    smisprovider create $SRDF_V3_VMAXA_SMIS_DEV $SRDF_V3_VMAXA_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider show $SRDF_V3_VMAXB_SMIS_DEV &> /dev/null && return $?
+    smisprovider create $SRDF_V3_VMAXB_SMIS_DEV $SRDF_V3_VMAXB_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
 
     # Adding additional array in order to test pool matching.
     # smisprovider show $VMAX_SMIS_DEV &> /dev/null && return $?
@@ -1220,6 +1240,8 @@ srdf_setup_once()
     storagedevice discover_all --ignore_error
     discoveredsystem show $SRDF_VMAXA_NATIVEGUID &> /dev/null && return $?
     discoveredsystem show $SRDF_VMAXB_NATIVEGUID &> /dev/null && return $?
+    discoveredsystem show $SRDF_V3_VMAXA_NATIVEGUID &> /dev/null && return $?
+    discoveredsystem show $SRDF_V3_VMAXB_NATIVEGUID &> /dev/null && return $?
 }
 
 srdf_common_setup() {
@@ -1246,7 +1268,9 @@ srdf_common_setup() {
     run neighborhood allow $NH $TENANT
     run neighborhood allow $NH $TENANT
 
+    srdf_v3_varray_setup
     srdf_cos_setup
+    srdf_v3_cos_setup
 }
 
 srdf_cos_setup()
@@ -1297,7 +1321,58 @@ srdf_cos_setup()
     cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_async --storage ${SRDF_VMAXA_NATIVEGUID}
     cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_async --storage ${SRDF_VMAXB_NATIVEGUID}
     cos allow ${COS_VMAXBLOCK_SRDF_SOURCE}_async block $TENANT
+}
 
+srdf_v3_varray_setup()
+{
+    echo '*** SRDF V3 varray setup ***'
+
+    # Create Virtual Array
+    run neighborhood create $V3_SRDF_VARRAY
+    run neighborhood allow $V3_SRDF_VARRAY $TENANT
+    
+    if [ "$SRDF_V3_VMAXA_NATIVEGUID" != "NONE" ]; then
+        storageport update $SRDF_V3_VMAXA_NATIVEGUID FC --addvarrays $V3_SRDF_VARRAY
+    fi
+    
+    if [ "$SRDF_V3_VMAXB_NATIVEGUID" != "NONE" ]; then
+        storageport update $SRDF_V3_VMAXB_NATIVEGUID FC --addvarrays $V3_SRDF_VARRAY
+    fi
+}
+
+srdf_v3_cos_setup()
+{
+     echo "*** SRDF V3 Virtual Pool setup ***" 
+    # Create the target first so it exists when we create the source vpool
+    cos show $COS_VMAXBLOCK_V3_SRDF_TARGET block &> /dev/null && return $?
+    cos create block $COS_VMAXBLOCK_V3_SRDF_TARGET		          \
+			 --description 'Target Virtual Pool for V3 SRDF Protection' true \
+			 --protocols FC 		          \
+			 --numpaths 1				  \
+			 --max_snapshots 10 			  \
+			 --provisionType 'Thin'	          \
+			 --neighborhoods $V3_SRDF_VARRAY                      \
+                         --multiVolumeConsistency                  \
+                         --system_type vmax			
+    
+    cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    cos allow $COS_VMAXBLOCK_V3_SRDF_TARGET block $TENANT
+    
+    cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block &> /dev/null && return $?
+    cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active                 \
+			 --description 'Source Virtual Pool for Active SRDF Protection' true \
+			 --protocols FC 		        \
+			 --numpaths 1				\
+			 --max_snapshots 10			\
+	                 --provisionType 'Thin'	        \
+                         --system_type vmax                     \
+			 --neighborhoods $V3_SRDF_VARRAY                    \
+			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ACTIVE"
+
+    cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT 
 }
 
 srdf_cos_matcher_test()
@@ -1335,6 +1410,20 @@ srdf_cos_change()
    run volume delete $PROJECT/${srdfvolumecc} --wait
 }
 
+srdf_v3_cos_change()
+{
+   # Create non-protected volume, then move it to a cos that has protection
+   srdfvolumecc="${SRDF_VOLUME}-coschange"
+   run volume create ${srdfvolumecc} $PROJECT $V3_SRDF_VARRAY $COS_VMAXBLOCK_V3_SRDF_TARGET 1GB
+   echo "Created volume, now sleeping..."
+   sleep 60
+   echo "Changing cos..."
+   run volume change_cos $PROJECT/${srdfvolumecc} ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active
+   echo "Changed cos"
+   sleep 60
+   echo "Deleting volume"
+   run volume delete $PROJECT/${srdfvolumecc} --wait
+}
 
 srdf_cos_change_meta()
 {
@@ -1381,6 +1470,20 @@ srdf_basic_async_test()
    #run volume delete $PROJECT/${srdfvolume}3-2 --wait
 }
 
+srdf_basic_active_test()
+{
+   srdfvolume="${SRDF_VOLUME}_active"
+   run volume create ${srdfvolume}1 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
+   run volume create ${srdfvolume}2 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB
+   sleep 60
+   run volume delete $SRDF_PROJECT/${srdfvolume}1 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}2 --wait
+   run volume create ${srdfvolume}3 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
+   run volume create ${srdfvolume}4 $SRDF_PROJECT $V3_SRDF_VARRAY ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active 1GB --consistencygroup $CONSISTENCY_GROUP_SRDF
+   run volume delete $SRDF_PROJECT/${srdfvolume}3 --wait
+   run volume delete $SRDF_PROJECT/${srdfvolume}4 --wait
+}
+
 srdf_tests()
 {
    echo 'Run SRDF tests'
@@ -1392,6 +1495,12 @@ srdf_tests()
    echo 'About to run basic SRDF sync test'
    sleep 60
    srdf_basic_sync_test
+   echo 'About to run basic SRDF active test'
+   sleep 60
+   srdf_basic_active_test
+   echo 'About to run V3 SRDF cos change test'
+   sleep 60
+   srdf_v3_cos_change
    echo 'About to run SRDF cos change test'
    sleep 60
    srdf_cos_change
@@ -3848,6 +3957,20 @@ isilon_setup()
     cos allow $COS_ISIFILE file $TENANT
 }
 
+driversystem_setup()
+{
+    echo "driversystem setup"
+    discoveredsystem create driverManagedSystem $DRIVER_SYSTEM_TYPE  $DRIVER_SYSTEM_IP $DRIVER_SYSTEM_PORT $DRIVER_SYSTEM_USER $DRIVER_SYSTEM_PASSWORD
+}
+
+
+driversystem_tests()
+{
+   echo "driversystem tests"
+   PROJECT=erProject
+   vol=erVolTest006-1
+#   run blocksnapshot create $PROJECT/${vol} erSnap001
+}
 #
 # add ECS storage device and storage pool
 #
@@ -7122,7 +7245,7 @@ dr_basic_tests()
     
     echo "---ADD STANDBY SITE---"
     echo "Adding new standby into current vipr system"
-    standby_site=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" $DR_SITE_B_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site; exit 1; }
+    standby_site=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" "${DR_SITE_B_IP}" $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site; exit 1; }
     echo "Adding dr done"
     echo "stanby uuid is $standby_site"    
 
@@ -7137,18 +7260,18 @@ dr_basic_tests()
     description=$(dr get $standby_site description|tail -1)
     vip=$(dr get $standby_site vip|tail -1)
 
-    if [ "$vip" != "$DR_SITE_B_IP" ] ; then
-        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_B_IP\""
+    if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP" ] ; then
+        echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
         exit 1
     fi
 
     if [ "$name" != "$DR_SITE_B_NAME" ] ; then
-        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_B_NAME\""
+        echo -e "Fail: site name \"$name\" isn't equal to \"$DR_SITE_B_NAME\""
         exit 1
     fi
 
     if [ "$description" != "$DR_SITE_B_DESCRIPTION" ] ; then
-        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_B_DESCRIPTION\""
+        echo -e "Fail: site description \"$description\" isn't equal to \"$DR_SITE_B_DESCRIPTION\""
         exit 1
     fi
 
@@ -7168,6 +7291,20 @@ dr_basic_tests()
     echo "---WAIT FOR STABLE $standby_site---"
     dr waitforstable 30 1200
 
+    echo "---VERIFY SITE DETAILS $standby_site---"
+    state=$(dr details $standby_site clusterState|tail -1)
+    latency=$(dr details $standby_site networkLatencyInMs|tail -1)
+
+    if [ "$state" != "STABLE" ] ; then
+        echo -e "Fail: site clusterState \"$state\" isn't equal to STABLE"
+        exit 1
+    fi
+
+    if (( $(echo "$latency < 0" | bc -l) )) ; then
+        echo -e "Fail: site latency \"$latency\" isn't calculated correctly, should be 0 or greater"
+        exit 1
+    fi
+
     # verify project
     project show $projectid
 
@@ -7175,10 +7312,10 @@ dr_basic_tests()
     echo "---VERIFY sites from standby $standby_site---"
     dr get $standby_site
     dr get $active_site
-    dr checkstandby $DR_SITE_A_IP
+    dr checkstandby "${DR_SITE_A_IP}"
 
     # wait for both sites stable so able to pause standby
-    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
 
     # pause standby
     echo "---PAUSE SITE $standby_site---"
@@ -7282,7 +7419,7 @@ dr_multisite_tests()
     
     echo "---ADD STANDBY SITE B---"
     echo "Adding new standby into current vipr system"
-    standby_site_b=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" $DR_SITE_B_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site_b; exit 1; }
+    standby_site_b=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" "${DR_SITE_B_IP}" $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site_b; exit 1; }
     echo "Adding dr done"
     echo "stanby uuid is $standby_site_b"    
 
@@ -7297,18 +7434,18 @@ dr_multisite_tests()
     description=$(dr get $standby_site_b description|tail -1)
     vip=$(dr get $standby_site_b vip|tail -1)
 
-    if [ "$vip" != "$DR_SITE_B_IP" ] ; then
-        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_B_IP\""
+    if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP"  ] ; then
+        echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
         exit 1
     fi
 
     if [ "$name" != "$DR_SITE_B_NAME" ] ; then
-        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_B_NAME\""
+        echo -e "Fail: site name \"$name\" isn't equal to \"$DR_SITE_B_NAME\""
         exit 1
     fi
 
     if [ "$description" != "$DR_SITE_B_DESCRIPTION" ] ; then
-        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_B_DESCRIPTION\""
+        echo -e "Fail: site description \"$description\" isn't equal to \"$DR_SITE_B_DESCRIPTION\""
         exit 1
     fi
 
@@ -7328,6 +7465,20 @@ dr_multisite_tests()
     echo "---WAIT FOR STABLE $standby_site_b---"
     dr waitforstable 30 1200
 
+    echo "---VERIFY SITE DETAILS $standby_site_b---"
+    state=$(dr details $standby_site_b clusterState|tail -1)
+    latency=$(dr details $standby_site_b networkLatencyInMs|tail -1)
+
+    if [ "$state" != "STABLE" ] ; then
+        echo -e "Fail: site clusterState \"$state\" isn't equal to STABLE"
+        exit 1
+    fi
+
+    if (( $(echo "$latency < 0" | bc -l) )) ; then
+        echo -e "Fail: site latency \"$latency\" isn't calculated correctly, should be 0 or greater"
+        exit 1
+    fi
+
     # verify project
     echo "---VERIFY PROJECT SYNCED $standby_site_b---"
     project show $projectid
@@ -7343,7 +7494,7 @@ dr_multisite_tests()
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     echo "Adding new standby into current vipr system"
-    standby_site_c=$(dr add $DR_SITE_C_NAME "$DR_SITE_C_DESCRIPTION" $DR_SITE_C_IP $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site c failed."; echo $standby_site_c; exit 1; }
+    standby_site_c=$(dr add $DR_SITE_C_NAME "$DR_SITE_C_DESCRIPTION" "${DR_SITE_C_IP}" $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site c failed."; echo $standby_site_c; exit 1; }
     echo "Adding dr site c done"
     echo "stanby uuid is $standby_site_c"
 
@@ -7358,18 +7509,18 @@ dr_multisite_tests()
     description=$(dr get $standby_site_c description|tail -1)
     vip=$(dr get $standby_site_c vip|tail -1)
 
-    if [ "$vip" != "$DR_SITE_C_IP" ] ; then
-        echo -e "Fail: site vip \"$vip\" isn't equalt to \"$DR_SITE_C_IP\""
+    if [ "$vip" != "$DR_SITE_C_IP" -a "[$vip]" != "$DR_SITE_C_IP" ] ; then
+        echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_C_IP\""
         exit 1
     fi
 
     if [ "$name" != "$DR_SITE_C_NAME" ] ; then
-        echo -e "Fail: site name \"$name\" isn't equalt to \"$DR_SITE_C_NAME\""
+        echo -e "Fail: site name \"$name\" isn't equal to \"$DR_SITE_C_NAME\""
         exit 1
     fi
 
     if [ "$description" != "$DR_SITE_C_DESCRIPTION" ] ; then
-        echo -e "Fail: site description \"$description\" isn't equalt to \"$DR_SITE_C_DESCRIPTION\""
+        echo -e "Fail: site description \"$description\" isn't equal to \"$DR_SITE_C_DESCRIPTION\""
         exit 1
     fi
 
@@ -7388,6 +7539,20 @@ dr_multisite_tests()
 
     echo "---WAIT FOR STABLE $standby_site_c---"
     dr waitforstable 30 1200
+
+    echo "---VERIFY SITE DETAILS $standby_site_c---"
+    state=$(dr details $standby_site_c clusterState|tail -1)
+    latency=$(dr details $standby_site_c networkLatencyInMs|tail -1)
+
+    if [ "$state" != "STABLE" ] ; then
+        echo -e "Fail: site clusterState \"$state\" isn't equal to STABLE"
+        exit 1
+    fi
+
+    if (( $(echo "$latency < 0" | bc -l) )) ; then
+        echo -e "Fail: site latency \"$latency\" isn't calculated correctly, should be 0 or greater"
+        exit 1
+    fi
 
     # verify project
     echo "---VERIFY PROJECT SYNCED $standby_site_c---"
@@ -7410,7 +7575,7 @@ dr_multisite_tests()
     dr get $standby_site_c
     dr get $active_site
 
-    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
     # pause standby b
     echo "---PAUSE SITE $standby_site_b---"
@@ -7425,7 +7590,7 @@ dr_multisite_tests()
     dr waitforstate $standby_site_b STANDBY_PAUSED 30 1200
     echo "Pausing dr done"
 
-    wait_for_site_stable $DR_SITE_A_IP $DR_SITE_B_IP $DR_SITE_C_IP
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
     # pause standby c
     echo "---PAUSE SITE $standby_site_c---"
@@ -7511,7 +7676,7 @@ dr_multisite_tests()
     echo "Power off active site $DR_SITE_A_IP to do failover"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr poweroffcluster $DR_SITE_A_IP
+    dr poweroffcluster "${DR_SITE_A_IP}"
 
     echo "Sleep 400 seconds to wait standby ZK switch to participant"
     sleep 400
@@ -7519,10 +7684,10 @@ dr_multisite_tests()
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip $DR_SITE_C_IP 10 600
+    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
 
     echo "Failover to promote site $DR_SITE_C_NAME as active"
-    dr failover --ip $DR_SITE_C_IP $standby_site_c
+    dr failover --ip "${DR_SITE_C_IP}" $standby_site_c
 
     echo "Sleep 800 seconds to wait failover"
     sleep 800
@@ -7530,10 +7695,10 @@ dr_multisite_tests()
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip $DR_SITE_C_IP 10 600
+    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
 
     echo "Wait site state to be PRIAMRY after failover"
-    dr waitforstate $standby_site_c ACTIVE 30 600 --ip $DR_SITE_C_IP
+    dr waitforstate $standby_site_c ACTIVE 30 600 --ip "${DR_SITE_C_IP}"
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail

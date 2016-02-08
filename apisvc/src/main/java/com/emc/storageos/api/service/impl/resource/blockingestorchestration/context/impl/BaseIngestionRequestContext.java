@@ -215,7 +215,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     @Override
     public VolumeIngestionContext getVolumeContext(String unmanagedVolumeGuid) {
         if (getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid) != null) {
-            getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
+            return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
         }
         return getVolumeContext();
     }

@@ -23,7 +23,7 @@ public class DeactivateBlockSnapshot extends WaitForTasks<BlockSnapshotRestRep> 
         super();
         this.snapshotId = snapshotId;
         this.type = type;
-        provideDetailArgs(snapshotId);
+        provideDetailArgs(snapshotId, type);
     }
 
     @Override

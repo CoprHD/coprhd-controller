@@ -3562,4 +3562,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // TODO : add target volumes if necessary
         return groupNames;
     }
+
+    @Override
+    public List<Volume> getActiveCGVolumes(BlockConsistencyGroup cg) {
+        return BlockConsistencyGroupUtils.getActiveNonVplexVolumesInCG(cg, _dbClient, PersonalityTypes.SOURCE);
+    }
 }

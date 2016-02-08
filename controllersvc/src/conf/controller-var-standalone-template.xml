@@ -48,6 +48,7 @@
                 <value>scaleioapi</value>
                 <value>xtremio</value>
                 <value>ecs</value>
+                <value>externaldevice</value>
             </set>
         </property>
     </bean>

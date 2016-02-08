@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -165,13 +166,22 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         BlockConsistencyGroup cg = getConsistencyGroup(unManagedVolume, snapShot, requestContext, _dbClient);
         if (null != cg) {
             requestContext.getCGObjectsToCreateMap().put(cg.getLabel(), cg);
-            decorateCGVolumes(cg, snapShot, requestContext, unManagedVolume);
+            decorateCGInfoInVolumes(cg, snapShot, requestContext, unManagedVolume);
         }
 
         return snapShot;
 
     }
 
+    /**
+     * Following steps are performed as part of this method execution.
+     * 1. Checks whether unManagedVolume is protected by RP or VPLEX, if yes we willn't create backend CG.
+     * 2. For regular volumes in unManaged CG, we will create CG when ingesting last volume in unmanaged CG.
+     * 3. When ingesting last regular volume in unmanaged CG, we will check whether CG already exists in DB for the same project & tenant.
+     * If yes, we will reuse it.
+     * Otherwise, we will create new BlockConsistencyGroup for the unmanaged consistencyGroup.
+     * 
+     */
     @Override
     protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
             IngestionRequestContext context, DbClient dbClient) {
@@ -185,16 +195,33 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
     }
 
     @Override
-    protected void decorateCGVolumes(BlockConsistencyGroup cg, BlockObject snapshot, IngestionRequestContext requestContext,
+    protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject snapshot, IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume) {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroupFromContext(cg, requestContext);
-        List<DataObject> updatesToUpdateList = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
+        List<DataObject> blockObjectsToUpdate = new ArrayList<DataObject>();
         if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
             for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
-                BlockObject blockObject = BlockObject.fetch(_dbClient, URI.create(managedVolumeEntry.getValue()));
+
+                BlockObject blockObject = requestContext.findCreatedBlockObject(managedVolumeEntry.getKey());
+                if (blockObject == null) {
+                    // Next look in the updated objects.
+                    blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(managedVolumeEntry.getKey()));
+                }
+                if (blockObject == null) {
+                    // Finally look in the DB itself. It may be from a previous ingestion operation.
+                    blockObject = BlockObject.fetch(_dbClient, URI.create(managedVolumeEntry.getValue()));
+                    // If blockObject is still not exists
+                    if (null == blockObject) {
+                        _logger.warn("Volume {} is not yet ingested. Hence skipping", managedVolumeEntry.getKey());
+                        continue;
+                    }
+                    blockObjectsToUpdate.add(blockObject);
+                }
                 blockObject.setConsistencyGroup(cg.getId());
                 blockObject.setReplicationGroupInstance(cg.getLabel());
-                updatesToUpdateList.add(blockObject);
+            }
+            if (!blockObjectsToUpdate.isEmpty()) {
+                requestContext.getObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
             }
         }
         snapshot.setConsistencyGroup(cg.getId());

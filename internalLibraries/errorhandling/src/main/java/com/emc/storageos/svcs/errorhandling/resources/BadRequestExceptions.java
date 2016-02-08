@@ -5,14 +5,14 @@
 
 package com.emc.storageos.svcs.errorhandling.resources;
 
+import com.emc.storageos.model.block.export.VolumeParam;
+import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
+
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-
-import com.emc.storageos.model.block.export.VolumeParam;
-import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 
 /**
  * This interface holds all the methods used to create an error condition that will be associated
@@ -1852,6 +1852,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotIsNotForConsistencyGroup(final String snapshotName, final String cgName);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionIsNotForConsistencyGroup(final String snapSessionName, final String cgName);
+
     @DeclareServiceCode(ServiceCode.API_INVALID_MAX_CONTINUOUS_COPIES)
     public BadRequestException invalidMaxContinuousCopiesForVplex(final Integer maxCopies);
 
@@ -2494,6 +2497,12 @@ public interface BadRequestExceptions {
     public BadRequestException operationOnlyAllowedOnPausedSite(final String siteId, final String siteState);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationOnlyAllowedOnErrorSite(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationRetryOnlyAllowedOnLastState(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2863,4 +2872,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException expandMirrorFileSupportedOnlyOnSource(URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToPerformMirrorOperation(String operation, final URI fsUri, String reason);
 }

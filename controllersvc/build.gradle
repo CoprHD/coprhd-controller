@@ -44,7 +44,10 @@ dependencies {
             project(":hds"),
             project(":scaleio"),
             project(":xtremio"),
-            project(":ecs")
+            project(":ecs"),
+            project(":storagedriver"),
+    // temp. here, to get simulator to controllersvc classpath
+            project(":storagedriversimulator")
             
     testCompile library(easymock)
 }

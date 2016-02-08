@@ -49,9 +49,11 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -656,8 +658,14 @@ public class BucketService extends TaskResourceService {
         auditOp(OperationTypeEnum.SYNC_BUCKET_ACL, true, AuditLogManager.AUDITOP_BEGIN,
                 bucket.getId().toString(), bucket.getStorageDevice().toString());
 
-        TaskResourceRep taskRep =  toTask(bucket, task, op);
-        if("ready".equals(taskRep.getState())){
+        toTask(bucket, task, op);
+        try {
+            Thread.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }  
+        Task dbTask = TaskUtils.findTaskForRequestId(_dbClient, bucket.getId(), task);
+        if("ready".equals(dbTask.getStatus())){
             bucket.setVersion(_VERSION);
             _dbClient.updateObject(bucket); 
         }

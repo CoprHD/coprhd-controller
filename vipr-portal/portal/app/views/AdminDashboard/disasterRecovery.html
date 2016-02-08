@@ -78,13 +78,13 @@
 							</td>
 							<td>
 								#{if site.networkHealth == "GOOD"}
-								<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png" alt="Good">
+								<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png" alt="Good"><span> &{'renderFunctions.disasterRecovery.networkHealth.good'}</span>
 								#{/if}
 								#{if site.networkHealth == "SLOW"}
-								<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png" alt="Slow">
+								<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png" alt="Slow"><span> &{'renderFunctions.disasterRecovery.networkHealth.slow'}</span>
 								#{/if}
 								#{if site.networkHealth == "BROKEN"}
-								<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png" alt="Broken">
+								<img class="glyphicon glyphicon-ok" src="/public/img/Critical.png" alt="Broken"><span> &{'renderFunctions.disasterRecovery.networkHealth.broken'}</span>
 								#{/if}
 							</td>
 						</tr>

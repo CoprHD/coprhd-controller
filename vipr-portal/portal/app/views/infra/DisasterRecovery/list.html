@@ -222,7 +222,7 @@ function standbyStatusIcon(o, val) {
 
 <script type="text/javascript">
 function networkHealthIcon(o, val) {
-    if (!o) {
+    if (!o.aData.networkHealth) {
         return "";
     }
     var labels = {

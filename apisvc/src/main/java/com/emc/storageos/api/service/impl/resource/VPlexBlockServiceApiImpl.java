@@ -3502,7 +3502,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             childRecommendations.add(childRecommendation);
             TaskList taskList = new TaskList();
             descriptors = 
-                    super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, vplexProject, varray, vpool, 
+                    super.createVolumesAndDescriptors(descriptors, newVolumeLabel, size, project, varray, vpool, 
                     childRecommendations, taskList, task, vPoolCapabilities);
             VolumeDescriptor.Type[] types;
             if (srdfTarget) {

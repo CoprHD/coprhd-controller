@@ -265,7 +265,7 @@ public class DbClientImpl implements DbClient {
 
         _indexCleaner = new IndexCleaner();
         
-        if (drUtil.isMultivdc()) {
+        if (drUtil != null && drUtil.isMultivdc()) {
             // No need to retry for multi-vdc 
             retryFailedWriteWithLocalQuorum = false;
         } else {

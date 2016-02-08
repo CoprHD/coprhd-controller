@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.volumecontroller.impl.block;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,13 +30,16 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -290,6 +297,43 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 Joiner.on("\t").join(snapshotList), storage));
 
         return waitFor;
+    }
+
+    private String addSnapshotSessionsToReplicationGroupStep(Workflow workflow, String waitFor,
+                                                             StorageSystem storageSystem,
+                                                             List<Volume> volumes,
+                                                             URI cgURI) {
+
+        List<URI> volumeURIs = newArrayList(transform(volumes, fctnDataObjectToID()));
+        waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                String.format("Updating SnapVx sessions for consistency group %s", cgURI),
+                waitFor, storageSystem.getId(), storageSystem.getSystemType(), this.getClass(),
+                addSnapshotSessionsToConsistencyGroupMethod(storageSystem.getId(), cgURI, volumeURIs),
+                _blockDeviceController.rollbackMethodNullMethod(), null);
+
+        return waitFor;
+    }
+
+    private static Workflow.Method addSnapshotSessionsToConsistencyGroupMethod(URI storage, URI consistencyGroup, List<URI> addVolumesList) {
+        return new Workflow.Method("addSnapshotSessionsToConsistencyGroup", storage, consistencyGroup, addVolumesList);
+    }
+
+    public boolean addSnapshotSessionsToConsistencyGroup(URI storage, URI consistencyGroup, List<URI> volumes, String opId)
+            throws ControllerException {
+        TaskCompleter taskCompleter = null;
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
+            _blockDeviceController.getDevice(storageSystem.getSystemType()).doAddSnapshotSessionsToConsistencyGroup(
+                    storageSystem, consistencyGroup, volumes, taskCompleter);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            return false;
+        }
+        return true;
     }
 
     private String addClonesToReplicationGroupStep(final Workflow workflow, String waitFor, StorageSystem storageSystem,
@@ -572,6 +616,18 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             }
         }
 
+        return false;
+    }
+
+    private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
+        for (BlockObject volume : volumes) {
+            List<BlockSnapshotSession> sessions =
+                    CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+            if (!sessions.isEmpty()) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -982,6 +1038,12 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     waitFor = addSnapshotsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes,
                             repGroupName, cgURI);
                 }
+            }
+
+            if (checkIfCGHasSnapshotSessions(volumes)) {
+                log.info("Adding snapshot session steps for adding volumes");
+                // Consolidate multiple snapshot sessions into one CG-based snapshot session
+                waitFor = addSnapshotSessionsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes, cgURI);
             }
         }
 

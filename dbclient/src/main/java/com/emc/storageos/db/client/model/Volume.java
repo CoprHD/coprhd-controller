@@ -19,7 +19,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -118,7 +117,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
         public static String getVolumeAccessStateDisplayName(String state) {
             for (VolumeAccessState stateValue : copyOfValues) {
-                if (stateValue.getState().contains(state)) {
+                if (state != null && stateValue.getState().contains(state)) {
                     return stateValue.name();
                 }
             }
@@ -127,7 +126,7 @@ public class Volume extends BlockObject implements ProjectResource {
 
         public static VolumeAccessState getVolumeAccessState(String state) {
             for (VolumeAccessState stateValue : copyOfValues) {
-                if (stateValue.name().equalsIgnoreCase(state)) {
+                if (state != null && stateValue.name().equalsIgnoreCase(state)) {
                     return stateValue;
                 }
             }
@@ -764,6 +763,20 @@ public class Volume extends BlockObject implements ProjectResource {
         this.replicaState = state;
         setChanged("replicaState");
     }
+    
+    /**
+     * Returns true if the volume is of the personality of the passed in param.
+     * 
+     * @param personality to check
+     * 
+     * @return true if the volume is of that personality, false otherwise
+     */
+    public boolean checkPersonality(String personality) {    	
+    	if (NullColumnValueGetter.isNotNullValue(this.getPersonality()) && this.getPersonality().equalsIgnoreCase(personality)) {
+    		return true;
+    	}    		
+		return false;
+    }
 
     @AlternateId("AltIdIndex")
     @Name("fullCopySetName")
@@ -932,8 +945,8 @@ public class Volume extends BlockObject implements ProjectResource {
             }
         }
         return false;
-    }
-
+    }    
+    
     public static enum ReplicationState {
         UNKNOWN(0), SYNCHRONIZED(1), CREATED(2), RESYNCED(3), INACTIVE(4), DETACHED(5), RESTORED(6);
 
@@ -1019,4 +1032,38 @@ public class Volume extends BlockObject implements ProjectResource {
         return !getVolumeGroupIds().isEmpty();
     }
 
+    /**
+     * gets the COPY type VolumeGroup.
+     *
+     * @param dbClient the db client
+     * @return COPY type VolumeGroup if Volume is part of any COPY type VolumeGroup; otherwise null.
+     */
+    public VolumeGroup getCopyTypeVolumeGroup(DbClient dbClient) {
+        VolumeGroup copyVolumeGroup = null;
+        for (String volumeGroupURI : getVolumeGroupIds()) {
+            VolumeGroup volumeGroup = dbClient.queryObject(VolumeGroup.class, URI.create(volumeGroupURI));
+            if (volumeGroup.getRoles().contains(VolumeGroupRole.COPY.name())) {
+                copyVolumeGroup = volumeGroup;
+                break; // A Volume can be part of only one 'Copy' type VolumeGroup
+            }
+        }
+        return copyVolumeGroup;
+    }
+
+    /**
+     * Is this volume a VPLEX virtual volume?
+     * 
+     * @param dbClient db client
+     * @return true if the volume is a vplex virtual volume
+     */
+    public boolean checkForVplexVirtualVolume(DbClient dbClient) {
+        StorageSystem system = dbClient.queryObject(StorageSystem.class, getStorageController());
+        if (system == null) {
+            return false;
+        }
+        if (system.getSystemType().equalsIgnoreCase((DiscoveredDataObject.Type.vplex.toString()))) {
+            return true;
+        }
+        return false;
+    }
 }

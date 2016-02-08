@@ -170,6 +170,7 @@ import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
 import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 
 @Path("/block/volumes")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
@@ -311,7 +312,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Retrieve volume representations based on input ids.
-     * 
+     *
      * @return list of volume representations.
      */
     @Override
@@ -332,20 +333,20 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * Start continuous copies.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param List of copies to start
-     * 
+     *
      * @brief Start continuous copies.
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
-     * 
+     *
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -394,7 +395,7 @@ public class BlockService extends TaskResourceService {
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.START.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.START.getRestOp());
                 taskList.getTaskList().add(taskResp);
                 // If copyID is null, we have already started all copies
                 if (copyID == null) {
@@ -425,16 +426,16 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Stop continuous copies.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param List of copies to stop
-     * 
+     *
      * @brief Stop continuous copies.
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
      */
     @POST
@@ -481,7 +482,7 @@ public class BlockService extends TaskResourceService {
 
             // If copyID is null all copies are stopped
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.STOP.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.STOP.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 taskList = stopMirrors(id, copyID);
@@ -505,7 +506,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Cant Perform SRDF STOP operation Sync/Async with CG if it has active snap or clone.
-     * 
+     *
      * @param id
      * @param param
      */
@@ -558,13 +559,13 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Create a full copy of the specified volume.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param POST data containing full copy creation information
-     * 
+     *
      * @brief Create full copies
      * @return TaskList
      */
@@ -582,15 +583,15 @@ public class BlockService extends TaskResourceService {
      * Activate a full copy.
      * <p>
      * This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
-     * 
+     *
      * @prereq Create full copy as inactive
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     * 
+     *
      * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy
      *        URI id
-     * 
+     *
      * @return TaskResourceRep
      */
     @Deprecated
@@ -605,17 +606,17 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Show synchronization progress for a full copy.
-     * 
+     *
      * <p>
      * This method is deprecated. Use /block/full-copies/{id}/check-progress instead with {id} representing full copy URI id
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     * 
+     *
      * @brief Show full copy synchronization progress
-     * 
+     *
      * @return VolumeRestRep
      */
     @Deprecated
@@ -630,18 +631,18 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Detach a full copy from its source volume.
-     * 
+     *
      * <p>
      * This method is deprecated. Use /block/full-copies/{id}/detach instead with {id} representing full copy URI id
-     * 
+     *
      * @prereq Create full copy as inactive
      * @prereq Activate full copy
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param id the URN of Full copy volume
-     * 
+     *
      * @brief Detach full copy
-     * 
+     *
      * @return TaskResourceRep
      */
     @Deprecated
@@ -657,7 +658,7 @@ public class BlockService extends TaskResourceService {
     /**
      * Creates and returns an instance of the block full copy manager to handle
      * a full copy request.
-     * 
+     *
      * @return BlockFullCopyManager
      */
     private BlockFullCopyManager getFullCopyManager() {
@@ -670,7 +671,7 @@ public class BlockService extends TaskResourceService {
     /**
      * Creates and returns an instance of the block snapshot session manager to handle
      * a snapshot session creation request.
-     * 
+     *
      * @return BlockSnapshotSessionManager
      */
     private BlockSnapshotSessionManager getSnapshotSessionManager() {
@@ -685,14 +686,14 @@ public class BlockService extends TaskResourceService {
      * allocated by a consumer to a project. This API allows the user to
      * create one or more volumes. The volumes are created in the same
      * storage pool.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param param POST data containing the volume creation information.
-     * 
+     *
      * @brief Create volume
      * @return A reference to a BlockTaskList containing a list of
      *         TaskResourceRep references specifying the task data for the
@@ -707,7 +708,7 @@ public class BlockService extends TaskResourceService {
 
         // CQECC00604134
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
-
+    
         // Get and validate the project.
         Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
         ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
@@ -966,13 +967,14 @@ public class BlockService extends TaskResourceService {
 
     /**
      * returns the types (RP, VPLEX, SRDF or LOCAL) that will be created based on the vpool
+     *
      * @param vpool
      * @param requestedTypes
      */
     private ArrayList<String> getRequestedTypes(VirtualPool vpool) {
-        
+
         ArrayList<String> requestedTypes = new ArrayList<String>();
-        
+
         if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
             requestedTypes.add(Types.RP.name());
         }
@@ -996,13 +998,13 @@ public class BlockService extends TaskResourceService {
                 && vpool.getMultivolumeConsistency()) {
             requestedTypes.add(Types.LOCAL.name());
         }
-        
+
         return requestedTypes;
     }
 
     /**
      * A method that pre-creates task and volume objects to return to the caller of the API.
-     * 
+     *
      * @param size size of the volume
      * @param project project of the volume
      * @param varray virtual array of the volume
@@ -1043,7 +1045,7 @@ public class BlockService extends TaskResourceService {
     /**
      * Checks existing CG for non-RP snapshots. If non-RP snapshots exist,
      * we cannot create/add a volume to the CG.
-     * 
+     *
      * @param consistencyGroup the consistency group to validate.
      */
     private void checkCGForSnapshots(BlockConsistencyGroup consistencyGroup) {
@@ -1067,7 +1069,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Verify that new volumes can be created in the passed consistency group.
-     * 
+     *
      * @param consistencyGroup A reference to the consistency group.
      * @param cgVolumes The volumes in the consistency group.
      */
@@ -1091,7 +1093,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Validates VMAX Thin volume preallocation size.
-     * 
+     *
      * @param thinVolumePreAllocationPercentage
      * @param volumeSize
      */
@@ -1104,7 +1106,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Returns the bean responsible for servicing the request
-     * 
+     *
      * @param vpool Virtual Pool
      * @return block service implementation object
      */
@@ -1127,7 +1129,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Returns the bean responsible for servicing the request
-     * 
+     *
      * @param volume block volume
      * @return block service implementation object
      */
@@ -1137,7 +1139,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Returns the bean responsible for servicing the request
-     * 
+     *
      * @param volume block volume
      * @return block service implementation object
      */
@@ -1159,10 +1161,10 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Gets and verifies the VirtualPool passed in the request.
-     * 
+     *
      * @param project A reference to the project.
      * @param param The volume create post data.
-     * 
+     *
      * @return A reference to the VirtualPool.
      */
     private VirtualPool getVirtualPoolForVolumeCreateRequest(Project project, VolumeCreate param) {
@@ -1179,9 +1181,9 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Gets and verifies the consistency group passed in the request.
-     * 
+     *
      * @param consistencyGroupUri URI of the Consistency Group
-     * 
+     *
      * @return A reference to the BlockConsistencyGroup.
      */
     private BlockConsistencyGroup queryConsistencyGroup(final URI consistencyGroupUri) {
@@ -1197,18 +1199,18 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Request to expand volume capacity to the specified size.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR storage volume.
      * @param param Specifies requested size for volume expansion.
-     * 
+     *
      * @brief Expand volume capacity
      * @return Task resource representation
-     * 
+     *
      * @throws InternalException
      */
     @POST
@@ -1326,22 +1328,22 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Request to test failover of the protection link associated with the param.copyID.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
+     *
      * If volume is srdf protected, then invoking failover-test ends in no-op.
      * failoverTest is being replaced by failover
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param Copy to test failover on
-     * 
+     *
      * @brief Test volume protection link failover
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
-     * 
+     *
      * @deprecated failoverTest is being replaced by failover.
      */
     @POST
@@ -1372,7 +1374,8 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_TEST.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
+                    ProtectionOp.FAILOVER_TEST.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST.getRestOp());
@@ -1385,17 +1388,17 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Request to reverse the replication direction, i.e. R1 and R2 are interchanged..
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param Copy to swap
-     * 
+     *
      * @brief reversing roles of source and target
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
-     * 
+     *
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1418,7 +1421,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.SWAP.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(), ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
@@ -1431,15 +1434,15 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Request to cancel fail over on already failed over volumes.
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param Copy to fail back
-     * 
+     *
      * @brief fail back to source again
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
      */
     @POST
@@ -1463,7 +1466,8 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
+                    ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
@@ -1476,23 +1480,23 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Request to cancel a prior test failover of the protection link associated with the param.copyID.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
+     *
      * If volume is srdf protected, then its a no-op
      * <p>
      * This method is deprecated. Use /block/volumes/{id}/protection/continuous-copies/failover-cancel instead.
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param Copy to cancel the failover to
-     * 
+     *
      * @brief Cancel volume protection link failover test
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
-     * 
+     *
      * @deprecated failoverTestCancel is being replaced by failover-cancel.
      */
     @POST
@@ -1522,7 +1526,8 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkFieldUriType(copy.getCopyID(), Volume.class, "id");
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
+                    ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp());
@@ -1534,22 +1539,22 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * Request to failover the protection link associated with the param.copyID.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
+     *
      * If volume is srdf protected, then invoking failover internally triggers
      * SRDF SWAP on volume pairs.
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param Copy to failover to
-     * 
+     *
      * @brief Failover the volume protection link
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
      */
     @POST
@@ -1582,7 +1587,8 @@ public class BlockService extends TaskResourceService {
 
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
         if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
+                    ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
@@ -1595,20 +1601,20 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * Sync continuous copies.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URI of a ViPR Source volume
      * @param param List of copies to sync
-     * 
+     *
      * @brief Sync continuous copies.
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
-     * 
+     *
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1643,7 +1649,7 @@ public class BlockService extends TaskResourceService {
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.SYNC.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.SYNC.getRestOp());
                 taskList.getTaskList().add(taskResp);
                 // If copyID is null, we have already synced all copies
                 if (copyID == null) {
@@ -1721,12 +1727,12 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Get the details of a specific volume
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR volume to query
-     * 
+     *
      * @brief Show volume
      * @return Volume details
      */
@@ -1747,12 +1753,12 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Get the storage pool of a specific volume
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR volume to query
-     * 
+     *
      * @brief Show volume storage pool
      * @return Storage pool details
      */
@@ -1806,12 +1812,12 @@ public class BlockService extends TaskResourceService {
      * This will be in the form of a list of initiator / target pairs
      * for all the initiators that have been paired with a target
      * storage port.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Volume
-     * 
+     *
      * @brief Show export information for volume
      * @return List of exports
      */
@@ -1829,20 +1835,20 @@ public class BlockService extends TaskResourceService {
      * state after the deletion happens on the array side. The volume will be
      * deleted from the database when all references to this volume of type
      * BlockSnapshot and ExportGroup are deleted.
-     * 
+     *
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
-     * 
+     *
+     *
      * @prereq Dependent volume resources such as snapshots and export groups must be deleted
-     * 
+     *
      * @param id the URN of a ViPR volume to delete
-     * 
+     *
      * @brief Delete volume
      * @return Volume information
-     * 
+     *
      * @throws InternalException
      */
     @POST
@@ -1853,99 +1859,11 @@ public class BlockService extends TaskResourceService {
             @DefaultValue("false") @QueryParam("force") boolean force,
             @DefaultValue("FULL") @QueryParam("type") String type)
             throws InternalException {
-        ArgValidator.checkFieldUriType(id, Volume.class, "id");
-        Volume volume = queryVolumeResource(id);
-
-        // Don't operate on VPLEX backend or RP Journal volumes (unless forced to).
-        BlockServiceUtils.validateNotAnInternalBlockObject(volume, force);
-
-        // Make sure that we don't have some pending
-        // operation against the volume
-        if (!force) {
-            checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
-        }
-
-        BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
-
-        /**
-         * Delete volume api call will delete the replica objects as part of volume delete call for vmax using SMI 8.0.3.
-         * Hence we don't require reference check for vmax.
-         */
-        if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
-            List<Class<? extends DataObject>> excludeTypes = null;
-            if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
-                excludeTypes = new ArrayList<>();
-                excludeTypes.add(ExportGroup.class);
-                excludeTypes.add(ExportMask.class);
-            }
-            ArgValidator.checkReference(Volume.class, id, blockServiceApi.checkForDelete(volume, excludeTypes));
-        }
-
-        List<URI> volumeURIs = new ArrayList<URI>();
-        volumeURIs.add(id);
-
-        String task = UUID.randomUUID().toString();
-        Operation op = null;
-
-        // If the volume has active associated volumes, try to deactivate regardless
-        // of native ID or inactive state. This basically means it's a VPLEX volume.
-        boolean forceDeactivate = checkIfVplexVolumeHasActiveAssociatedVolumes(volume);
-
-        // For a volume that is a full copy or is the source volume for
-        // full copies deleting the volume may not be allowed.
-        if (!getFullCopyManager().volumeCanBeDeleted(volume)) {
-            throw APIException.badRequests.cantDeleteFullCopyNotDetached(volume
-                    .getLabel());
-        }
-
-        if (!forceDeactivate && (Strings.isNullOrEmpty(volume.getNativeId()) || volume.getInactive())) {
-            /*
-             * If somehow, nativeId was not set, but the volume was active, set it
-             * inactive. This can be true only for non vplex volumes.
-             * VPlex volume may not have NativeId but associated volumes can have
-             * nativeId and they need to be cleaned up.
-             */
-            if (!volume.getInactive()) {
-                volume.setInactive(true);
-            }
-            op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
-            op.ready();
-            volume.getOpStatus().createTaskStatus(task, op);
-            _dbClient.persistObject(volume);
-        } else {
-            URI systemURI = null;
-            if (!isNullURI(volume.getProtectionController())) {
-                systemURI = volume.getProtectionController();
-            } else {
-                systemURI = volume.getStorageController();
-            }
-
-            op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME);
-            volume.getOpStatus().createTaskStatus(task, op);
-            _dbClient.persistObject(volume);
-
-            try {
-                blockServiceApi.deleteVolumes(systemURI, volumeURIs, type, task);
-            } catch (InternalException e) {
-                if (_log.isErrorEnabled()) {
-                    _log.error("Delete error", e);
-                }
-
-                Volume vol = _dbClient.queryObject(Volume.class, volume.getId());
-                op = vol.getOpStatus().get(task);
-                op.error(e);
-                vol.getOpStatus().updateTaskStatus(task, op);
-                _dbClient.persistObject(vol);
-                throw e;
-            }
-
-            auditOp(OperationTypeEnum.DELETE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
-                    volume.getLabel(), volume.getId().toString());
-        }
-
-        return toTask(volume, task, op);
+        // Reuse implementation for deleting multiple volumes.
+        BulkDeleteParam deleteParam = new BulkDeleteParam();
+        deleteParam.setIds(Lists.newArrayList(id));
+        TaskList taskList = deleteVolumes(deleteParam, force, type);
+        return taskList.getTaskList().get(0);
     }
 
     /**
@@ -1956,18 +1874,18 @@ public class BlockService extends TaskResourceService {
      * deactivated. The volumes will be deleted from the database when
      * all references to the volumes of type BlockSnapshot and
      * ExportGroup are deleted.
-     * 
+     *
      * If "?force=true" is added to the path, it will force the delete of internal
      * volumes that have the SUPPORTS_FORCE flag.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
-     * 
+     *
+     *
      * @prereq Dependent volume resources such as snapshots and export groups must be deleted
-     * 
+     *
      * @param volumeURIs The POST data specifying the ids of the volume(s) to be
      *            deleted.
-     * 
+     *
      * @brief Delete multiple volumes
      * @return A reference to a BlockTaskList containing a list of
      *         TaskResourceRep instances specifying the task data for each
@@ -2046,6 +1964,8 @@ public class BlockService extends TaskResourceService {
             if (!volume.isInCG() || !BlockServiceUtils.checkCGVolumeCanBeAddedOrRemoved(null, volume, _dbClient)) {
                 List<Class<? extends DataObject>> excludeTypes = null;
                 if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+                    // For ViPR-only delete of exported volumes, We will clean up any
+                    // export groups/masks if the snapshot is exported.
                     excludeTypes = new ArrayList<>();
                     excludeTypes.add(ExportGroup.class);
                     excludeTypes.add(ExportMask.class);
@@ -2055,9 +1975,8 @@ public class BlockService extends TaskResourceService {
 
             // For a volume that is a full copy or is the source volume for
             // full copies deleting the volume may not be allowed.
-            if (!getFullCopyManager().volumeCanBeDeleted(volume)) {
-                throw APIException.badRequests.cantDeleteFullCopyNotDetached(volume
-                        .getLabel());
+            if ((!VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) && (!getFullCopyManager().volumeCanBeDeleted(volume))) {
+                throw APIException.badRequests.cantDeleteFullCopyNotDetached(volume.getLabel());
             }
         }
 
@@ -2153,10 +2072,10 @@ public class BlockService extends TaskResourceService {
     /**
      * This method is used during delete volume to check if a volume has active associated
      * volumes with nativeId.
-     * 
+     *
      * TODO : This method can be moved to some utility class post 2.0, once we figure out
      * which class is suitable for this.
-     * 
+     *
      * @param volume A reference to the volume.
      * @return true if volume has active associated volumes with nativeId else returns false
      */
@@ -2191,20 +2110,20 @@ public class BlockService extends TaskResourceService {
      * A snapshot is associated with the same project as the original volume.
      * A volume may be restored in place based on a snapshot. The snapshot must have come from the volume.
      * A new volume may be created using a snapshot as a template.
-     * 
+     *
      * See multi-volume consistent snapshots for a description of an advanced feature to snapshot multiple volumes at once.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
-     * 
+     *
+     *
      * @prereq Virtual pool must specify non-zero value for max_snapshots
-     * 
+     *
      * @param id the URN of a ViPR Volume to snapshot
      * @param param Volume snapshot parameters
-     * 
+     *
      * @brief Create volume snapshot
      * @return List of snapshots information
-     * 
+     *
      * @throws InternalException
      */
     @POST
@@ -2302,14 +2221,14 @@ public class BlockService extends TaskResourceService {
      * target volumes, or multiple linked target volumes depending on the
      * data passed in the request. This API is only supported on a limited
      * number of platforms that support this capability.
-     * 
+     *
      * @brief Create volume snapshot session
-     * 
+     *
      * @prereq Virtual pool for the volume must specify non-zero value for max_snapshots
-     * 
+     *
      * @param id The URI of a ViPR Volume.
      * @param param Volume snapshot parameters
-     * 
+     *
      * @return TaskList
      */
     @POST
@@ -2323,12 +2242,12 @@ public class BlockService extends TaskResourceService {
 
     /**
      * List volume snapshots
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Volume to list snapshots
-     * 
+     *
      * @brief List volume snapshots
      * @return Volume snapshot response containing list of snapshot identifiers
      */
@@ -2363,13 +2282,13 @@ public class BlockService extends TaskResourceService {
 
     /**
      * List volume snapshot sessions.
-     * 
+     *
      * @brief List volume snapshot sessions.
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id The URI of a ViPR Volume.
-     * 
+     *
      * @return Volume snapshot response containing list of snapshot sessions
      */
     @GET
@@ -2382,12 +2301,12 @@ public class BlockService extends TaskResourceService {
 
     /**
      * List volume mirrors
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Volume to list mirrors
-     * 
+     *
      * @brief List volume mirrors
      * @return Volume mirror response containing a list of mirror identifiers
      */
@@ -2432,13 +2351,13 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Show details for a specific continuous copy
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param mid Continuous copy URI
-     * 
+     *
      * @brief Show continuous copy
      * @return BlockMirrorRestRep
      */
@@ -2472,12 +2391,12 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Returns a list of the full copy volume references associated with a given volume.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR source volume from which to retrieve associated full copies
-     * 
+     *
      * @brief List full copies
      * @return full copy volume response containing a list of full copy identifiers
      */
@@ -2491,18 +2410,18 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Pause continuous copies for given source volume
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param List of copies to pause
-     * 
+     *
      * @brief Pause continuous copies
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
      */
     @POST
@@ -2538,7 +2457,7 @@ public class BlockService extends TaskResourceService {
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.PAUSE.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.PAUSE.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 TaskList pauseTaskList = pauseMirrors(id, copy.getSync(), copyID);
@@ -2563,18 +2482,18 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Resume continuous copies for given source volume
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param List of copies to resume
-     * 
+     *
      * @brief Resume continuous copies
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
      */
     @POST
@@ -2612,7 +2531,7 @@ public class BlockService extends TaskResourceService {
 
             // If copyID is null all copies are paused
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
-                taskResp = performProtectionAction(id, copyID, ProtectionOp.RESUME.getRestOp());
+                taskResp = performProtectionAction(id, copyID, copy.getPointInTime(), ProtectionOp.RESUME.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 TaskList resumeTaskList = resumeMirrors(id, copyID);
@@ -2637,25 +2556,27 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Deactivate continuous copies for given source volume
-     * 
+     *
      * NOTE: This is an asynchronous operation.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param param List of copies to deactivate
-     * 
+     * @param deleteType the type of deletion
+     *
      * @brief Delete continuous copies
      * @return TaskList
-     * 
+     *
      * @throws ControllerException
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/continuous-copies/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskList deactivateMirror(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+    public TaskList deactivateMirror(@PathParam("id") URI id, CopiesParam param,
+            @DefaultValue("FULL") @QueryParam("type") String deleteType) throws ControllerException {
 
         TaskList taskList = new TaskList();
 
@@ -2713,12 +2634,21 @@ public class BlockService extends TaskResourceService {
                     blockServiceApi = getBlockServiceImpl("mirror");
                 }
 
-                auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, true, AuditLogManager.AUDITOP_BEGIN,
-                        copyID.toString(), mirrorLabel);
+                // Deactivate the mirror
+                TaskList deactivateTaskList = blockServiceApi.deactivateMirror(device, mirrorURI, task, deleteType);
 
-                TaskList deactivateTaskList = blockServiceApi.deactivateMirror(device, mirrorURI, task);
+                // Create the audit log message
+                String opStage = VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType) ? null : AuditLogManager.AUDITOP_BEGIN;
+                boolean opStatus = true;
+                for (TaskResourceRep resultTask : deactivateTaskList.getTaskList()) {
+                    if (Operation.Status.error.name().equals(resultTask.getState())) {
+                        opStatus = false;
+                        break;
+                    }
+                }
+                auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, opStatus, opStage, copyID.toString(), mirrorLabel);
 
-                // Add task for this copy
+                // Add tasks for this copy
                 taskList.getTaskList().addAll(deactivateTaskList.getTaskList());
 
             } else {
@@ -2731,7 +2661,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * perform SRDF Protection APIs
-     * 
+     *
      * @param id the URN of a ViPR volume associated
      * @param copy
      * @param op
@@ -2889,14 +2819,18 @@ public class BlockService extends TaskResourceService {
     /**
      * Since all of the protection operations are very similar, this method does all of the work.
      * We keep the actual REST methods separate mostly for the purpose of documentation generators.
-     * 
+     *
      * @param id the URN of a ViPR source volume
      * @param copyID id of the target volume
+     * @param pointInTime any point in time used for failover, specified in UTC.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in milliseconds. Can be
+     *            null.
      * @param op operation to perform (pause, stop, failover, etc)
      * @return task resource rep
      * @throws InternalException
      */
-    private TaskResourceRep performProtectionAction(URI id, URI copyID, String op) throws InternalException {
+    private TaskResourceRep performProtectionAction(URI id, URI copyID, String pointInTime, String op)
+            throws InternalException {
         ArgValidator.checkFieldUriType(copyID, Volume.class, "copyID");
         // Get the volume associated with the URI
         Volume volume = queryVolumeResource(id);
@@ -2933,7 +2867,7 @@ public class BlockService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), id, copyID, op, task);
+        controller.performProtectionOperation(system.getId(), id, copyID, pointInTime, op, task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());
@@ -2943,7 +2877,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Helper method for querying a mirror
-     * 
+     *
      * @param id the URN of a ViPR mirror to query
      * @return BlockMirror instance
      */
@@ -2956,7 +2890,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Helper method for querying a vplex mirror
-     * 
+     *
      * @param id the URN of a ViPR mirror to query
      * @return VplexMirror instance
      */
@@ -2977,12 +2911,12 @@ public class BlockService extends TaskResourceService {
      * supported by those storage pools. For each virtual pool returned, the
      * response identifies whether or not a change to the virtual pool is
      * allowed, and when not allowed, the reason the change is not allowed.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR volume.
-     * 
+     *
      * @brief Show potential virtual pools
      * @return A VirtualPoolChangeList that identifies each potential virtual
      *         pool, whether or not a change is allowed for the virtual pool,
@@ -3011,43 +2945,43 @@ public class BlockService extends TaskResourceService {
      * Allows the caller to change the virtual pool for the volume identified in
      * the request. Currently, the only virtual pool changes that are supported
      * are as follows:
-     * 
+     *
      * Change the virtual pool for a VPLEX virtual volume. This virtual pool
      * change would allow the caller to change the types of drives, for example,
      * used for the backend volume(s) that are used by the virtual volume.
-     * 
+     *
      * Change the virtual pool for a VPLEX virtual volume, such that a local
      * VPLEX virtual volumes becomes a distributed VPLEX virtual volume.
-     * 
+     *
      * Change the virtual pool of a VMAX or VNX Block volume to make the volume
      * a local or distributed VPLEX virtual volume. Essentially, the volume
      * becomes the backend volume for a VPLEX virtual volume. Similar to
      * creating a virtual volume, but instead of creating a new backend volume,
      * using the volume identified in the request. The VMAX or VNX volume cannot
      * currently be exported for this change.
-     * 
+     *
      * Change the virtual pool of a VMAX or VNX Block volume to make the volume
      * a RecoverPoint protected volume. The volume must be able to stay put, and
      * ViPR will build a protection around it.
-     * 
+     *
      * Change the virtual pool of a VMAX or VNX Block volume to allow native
      * continuous copies to be created for it.
-     * 
+     *
      * Change the virtual pool of a volume to increase the export path parameter max_paths.
      * The number of paths will be upgraded if possible for all Export Groups / Export Masks
      * containing this volume. If the volume is not currently exported, max_paths can be
      * decreased or paths_per_initiator can be changed. Note that changing max_paths does
      * not have any effect on the export of BlockSnapshots that were created from this volume.
-     * 
+     *
      * Change the virtual pool of a VMAX and VNX volume to allow change of Auto-tiering policy
      * associated with it.
      * <p>
      * Since this method has been deprecated use POST /block/volumes/vpool-change
-     * 
+     *
      * @brief Change the virtual pool for a volume.
-     * 
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR volume.
      * @param param The parameter specifying the new virtual pool.
      * @return A TaskResourceRep representing the virtual pool change for the
@@ -3136,44 +3070,44 @@ public class BlockService extends TaskResourceService {
      * Allows the caller to change the virtual pool for the volumes identified in
      * the request. Currently, the only virtual pool changes that are supported via
      * this method are as follows:
-     * 
-     * 
+     *
+     *
      * Change the virtual pool for a VPLEX virtual volume. This virtual pool
      * change would allow the caller to change the types of drives, for example,
      * used for the backend volume(s) that are used by the virtual volume.
-     * 
+     *
      * Change the virtual pool for a VPLEX virtual volume, such that a local
      * VPLEX virtual volumes becomes a distributed VPLEX virtual volume.
-     * 
+     *
      * Change the virtual pool of a VMAX or VNX Block volume to make the volume
      * a local or distributed VPLEX virtual volume. Essentially, the volume
      * becomes the backend volume for a VPLEX virtual volume. Similar to
      * creating a virtual volume, but instead of creating a new backend volume,
      * using the volume identified in the request. The VMAX or VNX volume cannot
      * currently be exported for this change.
-     * 
+     *
      * Change the virtual pool of a VMAX or VNX Block volume to make the volume
      * a RecoverPoint protected volume. The volume must be able to stay put, and
      * ViPR will build a protection around it.
-     * 
+     *
      * Change the virtual pool of a VMAX or VNX Block volume to allow native
      * continuous copies to be created for it.
-     * 
+     *
      * Change the virtual pool of a volume to increase the export path parameter max_paths.
      * The number of paths will be upgraded if possible for all Export Groups / Export Masks
      * containing this volume. If the volume is not currently exported, max_paths can be
      * decreased or paths_per_initiator can be changed. Note that changing max_paths does
      * not have any effect on the export of BlockSnapshots that were created from this volume.
-     * 
+     *
      * Change the virtual pool of a VMAX and VNX volumes to allow change of Auto-tiering policy
      * associated with it.
-     * 
-     * 
+     *
+     *
      * Note: Operations other than Auto-tiering Policy change will call the
      * internal single volume method (BlockServiceApiImpl) in a loop.
-     * 
+     *
      * @brief Change the virtual pool for the given volumes.
-     * 
+     *
      * @param param the VolumeVirtualPoolChangeParam
      * @return A List of TaskResourceRep representing the virtual pool change for the
      *         volumes.
@@ -3213,10 +3147,10 @@ public class BlockService extends TaskResourceService {
 
         /**
          * verify that all volumes belong to same vPool.
-         * 
+         *
          * If so and vPool change detects it as Auto-tiering policy change,
          * then they are of same system type.
-         * 
+         *
          * Special case: If the request contains a VMAX volume and a VNX volume
          * belonging to a generic vPool and the target vPool has some VMAX FAST policy,
          * the below verifyVirtualPoolChangeSupportedForVolumeAndVirtualPool() check will
@@ -3306,7 +3240,7 @@ public class BlockService extends TaskResourceService {
 
             taskList.getTaskList().add(volumeTask);
         }
-        
+
         // if this vpool request change has a consistency group, set it's requested types
         if (param.getConsistencyGroup() != null) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, param.getConsistencyGroup());
@@ -3363,7 +3297,7 @@ public class BlockService extends TaskResourceService {
     /**
      * Determines if there are any associated resources that are indirectly affected by this volume operation. If
      * there are we should add them to the Task object.
-     * 
+     *
      * @param volume The volume the operation is being performed on
      * @param vpool The vpool needed for extra information on whether to add associated resources
      * @return A list of any associated resources, null otherwise
@@ -3409,7 +3343,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Verify that all volumes belong to same vpool.
-     * 
+     *
      * @param volumes the volumes
      */
     private void verifyAllVolumesBelongToSameVpool(List<Volume> volumes) {
@@ -3426,12 +3360,12 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Copy the contents from new virtual pool change param to old param.
-     * 
+     *
      * Old param is passed as an argument in multiple methods and it is not advisable
      * to create over-loaded methods for all those.
      * When we remove the old deprecated param class, we can change the argument in
      * all those methods to take the new param.
-     * 
+     *
      * @param param the param
      * @return the virtual pool change param
      */
@@ -3446,7 +3380,7 @@ public class BlockService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * @param projectURI
      * @param varrayURI
      * @return Get Volume for Virtual Array Change
@@ -3521,16 +3455,16 @@ public class BlockService extends TaskResourceService {
      * volume must not be exported. The volume can be migrated to the other cluster
      * in the VPlex Metro configuration or a new varray in the same cluster. Since this method has been
      * deprecated use POST /block/volumes/varray-change
-     * 
+     *
      * @prereq Volume must not be exported
-     * 
+     *
      * @param id The URN of a ViPR volume.
      * @param varrayChangeParam The varray change parameters.
-     * 
+     *
      * @brief Change the virtual array for the specified volume.
-     * 
+     *
      * @return A TaskResourceRep representing the NH change for the volume.
-     * 
+     *
      * @throws InternalException, APIException
      */
     @PUT
@@ -3553,15 +3487,15 @@ public class BlockService extends TaskResourceService {
      * Additionally, the volumes must not be exported. The volume can be
      * migrated to the other cluster in the VPlex Metro configuration or a new
      * varray in the same cluster.
-     * 
+     *
      * @brief Change the virtual array for the given volumes.
-     * 
+     *
      * @prereq Volumes must not be exported
-     * 
+     *
      * @param param The varray change parameters.
-     * 
+     *
      * @return A TaskList representing the varray change for the volumes.
-     * 
+     *
      * @throws InternalException, APIException
      */
     @POST
@@ -3578,12 +3512,12 @@ public class BlockService extends TaskResourceService {
     /**
      * Changes the virtual array for the passed volumes to the passed
      * target virtual array.
-     * 
+     *
      * @param volumeURIs The URIs of the volumes to move
      * @param tgtVarrayURI The URI of the target virtual array
-     * 
+     *
      * @return A TaskList of the tasks associated with each volume being moved.
-     * 
+     *
      * @throws InternalException, APIException
      */
     private TaskList changeVirtualArrayForVolumes(List<URI> volumeURIs, URI tgtVarrayURI)
@@ -3784,7 +3718,7 @@ public class BlockService extends TaskResourceService {
     /**
      * Verifies that the passed volumes correspond to the passed volumes from
      * a consistency group.
-     * 
+     *
      * @param volumes The volumes to verify
      * @param cgVolumes The list of active volumes in a CG.
      */
@@ -3814,12 +3748,12 @@ public class BlockService extends TaskResourceService {
     /**
      * Returns a list of the migrations associated with the volume identified by
      * the id specified in the request.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param id the URN of a ViPR volume.
-     * 
+     *
      * @brief Show volume migrations
      * @return A list specifying the id, name, and self link of the migrations
      *         associated with the volume
@@ -3851,12 +3785,12 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Retrieve resource representations based on input ids.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param param POST data containing the id list.
-     * 
+     *
      * @brief List data of volume resources
      * @return list of representations.
      */
@@ -3874,12 +3808,12 @@ public class BlockService extends TaskResourceService {
      * This will be in the form of a list of initiator / target pairs
      * for all the initiators that have been paired with a target
      * storage port.
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param param POST data containing the id list.
-     * 
+     *
      * @brief Show export information for volumes
      * @return List of exports
      */
@@ -3904,7 +3838,7 @@ public class BlockService extends TaskResourceService {
      * Determines whether or not the passed VirtualPool change for the passed Volume is
      * supported. Throws a ServiceCodeException when the vpool change is not
      * supported.
-     * 
+     *
      * @param volume A reference to the volume.
      * @param newVpool A reference to the new VirtualPool.
      */
@@ -3930,31 +3864,31 @@ public class BlockService extends TaskResourceService {
         if (volume.getApplication(_dbClient) != null) {
             //Move into VPLEX
             if (!VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) && VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
-                notSuppReasonBuff.append("Non VPLEX Application Volume can not be moved into VPLEX vpool");
-                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                notSuppReasonBuff.append("Non VPLEX volumes in applications cannot be moved into VPLEX pools");
+                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                         notSuppReasonBuff.toString());
             }
 
             //Add recoverPoint
             if (!VirtualPool.vPoolSpecifiesProtection(currentVpool)
                     && VirtualPool.vPoolSpecifiesProtection(newVpool)) {
-                notSuppReasonBuff.append("Non RP Application Volume can not be moved into RP vpool");
-                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                notSuppReasonBuff.append("Non RP volumes in applications cannot be moved into RP pools");
+                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                         notSuppReasonBuff.toString());
             }
 
             //Remove RecoverPoint
             if(VirtualPool.vPoolSpecifiesProtection(currentVpool)
                     && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
-                notSuppReasonBuff.append("RP Application Volume can not be moved into non RP vpool");
-                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                notSuppReasonBuff.append("RP volumes in applications cannot be moved into non RP pools");
+                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                         notSuppReasonBuff.toString());
             }
 
             // Add SRDF
             if (!VirtualPool.vPoolSpecifiesSRDF(currentVpool) && VirtualPool.vPoolSpecifiesSRDF(newVpool)) {
-                notSuppReasonBuff.append("Non SRDF Application Volume can not be moved into SRDF vpool");
-                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                notSuppReasonBuff.append("volumes in applications cannot be moved into SRDF pools");
+                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                         notSuppReasonBuff.toString());
             }
         }
@@ -4004,7 +3938,7 @@ public class BlockService extends TaskResourceService {
                     notSuppReasonBuff.setLength(0);
                     if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
                             _dbClient, notSuppReasonBuff)) {
-                        throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                        throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                                 notSuppReasonBuff.toString());
                     }
                 } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
@@ -4018,7 +3952,7 @@ public class BlockService extends TaskResourceService {
                                 _dbClient, notSuppReasonBuff)) {
                             _log.warn("RP Change Protection VirtualPool change for volume is not supported: {}",
                                     notSuppReasonBuff.toString());
-                            throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                            throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                                     notSuppReasonBuff.toString());
                         }
                     }
@@ -4027,7 +3961,7 @@ public class BlockService extends TaskResourceService {
                             _dbClient, notSuppReasonBuff)) {
                         _log.warn("RP+VPLEX VirtualPool change for volume is not supported: {}",
                                 notSuppReasonBuff.toString());
-                        throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                        throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                                 notSuppReasonBuff.toString());
                     } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                         // Full copies not supported for RP protected volumes.
@@ -4039,7 +3973,7 @@ public class BlockService extends TaskResourceService {
                                     currentVpool, newVpool, _dbClient, notSuppReasonBuff);
                     if (vplexVpoolChangeOperation == null) {
                         _log.warn("VPlex volume VirtualPool change not supported {}", notSuppReasonBuff.toString());
-                        throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                        throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                                 notSuppReasonBuff.toString());
                     } else if (VPlexUtil.isVolumeBuiltOnBlockSnapshot(_dbClient, volume)) {
                         // We will not allow virtual pool change for a VPLEX volume that was
@@ -4150,7 +4084,7 @@ public class BlockService extends TaskResourceService {
                         || (!VirtualPoolChangeAnalyzer.doesVplexVpoolContainVolumeStoragePool(volume, newVpool, notSuppReasonBuff))) {
                     _log.warn("VNX/VMAX cos change for volume is not supported: {}",
                             notSuppReasonBuff.toString());
-                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                             notSuppReasonBuff.toString());
                 }
                 if (volume.isVolumeExported(_dbClient)) {
@@ -4176,7 +4110,7 @@ public class BlockService extends TaskResourceService {
                         notSuppReasonBuff)) {
                     _log.warn("VirtualPool change to Add RP Protection for volume is not supported: {}",
                             notSuppReasonBuff.toString());
-                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                             notSuppReasonBuff.toString());
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // Full copies not supported for RP protected volumes.
@@ -4195,7 +4129,7 @@ public class BlockService extends TaskResourceService {
                 notSuppReasonBuff.setLength(0);
                 if (!VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
                         _dbClient, notSuppReasonBuff)) {
-                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                             notSuppReasonBuff.toString());
                 }
             } else if (VirtualPool.vPoolSpecifiesSRDF(newVpool)) {
@@ -4205,7 +4139,7 @@ public class BlockService extends TaskResourceService {
                         notSuppReasonBuff)) {
                     _log.warn("VMAX VirtualPool change for volume is not supported: {}",
                             notSuppReasonBuff.toString());
-                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                             notSuppReasonBuff.toString());
                 } else if (BlockFullCopyUtils.volumeHasFullCopySession(volume, _dbClient)) {
                     // Full copy not supported for volumes with asynchronous copy mode.
@@ -4226,14 +4160,14 @@ public class BlockService extends TaskResourceService {
                         _dbClient, notSuppReasonBuff)) {
                     _log.warn("VirtualPool change to add continuous copies for volume {} is not supported: {}",
                             volume.getId(), notSuppReasonBuff.toString());
-                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                    throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                             notSuppReasonBuff.toString());
                 }
             } else {
                 String errMsg = "there was an invalid property mismatch between source and target vPools.";
                 _log.error(errMsg);
                 notSuppReasonBuff.append(errMsg);
-                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getId(),
+                throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                         notSuppReasonBuff.toString());
             }
         } else {
@@ -4252,7 +4186,7 @@ public class BlockService extends TaskResourceService {
      * volumes. That is, 1 backend storage volumes is consumed by 1 extent,
      * which in turn is consumed buy 1 local device. Note that this function
      * will make calls to the VPLEX to determine the volume's structure.
-     * 
+     *
      * @param volume A reference to a VPLEX volume.
      * @param currentVpool The vpool for the VPLEX volume.
      * @param migrateSourceVolume true if the source side requires migration.
@@ -4284,10 +4218,10 @@ public class BlockService extends TaskResourceService {
     /**
      * Returns a reference to the BlockServiceApi that should be used to execute
      * change the VirtualPool for the passed volume to the passed VirtualPool.
-     * 
+     *
      * @param volume A reference to the volume.
      * @param vpool A reference to the VirtualPool.
-     * 
+     *
      * @return A reference to the BlockServiceApi that should be used execute
      *         the VirtualPool change for the volume.
      */
@@ -4335,16 +4269,16 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Gets and verifies the VirtualPool passed in the request.
-     * 
+     *
      * TODO: Reuse the existing function (getVirtualPoolForVolumeCreateRequest) once the
      * capabilities removal is completed by Stalin, but rename the function to just
      * (getVirtualPoolForRequest).
-     * 
+     *
      * @param project A reference to the project.
      * @param cosURI The URI of the VirtualPool.
      * @param dbClient Reference to a database client.
      * @param permissionsHelper Reference to a permissions helper.
-     * 
+     *
      * @return A reference to the VirtualPool.
      */
     public static VirtualPool getVirtualPoolForRequest(Project project, URI cosURI, DbClient dbClient,
@@ -4375,7 +4309,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Get search results by name in zone or project.
-     * 
+     *
      * @return SearchedResRepList
      */
     @Override
@@ -4396,7 +4330,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Get search results by project alone.
-     * 
+     *
      * @return SearchedResRepList
      */
     @Override
@@ -4410,9 +4344,9 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Additional search criteria for a volume.
-     * 
+     *
      * If a matching volume is not found, an empty list is returned.
-     * 
+     *
      * Parameters - wwn String - WWN of the volume
      * - virtual_array String - URI of the source virtual array
      * - personality String - source, target, metadata
@@ -4630,7 +4564,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Get object specific permissions filter
-     * 
+     *
      */
     @Override
     protected ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
@@ -4640,13 +4574,13 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Get info for protectionSet including owner, parent protectionSet, and child protectionSets
-     * 
-     * 
+     *
+     *
      * @prereq none
-     * 
+     *
      * @param vid Volume identifier
      * @param id the URN of a ViPR ProtectionSet
-     * 
+     *
      * @brief Show protection set
      * @return ProtectionSet details
      */
@@ -4665,9 +4599,9 @@ public class BlockService extends TaskResourceService {
     /**
      * This api allows the user to add new journal volume(s) to a recoverpoint
      * consistency group copy
-     * 
+     *
      * @param param POST data containing the journal volume(s) creation information.
-     * 
+     *
      * @brief Add journal volume(s) to the exiting recoverpoint CG copy
      * @return A reference to a BlockTaskList containing a list of
      *         TaskResourceRep references specifying the task data for the
@@ -4775,7 +4709,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Perform simple validation-- make sure this volume owns the protection set.
-     * 
+     *
      * @param vid volume ID
      * @param id the URN of a ViPR protection set
      */
@@ -4791,7 +4725,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * queryResource(), but for protection set.
-     * 
+     *
      * @param id the URN of a ViPR ID of protection set
      * @return protection set object
      */
@@ -4846,7 +4780,7 @@ public class BlockService extends TaskResourceService {
      * volume such as, a VPLEX volume. If so, throw a bad request
      * exception unless the SUPPORTS_FORCE flag is present AND force is
      * true.
-     * 
+     *
      * @param dbClient Reference to a database client
      * @param blockObjectURIs A list of blockObject URIs to verify.
      * @param force boolean value representing whether or not we want to force the operation
@@ -4863,12 +4797,12 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Stop the specified mirror(s) for the source volume
-     * 
-     * 
-     * 
+     *
+     *
+     *
      * @param id the URN of a ViPR Source volume
      * @param copyID Copy volume ID, none specified stops all copies
-     * 
+     *
      * @return TaskList
      */
     private TaskList stopMirrors(URI id, URI copyID) {
@@ -4905,10 +4839,10 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Stop the specified vplex mirror(s) for the source volume
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param copyID Copy volume ID, none specified stops all copies
-     * 
+     *
      * @return TaskList
      */
     private TaskList stopVplexMirrors(URI id, URI copyID) {
@@ -4946,10 +4880,10 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Start the specified mirror(s) for the source volume
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param copy copyID Copy volume ID, none specified starts all copies
-     * 
+     *
      * @return TaskList
      */
     private TaskList startMirrors(URI id, NativeContinuousCopyCreate copy) {
@@ -5008,7 +4942,7 @@ public class BlockService extends TaskResourceService {
     /**
      * This method validates if the count requested by user to create
      * mirror(s) for a volume is valid.
-     * 
+     *
      * @param sourceVolume The reference to volume for which mirrors needs to be created
      * @param sourceVPool The reference to virtual pool to which volume is is associated
      * @param count The number of mirrors requested to be created
@@ -5029,13 +4963,13 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Pause the specified mirror(s) for the source volume
-     * 
-     * 
-     * 
+     *
+     *
+     *
      * @param id the URN of a ViPR Source volume
      * @param sync flag for pause operation; true=split, false=fracture
      * @param copyID copyID Copy volume ID, none specified pauses all copies
-     * 
+     *
      * @return TaskList
      */
     private TaskList pauseMirrors(URI id, String sync, URI copyID) {
@@ -5077,12 +5011,12 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Resume the specified mirror(s) for the source volume
-     * 
-     * 
-     * 
+     *
+     *
+     *
      * @param id the URN of a ViPR Source volume
      * @param copyID Copy volume ID, none specified resumes all copies
-     * 
+     *
      * @return TaskList
      */
     private TaskList resumeMirrors(URI id, URI copyID) {
@@ -5123,7 +5057,7 @@ public class BlockService extends TaskResourceService {
      * Verify that all the copy IDs passed for a protection type are either
      * set to valid URIs, or none are set. A combination of the two is not allowed.
      * When none are set the operation is performed on all copies for the specified source volume.
-     * 
+     *
      * @param param List of copies to verify
      */
 
@@ -5181,9 +5115,9 @@ public class BlockService extends TaskResourceService {
     /*
      * Validate if the physical array that the consistency group bonded to is associated
      * with the virtual array
-     * 
+     *
      * @param consistencyGroup
-     * 
+     *
      * @param varray virtual array
      */
     private void validateCGValidWithVirtualArray(BlockConsistencyGroup consistencyGroup,
@@ -5218,7 +5152,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Check if any port in the list is from the storage system
-     * 
+     *
      * @param ports
      * @param systemUri
      * @return
@@ -5240,7 +5174,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Determines if the volumes are associated with a Block CG for ScaleIO
-     * 
+     *
      * @param activeCGVolumes [in] - List of volumes that are associated to a BlockConsistencyGroup
      * @return
      */
@@ -5264,7 +5198,7 @@ public class BlockService extends TaskResourceService {
     /**
      * Determines if the passed volume is an exported HDS volume and if not
      * throws an bad request APIException
-     * 
+     *
      * @param volume A reference to a volume.
      */
     private void validateSourceVolumeHasExported(Volume volume) {
@@ -5284,9 +5218,9 @@ public class BlockService extends TaskResourceService {
      * This is because, BlockService implements Volume and
      * Mirror (BlockMirror and VplexMirror) resources. To query the
      * respective objects from DB, we should use the right class type.
-     * 
+     *
      * @param uriStr the uri to determine the right resource class type.
-     * 
+     *
      * @return returns the correct resource type of the resource.
      */
     public static Class<? extends DataObject> getBlockServiceResourceClass(String uriStr) {
@@ -5302,7 +5236,7 @@ public class BlockService extends TaskResourceService {
     /**
      * Given a list of volumes, verify that any consistency groups associated with its volumes
      * are fully specified, i.e. the list contains all the members of a consistency group.
-     * 
+     *
      * @param volumes
      * @param targetVPool
      */

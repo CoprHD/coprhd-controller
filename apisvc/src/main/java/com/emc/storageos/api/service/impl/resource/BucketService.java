@@ -195,16 +195,16 @@ public class BucketService extends TaskResourceService {
         _permissionsHelper.checkTenantHasAccessToVirtualArray(tenant.getId(), neighborhood);
 
         // check vpool reference
-        VirtualPool cos = _dbClient.queryObject(VirtualPool.class, param.getVpool());
-        _permissionsHelper.checkTenantHasAccessToVirtualPool(tenant.getId(), cos);
-        ArgValidator.checkEntity(cos, param.getVpool(), false);
-        if (!VirtualPool.Type.object.name().equals(cos.getType())) {
+        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, param.getVpool());
+        _permissionsHelper.checkTenantHasAccessToVirtualPool(tenant.getId(), vpool);
+        ArgValidator.checkEntity(vpool, param.getVpool(), false);
+        if (!VirtualPool.Type.object.name().equals(vpool.getType())) {
             throw APIException.badRequests.virtualPoolNotForObjectStorage(VirtualPool.Type.object.name());
         }
 
         // verify retention. Its validated only if Retention is configured.
-        if (retention != 0 && cos.getMaxRetention() != 0 && retention > cos.getMaxRetention()) {
-            throw APIException.badRequests.insufficientRetentionForVirtualPool(cos.getLabel(), "bucket");
+        if (retention != 0 && vpool.getMaxRetention() != 0 && retention > vpool.getMaxRetention()) {
+            throw APIException.badRequests.insufficientRetentionForVirtualPool(vpool.getLabel(), "bucket");
         }
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
@@ -213,9 +213,9 @@ public class BucketService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.QUOTA, hardQuota.toString());
 
-        List<BucketRecommendation> placement = _bucketScheduler.placeBucket(neighborhood, cos, capabilities);
+        List<BucketRecommendation> placement = _bucketScheduler.placeBucket(neighborhood, vpool, capabilities);
         if (placement.isEmpty()) {
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(cos.getId(), neighborhood.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), neighborhood.getLabel());
         }
 
         // Randomly select a recommended pool
@@ -223,7 +223,7 @@ public class BucketService extends TaskResourceService {
         BucketRecommendation recommendation = placement.get(0);
 
         String task = UUID.randomUUID().toString();
-        Bucket bucket = prepareBucket(param, project, tenant, neighborhood, cos, flags, recommendation);
+        Bucket bucket = prepareBucket(param, project, tenant, neighborhood, vpool, flags, recommendation);
 
         _log.info(String.format(
                 "createBucket --- Bucket: %1$s, StoragePool: %2$s, StorageSystem: %3$s",

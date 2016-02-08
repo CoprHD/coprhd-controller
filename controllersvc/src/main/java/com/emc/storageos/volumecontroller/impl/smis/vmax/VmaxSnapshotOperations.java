@@ -64,6 +64,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -1891,24 +1892,14 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
                 _log.info("Delete target device complete");
             } else if (syncObjectFound) {
-                if (snapshot.hasConsistencyGroup() && URIUtil.isType(snapshot.getParent().getURI(), Volume.class)) {
-                    Set<CIMInstance> parkingSLOStorageGroups = new HashSet<>();
-                    for (BlockSnapshot aSnap : snapshots) {
-                        // remove the snapshot volumes from the target group and delete target device group.
-                        // don't want to do if parent is a snapshot linked target restore)
-                        boolean forceFlag = ExportUtils.useEMCForceFlag(_dbClient, aSnap.getId());
-                        CIMInstance sloStorageGroup =
-                                _helper.removeVolumeFromParkingSLOStorageGroup(system, aSnap.getNativeId(), forceFlag);
-                        if (sloStorageGroup != null) {
-                            parkingSLOStorageGroups.add(sloStorageGroup);
-                        }
-                    }
-                    _log.info("Done invoking remove volume from storage group");
-                    
-                    if (!parkingSLOStorageGroups.isEmpty()) {
-                        _helper.deleteParkingSLOStorageGroupsIfEmpty(system, parkingSLOStorageGroups);
+                String groupName = null;
+                for (BlockSnapshot aSnap : snapshots) {
+                    if (aSnap.hasConsistencyGroup() && URIUtil.isType(aSnap.getParent().getURI(), Volume.class)) {
+                        groupName = removeVolumeFromConsistencyGroup(system, aSnap);
                     }
                 }
+                ReplicationUtils.deleteReplicationGroup(system, groupName, _dbClient, _helper, _cimPath);
+                
             } else {
                 // Need to be sure the completer is called.
                 completer.ready(_dbClient);
@@ -1919,6 +1910,95 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             completer.error(_dbClient, error);
         }
     }
+    
+    
+    
+    
+    private String removeVolumeFromConsistencyGroup(StorageSystem storage, final BlockObject cgObject)
+            throws Exception {
+        String groupName = null;
+        CloseableIterator<CIMObjectPath> assocVolNamesIter = null;
+        try {
+            // Check if the consistency group exists
+            // In case of clone, 'replicationgroupinstance' property contains the Replication Group name.
+            if (NullColumnValueGetter.isNotNullValue(cgObject.getReplicationGroupInstance())) {
+                groupName = cgObject.getReplicationGroupInstance();
+                
+            } else {
+                groupName = _helper.getSourceConsistencyGroupName(cgObject);
+            }
+
+            storage = findProviderFactory.withGroup(storage, groupName).find();
+
+            if (storage == null) {
+                _log.warn("Replication Group {} not found. Skipping Remove Volume from CG step.", groupName);
+                return groupName;
+            }
+            CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
+
+            CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
+            CIMArgument[] inArgs;
+            CIMArgument[] outArgs = new CIMArgument[5];
+            CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
+            if (cgPathInstance != null) {
+                CIMObjectPath[] volumePaths = _cimPath.getVolumePaths(storage,
+                        new String[] { cgObject.getNativeId() });
+                boolean volumeIsInGroup = false;
+                assocVolNamesIter = _helper.getAssociatorNames(storage, cgPath, null,
+                        SmisConstants.CIM_STORAGE_VOLUME, null, null);
+                while (assocVolNamesIter.hasNext()) {
+                    CIMObjectPath assocVolPath = assocVolNamesIter.next();
+                    String deviceId = assocVolPath.getKey(SmisConstants.CP_DEVICE_ID).getValue()
+                            .toString();
+                    if (deviceId.equalsIgnoreCase(cgObject.getNativeId())) {
+                        volumeIsInGroup = true;
+                        break;
+                    }
+                }
+                if (volumeIsInGroup) {
+                    boolean cgHasGroupRelationship = false;
+                    if (!NullColumnValueGetter.isNullURI(cgObject.getConsistencyGroup())) {
+                        cgHasGroupRelationship = ControllerUtils.checkCGHasGroupRelationship(storage, cgObject.getConsistencyGroup(), _dbClient);
+                    }
+
+                    if (cgHasGroupRelationship) {
+                        // remove from DeviceMaskingGroup
+                        CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
+                                SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+                        _log.info("Removing volume {} from device masking group {}", cgObject.getNativeId(), maskingGroupPath.toString());
+                        inArgs = _helper.getRemoveAndUnmapMaskingGroupMembersInputArguments(maskingGroupPath,
+                                volumePaths, storage, true);
+                        _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                                SmisConstants.REMOVE_MEMBERS, inArgs, outArgs, null);
+                    } else {
+                        inArgs = _helper.getRemoveMembersInputArguments(cgPath, volumePaths);
+                        _helper.invokeMethod(storage, replicationSvc, SmisConstants.REMOVE_MEMBERS,
+                                inArgs, outArgs);
+                    }
+                } else {
+                    _log.info("Volume {} is no longer in the replication group {}",
+                            cgObject.getNativeId(), cgPath.toString());
+                }
+            } else {
+                _log.warn("The Consistency Group {} does not exist on the array.", cgPath);
+            }
+        } catch (Exception e) {
+            _log.error("Problem making SMI-S call: ", e);
+            throw e;
+        } finally {
+            if (assocVolNamesIter != null) {
+                assocVolNamesIter.close();
+            }
+        }
+        
+        return groupName;
+    }    
+    
+    
+    
+    
+    
+    
 
     /**
      * Determine the StorgeSynchronized path for the passed block snapshot where

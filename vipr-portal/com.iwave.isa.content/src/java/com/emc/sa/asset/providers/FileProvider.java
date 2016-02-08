@@ -23,6 +23,7 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
@@ -376,7 +377,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
             if (fileShare.getProtection() != null) {
                 URI vpoolId = fileShare.getVirtualPool().getId();
                 FileVirtualPoolRestRep vpool = client.fileVpools().get(vpoolId);
-                if (StringUtils.equals("SOURCE", fileShare.getProtection().getPersonality()) &&
+                if (StringUtils.equals(FileShare.PersonalityTypes.SOURCE.toString(), fileShare.getProtection().getPersonality()) &&
                         StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.REMOTE.name())) {
                     options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
                 }

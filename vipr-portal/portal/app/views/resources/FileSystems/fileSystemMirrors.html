@@ -1,0 +1,33 @@
+#{if fileSystem.fileReplication.personality=='SOURCE'}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.filesystem.mirroring.fileSystem'}</th>
+      <th>&{'resources.filesystem.export.virtualArray'}</th>
+      <th>&{'resources.filesystem.mirroring.status'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:fileMirrors, as:'fileShare'}
+      <tr>
+        <td>
+          <img src="/public/img/serviceCatalog/icon_folder_NFS.png" style="width: 32px;"/> ${fileShare.name}
+        </td>
+        <td>
+          ${fileShare.mountPath}
+        </td>
+      </tr>
+    #{/list}
+    <tr>
+      <td style="text-align:right;">
+        <a class="btn btn-xs btn-success" onclick="updateRule('${export.exportPath}', '${export.secFlavor}', '${export.anon}')">&{'button.mirror.start'}</a>
+        <a class="btn btn-default btn-xs" onclick="updateRule('${export.exportPath}', '${export.secFlavor}', '${export.anon}')">&{'button.mirror.pause'}</a>
+        <a class="btn btn-danger btn-xs" onclick="updateRule('${export.exportPath}', '${export.secFlavor}', '${export.anon}')">&{'button.mirror.stop'}</a>
+      </td>
+    </tr>
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.filesystem.mirroring.none'}
+#{/else}

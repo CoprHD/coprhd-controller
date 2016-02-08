@@ -3374,6 +3374,11 @@ resources.filesystem.nfsAccessControl=NFS Access Controls
 resources.filesystem.nfs.acl.none=No NFS Access Controls
 resources.filesystem.snapshotPolicies=Snapshot Policies
 resources.filesystem.snapshotPolicies.none=No Snapshot Policies
+resources.filesystem.mirroring=File Mirrors
+resources.filesystem.mirroring.none=No File System Mirroring
+resources.filesystem.mirroring.virtualArray=Virtual Array
+resources.filesystem.mirroring.fileSystem=File System
+resources.filesystem.mirroring.status=Mirroring Status
 resources.filesystem.policy.name=Policy Name
 resources.filesystem.snapshot.pattern=Snapshot Pattern
 resources.filesystem.snapshot.policy.assign=Assign Policy
@@ -3738,6 +3743,11 @@ button.dissociate=Dissociate Project
 button.failover=Failover
 button.ipsec.rotate.keys=Rotate IPsec Key
 selectOne.chooseOption=-- Please Choose --
+
+button.mirroring.start=Start
+button.mirroring.stop=Stop
+button.mirroring.pause=Pause
+button.mirroring.resume=Resume
 
 common.yes=Yes
 common.no=No

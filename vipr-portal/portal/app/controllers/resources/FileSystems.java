@@ -33,6 +33,7 @@ import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
@@ -40,6 +41,7 @@ import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.model.file.FileShareRestRep.FileProtectionRestRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
 import com.emc.storageos.model.file.FileSystemDeleteParam;
 import com.emc.storageos.model.file.FileSystemExportParam;
@@ -159,6 +161,31 @@ public class FileSystems extends ResourceController {
         List<FileSystemExportParam> exportsParam = FileUtils.getExports(id);
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
         render(exports, exportsParam);
+    }
+    
+    
+    public static void fileSystemMirrors(String fileSystemId) {
+        URI id = uri(fileSystemId);
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        FileProtectionRestRep targetFileSystems = client.fileSystems().get(id).getProtection();
+        List<FileShareRestRep> fileMirrors = new ArrayList<FileShareRestRep>();
+//        for(VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()){
+//            fileMirrors.add(client.fileSystems().get(virtualResource.getId()));
+//        }
+        
+        for(int i=0;i<4;i++){
+            FileShareRestRep tempRp = new FileShareRestRep();
+            tempRp.setName("FileSystemABC"+i);
+            fileMirrors.add(tempRp);
+        }
+        
+//        String personality=targetFileSystems.getPersonality();
+        String personality="SOURCE";
+        renderArgs.put("personality", personality);
+        renderArgs.put("fileMirrors",fileMirrors);
+        
+        render();
+        
     }
     
 	public static void fileSystemNfsACLs(String fileSystemId) {

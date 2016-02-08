@@ -67,6 +67,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -335,7 +336,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(ExportMask.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("initiators"), altId);
         }
-
+              
         public static AlternateIdConstraint getNetworkStoragePortConstraint(String networkId) {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("network"), networkId);
@@ -693,6 +694,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getVolumesByVolumeGroupId(String volumeGroupId) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
+        }
+
+        public static AlternateIdConstraint getDriverRegistryEntriesByDriverName(String driverName) {
+            DataObjectType doType = TypeMap.getDoType(DriverRegistryRecord.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("driverName"), driverName);
         }
 
         public static AlternateIdConstraint getBlockSnapshotBySettingsInstance(String settingsInstance) {

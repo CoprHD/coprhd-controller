@@ -298,6 +298,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             {
                 add(tag);
                 add(nodeId);
+                add(drUtil.getLocalSite().getName());
             }
         };
     }

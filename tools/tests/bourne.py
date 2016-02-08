@@ -3734,13 +3734,16 @@ class Bourne:
         result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
         return result
 
-    def volume_change_link(self, uri, operation, copy_uri, type):
+    def volume_change_link(self, uri, operation, copy_uri, type, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
 
         copy['copyID'] = copy_uri
         copy['type'] = type
+
+        if (pit):
+            copy['pointInTime'] = pit
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
@@ -4184,13 +4187,17 @@ class Bourne:
 
         return s
 
-    def block_consistency_group_failover(self, group, copyType, targetVarray):
+    def block_consistency_group_failover(self, group, copyType, targetVarray, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
 
         copy['type'] = copyType
         copy['copyID'] = targetVarray
+
+        if (pit):
+            copy['pointInTime'] = pit
+
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
         
@@ -8433,8 +8440,12 @@ class Bourne:
         results = self.un_managed_volume_search(name)
         resources = results['resource']
         for resource in resources:
-             if (resource['match'] == name):
-                 return resource['id']
+	    # Look for exact match
+	    if (resource['match'] == name):
+		return resource['id']
+	    # Look for exact "startsWith" match (as in VPlex)
+	    if (resource['match'].startswith(name + " (")):
+		return resource['id']
         raise Exception('bad volume name ' + name)
 
     def un_managed_volume_search(self, name):

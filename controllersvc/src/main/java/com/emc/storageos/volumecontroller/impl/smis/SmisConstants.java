@@ -251,6 +251,16 @@ public interface SmisConstants {
     public static final String EMC_BOUND_TO_THIN_STORAGE_POOL = "EMCBoundToThinStoragePool";
     static final String EMC_STORAGE_CONFIGURATION_CAPABILITIES = "EMC_StorageConfigurationCapabilities";
 
+    // Class and properties for SE_ReplicaPairView
+    String SE_REPLICA_PAIR_VIEW = "SE_ReplicaPairView";
+    String CP_SV_SOURCE_DEVICE_ID = "SVSourceDeviceID";
+    String CP_SV_TARGET_DEVICE_ID = "SVTargetDeviceID";
+    String CP_EMC_RG_SOURCE_INSTANCE_ID = "EMCRGSourceInstanceID";
+    String CP_EMC_RG_TARGET_INSTANCE_ID = "EMCRGTargetInstanceID";
+    String[] PS_REPLICA_PAIR_VIEW = new String[] {
+            CP_SV_SOURCE_DEVICE_ID, CP_SV_TARGET_DEVICE_ID,
+            CP_EMC_RG_SOURCE_INSTANCE_ID, CP_EMC_RG_TARGET_INSTANCE_ID};
+
     // Constants used for VMAX Masking names
     static public char MASK_NAME_DELIMITER = '_';
     static public String PORT_GROUP_SUFFIX = "PG";
@@ -394,6 +404,7 @@ public interface SmisConstants {
     static final String CP_MAX_UNITS_CONTROLLED = "MaxUnitsControlled";
     static final String CP_SUPPORTED_STORAGE_ELEMENT_FEATURES = "SupportedStorageElementFeatures";
     static final String CP_EMC_UNMAP_ELEMENTS = "EMCUnmapElements";
+    static final String CP_RELATIONSHIP_NAME = "RelationshipName";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";

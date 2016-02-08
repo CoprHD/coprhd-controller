@@ -2309,6 +2309,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
+    public void doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
+        mirrorOperations.refreshMirrorFileShareLink(system, source, target, completer);
+    }
+
+    @Override
     public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
         mirrorOperations.stopMirrorFileShareLink(system, target, completer);
     }
@@ -2346,7 +2351,6 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
-
     }
 
     @Override

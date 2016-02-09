@@ -122,7 +122,7 @@ public class VNXFileCommApi {
         _thinFsAllocPercentage = thinFsAllocPercentage;
     }
 
-    private VNXFileSshApi sshApi = new VNXFileSshApi();
+    private final VNXFileSshApi sshApi = new VNXFileSshApi();
 
     public VNXFileCommApi() {
 
@@ -1325,7 +1325,7 @@ public class VNXFileCommApi {
         return result;
     }
 
-    public XMLApiResult doRestoreSnapshot(final StorageSystem system, String fsName, String id, String snapshotName)
+    public XMLApiResult doRestoreSnapshot(final StorageSystem system, String fsId, String fsName, String id, String snapshotName)
             throws VNXException {
         _log.info("Restore Snapshot name :{} : file system : {}", snapshotName, fsName);
         XMLApiResult result = new XMLApiResult();
@@ -1334,6 +1334,7 @@ public class VNXFileCommApi {
         try {
             updateAttributes(reqAttributeMap, system);
             reqAttributeMap.put(VNXFileConstants.FILESYSTEM_NAME, fsName);
+            reqAttributeMap.put(VNXFileConstants.FILESYSTEM_ID, fsId);
             reqAttributeMap.put(VNXFileConstants.SNAPSHOT_NAME, snapshotName);
             reqAttributeMap.put(VNXFileConstants.SNAPSHOT_ID, id);
             _provExecutor.setKeyMap(reqAttributeMap);

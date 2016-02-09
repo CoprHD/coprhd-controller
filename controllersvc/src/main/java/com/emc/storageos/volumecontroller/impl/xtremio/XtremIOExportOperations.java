@@ -173,7 +173,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     hostName = initiator.getHostName();
                     clusterName = initiator.getClusterName();
                 }
-                igName = getIGNameForInitiator(initiator, client, xioClusterName);
+                igName = getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
                 if (igName != null && !igName.isEmpty()) {
                     groupInitiatorsByIG.put(igName, initiator);
                 } else {
@@ -191,7 +191,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // lun map
             for (Initiator initiator : initiators) {
                 try {
-                    client.deleteInitiator(initiator.getLabel(), xioClusterName);
+                    client.deleteInitiator(initiator.getMappedInitiatorName(storage.getSerialNumber()), xioClusterName);
                     exportMask.removeFromExistingInitiators(initiator);
                     exportMask.removeFromUserCreatedInitiators(initiator);
                 } catch (Exception e) {
@@ -249,13 +249,14 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
                     _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
                     initiatorObj.setLabel(initiator.getName());
+                    initiatorObj.mapInitiatorName(storage.getSerialNumber(), initiator.getName());
                     initiatorObjs.add(initiatorObj);
                 } else {
                     _log.info("No initiator objects in vipr db for port address {}", initiator.getPortAddress());
                 }
             }
             if (!initiatorObjs.isEmpty()) {
-                dbClient.updateAndReindexObject(initiatorObjs);
+                dbClient.updateObject(initiatorObjs);
             }
         } catch (Exception e) {
             _log.warn("Refreshing XtremIO Initiator ports failed", e);
@@ -290,7 +291,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     hostName = initiator.getHostName();
                     clusterName = initiator.getClusterName();
                 }
-                igName = getIGNameForInitiator(initiator, client, xioClusterName);
+                igName = getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
                 if (igName != null && !igName.isEmpty()) {
                     groupInitiatorsByIG.put(igName, initiator);
                     igNames.add(igName);
@@ -437,7 +438,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     hostName = initiator.getHostName();
                     clusterName = initiator.getClusterName();
                 }
-                igName = getIGNameForInitiator(initiator, client, xioClusterName);
+                igName = getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
                 if (igName != null && !igName.isEmpty()) {
                     groupInitiatorsByIG.put(igName, initiator);
                     igNames.add(igName);
@@ -544,11 +545,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                         for (Initiator initiator : initiators) {
                             try {
                                 // check if Initiator has already been deleted during previous volume processing
-                                XtremIOInitiator initiatorObj = client.getInitiator(initiator.getLabel(), xioClusterName);
+                                String initiatorName = initiator.getMappedInitiatorName(storage.getSerialNumber());
+                                XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
                                 if (null != initiatorObj) {
-                                    client.deleteInitiator(initiator.getLabel(), xioClusterName);
+                                    client.deleteInitiator(initiatorName, xioClusterName);
                                 } else {
-                                    _log.info("Initiator {} already deleted", initiator.getLabel());
+                                    _log.info("Initiator {} already deleted", initiatorName);
                                 }
                             } catch (Exception e) {
                                 failedIGs.add(initiator.getLabel());
@@ -593,12 +595,14 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         }
     }
 
-    private String getIGNameForInitiator(Initiator initiator, XtremIOClient client, String xioClusterName) throws Exception {
+    private String getIGNameForInitiator(Initiator initiator, String storageSerialNumber, XtremIOClient client, String xioClusterName)
+            throws Exception {
         String igName = null;
         try {
-            if (null != initiator.getLabel()) {
+            String initiatorName = initiator.getMappedInitiatorName(storageSerialNumber);
+            if (null != initiatorName) {
                 // Get initiator by Name and find IG Group
-                XtremIOInitiator initiatorObj = client.getInitiator(initiator.getLabel(), xioClusterName);
+                XtremIOInitiator initiatorObj = client.getInitiator(initiatorName, xioClusterName);
                 if (null != initiatorObj) {
                     igName = initiatorObj.getInitiatorGroup().get(1);
                 }
@@ -679,7 +683,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 client.createInitiator(initiatorName, igGroup.getName(),
                         remainingInitiator.getInitiatorPort(), xioClusterName);
                 remainingInitiator.setLabel(initiatorName);
-                dbClient.persistObject(remainingInitiator);
+                remainingInitiator.mapInitiatorName(storage.getSerialNumber(), initiatorName);
+                dbClient.updateObject(remainingInitiator);
 
             } catch (Exception e) {
                 // assume initiator already part of another group look for
@@ -721,7 +726,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     clusterName = initiator.getClusterName();
                 }
 
-                igName = getIGNameForInitiator(initiator, client, xioClusterName);
+                igName = getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
                 if (igName == null || igName.isEmpty()) {
                     _log.info("initiator {} - no IG found. Adding to create list", initiator.getLabel(), igName);
                     initiatorsToBeCreated.add(initiator);

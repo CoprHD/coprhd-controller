@@ -21,6 +21,7 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String CONFIG_ID = "global";
     
     public static final String IPSEC_OP_ROTATE_KEY = "ipsec_rotate_key";
+    public static final String IPSEC_OP_ENABLE_INIT = "ipsec_enable_init";
     public static final String DR_OP_ADD_STANDBY = "dr_add_standby";
     public static final String DR_OP_REMOVE_STANDBY = "dr_remove_standby";
     public static final String DR_OP_PAUSE_STANDBY = "dr_pause_standby";
@@ -31,7 +32,8 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String DR_OP_FAILOVER = "dr_failover";
     public static final String DR_OP_FAILBACK_DEGRADE = "dr_failbackDegrade";
     public static final String DR_OP_CHANGE_DATA_REVISION = "dr_change_data_revision";
-    public static final String IPSEC_OP_ENABLE = "ipsec_enable";
+    public static final String IP_OP_CHANGE = "ip_change";
+    public static final String GEO_OP_CONFIG_CHANGE = "geo_config_change";
     public static final String NONE = "noop";
 
     /**

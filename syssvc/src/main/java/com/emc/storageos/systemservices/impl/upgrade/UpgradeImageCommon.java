@@ -74,7 +74,8 @@ public class UpgradeImageCommon {
         // Need to get the accumulated error count, if there is no previous download or it's downloading a new version, we should use a new
         // counter
         if (trackProgress) {
-            DownloadingInfo nodeDownloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, "downloadinfo", svcId);
+            DownloadingInfo nodeDownloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class,
+                    DOWNLOADINFO_KIND, svcId);
             if (nodeDownloadingInfo == null || nodeDownloadingInfo._version != targetDownloadingInfo._version) {
                 counter = targetDownloadingInfo._errorCounter;
             } else {
@@ -130,11 +131,11 @@ public class UpgradeImageCommon {
                                                                                               // DownloadingInfo class to see if user sent a
                                                                                               // cancel request
                             coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.CANCELLED,
-                                    counter), "downloadinfo", svcId);
+                                    counter), DOWNLOADINFO_KIND, svcId);
                             return false;
                         }
                         coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, bytesDownloaded, DownloadStatus.NORMAL,
-                                counter), "downloadinfo", svcId); // reset the bytesDownloaded field
+                                counter), DOWNLOADINFO_KIND, svcId); // reset the bytesDownloaded field
                     }
                 }
             }
@@ -151,7 +152,7 @@ public class UpgradeImageCommon {
                     int downloadErrorCount = counter.get(0);
                     counter.set(0, ++downloadErrorCount);
                     coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.DOWNLOADERROR, counter),
-                            "downloadinfo", svcId); // It indicate a download error
+                            DOWNLOADINFO_KIND, svcId); // It indicate a download error
                 }
                 return false;
             } else if (!verifyChecksum(sha1Bytes, trailerBuffer, _log)) {
@@ -159,7 +160,7 @@ public class UpgradeImageCommon {
                     int checksumErrorCount = counter.get(1);
                     counter.set(1, ++checksumErrorCount);
                     coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.CHECKSUMERROR, counter),
-                            "downloadinfo", svcId); // It indicate that checksum failed
+                            DOWNLOADINFO_KIND, svcId); // It indicate that checksum failed
                 }
                 return false;
             }
@@ -168,11 +169,11 @@ public class UpgradeImageCommon {
                 if (null != tmpInfo && DownloadStatus.CANCELLED == tmpInfo._status) { // Check the target info of the DownloadingInfo class
                                                                                       // to see if user sent a cancel request
                     coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.CANCELLED, counter),
-                            "downloadinfo", svcId);
+                            DOWNLOADINFO_KIND, svcId);
                     return false;
                 }
                 coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, imageSize, DownloadStatus.COMPLETED, counter),
-                        "downloadinfo", svcId); // When it reaches here, it means the download is successful
+                        DOWNLOADINFO_KIND, svcId); // When it reaches here, it means the download is successful
             }
         } finally {
             _out.close();

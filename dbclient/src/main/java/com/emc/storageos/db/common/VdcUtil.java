@@ -190,13 +190,35 @@ public class VdcUtil {
         for (VdcVersion geoVersion : geoVersions) {
             if ((minimalVersion == null) || (VdcVersionComparator.compare(minimalVersion, geoVersion.getVersion()) > 0)) {
                 minimalVersion = geoVersion.getVersion();
-
             }
         }
         log.info("minimal Geo version {}", minimalVersion);
         return minimalVersion;
     }
-
+    
+    /**
+     * Check if geo version of all other vdcs(excluding local vdc) are equal to or higher than target version
+     *  
+     * @param targetVersion
+     * @return
+     */
+    public static boolean checkGeoCompatibleOfOtherVdcs(String targetVersion) {
+        URI localVdcId = getLocalVdc().getId();
+        List<URI> geoVerIds = dbClient.queryByType(VdcVersion.class, true);
+        List<VdcVersion> geoVersions = dbClient.queryObject(VdcVersion.class, geoVerIds);
+        for (VdcVersion geoVersion : geoVersions) {
+            URI vdcId = geoVersion.getVdcId();
+            if (vdcId.equals(localVdcId)) {
+                continue; // skip current vdc
+            }
+            if (VdcVersionComparator.compare(geoVersion.getVersion(), targetVersion) < 0) {
+                log.info("Vdc {} version is less than {}", new Object[]{vdcId, targetVersion});
+                return false;
+            }
+        }
+        return true;
+    }
+    
     private static boolean hasAnyGeoVersion(List<VdcVersion> geoVersions) {
         return geoVersions != null && geoVersions.iterator().hasNext();
     }
@@ -244,9 +266,7 @@ public class VdcUtil {
             }
 
             return parts1.length > parts2.length ? 1 : (parts1.length == parts2.length ? 0 : -1);
-
         }
-
     }
 
     public static String getDbSchemaVersion(String softwareVersion) {

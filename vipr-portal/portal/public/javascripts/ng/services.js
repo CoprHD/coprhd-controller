@@ -133,6 +133,8 @@ angular.module("services", []).directive({
 	                    	addBlankOptionIfRequired(item);
 	                    }
                 	}
+                } else if (item.type == 'dateTime') {
+                    type = '<date-time>';
                 } else {
                     item.error = " ";
                     type = "<p class='help-inline'>" + translate('serviceField.unsupportedType',item.type) + "</p>";

@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -486,7 +487,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 // TODO need to think of ways to handle unknown initiators
                 continue;
             }
-            String hostName = knownInitiator.getHostName();
+            // Special case for RP: group masks by cluster.
+            String hostName = knownInitiator.checkInternalFlags(Flag.RECOVERPOINT) ? knownInitiator.getClusterName() : knownInitiator
+                    .getHostName();
             if (hostName != null && !hostName.isEmpty()) {
                 log.info("   found an initiator in ViPR on host " + hostName);
                 String igName = initiator.getInitiatorGroup().get(1);
@@ -514,7 +517,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
             List<Initiator> matchedFCInitiators = new ArrayList<Initiator>();
             List<Initiator> hostInitiators = hostInitiatorsMap.get(hostname);
             Set<String> hostIGs = hostIGNamesMap.get(hostname);
-
+            Map<String, List<String>> rpVolumeSnapMap = new HashMap<String, List<String>>();
+            Map<String, UnManagedVolume> rpVolumeMap = new HashMap<String, UnManagedVolume>();
             boolean isRpBackendMask = false;
             if (ExportUtils.checkIfInitiatorsForRP(hostInitiators)) {
                 log.info("host {} contains RP initiators, "
@@ -573,14 +577,67 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                     SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
                                     TRUE);
                         } else {
-                            log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
-                            hostUnManagedVol.putVolumeCharacterstics(
-                                    SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
-                                    TRUE);
+                            // Specific to XIO. The snapshot will be in the same lunmap as the regular volumes. Ignore this volume in ViPR.
+                            String isSnapShot = hostUnManagedVol.getVolumeCharacterstics().get(
+                                    SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString());
+                            if (isSnapShot != null && isSnapShot.equalsIgnoreCase("true")) {
+                                // Gather the parent unmanaged native GUID from the snapshot
+                                StringSet parentNativeGuidSet = hostUnManagedVol.getVolumeInformation().get(
+                                        SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString());
+                                if (parentNativeGuidSet != null && !parentNativeGuidSet.isEmpty()) {
+                                    // Find the volume associated with that native GUID
+                                    String parentNativeGuid = parentNativeGuidSet.iterator().next();
+                                    List<String> rpSnaps = rpVolumeSnapMap.get(parentNativeGuid);
+                                    if (rpSnaps == null) {
+                                        rpSnaps = new ArrayList<String>();
+                                        rpVolumeSnapMap.put(parentNativeGuid, rpSnaps);
+                                    }
+                                    rpSnaps.add(hostUnManagedVol.getNativeGuid());
+                                }
+
+                                dbClient.markForDeletion(hostUnManagedVol);
+                                hostUnManagedVol = null;
+                            } else {
+                                log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
+                                hostUnManagedVol.putVolumeCharacterstics(
+                                        SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
+                                        TRUE);
+                                rpVolumeMap.put(hostUnManagedVol.getNativeGuid(), hostUnManagedVol);
+                            }
                         }
 
-                        mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
-                        unManagedExportVolumesToUpdate.add(hostUnManagedVol);
+                        if (hostUnManagedVol != null) {
+                            mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
+                            unManagedExportVolumesToUpdate.add(hostUnManagedVol);
+                        }
+                    }
+
+                    // update the RP volumes with snap to remove the rp snaps and update the HAS_REPLICAS if required
+                    for (String rpVolumeGUID : rpVolumeSnapMap.keySet()) {
+                        UnManagedVolume volume = rpVolumeMap.get(rpVolumeGUID);
+                        if (volume == null) {
+                            // The parent is already managed by CoprHD
+                            continue;
+                        }
+
+                        // Remove the reference of the snapshot from the snapshot list.
+                        if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()) != null) {
+                            String key = SupportedVolumeInformation.SNAPSHOTS.toString();
+                            for (String rpSnap : rpVolumeSnapMap.get(rpVolumeGUID)) {
+                                volume.getVolumeInformation().get(key).remove(rpSnap);
+                            }
+
+                            // If it's the last snapshot, remove the whole key.
+                            if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).isEmpty()) {
+                                volume.getVolumeInformation().remove(SupportedVolumeInformation.SNAPSHOTS.toString());
+                                // TODO: Also check for mirrors, if XIO has that sort of thing, before shutting off HAS_REPLICAS
+                                volume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
+                            }
+                        } else {
+                            volume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
+                        }
+
+                        dbClient.updateObject(volume);
                     }
                 }
             }
@@ -692,6 +749,9 @@ public class XtremIOUnManagedVolumeDiscoverer {
             XtremIOVolume volume, Map<String, List<UnManagedVolume>> igVolumesMap, StorageSystem system,
             StoragePool pool, DbClient dbClient) {
         boolean created = false;
+        StringSetMap unManagedVolumeInformation = null;
+        Map<String, String> unManagedVolumeCharacteristics = null;
+
         if (null == unManagedVolume) {
             unManagedVolume = new UnManagedVolume();
             unManagedVolume.setId(URIUtil.createId(UnManagedVolume.class));
@@ -701,12 +761,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 unManagedVolume.setStoragePoolUri(pool.getId());
             }
             created = true;
+            unManagedVolumeInformation = new StringSetMap();
+            unManagedVolumeCharacteristics = new HashMap<String, String>();
+        } else {
+            unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+            unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         }
 
         unManagedVolume.setLabel(volume.getVolInfo().get(1));
-
-        Map<String, StringSet> unManagedVolumeInformation = new HashMap<String, StringSet>();
-        Map<String, String> unManagedVolumeCharacteristics = new HashMap<String, String>();
 
         Boolean isVolumeExported = false;
         if (!volume.getLunMaps().isEmpty()) {
@@ -751,7 +813,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         systemTypes.add(system.getSystemType());
 
         StringSet accessState = new StringSet();
-        accessState.add(Volume.VolumeAccessState.READWRITE.name());
+        accessState.add(Volume.VolumeAccessState.READWRITE.getState());
         unManagedVolumeInformation.put(SupportedVolumeInformation.ACCESS.toString(), accessState);
 
         StringSet provCapacity = new StringSet();
@@ -823,7 +885,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         }
 
-        unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
+        unManagedVolume.setVolumeInformation(unManagedVolumeInformation);
 
         if (unManagedVolume.getVolumeCharacterstics() == null) {
             unManagedVolume.setVolumeCharacterstics(new StringMap());

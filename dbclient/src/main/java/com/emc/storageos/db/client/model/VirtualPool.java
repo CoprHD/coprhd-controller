@@ -137,17 +137,19 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
             }
             return false;
         }
+
         public static boolean validFileReplication(final String name) {
-        	if (LOCAL.name().equalsIgnoreCase(name) || REMOTE.name().equalsIgnoreCase(name)) {
-        		return true;
-    }
+            if (LOCAL.name().equalsIgnoreCase(name) || REMOTE.name().equalsIgnoreCase(name)) {
+                return true;
+            }
             return false;
         }
     }
-    
+
     public static enum FileReplicationRPOType {
         MINUTES("minutes"),
-        HOURS("hours");
+        HOURS("hours"),
+        DAYS("days");
         private final String _value;
 
         FileReplicationRPOType(String v) {
@@ -1070,7 +1072,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
         }
         return true;
     }
-    
+
     /**
      * Returns whether or not the passed VirtualPool specifies Protection
      * 
@@ -1079,8 +1081,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
      * @return true if the VirtualPool specifies RP protection, false otherwise.
      */
     public static boolean vPoolSpecifiesFileReplication(final VirtualPool virtualPool) {
-    	return (virtualPool.getFileReplicationType() != null  &&
-    			FileReplicationType.validFileReplication(virtualPool.getFileReplicationType()));        
+        return (virtualPool.getFileReplicationType() != null && FileReplicationType.validFileReplication(virtualPool
+                .getFileReplicationType()));
     }
 
     /**

@@ -24,6 +24,7 @@ public class VolumeCreate {
     private URI varray;
     private URI project;
     private URI consistencyGroup;
+    private URI computeResource;
 
     public VolumeCreate() {
     }
@@ -146,4 +147,16 @@ public class VolumeCreate {
     public void setVpool(URI vpool) {
         this.vpool = vpool;
     }
+
+    /**
+     * The host to which the volume is exported
+     * @return
+     */
+	public URI getComputeResource() {
+		return computeResource;
+	}
+
+	public void setComputeResource(URI computeResource) {
+		this.computeResource = computeResource;
+	}
 }

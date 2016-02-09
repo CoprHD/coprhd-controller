@@ -342,7 +342,7 @@ public class ExportService extends VolumeService {
 
         // After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a
         // small delay here.    	
-    	Thread.sleep(100000);
+    	//Thread.sleep(100000);
     	
         ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
                 isIdEmbeddedInURL(vol.getId()));
@@ -580,8 +580,7 @@ public class ExportService extends VolumeService {
 
         // Step 3: Remove initiators from export group
         currentURIs.removeAll(detachURIs);
-        exportGroup.setInitiators(StringSetUtil.uriListToStringSet(currentURIs));
-        _dbClient.updateObject(exportGroup);
+        //exportGroup.setInitiators(StringSetUtil.uriListToStringSet(currentURIs));
         _log.info("updateExportGroup request is submitted.");
         // get block controller
         BlockExportController exportController =
@@ -595,7 +594,7 @@ public class ExportService extends VolumeService {
 
         Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-        List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+        List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(StringSetUtil.uriListToStringSet(currentURIs));
         List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
         List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
 
@@ -748,7 +747,7 @@ public class ExportService extends VolumeService {
         List<URI> initiatorURIs = new ArrayList<URI>();
         String task = UUID.randomUUID().toString();
         // Step 1: get list of host initiators to be added
-        _log.info("THE ATTACH.CONNECTOR IS {}", attach.connector.toString());
+        _log.debug("THE ATTACH.CONNECTOR IS {}", attach.connector.toString());
         List<Initiator> newInitiators = getListOfInitiators(attach.connector, openstack_tenant_id, protocol, vol);
 
         ExportGroup exportGroup = findExportGroup(vol);
@@ -763,8 +762,6 @@ public class ExportService extends VolumeService {
                     initiatorURIs.add(uri);
                 }
             }
-            exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
-            _dbClient.updateObject(exportGroup);
             _log.info("updateExportGroup request is submitted.");
             // get block controller
             initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
@@ -774,9 +771,10 @@ public class ExportService extends VolumeService {
 
             Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+            List<URI> updatedInitiators = initiatorURIs;
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
+
 
             exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
                     updatedClusters, updatedHosts, updatedInitiators, task);
@@ -788,12 +786,12 @@ public class ExportService extends VolumeService {
             exportGroup.setVirtualArray(vol.getVirtualArray());
             // put volume map
             volumeMap.put(vol.getId(), ExportGroup.LUN_UNASSIGNED);
-            exportGroup.addVolume(vol.getId(), ExportGroup.LUN_UNASSIGNED);
+            //exportGroup.addVolume(vol.getId(), ExportGroup.LUN_UNASSIGNED);
             // put list of initiators
             for (Initiator initiator : newInitiators) {
                 initiatorURIs.add(initiator.getId());
             }
-            exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
+            //exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
             _dbClient.createObject(exportGroup);
             _log.info("createExportGroup request is submitted.");
             initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);

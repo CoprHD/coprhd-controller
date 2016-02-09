@@ -29,6 +29,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -3652,5 +3653,63 @@ public class VolumeIngestionUtil {
         }
 
         return blockObjects;
+    }
+    
+    /**
+     * Convenience method to find the a volume from the database or maps based
+     * on ingestion.
+     * 
+     * This is an alternative to using the context objects directly.
+     * 
+     * @param dbClient DbClient reference
+     * @param createdMap Map of created objects
+     * @param updatedMap Map of updated objects
+     * @param volumeId The id of the volume to find
+     * @return The volume, or null if nothing can be found.
+     */
+    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, List<DataObject>> updatedMap, String volumeId) {
+        if (volumeId == null) {
+            return null;
+        }
+        
+        BlockObject blockObject = null;
+        URI volumeURI = URI.create(volumeId);
+                
+        if (createdMap != null) {
+            // Check the created map
+            for (BlockObject bo : createdMap.values()) {
+                if (bo.getId() != null && volumeURI.toString().equals(bo.getId().toString())) {
+                    blockObject = bo;
+                    break;
+                }
+            }
+        }
+        
+        if (updatedMap != null) {
+            // Check the updated map
+            for (List<DataObject> objectsToBeUpdated : updatedMap.values()) {
+                for (DataObject o : objectsToBeUpdated) {
+                    if (o.getId().equals(volumeURI)) {                    
+                        blockObject = (BlockObject) o;
+                        break;
+                    }
+                }
+            }      
+        }
+        
+        if (dbClient != null) {
+            // Lastly, check the db
+            if (blockObject == null) {
+                blockObject = (BlockObject) dbClient.queryObject(volumeURI);
+            }
+        }
+                
+        Volume volume = null;
+        if (blockObject != null && blockObject instanceof Volume) {
+            _logger.info("\t Found volume object: " + blockObject.forDisplay());
+            volume = (Volume) blockObject;
+        }    
+        
+        return volume;
     }
 }

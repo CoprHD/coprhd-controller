@@ -7,8 +7,6 @@ package com.emc.storageos.protectioncontroller.impl.recoverpoint;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getRpSourceVolumeByTarget;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getRpJournalVolumeParent;
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getSecondaryRpJournalVolumeParent;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
@@ -633,47 +631,9 @@ public class RPHelper {
     }
 
     /**
-     * Given a RP journal volume, this method gets the corresponding parent volume. The
-     * parent will either be a source or target volume.
-     *
-     * @param dbClient the database client.
-     * @param id target volume id.
-     */
-    public static Volume getRPJournalParentVolume(DbClient dbClient, Volume journalVolume) {
-        // Source or target parent volume.
-        Volume parentVolume = null;
-
-        if (journalVolume == null) {
-            return parentVolume;
-        }
-
-        List<Volume> parentVolumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                        getRpJournalVolumeParent(journalVolume.getId()));
-
-        // If we haven't found a primary journal volume parent then this volume might be
-        // a secondary journal volume. So try to find a secondary journal volume parent.
-        if (parentVolumes == null || parentVolumes.isEmpty()) {
-            parentVolumes = CustomQueryUtility
-                    .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                            getSecondaryRpJournalVolumeParent(journalVolume.getId()));
-        }
-
-        if (parentVolumes != null && !parentVolumes.isEmpty()) {
-            // A RP journal volume will only be associated to 1 source or target volume so return
-            // the first entry.
-            parentVolume = parentVolumes.get(0);
-        }
-
-        return parentVolume;
-    }
-
-    /**
      * Gets the associated source volume given any type of RP volume. If a source volume
-     * is given, that volume is returned. For a source journal volume, the associated source
-     * volume is found and returned. For a target journal volume, the associated target
-     * volume is found and then its source volume is found and returned. For a target volume,
-     * the associated source volume is found and returned.
+     * is given, that volume is returned. For a target journal volume, the associated target
+     * volume is found and then its source volume is found and returned. 
      *
      * @param dbClient the database client.
      * @param volume the volume for which we find the associated source volume.
@@ -694,16 +654,8 @@ public class RPHelper {
                 _log.info("Attempting to find RP source volume corresponding to target volume " + volume.getId());
                 sourceVolume = getRPSourceVolumeFromTarget(dbClient, volume);
             } else if (volume.getPersonality().equals(PersonalityTypes.METADATA.name())) {
-                _log.info("Attempting to find RP source volume corresponding to journal volume" + volume.getId());
-                Volume journalParent = getRPJournalParentVolume(dbClient, volume);
-                // The journal's parent might be a target volume. In this case we want
-                // to get the associated source.
-                if (journalParent.getPersonality().equals(PersonalityTypes.TARGET.name())) {
-                    sourceVolume = getRPSourceVolumeFromTarget(dbClient, journalParent);
-                } else {
-                    // The journal's parent is in fact the source volume.
-                    sourceVolume = journalParent;
-                }
+                _log.info("Journal volume found, there is no associated RP source so just return null.");
+                return sourceVolume;
             } else {
                 _log.warn("Attempting to find RP source volume corresponding to an unknown RP volume type, for volume " + volume.getId());
             }

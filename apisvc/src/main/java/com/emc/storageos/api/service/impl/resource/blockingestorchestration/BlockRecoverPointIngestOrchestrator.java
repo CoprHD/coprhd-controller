@@ -16,6 +16,7 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -27,6 +28,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
@@ -307,7 +310,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         // For MetroPoint, the same VPLEX Distributed/Metro volume will be exported to 
         // two VPLEX Export Groups (aka Storage Views). One for each RPA Cluster in the
         // MetroPoint configuration.
-        if (RPHelper.isVPlexDistributedVolume(volume)) {
+        if (RPHelper.isVPlexDistributedVolume(volume)) {                                                         
             // Get the internal site and copy names
             String rpInternalSiteName = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.RP_INTERNAL_SITENAME.toString(), unManagedVolumeInformation);
@@ -318,23 +321,38 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             String rpStandbyCopyName = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.RP_STANDBY_COPY_NAME.toString(), unManagedVolumeInformation);
             
+            // We need the VPLEX ingest context to get the backend volume info
+            VplexVolumeIngestionContext vplexVolumeContext =
+                    ((RpVplexVolumeIngestionContext)
+                            volumeContext.getVolumeContext()).getVplexVolumeIngestionContext();  
+                                    
             // Match the main VPLEX virtual volume varray to one of it's backing volume varrays. 
             // Matching should indicate the volume is the VPLEX Source side. 
             // Non-matching varrays will be the VPLEX HA side.
-            for (String associatedVolId : volume.getAssociatedVolumes()) {
-                Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                if (associatedVolume != null && !associatedVolume.getInactive()) {
-                    if (associatedVolume.getVirtualArray().equals(volume.getVirtualArray())) {
-                        associatedVolume.setInternalSiteName(rpInternalSiteName);
-                        associatedVolume.setRpCopyName(rpCopyName);
-                    } else {
-                        // If this is a RP+VPLEX Distributed volume (not MP) there is the potential that 
-                        // rpStandbyInternalSiteName and rpStandbyCopyName could be null, which is fine.
-                        associatedVolume.setInternalSiteName(rpStandbyInternalSiteName);
-                        associatedVolume.setRpCopyName(rpStandbyCopyName);
-                    }
-                    _dbClient.updateObject(associatedVolume);
+            for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
+                // First look in created block objects for the associated volumes. This would be the latest version.                
+                Volume associatedVolume = VolumeIngestionUtil.findVolume(_dbClient, 
+                                                                            vplexVolumeContext.getObjectsToBeCreatedMap(),
+                                                                            vplexVolumeContext.getObjectsToBeUpdatedMap(), 
+                                                                            associatedVolumeIdStr);        
+                
+                // If we can't get the a handle on the associated volume we'll have to throw an exception
+                if (associatedVolume == null) {
+                    _logger.error("Could not find associated volume: " + associatedVolumeIdStr + " in DB.  Ingestion failed.");
+                    throw IngestionException.exceptions.generalVolumeException(unManagedVolume.getNativeGuid(), 
+                            "Could not find associated volume: " + associatedVolumeIdStr + ", for VPLEX volume: " + volume.getLabel());
                 }
+                                       
+                // Compare the varrays for the associated volume and it's VPLEX virtual volume
+                if (associatedVolume.getVirtualArray().equals(volume.getVirtualArray())) {
+                    associatedVolume.setInternalSiteName(rpInternalSiteName);
+                    associatedVolume.setRpCopyName(rpCopyName);
+                } else {
+                    // If this is a RP+VPLEX Distributed volume (not MP) there is the potential that 
+                    // rpStandbyInternalSiteName and rpStandbyCopyName could be null, which is fine.
+                    associatedVolume.setInternalSiteName(rpStandbyInternalSiteName);
+                    associatedVolume.setRpCopyName(rpStandbyCopyName);
+                }                                   
             }
         }
 

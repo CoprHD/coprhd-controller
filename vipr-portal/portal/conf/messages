@@ -3354,6 +3354,7 @@ resources.snapshot.session.deleteLink=Delete Snapshot Session
 resources.snapshot.session.targets=Linked Targets
 resources.snapshot.session.targets.none=No Linked Targets
 resources.snapshot.session.unlink=Unlink
+resources.snapshot.session.unlinkNoDelete=Unlink without Delete
 resources.snapshot.session.relink=Relink
 resources.snapshot.session.relink.success=Task created to relink Snapshot Session Target on %s. Please check task list for an updated status.
 resources.snapshot.session.unlink.success=Task created to unlink Snapshot Session Target on %s. Please check task list for an updated status.

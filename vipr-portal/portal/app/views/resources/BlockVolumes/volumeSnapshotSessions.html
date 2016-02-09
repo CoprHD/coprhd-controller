@@ -3,6 +3,7 @@
   <thead>
     <tr>
       <th>&{'resources.snapshot.session.name'}</th>
+      <th>&{'resources.actions'}</th>
     </tr>
   </thead>
   <tbody>  
@@ -12,6 +13,7 @@
           <a href="@{resources.BlockSnapshotSessions.snapshotSessionDetails(snapshot.id)}"
           ><img src="/public/img/assets/Snapshot.png" style="width: 32px;"/>${snapshot.name}</a>
         </td>
+        <td><a class="btn btn-xs btn-success" href="@{unlinkTargetSnapshot(snapshot.id, volumeId)}">&{'resources.snapshot.session.unlink'}</a></td> 
       </tr>
     #{/list}
   </tbody>

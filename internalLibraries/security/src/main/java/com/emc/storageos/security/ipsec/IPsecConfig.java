@@ -34,8 +34,7 @@ public class IPsecConfig {
     private static final String IPSEC_CONFIG_KIND = "ipsec";
     private static final String IPSEC_CONFIG_ID = "ipsec_config";
     private static final String IPSEC_PSK_KEY = "ipsec_key";
-    private static final String IPSEC_STATUS = "ipsec_status";
-    private static final int KEY_LENGHT = 64;
+    public static final String IPSEC_STATUS = "ipsec_status";
 
     // Properties injected by spring
     private CoordinatorClient coordinator;
@@ -76,14 +75,6 @@ public class IPsecConfig {
         } catch (Exception e) {
             throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
         }
-    }
-
-    /**
-     * generate a 64-byte key for IPsec
-     * @return
-     */
-    public String generateKey() {
-        return RandomStringUtils.random(KEY_LENGHT, true, true);
     }
 
     private String loadDefaultIpsecKeyFromFile() throws Exception {

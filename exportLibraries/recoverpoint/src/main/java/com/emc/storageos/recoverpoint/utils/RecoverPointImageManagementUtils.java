@@ -1198,7 +1198,27 @@ public class RecoverPointImageManagementUtils {
 
                 for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {
 
-                    if (!copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
+                    // The copy we're interested in may be in the FirstCopy or SecondCopy, so we need to find the link
+                    // state where our copy is the first or second copy and the other copy is a production.  There may be
+                    // multiple production copies, so account for that, too.  (you can assume there aren't multiple productions
+                    // going to the same target.  We used to assume that the targets are "second copy", but that is not true.
+                    boolean found = false;
+                    
+                    // Loop through production copies
+                    for (ConsistencyGroupCopyUID groupCopyUID : cgState.getSourceCopiesUIDs()) {
+                        
+                        if (copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), groupCopyUID.getGlobalCopyUID()) &&
+                            copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
+                            found = true;                            
+                        }
+                        
+                        if (copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), groupCopyUID.getGlobalCopyUID()) &&
+                            copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID())) {
+                            found = true;                            
+                        }
+                    }
+
+                    if (!found) {
                         continue;
                     }
 

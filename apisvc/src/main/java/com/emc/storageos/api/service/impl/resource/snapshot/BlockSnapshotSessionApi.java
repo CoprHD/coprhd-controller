@@ -220,9 +220,10 @@ public interface BlockSnapshotSessionApi {
      * 
      * @param snapSession A reference to a BlockSnapshotSession instance.
      * @param snapSessionSourceObj A reference to the snapshot session source.
+     * @param deleteType The deletion type i.e, VIPR_ONLY or FULL.
      * @param taskId A unique task identifier.
      */
-    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId);
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId, String deleteType);
 
     /**
      * Get all BlockSnapshotSessions for the passed source.

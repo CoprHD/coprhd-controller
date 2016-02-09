@@ -140,7 +140,7 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
             if ((portinMemory != null) && (portinMemory.getPortNetworkId() != null) &&
                     !(portinMemory.getPortNetworkId().equals(endPointInstanceId))) {
                 // Since this is a new protocol endpoint and for V3, a single physical port can have multiple
-                // viutualiSCSIProtocolEndpoints, we will need to create new port object
+                // virtualiSCSIProtocolEndpoints, we will need to create new port object
                 StoragePort newPortinMemory = (StoragePort) portinMemory.clone();
                 newPortinMemory.setId(URIUtil.createId(StoragePort.class));
                 newPortinMemory.setPortNetworkId(endPointInstanceId);
@@ -167,7 +167,7 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
         } else {
             String currentPortName = port.getPortName();
             if (!currentPortName.contains(portinMemory.getPortName())) {
-                // Append the portinMemory details
+                // A single VirtualiSCSIProtocolEndpoint is associated to multiple physical GIGE ports
                 StringBuffer appendedPortName = new StringBuffer(currentPortName);
                 appendedPortName.append(COMMA_STR).append(portinMemory.getPortName());
                 port.setPortName(appendedPortName.toString());

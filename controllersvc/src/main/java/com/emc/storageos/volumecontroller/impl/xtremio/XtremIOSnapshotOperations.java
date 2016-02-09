@@ -137,6 +137,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 // tag the created the snapshotSet
                 client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapsetLabel, clusterName);
             }
+            _log.info("Snapset label :{}", snapsetLabel);
             // Create mapping of volume.deviceLabel to BlockSnapshot object
             Map<String, BlockSnapshot> volumeToSnapMap = new HashMap<String, BlockSnapshot>();
             for (BlockSnapshot snapshot : snapObjs) {
@@ -150,7 +151,8 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 XtremIOVolume xioSnap = client.getSnapShotDetails(snapDetails.get(1).toString(), clusterName);
                 _log.info("XIO Snap : {}", xioSnap);
                 BlockSnapshot snapshot = volumeToSnapMap.get(xioSnap.getAncestoVolInfo().get(1));
-                processSnapshot(xioSnap, snapshot, storage, snapsetLabel);
+                processSnapshot(xioSnap, snapshot, storage);
+                snapshot.setReplicationGroupInstance(snapsetLabel);
                 dbClient.updateObject(snapshot);
             }
             taskCompleter.ready(dbClient);
@@ -162,7 +164,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
 
     }
 
-    private void processSnapshot(XtremIOVolume xioSnap, BlockSnapshot snapObj, StorageSystem storage, String snapsetLabel) {
+    private void processSnapshot(XtremIOVolume xioSnap, BlockSnapshot snapObj, StorageSystem storage) {
         snapObj.setWWN(xioSnap.getVolInfo().get(0));
         // if created snap wwn is not empty then update the wwn
         if (!xioSnap.getWwn().isEmpty()) {
@@ -175,7 +177,6 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         boolean isReadOnly = XtremIOConstants.XTREMIO_READ_ONLY_TYPE.equals(xioSnap.getSnapshotType()) ? Boolean.TRUE : Boolean.FALSE;
         snapObj.setIsReadOnly(isReadOnly);
         snapObj.setIsSyncActive(true);
-        snapObj.setReplicationGroupInstance(snapsetLabel);
     }
 
     @Override

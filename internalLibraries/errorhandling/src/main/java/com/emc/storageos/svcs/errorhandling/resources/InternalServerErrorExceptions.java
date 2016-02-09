@@ -173,6 +173,12 @@ public interface InternalServerErrorExceptions {
             final String type, final String volume);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException noMaxSnapshotsDefinedInVirtualPool(final String vPool, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException unmanagedVolumeVpoolConsistencyGroupMismatch(final String vPool, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException virtualPoolNotMatchingStoragePoolNicer(final String virtualPool,
             final String type, final String volume, final String vpoolList);
 
@@ -319,7 +325,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
     public InternalServerErrorException switchoverStandbyFailedTimeout(String siteName, int timeoutValue);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED_TIMEOUT)
     public InternalServerErrorException failoverFailedTimeout(String siteName, int timeoutValue);
 

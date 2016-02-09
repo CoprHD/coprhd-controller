@@ -3227,7 +3227,7 @@ recoverpoint_cg_failover_test()
       do
         # If the volume corresponds to the target varray used for the failover we
         # need to verify different values
-        if [[ $tgt_volume == *$tgt_varray* ]] then
+        if [[ $tgt_volume == *$tgt_varray* ]]; then
             run volume verify ${PROJECT}/${tgt_volume} personality TARGET
             run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
             run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
@@ -3266,7 +3266,7 @@ recoverpoint_cg_failover_test()
       do
         # If the volume corresponds to the target varray used for the failover we
         # need to verify different values
-        if [[ $tgt_volume == *$tgt_varray* ]] then
+        if [[ $tgt_volume == *$tgt_varray* ]]; then
             run volume verify ${PROJECT}/${tgt_volume} personality TARGET
             run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
             run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER
@@ -3306,7 +3306,7 @@ recoverpoint_cg_failover_test()
       do
         # If the volume corresponds to the target varray used for the failover we
         # need to verify different values
-        if [[ $tgt_volume == *$tgt_varray* ]] then
+        if [[ $tgt_volume == *$tgt_varray* ]]; then
             run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
             run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
             run volume verify ${PROJECT}/${tgt_volume} link_status FAILED_OVER

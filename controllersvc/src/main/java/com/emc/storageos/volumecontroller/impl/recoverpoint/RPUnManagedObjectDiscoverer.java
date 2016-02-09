@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
@@ -612,7 +613,7 @@ public class RPUnManagedObjectDiscoverer {
                     boolean foundEmptyTargetVpool = false;
                     Map<URI, VpoolProtectionVarraySettings> settings = VirtualPool.getProtectionSettings(vpool, dbClient);
                     for (Map.Entry<URI, VpoolProtectionVarraySettings> setting : settings.entrySet()) {
-                        if (setting.getValue().getVirtualPool() == null) {
+                        if (NullColumnValueGetter.isNullURI(setting.getValue().getVirtualPool())) {
                             foundEmptyTargetVpool = true;
                             break;
                         }
@@ -620,7 +621,8 @@ public class RPUnManagedObjectDiscoverer {
 
                     // If this is a journal volume, also check the journal vpools. If they're not set, we cannot filter out this vpool.
                     if (Volume.PersonalityTypes.METADATA.name().equalsIgnoreCase(personality) &&
-                            (vpool.getJournalVpool() == null || vpool.getStandbyJournalVpool() == null)) {
+                            (NullColumnValueGetter.isNullValue(vpool.getJournalVpool()) 
+                                    || NullColumnValueGetter.isNullValue(vpool.getStandbyJournalVpool()))) {
                         foundEmptyTargetVpool = true;
                     }
 

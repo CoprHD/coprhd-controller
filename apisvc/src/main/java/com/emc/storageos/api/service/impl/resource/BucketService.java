@@ -57,6 +57,7 @@ import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.ecs.api.ECSException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -527,7 +528,7 @@ public class BucketService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public BucketACL getBucketACL(@PathParam("id") URI id) {
+    public BucketACL getBucketACL(@PathParam("id") URI id) throws InternalException {
         _log.info("Request recieved to get Bucket ACL with Id: {}", id);
 
         // Validate the Bucket
@@ -644,7 +645,7 @@ public class BucketService extends TaskResourceService {
         }
     }
     
-    private void syncBucketACL(Bucket bucket) {
+    private void syncBucketACL(Bucket bucket) throws InternalException {
 
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
         ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
@@ -674,9 +675,11 @@ public class BucketService extends TaskResourceService {
             }
             if ("error".equals(dbTask.getStatus())) {
                 breakLoop = true;
+                throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(), "Could not get ACL from ECS");
             }
-            if((System.currentTimeMillis()-startTime)<1000){
+            if((System.currentTimeMillis()-startTime)>2000){
                 breakLoop = true;
+                throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(), "Could not get ACL from ECS due to time-out");
             }
         }
         if(!failedOp){

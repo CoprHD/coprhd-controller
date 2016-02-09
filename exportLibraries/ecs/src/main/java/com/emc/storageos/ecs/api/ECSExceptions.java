@@ -64,4 +64,7 @@ public interface ECSExceptions {
 
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
     public ECSException getNamespaceDetailsFailed(final String namespace, final Throwable e);
+    
+    @DeclareServiceCode(ServiceCode.ECS_BUCKET_ACL_ERROR)
+    public ECSException bucketACLSyncFailed(final String bucketName, final String message);
 }

@@ -31,7 +31,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.google.common.base.Joiner;
 
-public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor implements Cloneable {
+public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
     private Logger _logger = LoggerFactory
             .getLogger(StorageProtocolEndPointProcessor.class);
     private List<Object> args;
@@ -139,8 +139,8 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor i
         if (null == port) {
             if ((portinMemory != null) && (portinMemory.getPortNetworkId() != null) &&
                     !(portinMemory.getPortNetworkId().equals(endPointInstanceId))) {
-                // Since this is a new port and for V3, a single physical port can have multiple
-                // viutualSCSIProtocolEndpoints, we may have to create a new port object
+                // Since this is a new protocol endpoint and for V3, a single physical port can have multiple
+                // viutualiSCSIProtocolEndpoints, we will need to create new port object
                 StoragePort newPortinMemory = (StoragePort) portinMemory.clone();
                 newPortinMemory.setId(URIUtil.createId(StoragePort.class));
                 newPortinMemory.setPortNetworkId(endPointInstanceId);

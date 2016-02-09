@@ -58,6 +58,9 @@ public class VPlexApiFactory {
     // Timeout to retrieve the connection from ConnectionManager.
     private int connManagerTimeout = DEFAULT_CONN_MGR_TIMEOUT;
 
+    // Socket connection timeout in milliseconds.
+    private int socketConnectionTimeoutMs = DEFAULT_CONN_TIMEOUT;
+
     // A map of client connections to VPlex Management Stations keyed
     // by the URI of the Management Station.
     private ConcurrentMap<String, VPlexApiClient> _clientMap;
@@ -127,6 +130,13 @@ public class VPlexApiFactory {
         this.connManagerTimeout = connManagerTimeout;
     }
 
+    /**
+     * @param socketConnectionTimeoutMs the socket connection timeout ms to set
+     */
+    public void setSocketConnectionTimeoutMs(int socketConnectionTimeoutMs) {
+        this.socketConnectionTimeoutMs = socketConnectionTimeoutMs;
+    }
+    
     /**
      * Initialize HTTP client
      */

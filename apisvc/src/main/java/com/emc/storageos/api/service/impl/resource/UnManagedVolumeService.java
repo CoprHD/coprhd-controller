@@ -332,7 +332,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 persistConsistencyGroups(requestContext.getCGObjectsToCreateMap().values());
                 // Update UnManagedConsistencyGroups.
                 if (!requestContext.getUmCGObjectsToUpdate().isEmpty()) {
-                    _logger.info("updating {} unmanagedConsistencyGroups in db.");
+                    _logger.info("updating {} unmanagedConsistencyGroups in db.", requestContext.getUmCGObjectsToUpdate().size());
                     _dbClient.updateObject(requestContext.getUmCGObjectsToUpdate());
                 }
             }
@@ -528,7 +528,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             persistConsistencyGroups(requestContext.getCGObjectsToCreateMap().values());
             // Update UnManagedConsistencyGroups.
             if (!requestContext.getUmCGObjectsToUpdate().isEmpty()) {
-                _logger.info("updating {} unmanagedConsistencyGroups in db.");
+                _logger.info("updating {} unmanagedConsistencyGroups in db.", requestContext.getUmCGObjectsToUpdate().size());
                 _dbClient.updateObject(requestContext.getUmCGObjectsToUpdate());
             }
 

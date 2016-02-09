@@ -170,7 +170,18 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     }
                 } else {
                     for (List<Object> snapSet : snap.getSnapSetList()) {
+                        if (null == snapSet) {
+                            log.warn("No snapSet details found for snap: {}", snap.getVolInfo().get(0));
+                            continue;
+                        }
                         snapSetNameToProcess = snapSet.get(1);
+                        if (null != snapSetNameToProcess) {
+                            // update snapshot DEVICE_LABEL with snapshotSet name
+                            StringSet deviceLabel = new StringSet();
+                            deviceLabel.add(snapSetNameToProcess.toString());
+                            unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.DEVICE_LABEL.toString())
+                                    .replace(deviceLabel);
+                        }
                         XtremIOConsistencyGroup snapSetDetails = xtremIOClient.getSnapshotSetDetails(snapSetNameToProcess.toString(),
                                 xioClusterName);
                         if (snapSetDetails != null && snapSetDetails.getCgName() != null) {
@@ -613,14 +624,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
                             // The parent is already managed by CoprHD
                             continue;
                         }
-                        
+
                         // Remove the reference of the snapshot from the snapshot list.
                         if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()) != null) {
                             String key = SupportedVolumeInformation.SNAPSHOTS.toString();
                             for (String rpSnap : rpVolumeSnapMap.get(rpVolumeGUID)) {
                                 volume.getVolumeInformation().get(key).remove(rpSnap);
                             }
-                            
+
                             // If it's the last snapshot, remove the whole key.
                             if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).isEmpty()) {
                                 volume.getVolumeInformation().remove(SupportedVolumeInformation.SNAPSHOTS.toString());
@@ -630,7 +641,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         } else {
                             volume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
                         }
-                        
+
                         dbClient.updateObject(volume);
                     }
                 }

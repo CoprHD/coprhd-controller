@@ -58,7 +58,7 @@ public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLog
         DateTime end = auditLogRequest.getEndTime();
 
         TimeSeriesMetadata.TimeBucket bucket = TimeSeriesMetadata.TimeBucket.HOUR;
-        if (start.plusHours(1).isAfter(end.toInstant())){
+        if (start.plusSeconds(59).isEqual(end.toInstant())){
             bucket = TimeSeriesMetadata.TimeBucket.MINUTE;
         }
 

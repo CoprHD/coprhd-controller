@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.volumecontroller.impl.block;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,9 +15,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
-
-import com.emc.storageos.db.client.model.SynchronizationState;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +30,16 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -290,6 +297,43 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 Joiner.on("\t").join(snapshotList), storage));
 
         return waitFor;
+    }
+
+    private String addSnapshotSessionsToReplicationGroupStep(Workflow workflow, String waitFor,
+                                                             StorageSystem storageSystem,
+                                                             List<Volume> volumes,
+                                                             URI cgURI) {
+
+        List<URI> volumeURIs = newArrayList(transform(volumes, fctnDataObjectToID()));
+        waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                String.format("Updating SnapVx sessions for consistency group %s", cgURI),
+                waitFor, storageSystem.getId(), storageSystem.getSystemType(), this.getClass(),
+                addSnapshotSessionsToConsistencyGroupMethod(storageSystem.getId(), cgURI, volumeURIs),
+                _blockDeviceController.rollbackMethodNullMethod(), null);
+
+        return waitFor;
+    }
+
+    private static Workflow.Method addSnapshotSessionsToConsistencyGroupMethod(URI storage, URI consistencyGroup, List<URI> addVolumesList) {
+        return new Workflow.Method("addSnapshotSessionsToConsistencyGroup", storage, consistencyGroup, addVolumesList);
+    }
+
+    public boolean addSnapshotSessionsToConsistencyGroup(URI storage, URI consistencyGroup, List<URI> volumes, String opId)
+            throws ControllerException {
+        TaskCompleter taskCompleter = null;
+        WorkflowStepCompleter.stepExecuting(opId);
+        try {
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
+            _blockDeviceController.getDevice(storageSystem.getSystemType()).doAddSnapshotSessionsToConsistencyGroup(
+                    storageSystem, consistencyGroup, volumes, taskCompleter);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+            return false;
+        }
+        return true;
     }
 
     private String addClonesToReplicationGroupStep(final Workflow workflow, String waitFor, StorageSystem storageSystem,
@@ -572,6 +616,18 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             }
         }
 
+        return false;
+    }
+
+    private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
+        for (BlockObject volume : volumes) {
+            List<BlockSnapshotSession> sessions =
+                    CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
+            if (!sessions.isEmpty()) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -983,13 +1039,20 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                             repGroupName, cgURI);
                 }
             }
+
+            if (checkIfCGHasSnapshotSessions(volumes)) {
+                log.info("Adding snapshot session steps for adding volumes");
+                // Consolidate multiple snapshot sessions into one CG-based snapshot session
+                waitFor = addSnapshotSessionsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes, cgURI);
+            }
         }
 
         return waitFor;
     }
-
+    
     /**
-     * Adds the steps necessary for removing one or more volumes from consistency group to the given Workflow.
+     * Adds the steps necessary for removing one or more volumes from replication groups to the given Workflow.
+     * volume list could contain volumes from different storage systems and different replication groups
      *
      * @param workflow - a Workflow
      * @param waitFor - a String key that should be used in the Workflow.createStep
@@ -1003,6 +1066,74 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      */
     public String addStepsForRemovingVolumesFromCG(Workflow workflow, String waitFor, URI cgURI, List<URI> volumeList,
             String taskId) throws InternalException {
+        
+        Map<URI, List<URI>> storageToVolMap = new HashMap<URI, List<URI>>();
+        Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, volumeList);
+        while (volumes.hasNext()) {
+            Volume volume = volumes.next();
+            URI system = volume.getStorageController();
+            if (storageToVolMap.get(system) == null) {
+                storageToVolMap.put(system, new ArrayList<URI>());
+            }
+            storageToVolMap.get(system).add(volume.getId());
+        }
+        
+        for (Entry<URI, List<URI>> entry : storageToVolMap.entrySet()) {
+            waitFor = addStepsForRemovingVolumesFromCG(workflow, waitFor, cgURI, entry.getKey(), entry.getValue(), taskId);
+        }
+        
+        return waitFor;
+        
+    }
+
+    /**
+     * add steps to remove replicas from storage groups for a single storage system; could be multiple replication groups
+     * @param workflow
+     * @param waitFor
+     * @param cgURI
+     * @param storage
+     * @param volumeList
+     * @param taskId
+     * @return
+     * @throws InternalException
+     */
+    private String addStepsForRemovingVolumesFromCG(Workflow workflow, String waitFor, URI cgURI, URI storage, List<URI> volumeList,
+            String taskId) throws InternalException {
+        
+        Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, volumeList);
+        Map<String, List<URI>> groupMap = new HashMap<String, List<URI>>();
+        while (volumes.hasNext()) {
+            Volume volume = volumes.next();
+            String groupName = volume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(groupName)) {
+                if (groupMap.get(groupName) == null) {
+                    groupMap.put(groupName, new ArrayList<URI>());
+                }
+                groupMap.get(groupName).add(volume.getId());
+            }
+        }
+        
+        for (Entry<String, List<URI>> entry : groupMap.entrySet()) {
+            waitFor = addStepsForRemovingVolumesFromCG(workflow, waitFor, cgURI, storage, entry.getKey(), entry.getValue(), taskId);
+        }
+        
+        return waitFor;
+    }
+
+    /**
+     * add steps to remove replicas from storage group for a single storage system and a single replication group
+     * @param workflow
+     * @param waitFor
+     * @param cgURI
+     * @param storage
+     * @param groupName
+     * @param volumeList
+     * @param taskId
+     * @return
+     * @throws InternalException
+     */
+    private String addStepsForRemovingVolumesFromCG(Workflow workflow, String waitFor, URI cgURI, URI storage, String groupName, List<URI> volumeList,
+            String taskId) throws InternalException {
         log.info("addStepsForRemovingVolumesFromCG {}", cgURI);
         List<Volume> volumes = new ArrayList<Volume>();
         Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeList);
@@ -1012,32 +1143,92 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 volumes.add(volume);
             }
         }
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, storage);
 
         if (!volumes.isEmpty()) {
             Volume firstVolume = volumes.get(0);
             if (!(firstVolume.isInCG() && ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient)) &&
                   !ControllerUtils.isNotInRealVNXRG(firstVolume, _dbClient)) {
+                log.info(String.format("Remove from replication group not supported for volume %s", firstVolume.getLabel()));
                 return waitFor;
             }
 
             boolean isRemoveAllFromCG = ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumes);
             log.info("isRemoveAllFromCG {}", isRemoveAllFromCG);
-            Set<URI> volumeSet = new HashSet<URI>(volumeList);
             if (checkIfCGHasCloneReplica(volumes)) {
                 log.info("Adding steps to process clones for removing volumes");
-                waitFor = detachCloneSteps(workflow, waitFor, volumeSet, volumes, isRemoveAllFromCG);
+                // get clone volumes
+                String cloneGroupName = null;
+                List<URI> cloneUris = new ArrayList<URI>();
+                for (Volume volume : volumes) {
+                    if (volume.getFullCopies() != null && !volume.getFullCopies().isEmpty()) {
+                        for (String cloneUri : volume.getFullCopies()) {
+                            Volume clone = _dbClient.queryObject(Volume.class, URI.create(cloneUri));
+                            if (clone != null && !clone.getInactive() && NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
+                                cloneUris.add(clone.getId());
+                                if (cloneGroupName == null) {
+                                    cloneGroupName = clone.getReplicationGroupInstance();
+                                }
+                            }
+                        }
+                    }
+                }
+                // add steps to remove clones from the replication group
+                waitFor = removeClonesFromReplicationGroupStep(workflow, waitFor, system, cgURI, cloneUris, cloneGroupName);
             }
 
             if (checkIfCGHasMirrorReplica(volumes)) {
                 log.info("Adding steps to process mirrors for removing volumes");
-                // delete mirrors for the to be deleted volumes
-                waitFor = deleteMirrorSteps(workflow, waitFor, volumeSet, volumes, isRemoveAllFromCG);
+                List<URI> mirrorUris = new ArrayList<URI>();
+                String mirrorGroupName = null;
+                for (Volume volume : volumes) {
+                    StringSet mirrors = volume.getMirrors();
+                    if (mirrors != null && !mirrors.isEmpty()) {
+                        for (String mirrorUri : mirrors) {
+                            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorUri));
+                            if (mirror != null && !mirror.getInactive() && NullColumnValueGetter.isNotNullValue(mirror.getReplicationGroupInstance())) {
+                                mirrorUris.add(mirror.getId());
+                                if (mirrorGroupName == null) {
+                                    mirrorGroupName = mirror.getReplicationGroupInstance();
+                                }
+                            }
+                        }
+                    }
+                }
+                // add steps to remove mirrors from replication group
+                waitFor = removeMirrorsFromReplicationGroupStep(workflow, waitFor, system, cgURI, mirrorUris, mirrorGroupName);
             }
 
             if (checkIfCGHasSnapshotReplica(volumes)) {
                 log.info("Adding steps to process snapshots for removing volumes");
-                // delete snapshots for the to be deleted volumes
-                waitFor = deleteSnapshotSteps(workflow, waitFor, volumeSet, volumes, isRemoveAllFromCG);
+                List<URI> snapshots = new ArrayList<URI>();
+                String replicationGroupInstance = null;
+                String snapsetLabel = null;
+                for (Volume volume : volumes) {
+                    URIQueryResultList list = new URIQueryResultList();
+                    _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                            list);
+                    Iterator<URI> it = list.iterator();
+                    while (it.hasNext()) {
+                        URI snapshotUri = it.next();
+                        snapshots.add(snapshotUri);
+                        if (replicationGroupInstance == null) {
+                            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotUri);
+                            if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                                replicationGroupInstance = snapshot.getReplicationGroupInstance();
+                            }
+                            if (NullColumnValueGetter.isNotNullValue(snapshot.getSnapsetLabel())) {
+                                snapsetLabel = snapshot.getSnapsetLabel();
+                            }
+                        }
+                    }
+                }
+                // if snapshot group name was not found in replicationGroupInstance, check snapshotSetLabel
+                if (replicationGroupInstance == null) {
+                    replicationGroupInstance = snapsetLabel;
+                }
+                // add steps to removed snapshots from the replication group
+                waitFor = removeSnapshotsFromReplicationGroupStep(workflow, waitFor, system, cgURI, snapshots, replicationGroupInstance);
             }
         }
 

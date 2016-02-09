@@ -53,11 +53,10 @@ function updateClones(oSettings) {
   #{collapse 'resources.volume.fullcopies',badge:'cloneCountBadge', noPanelBody: true}          
           #{DataTable.table id:'cloneApplication',
                   dataTable:cloneTable,
-                  expandable:true,
                   source:@applicationCloneJson(application.id),                  
                   cssClass:'editableRows',
                   options:['iDisplayLength': '5', 'fnDrawCallback': 'updateClones']/} 
-          #{DataTable.expandHtml @getAssociatedVolume(':id', application.id), table:'cloneApplication'/}
+          
 #{/collapse}
   </div>
 #{/if}

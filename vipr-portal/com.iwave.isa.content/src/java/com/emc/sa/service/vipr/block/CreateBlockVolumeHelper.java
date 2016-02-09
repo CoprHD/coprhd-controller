@@ -76,4 +76,8 @@ public class CreateBlockVolumeHelper {
     public Integer getCount() {
         return this.count;
     }
+    
+    public URI getComputeResource(){
+    	return null;
+    }
 }

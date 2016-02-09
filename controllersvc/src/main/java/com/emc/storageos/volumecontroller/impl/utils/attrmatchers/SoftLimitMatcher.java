@@ -31,7 +31,7 @@ public class SoftLimitMatcher extends AttributeMatcher {
         _logger.info("started matching pools with soft limit.");
         for (StoragePool pool : allPools) {
             StorageSystem system = _objectCache.getDbClient().queryObject(StorageSystem.class, pool.getStorageDevice());
-            if (system.getSupportSoftLimit().equals(attributeMap.get(Attributes.support_soft_limit))) {
+            if (system.getSupportSoftLimit().equals(attributeMap.get(Attributes.support_soft_limit.name()))) {
                 filteredPools.add(pool);
             }
         }

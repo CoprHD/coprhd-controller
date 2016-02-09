@@ -14,10 +14,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
 
     // enumeration of quota directory security styles
     public enum SecurityStyles {
-        parent,
-        unix,
-        ntfs,
-        mixed
+        parent, unix, ntfs, mixed
     };
 
     // file share or volume this quota directory is associated with
@@ -41,12 +38,14 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
     private Boolean _oplock;
 
     private Long _size; // Quota size in bytes- hard limit.
-    
-    private Integer _softLimit; //Soft limit in percentage of hard limit
-    
-    private Integer _notificationLimit; // notification limit in percentage of hardl limit
-    
-    private Integer _softGrace; //soft grace period in days
+
+    private Integer _softLimit; // Soft limit in percentage of hard limit
+
+    private Integer _notificationLimit; // notification limit in percentage of hard limit
+
+    private Integer _softGrace; // soft grace period in days
+
+    private Boolean _softLimitExceeded; // Whether soft limit has exceeded or not
 
     // UNIX, NTFS, Mixed
     private String _securityStyle = SecurityStyles.parent.name();
@@ -66,6 +65,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         setChanged("parent");
     }
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelation")
     @Name("tenant")
     public NamedURI getTenant() {
@@ -77,6 +77,7 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
         setChanged("tenant");
     }
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
@@ -157,6 +158,16 @@ public class QuotaDirectory extends FileObject implements ProjectResource {
     public void setSoftGrace(Integer softGrace) {
         this._softGrace = softGrace;
         setChanged("softGrace");
+    }
+
+    @Name("softLimitExceeded")
+    public Boolean getSoftLimitExceeded() {
+        return _softLimitExceeded;
+    }
+
+    public void setSoftLimitExceeded(Boolean softLimitExceeded) {
+        this._softLimitExceeded = softLimitExceeded;
+        setChanged("softLimitExceeded");
     }
 
     @Name("security_style")

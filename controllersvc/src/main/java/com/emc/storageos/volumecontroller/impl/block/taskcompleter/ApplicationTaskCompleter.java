@@ -31,11 +31,11 @@ public class ApplicationTaskCompleter extends TaskCompleter{
 
     private static final long serialVersionUID = -9188670003331949130L;
     private static final Logger log = LoggerFactory.getLogger(ApplicationTaskCompleter.class);
-    protected List<URI> addVolumes;
-    protected List<URI> removeVolumes;
+    protected Collection<URI> addVolumes;
+    protected Collection<URI> removeVolumes;
     protected Collection<URI> consistencyGroups;
     
-    public ApplicationTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI>removeVols, Collection<URI> consistencyGroups, String opId) {
+    public ApplicationTaskCompleter(URI volumeGroupId, Collection<URI> addVolumes, Collection<URI>removeVols, Collection<URI> consistencyGroups, String opId) {
         super(VolumeGroup.class, volumeGroupId, opId);
         this.addVolumes = addVolumes;
         this.removeVolumes = removeVols;

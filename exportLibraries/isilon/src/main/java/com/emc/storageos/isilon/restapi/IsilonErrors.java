@@ -27,6 +27,9 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public interface IsilonErrors {
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError doExpandFSFailed(final URI id);
+    
+    @DeclareServiceCode(ServiceCode.ISILON_ERROR)
+    public ServiceError unableToUpdateFileSystem(final URI id);
 
     @DeclareServiceCode(ServiceCode.ISILON_ERROR)
     public ServiceError unableToExpandFileSystem();

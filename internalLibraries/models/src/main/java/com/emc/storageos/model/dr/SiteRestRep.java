@@ -21,7 +21,17 @@ public class SiteRestRep extends DataObjectRestRep {
     private String vip;
     private String state;
     private String networkHealth;
-    
+    private long createTime;
+
+    @XmlElement(name = "create_time")
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(long createTime) {
+        this.createTime = createTime;
+    }
+
     @XmlElement(name = "uuid")
     public String getUuid() {
         return uuid;

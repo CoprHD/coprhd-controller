@@ -106,7 +106,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String LOCAL = "local";
-    private static int BATCH_SIZE = Constants.DEFAULT_PARTITION_SIZE;
+    private static int BATCH_SIZE = 40;
 
     // WWN for offline ports
     public static final String OFFLINE_PORT_WWN = "00:00:00:00:00:00:00:00";
@@ -999,6 +999,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         unManagedVolumeInformation.put(SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString(),
                 volumeClusters);
 
+        StringSet accesses = new StringSet();
+        accesses.add(Volume.VolumeAccessState.READWRITE.getState());
+        unManagedVolumeInformation.put(SupportedVolumeInformation.ACCESS.toString(), accesses);
+
         // set supported vpool list
         StringSet matchedVPools = new StringSet();
         String highAvailability = info.getLocality().equals(LOCAL) ?
@@ -1046,6 +1050,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         break;
                     }
                 }
+            }
+            
+            if (!matchedVPools.contains(vpool.getId().toString())) {
+                s_logger.info("   virtual pool {} is not valid because "
+                        + "the volume resides on a cluster that does not match the varray(s) associated with the vpool",
+                        vpool.getLabel());                
             }
         }
 

@@ -273,7 +273,7 @@ public class LicenseFeature implements Serializable {
     }
 
     public void setStorageCapacityUnit(String storageCapacityUnit) {
-        this.storageCapacity = storageCapacityUnit;
+        this.storageCapacityUnit = storageCapacityUnit;
     }
 
     @XmlElement(name = "storage_capacity")

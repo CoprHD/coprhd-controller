@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -943,6 +944,26 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             return BiosCommandResult.createErrorResult(e);
         }
+    }
+
+    FileDeviceInputOutput PrepareFileDeviceInputOutput(boolean forceDelete, URI uri, String opId) {
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        boolean isFile = false;
+        args.setOpId(opId);
+        if (URIUtil.isType(uri, FileShare.class)) {
+            isFile = true;
+            args.setForceDelete(forceDelete);
+            FileShare fsObj = _dbClient.queryObject(FileShare.class, uri);
+
+            if (fsObj.getVirtualNAS() != null) {
+                VirtualNAS vNAS = _dbClient.queryObject(VirtualNAS.class, fsObj.getVirtualNAS());
+                args.setvNAS(vNAS);
+            }
+
+            args.addFileShare(fsObj);
+            args.setFileOperation(isFile);
+        }
+        return args;
     }
 
     @Override
@@ -2345,8 +2366,31 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
+    public void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer, String opId) {
+        // delete source objects
+        BiosCommandResult biosCommandResult = null;
+        if (sources != null && !sources.isEmpty()) {
+            for (URI sourceURI : sources) {
+                biosCommandResult = rollbackCreatedFilesystem(system, sourceURI, opId, true);
 
+            }
+        }
+
+        // delete the target objects
+        if (targets != null && !targets.isEmpty()) {
+            for (URI target : targets) {
+                FileShare fileShare = _dbClient.queryObject(FileShare.class, target);
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
+                rollbackCreatedFilesystem(storageSystem, target, opId, true);
+            }
+        }
+        completer.ready(_dbClient);
+
+    }
+
+    BiosCommandResult rollbackCreatedFilesystem(StorageSystem system, URI uri, String opId, boolean isForceDelete) {
+        FileDeviceInputOutput fileInputOutput = this.PrepareFileDeviceInputOutput(isForceDelete, uri, opId);
+        return this.doDeleteFS(system, fileInputOutput);
     }
 
     @Override

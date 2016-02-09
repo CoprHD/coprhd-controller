@@ -38,7 +38,7 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
 
     @Override
     public void doRollbackMirrorLink(StorageSystem system, List<URI> sources,
-            List<URI> targets, TaskCompleter completer) {
+            List<URI> targets, TaskCompleter completer, String opId) {
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 

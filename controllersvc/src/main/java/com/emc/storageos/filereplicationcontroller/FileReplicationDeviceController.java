@@ -294,7 +294,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             completer = new FileMirrorRollbackCompleter(sourceURIs, opId);
-            getRemoteMirrorDevice(system).doRollbackMirrorLink(system, sourceURIs, targetURIs, completer);
+            getRemoteMirrorDevice(system).doRollbackMirrorLink(system, sourceURIs, targetURIs, completer, opId);
         } catch (Exception e) {
             log.error("Ignoring exception while rolling back Mirror sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run

@@ -67,7 +67,7 @@ public interface RemoteFileMirrorOperation {
      * @param targets
      * @param completer
      */
-    void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer);
+    void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer, String opId);
 
     /**
      * Suspend replication links.

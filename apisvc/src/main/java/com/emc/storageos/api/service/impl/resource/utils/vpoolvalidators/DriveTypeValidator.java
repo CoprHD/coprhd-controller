@@ -28,7 +28,7 @@ public class DriveTypeValidator extends VirtualPoolValidator<BlockVirtualPoolPar
             VirtualPool vPool, BlockVirtualPoolUpdateParam updateParam, DbClient dbClient) {
         StringSet systemType = new StringSet();
         if (vPool.getArrayInfo() != null) {
-            systemType = vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
+            systemType.addAll(vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE));
         }
         if (VirtualPoolUtil.validateNullDriveTypeForHDSSystems(vPool.getAutoTierPolicyName(),
                 systemType, vPool.getDriveType())) {

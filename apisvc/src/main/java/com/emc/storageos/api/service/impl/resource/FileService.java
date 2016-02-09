@@ -1220,7 +1220,6 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
 
-    
     /**
      * Expand file system.
      * <p>
@@ -1240,23 +1239,24 @@ public class FileService extends TaskResourceService {
     public TaskResourceRep update(@PathParam("id") URI id, FileSystemUpdateParam param)
             throws InternalException {
 
-        _log.info(String.format("FileShareUpdate --- FileShare id: %1$s",id));
+        _log.info(String.format("FileShareUpdate --- FileShare id: %1$s", id));
         // check file System
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        
+
         Boolean deviceSupportsSoftLimit = device.getSupportSoftLimit() != null ? device.getSupportSoftLimit() : false;
-        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit() : false;
-        
+        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit()
+                : false;
+
         if (param.getSoftLimit() != 0 && !deviceSupportsSoftLimit) {
             throw APIException.badRequests.unsupportedParameterForStorageSystem("soft_limit");
         }
-        
+
         if (param.getNotificationLimit() != 0 && !deviceSupportsNotificationLimit) {
             throw APIException.badRequests.unsupportedParameterForStorageSystem("notification_limit");
         }
-        
+
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "soft_limit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notification_limit");
 
@@ -1267,9 +1267,9 @@ public class FileService extends TaskResourceService {
         fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
         fs.setSoftGracePeriod(param.getSoftGrace());
         fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
-        
+
         _dbClient.updateObject(fs);
-        
+
         FileController controller = getController(FileController.class,
                 device.getSystemType());
 
@@ -1279,7 +1279,7 @@ public class FileService extends TaskResourceService {
         controller.modifyFS(fs.getStorageDevice(), fs.getPool(), id, task);
         op.setDescription("Filesystem update");
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(), 
+                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(),
                 param.getSoftLimit(), param.getSoftGrace());
 
         return toTask(fs, task, op);
@@ -3556,7 +3556,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3598,20 +3598,55 @@ public class FileService extends TaskResourceService {
         }
         String currentMirrorStatus = fs.getMirrorStatus();
 
+        // Refresh Operation can be performed without any check.
         if (operation.equalsIgnoreCase(ProtectionOp.REFRESH.toString())) {
             return true;
         }
+
+        // START operation can be performed only if Mirror status is UNKNOWN or DETACHED
+        if ((operation.equalsIgnoreCase(ProtectionOp.START.toString())) &&
+                (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.DETACHED.toString()))) {
+            return true;
+        }
+
+        // STOP operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+        if ((operation.equalsIgnoreCase(ProtectionOp.STOP.toString())) &&
+                (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))) {
+            return true;
+        }
+
+        // PAUSE operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+        if ((operation.equalsIgnoreCase(ProtectionOp.PAUSE.toString())) &&
+                (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))) {
+            return true;
+        }
+
+        // RESUME operation can be performed only if Mirror status is SUSPENDED.
+        if ((operation.equalsIgnoreCase(ProtectionOp.RESUME.toString())) &&
+                (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SUSPENDED.toString()))) {
+            return true;
+        }
+
+        // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
+        if (operation.equalsIgnoreCase(ProtectionOp.FAILOVER.toString())
+                && (!currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
+                        || !currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))) {
+            return true;
+        }
+
+        // Fail back can be performed if Mirror status is FAILED_OVER only.
         if (operation.equalsIgnoreCase(ProtectionOp.FAILBACK.toString())
                 && currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
             return true;
         }
-        if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
-            notSuppReasonBuff.append(String.format("Mirror Operation %s can't be performed on the requested File System  %s"
-                    + " as the file system is in FAILED OVER mode.", operation.toUpperCase(), fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-        return true;
+
+        notSuppReasonBuff.append(String.format("Mirror operation %s can't be performed on the requested File System  %s"
+                + " as the file system is in %s state", operation.toUpperCase(), fs.getLabel(), currentMirrorStatus.toUpperCase()));
+        _log.info(notSuppReasonBuff.toString());
+        return false;
     }
 
     /**

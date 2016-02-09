@@ -1,4 +1,4 @@
-#{if personality.equalsIgnoreCase('SOURCE')}
+#{if 'SOURCE'.equalsIgnoreCase(personality)}
   <table class='table table-condensed table-striped'>
   <thead>
     <tr>
@@ -18,7 +18,7 @@
       </tr>
     #{/list}
     <tr>
-    <td></td><td></td>
+    <td></td>
       <td style="text-align:right;">
         <a class="btn btn-xs btn-success" href="@{mirrorOperationFileSystem(params.fileSystemId,'start')}">&{'button.mirroring.start'}</a>
         <a class="btn btn-danger btn-xs" href="@{mirrorOperationFileSystem(params.fileSystemId,'stop')}">&{'button.mirroring.stop'}</a>

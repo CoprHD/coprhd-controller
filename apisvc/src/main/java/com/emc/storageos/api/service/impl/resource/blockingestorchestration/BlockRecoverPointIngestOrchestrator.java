@@ -330,7 +330,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // Matching should indicate the volume is the VPLEX Source side. 
             // Non-matching varrays will be the VPLEX HA side.
             for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
-                // First look in created block objects for the associated volumes. This would be the latest version.                
+                // Find the associated volumes using the context maps or the db if they are already there               
                 Volume associatedVolume = VolumeIngestionUtil.findVolume(_dbClient, 
                                                                             vplexVolumeContext.getObjectsToBeCreatedMap(),
                                                                             vplexVolumeContext.getObjectsToBeUpdatedMap(), 

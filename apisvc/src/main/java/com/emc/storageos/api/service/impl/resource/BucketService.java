@@ -675,18 +675,18 @@ public class BucketService extends TaskResourceService {
             }
             if ("error".equals(dbTask.getStatus())) {
                 breakLoop = true;
-                throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(), "Could not get ACL from ECS");
             }
-            if((System.currentTimeMillis()-startTime)>2000){
+            if ((System.currentTimeMillis() - startTime) > 3000) {
                 breakLoop = true;
-                throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(), "Could not get ACL from ECS due to time-out");
             }
         }
-        if(!failedOp){
+        if (!failedOp) {
             bucket.setVersion(_VERSION);
             _dbClient.updateObject(bucket);
+        } else {
+            throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(),
+                    "Could not get ACL from ECS. Please try again later or proceed with ACL add");
         }
-        
 
     }
 }

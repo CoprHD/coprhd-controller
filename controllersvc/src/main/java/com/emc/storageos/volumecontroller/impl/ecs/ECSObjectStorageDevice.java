@@ -5,6 +5,9 @@
 
 package com.emc.storageos.volumecontroller.impl.ecs;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
@@ -26,7 +29,6 @@ import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSBucketACL;
 import com.emc.storageos.ecs.api.ECSException;
-import com.emc.storageos.ecs.api.NamespaceCommandResult;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
@@ -37,7 +39,6 @@ import com.emc.storageos.volumecontroller.ObjectStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 
 /**
  * ECS specific object controller implementation.
@@ -46,6 +47,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
     private ECSApiFactory ecsApiFactory;
     private DbClient _dbClient;
+    private  final String PRODUCT_IDENT_PATH = "/opt/storageos/etc/product";
 
     /**
      * Set ECS API factory
@@ -105,6 +107,9 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             completeTask(bucket.getId(), taskId, e);
             result = BiosCommandResult.createErrorResult(e);
         }
+        String productIdent = readFile(PRODUCT_IDENT_PATH);
+        productIdent = (productIdent == null) ? "Unknown" : productIdent;
+        bucket.setVersion(productIdent);
         _dbClient.persistObject(bucket);
         return result;
     }
@@ -528,6 +533,27 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     private void completeTask(final URI bucketID, final String taskID, final String message) {
         BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
         completer.statusReady(_dbClient, message);
+    }
+    
+    private String readFile(String path) {
+        BufferedReader br = null;
+        String content = null;
+        try {
+            br = new BufferedReader(new FileReader(path));
+            content = br.readLine();
+        } catch (Exception e) {
+            _log.warn("Ignoring failure during reading the file({})", path, e);
+        } finally {
+            try {
+                if (br != null) {
+                    br.close();
+                }
+            } catch (IOException ex) {
+                _log.debug("Ignoring failure during closing the buffer reader", ex);
+            }
+        }
+
+        return content;
     }
 
     @Override

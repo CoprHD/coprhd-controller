@@ -19,6 +19,11 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
+/**
+ * Migration handler to upgrade the XtremIO snapshots field replicationGroupInstance
+ * from snapsetLabel filed
+ *
+ */
 public class XtremioBlockSnapshotReplicationGroupInstanceMigration extends BaseCustomMigrationCallback {
     private static final Logger log = LoggerFactory.getLogger(XtremioBlockSnapshotReplicationGroupInstanceMigration.class);
 
@@ -44,13 +49,14 @@ public class XtremioBlockSnapshotReplicationGroupInstanceMigration extends BaseC
                 if (DiscoveredDataObject.Type.xtremio.name().equals(system.getSystemType())) {
                     String groupInstance = snapshot.getSnapsetLabel();
                     if (NullColumnValueGetter.isNotNullValue(groupInstance)) {
-                        log.info("Setting replicationGroupInstance {} from snapsetLabel", groupInstance);
+                        log.info("Setting replicationGroupInstance {} for snapshot {}", groupInstance, snapshot.getLabel());
                         snapshot.setReplicationGroupInstance(groupInstance);
                         dbClient.updateObject(snapshot);
                     }
                 }
             }
         }
+        log.info("Migratiion for XIO snapshot replication group instance completed");
     }
 
 }

@@ -5,6 +5,8 @@
 package com.emc.storageos.volumecontroller.impl.xtremio;
 
 import java.net.URI;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -122,7 +124,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             List<BlockSnapshot> snapObjs = dbClient.queryObject(BlockSnapshot.class, snapshotList);
             BlockSnapshot snapshotObj = snapObjs.get(0);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-
+            String snapsetLabel = snapshotObj.getSnapsetLabel();
             URI cgId = snapshotObj.getConsistencyGroup();
             if (cgId != null) {
                 BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
@@ -130,9 +132,10 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 String snapshotSetTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client,
                         getVolumeFolderName(snapshotObj.getProject().getURI(), storage), clusterName)
                         .get(XtremIOConstants.SNAPSHOT_KEY);
-                client.createConsistencyGroupSnapshot(group.getLabel(), snapshotObj.getSnapsetLabel(), "", snapType, clusterName);
+                snapsetLabel = snapshotObj.getSnapsetLabel() + new SimpleDateFormat("yyyyMMddhhmm").format(new Date());
+                client.createConsistencyGroupSnapshot(group.getLabel(), snapsetLabel, "", snapType, clusterName);
                 // tag the created the snapshotSet
-                client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapshotObj.getSnapsetLabel(), clusterName);
+                client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapsetLabel, clusterName);
             }
             // Create mapping of volume.deviceLabel to BlockSnapshot object
             Map<String, BlockSnapshot> volumeToSnapMap = new HashMap<String, BlockSnapshot>();
@@ -142,11 +145,12 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             }
 
             // Get the snapset details
-            XtremIOConsistencyGroup snapset = client.getSnapshotSetDetails(snapshotObj.getSnapsetLabel(), clusterName);
+            XtremIOConsistencyGroup snapset = client.getSnapshotSetDetails(snapsetLabel, clusterName);
             for (List<Object> snapDetails : snapset.getVolList()) {
                 XtremIOVolume xioSnap = client.getSnapShotDetails(snapDetails.get(1).toString(), clusterName);
+                _log.info("XIO Snap : {}", xioSnap);
                 BlockSnapshot snapshot = volumeToSnapMap.get(xioSnap.getAncestoVolInfo().get(1));
-                processSnapshot(xioSnap, snapshot, storage);
+                processSnapshot(xioSnap, snapshot, storage, snapsetLabel);
                 dbClient.updateObject(snapshot);
             }
             taskCompleter.ready(dbClient);
@@ -158,7 +162,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
 
     }
 
-    private void processSnapshot(XtremIOVolume xioSnap, BlockSnapshot snapObj, StorageSystem storage) {
+    private void processSnapshot(XtremIOVolume xioSnap, BlockSnapshot snapObj, StorageSystem storage, String snapsetLabel) {
         snapObj.setWWN(xioSnap.getVolInfo().get(0));
         // if created snap wwn is not empty then update the wwn
         if (!xioSnap.getWwn().isEmpty()) {
@@ -171,7 +175,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         boolean isReadOnly = XtremIOConstants.XTREMIO_READ_ONLY_TYPE.equals(xioSnap.getSnapshotType()) ? Boolean.TRUE : Boolean.FALSE;
         snapObj.setIsReadOnly(isReadOnly);
         snapObj.setIsSyncActive(true);
-        snapObj.setReplicationGroupInstance(snapObj.getSnapsetLabel());
+        snapObj.setReplicationGroupInstance(snapsetLabel);
     }
 
     @Override

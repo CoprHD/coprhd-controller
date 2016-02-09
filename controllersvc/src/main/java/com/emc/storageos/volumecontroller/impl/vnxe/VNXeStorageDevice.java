@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.Snapshot;
@@ -677,8 +678,11 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public BiosCommandResult doModifyFS(StorageSystem storage,
             FileDeviceInputOutput fd) throws ControllerException {
-        // TODO Auto-generated method stub
-        return null;
+        BiosCommandResult result = new BiosCommandResult();
+        result.setCommandSuccess(false);
+        result.setCommandStatus(Operation.Status.error.name());
+        result.setMessage("Modify FS NOT supported for VNXe.");
+        return result;
     }
 
     @Override

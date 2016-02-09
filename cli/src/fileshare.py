@@ -1118,11 +1118,11 @@ def create_parser(subcommand_parsers, common_parser):
                                 required=False)
     create_parser.add_argument('-advisorylimit', '-advlmt',
                                dest='advlim',
-                               help='Advisory limit in % for the filesystem',
+                               help='Advisory limit in percentage for the filesystem',
                                metavar='<advisorylimit>')
     create_parser.add_argument('-softlimit', '-softlmt',
                                dest='softlim',
-                               help='Soft limit in % for the filesystem',
+                               help='Soft limit in percentage for the filesystem',
                                metavar='<softlimit>')
     create_parser.add_argument('-graceperiod', '-grace',
                                dest='grace',
@@ -1698,7 +1698,7 @@ def export_parser(subcommand_parsers, common_parser):
         help='Endpoints: host names, IP addresses, or netgroups')
     mandatory_args.add_argument('-protocol', '-pl',
                                 help='Protocol',
-                                choices=["NFS", "NFSv4", "CIFS"],
+                                choices=["NFS", "CIFS"],
                                 dest='protocol',
                                 required=True)
     export_parser.add_argument('-share', '-sh',

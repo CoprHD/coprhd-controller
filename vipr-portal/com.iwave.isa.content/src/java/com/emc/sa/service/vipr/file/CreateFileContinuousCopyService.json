@@ -1,0 +1,23 @@
+{
+  baseKey:"CreateFileContinuousCopy.File",
+  serviceId:"CreateFileContinuousCopy",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystem:{
+      type:"assetType.vipr.fileFilesystem",
+      lockable: true
+    },
+
+    name:{
+      type:"text",
+      validation:{
+        min:2,
+        max:128
+      }
+    }
+  }
+}

@@ -5,13 +5,7 @@
 
 package com.emc.storageos.coordinator.client.service.impl;
 
-import static com.emc.storageos.coordinator.client.model.Constants.CONTROL_NODE_SYSSVC_ID_PATTERN;
-import static com.emc.storageos.coordinator.client.model.Constants.DB_CONFIG;
-import static com.emc.storageos.coordinator.client.model.Constants.GLOBAL_ID;
-import static com.emc.storageos.coordinator.client.model.Constants.MIGRATION_STATUS;
-import static com.emc.storageos.coordinator.client.model.Constants.NODE_DUALINETADDR_CONFIG;
-import static com.emc.storageos.coordinator.client.model.Constants.SCHEMA_VERSION;
-import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
+import static com.emc.storageos.coordinator.client.model.Constants.*;
 import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY;
 import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_PROPERTY_ID;
 import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
@@ -38,6 +32,8 @@ import java.util.regex.Pattern;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.DeleteBuilder;
+import org.apache.curator.framework.api.transaction.CuratorTransaction;
+import org.apache.curator.framework.api.transaction.CuratorTransactionFinal;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.cache.NodeCache;
 import org.apache.curator.framework.recipes.cache.NodeCacheListener;
@@ -96,6 +92,7 @@ import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
@@ -141,6 +138,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
     private DistributedAroundHook ownerLockAroundHook;
+    
+    // ThreadLocal variable to hold zk transaction handler
+    private ThreadLocal<CuratorTransaction> zkTransactionHandler = new ThreadLocal<CuratorTransaction>();
     
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
@@ -238,7 +238,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
-        site.setVip(vdcEndpoint);
+        String vip = vdcEndpoint;
+        if (vdcEndpoint.contains(":")) {
+            vip = DualInetAddress.normalizeInet6Address(vdcEndpoint);
+        }
+        site.setVip(vip);
         site.setNodeCount(getNodeCount());
 
         Map<String, DualInetAddress> controlNodes = getInetAddessLookupMap().getControllerNodeIPLookupMap();
@@ -252,9 +256,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             DualInetAddress addr = cnode.getValue();
             if (addr.hasInet4()) {
                 ipv4Addresses.put(nodeId, addr.getInet4());
+            } else {
+                ipv4Addresses.put(nodeId, PropertyConstants.IPV4_ADDR_DEFAULT);
             }
+
             if (addr.hasInet6()) {
-                ipv6Addresses.put(nodeId, addr.getInet6());
+                ipv6Addresses.put(nodeId, DualInetAddress.normalizeInet6Address(addr.getInet6()));
+            } else {
+                ipv6Addresses.put(nodeId, PropertyConstants.IPV6_ADDR_DEFAULT);
             }
         }
 
@@ -543,6 +552,29 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public void startTransaction() {
+        CuratorTransaction tx = _zkConnection.curator().inTransaction();
+        zkTransactionHandler.set(tx);
+    }
+    
+    @Override
+    public void commitTransaction() throws CoordinatorException {
+        try {
+            CuratorTransaction handler = zkTransactionHandler.get();
+            CuratorTransactionFinal tx = (CuratorTransactionFinal) handler;
+            tx.commit();
+            zkTransactionHandler.remove();
+        } catch (Exception ex) {
+            throw CoordinatorException.fatals.unableToPersistTheConfiguration(ex);
+        }
+    }
+    
+    @Override
+    public void discardTransaction() {
+        zkTransactionHandler.remove();
+    }
+
+    @Override
     public void persistServiceConfiguration(Configuration... configs) throws CoordinatorException {
         persistServiceConfiguration(null, configs);
     }
@@ -558,10 +590,22 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
                 String servicePath = String.format("%1$s/%2$s", configParentPath, config.getId());
                 Stat stat = _zkConnection.curator().checkExists().forPath(servicePath);
+                
+                CuratorTransaction handler = zkTransactionHandler.get();
                 if (stat != null) {
-                    _zkConnection.curator().setData().forPath(servicePath, config.serialize());
+                    if (handler != null) {
+                        CuratorTransactionFinal tx = handler.setData().forPath(servicePath, config.serialize()).and();
+                        zkTransactionHandler.set(tx);
+                    } else {
+                        _zkConnection.curator().setData().forPath(servicePath, config.serialize());
+                    }
                 } else {
-                    _zkConnection.curator().create().forPath(servicePath, config.serialize());
+                    if (handler != null) {
+                        CuratorTransactionFinal tx = handler.create().forPath(servicePath, config.serialize()).and();
+                        zkTransactionHandler.set(tx);
+                    } else {
+                        _zkConnection.curator().create().forPath(servicePath, config.serialize());
+                    }
                 }
             }
         } catch (final Exception e) {
@@ -586,7 +630,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             String servicePath = String.format("%1$s%2$s/%3$s/%4$s", prefix, ZkPath.CONFIG, config.getKind(),
                     config.getId());
             try {
-                _zkConnection.curator().delete().forPath(servicePath);
+                CuratorTransaction handler = zkTransactionHandler.get();
+                if (handler != null) {
+                    CuratorTransactionFinal tx = handler.delete().forPath(servicePath).and();
+                    zkTransactionHandler.set(tx);
+                } else {
+                    _zkConnection.curator().delete().forPath(servicePath);
+                }
             } catch (KeeperException.NoNodeException ignore) {
                 // Ignore exception, don't re-throw
                 log.debug("Caught exception but ignoring it: " + ignore);
@@ -668,9 +718,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     
     private boolean isSiteSpecific(String kind) {
         if (kind.equals(SiteInfo.CONFIG_KIND)
-            || kind.equals(SiteError.CONFIG_KIND)
-            || kind.equals(PowerOffState.CONFIG_KIND)
-            || kind.equals(SiteMonitorResult.CONFIG_KIND)) {
+                || kind.equals(SiteError.CONFIG_KIND)
+                || kind.equals(PowerOffState.CONFIG_KIND)
+                || kind.equals(SiteMonitorResult.CONFIG_KIND)
+                || kind.equals(DOWNLOADINFO_KIND)) {
             return true;
         }
         return false;
@@ -1558,7 +1609,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return getAllNodeInfos(clazz, nodeIdFilter, _zkConnection.getSiteId());
     }
     
-    private <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
+    public <T extends CoordinatorSerializable> Map<Service, T> getAllNodeInfos(Class<T> clazz,
             Pattern nodeIdFilter, String siteId) throws Exception {
         final Map<Service, T> infos = new HashMap<Service, T>();
         List<Service> allSysSvcs = locateAllServices(siteId, sysSvcName, sysSvcVersion, (String) null, null);

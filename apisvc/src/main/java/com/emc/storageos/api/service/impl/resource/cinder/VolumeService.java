@@ -1018,7 +1018,7 @@ public class VolumeService extends TaskResourceService {
                 varray, project, vpool, capabilities);
 
         if (recommendations.isEmpty()) {
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
         }
 
         String volname = null;

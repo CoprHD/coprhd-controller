@@ -69,6 +69,7 @@ distutils.core.setup(
                       'volumegroup.py',
                       'ipsecmanager.py',
                       'snapshotsession.py',
+                      'objectuser.py',
                       'schedulepolicy.py']
                  )]
 )

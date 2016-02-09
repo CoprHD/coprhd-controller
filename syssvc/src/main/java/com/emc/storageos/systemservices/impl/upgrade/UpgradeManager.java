@@ -430,9 +430,9 @@ public class UpgradeManager extends AbstractManager {
                 try {
                     if (drUtil.isStandby()) {
                         log.info("Step3a: sync'ing with active site as leader of standby site");
-                        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+                        Site activeSite = drUtil.getActiveSite();
                         URI activeVipEndpoint = URI.create(String.format(SysClientFactory.BASE_URL_FORMAT,
-                                activeSite.getVip(), service.getEndpoint().getPort()));
+                                activeSite.getVipEndPoint(), service.getEndpoint().getPort()));
                         if (!coordinator.isActiveSiteStable(activeSite)) {
                             log.info("Step3a: software image {} not sync'ed on active site yet. Retry later", syncinfo);
                         } else if (syncToNodeInSync(activeVipEndpoint, syncinfo)) {
@@ -591,8 +591,9 @@ public class UpgradeManager extends AbstractManager {
             } catch (Exception e) {
                 throw APIException.internalServerErrors.getObjectFromError("Node downloading info", "coordinator", e);
             }
-            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size, downloadingInfo._size,
-                    DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))), "downloadinfo", coordinator.getMySvcId());
+            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size,
+                    downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<>(Arrays.asList(0, 0))),
+                    DOWNLOADINFO_KIND, coordinator.getMySvcId());
             // Because the file exists, we set the downloadinfo directly to COMPLETED status
             log.info(prefix + "Success!");
             return file;
@@ -641,12 +642,13 @@ public class UpgradeManager extends AbstractManager {
         if (file.exists()) {
             DownloadingInfo downloadingInfo;
             try {
-                downloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, "downloadinfo", coordinator.getMySvcId());
+                downloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, DOWNLOADINFO_KIND,
+                        coordinator.getMySvcId());
                 // if the downloading info is present and the version is the same then update the progress
                 if (downloadingInfo != null && version.toString().equals(downloadingInfo._version)) {
                     coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size,
-                            downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))), "downloadinfo",
-                            coordinator.getMySvcId());
+                            downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))),
+                            DOWNLOADINFO_KIND, coordinator.getMySvcId());
                 }
             } catch (Exception e) {
                 throw APIException.internalServerErrors.getObjectFromError("Node downloading info", "coordinator", e);

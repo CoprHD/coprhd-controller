@@ -38,7 +38,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         boolean unManagedVolumeExported = requestContext.getVolumeContext().isVolumeExported();
 
         // Validate the unManagedVolume properties
-        validateUnManagedVolume(unManagedVolume, requestContext.getVpool());
+        validateUnManagedVolume(unManagedVolume, requestContext.getVpool(unManagedVolume));
         validateParentNotRpProtected(unManagedVolume);
 
         // Check whether mirror already ingested or not.
@@ -51,7 +51,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         }
         if (null == mirrorObj) {
             mirrorObj = createBlockMirror(mirrorNativeGuid, requestContext.getStorageSystem(), unManagedVolume,
-                    requestContext.getVpool(), requestContext.getVarray(), requestContext.getProject());
+                    requestContext.getVpool(unManagedVolume), requestContext.getVarray(unManagedVolume), requestContext.getProject());
         }
         // Run this always when the volume is NO_PUBLIC_ACCESS
         if (markUnManagedVolumeInactive(requestContext, mirrorObj)) {
@@ -91,19 +91,27 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         }
         if (parentNativeGUID != null) {
             logger.info("Finding unmanagedvolume {} in vipr db", parentNativeGUID);
-            UnManagedVolume parentUnManagedVolume = null;
             URIQueryResultList umvUriList = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVolumeInfoNativeIdConstraint(parentNativeGUID), umvUriList);
             if (umvUriList.iterator().hasNext()) {
                 logger.info("Found unmanagedvolume {} in vipr db", parentNativeGUID);
                 URI umvUri = umvUriList.iterator().next();
-                parentUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, umvUri);
-                if (parentUnManagedVolume != null && !parentUnManagedVolume.getInactive()
-                        && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(parentUnManagedVolume)) {
-                    logger.info("Unmanaged mirror {} has RP protected parent", unManagedVolume.getLabel());
+                UnManagedVolume parentUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, umvUri);
+                if (parentUnManagedVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(parentUnManagedVolume)) {
+                    logger.warn("Unmanaged mirror {} has RP protected parent", unManagedVolume.getLabel());
                     throw IngestionException.exceptions.cannotIngestMirrorsOfRPVolumes(unManagedVolume.getLabel(),
                             parentUnManagedVolume.getLabel());
+                }
+            } else {
+                // the parent might already be ingested in the vipr db.
+                logger.info("Finding managed volume in vipr db corresponding to {}", parentNativeGUID);
+                BlockObject parentObject = VolumeIngestionUtil.getBlockObject(parentNativeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                        VolumeIngestionUtil.VOLUME), _dbClient);
+                if (parentObject != null && BlockObject.checkForRP(_dbClient, parentObject.getId())) {
+                    logger.warn("Unmanaged mirror {} has RP protected parent", unManagedVolume.getLabel());
+                    throw IngestionException.exceptions.cannotIngestMirrorsOfRPVolumes(unManagedVolume.getLabel(),
+                            parentObject.getLabel());
                 }
             }
         }

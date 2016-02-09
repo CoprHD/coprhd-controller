@@ -17,9 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.exceptions.ViPRHttpException;
-
 import models.datatable.BlockVolumesDataTable;
 
 import org.apache.commons.lang.StringUtils;
@@ -50,7 +47,9 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -86,20 +85,19 @@ public class BlockVolumes extends ResourceController {
         List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }
-    
+
     public static void volumeDetails(String volumeId) {
-    	ViPRCoreClient client = BourneUtil.getViprClient();
-    	String consistencygroup = "";
-    	VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        String consistencygroup = "";
+        VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
         if (volume == null) {
             error(MessagesUtils.get(UNKNOWN, volumeId));
         }
-        if(volume.getConsistencyGroup() != null){
-        	consistencygroup = client.blockConsistencyGroups().get(volume.getConsistencyGroup().getId()).getName();
+        if (volume.getConsistencyGroup() != null) {
+            consistencygroup = client.blockConsistencyGroups().get(volume.getConsistencyGroup().getId()).getName();
         }
         render(consistencygroup);
     }
-
 
     public static void volume(String volumeId, String continuousCopyId) {
 
@@ -304,7 +302,7 @@ public class BlockVolumes extends ResourceController {
         if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(continuousCopyId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             CopiesParam input = createCopiesParam(continuousCopyId);
-            Tasks<VolumeRestRep> tasks = client.blockVolumes().deactivateContinuousCopies(uri(volumeId), input);
+            Tasks<VolumeRestRep> tasks = client.blockVolumes().deactivateContinuousCopies(uri(volumeId), input, VolumeDeleteTypeEnum.FULL);
             flash.put("info", MessagesUtils.get("resources.continuouscopy.deactivate"));
         }
         volume(volumeId, continuousCopyId);

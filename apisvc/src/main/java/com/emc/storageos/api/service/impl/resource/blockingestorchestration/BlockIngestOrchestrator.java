@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
@@ -78,6 +79,18 @@ public abstract class BlockIngestOrchestrator {
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
+    }
+
+    // A reference to the ingest strategy factory.
+    protected IngestStrategyFactory ingestStrategyFactory;
+
+    /**
+     * Setter for the ingest strategy factory.
+     * 
+     * @param ingestStrategyFactory A reference to the ingest strategy factory.
+     */
+    public void setIngestStrategyFactory(IngestStrategyFactory ingestStrategyFactory) {
+        this.ingestStrategyFactory = ingestStrategyFactory;
     }
 
     /**
@@ -193,6 +206,21 @@ public abstract class BlockIngestOrchestrator {
                 SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.name(), unManagedVolume.getVolumeInformation());
         Set<String> hostIoPs = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.EMC_MAXIMUM_IOPS.name(),
                 unManagedVolume.getVolumeInformation());
+
+        // If nothing was returned, set the comparative values to zero.
+        if (hostIoBws == null) {
+            hostIoBws = new HashSet<String>();
+        }
+        if (hostIoPs == null) {
+            hostIoPs = new HashSet<String>();
+        }
+        if (hostIoBws.isEmpty()) {
+            hostIoBws.add("0");
+        }
+        if (hostIoPs.isEmpty()) {
+            hostIoPs.add("0");
+        }
+
         String vPoolBw = "0";
         if (vpool.getHostIOLimitBandwidth() != null) {
             vPoolBw = String.valueOf(vpool.getHostIOLimitBandwidth());
@@ -291,14 +319,15 @@ public abstract class BlockIngestOrchestrator {
      * @return
      * @throws Exception
      */
-    protected Volume createVolume(StorageSystem system, String volumeNativeGuid, StoragePool pool, VirtualArray virtualArray,
-            VirtualPool vPool, UnManagedVolume unManagedVolume, Project project, TenantOrg tenant, String autoTierPolicyId)
-            throws IngestionException {
+    protected Volume createVolume(IngestionRequestContext requestContext, String volumeNativeGuid, StoragePool pool,
+            UnManagedVolume unManagedVolume, String autoTierPolicyId) throws IngestionException {
+
         _logger.info("creating new Volume for native volume id " + volumeNativeGuid);
 
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
-        updateVolume(volume, system, volumeNativeGuid, pool, virtualArray, vPool, unManagedVolume, project);
+        updateVolume(volume, requestContext.getStorageSystem(), volumeNativeGuid, pool, requestContext.getVarray(unManagedVolume),
+                requestContext.getVpool(unManagedVolume), unManagedVolume, requestContext.getProject());
         updateMetaVolumeProperties(volume, unManagedVolume);
         volume.setThinlyProvisioned(Boolean.parseBoolean(unManagedVolume.getVolumeCharacterstics().get(
                 SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString())));
@@ -308,15 +337,49 @@ public abstract class BlockIngestOrchestrator {
         accessState = Volume.VolumeAccessState.getVolumeAccessStateDisplayName(accessState);
         volume.setAccessState(accessState);
 
-        URI cgUri = getConsistencyGroupUri(unManagedVolume, vPool, project.getId(), tenant.getId(), virtualArray.getId(), _dbClient);
-        if (null != cgUri) {
-            updateCGPropertiesInVolume(cgUri, volume, system, unManagedVolume);
+        BlockConsistencyGroup cg = getConsistencyGroup(unManagedVolume, volume, requestContext, _dbClient);
+        if (null != cg) {
+            requestContext.getCGObjectsToCreateMap().put(cg.getLabel(), cg);
+            decorateCGInfoInVolumes(cg, volume, requestContext, unManagedVolume);
         }
         if (null != autoTierPolicyId) {
             updateTierPolicyProperties(autoTierPolicyId, volume);
         }
 
         return volume;
+    }
+
+    /**
+     * Decorates the BlockConsistencyGroup information in all other volumes ingested in the UnManagedConsistencyGroup
+     * managed objects.
+     * 
+     * @param cg - cg object
+     * @param blockObject - BlockObject to decorate
+     * @param requestContext - current context of unmanagedVolume
+     * @param unManagedVolume - current unmanagedVolume to ingest
+     */
+    protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject blockObject, IngestionRequestContext requestContext,
+            UnManagedVolume unManagedVolume) {
+    }
+
+    /**
+     * Returns the UnManagedConsistencyGroup in the context for the given CG.
+     * 
+     * @param cg - cg object
+     * @param requestContext - current context of unmanagedVolume
+     * @return
+     */
+    protected UnManagedConsistencyGroup getUnManagedConsistencyGroupFromContext(BlockConsistencyGroup cg,
+            IngestionRequestContext requestContext) {
+        List<UnManagedConsistencyGroup> umcgList = requestContext.getUmCGObjectsToUpdate();
+        if (null != umcgList && !umcgList.isEmpty()) {
+            for (UnManagedConsistencyGroup umcg : umcgList) {
+                if (umcg.getLabel().equalsIgnoreCase(cg.getLabel())) {
+                    return umcg;
+                }
+            }
+        }
+        return null;
     }
 
     /*
@@ -370,9 +433,10 @@ public abstract class BlockIngestOrchestrator {
     }
 
     /**
-     * get CG , applicable only for VPlex.
+     * Return the ConsistencyGroup in which the UnManagedVolume belongs to.
      * 
      * @param unManagedVolume
+     * @param blockObj
      * @param vPool
      * @param project
      * @param tenant
@@ -380,22 +444,10 @@ public abstract class BlockIngestOrchestrator {
      * @param dbClient
      * @return
      */
-    protected URI getConsistencyGroupUri(UnManagedVolume unManagedVolume, VirtualPool vPool, URI project, URI tenant,
-            URI virtualArray, DbClient dbClient) {
+    protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
+            IngestionRequestContext context,
+            DbClient dbClient) {
         return null;
-    }
-
-    /**
-     * update CG, applicable only for VPlex.
-     * 
-     * @param consistencyGroupUri
-     * @param volume
-     * @param system
-     * @param unManagedVolume
-     */
-    protected void updateCGPropertiesInVolume(URI consistencyGroupUri, Volume volume, StorageSystem system,
-            UnManagedVolume unManagedVolume) {
-        // Update with default code, when CG ingestion is supported
     }
 
     /**
@@ -413,10 +465,20 @@ public abstract class BlockIngestOrchestrator {
             deviceLabel = blockObject.getNativeGuid();
         }
 
-        blockObject.setDeviceLabel(deviceLabel);
-        blockObject.setLabel(deviceLabel);
+        managedVolumeSetLabel(blockObject, deviceLabel);
         blockObject.setNativeId(nativeId);
         blockObject.setAlternateName(nativeId);
+    }
+
+    /**
+     * Set the label and device label, given an unmanaged volume
+     * 
+     * @param blockObject block object
+     * @param deviceLabel device label
+     */
+    protected void managedVolumeSetLabel(BlockObject blockObject, String deviceLabel) {
+        blockObject.setLabel(deviceLabel);
+        blockObject.setDeviceLabel(deviceLabel);
     }
 
     /**
@@ -811,19 +873,19 @@ public abstract class BlockIngestOrchestrator {
             boolean isParentRPVolume = umVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umVolume);
             // if its RP volume, then check whether the RP CG is fully ingested.
             if (isParentRPVolume) {
-                List<UnManagedVolume> ingestedUnManagedVolumes =
-                        new ArrayList<UnManagedVolume>(requestContext.getUnManagedVolumesToBeDeleted());
+                List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllUnManagedVolumesToBeDeleted();
                 ingestedUnManagedVolumes.add(umVolume);
-                UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(umVolume, _dbClient);
+                UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(requestContext, umVolume,
+                        _dbClient);
                 // If we are not able to find the unmanaged protection set from the unmanaged volume, it means that the unmanaged volume
                 // has already been ingested. In this case, try to get it from the managed volume
                 if (umpset == null) {
-                    umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(parent, _dbClient);
+                    umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(requestContext, parent, _dbClient);
                 }
                 fullyIngestedVolume = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient);
                 // If fully ingested, then setup the RP CG too.
                 if (fullyIngestedVolume) {
-                    setupRPCG(umpset, updateObjects);
+                    setupRPCG(requestContext, umpset, updateObjects);
                 } else { // else mark the volume as internal. This will be marked visible when the RP CG is ingested
                     parent.addInternalFlags(INTERNAL_VOLUME_FLAGS);
                 }
@@ -978,7 +1040,7 @@ public abstract class BlockIngestOrchestrator {
         StringSet unmanagedReplicaGUIDs = new StringSet();
         StringSet expectedIngestedReplicas = new StringSet();
         List<BlockObject> foundIngestedReplicas = new ArrayList<BlockObject>();
-        List<String> foundIngestedReplicaNativeGuids = new ArrayList<String>();
+        StringSet foundIngestedReplicaNativeGuids = new StringSet();
 
         StringSet mirrors = PropertySetterUtil.extractValuesFromStringSet(SupportedVolumeInformation.MIRRORS.toString(),
                 unManagedVolumeInformation);
@@ -1102,7 +1164,7 @@ public abstract class BlockIngestOrchestrator {
      * @param foundIngestedReplicas
      * @param foundIngestedReplicaNativeGuids
      */
-    private void getFoundIngestedReplicaURIs(List<BlockObject> foundIngestedReplicas, List<String> foundIngestedReplicaNativeGuids) {
+    private void getFoundIngestedReplicaURIs(List<BlockObject> foundIngestedReplicas, StringSet foundIngestedReplicaNativeGuids) {
         if (null != foundIngestedReplicas && !foundIngestedReplicas.isEmpty()) {
             for (BlockObject blockObj : foundIngestedReplicas) {
                 _logger.info("getFoundIngestedReplicaURIs blockObj: " + blockObj);
@@ -1111,10 +1173,10 @@ public abstract class BlockIngestOrchestrator {
         }
     }
 
-    private void setupRPCG(UnManagedProtectionSet umpset, List<DataObject> updatedObjects) {
+    private void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, List<DataObject> updatedObjects) {
         _logger.info("Ingesting all volumes associated with RP consistency group");
 
-        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(umpset, _dbClient);
+        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(requestContext, umpset, _dbClient);
         BlockConsistencyGroup cg = VolumeIngestionUtil.createRPBlockConsistencyGroup(pset, _dbClient);
         List<Volume> volumes = new ArrayList<Volume>();
         // First try to get the RP volumes from the updated objects list. This will have the latest info for
@@ -1133,7 +1195,7 @@ public abstract class BlockIngestOrchestrator {
             volumes.add(volume);
             updatedObjects.add(volume);
         }
-        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient);
+        VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects);
         umpset.setInactive(true);
 

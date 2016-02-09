@@ -424,6 +424,7 @@ public class RecoverPointUtils {
                 for (VolumeInformation volume : siteSANVolumes.getVolumesInformations()) {
                     String siteVolUID = RecoverPointUtils.getGuidBufferAsString(volume.getRawUids(), false);
                     if (siteVolUID.equalsIgnoreCase(wwnString)) {
+                        logger.info("Found volume " + wwnString + " on site " + rpSite.getInternalSiteName() + " as volume ID: " + volume.getVolumeID().getId());
                         return volume.getVolumeID();
                     }
                 }

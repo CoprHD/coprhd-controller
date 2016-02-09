@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -85,6 +86,9 @@ public class BackupService {
 
     @Autowired
     private AuditLogManager auditMgr;
+
+    @Autowired
+    private DrUtil drUtil;
 
     @Autowired
     private Service serviceinfo;
@@ -856,6 +860,7 @@ public class BackupService {
             {
                 add(tag);
                 add(nodeId);
+                add(drUtil.getLocalSite().getName());
             }
         };
     }

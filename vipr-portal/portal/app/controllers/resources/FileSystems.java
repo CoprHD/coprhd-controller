@@ -192,12 +192,6 @@ public class FileSystems extends ResourceController {
 		render(nfsAcls);
 	}
 
-    public static void fileSystemNfsACLs(String fileSystemId) {
-        ViPRCoreClient client = BourneUtil.getViprClient();
-        List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
-                uri(fileSystemId));
-        render(nfsAcls);
-    }
 
     public static void listNfsAcl(String fileSystemId, String fsMountPath,
             String subDir) {

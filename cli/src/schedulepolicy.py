@@ -260,7 +260,7 @@ def create_parser(subcommand_parsers, common_parser):
                                 help='Scheduled day of month ')
     create_parser.add_argument('-expiretype', '-exptype',
                                 dest='expiretype',
-                                choices=["hours", "days", "weeks", "months"],
+                                choices=["hours", "days", "weeks", "months", "never"],
                                 help='Snapshot Schedule expire type')
     create_parser.add_argument('-expirevalue', '-expval',
                                 metavar='<expirevalue>',
@@ -323,7 +323,7 @@ def show_parser(subcommand_parsers, common_parser):
         description='ViPR Schedule Policy show CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Snapshot Policy show')
+        help='Schedule Policy show')
     mandatory_args = show_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-tenant', '-tn',
                                metavar='<tenantname>',
@@ -394,7 +394,7 @@ def update_parser(subcommand_parsers, common_parser):
                                 help='Scheduled day of month ')
     update_parser.add_argument('-expiretype', '-exptype',
                                 dest='expiretype',
-                                choices=["hours", "days", "weeks", "months"],
+                                choices=["hours", "days", "weeks", "months", "never"],
                                 help='Snapshot Schedule expire type')
     update_parser.add_argument('-expirevalue', '-expval',
                                 metavar='<expirevalue>',

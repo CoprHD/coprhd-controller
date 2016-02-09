@@ -128,6 +128,7 @@ public enum OperationTypeEnum {
     DELETE_EXPORT_VOLUME("ExportVolumeRemoved", "ExportVolumeRemoveFailed", "ExportVolume Remove"),
 
     CREATE_FILE_SYSTEM("FileSystemCreated", "FileSystemCreateFailed", "FileSystem created"),
+    UPDATE_FILE_SYSTEM("FileSystemUpdated", "FileSystemUpdateFailed", "FileSystem updated"),
     DELETE_FILE_SYSTEM("FileSystemDeleted", "FileSystemDeleteFailed", "FileSystem deleted"),
     EXPORT_FILE_SYSTEM("FileSystemExported", "FileSystemExportFailed", "FileSystem exported"),
     UPDATE_EXPORT_RULES_FILE_SYSTEM("FileSystemExportRulesUpdated", "FileSystemExportRulesUpdateFailed", "FileSystem export rules updated"),
@@ -172,6 +173,7 @@ public enum OperationTypeEnum {
     FAILBACK_FILE_MIRROR("FileSystemMirrorFailback", "FileSystemMirrorFailbackFailed", "FileSystemMirror Fail Back"),
     STOP_FILE_MIRROR("FileSystemMirrorStop", "FileSystemMirrorStopFailed", "FileSystemMirror Stop"),
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
+    REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),

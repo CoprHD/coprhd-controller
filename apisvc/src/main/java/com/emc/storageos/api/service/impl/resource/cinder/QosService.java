@@ -358,9 +358,9 @@ public class QosService extends TaskResourceService {
         _log.debug("Fetching data from Virtual Pool, id: {}", virtualPool.getId());
         QosSpecification qosSpecification = new QosSpecification();
         StringMap specs = new StringMap();
-        String systems = null;
+        String protocols = null;
         if (virtualPool.getProtocols() != null) {
-            systems = virtualPool.getProtocols().toString();
+            protocols = virtualPool.getProtocols().toString();
         }
         qosSpecification.setName(QOS_NAME + virtualPool.getLabel());
         qosSpecification.setConsumer(QOS_CONSUMER);
@@ -370,8 +370,8 @@ public class QosService extends TaskResourceService {
         if (virtualPool.getSupportedProvisioningType() != null) {
             specs.put(SPEC_PROVISIONING_TYPE, virtualPool.getSupportedProvisioningType());
         }
-        if (systems != null) {
-            specs.put(SPEC_PROTOCOL, systems.substring(1, systems.length() - 1));
+        if (protocols != null) {
+            specs.put(SPEC_PROTOCOL, protocols.substring(1, protocols.length() - 1));
         }
         if (virtualPool.getDriveType() != null) {
             specs.put(SPEC_DRIVE_TYPE, virtualPool.getDriveType());
@@ -430,7 +430,7 @@ public class QosService extends TaskResourceService {
     public static QosSpecification updateQos(VirtualPool virtualPool, QosSpecification qosSpecification, DbClient dbClient) {
         _log.debug("Updating Qos Specification, id: " + qosSpecification.getId());
         StringMap specs = qosSpecification.getSpecs();
-        String systems = virtualPool.getProtocols().toString();
+        String protocols = virtualPool.getProtocols().toString();
         if (!qosSpecification.getLabel().equals(virtualPool.getLabel())) {
             qosSpecification.setLabel(virtualPool.getLabel());
         }
@@ -438,132 +438,48 @@ public class QosService extends TaskResourceService {
             qosSpecification.setName(QOS_NAME + virtualPool.getLabel());
         }
         if (virtualPool.getSupportedProvisioningType() != null) {
-            if (specs.get(SPEC_PROVISIONING_TYPE) != null) {
-                if (!specs.get(SPEC_PROVISIONING_TYPE).equals(virtualPool.getSupportedProvisioningType())) {
-                    specs.put(SPEC_PROVISIONING_TYPE, virtualPool.getSupportedProvisioningType());
-                }
-            } else {
-                specs.put(SPEC_PROVISIONING_TYPE, virtualPool.getSupportedProvisioningType());
-            }
+            specs.put(SPEC_PROVISIONING_TYPE, virtualPool.getSupportedProvisioningType());
         }
-        if (systems != null) {
-            if (specs.get(SPEC_PROTOCOL) != null) {
-                if (!specs.get(SPEC_PROTOCOL).equals(systems.substring(1, systems.length() - 1))) {
-                    specs.put(SPEC_PROTOCOL, systems.substring(1, systems.length() - 1));
-                }
-            } else {
-                specs.put(SPEC_PROTOCOL, systems.substring(1, systems.length() - 1));
-            }
+        if (protocols != null) {
+            specs.put(SPEC_PROTOCOL, protocols.substring(1, protocols.length() - 1));
         }
         if (virtualPool.getDriveType() != null) {
-            if (specs.get(SPEC_DRIVE_TYPE) != null) {
-                if (!specs.get(SPEC_DRIVE_TYPE).equals(virtualPool.getDriveType())) {
-                    specs.put(SPEC_DRIVE_TYPE, virtualPool.getDriveType());
-                }
-            } else {
-                specs.put(SPEC_DRIVE_TYPE, virtualPool.getDriveType());
-            }
+            specs.put(SPEC_DRIVE_TYPE, virtualPool.getDriveType());
         }
         if (VirtualPoolService.getSystemType(virtualPool) != null) {
-            if (specs.get(SPEC_SYSTEM_TYPE) != null) {
-                if (!specs.get(SPEC_SYSTEM_TYPE).equals(VirtualPoolService.getSystemType(virtualPool))) {
-                    specs.put(SPEC_SYSTEM_TYPE, VirtualPoolService.getSystemType(virtualPool));
-                }
-            } else {
-                specs.put(SPEC_SYSTEM_TYPE, VirtualPoolService.getSystemType(virtualPool));
-            }
+            specs.put(SPEC_SYSTEM_TYPE, VirtualPoolService.getSystemType(virtualPool));
         }
         if (virtualPool.getMultivolumeConsistency() != null) {
-            if (specs.get(SPEC_MULTI_VOL_CONSISTENCY) != null) {
-                if (!specs.get(SPEC_MULTI_VOL_CONSISTENCY).equals(Boolean.toString(virtualPool.getMultivolumeConsistency()))) {
-                    specs.put(SPEC_MULTI_VOL_CONSISTENCY, Boolean.toString(virtualPool.getMultivolumeConsistency()));
-                }
-            } else {
-                specs.put(SPEC_MULTI_VOL_CONSISTENCY, Boolean.toString(virtualPool.getMultivolumeConsistency()));
-            }
+            specs.put(SPEC_MULTI_VOL_CONSISTENCY, Boolean.toString(virtualPool.getMultivolumeConsistency()));
         }
         if (virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL) != null) {
-            if (specs.get(SPEC_RAID_LEVEL) != null) {
-                if (!specs.get(SPEC_RAID_LEVEL).equals(virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL).toString())) {
-                    specs.put(SPEC_RAID_LEVEL, virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL).toString());
-                }
-            } else {
-                specs.put(SPEC_RAID_LEVEL, virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL).toString());
-            }
+            specs.put(SPEC_RAID_LEVEL, virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL).toString());
         }
         if (virtualPool.getExpandable() != null) {
-            if (specs.get(SPEC_EXPENDABLE) != null) {
-                if (!specs.get(SPEC_EXPENDABLE).equals(Boolean.toString(virtualPool.getExpandable()))) {
-                    specs.put(SPEC_EXPENDABLE, Boolean.toString(virtualPool.getExpandable()));
-                }
-            } else {
-                specs.put(SPEC_EXPENDABLE, Boolean.toString(virtualPool.getExpandable()));
-            }
+            specs.put(SPEC_EXPENDABLE, Boolean.toString(virtualPool.getExpandable()));
         }
         if (virtualPool.getNumPaths() != null) {
-            if (specs.get(SPEC_MAX_SAN_PATHS) != null) {
-                if (!specs.get(SPEC_MAX_SAN_PATHS).equals(Integer.toString(virtualPool.getNumPaths()))) {
-                    specs.put(SPEC_MAX_SAN_PATHS, Integer.toString(virtualPool.getNumPaths()));
-                }
-            } else {
-                specs.put(SPEC_MAX_SAN_PATHS, Integer.toString(virtualPool.getNumPaths()));
-            }
+            specs.put(SPEC_MAX_SAN_PATHS, Integer.toString(virtualPool.getNumPaths()));
         }
         if (virtualPool.getMinPaths() != null) {
-            if (specs.get(SPEC_MIN_SAN_PATHS) != null) {
-                if (!specs.get(SPEC_MIN_SAN_PATHS).equals(Integer.toString(virtualPool.getMinPaths()))) {
-                    specs.put(SPEC_MIN_SAN_PATHS, Integer.toString(virtualPool.getMinPaths()));
-                }
-            } else {
-                specs.put(SPEC_MIN_SAN_PATHS, Integer.toString(virtualPool.getMinPaths()));
-            }
+            specs.put(SPEC_MIN_SAN_PATHS, Integer.toString(virtualPool.getMinPaths()));
         }
         if (virtualPool.getMaxNativeContinuousCopies() != null) {
-            if (specs.get(SPEC_MAX_BLOCK_MIRRORS) != null) {
-                if (!specs.get(SPEC_MAX_BLOCK_MIRRORS).equals(Integer.toString(virtualPool.getMaxNativeContinuousCopies()))) {
-                    specs.put(SPEC_MAX_BLOCK_MIRRORS, Integer.toString(virtualPool.getMaxNativeContinuousCopies()));
-                }
-            } else {
-                specs.put(SPEC_MAX_BLOCK_MIRRORS, Integer.toString(virtualPool.getMaxNativeContinuousCopies()));
-            }
+            specs.put(SPEC_MAX_BLOCK_MIRRORS, Integer.toString(virtualPool.getMaxNativeContinuousCopies()));
         }
         if (virtualPool.getPathsPerInitiator() != null) {
-            if (specs.get(SPEC_PATHS_PER_INITIATOR) != null) {
-                if (!specs.get(SPEC_PATHS_PER_INITIATOR).equals(Integer.toString(virtualPool.getPathsPerInitiator()))) {
-                    specs.put(SPEC_PATHS_PER_INITIATOR, Integer.toString(virtualPool.getPathsPerInitiator()));
-                }
-            } else {
-                specs.put(SPEC_PATHS_PER_INITIATOR, Integer.toString(virtualPool.getPathsPerInitiator()));
-            }
+            specs.put(SPEC_PATHS_PER_INITIATOR, Integer.toString(virtualPool.getPathsPerInitiator()));
         }
         if (virtualPool.getHighAvailability() != null) {
-            if (specs.get(SPEC_HIGH_AVAILABILITY) != null) {
-                if (!specs.get(SPEC_HIGH_AVAILABILITY).equals(virtualPool.getHighAvailability())) {
-                    specs.put(SPEC_HIGH_AVAILABILITY, virtualPool.getHighAvailability());
-                }
-            } else {
-                specs.put(SPEC_HIGH_AVAILABILITY, virtualPool.getHighAvailability());
-            }
+            specs.put(SPEC_HIGH_AVAILABILITY, virtualPool.getHighAvailability());
         }
         if (virtualPool.getMaxNativeSnapshots() != null) {
-            if (specs.get(SPEC_MAX_SNAPSHOTS) != null) {
-                if (!specs.get(SPEC_MAX_SNAPSHOTS).equals(LABEL_UNLIMITED_SNAPSHOTS)
-                        && virtualPool.getMaxNativeSnapshots().equals(UNLIMITED_SNAPSHOTS)) {
-                    specs.put(SPEC_MAX_SNAPSHOTS, LABEL_UNLIMITED_SNAPSHOTS);
-                } else if (!specs.get(SPEC_MAX_SNAPSHOTS).equals(LABEL_DISABLED_SNAPSHOTS)
-                        && virtualPool.getMaxNativeSnapshots().equals(DISABLED_SNAPSHOTS)) {
-                    specs.put(SPEC_MAX_SNAPSHOTS, LABEL_DISABLED_SNAPSHOTS);
-                } else if (!specs.get(SPEC_MAX_SNAPSHOTS).equals(Integer.toString(virtualPool.getMaxNativeSnapshots()))) {
-                    specs.put(SPEC_MAX_SNAPSHOTS, Integer.toString(virtualPool.getMaxNativeSnapshots()));
-                }
+            if (virtualPool.getMaxNativeSnapshots().equals(UNLIMITED_SNAPSHOTS)) {
+                specs.put(SPEC_MAX_SNAPSHOTS, LABEL_UNLIMITED_SNAPSHOTS);
+            } else if (virtualPool.getMaxNativeSnapshots().equals(DISABLED_SNAPSHOTS)) {
+                specs.put(SPEC_MAX_SNAPSHOTS, LABEL_DISABLED_SNAPSHOTS);
             } else {
-                if (virtualPool.getMaxNativeSnapshots().equals(UNLIMITED_SNAPSHOTS)) {
-                    specs.put(SPEC_MAX_SNAPSHOTS, LABEL_UNLIMITED_SNAPSHOTS);
-                } else if (virtualPool.getMaxNativeSnapshots().equals(DISABLED_SNAPSHOTS)) {
-                    specs.put(SPEC_MAX_SNAPSHOTS, LABEL_DISABLED_SNAPSHOTS);
-                } else {
-                    specs.put(SPEC_MAX_SNAPSHOTS, Integer.toString(virtualPool.getMaxNativeSnapshots()));
-                }
+                specs.put(SPEC_MAX_SNAPSHOTS, Integer.toString(virtualPool.getMaxNativeSnapshots()));
             }
         }
 

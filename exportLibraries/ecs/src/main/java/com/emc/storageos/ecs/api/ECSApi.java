@@ -564,10 +564,10 @@ public class ECSApi {
     }
 
     /**
-     * Generate secret keys for the specified user
+     * Get the secret keys for the specified user
      * 
-     * @param user secret key for the user
-     * @return generated secret keys
+     * @param user secret key for the user ID
+     * @return Existing secret keys
      * @throws ECSException
      */
     public UserSecretKeysGetCommandResult getUserSecretKeys(String user) throws ECSException {

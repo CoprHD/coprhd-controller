@@ -1329,7 +1329,7 @@ public class StorageSystemService extends TaskResourceService {
         if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
             throw APIException.badRequests.invalidParameterURIInvalid("id", id);
         }
-        
+
         ObjectController controller = getController(ObjectController.class, system.getSystemType());
         ObjectUserSecretKey secretKeys = controller.getUserSecretKeys(id, userId);
         return map(secretKeys);
@@ -1361,7 +1361,7 @@ public class StorageSystemService extends TaskResourceService {
         ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, param.getSecretkey());
         //Return key details as this is synchronous call
         return map(secretKeyRes, true);
-    } 
+    }
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })

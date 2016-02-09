@@ -570,11 +570,11 @@ public class FileVirtualPoolService extends VirtualPoolService {
                     && (param.getProtection().getSnapshots().getMaxSnapshots() != null)) {
                 vPool.setMaxNativeSnapshots(param.getProtection().getSnapshots().getMaxSnapshots());
 
-                if (param.getProtection().getScheduleSnapshots() != null) {
-                    vPool.setScheduleSnapshots(param.getProtection().getScheduleSnapshots());
-                } else {
-                    vPool.setScheduleSnapshots(false);
-                }
+            }
+            if (param.getProtection().getScheduleSnapshots() != null) {
+                vPool.setScheduleSnapshots(param.getProtection().getScheduleSnapshots());
+            } else {
+                vPool.setScheduleSnapshots(false);
             }
             if (param.getProtection().getReplicationParam() != null) {
                 String copyMode = CopyModes.ASYNCHRONOUS.name();

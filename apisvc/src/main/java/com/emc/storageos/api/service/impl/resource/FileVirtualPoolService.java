@@ -326,7 +326,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
         populateCommonVirtualPoolUpdateParams(cos, param);
 
         if (null != param.getSystemType()) {
-            if (cos.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
+            if (cos.getArrayInfo() != null && cos.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                 for (String systemType : cos.getArrayInfo().get(
                         VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                     cos.getArrayInfo().remove(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE,
@@ -335,11 +335,13 @@ public class FileVirtualPoolService extends VirtualPoolService {
             }
 
             if (!(VirtualPool.SystemType.NONE.name().equalsIgnoreCase(param.getSystemType())
-            || VirtualPool.SystemType.isFileTypeSystem(param.getSystemType()))) {
+                    || VirtualPool.SystemType.isFileTypeSystem(param.getSystemType()))) {
                 throw APIException.badRequests.invalidSystemType("File");
             }
-            cos.getArrayInfo()
-                    .put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
+            if (cos.getArrayInfo() == null) {
+                cos.setArrayInfo(new StringSetMap());
+            }
+            cos.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
         }
 
         // Update file protection parameters!!!

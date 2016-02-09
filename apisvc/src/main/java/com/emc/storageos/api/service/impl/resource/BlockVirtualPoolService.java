@@ -42,21 +42,29 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.volumecontroller.AttributeMatcher;
-import com.emc.storageos.api.service.impl.resource.cinder.QosService;
-import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
-import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
+import com.emc.storageos.api.service.impl.resource.cinder.QosService;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.QosSpecification;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings.CopyModes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
@@ -91,6 +99,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
@@ -418,6 +427,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // set common VirtualPool update parameters here.
         populateCommonVirtualPoolUpdateParams(vpool, param);
         if (null != param.getSystemType()) {
+            if (vpool.getArrayInfo() == null) {
+                vpool.setArrayInfo(new StringSetMap());
+            }
+            
             if (vpool.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                 for (String systemType : vpool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                     vpool.getArrayInfo().remove(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, systemType);
@@ -425,7 +438,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             }
 
             if (!(VirtualPool.SystemType.NONE.name().equalsIgnoreCase(param.getSystemType())
-            || VirtualPool.SystemType.isBlockTypeSystem(param.getSystemType()))) {
+                    || VirtualPool.SystemType.isBlockTypeSystem(param.getSystemType()))) {
                 throw APIException.badRequests.invalidSystemType("Block");
             }
 

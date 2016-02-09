@@ -223,8 +223,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         }
 
         // validate the supporting device structure is compatible with vipr
-        // TODO temporarily disabled until simulator can support this
-        // context.validateSupportingDeviceStructure();
+        context.validateSupportingDeviceStructure();
 
         // validate that there are not too many replicas on a distributed volume
         // as we can only support ingesting snaps or clones on one leg

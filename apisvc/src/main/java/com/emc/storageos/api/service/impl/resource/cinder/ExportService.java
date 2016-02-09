@@ -340,10 +340,6 @@ public class ExportService extends VolumeService {
      */
     private VolumeAttachResponse populateIscsiConnectionInfo(Volume vol) throws InterruptedException{
 
-        // After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a
-        // small delay here.    	
-    	//Thread.sleep(100000);
-    	
         ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
                 isIdEmbeddedInURL(vol.getId()));
         
@@ -580,7 +576,6 @@ public class ExportService extends VolumeService {
 
         // Step 3: Remove initiators from export group
         currentURIs.removeAll(detachURIs);
-        //exportGroup.setInitiators(StringSetUtil.uriListToStringSet(currentURIs));
         _log.info("updateExportGroup request is submitted.");
         // get block controller
         BlockExportController exportController =
@@ -786,12 +781,10 @@ public class ExportService extends VolumeService {
             exportGroup.setVirtualArray(vol.getVirtualArray());
             // put volume map
             volumeMap.put(vol.getId(), ExportGroup.LUN_UNASSIGNED);
-            //exportGroup.addVolume(vol.getId(), ExportGroup.LUN_UNASSIGNED);
             // put list of initiators
             for (Initiator initiator : newInitiators) {
                 initiatorURIs.add(initiator.getId());
             }
-            //exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
             _dbClient.createObject(exportGroup);
             _log.info("createExportGroup request is submitted.");
             initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);

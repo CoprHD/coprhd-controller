@@ -3391,9 +3391,14 @@ public class VolumeIngestionUtil {
                     if (blockObject == null) {
                         // Finally look in the DB itself. It may be from a previous ingestion operation.
                         blockObject = dbClient.queryObject(Volume.class, URI.create(associatedVolumeIdStr));
-                        // Since I pulled this in from the database, we need to add it to the list of objects to update.
-                        ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
+                        if (blockObject == null) {
+                            // This may not be a failure if we're not ingesting backing volumes.  Put a warning to the log.
+                            _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
+                        } else {
+                            // Since I pulled this in from the database, we need to add it to the list of objects to update.
+                            ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
                                 blockObject.getNativeGuid(), Arrays.asList(blockObject));
+                        }
                     }
                     if (blockObject != null) {
                         blockObject.setConsistencyGroup(rpCG.getId());

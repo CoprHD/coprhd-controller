@@ -147,7 +147,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 XtremIOVolume xioSnap = client.getSnapShotDetails(snapDetails.get(1).toString(), clusterName);
                 BlockSnapshot snapshot = volumeToSnapMap.get(xioSnap.getAncestoVolInfo().get(1));
                 processSnapshot(xioSnap, snapshot, storage);
-                dbClient.persistObject(snapshot);
+                dbClient.updateObject(snapshot);
             }
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
@@ -171,6 +171,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         boolean isReadOnly = XtremIOConstants.XTREMIO_READ_ONLY_TYPE.equals(xioSnap.getSnapshotType()) ? Boolean.TRUE : Boolean.FALSE;
         snapObj.setIsReadOnly(isReadOnly);
         snapObj.setIsSyncActive(true);
+        snapObj.setReplicationGroupInstance(snapObj.getSnapsetLabel());
     }
 
     @Override
@@ -213,7 +214,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-            if (null != XtremIOProvUtils.isSnapsetAvailableInArray(client, snapshotObj.getSnapsetLabel(), clusterName)) {
+            if (null != XtremIOProvUtils.isSnapsetAvailableInArray(client, snapshotObj.getReplicationGroupInstance(), clusterName)) {
                 client.deleteSnapshotSet(snapshotObj.getSnapsetLabel(), clusterName);
             }
             // Set inactive=true for all snapshots in the snap
@@ -260,7 +261,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, snapshotObj.getConsistencyGroup());
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
-            client.restoreCGFromSnapshot(clusterName, group.getLabel(), snapshotObj.getSnapsetLabel());
+            client.restoreCGFromSnapshot(clusterName, group.getLabel(), snapshotObj.getReplicationGroupInstance());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot restore failed", e);
@@ -297,7 +298,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, snapshotObj.getConsistencyGroup());
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
-            client.refreshSnapshotFromCG(clusterName, group.getLabel(), snapshotObj.getSnapsetLabel());
+            client.refreshSnapshotFromCG(clusterName, group.getLabel(), snapshotObj.getReplicationGroupInstance());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot resync failed", e);

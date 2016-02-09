@@ -18,9 +18,11 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -29,7 +31,7 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.google.common.base.Joiner;
 
-public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
+public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor implements Cloneable {
     private Logger _logger = LoggerFactory
             .getLogger(StorageProtocolEndPointProcessor.class);
     private List<Object> args;
@@ -132,26 +134,52 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
             String portInstanceID, CoordinatorClient coordinator, List<StoragePort> newPorts,
             List<StoragePort> existingPorts) throws IOException {
         StoragePort portinMemory = (StoragePort) keyMap.get(portInstanceID);
+        String endPointInstanceId = endPointInstance.getObjectPath().getKey(NAME)
+                .getValue().toString().split(COMMA_STR)[0].toLowerCase();
         if (null == port) {
-            // Name Property's value --> iqn.23.....,t,0x0001
-            portinMemory.setPortNetworkId(endPointInstance.getObjectPath().getKey(NAME)
-                    .getValue().toString().split(",")[0].toLowerCase());
-            portinMemory.setPortEndPointID(endPointInstance.getObjectPath().getKey(NAME)
-                    .getValue().toString());
-            String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, portinMemory);
-            portinMemory.setNativeGuid(portNativeGuid);
-            portinMemory.setLabel(portNativeGuid);
-            _logger.info("Creating port - {}:{}", portinMemory.getLabel(), portinMemory.getNativeGuid());
-            _dbClient.createObject(portinMemory);
-            newPorts.add(portinMemory);
+            if ((portinMemory != null) && (portinMemory.getPortNetworkId() != null) &&
+                    !(portinMemory.getPortNetworkId().equals(endPointInstanceId))) {
+                // Since this is a new port and for V3, a single physical port can have multiple
+                // viutualSCSIProtocolEndpoints, we may have to create a new port object
+                StoragePort newPortinMemory = (StoragePort) portinMemory.clone();
+                newPortinMemory.setId(URIUtil.createId(StoragePort.class));
+                newPortinMemory.setPortNetworkId(endPointInstanceId);
+                newPortinMemory.setPortEndPointID(endPointInstance.getObjectPath().getKey(NAME)
+                        .getValue().toString());
+                String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, newPortinMemory);
+                newPortinMemory.setNativeGuid(portNativeGuid);
+                newPortinMemory.setLabel(portNativeGuid);
+                _logger.info("Creating port - {}:{}", newPortinMemory.getLabel(), newPortinMemory.getNativeGuid());
+                _dbClient.createObject(newPortinMemory);
+                newPorts.add(newPortinMemory);
+            } else {
+                // Name Property's value --> iqn.23.....,t,0x0001
+                portinMemory.setPortNetworkId(endPointInstanceId);
+                portinMemory.setPortEndPointID(endPointInstance.getObjectPath().getKey(NAME)
+                        .getValue().toString());
+                String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, portinMemory);
+                portinMemory.setNativeGuid(portNativeGuid);
+                portinMemory.setLabel(portNativeGuid);
+                _logger.info("Creating port - {}:{}", portinMemory.getLabel(), portinMemory.getNativeGuid());
+                _dbClient.createObject(portinMemory);
+                newPorts.add(portinMemory);
+            }
         } else {
-            port.setPortName(portinMemory.getPortName());
+            String currentPortName = port.getPortName();
+            if (!currentPortName.contains(portinMemory.getPortName())) {
+                // Append the portinMemory details
+                StringBuffer appendedPortName = new StringBuffer(currentPortName);
+                appendedPortName.append(COMMA_STR).append(portinMemory.getPortName());
+                port.setPortName(appendedPortName.toString());
+            }
             port.setPortSpeed(portinMemory.getPortSpeed());
             port.setPortEndPointID(endPointInstance.getObjectPath().getKey(NAME)
                     .getValue().toString());
             port.setCompatibilityStatus(portinMemory.getCompatibilityStatus());
             port.setDiscoveryStatus(portinMemory.getDiscoveryStatus());
-            port.setOperationalStatus(portinMemory.getOperationalStatus());
+            if (port.getOperationalStatus() != OperationalStatus.OK.name()) {
+                port.setOperationalStatus(portinMemory.getOperationalStatus());
+            }
             _logger.info("Updating port - {} : {}", port.getLabel(), port.getNativeGuid());
             _dbClient.persistObject(port);
             existingPorts.add(port);

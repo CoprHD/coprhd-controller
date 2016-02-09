@@ -43,7 +43,12 @@
     </script>
   #{/if}
   <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
-  <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
+    #{if disasterSiteDetails.networkLatencyInMs == -1.0}
+    <dd>&{'disasterRecovery.networkLatency.notAvailable'}</dd>
+    #{/if}
+    #{else}
+    <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
+    #{/else}
   #{if isActive == false}
       <dt>&{'disasterRecovery.paused.time'}</dt>
       <dd id="pausedTime-${uuid}">Not Available</dd>

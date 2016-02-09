@@ -450,7 +450,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         Set<String> selectedRGs = null;
         if (param.getVolumes() != null) {
-            selectedRGs = BlockServiceUtils.getReplicationGroupsFromVolumes(param.getVolumes(), _dbClient, uriInfo);
+            selectedRGs = BlockServiceUtils.getReplicationGroupsFromVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
         }
 
         // Group volumes by storage system and replication group, ignore replication groups that not in selectedRGs if it is not null
@@ -490,12 +490,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
             addConsistencyGroupTask(consistencyGroup, response, taskId,
                     ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT);
-            // TODO error handling
-            blockServiceApiImpl.createSnapshot(volumeList.get(0), snapIdList, snapshotType, createInactive, readOnly, taskId);
+            try {
+                blockServiceApiImpl.createSnapshot(volumeList.get(0), snapIdList, snapshotType, createInactive, readOnly, taskId);
+                auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
+                        AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
+                        consistencyGroup.getId().toString());
+            } catch (Exception e) {
+                _log.warn("Exception when creating snapshot of replication group {}: {}", cell.getColumnKey(), e.getMessage());
+            }
 
-            auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
-                    AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
-                    consistencyGroup.getId().toString());
             taskList.getTaskList().addAll(response.getTaskList());
         }
 

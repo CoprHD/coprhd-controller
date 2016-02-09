@@ -484,14 +484,19 @@ public class BlockServiceUtils {
      *
      * @return Set of replication groups
      */
-    public static Set<String> getReplicationGroupsFromVolumes(List<URI> volumes, DbClient dbClient, UriInfo uriInfo) {
+    public static Set<String> getReplicationGroupsFromVolumes(List<URI> volumes, URI cgUri, DbClient dbClient, UriInfo uriInfo) {
         // validate that at least one volume URI is provided
         ArgValidator.checkFieldNotEmpty(volumes, "volumes");
 
         Set<String> rgs = new HashSet<String>();
-        List<Volume> selectedVolumes = dbClient.queryObject(Volume.class, volumes);
-        for (Volume volume : selectedVolumes) {
-            ArgValidator.checkEntityNotNull(volume, volume.getId(), isIdEmbeddedInURL(volume.getId(), uriInfo));
+        for (URI volumeUri : volumes) {
+            ArgValidator.checkFieldUriType(volumeUri, Volume.class, "volume");
+            Volume volume = dbClient.queryObject(Volume.class, volumeUri);
+            ArgValidator.checkEntityNotNull(volume, volumeUri, isIdEmbeddedInURL(volumeUri, uriInfo));
+            if (!volume.isInCG() || !volume.getConsistencyGroup().equals(cgUri)) {
+                throw APIException.badRequests.invalidParameterSourceVolumeNotInGivenConsistencyGroup(volumeUri, cgUri);
+            }
+
             String rgName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNullValue(rgName)) {
                 throw APIException.badRequests.noRepGroupInstance(volume.getLabel());

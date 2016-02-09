@@ -56,9 +56,8 @@ public class BlockConsistencyGroupSnapshotCreate {
     @XmlElementWrapper(required = false, name = "volumes")
     /**
      * List of Volume IDs.
-     * This field is applicable only if partial is set to true,
-     * meaning snapshot need not be created for the entire Application, instead create snapshot for the specified array replication groups.
-     * List can have volumes one from each Array replication group.
+     * This field is applicable only if volume is part of an application.
+     * Snapshots of the replication groups (could be subset or full set of replication groups of an application) that the volumes belong to will be created.
      *
      * Example: list of valid URIs
      */

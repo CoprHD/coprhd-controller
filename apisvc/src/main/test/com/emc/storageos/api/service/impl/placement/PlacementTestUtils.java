@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -33,11 +34,13 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class PlacementTestUtils {
+    public static final long SIZE_GB = (1024 * 1024); // 1GB in KB. Use KB since all pool capacities are represented in KB.
 
     public static VirtualPoolCapabilityValuesWrapper createCapabilities(String size, int count, BlockConsistencyGroup cg) {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
@@ -199,10 +202,8 @@ public class PlacementTestUtils {
         _dbClient.createObject(varray);
         return varray;
     }
-
-    public static List invokePlacement(DbClient dbClient, CoordinatorClient _coordinator, VirtualArray varray, Project project,
-            VirtualPool vpool,
-            VirtualPoolCapabilityValuesWrapper capabilities) {
+    
+    private static PlacementManager setupSchedulers(DbClient dbClient, CoordinatorClient _coordinator) {
         PortMetricsProcessor portMetricsProcessor = new PortMetricsProcessor();
         portMetricsProcessor.setDbClient(dbClient);
         portMetricsProcessor.setCoordinator(_coordinator);
@@ -220,6 +221,9 @@ public class PlacementTestUtils {
 
         SRDFScheduler srdfScheduler = new SRDFScheduler();
         srdfScheduler.setDbClient(dbClient);
+        srdfScheduler.setCoordinator(_coordinator);
+        srdfScheduler.setBlockScheduler(storageScheduler);
+        srdfScheduler._permissionsHelper = new PermissionsHelper(dbClient);
 
         VPlexScheduler vplexScheduler = new VPlexScheduler();
         vplexScheduler.setDbClient(dbClient);
@@ -237,15 +241,126 @@ public class PlacementTestUtils {
         RPHelper rpHelper = new RPHelper();
         rpHelper.setDbClient(dbClient);
         rpScheduler.setRpHelper(rpHelper);
-        
-	
-		schedulerMap.put("srdf", srdfScheduler);
-		schedulerMap.put("vplex", vplexScheduler);
-		schedulerMap.put("block", storageScheduler);
+    
+        schedulerMap.put("srdf", srdfScheduler);
+        schedulerMap.put("vplex", vplexScheduler);
+        schedulerMap.put("block", storageScheduler);
         schedulerMap.put("rp", rpScheduler);        
-		placementManager.setStorageSchedulers(schedulerMap);
+        placementManager.setStorageSchedulers(schedulerMap);
+        return placementManager;
+    }
+
+    public static List invokePlacement(DbClient dbClient, CoordinatorClient _coordinator, VirtualArray varray, Project project,
+            VirtualPool vpool,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
+        PlacementManager placementManager = setupSchedulers(dbClient, _coordinator);
 		
 		return placementManager.getRecommendationsForVolumeCreateRequest(varray, project, vpool, capabilities);
 	}
+    
+    public static Map<VpoolUse, List<Recommendation>> 
+    invokePlacementForVpool(DbClient dbClient, CoordinatorClient _coordinator, VirtualArray varray, Project project,
+            VirtualPool vpool,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
+        PlacementManager placementManager = setupSchedulers(dbClient, _coordinator);
+        
+        return placementManager.getRecommendationsForVirtualPool(varray, project, vpool, capabilities);
+    }
+    
+    /**
+     * Creates a pair of SRDF connected storage systems.
+     * @param _dbClient
+     * @param label1 -- Label for the first system
+     * @param label2 == Label for the second system
+     * @return StorageSystem[1] and StorageSystem[2] objects in array (StorageSystem[0] not used
+     */
+    public static StorageSystem[] createSRDFStorageSystems(DbClient _dbClient, String label1, String label2) {
+        StorageSystem[] storageSystems = new StorageSystem[3];
+        // Create 2 storage systems
+        StorageSystem storageSystem1 = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", label1);
+        storageSystems[1] = storageSystem1;
+        StorageSystem storageSystem2 = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", label2);
+        storageSystems[2] = storageSystem2;
+        // Mark them SRDF capable
+        StringSet supportedAsynchronousActions = new StringSet();
+        supportedAsynchronousActions.add(StorageSystem.AsyncActions.CreateElementReplica.name());
+        supportedAsynchronousActions.add(StorageSystem.AsyncActions.CreateGroupReplica.name());
+        storageSystem1.setSupportedAsynchronousActions(supportedAsynchronousActions);
+        storageSystem2.setSupportedAsynchronousActions(supportedAsynchronousActions);
+        StringSet supportedReplicationTypes = new StringSet();
+        supportedReplicationTypes.add(StorageSystem.SupportedReplicationTypes.SRDF.name());
+        storageSystem1.setSupportedReplicationTypes(supportedReplicationTypes);
+        storageSystem2.setSupportedReplicationTypes(supportedReplicationTypes);
+        // Set connected to.
+        StringSet connectedTo = new StringSet();
+        connectedTo.add(storageSystem2.getId().toString());
+        storageSystem1.setRemotelyConnectedTo(connectedTo);
+        connectedTo = new StringSet();
+        connectedTo.add(storageSystem1.getId().toString());
+        storageSystem2.setRemotelyConnectedTo(connectedTo);
+        _dbClient.updateObject(storageSystem1, storageSystem2);
+        
+        // Create RemoteDirectorGroups
+        RemoteDirectorGroup rdg1 = new RemoteDirectorGroup();
+        rdg1.setActive(true);
+        rdg1.setConnectivityStatus(RemoteDirectorGroup.ConnectivityStatus.UP.name());
+        rdg1.setLabel("RDG1");
+        rdg1.setId(URI.create("RDG1"));
+        rdg1.setNativeGuid("vmax1+vmax2+6");
+        rdg1.setRemoteGroupId("6");
+        rdg1.setRemoteStorageSystemUri(storageSystem2.getId());
+        rdg1.setSourceGroupId("6");
+        rdg1.setSourceStorageSystemUri(storageSystem1.getId());
+        rdg1.setSupportedCopyMode(RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name());
+        _dbClient.createObject(rdg1);
+        RemoteDirectorGroup rdg2 = new RemoteDirectorGroup();
+        rdg2.setActive(true);
+        rdg2.setConnectivityStatus(RemoteDirectorGroup.ConnectivityStatus.UP.name());
+        rdg2.setLabel("RDG2");
+        rdg2.setId(URI.create("RDG2"));
+        rdg2.setNativeGuid("vmax2+vmax1+6");
+        rdg2.setRemoteGroupId("6");
+        rdg2.setRemoteStorageSystemUri(storageSystem1.getId());
+        rdg2.setSourceGroupId("6");
+        rdg2.setSourceStorageSystemUri(storageSystem2.getId());
+        rdg2.setSupportedCopyMode(RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name());
+        _dbClient.createObject(rdg2);
+        return storageSystems;
+    }
+    
+    public static StoragePool[] createStoragePoolsForTwo(DbClient _dbClient, StorageSystem storageSystem1, VirtualArray varray1, 
+            StorageSystem storageSystem2, VirtualArray varray2) {
+        StoragePool[] storagePools = new StoragePool[7];
+        // Create a storage pool for vmax1
+        storagePools[1] = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool1", "Pool1",
+                Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+
+        // Create a storage pool for vmax1
+        storagePools[2] = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool2", "Pool2",
+                Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+
+        // Create a storage pool for vmax1
+        storagePools[3] = PlacementTestUtils.createStoragePool(_dbClient, varray1, storageSystem1, "pool3", "Pool3",
+                Long.valueOf(SIZE_GB * 1), Long.valueOf(SIZE_GB * 1), 100, 100,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+
+        // Create a storage pool for vmax2
+        storagePools[4] = PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool4", "Pool4",
+                Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+
+        // Create a storage pool for vmax2
+        storagePools[5]= PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool5", "Pool5",
+                Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+
+        // Create a storage pool for vmax2
+        storagePools[6]= PlacementTestUtils.createStoragePool(_dbClient, varray2, storageSystem2, "pool6", "Pool6",
+                Long.valueOf(SIZE_GB * 1), Long.valueOf(SIZE_GB * 1), 100, 100,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+        return storagePools;
+    }
 
 }

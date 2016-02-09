@@ -132,7 +132,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 String snapshotSetTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client,
                         getVolumeFolderName(snapshotObj.getProject().getURI(), storage), clusterName)
                         .get(XtremIOConstants.SNAPSHOT_KEY);
-                snapsetLabel = snapshotObj.getSnapsetLabel() + new SimpleDateFormat("yyyyMMddhhmm").format(new Date());
+                snapsetLabel = snapshotObj.getSnapsetLabel() + new SimpleDateFormat("-yyyyMMddhhmm").format(new Date());
                 client.createConsistencyGroupSnapshot(group.getLabel(), snapsetLabel, "", snapType, clusterName);
                 // tag the created the snapshotSet
                 client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapsetLabel, clusterName);
@@ -220,7 +220,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             if (null != XtremIOProvUtils.isSnapsetAvailableInArray(client, snapshotObj.getReplicationGroupInstance(), clusterName)) {
-                client.deleteSnapshotSet(snapshotObj.getSnapsetLabel(), clusterName);
+                client.deleteSnapshotSet(snapshotObj.getReplicationGroupInstance(), clusterName);
             }
             // Set inactive=true for all snapshots in the snap
             List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, dbClient);

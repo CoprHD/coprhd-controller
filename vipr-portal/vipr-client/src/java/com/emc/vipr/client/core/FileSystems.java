@@ -29,6 +29,7 @@ import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
+import com.emc.storageos.model.file.FileSystemUpdateParam;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.ShareACL;
@@ -143,6 +144,22 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         return postTaskURI(input, targetUri);
     }
 
+    
+    /**
+     * Begins updating the given file system by ID.
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{id}</tt>
+     * 
+     * @param id
+     *            the ID of the file system to expand.
+     * @param input
+     *            the update configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> update(URI id, FileSystemUpdateParam input) {
+        return putTask(input, getIdUrl(), id);
+    }
+    
     /**
      * Begins expanding the given file system by ID.
      * <p>

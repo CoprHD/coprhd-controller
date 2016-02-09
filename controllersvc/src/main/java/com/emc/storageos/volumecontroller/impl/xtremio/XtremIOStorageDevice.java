@@ -105,18 +105,18 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             boolean isCG = false;
             Volume vol = volumes.get(0);
             // If the volume is regular volume and in CG
-            if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {                
+            if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup())) {
                 cgObj = dbClient.queryObject(BlockConsistencyGroup.class, vol.getConsistencyGroup());
-                if (cgObj != null 
+                if (cgObj != null
                         && cgObj.created(storage.getId())
                         && !vol.checkForRp() && !Volume.checkForVplexBackEndVolume(dbClient, vol)) {
                     // Only set this flag to true if the CG reference is valid
                     // and it is already created on the storage system.
                     // Also, exclude RP volumes and vplex volumes.
                     isCG = true;
-                } 
+                }
             }
-            
+
             // find the project this volume belongs to.
             URI projectUri = volumes.get(0).getProject().getURI();
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
@@ -157,9 +157,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     // If it is not, add 1 MB extra to make up the missing bytes due to divide by 1024
                     int amountToAdjustCapacity = 1;
                     if (Volume.checkForProtectedVplexBackendVolume(dbClient, volume) || volume.checkForRp()) {
-                    	amountToAdjustCapacity = 0;
+                        amountToAdjustCapacity = 0;
                     }
-                    
+
                     Long capacityInMB = new Long(volume.getCapacity() / (1024 * 1024) + amountToAdjustCapacity);
                     String capacityInMBStr = String.valueOf(capacityInMB).concat("m");
                     _log.info("Sending create volume request with name: {}, size: {}",
@@ -175,7 +175,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                         // This causes issues with local array snapshots of RP+VPlex volumes.
                         String rpName = volume.getReplicationGroupInstance();
                         if (isCG && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
-                                        PersonalityTypes.METADATA, PersonalityTypes.TARGET) &&
+                                PersonalityTypes.METADATA, PersonalityTypes.TARGET) &&
                                 NullColumnValueGetter.isNotNullValue(rpName)) {
                             client.addVolumeToConsistencyGroup(volume.getLabel(), cgObj.getLabel(), clusterName);
                         }
@@ -278,35 +278,45 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
                         // If the volume is regular volume & in CG
                         // i.e. it's not RP or a backend volume for a RP+VPLEX Target or Journal
-                        if (client.isVersion2() && volume.getConsistencyGroup() != null && 
-                        		volume.getReplicationGroupInstance() != null && !volume.checkForRp()
-                                && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
+                        if (client.isVersion2() && volume.getConsistencyGroup() != null &&
+                                volume.getReplicationGroupInstance() != null && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
                                         PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
                             BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
                                     volume.getConsistencyGroup());
                             String cgName = volume.getReplicationGroupInstance();
-                            
-                            if (null != XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName)) {
-                                // first remove the volume from cg if exists on array and then delete
-                                _log.info("Removing the volume {} from consistency group {}", volume.getLabel(),
-                                		cgName);
-                                client.removeVolumeFromConsistencyGroup(volume.getLabel(), cgName, clusterName);
-                                XtremIOConsistencyGroup xioCG = XtremIOProvUtils.isCGAvailableInArray(client,
-                                		cgName, clusterName);
-                                // Check if there are no volumes in the CG
-                                if (null == xioCG.getVolList() || xioCG.getVolList().isEmpty()) {
-                                    client.removeConsistencyGroup(cgName, clusterName);
-                                    _log.info("CG is empty on array. Remove array association from the CG");
-                                    consistencyGroupObj.removeSystemConsistencyGroup(storageSystem.getId().toString(),
-                                    		cgName);
-                                    // clear the LOCAL type
-                                    StringSet types = consistencyGroupObj.getTypes();
-                                    if (types != null) {
-                                        types.remove(Types.LOCAL.name());
-                                        consistencyGroupObj.setTypes(types);
-                                    }
 
-                                    dbClient.updateObject(consistencyGroupObj);
+                            XtremIOConsistencyGroup xioCG = XtremIOProvUtils.isCGAvailableInArray(client,
+                                    cgName, clusterName);
+                            // Check if CG has volumes
+                            if (null != xioCG && null != xioCG.getVolList() && !xioCG.getVolList().isEmpty()) {
+                                boolean isVolRemovedFromCG = false;
+                                // Verify if the volumes is part of the CG or not. If Exists always remove from CG
+                                if (checkIfVolumeExistsInCG(xioCG.getVolList(), volume)) {
+                                    _log.info("Volume is exists on CG and removing {} from consistency group {}", volume.getLabel(),
+                                            cgName);
+                                    client.removeVolumeFromConsistencyGroup(volume.getLabel(), cgName, clusterName);
+                                    isVolRemovedFromCG = true;
+                                } else {
+                                    _log.info("Volume {} doesn't exists on CG {}", volume.getLabel(), cgName);
+                                }
+                                // Perform remove CG only when we removed the volume from CG.
+                                if (isVolRemovedFromCG) {
+                                    // Query the CG to reflect the latest data on array.
+                                    xioCG = XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName);
+                                    if (null == xioCG.getVolList() || xioCG.getVolList().isEmpty()) {
+                                        client.removeConsistencyGroup(cgName, clusterName);
+                                        _log.info("CG is empty on array. Remove array association from the CG");
+                                        consistencyGroupObj.removeSystemConsistencyGroup(storageSystem.getId().toString(),
+                                                cgName);
+                                        // clear the LOCAL type
+                                        StringSet types = consistencyGroupObj.getTypes();
+                                        if (types != null) {
+                                            types.remove(Types.LOCAL.name());
+                                            consistencyGroupObj.setTypes(types);
+                                        }
+
+                                        dbClient.updateObject(consistencyGroupObj);
+                                    }
                                 }
                             }
                         }
@@ -349,6 +359,24 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             ServiceError error = DeviceControllerErrors.xtremio.deleteVolumeFailure(e.getMessage());
             completer.error(dbClient, error);
         }
+    }
+
+    /**
+     * Verify whether the given volume exists in the CG Volume list or not.
+     * If Exists return true, else false.
+     * 
+     * @param volList - CG Volume List
+     * @param volume - Volume to check.
+     * @return
+     */
+    private boolean checkIfVolumeExistsInCG(List<List<Object>> volList, Volume volume) {
+        for (List<Object> vols : volList) {
+            if (null != vols.get(0)) {
+                String cgVolNativeId = vols.get(0).toString();
+                return cgVolNativeId.equalsIgnoreCase(volume.getNativeId());
+            }
+        }
+        return false;
     }
 
     @Override
@@ -559,7 +587,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, String newReplicationGroupName, Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
+            String replicationGroupName, String newReplicationGroupName, Boolean markInactive, final TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         _log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
         try {
             // Check if the consistency group exists
@@ -664,10 +693,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             List<BlockObject> updatedBlockObjects = new ArrayList<BlockObject>();
             for (URI uri : blockObjects) {
                 BlockObject blockObject = BlockObject.fetch(dbClient, uri);
-                if (blockObject != null) {                    
+                if (blockObject != null) {
                     if (blockObject.getClass().isInstance(Volume.class)) {
-                        Volume volume = (Volume)blockObject;
-                        if (volume.checkForRp() 
+                        Volume volume = (Volume) blockObject;
+                        if (volume.checkForRp()
                                 || RPHelper.isAssociatedToRpVplexType(volume, dbClient,
                                         PersonalityTypes.METADATA, PersonalityTypes.TARGET)) {
                             // Do not add RP+VPlex journal or target backing volumes to consistency groups.
@@ -677,7 +706,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     }
                     client.addVolumeToConsistencyGroup(blockObject.getLabel(), cgName, clusterName);
                     blockObject.setConsistencyGroup(consistencyGroupId);
-                    updatedBlockObjects.add(blockObject);                    
+                    updatedBlockObjects.add(blockObject);
                 }
             }
             dbClient.updateAndReindexObject(updatedBlockObjects);

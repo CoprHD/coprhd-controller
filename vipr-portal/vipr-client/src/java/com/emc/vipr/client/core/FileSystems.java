@@ -113,13 +113,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     protected String getNfsACLsUrl() {
         return "/file/filesystems/{id}/acl";
     }
-	 * 
-	 * @return the NFS ACL URL.
-	 */
-	protected String getNfsACLsUrl() {
-		return "/file/filesystems/{id}/acl";
-	}
-	
+    
 	
 	/**
 	 * Gets the URL for File Replication Start operation: <tt>/file/filesystems/{id}/protection/continuous-copies/start</tt>

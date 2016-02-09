@@ -23,29 +23,42 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.api.mapper.DbObjectMapper;
-import com.emc.storageos.api.service.impl.resource.ResourceService;
-import com.emc.storageos.api.service.impl.resource.VirtualPoolService;
-import com.emc.storageos.cinder.model.*;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.model.QosSpecification;
-import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
+import com.emc.storageos.api.service.impl.resource.VirtualPoolService;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.cinder.model.CinderQos;
+import com.emc.storageos.cinder.model.CinderQosAssociation;
+import com.emc.storageos.cinder.model.CinderQosCreateRequest;
+import com.emc.storageos.cinder.model.CinderQosDetail;
+import com.emc.storageos.cinder.model.CinderQosKeyUpdateRequest;
+import com.emc.storageos.cinder.model.CinderQosListRestResp;
+import com.emc.storageos.cinder.model.QosAssociationsRestResp;
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.QosSpecification;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -53,6 +66,8 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @Path("/v2/{tenant_id}/qos-specs")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
@@ -382,7 +397,7 @@ public class QosService extends TaskResourceService {
         if (virtualPool.getMultivolumeConsistency() != null) {
             specs.put(SPEC_MULTI_VOL_CONSISTENCY, Boolean.toString(virtualPool.getMultivolumeConsistency()));
         }
-        if (virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL) != null) {
+        if (virtualPool.getArrayInfo() != null && virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL) != null) {
             specs.put(SPEC_RAID_LEVEL, virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL).toString());
         }
         if (virtualPool.getExpandable() != null) {
@@ -452,7 +467,7 @@ public class QosService extends TaskResourceService {
         if (virtualPool.getMultivolumeConsistency() != null) {
             specs.put(SPEC_MULTI_VOL_CONSISTENCY, Boolean.toString(virtualPool.getMultivolumeConsistency()));
         }
-        if (virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL) != null) {
+        if (virtualPool.getArrayInfo() != null && virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL) != null) {
             specs.put(SPEC_RAID_LEVEL, virtualPool.getArrayInfo().get(LABEL_RAID_LEVEL).toString());
         }
         if (virtualPool.getExpandable() != null) {

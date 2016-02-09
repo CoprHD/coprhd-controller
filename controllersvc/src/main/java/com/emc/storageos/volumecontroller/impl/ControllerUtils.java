@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -18,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +31,34 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Event;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.FCZoneReference;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProvider;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -45,9 +73,6 @@ import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
-
-import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
-import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * Utilities class encapsulates controller utility methods.
@@ -643,7 +668,10 @@ public class ControllerUtils {
                 dbClient.queryByConstraint(AlternateIdConstraint.Factory
                         .getFASTPolicyByNameConstraint(policyNameInVpool), result);
             } else {
-                StringSet systemType = vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
+                StringSet systemType = new StringSet();
+                if (vPool.getArrayInfo() != null) {
+                    systemType.addAll(vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE));
+                }
                 if (systemType.contains(DiscoveredDataObject.Type.vnxblock.name())) {
                     dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getFASTPolicyByNameConstraint(policyNameInVpool), result);

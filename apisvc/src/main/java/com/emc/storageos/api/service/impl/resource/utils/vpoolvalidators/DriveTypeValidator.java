@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolValidator;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.SupportedDriveTypes;
 import com.emc.storageos.model.vpool.BlockVirtualPoolParam;
@@ -25,10 +26,13 @@ public class DriveTypeValidator extends VirtualPoolValidator<BlockVirtualPoolPar
     @Override
     protected void validateVirtualPoolUpdateAttributeValue(
             VirtualPool vPool, BlockVirtualPoolUpdateParam updateParam, DbClient dbClient) {
+        StringSet systemType = new StringSet();
+        if (vPool.getArrayInfo() != null) {
+            systemType = vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
+        }
         if (VirtualPoolUtil.validateNullDriveTypeForHDSSystems(vPool.getAutoTierPolicyName(),
-                vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE), vPool.getDriveType())) {
-            throw APIException.badRequests.invalidDriveType(vPool.getArrayInfo().get(
-                    VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE).toString());
+                systemType, vPool.getDriveType())) {
+            throw APIException.badRequests.invalidDriveType(systemType.toString());
         }
         if (null != updateParam.getDriveType() && !updateParam.getDriveType().equalsIgnoreCase(NONE)
                 && null == SupportedDriveTypes.lookup(updateParam.getDriveType())) {

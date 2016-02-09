@@ -4,7 +4,7 @@
  */
 package com.emc.storageos.ecs.api;
 
-public class NamespaceLink {
+public class ECSLink {
     private String rel;
     private String href;
     

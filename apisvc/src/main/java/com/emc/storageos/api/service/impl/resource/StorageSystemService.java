@@ -49,12 +49,14 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -88,6 +90,9 @@ import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
 import com.emc.storageos.model.object.ObjectNamespaceList;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeyRequestParam;
+import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -109,6 +114,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -119,6 +125,7 @@ import com.emc.storageos.volumecontroller.StorageController;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
+import com.emc.storageos.volumecontroller.impl.ecs.BucketOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -1285,6 +1292,9 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
         StorageSystem system = queryResource(id);
         ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
 
         ArgValidator.checkFieldUriType(nsId, ObjectNamespace.class, "nativeId");
         ObjectNamespace ecsNamespace = _dbClient.queryObject(ObjectNamespace.class, nsId);
@@ -1297,6 +1307,60 @@ public class StorageSystemService extends TaskResourceService {
             CoordinatorClient coordinator) {
 
         return map(ecsNamespace);
+    }
+    
+    /**
+     * Get the existing secret keys(s) for the user specified
+     * 
+     * @param id storage system URN
+     * @param userId user for whom key is required
+     * @return secret key
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-user/{userId}/secret-keys")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectUserSecretKeysRestRep getUserSecretKeys(@PathParam("id") URI id,
+            @PathParam("userId") String userId) throws InternalException {
+        // Make sure storage system is registered and object storage
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
+
+        ObjectController controller = getController(ObjectController.class, system.getSystemType());
+        ObjectUserSecretKey secretKeys = controller.getUserSecretKeys(id, userId);
+        return map(secretKeys);
+    }
+
+    /**
+     * Create a secret key for an object storage array
+     * 
+     * @param param secret key
+     * @param id storage system URN
+     * @param userId user in array
+     * @return secret key details
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-user/{userId}/secret-keys")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectUserSecretKeyAddRestRep addUserSecretKey(ObjectUserSecretKeyRequestParam param, @PathParam("id") URI id,
+            @PathParam("userId") String userId) throws InternalException{
+        // Make sure storage system is registered and object storage
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
+        
+        ObjectController controller = getController(ObjectController.class, system.getSystemType());
+        ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, param.getSecretkey());
+        //Return key details as this is synchronous call
+        return map(secretKeyRes, true);
     }
 
     @GET

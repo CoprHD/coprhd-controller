@@ -1220,7 +1220,6 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
 
-    
     /**
      * Expand file system.
      * <p>
@@ -1240,23 +1239,24 @@ public class FileService extends TaskResourceService {
     public TaskResourceRep update(@PathParam("id") URI id, FileSystemUpdateParam param)
             throws InternalException {
 
-        _log.info(String.format("FileShareUpdate --- FileShare id: %1$s",id));
+        _log.info(String.format("FileShareUpdate --- FileShare id: %1$s", id));
         // check file System
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        
+
         Boolean deviceSupportsSoftLimit = device.getSupportSoftLimit() != null ? device.getSupportSoftLimit() : false;
-        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit() : false;
-        
+        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit()
+                : false;
+
         if (param.getSoftLimit() != 0 && !deviceSupportsSoftLimit) {
             throw APIException.badRequests.unsupportedParameterForStorageSystem("soft_limit");
         }
-        
+
         if (param.getNotificationLimit() != 0 && !deviceSupportsNotificationLimit) {
             throw APIException.badRequests.unsupportedParameterForStorageSystem("notification_limit");
         }
-        
+
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "soft_limit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notification_limit");
 
@@ -1267,9 +1267,9 @@ public class FileService extends TaskResourceService {
         fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
         fs.setSoftGracePeriod(param.getSoftGrace());
         fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
-        
+
         _dbClient.updateObject(fs);
-        
+
         FileController controller = getController(FileController.class,
                 device.getSystemType());
 
@@ -1279,7 +1279,7 @@ public class FileService extends TaskResourceService {
         controller.modifyFS(fs.getStorageDevice(), fs.getPool(), id, task);
         op.setDescription("Filesystem update");
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(), 
+                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(),
                 param.getSoftLimit(), param.getSoftGrace());
 
         return toTask(fs, task, op);
@@ -3094,8 +3094,10 @@ public class FileService extends TaskResourceService {
 
         // Verify the file system and its vPool are capable of doing replication!!!
         if (!validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
-            _log.error("Mirror Operation {}  is not supported for file system {} due to {}", op.toUpperCase(),
-                    sourceFileShare.getId().toString(), notSuppReasonBuff.toString());
+            _log.error("Mirror Operation {}  is not supported for file system {} due to {}",
+                    new Object[] { op.toUpperCase(),
+                            sourceFileShare.getId().toString(),
+                            notSuppReasonBuff.toString() });
             throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(), notSuppReasonBuff.toString());
 
         }
@@ -3601,6 +3603,12 @@ public class FileService extends TaskResourceService {
         if (operation.equalsIgnoreCase(ProtectionOp.REFRESH.toString())) {
             return true;
         }
+
+        if (operation.equalsIgnoreCase(ProtectionOp.START.toString())
+                && !currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())) {
+            return true;
+        }
+
         if (operation.equalsIgnoreCase(ProtectionOp.FAILBACK.toString())
                 && currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
             return true;

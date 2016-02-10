@@ -96,7 +96,7 @@ public class FieldType {
         }
         wrapper.setValue(value);
         try {
-            JAXBContext jc = JAXBContext.newInstance(clazz, value.getClass());
+            JAXBContext jc = JAXBContext.newInstance(clazz);
             Marshaller marshaller = jc.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
 

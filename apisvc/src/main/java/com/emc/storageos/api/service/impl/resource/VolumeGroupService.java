@@ -1509,9 +1509,11 @@ public class VolumeGroupService extends TaskResourceService {
         }
         
         /**
-         * gets the list of replication group names associated with this COPY type volume group
-         * @return list of replication group names or empty list if the volume group is not COPY or no volumes exist in 
-         * the volume group
+         * return the list of virtual arrays for a volume group
+         * 
+         * @param group
+         * @param dbClient
+         * @return
          */
         public static Set<NamedRelatedResourceRep> getVirtualArrays(VolumeGroup group, DbClient dbClient) {
             

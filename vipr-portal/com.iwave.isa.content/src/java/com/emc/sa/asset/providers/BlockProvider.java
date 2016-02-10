@@ -247,7 +247,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
         
-        ResourceFilter<VolumeRestRep> cgFilter = new BlockVolumeConsistencyGroupFilter(cg, true);
+        ResourceFilter<VolumeRestRep> cgFilter = new BlockVolumeConsistencyGroupFilter(cg, false);
         
         List<ProjectRestRep> projects = api(ctx).projects().getByTenant(ctx.getTenant());
         List<VolumeRestRep> volumes = new ArrayList<VolumeRestRep>();

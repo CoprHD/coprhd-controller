@@ -7,17 +7,16 @@ package com.emc.storageos.model.object;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import com.emc.storageos.volumecontroller.ObjectControllerConstants;
-
 /**
  * Whether or not the Bucket should be forcibly deleted. If set to yes, Bucket will be deleted
  * 
  */
 @XmlRootElement(name = "bucket_deactivate")
 public class BucketDeleteParam {
+    private static final String DELETE_TYPE = "FULL";
 
     private boolean forceDelete;
-    private String deleteType = ObjectControllerConstants.DeleteTypeEnum.FULL.toString();
+    private String deleteType = DELETE_TYPE;
 
     public BucketDeleteParam() {
     }

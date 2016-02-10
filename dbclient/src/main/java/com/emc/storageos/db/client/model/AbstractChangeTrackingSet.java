@@ -7,14 +7,20 @@ package com.emc.storageos.db.client.model;
 
 import java.util.*;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlTransient;
+
 import com.emc.storageos.db.client.util.DbClientCallbackEvent;
 
 /**
  * Abstract base for set that tracks changes
  */
+@XmlAccessorType(XmlAccessType.FIELD)
 public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
     private HashSet<K> _remove;
     private HashSet<K> _added;
+    @XmlTransient
     DbClientCallbackEvent _cb;
 
     /**

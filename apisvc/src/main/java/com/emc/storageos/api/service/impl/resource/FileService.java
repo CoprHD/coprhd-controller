@@ -98,7 +98,6 @@ import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
@@ -450,7 +449,7 @@ public class FileService extends TaskResourceService {
         return fs;
     }
 
-    void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+    private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
         if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_TYPE, vPool.getRpRpoType());
@@ -486,7 +485,7 @@ public class FileService extends TaskResourceService {
      * @param task
      * @return
      */
-    TaskList createFileTaskList(FileSystemParam param, Project project, TenantOrg tenantOrg,
+    private TaskList createFileTaskList(FileSystemParam param, Project project, TenantOrg tenantOrg,
             VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
         TaskList taskList = new TaskList();
         FileShare fs = prepareEmptyFileSystem(param, project, tenantOrg, varray, vpool, flags, task);
@@ -1220,7 +1219,6 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
 
-    
     /**
      * Expand file system.
      * <p>
@@ -1240,23 +1238,24 @@ public class FileService extends TaskResourceService {
     public TaskResourceRep update(@PathParam("id") URI id, FileSystemUpdateParam param)
             throws InternalException {
 
-        _log.info(String.format("FileShareUpdate --- FileShare id: %1$s",id));
+        _log.info(String.format("FileShareUpdate --- FileShare id: %1$s", id));
         // check file System
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        
+
         Boolean deviceSupportsSoftLimit = device.getSupportSoftLimit() != null ? device.getSupportSoftLimit() : false;
-        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit() : false;
-        
+        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit()
+                : false;
+
         if (param.getSoftLimit() != 0 && !deviceSupportsSoftLimit) {
             throw APIException.badRequests.unsupportedParameterForStorageSystem("soft_limit");
         }
-        
+
         if (param.getNotificationLimit() != 0 && !deviceSupportsNotificationLimit) {
             throw APIException.badRequests.unsupportedParameterForStorageSystem("notification_limit");
         }
-        
+
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "soft_limit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notification_limit");
 
@@ -1267,9 +1266,9 @@ public class FileService extends TaskResourceService {
         fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
         fs.setSoftGracePeriod(param.getSoftGrace());
         fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
-        
+
         _dbClient.updateObject(fs);
-        
+
         FileController controller = getController(FileController.class,
                 device.getSystemType());
 
@@ -1279,7 +1278,7 @@ public class FileService extends TaskResourceService {
         controller.modifyFS(fs.getStorageDevice(), fs.getPool(), id, task);
         op.setDescription("Filesystem update");
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(), 
+                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(),
                 param.getSoftLimit(), param.getSoftGrace());
 
         return toTask(fs, task, op);
@@ -3065,13 +3064,6 @@ public class FileService extends TaskResourceService {
         return list;
     }
 
-    void ValidateCopiesParam(URI uriFS, CopiesParam param) {
-        // Validate the source file share URI
-        ArgValidator.checkFieldUriType(uriFS, FileShare.class, "id");
-        // Validate the list of copies
-        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
-    }
-
     private TaskResourceRep performProtectionAction(URI id, String op) throws InternalException {
         String task = UUID.randomUUID().toString();
 
@@ -3094,8 +3086,9 @@ public class FileService extends TaskResourceService {
 
         // Verify the file system and its vPool are capable of doing replication!!!
         if (!validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
-            _log.error("Mirror Operation {}  is not supported for file system {} due to {}", op.toUpperCase(),
-                    sourceFileShare.getId().toString(), notSuppReasonBuff.toString());
+            _log.error("Mirror Operation {}  is not supported for file system {} due to {}",
+                    new Object[] { op.toUpperCase(),
+                            sourceFileShare.getId().toString(), notSuppReasonBuff.toString() });
             throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(), notSuppReasonBuff.toString());
 
         }

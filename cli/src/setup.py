@@ -68,6 +68,8 @@ distutils.core.setup(
                       'quotadirectory.py',
                       'volumegroup.py',
                       'ipsecmanager.py',
+                      'snapshotsession.py',
+                      'objectuser.py',
                       'schedulepolicy.py']
                  )]
 )

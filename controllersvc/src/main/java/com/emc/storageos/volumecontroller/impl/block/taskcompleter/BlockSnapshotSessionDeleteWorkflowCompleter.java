@@ -5,7 +5,11 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +36,7 @@ public class BlockSnapshotSessionDeleteWorkflowCompleter extends BlockSnapshotSe
 
     /**
      * Constructor
-     * 
+     *
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param taskId The unique task identifier.
      */
@@ -48,7 +52,8 @@ public class BlockSnapshotSessionDeleteWorkflowCompleter extends BlockSnapshotSe
         URI snapSessionURI = getId();
         try {
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-            BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+            List<BlockObject> allSources = getAllSources(snapSession, dbClient);
+            BlockObject sourceObj = allSources.get(0);
 
             // Record the results.
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.DELETE_SNAPSHOT_SESSION,
@@ -71,14 +76,11 @@ public class BlockSnapshotSessionDeleteWorkflowCompleter extends BlockSnapshotSe
                     s_logger.info(errMsg);
                     throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
-
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the task to complete.
-                updateWorkflowStatus(status, coded);
-            }
             s_logger.info("Done delete snapshot session task {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for delete snapshot session task {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
 

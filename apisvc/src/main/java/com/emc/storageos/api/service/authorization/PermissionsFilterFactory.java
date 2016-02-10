@@ -224,8 +224,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                         return getProjectIdFromResourceId(uriStr, BlockService.getBlockServiceResourceClass(uriStr));
                     } else if (_resourceClazz.isAssignableFrom(BlockConsistencyGroupService.class)) {
                         return getProjectIdFromResourceId(uriStr, BlockConsistencyGroup.class);
-                    }
-                    if (_resourceClazz.isAssignableFrom(BlockSnapshotService.class)) {
+                    } else if (_resourceClazz.isAssignableFrom(BlockSnapshotService.class)) {
                         return getProjectIdFromResourceBlockSnapshotId(uriStr, BlockSnapshot.class);
                     } else if (_resourceClazz.isAssignableFrom(FileSnapshotService.class)) {
                         return getProjectIdFromResourceSnapshotId(uriStr, Snapshot.class);

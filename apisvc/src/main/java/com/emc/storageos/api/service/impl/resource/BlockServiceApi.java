@@ -198,11 +198,11 @@ public interface BlockServiceApi {
      * @param device StorageSystem requested
      * @param mirrorURI URI of mirror to be deactivated
      * @param task Task ID
+     * @param deleteType The type of mirror deletion i.e., FULL or VIPR_ONLY
      * 
      * @return TaskList
      */
-    public TaskList deactivateMirror(StorageSystem device, URI mirrorURI,
-            String task) throws ControllerException;
+    public TaskList deactivateMirror(StorageSystem device, URI mirrorURI, String task, String deleteType) throws ControllerException;
 
     /**
      * Gets the list of potential vpools for a vpool change for the passed volume.
@@ -400,10 +400,12 @@ public interface BlockServiceApi {
     /**
      * Uses the appropriate controller to delete the snapshot.
      * 
-     * @param snapshot The snapshot to delete
+     * @param snapshot The snapshot requested to be deleted.
+     * @param allSnapshots All snapshots to be deleted as a result of deleting the requested snapshot.
      * @param taskId The unique task identifier
+     * @param deleteType The type of mirror deletion i.e., FULL or VIPR_ONLY
      */
-    public void deleteSnapshot(BlockSnapshot snapshot, String taskId);
+    public void deleteSnapshot(BlockSnapshot requestedSnapshot, List<BlockSnapshot> allSnapshots, String taskId, String deleteType);
 
     /**
      * Get the snapshots for the passed volume.

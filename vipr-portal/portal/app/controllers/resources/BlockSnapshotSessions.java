@@ -127,12 +127,12 @@ public class BlockSnapshotSessions extends ResourceController {
         snapshotSessionDetails(snapshotSessionId);
     }
 
-    public static void unlinkTarget(String snapshotId, String snapshotSessionId) {
+    public static void unlinkTarget(String snapshotId, String snapshotSessionId, Boolean deleteOption) {
         ViPRCoreClient client = BourneUtil.getViprClient();
         SnapshotSessionUnlinkTargetsParam unlinkTarget = new SnapshotSessionUnlinkTargetsParam();
         List<SnapshotSessionUnlinkTargetParam> unlinkSessions = Lists.newArrayList();
         SnapshotSessionUnlinkTargetParam unlink = new SnapshotSessionUnlinkTargetParam();
-        unlink.setDeleteTarget(true);
+        unlink.setDeleteTarget(deleteOption);
         unlink.setId(uri(snapshotId));
         unlinkSessions.add(unlink);
         unlinkTarget.setLinkedTargets(unlinkSessions);

@@ -222,7 +222,7 @@ public class BlockVolumes extends ResourceController {
         render(snapshotSessions, volumeId);
     }
 
-    public static void unlinkTargetSnapshot(String sessionId, String volumeId) {
+    public static void unlinkTargetSnapshot(String sessionId, String volumeId, Boolean deleteOption) {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
 
@@ -240,7 +240,7 @@ public class BlockVolumes extends ResourceController {
 
             targetList.setId(snap.getId());
 
-            targetList.setDeleteTarget(true);
+            targetList.setDeleteTarget(deleteOption);
 
             targetLists.add(targetList);
         }

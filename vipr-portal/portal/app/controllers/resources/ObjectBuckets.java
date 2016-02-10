@@ -203,8 +203,7 @@ public class ObjectBuckets extends ResourceController {
                 BucketACE ace = new BucketACE();
                 if ("Group".equalsIgnoreCase(type)) {
                     ace.setGroup(name);
-                }
-                if ("Customgroup".equalsIgnoreCase(type)) {
+                } else if ("Customgroup".equalsIgnoreCase(type)) {
                     ace.setCustomGroup(name);
                 } else {
                     ace.setUser(name);
@@ -333,8 +332,7 @@ public class ObjectBuckets extends ResourceController {
             }
             if ("GROUP".equalsIgnoreCase(uiType.trim())) {
                 bucketAce.setGroup(uiName.trim());
-            }
-            if ("CUSTOMGROUP".equalsIgnoreCase(uiType.trim())) {
+            }else if ("CUSTOMGROUP".equalsIgnoreCase(uiType.trim())) {
                 bucketAce.setCustomGroup(uiName.trim());
             } else {
                 bucketAce.setUser(uiName.trim());

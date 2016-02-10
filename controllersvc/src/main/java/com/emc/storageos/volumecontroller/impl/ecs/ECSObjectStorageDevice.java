@@ -456,7 +456,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                 type = aceToAdd.getGroup() != null ? "group" : "customgroup";
             }
             if (aceToAdd.getDomain() != null && !aceToAdd.getDomain().isEmpty()) {
-                userOrGroupOrCustomgroup = aceToAdd.getDomain() + "\\" + userOrGroupOrCustomgroup;
+                userOrGroupOrCustomgroup = userOrGroupOrCustomgroup + "@" + aceToAdd.getDomain();
             }
 
             switch (type) {

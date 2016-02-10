@@ -292,12 +292,12 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                 boolean isVolRemovedFromCG = false;
                                 // Verify if the volumes is part of the CG or not. If Exists always remove from CG
                                 if (checkIfVolumeExistsInCG(xioCG.getVolList(), volume)) {
-                                    _log.info("Volume is exists on CG and removing {} from consistency group {}", volume.getLabel(),
+                                    _log.info("Removing volume {} from consistency group {}", volume.getLabel(),
                                             cgName);
                                     client.removeVolumeFromConsistencyGroup(volume.getLabel(), cgName, clusterName);
                                     isVolRemovedFromCG = true;
                                 } else {
-                                    _log.info("Volume {} doesn't exists on CG {}", volume.getLabel(), cgName);
+                                    _log.info("Volume {} doesn't exist on CG {}", volume.getLabel(), cgName);
                                 }
                                 // Perform remove CG only when we removed the volume from CG.
                                 if (isVolRemovedFromCG) {
@@ -373,7 +373,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         for (List<Object> vols : volList) {
             if (null != vols.get(0)) {
                 String cgVolNativeId = vols.get(0).toString();
-                return cgVolNativeId.equalsIgnoreCase(volume.getNativeId());
+                if (cgVolNativeId.equalsIgnoreCase(volume.getNativeId())) {
+                    return true;
+                }
             }
         }
         return false;

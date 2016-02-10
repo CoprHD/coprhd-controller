@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,7 +12,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -278,11 +275,9 @@ public class BlockFullCopyManager {
             
             // if RP get source or target volumes
             if (volumes != null && !volumes.isEmpty() && Volume.checkForRP(_dbClient, volumes.iterator().next().getId())) {
-                // get all RP cg's in the application
-                Set<URI> cgIds = new HashSet<URI>();
                 List<Volume> rpVolumes = new ArrayList<Volume>();
                 for (Volume volume : volumes) {
-                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup()) && !cgIds.contains(volume.getConsistencyGroup())) {
+                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                         if (param.getVarrayId() != null) {
                             if (param.getVpoolId() != null) {
                                 if (volume.getVirtualArray().equals(param.getVarrayId()) && volume.getVirtualPool().equals(param.getVpoolId())) {

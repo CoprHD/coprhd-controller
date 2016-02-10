@@ -129,6 +129,21 @@ public class VolumeIngestionUtil {
             StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
 
             try {
+                // Check if UnManagedVolume is CG enabled and VPool is not CG enabled.
+                if (checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume) && !vPool.getMultivolumeConsistency()) {
+                    _logger.error(String
+                            .format("The requested Virtual Pool %s does not have the Multi-Volume Consistency flag set, and unmanage volume %s is part of a consistency group.",
+                                    vPool.getLabel(), unManagedVolume.getLabel()));
+                    throw APIException.internalServerErrors.unmanagedVolumeVpoolConsistencyGroupMismatch(vPool.getLabel(),
+                            unManagedVolume.getLabel());
+                }
+
+                // Check if the UnManagedVolume is a snapshot & Vpool doesn't have snapshotCount defined.
+                if (isSnapshot(unManagedVolume) && 0 == vPool.getMaxNativeSnapshots()) {
+                    throw APIException.internalServerErrors.noMaxSnapshotsDefinedInVirtualPool(
+                            vPool.getLabel(), unManagedVolume.getLabel());
+                }
+
                 // a VPLEX volume and snapshot will not have an associated pool
                 if (!isVplexVolume(unManagedVolume) && !isSnapshot(unManagedVolume)) {
                     checkStoragePoolValidForUnManagedVolumeUri(unManagedVolumeInformation,
@@ -3391,9 +3406,14 @@ public class VolumeIngestionUtil {
                     if (blockObject == null) {
                         // Finally look in the DB itself. It may be from a previous ingestion operation.
                         blockObject = dbClient.queryObject(Volume.class, URI.create(associatedVolumeIdStr));
-                        // Since I pulled this in from the database, we need to add it to the list of objects to update.
-                        ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
+                        if (blockObject == null) {
+                            // This may not be a failure if we're not ingesting backing volumes.  Put a warning to the log.
+                            _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
+                        } else {
+                            // Since I pulled this in from the database, we need to add it to the list of objects to update.
+                            ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
                                 blockObject.getNativeGuid(), Arrays.asList(blockObject));
+                        }
                     }
                     if (blockObject != null) {
                         blockObject.setConsistencyGroup(rpCG.getId());

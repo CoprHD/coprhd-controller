@@ -55,11 +55,13 @@ public class FileScheduleSnaphotMatcher extends AttributeMatcher {
 
     private boolean getScheduleSupportFromPool(StoragePool pool) {
         StringSet copyTypes = pool.getSupportedCopyTypes();
-        for (String type : copyTypes) {
-            if (type.equalsIgnoreCase(CHECKPOINT_SCHEDULE)) {
-                return true;
-            }
+        if (copyTypes != null) {
+            for (String type : copyTypes) {
+                if (type.equalsIgnoreCase(CHECKPOINT_SCHEDULE)) {
+                    return true;
+                }
 
+            }
         }
         return false;
     }

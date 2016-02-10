@@ -2725,7 +2725,8 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getRestoreFromSettingsStateInputArguments(CIMObjectPath settingsStatePath) {
         return new CIMArgument[] {
                 _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS),
-                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
+                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath),
+                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, RESTORED_COPY_STATE)                
         };
     }
 

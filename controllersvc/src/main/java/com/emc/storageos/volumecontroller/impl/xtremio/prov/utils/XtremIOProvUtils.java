@@ -366,6 +366,7 @@ public class XtremIOProvUtils {
     public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
         xtremioRestClientFactory.setModel(system.getFirmwareVersion());
         if (null == system.getSmisProviderIP() || null == system.getSmisPortNumber()) {
+            _log.error("There is no active XtremIO Provider managing the system {}.", system.getSerialNumber());
             throw XtremIOApiException.exceptions.noActiveConnectionFound(system.getSerialNumber());
         }
         XtremIOClient client = (XtremIOClient) xtremioRestClientFactory

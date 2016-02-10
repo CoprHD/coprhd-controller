@@ -3380,7 +3380,7 @@ public class VolumeIngestionUtil {
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
             if (volume.checkForVplexVirtualVolume(dbClient)) {
-// We need the VPLEX ingest context to get the backend volume info
+                // We need the VPLEX ingest context to get the backend volume info
                 VplexVolumeIngestionContext vplexVolumeContext =
                         ((RpVplexVolumeIngestionContext)
                                 requestContext.getVolumeContext()).getVplexVolumeIngestionContext();  
@@ -3396,8 +3396,8 @@ public class VolumeIngestionUtil {
                         updatedObjects.add(associatedVolume);                    
                     } else {
                        // This may not be a failure if we're not ingesting backing volumes.  Put a warning to the log.
-                            _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
-                        
+                       _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
+                    }                        
                 }
             }
 

@@ -177,9 +177,7 @@ public class LogService extends BaseLogSvcResource {
 
         // Validate the passed start and end times are valid.
         Date startTime = TimeUtils.getDateTimestamp(startTimeStr);
-        _log.info(startTime.toString());
         Date endTime = TimeUtils.getDateTimestamp(endTimeStr);
-        _log.info(endTime.toString());
         validateTimestamps(startTime, endTime);
         _log.debug("Validated requested time window");
 

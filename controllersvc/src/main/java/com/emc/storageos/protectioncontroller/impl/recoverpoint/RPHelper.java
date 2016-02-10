@@ -921,7 +921,7 @@ public class RPHelper {
         if (volume != null) {
             VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
             if (vpool != null && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
-                _log.info("vpool specifies Metropoint RPCG requested");
+                _log.info(String.format("Volume's vpool [%s](%s) specifies Metropoint", vpool.getLabel(), vpool.getId()));
                 return true;
             }
         }

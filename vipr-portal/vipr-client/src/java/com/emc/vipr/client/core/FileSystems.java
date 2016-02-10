@@ -121,53 +121,6 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
     
 	
-    /**
-     * URL for File Replication Resume operation: <tt>/file/filesystems/{id}/protection/continuous-copies/resume</tt>
-     * @return Start File replication URL.
-     */
-    protected String getReplicationResumeUrl(){
-        return getIdUrl()+PathConstants.FILE_REPLICATION_RESUME_URL;
-    }
-
-    /**
-     * URL for File Replication FailBack operation: <tt>/file/filesystems/{id}/protection/continuous-copies/failBack</tt>
-     * @return Start File replication URL.
-     */
-    protected String getReplicationFailBackUrl(){
-        return getIdUrl()+PathConstants.FILE_REPLICATION_FAILBACK_URL;
-    }
-    
-    /**
-     * URL for File Replication CopyPolicy operation: <tt>/file/filesystems/{id}/protection/continuous-copies/copypolicy</tt>
-     * @return Start File replication URL.
-     */
-    protected String getReplicationCopyPolicyUrl(){
-        return getIdUrl()+PathConstants.FILE_REPLICATION_COPYPOLICY_URL;
-    }
-    
-    /**
-     * URL for File Replication Deactivate operation: <tt>/file/filesystems/{id}/protection/continuous-copies/deactivate</tt>
-     * @return Start File replication URL.
-     */
-    protected String getReplicationDeactivateUrl(){
-        return getIdUrl()+PathConstants.FILE_REPLICATION_DEACTIVATE_URL;
-    }
-    
-    /**
-     * URL for File Replication continous-copies operation: <tt>/file/filesystems/{id}/protection/continuous-copies</tt>
-     * @return Start File replication URL.
-     */
-    protected String getReplicationContinousCopiesUrl(){
-        return getIdUrl()+PathConstants.FILE_REPLICATION_URL;
-    }
-    
-    /**
-     * URL for File Replication details : <tt>/file/filesystems/{id}/protection/continuous-copies/{mid}</tt>
-     * @return Start File replication URL.
-     */
-    protected String getReplicationDetailsUrl(){
-        return getIdUrl()+PathConstants.FILE_REPLICATION_INFO_URL;
-    }
 
     
     @Override
@@ -794,7 +747,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     
     public Tasks<FileShareRestRep> resumeContinousCopies(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getReplicationResumeUrl());
+        UriBuilder builder = client.uriBuilder(getIdUrl()+PathConstants.FILE_REPLICATION_RESUME_URL);
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }
@@ -810,8 +763,8 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * @return a task for monitoring the progress of the operation.     * 
      */
     
-    public Tasks<FileShareRestRep> failBackReplication(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getReplicationFailBackUrl());
+    public Tasks<FileShareRestRep> failBackContinousCopies(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getIdUrl()+PathConstants.FILE_REPLICATION_FAILBACK_URL);
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }
@@ -828,7 +781,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     
     public Tasks<FileShareRestRep> replicationInfo(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getReplicationDetailsUrl());
+        UriBuilder builder = client.uriBuilder(getIdUrl()+PathConstants.FILE_REPLICATION_INFO_URL);
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }

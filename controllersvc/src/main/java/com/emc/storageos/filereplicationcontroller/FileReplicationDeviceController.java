@@ -249,7 +249,14 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             StorageSystem system = getStorageSystem(systemURI);
 
             completer = new MirrorFileCreateTaskCompleter(sourceURI, targetURI, vpoolChangeUri, opId);
-            getRemoteMirrorDevice(system).doCreateMirrorLink(system, sourceURI, targetURI, completer);
+            // getRemoteMirrorDevice(system).doCreateMirrorLink(system, sourceURI, targetURI, completer);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            if (null != completer) {
+                completer.error(dbClient, error);
+            }
+            WorkflowStepCompleter.stepFailed(opId, error);
+            // replication code
+
             log.info("Source: {}", sourceURI);
             log.info("Target: {}", targetURI);
             log.info("OpId: {}", opId);

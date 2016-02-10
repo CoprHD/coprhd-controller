@@ -19,14 +19,14 @@ public interface Constants {
 
     public static final String REMOTE_DOWNLOAD_LEADER = "remoteDownloadLeader";
     public static final String TARGET_INFO = "targetInfo";
+    String DOWNLOADINFO_KIND = "downloadinfo";
     public static final String NODE_INFO = "nodeInfo";
 
     public static final String TARGET_INFO_LOCK = "targetInfoLock";
     public static final String REMOTE_DOWNLOAD_LOCK = "remoteDownloadLock";
     public static final String NEW_VERSIONS_LOCK = "newVersionsLock";
     public static final String DISTRIBUTED_UPGRADE_LOCK = "controlNodeUpgradeLock";
-    public static final String DISTRIBUTED_PROPERTY_LOCK = "controlNodePropertyLock";
-    public static final String DISTRIBUTED_VDC_LOCK = "controlNodeVdcLock";
+    public static final String DISTRIBUTED_REBOOT_LOCK = "controlNodeRebootLock";
 
     // service config constants
     // category name under which upgrade target configurations are stored
@@ -41,9 +41,11 @@ public interface Constants {
     //ipsec command constants
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String IPSEC_KEY = "ipsec_key";
+    public static final String IPSEC_STATUS = "ipsec_status";
     public static final String IPSEC_CHECK_CONNECTION = "check-connection";
     public static final String IPSEC_GET_PROPS = "get-props";
     public static final String IPSEC_SYNC_KEY = "sync-key";
+    public static final String IPSEC_SYNC_STATUS = "sync-status";
 
             
     // upload image
@@ -135,9 +137,10 @@ public interface Constants {
     String CONFIG_GEO_LOCAL_VDC_SHORT_ID = "vdcShortId";
     
     public static final String CONFIG_GEO_FIRST_VDC_SHORT_ID = "vdc1";
+    public static final String CONFIG_DR_FIRST_SITE_SHORT_ID = "site1";
     
     public static final String SITE_STATE = "state";
-    public static final String SITE_ID= "siteid";
+    public static final String SITE_ID_FILE= "site_id_file";
     
     public static final String KEY_CERTIFICATE_PAIR_CONFIG_KIND = "keyCertificatePairConfig";
     public static final String ZK_OBSERVER_CONFIG_SUFFIX= ":2888:2889:observer;2181";
@@ -146,8 +149,14 @@ public interface Constants {
     public static final String ZK_SERVER_CONFIG_PREFIX= "server.";
     public static final String STANDBY_PROPERTY_REGEX=".*standby\\d_network_\\d_ipaddr6?";
     
-    public static final String SWITCHOVER_BARRIER = "switchoverBarrier";
+    public static final String SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED = "switchoverBarrierSetStateToSynced";
+    public static final String SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER = "switchoverBarrierSetStateToStandbySwitchingOver";
+    public static final String SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE = "switchoverBarrierSetStateToActive";
+    public static final String SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE = "switchoverStandbySiteRemoveBarrier";
+    public static final String SWITCHOVER_BARRIER_RESTART = "switchoverRestartBarrier";
+    public static final String RESUME_BARRIER_RESTART_DBSVC = "resumeRestartDbsvcBarrier";
     public static final String FAILOVER_BARRIER = "failoverBarrier";
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
     public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";
+    public static final String FAILBACK_DETECT_LEADER = "failbackDetectLeader";
 }

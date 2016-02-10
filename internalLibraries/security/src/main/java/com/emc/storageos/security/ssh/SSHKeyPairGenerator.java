@@ -6,6 +6,7 @@
 package com.emc.storageos.security.ssh;
 
 import com.emc.storageos.security.exceptions.SecurityException;
+import com.emc.storageos.security.helpers.SecurityUtil;
 import com.emc.storageos.security.keystore.impl.KeyCertificateAlgorithmValuesHolder;
 
 import java.security.*;
@@ -21,9 +22,6 @@ public class SSHKeyPairGenerator {
     public final static int DSA_KEY_SIZE = 1024;
 
     SSHParam.KeyAlgo algo;
-
-    private static KeyCertificateAlgorithmValuesHolder keyAlgoProps =
-            new KeyCertificateAlgorithmValuesHolder();
 
     SSHKeyPairGenerator(SSHParam.KeyAlgo algo) {
         this.algo = algo;
@@ -48,8 +46,7 @@ public class SSHKeyPairGenerator {
 
     private SSHKeyPair generatePairForRSA() {
         try {
-            SecureRandom random = SecureRandom.getInstance(
-                    keyAlgoProps.getSecuredRandomAlgorithm());
+            SecureRandom random = SecureRandom.getInstance(SecurityUtil.getSecuredRandomAlgorithm());
 
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance(
                     KeyCertificateAlgorithmValuesHolder.DEFAULT_KEY_ALGORITHM);
@@ -57,9 +54,9 @@ public class SSHKeyPairGenerator {
             keyGen.initialize(KeyCertificateAlgorithmValuesHolder.FIPS_MINIMAL_KEY_SIZE, random);
 
             return SSHKeyPair.toKeyPair(keyGen.generateKeyPair());
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             throw SecurityException.fatals.noSuchAlgorithmException(
-                    keyAlgoProps.getSecuredRandomAlgorithm(), e);
+                    SecurityUtil.getSecuredRandomAlgorithm(), e);
         }
     }
 

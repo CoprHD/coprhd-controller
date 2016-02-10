@@ -1554,6 +1554,7 @@
 		<property name="rebootRequired" value="true" />
 		<property name="value" value="0" />
 		<property name="controlNodeOnly" value="false" />
+		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="controller_vplex_firmware_version" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="VPLEX firmware version" />
@@ -1654,6 +1655,21 @@
 		<property name="reconfigRequired" value="false" />
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="6.0.6002" />
+		<property name="controlNodeOnly" value="true" />
+	</bean>
+	<bean id="compute_hpux_version" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="HPUX Version" />
+		<property name="description" value="Minimum supported version for HPUX. Version format : MajorVersion.MinorVersion.BuildNumber" />
+		<property name="type" value="string" />
+		<property name="minLen" value="3" />
+		<property name="tag" value="Compute" />
+		<property name="hidden" value="true" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="false" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="false" />
+		<property name="value" value="11.31" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="compute_aix_version" class="com.emc.storageos.model.property.PropertyMetadata">
@@ -2252,7 +2268,6 @@
 		<property name="value" value="" />
 		<property name="controlNodeOnly" value="true" />
 		<property name="notifiers" value="backupscheduler" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_external_location_username" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="User Name" />
@@ -2266,7 +2281,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_external_location_password" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Password" />
@@ -2280,7 +2294,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_scheduler_enable" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Enable Scheduler" />
@@ -2294,11 +2307,24 @@
 		<property name="value" value="true" />
 		<property name="controlNodeOnly" value="true" />
 		<property name="notifiers" value="backupscheduler" />
-		<property name="siteSpecific" value="true" />
+	</bean>
+	<bean id="backup_scheduler_time" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Backup Time" />
+		<property name="description" value="The time scheduled backup starts, based on local time zone(hour:minute)" />
+		<property name="type" value="uint32" />
+		<property name="tag" value="Backup" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="true" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="false" />
+		<property name="value" value="100" />
+		<property name="controlNodeOnly" value="true" />
+		<property name="notifiers" value="backupscheduler" />
 	</bean>
 	<bean id="backup_scheduler_interval" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Scheduling Frequency" />
-		<property name="description" value="The time interval between 2 backups." />
+		<property name="label" value="Backup Interval" />
+		<property name="description" value="The time interval between scheduled backups" />
 		<property name="type" value="string" />
 		<property name="maxLen" value="15" />
 		<property name="tag" value="Backup" />
@@ -2310,27 +2336,12 @@
 		<property name="value" value="1day" />
 		<property name="controlNodeOnly" value="true" />
 		<property name="notifiers" value="backupscheduler" />
-		<property name="siteSpecific" value="true" />
-	</bean>
-	<bean id="backup_scheduler_time" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Backup Time" />
-		<property name="description" value="The time backup starts, based on local time zone" />
-		<property name="type" value="uint32" />
-		<property name="tag" value="Backup" />
-		<property name="advanced" value="true" />
-		<property name="userMutable" value="true" />
-		<property name="userConfigurable" value="true" />
-		<property name="reconfigRequired" value="false" />
-		<property name="rebootRequired" value="false" />
-		<property name="value" value="100" />
-		<property name="controlNodeOnly" value="true" />
-		<property name="notifiers" value="backupscheduler" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_scheduler_copies_to_keep" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Copies to Keep" />
-		<property name="description" value="Number of schedule backup copies to keep" />
+		<property name="label" value="Backup Retention Number" />
+		<property name="description" value="Maximum number of scheduled backups" />
 		<property name="type" value="uint32" />
+		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Backup" />
 		<property name="advanced" value="true" />
 		<property name="userMutable" value="true" />
@@ -2339,7 +2350,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="5" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_max_used_disk_percentage" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup quota" />
@@ -2353,7 +2363,6 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="30" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
 	</bean>
 	<bean id="backup_threshold_disk_percentage" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup threshold" />
@@ -2367,7 +2376,20 @@
 		<property name="rebootRequired" value="false" />
 		<property name="value" value="80" />
 		<property name="controlNodeOnly" value="true" />
-		<property name="siteSpecific" value="true" />
+	</bean>
+	<bean id="backup_max_manual_copies" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="Backup Max Copies" />
+		<property name="description" value="Maximum number of manually created backup copies, kept on system" />
+		<property name="type" value="uint32" />
+		<property name="allowedValues" value="0,1,2,3,4,5" />
+		<property name="tag" value="Backup" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="true" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="false" />
+		<property name="value" value="5" />
+		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="ldap_connection_timeout" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Ldap Connection Timeout" />
@@ -2737,6 +2759,7 @@
 				<entry key="controller_vplex_volume_expansion_status_check_retry_count" value-ref="controller_vplex_volume_expansion_status_check_retry_count" />
 				<entry key="controller_vplex_volume_expansion_status_check_retry_max_wait" value-ref="controller_vplex_volume_expansion_status_check_retry_max_wait" />
 				<entry key="compute_windows_version" value-ref="compute_windows_version" />
+				<entry key="compute_hpux_version" value-ref="compute_hpux_version" />
 				<entry key="compute_aix_version" value-ref="compute_aix_version" />
 				<entry key="compute_aixvio_version" value-ref="compute_aixvio_version" />
 				<entry key="compute_vmware_vcenter_version" value-ref="compute_vmware_vcenter_version" />
@@ -2781,11 +2804,12 @@
 				<entry key="backup_external_location_username" value-ref="backup_external_location_username" />
 				<entry key="backup_external_location_password" value-ref="backup_external_location_password" />
 				<entry key="backup_scheduler_enable" value-ref="backup_scheduler_enable" />
-				<entry key="backup_scheduler_interval" value-ref="backup_scheduler_interval" />
 				<entry key="backup_scheduler_time" value-ref="backup_scheduler_time" />
+				<entry key="backup_scheduler_interval" value-ref="backup_scheduler_interval" />
 				<entry key="backup_scheduler_copies_to_keep" value-ref="backup_scheduler_copies_to_keep" />
 				<entry key="backup_max_used_disk_percentage" value-ref="backup_max_used_disk_percentage" />
 				<entry key="backup_threshold_disk_percentage" value-ref="backup_threshold_disk_percentage" />
+				<entry key="backup_max_manual_copies" value-ref="backup_max_manual_copies" />
 				<entry key="ldap_connection_timeout" value-ref="ldap_connection_timeout" />
 				<entry key="password_change_interval" value-ref="password_change_interval" />
 				<entry key="password_min_length" value-ref="password_min_length" />

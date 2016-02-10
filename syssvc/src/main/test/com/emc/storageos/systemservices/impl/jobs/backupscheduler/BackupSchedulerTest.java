@@ -15,6 +15,7 @@ import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 
 import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -66,7 +67,8 @@ public class BackupSchedulerTest {
         BackupExecutor bakExec = new BackupExecutor(cfg, cli);
 
         for (int i = 0; i < 365; i++) {
-            bakExec.runOnce();
+            bakExec.create();
+            bakExec.reclaim();
 
             // Advance time
             cfg.currentTime.add(Calendar.DAY_OF_MONTH, 1);
@@ -84,6 +86,8 @@ public class BackupSchedulerTest {
                 aliveBackupsAt20141231.length, cli.localBackups.size());
     }
 
+    // The following test requires a secure ftp server, which public/external build machines may not have.  Therefore, ignoring by default. 
+    @Ignore
     @Test
     public void testUpload() throws Exception {
         new TestProductName();
@@ -118,7 +122,7 @@ public class BackupSchedulerTest {
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
         // not retire backups in cluster.
-        upExec.runOnce();
+        upExec.upload();
 
         // Verify the backups are uploaded
         for (int i = 0; i < aliveBackupsAt20141231.length; i++) {
@@ -175,7 +179,7 @@ public class BackupSchedulerTest {
         // Drive the worker so it will upload
         // NOTE: Since scheduler is disabled, no new scheduled backup will be generated, hence it will
         // not retire backups in cluster.
-        upExec.runOnce();
+        upExec.upload();
 
         Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[0]));
         Assert.assertTrue("Missing completed tag", cfg.uploadedBackups.contains(aliveBackupsAt20141231[1]));
@@ -326,7 +330,7 @@ class FakeConfiguration extends SchedulerConfig {
     }
 
     @Override
-    public String getUploadPassword() {
+    public String getExternalServerPassword() {
         return "Passwd";
     }
 

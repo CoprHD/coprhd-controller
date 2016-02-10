@@ -40,7 +40,11 @@ import controllers.deadbolt.Restrictions;
 public class AdminDashboard extends Controller {
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void dashboard() {
-        render();
+        boolean isDrConfigured = false;
+        if(DisasterRecoveryUtils.getSiteCount() > 1) {
+            isDrConfigured = true;
+        }
+        render(isDrConfigured);
     }
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -82,8 +86,9 @@ public class AdminDashboard extends Controller {
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"),
         @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void disasterRecovery() {
+        Date disasterRecoveryLastUpdated = AdminDashboardUtils.getNodeHealthListLastUpdated();
         List<SiteRestRep> drsites = DisasterRecoveryUtils.getAllSites().getSites();
-        render(drsites);
+        render(disasterRecoveryLastUpdated, drsites);
     }
 
     @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })

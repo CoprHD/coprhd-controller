@@ -41,11 +41,15 @@
           "baseService": "UnexportVolume"
         },
         {
+          "image": "icon_host_multi_remove.png",
+          "baseService": "UnexportMultiVolume"
+        },
+        {
           "image": "Service_Discover_Unmanaged_Volumes.png",
           "baseService": "DiscoverUnmanagedVolumes"
         },
         {
-          "image": "Service_Discover_Unmanaged_Volumes.png",
+          "image": "Service_Discover_Unmanaged_CGs.png",
           "baseService": "DiscoverUnmanagedCGs"
         },
         {
@@ -98,6 +102,10 @@
         {
           "image": "Service_Resynchronize_Block_Snapshot.png",
           "baseService": "ResynchronizeBlockSnapshot"
+        },
+        {
+          "image": "Service_Link_Block_Snapshot.png",
+          "baseService": "LinkBlockSnapshot"
         },
         {
           "image": "Service_Remove_Block_Snapshot.png",
@@ -209,7 +217,11 @@
         {
           "image": "Service_Remove_File_Quota_Dir.png",
           "baseService": "RemoveFileSystemQuotaDirectory"
-        }        
+        },
+        {
+          "image": "Service_Change_File_Virtual_Pool.png",
+          "baseService": "ChangeFileVirtualPool"
+        }    
       ]
     },
     {
@@ -230,6 +242,14 @@
           "baseService": "RemoveFileSnapshot"
         },
         {
+          "image": "Service_Associate_File_Policy_File_System.png",
+          "baseService": "AssociateFilePolicyToFileSystem"
+        },
+        {
+          "image": "Service_Associate_File_Policy_File_System.png",
+          "baseService": "DissociateFilePolicyFromFileSystem"
+        },
+        {
           "image": "icon_folder_CIFS_add.png",
           "baseService": "ShareFileSnapshot"
         },
@@ -244,6 +264,19 @@
         {
           "image": "icon_folder_NFS_remove.png",
           "baseService": "DeleteFileSnapshotExport"
+        },
+        {
+          "image": "Service_Create_File_Continuous_Copy.png",
+          "baseService": "CreateFileContinuousCopy"
+        }
+        ,
+        {
+          "image": "Service_Remove_File_Continuous_Copy.png",
+          "baseService": "RemoveFileContinuousCopy"
+        },
+        {
+          "image": "Service_Failover_File_System.png",
+          "baseService": "FailoverFileSystem"
         }
       ]
     },
@@ -343,6 +376,41 @@
         {
           "image": "icon_provision_aix_remove.png",
           "baseService": "Aix-UnmountAndDeleteBlockVolume"
+        }
+      ]
+    }, 
+    {
+      "title": "block.hpux.title",
+      "image": "icon_hpux.png",
+      "description": "block.hpux.description",
+      "services": [
+        {
+          "image": "icon_provision_hpux_add.png",
+          "baseService": "Hpux-CreateAndMountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_hpux_remove.png",
+          "baseService": "Hpux-UnmountBlockVolume"
+        },
+        {
+          "image": "icon_provision_hpux_remove.png",
+          "baseService": "Hpux-UnmountAndDeleteBlockVolume"
+        },
+        {
+          "image": "icon_storage_hpux_add.png",
+          "baseService": "Hpux-MountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_hpux_expand.png",
+          "baseService": "Hpux-ExpandBlockVolume"
         }
       ]
     }, 
@@ -488,6 +556,21 @@
         {
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
+        }
+      ]
+    },
+    {
+      "title": "applicationservices.title",
+      "image": "icon_application.png",
+      "description": "applicationservices.description",
+      "services": [
+        {
+          "image": "icon_application_add_volumes.png",
+          "baseService": "AddVolumesToApplication"
+        },
+        {
+          "image": "icon_application_remove_volumes.png",
+          "baseService": "RemoveVolumesFromApplication"
         }
       ]
     }

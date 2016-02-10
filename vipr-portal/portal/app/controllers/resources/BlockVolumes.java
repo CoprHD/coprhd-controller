@@ -11,12 +11,11 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.exceptions.ViPRHttpException;
 
 import models.datatable.BlockVolumesDataTable;
 
@@ -26,6 +25,7 @@ import play.data.binding.As;
 import play.i18n.Messages;
 import play.mvc.Util;
 import play.mvc.With;
+import util.AppSupportUtil;
 import util.BlockConsistencyGroupUtils;
 import util.BourneUtil;
 import util.MessagesUtils;
@@ -35,9 +35,11 @@ import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -45,7 +47,9 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -67,33 +71,33 @@ public class BlockVolumes extends ResourceController {
     public static void volumes(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
+        renderArgs.put("application", getApplications());
         addReferenceData();
         render();
     }
 
-    public static void volumesJson(String projectId) {
+    public static void volumesJson(String projectId, String applicationId) {
         if (StringUtils.isNotBlank(projectId)) {
             setActiveProjectId(projectId);
         } else {
             projectId = getActiveProjectId();
         }
-        List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId));
+        List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }
-    
+
     public static void volumeDetails(String volumeId) {
-    	ViPRCoreClient client = BourneUtil.getViprClient();
-    	String consistencygroup = "";
-    	VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        String consistencygroup = "";
+        VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
         if (volume == null) {
             error(MessagesUtils.get(UNKNOWN, volumeId));
         }
-        if(volume.getConsistencyGroup() != null){
-        	consistencygroup = client.blockConsistencyGroups().get(volume.getConsistencyGroup().getId()).getName();
+        if (volume.getConsistencyGroup() != null) {
+            consistencygroup = client.blockConsistencyGroups().get(volume.getConsistencyGroup().getId()).getName();
         }
         render(consistencygroup);
     }
-
 
     public static void volume(String volumeId, String continuousCopyId) {
 
@@ -140,7 +144,6 @@ public class BlockVolumes extends ResourceController {
         if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
             renderArgs.put("isAccessStateEmpty", "true");
         }
-       
 
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());
         List<Task<VolumeRestRep>> tasks = tasksResponse.getTasks();
@@ -202,6 +205,17 @@ public class BlockVolumes extends ResourceController {
         List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(refs);
 
         render(snapshots);
+    }
+    
+    public static void volumeSnapshotSessions(String volumeId) {
+
+        ViPRCoreClient client = BourneUtil.getViprClient();
+
+        List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+        
+        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+
+        render(snapshotSessions);
     }
 
     public static void volumeContinuousCopies(String volumeId) {
@@ -288,7 +302,7 @@ public class BlockVolumes extends ResourceController {
         if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(continuousCopyId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             CopiesParam input = createCopiesParam(continuousCopyId);
-            Tasks<VolumeRestRep> tasks = client.blockVolumes().deactivateContinuousCopies(uri(volumeId), input);
+            Tasks<VolumeRestRep> tasks = client.blockVolumes().deactivateContinuousCopies(uri(volumeId), input, VolumeDeleteTypeEnum.FULL);
             flash.put("info", MessagesUtils.get("resources.continuouscopy.deactivate"));
         }
         volume(volumeId, continuousCopyId);
@@ -334,4 +348,19 @@ public class BlockVolumes extends ResourceController {
         return ResourceType.isType(BLOCK_CONTINUOUS_COPY, id);
     }
 
+    @Util
+    private static List<NamedRelatedResourceRep> getApplications() {
+        List<NamedRelatedResourceRep> application = AppSupportUtil.getApplications();
+        if(!application.isEmpty()) {
+        Collections.sort(application, new Comparator<NamedRelatedResourceRep>() {
+            @Override
+            public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
+            {
+                return app1.getName().compareTo(app2.getName());
+            }
+        });
+        
+    }
+        return application;
+    }
 }

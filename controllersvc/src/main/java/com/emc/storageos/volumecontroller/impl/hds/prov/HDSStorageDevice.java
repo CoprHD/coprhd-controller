@@ -725,7 +725,7 @@ public class HDSStorageDevice extends DefaultBlockStorageDevice {
      * java.net.URI, com.emc.storageos.volumecontroller.TaskCompleter)
      */
     @Override
-    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup,
+    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         // throw new DeviceControllerException("UnSupported Operation");
         taskCompleter.ready(dbClient);

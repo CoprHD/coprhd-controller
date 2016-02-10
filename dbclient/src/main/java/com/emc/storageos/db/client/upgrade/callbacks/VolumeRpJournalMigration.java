@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to initialize RecoverPoint BlockConsistencyGroups,
@@ -35,7 +36,7 @@ public class VolumeRpJournalMigration extends BaseCustomMigrationCallback {
     private static String RP_JOURNAL = "-journal";
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         updateVolumeRpJournalRefs();
     }
 

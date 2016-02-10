@@ -53,7 +53,6 @@ public class StorageProviderUpdateParam {
     /**
      * New mgmt Provider IP address
      * 
-     * @valid example: 10.247.99.87
      */
     @XmlElement(name = "ip_address")
     public String getIpAddress() {
@@ -67,7 +66,6 @@ public class StorageProviderUpdateParam {
     /**
      * New Provider port number
      * 
-     * @valid example: 5989
      */
     @XmlElement(name = "port_number")
     public Integer getPortNumber() {
@@ -81,7 +79,6 @@ public class StorageProviderUpdateParam {
     /**
      * New Provider user name
      * 
-     * @valid none
      */
     @XmlElement(name = "user_name")
     public String getUserName() {
@@ -95,7 +92,6 @@ public class StorageProviderUpdateParam {
     /**
      * New SMIS Provider password
      * 
-     * @valid none
      */
     @XmlElement
     public String getPassword() {
@@ -110,7 +106,6 @@ public class StorageProviderUpdateParam {
      * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
      * 
-     * @valid none
      */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {
@@ -124,7 +119,6 @@ public class StorageProviderUpdateParam {
     /**
      * Interface type of the Storage Provider
      * 
-     * @valid example: hicommand,smis,vplex,cinder,scaleio,ddmc,ibmxiv
      */
     @XmlElement(name = "interface_type")
     public String getInterfaceType() {
@@ -138,7 +132,6 @@ public class StorageProviderUpdateParam {
     /**
      * Secondary credentials that may be required for management
      * 
-     * @valid none
      */
     @XmlElement(required = false, name = "secondary_username")
     public String getSecondaryUsername() {
@@ -148,7 +141,6 @@ public class StorageProviderUpdateParam {
     /**
      * Secondary credentials that may be required for management
      * 
-     * @valid none
      */
     public void setSecondaryUsername(String secondaryUsername) {
         this.secondaryUsername = secondaryUsername;
@@ -166,7 +158,6 @@ public class StorageProviderUpdateParam {
     /**
      * URL of the Element Management system that is associated with the Provider.
      * 
-     * @valid none
      */
     @XmlElement(required = false, name = "element_manager_url")
     public String getElementManagerURL() {

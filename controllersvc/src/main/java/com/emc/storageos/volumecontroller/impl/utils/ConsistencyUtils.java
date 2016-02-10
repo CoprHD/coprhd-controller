@@ -1,18 +1,20 @@
 package com.emc.storageos.volumecontroller.impl.utils;
 
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+
+import java.net.URI;
+import java.util.List;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
-
-import java.net.URI;
-import java.util.List;
-
-import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Utility class for acquiring/checking consistency groups from ViPR block objects.
@@ -44,15 +46,32 @@ public class ConsistencyUtils {
                 return null;
             }
             Volume sourceVolume = (Volume) sourceObj;
+
             if (!isNullURI(sourceVolume.getConsistencyGroup())) {
                 final URI cgId = sourceVolume.getConsistencyGroup();
                 if (cgId != null) {
                     cgResult = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+                    if (!ControllerUtils.checkCGCreatedOnBackEndArray(sourceVolume)) {
+                        return null;
+                    }
                 }
             }
         }
 
         return cgResult;
+    }
+
+    public static BlockConsistencyGroup getSnapshotSessionConsistencyGroup(URI snapshotSession, DbClient dbClient) {
+        BlockSnapshotSession snapshotSessionObj = dbClient.queryObject(BlockSnapshotSession.class, snapshotSession);
+
+        if (snapshotSessionObj != null) {
+            URI consistencyGroupId = snapshotSessionObj.getConsistencyGroup();
+
+            if (!isNullURI(consistencyGroupId)) {
+                return dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+            }
+        }
+        return null;
     }
 
     /**
@@ -110,7 +129,7 @@ public class ConsistencyUtils {
         Volume source = dbClient.queryObject(Volume.class, mirror.getSource().getURI());
         BlockConsistencyGroup cgResult = null;
 
-        if (source != null && !isNullURI(source.getConsistencyGroup())) {
+        if (source != null && source.isInCG() && ControllerUtils.checkCGCreatedOnBackEndArray(source)) {
             cgResult = dbClient.queryObject(BlockConsistencyGroup.class, source.getConsistencyGroup());
         }
         return cgResult;

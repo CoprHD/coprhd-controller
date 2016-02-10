@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import java.lang.reflect.Constructor;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -69,7 +70,6 @@ import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -142,7 +142,6 @@ public class DisasterRecoveryServiceTest {
         primarySite = new Site();
         primarySite.setUuid("primary-site-uuid");
         primarySite.setVip("127.0.0.1");
-        primarySite.setSecretKey("secret-key");
         primarySite.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySite.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
         primarySite.setVdcShortId("vdc1");
@@ -197,7 +196,6 @@ public class DisasterRecoveryServiceTest {
         doReturn(standbySite2).when(drUtil).getSiteFromLocalVdc(standbySite2.getUuid());
         doThrow(CoordinatorException.retryables.cannotFindSite(NONEXISTENT_ID)).when(drUtil)
                 .getSiteFromLocalVdc(NONEXISTENT_ID);
-        doReturn(primarySite.getUuid()).when(drUtil).getActiveSiteId();
         doReturn(primarySite).when(drUtil).getSiteFromLocalVdc(primarySite.getUuid());
 
         InterProcessLock lock = mock(InterProcessLock.class);
@@ -244,7 +242,7 @@ public class DisasterRecoveryServiceTest {
                 .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), newAdded.getUuid());
 
         // mock checking and validating methods
-        doNothing().when(drService).precheckForStandbyAttach(any(SiteConfigRestRep.class));
+        doNothing().when(drService).precheckForStandbyAdd(any(SiteConfigRestRep.class));
         doNothing().when(drService).validateAddParam(any(SiteAddParam.class), any(List.class));
 
         // assemble parameters, add standby
@@ -372,7 +370,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         doReturn(primarySite).when(drUtil).getLocalSite();
         
-        drService.precheckForStandbyAttach(standby);
+        drService.precheckForStandbyAdd(standby);
     }
     
     @Test
@@ -529,7 +527,6 @@ public class DisasterRecoveryServiceTest {
             doReturn(config).when(coordinator).queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND),
                     standbyUUID);
 
-            doReturn(standbyUUID).when(drUtil).getActiveSiteId();
             drService.precheckForSwitchover(standbyUUID);
             fail("should throw exception when trying to failover to a primary site");
         } catch (InternalServerErrorException e) {
@@ -539,7 +536,6 @@ public class DisasterRecoveryServiceTest {
         // test for primary unstable case
         try {
             // Mock a primary site with different uuid with to-be-failover standby, so go to next check
-            doReturn("different-uuid").when(drUtil).getActiveSiteId();
 
             doReturn(false).when(drService).isClusterStable();
             drService.precheckForSwitchover(standbyUUID);
@@ -579,7 +575,7 @@ public class DisasterRecoveryServiceTest {
     public void testPrecheckForStandbyAttach_FreshInstall() throws Exception {
         try {
             standby.setFreshInstallation(false);
-            drService.precheckForStandbyAttach(standby);
+            drService.precheckForStandbyAdd(standby);
             fail();
         } catch (Exception e) {
             // ignore expected exception
@@ -590,7 +586,7 @@ public class DisasterRecoveryServiceTest {
     public void testPrecheckForStandbyAttach_DBSchema() throws Exception {
         try {
             standby.setDbSchemaVersion("2.3");
-            drService.precheckForStandbyAttach(standby);
+            drService.precheckForStandbyAdd(standby);
             fail();
         } catch (Exception e) {
             // ignore expected exception
@@ -621,7 +617,7 @@ public class DisasterRecoveryServiceTest {
         doReturn("vipr-2.4.0.0.150").when(coordinator).getCurrentDbSchemaVersion();
         try {
             standby.setSoftwareVersion("vipr-2.3.0.0.100");
-            drService.precheckForStandbyAttach(standby);
+            drService.precheckForStandbyAdd(standby);
             fail();
         } catch (Exception e) {
             // ignore expected exception
@@ -635,7 +631,7 @@ public class DisasterRecoveryServiceTest {
             config.setConfig(Constants.CONFIG_DR_ACTIVE_SITEID, "654321");
             doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_ACTIVE_KIND, Constants.CONFIG_DR_ACTIVE_ID);
             doReturn("123456").when(coordinator).getSiteId();
-            drService.precheckForStandbyAttach(standby);
+            drService.precheckForStandbyAdd(standby);
             fail();
         } catch (Exception e) {
             // ignore expected exception
@@ -649,7 +645,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_ACTIVE_KIND, Constants.CONFIG_DR_ACTIVE_ID);
         doReturn(primarySite).when(drUtil).getLocalSite();
         
-        drService.precheckForStandbyAttach(standby);
+        drService.precheckForStandbyAdd(standby);
     }
     
     @Test
@@ -658,7 +654,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         doReturn(primarySite).when(drUtil).getLocalSite();
         
-        drService.precheckForStandbyAttach(standby);
+        drService.precheckForStandbyAdd(standby);
     }
     
     @Test
@@ -699,18 +695,21 @@ public class DisasterRecoveryServiceTest {
     public void testGetSiteError() {
         SiteErrorResponse siteError = drService.getSiteError("site-uuid-1");
 
-        assertEquals(0, siteError.getCreationTime());
+        assertEquals(null, siteError.getCreationTime());
         assertEquals(null, siteError.getErrorMessage());
+        assertEquals(null, siteError.getOperation());
 
         standbySite2.setState(SiteState.STANDBY_ERROR);
+        standbySite2.setLastState(SiteState.STANDBY_ADDING);
 
-        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20));
+        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20),SiteState.STANDBY_PAUSING.name());
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);
         
         siteError = drService.getSiteError(standbySite2.getUuid());
         
-        assertEquals(error.getCreationTime(), siteError.getCreationTime());
+        assertEquals(new Date(error.getCreationTime()), siteError.getCreationTime());
         assertEquals(error.getErrorMessage(), siteError.getErrorMessage());
+        assertEquals(error.getOperation(), siteError.getErrorMessage());
         
         try {
             drService.getSiteError(NONEXISTENT_ID);
@@ -737,7 +736,6 @@ public class DisasterRecoveryServiceTest {
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         drService.doSwitchover(standbySite2.getUuid());
         
-        verify(coordinator, times(1)).setActiveSite(standbySite2.getUuid());
         verify(coordinator, times(2)).persistServiceConfiguration(any(Configuration.class));
     }
     
@@ -827,6 +825,47 @@ public class DisasterRecoveryServiceTest {
         updateParam.setName("New Name");
         updateParam.setDescription("New Description");
         drService.updateSite(standbySite1.getUuid(), updateParam);
+    }
+    
+    @Test
+    public void testFindRecommendFailoverSite() {
+        //only one synced site
+        standbySite1.setState(SiteState.STANDBY_SYNCED);
+        List<SiteRestRep> responseSiteFromRemote = new ArrayList<SiteRestRep>();
+        SiteRestRep recommendSite = drService.findRecommendFailoverSite(responseSiteFromRemote, standbySite1);
+        assertEquals(recommendSite.getUuid(), standbySite1.getUuid());
+        
+        //only one paused site
+        standbySite1.setState(SiteState.STANDBY_PAUSED);
+        responseSiteFromRemote = new ArrayList<SiteRestRep>();
+        recommendSite = drService.findRecommendFailoverSite(responseSiteFromRemote, standbySite1);
+        assertEquals(recommendSite.getUuid(), standbySite1.getUuid());
+        
+        //one paused, two synced
+        responseSiteFromRemote = new ArrayList<SiteRestRep>();
+        SiteRestRep site1 = new SiteRestRep();
+        site1.setUuid("standby1");
+        site1.setState(SiteState.STANDBY_SYNCED.toString());
+        responseSiteFromRemote.add(site1);
+        
+        SiteRestRep site2 = new SiteRestRep();
+        site2.setUuid("standby2");
+        site2.setState(SiteState.STANDBY_SYNCED.toString());
+        responseSiteFromRemote.add(site2);
+        
+        recommendSite = drService.findRecommendFailoverSite(responseSiteFromRemote, standbySite1);
+        assertEquals(recommendSite.getUuid(), site1.getUuid());
+        
+        // 3 paused
+        responseSiteFromRemote = new ArrayList<SiteRestRep>();
+        site1.setState(SiteState.STANDBY_PAUSED.toString());
+        responseSiteFromRemote.add(site1);
+
+        site2.setState(SiteState.STANDBY_PAUSED.toString());
+        responseSiteFromRemote.add(site2);
+        standbySite1.setLastStateUpdateTime((new Date()).getTime()+1000);
+        recommendSite = drService.findRecommendFailoverSite(responseSiteFromRemote, standbySite1);
+        assertEquals(recommendSite.getUuid(), standbySite1.getUuid());
     }
     
     protected void compareSiteResponse(SiteRestRep response, Site site) {

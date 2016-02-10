@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
+ * Copyright 2013 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -9,7 +22,6 @@ import java.net.URI;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 /**
  * This interface holds all the methods used to create an error condition that
@@ -157,18 +169,27 @@ public interface InternalServerErrorExceptions {
             final String uris);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
-    public InternalServerErrorException storagePoolNotMatchingVirtualPoolNicer(final String storagePool, 
+    public InternalServerErrorException storagePoolNotMatchingVirtualPoolNicer(final String storagePool,
             final String type, final String volume);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
-    public InternalServerErrorException virtualPoolNotMatchingStoragePoolNicer(final String virtualPool, 
-            final String storagePool, final String type, final String volume, final String vpoolList);
+    public InternalServerErrorException noMaxSnapshotsDefinedInVirtualPool(final String vPool, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException unmanagedVolumeVpoolConsistencyGroupMismatch(final String vPool, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException virtualPoolNotMatchingStoragePoolNicer(final String virtualPool,
+            final String type, final String volume, final String vpoolList);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException objectAlreadyManaged(final String parameter, final String guid);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException virtualPoolNotMatchingVArray(final URI uri);
+
+    @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
+    public InternalServerErrorException noAssociatedQosForVirtualPool(final URI uri);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException noVolumesIngested();
@@ -224,12 +245,18 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_RECOVERY_NEW_NODE_FAILURE)
     public InternalServerErrorException newNodeFailureInNodeRecovery(final String nodes);
 
+    @DeclareServiceCode(ServiceCode.SYS_BACKUP_LIST_EXTERNAL_FAILED)
+    public InternalServerErrorException listExternalBackupFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.SYS_BACKUP_QUERY_EXTERNAL_FAILED)
+    public InternalServerErrorException queryExternalBackupFailed(final Throwable cause);
+
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_PRECHECK_FAILED)
     public InternalServerErrorException addStandbyPrecheckFailed(String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_NAT_CHECK_FAILED)
     public InternalServerErrorException invalidNatCheckCall(String clientIP, String directClientIp);
 
@@ -238,21 +265,24 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_FAILED)
     public InternalServerErrorException addStandbyFailed(String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_TIMEOUT)
     public InternalServerErrorException addStandbyFailedTimeout(final long timeoutValue);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
     public InternalServerErrorException configStandbyFailed(String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_PRECHECK_FAILED)
     public InternalServerErrorException removeStandbyPrecheckFailed(String siteNames, String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
     public InternalServerErrorException removeStandbyFailed(final String siteNames, String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_RECONFIG_FAILED)
     public InternalServerErrorException removeStandbyReconfigFailed(String errMsg);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
+    InternalServerErrorException removeStandbyFailedTimeout(final long timeoutValue);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
     public InternalServerErrorException pauseStandbyFailed(final String siteName, String errMsg);
@@ -275,12 +305,15 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
     public InternalServerErrorException resumeStandbyFailed(final String siteName, String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_RETRY_STANDBY_OP_FAILED)
+    public InternalServerErrorException retryStandbyOpFailed(final String siteName, String errMsg);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_TIMEOUT)
     public InternalServerErrorException resumeStandbyFailedTimeout(final long timeoutValue);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_DATA_SYNC_TIMEOUT)
     public InternalServerErrorException dataSyncFailedTimeout(final long timeoutValue);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_PRECHECK_FAILED)
     public InternalServerErrorException switchoverPrecheckFailed(final String siteName, String errMsg);
 
@@ -293,27 +326,39 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
     public InternalServerErrorException switchoverStandbyFailedTimeout(String siteName, int timeoutValue);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED_TIMEOUT)
+    public InternalServerErrorException failoverFailedTimeout(String siteName, int timeoutValue);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_ACQUIRE_OPERATION_LOCK_FAILED)
     public InternalServerErrorException failToAcquireDROperationLock();
 
     @DeclareServiceCode(ServiceCode.SYS_DR_CONCURRENT_OPERATION_NOT_ALLOWED)
     public InternalServerErrorException concurrentDROperationNotAllowed(String sitedName, String state);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_CONCURRENT_OPERATION_NOT_ALLOWED)
+    public InternalServerErrorException concurrentRemoveDROperationNotAllowed(String sitedName, String state);
+
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorExportGroupPlacement(Exception ex);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED)
     public InternalServerErrorException failoverFailed(String siteName, String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_PRECHECK_FAILED)
     public InternalServerErrorException failoverPrecheckFailed(final String siteName, String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_RECONFIG_FAIL)
     public InternalServerErrorException failoverReconfigFailed(String errMsg);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_UPDATE_SITE_FAILED)
     public InternalServerErrorException updateSiteFailed(String siteName, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException ingestNotAllowedNonRPVolume(final String vpoolLabel, final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_UPGRADE_NOT_ALLOWED)
+    public InternalServerErrorException upgradeNotAllowedWithoutPausedSite();
 }

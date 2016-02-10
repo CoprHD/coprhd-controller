@@ -132,7 +132,7 @@ public class PathConstants {
     public static final String UNMANAGED_CGS_URL = "/vdc/unmanaged/cgs";
     public static final String UNMANAGED_CG_BY_PROTECTION_SYSTEM_URL = PROTECTION_SYSTEM_URL
             + "/{protectionSystemId}/unmanaged/cgs";
-    
+
     public static final String UNMANAGED_EXPORTS_URL = "/vdc/unmanaged/export-masks";
     public static final String UNMANAGED_EXPORTS_BY_HOST_URL = HOST_URL
             + "/{hostId}/unmanaged-export-masks";
@@ -156,4 +156,16 @@ public class PathConstants {
     public static final String VIRTUAL_NAS_SERVER_BY_STORAGE_SYSTEM_URL = "/vdc/storage-systems/{storage-system-id}/vnasservers";
     public static final String VIRTUAL_NAS_SERVER_BY_VARRAY_URL = VIRTUAL_NAS_SERVER_URL + "/varray/{varray-id}";
     public static final String VIRTUAL_NAS_SERVER_BY_PROJECT_URL = "/project/{project-id}";
+    public static final String SCHEDULE_POLICIES_URL = "/schedule-policies";
+    public static final String SCHEDULE_POLICIES_BY_TENANT_URL = TENANT_URL + "/{tenantId}/schedule-policies";
+    public static final String SCHEDULE_POLICIES_BY_POLICY_URL = SCHEDULE_POLICIES_URL+"/{policyId}";
+    public static final String ASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/assign-file-policy/{policy_id}";
+    public static final String UNASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/unassign-file-policy/{policy_id}";
+    public static final String FILE_POLICIES_BY_FILESYSTEM_URL = FILESYSTEM_URL + "/{fileSystemId}/file-policies";
+    public static final String APP_SUPPORT_CREATE_APP_URL = "/volume-groups/block";
+    public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
+    public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}";
+    public static final String APP_SUPPORT_VOLUME_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/volumes";
+    public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
+
 }

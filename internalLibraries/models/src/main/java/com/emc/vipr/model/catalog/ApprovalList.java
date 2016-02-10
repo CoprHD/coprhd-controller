@@ -27,7 +27,6 @@ public class ApprovalList {
     /**
      * List of approvals
      * 
-     * @valid none
      */
     @XmlElement(name = "approval")
     public List<NamedRelatedResourceRep> getApprovals() {

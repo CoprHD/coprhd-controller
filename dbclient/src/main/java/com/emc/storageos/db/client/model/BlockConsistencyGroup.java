@@ -11,6 +11,9 @@ import java.util.Iterator;
 @Cf("BlockConsistencyGroup")
 public class BlockConsistencyGroup extends DataObject implements ProjectResource {
 
+    // device native ID for this consistency group
+    private String _nativeId;
+
     /**
      * Storage system where this consistency group is located
      */
@@ -75,6 +78,14 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * RP,VPLEX: [protectionSystem->cg1,storageSystem->[cluster-1:cg1,cluster-2:cg1]]
      */
     private StringSetMap systemConsistencyGroups;
+    
+    /**
+     * If adding volumes or VPLEX backend volumes to replication group for each volume created 
+     * in the consistency group.
+     * By default it is set to true. It would be turned to false if one of the volumes in the CG
+     * is added to an application (applicable to VPLEX/RP only)
+     */
+    private Boolean arrayConsistency =  true;
 
     public static enum Types {
         /* RecoverPoint consistency group type. */
@@ -85,6 +96,16 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         VPLEX,
         /* Array-based consistency group type. */
         LOCAL
+    }
+
+    @Name("nativeId")
+    public String getNativeId() {
+        return _nativeId;
+    }
+
+    public void setNativeId(String nativeId) {
+        _nativeId = nativeId;
+        setChanged("nativeId");
     }
 
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
@@ -202,6 +223,10 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     public boolean isProtectedCG() {
+        if (requestedTypes == null || requestedTypes.isEmpty()) {
+            return false;
+        }
+        
         return requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString());
     }
 
@@ -244,6 +269,31 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     /**
+     * Returns true if the given cg name(replicationGroupName) has been created on the given storage array.
+     * 
+     * @param replicationGroupName
+     * @param systemURI
+     * @return
+     */
+    public boolean created(String replicationGroupName, URI systemURI) {
+        boolean status = false;
+        if (getSystemConsistencyGroups() != null && replicationGroupName != null && systemURI != null) {
+            StringSet replicationNameSet = getSystemConsistencyGroups().get(systemURI.toString());
+            if (replicationNameSet != null) {
+                Iterator<String> replicationNameIterator = replicationNameSet.iterator();
+                while (replicationNameIterator.hasNext()) {
+                    String replicationName = replicationNameIterator.next();
+                    if (replicationGroupName.equals(replicationName)) {
+                        status = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return status;
+    }
+
+    /**
      * Returns true if CG creation has been initiated or even completed
      * as given by something was recorded in requestedTypes().
      *
@@ -266,6 +316,34 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
             StringSet cgNames = systemConsistencyGroups.get(storageSystemUri.toString());
             if (cgNames != null && !cgNames.isEmpty()) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+    
+    /**
+     * Check to see if the consistency group has been created for the given
+     * storage system, and replication group name
+     *
+     * @param storageSystemUri The storage system URI
+     * @param replicationGroupName the replication group name to check on
+     * @return true if the consistency group has been created, false otherwise.
+     */
+    public boolean created(URI storageSystemUri, String replicationGroupName) {
+        if (storageSystemUri != null &&
+                systemConsistencyGroups != null && !systemConsistencyGroups.isEmpty()) {
+            StringSet cgNames = systemConsistencyGroups.get(storageSystemUri.toString());
+            if (cgNames != null && !cgNames.isEmpty()) {
+            	if (replicationGroupName != null && !replicationGroupName.isEmpty()) {
+            		if (cgNames.contains(replicationGroupName)) {
+            			return true;
+            		} else {
+            			return false;
+            		}
+            	} else {
+            		return true;
+            	}
             }
         }
 
@@ -394,5 +472,15 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         }
         return cgName;
     }
+
+    @Name("arrayConsistency")
+	public Boolean getArrayConsistency() {
+		return arrayConsistency;
+	}
+
+	public void setArrayConsistency(Boolean arrayConsistency) {
+		this.arrayConsistency = arrayConsistency;
+		setChanged("arrayConsistency");
+	}
 
 }

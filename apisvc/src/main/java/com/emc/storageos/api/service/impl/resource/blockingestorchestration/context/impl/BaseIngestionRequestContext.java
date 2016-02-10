@@ -18,6 +18,8 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -27,6 +29,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -68,8 +71,12 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     private List<Initiator> _deviceInitiators;
     List<BlockObject> _objectsIngestedByExportProcessing;
 
+    private Map<String, BlockConsistencyGroup> _cgsToCreateMap;
+
+    private List<UnManagedConsistencyGroup> _umCGsToUpdate;
+
     /**
-     * Constructor. 
+     * Constructor.
      * 
      * @param dbClient a reference to the database client
      * @param unManagedVolumeUrisToProcess the UnmanagedVolumes to be processed by this request
@@ -126,7 +133,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     }
 
     /**
-     * Instantiates the correct VolumeIngestionContext type for the 
+     * Instantiates the correct VolumeIngestionContext type for the
      * current UnManagedVolume being processed, based on the UnManagedVolume type.
      */
     protected static class VolumeIngestionContextFactory {
@@ -137,10 +144,13 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
                 return null;
             }
 
-            if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
-                return new RecoverPointVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
+            // order is actually important here because a VPLEX volume could also be RP-enabled
+            if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
+                return new RpVplexVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
             } else if (VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
                 return new VplexVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
+            } else if (VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume)) {
+                return new RecoverPointVolumeIngestionContext(unManagedVolume, dbClient, parentRequestContext);
             } else {
                 return new BlockVolumeIngestionContext(unManagedVolume, dbClient);
             }
@@ -204,7 +214,10 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      */
     @Override
     public VolumeIngestionContext getVolumeContext(String unmanagedVolumeGuid) {
-        return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
+        if (getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid) != null) {
+            return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
+        }
+        return getVolumeContext();
     }
 
     /*
@@ -231,7 +244,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVpool()
      */
     @Override
-    public VirtualPool getVpool() {
+    public VirtualPool getVpool(UnManagedVolume unmanagedVolume) {
         return _vpool;
     }
 
@@ -241,7 +254,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVarray()
      */
     @Override
-    public VirtualArray getVarray() {
+    public VirtualArray getVarray(UnManagedVolume unmanagedVolume) {
         return _virtualArray;
     }
 
@@ -346,6 +359,29 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         }
 
         return _objectsToBeCreatedMap;
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getCGObjectsToCreateMap()
+     */
+    @Override
+    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
+        if (null == _cgsToCreateMap) {
+            _cgsToCreateMap = new HashMap<String, BlockConsistencyGroup>();
+        }
+
+        return _cgsToCreateMap;
+    }
+
+    @Override
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
+        if (null == _umCGsToUpdate) {
+            _umCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        }
+
+        return _umCGsToUpdate;
     }
 
     /*
@@ -457,7 +493,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     /*
      * (non-Javadoc)
      * 
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsIngestedByExportProcessing()
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsIngestedByExportProcessing
+     * ()
      */
     @Override
     public List<BlockObject> getObjectsIngestedByExportProcessing() {
@@ -572,4 +610,203 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     public void setDeviceInitiators(List<Initiator> deviceInitiators) {
         this._deviceInitiators = deviceInitiators;
     }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.lang.
+     * String)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(String nativeGuid) {
+
+        if (URIUtil.isValid(nativeGuid)) {
+            _logger.warn("the nativeGuid {} argument is a valid URI. caller maybe meant to use findCreatedBlockObject(URI)?", nativeGuid);
+        }
+
+        BlockObject blockObject = getObjectsToBeCreatedMap().get(nativeGuid);
+
+        // if the block object wasn't found in this context's created object map
+        // then we will do a deep dive and see if there are any created object maps
+        // nested below (for example, for vplex backend or recover point ingestion)
+        if (blockObject == null) {
+            _logger.info("a block object for native GUID {} wasn't found at the top, digging deeper...", nativeGuid);
+            VolumeIngestionContext currentVolumeContext = getVolumeContext();
+            if (currentVolumeContext instanceof IngestionRequestContext) {
+                _logger.info("looking for block object with native GUID {} in the current volume context...", nativeGuid);
+                blockObject = ((IngestionRequestContext) currentVolumeContext).getObjectsToBeCreatedMap().get(nativeGuid);
+                if (blockObject != null) {
+                    _logger.info("\tfound block object: " + blockObject.forDisplay());
+                    return blockObject;
+                }
+            }
+        }
+
+        if (blockObject == null){
+            _logger.info("a block object for native GUID {} still not found, checking all volume contexts...", nativeGuid);
+            for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+                if (volumeContext instanceof IngestionRequestContext) {
+                    _logger.info("the volume context for {} also contains created objects, searching...", 
+                            volumeContext.getUnmanagedVolume().getNativeGuid());
+                    blockObject = ((IngestionRequestContext) volumeContext).getObjectsToBeCreatedMap().get(nativeGuid);
+                    if (blockObject != null) {
+                        _logger.info("\tfound block object: " + blockObject.forDisplay());
+                        return blockObject;
+                    }
+                }
+            }
+        }
+
+        if (blockObject == null) {
+            _logger.info("could not find a block object for native GUID {} anywhere.", nativeGuid);
+        }
+        return blockObject;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.net.URI)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(URI uri) {
+
+        if (!URIUtil.isValid(uri)) {
+            _logger.warn("URI ({}) for findCreatedBlockObject is null or invalid", uri);
+            return null;
+        }
+
+        for (BlockObject bo : getObjectsToBeCreatedMap().values()) {
+            if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
+                _logger.info("\tfound block object: " + bo.forDisplay());
+                return bo;
+            }
+        }
+
+        _logger.info("a block object for uri {} wasn't found at the top, digging deeper...", uri);
+        VolumeIngestionContext currentVolumeContext = getVolumeContext();
+        if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
+            _logger.info("looking for block object with uri {} in the current volume context...", uri);
+            for (BlockObject bo : ((IngestionRequestContext) currentVolumeContext).getObjectsToBeCreatedMap().values()) {
+                if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
+                    _logger.info("\tfound block object: " + bo.forDisplay());
+                    return bo;
+                }
+            }
+        }
+
+        _logger.info("a block object for uri {} still not found, checking all volume contexts...", uri);
+        for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext instanceof IngestionRequestContext) {
+                for (BlockObject bo : ((IngestionRequestContext) volumeContext).getObjectsToBeCreatedMap().values()) {
+                    if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
+                        _logger.info("\tfound block object: " + bo.forDisplay());
+                        return bo;
+                    }
+                }
+            }
+        }
+
+        try {
+            BlockObject bo = (BlockObject) _dbClient.queryObject(uri);
+            if (bo != null) {
+                _logger.info("\tfound block object in the database: " + bo.forDisplay());
+                return bo;
+            }
+        } catch (ClassCastException ex) {
+            _logger.warn("Failed to find a block object for URI {}: {}", uri, ex.getLocalizedMessage());
+        }
+
+        _logger.info("could not find a block object for uri {} anywhere.", uri);
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes()
+     */
+    @Override
+    public List<UnManagedVolume> findAllUnManagedVolumesToBeDeleted() {
+        _logger.info("assembling a List of all unmanaged volumes to be deleted");
+
+        List<UnManagedVolume> allUnManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
+        
+        _logger.info("\tadding local unmanaged volumes to be deleted: " + this.getUnManagedVolumesToBeDeleted());
+        allUnManagedVolumesToBeDeleted.addAll(this.getUnManagedVolumesToBeDeleted());
+
+        VolumeIngestionContext currentVolumeContext = getVolumeContext();
+        if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
+            _logger.info("checking current volume ingestion context {}", 
+                    currentVolumeContext.getUnmanagedVolume().forDisplay());
+            for (UnManagedVolume unmanagedSubVolume : 
+                ((IngestionRequestContext) currentVolumeContext).getUnManagedVolumesToBeDeleted()) {
+                _logger.info("\t\tadding current volume context UnManagedVolume {}",unmanagedSubVolume.forDisplay());
+                allUnManagedVolumesToBeDeleted.add(unmanagedSubVolume);
+            }
+        }
+
+        for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext instanceof IngestionRequestContext) {
+                for (UnManagedVolume unmanagedSubVolume : 
+                    ((IngestionRequestContext) volumeContext).getUnManagedVolumesToBeDeleted()) {
+                    _logger.info("\t\tadding sub context UnManagedVolume {}",unmanagedSubVolume.forDisplay());
+                    allUnManagedVolumesToBeDeleted.add(unmanagedSubVolume);
+                }
+            }
+        }
+
+        return allUnManagedVolumesToBeDeleted;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.URI)
+     */
+    @Override
+    public DataObject findInUpdatedObjects(URI uri) {
+        _logger.info("looking everywhere for an already-loaded object to updated with URI " + uri);
+        
+        for (List<DataObject> objectsToBeUpdated : this.getObjectsToBeUpdatedMap().values()) {
+            for (DataObject o : objectsToBeUpdated) {
+                if (o.getId().equals(uri)) {
+                    _logger.info("\tfound data object in base ingestion request context: " + o.forDisplay());
+                    return o;
+                }
+            }
+        }
+
+        VolumeIngestionContext currentVolumeContext = getVolumeContext();
+        if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
+            _logger.info("checking current volume ingestion context {}", 
+                    currentVolumeContext.getUnmanagedVolume().forDisplay());
+            for (List<DataObject> objectsToBeUpdated : 
+                ((IngestionRequestContext) currentVolumeContext).getObjectsToBeUpdatedMap().values()) {
+                for (DataObject o : objectsToBeUpdated) {
+                    if (o.getId().equals(uri)) {
+                        _logger.info("\tfound data object {} in volume ingestion context {}", 
+                                o.forDisplay(), currentVolumeContext.getUnmanagedVolume().forDisplay());
+                        return o;
+                    }
+                }
+            }
+        }
+
+        for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+            _logger.info("checking already-ingested volume ingestion context {}", 
+                    volumeContext.getUnmanagedVolume().forDisplay());
+            if (volumeContext instanceof IngestionRequestContext) {
+                for (List<DataObject> objectsToBeUpdated : 
+                    ((IngestionRequestContext) volumeContext).getObjectsToBeUpdatedMap().values()) {
+                    for (DataObject o : objectsToBeUpdated) {
+                        if (o.getId().equals(uri)) {
+                            _logger.info("\tfound data object {} in volume ingestion context {}", 
+                                    o.forDisplay(), volumeContext.getUnmanagedVolume().forDisplay());
+                            return o;
+                        }
+                    }
+                }
+            }
+        }
+
+        _logger.info("\tdid not find an already-loaded object to update for URI " + uri);
+        return null;
+    }
+
 }

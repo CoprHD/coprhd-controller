@@ -33,12 +33,14 @@ public class IsilonApiFactory {
     private static final int DEFAULT_MAX_CONN = 300;
     private static final int DEFAULT_MAX_CONN_PER_HOST = 100;
     private static final int DEFAULT_CONN_TIMEOUT = 1000 * 30;
+    private static final int DEFAULT_CONN_MGR_TIMEOUT = 1000 * 60;
     private static final int DEFAULT_SOCKET_CONN_TIMEOUT = 1000 * 60 * 60;
 
     private int _maxConn = DEFAULT_MAX_CONN;
     private int _maxConnPerHost = DEFAULT_MAX_CONN_PER_HOST;
     private int _connTimeout = DEFAULT_CONN_TIMEOUT;
     private int _socketConnTimeout = DEFAULT_SOCKET_CONN_TIMEOUT;
+    private int connManagerTimeout = DEFAULT_CONN_MGR_TIMEOUT;
 
     private ApacheHttpClientHandler _clientHandler;
     private ConcurrentMap<String, IsilonApi> _clientMap;
@@ -81,6 +83,13 @@ public class IsilonApiFactory {
     }
 
     /**
+     * @param connManagerTimeout the connManagerTimeout to set
+     */
+    public void setConnManagerTimeout(int connManagerTimeout) {
+        this.connManagerTimeout = connManagerTimeout;
+    }
+
+    /**
      * Initialize HTTP client
      */
     public void init() {
@@ -98,6 +107,7 @@ public class IsilonApiFactory {
         _connectionManager.closeIdleConnections(0);  // close idle connections immediately
 
         HttpClient client = new HttpClient(_connectionManager);
+        client.getParams().setConnectionManagerTimeout(connManagerTimeout);
         client.getParams().setParameter(HttpMethodParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             @Override
             public boolean retryMethod(HttpMethod httpMethod, IOException e, int i) {
@@ -150,4 +160,5 @@ public class IsilonApiFactory {
         }
         return isilonApi;
     }
+
 }

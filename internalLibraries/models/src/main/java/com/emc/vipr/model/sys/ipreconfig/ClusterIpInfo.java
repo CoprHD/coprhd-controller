@@ -4,11 +4,13 @@
  */
 package com.emc.vipr.model.sys.ipreconfig;
 
+import com.emc.storageos.model.property.PropertyConstants;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import java.io.*;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Cluster IP Information
@@ -45,6 +47,14 @@ public class ClusterIpInfo implements Serializable {
         this.ipv6_setting = ipv6_setting;
     }
 
+    public int getNodeCount() {
+        int nodeCount = ipv4_setting.getNetworkAddrs().size();
+        if (nodeCount == 0) {
+            nodeCount = ipv6_setting.getNetworkAddrs().size();
+        }
+        return nodeCount;
+    }
+
     public byte[] serialize() throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream out = new ObjectOutputStream(bos);
@@ -68,10 +78,9 @@ public class ClusterIpInfo implements Serializable {
         }
         return (ClusterIpInfo) obj;
     }
-    /* (non-Javadoc)
-   	 * @see java.lang.Object#hashCode()
-   	 */
-    @Override
+    
+	
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
@@ -177,5 +186,38 @@ public class ClusterIpInfo implements Serializable {
         }
 
         return errmsg;
+    }
+
+    public boolean weakEqual(String vip, Map<String, String> ipv4Addresses, Map<String, String> ipv6Addresses) {
+        if (vip.contains(":")) {
+            if (!ipv6_setting.getNetworkVip6().equals(vip)) {
+                return false;
+            }
+        } else {
+            if (!ipv4_setting.getNetworkVip().equals(vip)) {
+                return false;
+            }
+        }
+
+        if (ipv4Addresses != null) {
+            List<String> site_ipv4addrs = new LinkedList<String>();
+            SortedSet<String> nodeIds = new TreeSet<String>(ipv4Addresses.keySet());
+            for (String nodeId : nodeIds) {
+                site_ipv4addrs.add(ipv4Addresses.get(nodeId));
+            }
+            if (!ipv4_setting.getNetworkAddrs().equals(site_ipv4addrs))
+                return false;
+        }
+
+        if (ipv6Addresses != null) {
+            List<String> site_ipv6addrs = new LinkedList<String>();
+            SortedSet<String> nodeIds = new TreeSet<String>(ipv6Addresses.keySet());
+            for (String nodeId : nodeIds) {
+                site_ipv6addrs.add(ipv6Addresses.get(nodeId));
+            }
+            if (!ipv6_setting.getNetworkAddrs().equals(site_ipv6addrs))
+                return false;
+        }
+        return true;
     }
 }

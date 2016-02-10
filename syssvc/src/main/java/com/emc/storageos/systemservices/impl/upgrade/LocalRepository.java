@@ -79,9 +79,12 @@ public class LocalRepository {
     private static final String _SYSTOOL_RECONFIG = "--reconfig";
     private static final String _SYSTOOL_RECONFIG_PROPS = "--reconfig-props";
     private static final String _SYSTOOL_RESTART = "--restart";
+    private static final String _SYSTOOL_STOP = "--stop";
     private static final String _SYSTOOL_RELOAD = "--reload";
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
     private static final String _SYSTOOL_RECONFIG_COORDINATOR = "--reconfig-coordinator";
+    private static final String _SYSTOOL_REMOTE_SYSTOOL = "--remote-systool";
+    private static final String _SYSTOOL_RESTART_COORDINATOR = "--restart-coordinator";
 
     private static final String _IPSECTOOL_CMD="/etc/ipsectool";
 
@@ -393,20 +396,37 @@ public class LocalRepository {
     }
 
     /**
-     * Reconfig local coordinatorsvc to observer(default mode), or pariticpant(when active site is down)
-     * For DR standby site only.  
-     * 
+     * Reconfig remote coordinatorsvc to observer(default mode), or pariticpant(when active site is down)
+     * For DR standby site only.
+     *
+     * @param nodeId
      * @param type
      * @throws LocalRepositoryException
      */
-    public void reconfigCoordinator(String type) throws LocalRepositoryException {
-        final String prefix = String.format("reconfigCoordinator(%s): ", type);
+    public void remoteReconfigCoordinator(String nodeId,String type) throws LocalRepositoryException {
+        final String prefix = String.format("reconfigCoordinator(%s): on %s", type,nodeId);
         _log.debug(prefix);
-        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RECONFIG_COORDINATOR, type };
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeId, _SYSTOOL_RECONFIG_COORDINATOR, type };
         final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
         checkFailure(result, prefix);
     }
-    
+
+    /**
+     * Restart a service on remote node
+     *
+     * @param nodeId
+     * @param serviceName service name
+     * @throws LocalRepositoryException
+     */
+    public void remoteRestartCoordinator(String nodeId, String type) throws LocalRepositoryException {
+        final String prefix = String.format("restart(): type=%s on %s", type,nodeId);
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeId, _SYSTOOL_RESTART_COORDINATOR, type };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+
     /**
      * Restart a service
      * 
@@ -418,6 +438,21 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RESTART, serviceName };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+    
+    /**
+     * Stop a service
+     * 
+     * @param serviceName service name
+     * @throws LocalRepositoryException
+     */
+    public void stop(final String serviceName) throws LocalRepositoryException {
+        final String prefix = "stop(): serviceName=" + serviceName + " ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_STOP, serviceName };
         final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
         checkFailure(result, prefix);
     }
@@ -560,6 +595,49 @@ public class LocalRepository {
         _log.info(prefix + "Success!");
     }
 
+    /**
+     * write given ipsec state to local file system.
+     *
+     * @param ipsecStatus
+     * @throws LocalRepositoryException
+     */
+    public void syncIpsecStatusToLocal(String ipsecStatus) throws LocalRepositoryException {
+        final String prefix = "syncIpsecStateToLocal(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_STATUS, ipsecStatus };
+        exec(prefix, cmd);
+        _log.info(prefix + "Success!");
+    }
+
+    /**
+     * Reconfig local coordinatorsvc to observer(default mode), or pariticpant(when active site is down)
+     * For DR standby site only.  
+     * 
+     * @param type
+     * @throws LocalRepositoryException
+     */
+    public void reconfigCoordinator(String type) throws LocalRepositoryException {
+        final String prefix = String.format("reconfigCoordinator(%s): ", type);
+        _log.debug(prefix);
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RECONFIG_COORDINATOR, type };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+    
+    /**
+     * Reset coordinator and restart services on standby site. It applies on DR standby site only
+     * 
+     * @throws LocalRepositoryException
+     */
+    public void restartCoordinator(String type) throws LocalRepositoryException {
+        final String prefix = String.format("resetCoordinator (%s): ", type);
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RESTART_COORDINATOR, type};
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
 
     /**
      * Common method checking exec execution failure
@@ -630,7 +708,7 @@ public class LocalRepository {
         try {
             Files.delete(filePath);
         } catch (Exception e) {
-            _log.warn("Failed to delete tmp file");
+            _log.warn("Failed to delete tmp file {}", filePath);
         }
     }
 }

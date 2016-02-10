@@ -21,7 +21,6 @@ public class DecommissionedResources {
     /**
      * A list of decommissioned resources
      * 
-     * @valid none
      */
     @XmlElement(name = "decommissioned_resource")
     public List<DecommissionedResourceRep> getResources() {

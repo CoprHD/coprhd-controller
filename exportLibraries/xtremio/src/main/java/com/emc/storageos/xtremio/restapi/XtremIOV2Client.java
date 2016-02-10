@@ -30,6 +30,8 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOCluster;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusterInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusters;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolume;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
@@ -154,12 +156,38 @@ public class XtremIOV2Client extends XtremIOClient {
     }
 
     @Override
+    public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(XtremIOObjectInfo cgVolume, String clusterName) throws Exception {
+        log.debug("Trying to get ConsistencyGroup details for {}", cgVolume.getHref());
+        XtremIOConsistencyGroupVolInfo cgInfo = new XtremIOConsistencyGroupVolInfo();
+        try {
+            URI cgURI = URI.create(URIUtil.getFromPath(cgVolume.getHref().concat(XtremIOConstants.getInputClusterString(clusterName))));
+            ClientResponse response = get(cgURI);
+            cgInfo = getResponseObject(XtremIOConsistencyGroupVolInfo.class, response);
+            log.info("ConsistencyGroup {}", cgInfo.getContent().getName() + " has " + cgInfo.getContent().getNumOfVols() + " Volumes");
+        } catch (InternalException ex) {
+            log.warn("Exception while trying to retrieve xtremio Consistency Group Info {}", cgVolume.getHref());
+        }
+
+        return cgInfo;
+    }
+
+    @Override
     public List<XtremIOObjectInfo> getXtremIOVolumeLinks(String clusterName) throws Exception {
         String uriString = XtremIOConstants.XTREMIO_V2_VOLUMES_STR.concat(XtremIOConstants.getInputClusterString(clusterName));
         ClientResponse response = get(URI.create(uriString));
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);
 
         return Arrays.asList(volumeLinks.getVolumeInfo());
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {
+        String uriString = XtremIOConstants.XTREMIO_V2_CONSISTENCY_GROUP_VOLUMES_STR.concat(XtremIOConstants
+                .getInputClusterString(clusterName));
+        ClientResponse response = get(URI.create(uriString));
+        XtremIOConsistencyGroupVolume cgLinks = getResponseObject(XtremIOConsistencyGroupVolume.class, response);
+
+        return Arrays.asList(cgLinks.getConsitencyGroups());
     }
 
     @Override

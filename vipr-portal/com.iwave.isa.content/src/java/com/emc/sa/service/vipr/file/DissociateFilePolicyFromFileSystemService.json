@@ -1,0 +1,20 @@
+{
+  baseKey:"DissociateFilePolicyFromFileSystem.File",
+  serviceId:"DissociateFilePolicyFromFileSystem",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    fileSystems:{
+      type:"assetType.vipr.fileFilesystemWithPolicies",
+      select:"one"
+    },
+
+    filePolicy:{
+      type:"assetType.vipr.fileSystemPolicies",
+      select:"one"
+    }
+  }
+}

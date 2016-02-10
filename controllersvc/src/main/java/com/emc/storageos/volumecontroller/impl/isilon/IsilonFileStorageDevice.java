@@ -946,7 +946,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         }
     }
 
-    FileDeviceInputOutput PrepareFileDeviceInputOutput(boolean forceDelete, URI uri, String opId) {
+    private FileDeviceInputOutput prepareFileDeviceInputOutput(boolean forceDelete, URI uri, String opId) {
         FileDeviceInputOutput args = new FileDeviceInputOutput();
         boolean isFile = false;
         args.setOpId(opId);
@@ -2428,8 +2428,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
      * @param isForceDelete
      * @return
      */
-    BiosCommandResult rollbackCreatedFilesystem(StorageSystem system, URI uri, String opId, boolean isForceDelete) {
-        FileDeviceInputOutput fileInputOutput = this.PrepareFileDeviceInputOutput(isForceDelete, uri, opId);
+    private BiosCommandResult rollbackCreatedFilesystem(StorageSystem system, URI uri, String opId, boolean isForceDelete) {
+        FileDeviceInputOutput fileInputOutput = this.prepareFileDeviceInputOutput(isForceDelete, uri, opId);
         return this.doDeleteFS(system, fileInputOutput);
     }
 

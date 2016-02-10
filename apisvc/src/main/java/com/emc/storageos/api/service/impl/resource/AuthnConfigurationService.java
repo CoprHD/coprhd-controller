@@ -40,6 +40,7 @@ import javax.ws.rs.core.Response;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.model.response.*;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
+import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.tenant.TenantCreateParam;
@@ -95,8 +96,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private static String FEATURE_NAME_LDAP_GROUP_SUPPORT = "Group support for LDAP Authentication Provider";
 
-    private static final String COPRHD_URL_V2 = ":8080/v2/%(tenant_id)s";
-    private static final String COPRHD_URL_V1 = ":8080/v1/%(tenant_id)s";
+    private static final String COPRHD_URL_V2 = ":8776/v2/%(tenant_id)s";
+    private static final String COPRHD_URL_V1 = ":8776/v1/%(tenant_id)s";
     private static final String HTTP = "http://";
     private static final String PROJECT_NAME = "adminProject";
     private static final String TENANT_NAME = "OpenStack admin";
@@ -309,12 +310,21 @@ public class AuthnConfigurationService extends TaggedResource {
 
         TenantCreateParam param = new TenantCreateParam(TENANT_NAME, userMappings);
         param.setDescription(TENANT_NAME);
+
         // Create a tenant.
         TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
 
         // Create a project.
         ProjectParam projectParam = new ProjectParam(PROJECT_NAME);
-        _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
+        ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
+
+        // Tag project with OpenStack tenant_id
+        Project project = _dbClient.queryObject(Project.class, projectElement.getId());
+        ScopedLabelSet tagSet = new ScopedLabelSet();
+        ScopedLabel tagLabel = new ScopedLabel(tenantOrgRestRep.getId().toString(), tenant.getId());
+        tagSet.add(tagLabel);
+        project.setTag(tagSet);
+        _dbClient.updateObject(project);
 
         _log.debug("END - register CoprHD in Keystone");
     }

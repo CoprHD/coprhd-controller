@@ -20,6 +20,10 @@ public class BucketDeleteParam {
 
     public BucketDeleteParam() {
     }
+    
+    public BucketDeleteParam(boolean forceDelete) {
+        this.forceDelete = forceDelete;
+    }
 
     public BucketDeleteParam(boolean forceDelete, String deleteType) {
         this.forceDelete = forceDelete;

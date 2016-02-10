@@ -2367,25 +2367,23 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     @Override
     public void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer, String opId) {
-        // delete source objects
         BiosCommandResult biosCommandResult = null;
-        if (sources != null && !sources.isEmpty()) {
-            for (URI sourceURI : sources) {
-                biosCommandResult = rollbackCreatedFilesystem(system, sourceURI, opId, true);
-
-            }
-        }
-
         // delete the target objects
         if (targets != null && !targets.isEmpty()) {
             for (URI target : targets) {
                 FileShare fileShare = _dbClient.queryObject(FileShare.class, target);
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
-                rollbackCreatedFilesystem(storageSystem, target, opId, true);
+                if (sources.contains(fileShare.getParentFileShare().getURI()) == true) {
+                    biosCommandResult = rollbackCreatedFilesystem(storageSystem, target, opId, true);
+                    if (biosCommandResult.getCommandSuccess()) {
+                        fileShare.getOpStatus().updateTaskStatus(opId, biosCommandResult.toOperation());
+                        fileShare.setInactive(true);
+                        _dbClient.updateObject(fileShare);
+                    }
+                }
             }
         }
         completer.ready(_dbClient);
-
     }
 
     BiosCommandResult rollbackCreatedFilesystem(StorageSystem system, URI uri, String opId, boolean isForceDelete) {

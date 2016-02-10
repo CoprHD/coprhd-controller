@@ -1937,7 +1937,12 @@ public class RecoverPointScheduler implements Scheduler {
         // JIRA - https://coprhd.atlassian.net/browse/COP-16684
         // Check if the storage pools used by the existing source and its journal are available in the current vpool
         List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, srcVolume.getConsistencyGroup(), srcVolume.getRpCopyName());
-        Volume sourceJournal = sourceJournals.get(0);
+        Volume sourceJournal = sourceJournals.get(0);         
+        if (sourceJournal == null) {
+            _log.warn(String.format("No existing source journal found in CG [%s] for copy [%s], returning false", cgName, srcVolume.getRpCopyName()));
+            return false;
+        }
+        
         if (!verifyStoragePoolAvailability(vpool, srcVolume.getPool())) {
             _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
                     "The storage pool %s used by an existing source volume cannot be used.", cgName, srcVolume.getPool()));
@@ -1959,8 +1964,13 @@ public class RecoverPointScheduler implements Scheduler {
                 return false;
             }
 
-            List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient, targetVolume.getConsistencyGroup(), targetVolume.getInternalSiteName());
+            List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient, targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName());
             Volume targetJournal = targetJournals.get(0);
+            if (targetJournal == null) {
+                _log.warn(String.format("No existing target journal found in CG [%s] for copy [%s], returning false", cgName,  targetVolume.getRpCopyName()));
+                return false;
+            }
+            
             if (!verifyTargetStoragePoolAvailability(targetJournal, vpool)) {
                 _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
                         "The storage pool %s used by an existing target journal volume cannot be used.", cgName,
@@ -2051,6 +2061,12 @@ public class RecoverPointScheduler implements Scheduler {
         // Build source journal
         List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName());
         Volume sourceJournal = sourceJournals.get(0);
+        if (sourceJournal == null) {
+            _log.error(String.format("No existing source journal found in CG [%s] for copy [%s], returning false", 
+                    sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName()));
+            throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
+        }
+        
         RPRecommendation sourceJournalRecommendation = new RPRecommendation();
         VirtualPool sourceJournalVpool = NullColumnValueGetter.isNotNullValue(vpool.getJournalVpool()) ? dbClient.queryObject(
                 VirtualPool.class, URI.create(vpool.getJournalVpool())) : vpool;
@@ -2081,6 +2097,11 @@ public class RecoverPointScheduler implements Scheduler {
         if (standbyInternalSiteName != null) {            
             List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), standbyInternalSiteName);                        
             Volume standbyJournal = existingStandbyJournals.get(0);
+            if (standbyJournal == null) {
+                _log.error(String.format("No existing standby journal found in CG [%s] for copy [%s], returning false", 
+                        sourceVolume.getConsistencyGroup(), standbyInternalSiteName));
+                throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
+            }
             
             RPRecommendation standbyJournalRecommendation = new RPRecommendation();
             VirtualPool haVpool = (null != VirtualPool.getHAVPool(vpool, dbClient)) ? VirtualPool.getHAVPool(vpool, dbClient) : vpool;
@@ -2204,7 +2225,12 @@ public class RecoverPointScheduler implements Scheduler {
 
             // Build target Journals
             List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient, targetVolume.getConsistencyGroup(), targetVolume.getInternalSiteName());
-            Volume targetJournal = targetJournals.get(0);                        
+            Volume targetJournal = targetJournals.get(0);         
+            if (targetJournal == null) {
+                _log.error(String.format("No existing target journal found in CG [%s] for copy [%s], returning false", 
+                        targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName()));
+                throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
+            }
             
             RPRecommendation targetJournalRecommendation = new RPRecommendation();
            
@@ -2271,6 +2297,12 @@ public class RecoverPointScheduler implements Scheduler {
 
             List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName());
             Volume sourceJournal = sourceJournals.get(0);
+            if (sourceJournal == null) {
+                _log.error(String.format("No existing source journal found in CG [%s] for copy [%s], returning false", 
+                        sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName()));
+                throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
+            }
+            
             long sourceJournalSizePerPolicy = RPHelper.getJournalSizeGivenPolicy(String.valueOf(capabilities.getSize()),
                     vpool.getJournalSize(), capabilities.getResourceCount());
             long sourceJournalVolumesRequiredCapacity = getSizeInKB(sourceJournalSizePerPolicy);
@@ -2302,7 +2334,12 @@ public class RecoverPointScheduler implements Scheduler {
 
                     // Account for the target journal volumes.
                     List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient, targetVolume.getConsistencyGroup(), targetVolume.getInternalSiteName());
-                    Volume targetJournalVolume = targetJournals.get(0); 
+                    Volume targetJournalVolume = targetJournals.get(0);                     
+                    if (targetJournalVolume == null) {
+                        _log.error(String.format("No existing target journal found in CG [%s] for copy [%s], returning false", 
+                                targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName()));
+                        throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
+                    }
                                         
                     long targetJournalSizePerPolicy =
                             RPHelper.getJournalSizeGivenPolicy(
@@ -2460,6 +2497,11 @@ public class RecoverPointScheduler implements Scheduler {
             
             List<Volume> existingJournalVolumes = RPHelper.findExistingJournalsForCopy(dbClient, vpoolChangeVolume.getConsistencyGroup(), vpoolChangeVolume.getRpCopyName());
             Volume existingJournalVolume = existingJournalVolumes.get(0);
+            if (existingJournalVolume == null) {
+                _log.error(String.format("No existing journal found in CG [%s] for copy [%s], returning false", 
+                        vpoolChangeVolume.getConsistencyGroup(), vpoolChangeVolume.getRpCopyName()));
+                throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
+            }
             
             if (RPHelper.isVPlexVolume(existingJournalVolume)) {
                 URI backingVolumeURI = URI.create(existingJournalVolume.getAssociatedVolumes().iterator().next());

@@ -10,9 +10,13 @@ import org.slf4j.LoggerFactory;
 
 public class SecurityUtil {
 
+    private static final int SEED_LEN = 20;
     private static Logger log = LoggerFactory.getLogger(SecurityUtil.class);
 
     private static SecurityService securityService;
+
+    private static SecureRandom secureRandomInst;
+    private static String secureRandomAlgo;
 
     public synchronized static void setSecurityService(SecurityService secService) {
         securityService = secService;
@@ -53,5 +57,21 @@ public class SecurityUtil {
 
     public static String[] getCipherSuite() {
         return securityService.getCipherSuite();
+    }
+
+    /**
+     * Set the algorithm of the SecureRandom
+     * @param algo the securedRandomAlgorithm to set
+     */
+    public static void setSecuredRandomAlgorithm(String algo) {
+        secureRandomAlgo = algo;
+    }
+
+    /**
+     * return the algorithm name of secure random
+     * @return
+     */
+    public static String getSecuredRandomAlgorithm() {
+        return secureRandomAlgo;
     }
 }

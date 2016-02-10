@@ -5,14 +5,11 @@
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
 import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
-import static com.google.common.collect.Collections2.transform;
 
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +36,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -46,14 +44,14 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -117,7 +115,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 // if volume is part of COPY type Volume Group, get only the Array Group volumes
                 if (fcSourceVolume.getApplication(_dbClient) != null) {
                     fcSourceObjList.addAll(
-                            ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getReplicationGroupInstance(), _dbClient));
+                            ControllerUtils.getVolumesPartOfRG(fcSourceVolume.getStorageController(),
+                                    fcSourceVolume.getReplicationGroupInstance(), _dbClient));
                 } else {
                     BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                     fcSourceObjList.addAll(getActiveCGVolumes(cg));
@@ -258,49 +257,12 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
-        // If the source is in a VolumeGroup, then we will activate all the
-        // corresponding full copies for all the volumes in the VolumeGroup
-        // provided it is not a partial request.
-        Set<URI> fullCopyURIs = null;
-        Map<URI, Volume> fullCopyMap = null;
-        List<Volume> volumeGroupVolumes = null;
-        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
-                ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
-        boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
-        if (volumeGroup != null && !partialRequest) {
-            s_logger.info("Volume {} is part of Application, activating all full copies in the Application.", fcSourceObj.getId());
-            // get all volumes
-            volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-            // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
-            fullCopyURIs = new HashSet<URI>();
-            fullCopyMap = new HashMap<URI, Volume>();
-            String fullCopySetName = fullCopyVolume.getFullCopySetName();
-            List<Volume> fullCopySetVolumes = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
-            for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
-                List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
-                Volume fcSourceObject = volumeList.iterator().next();
-                // Get the full copy from source object belonging to same set
-                URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
-                if (fullCopyURI == null) {
-                    s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
-                            fcSourceObject.getLabel(), fullCopySetName);
-                    volumeGroupVolumes.removeAll(volumeList); // to avoid CG Task creation
-                    continue;
-                }
-                Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
-
-                fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
-                fullCopyURIs.addAll(fullCopyMap.keySet());
-            }
-        } else {
-            // If the source is in a CG, then we will activate the corresponding
-            // full copies for all the volumes in the CG. Since we did not allow
-            // full copies for volumes or snaps in CGs prior to Jedi, there should
-            // be a full copy for all volumes in the CG.
-            fullCopyMap = getFullCopySetMap(fcSourceObj, fullCopyVolume);
-            fullCopyURIs = fullCopyMap.keySet();
-        }
+        // If the source is in a CG, then we will activate the corresponding
+        // full copies for all the volumes in the CG. Since we did not allow
+        // full copies for volumes or snaps in CGs prior to Jedi, there should
+        // be a full copy for all volumes in the CG.
+        Map<URI, Volume> fullCopyMap = getFullCopySetMap(fcSourceObj, fullCopyVolume);
+        Set<URI> fullCopyURIs = fullCopyMap.keySet();
 
         // The full copy manager will not call activate if the full copy is
         // detached, so if the state is not inactive, then it must have
@@ -317,49 +279,30 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                         taskId, op);
                 taskList.addTask(task);
             }
-            // clear Flag set for Partial request
-            if (fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
-                fullCopyVolume.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
-                _dbClient.updateObject(fullCopyVolume);
-            }
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                     fullCopyVolume.getStorageController());
             BlockController controller = getController(BlockController.class,
                     storageSystem.getSystemType());
             for (URI fullCopyURI : fullCopyURIs) {
-                _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId,
-                        ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY);
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
+                        taskId, ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY);
+                fullCopyMap.get(fullCopyURI).getOpStatus().put(taskId, op);
+                TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
+                        fullCopyMap.get(fullCopyURI), taskId, op);
+                taskList.getTaskList().add(fullCopyVolumeTask);
             }
+
+            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                    ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_FULL_COPY);
+
             try {
                 controller.activateFullCopy(storageSystem.getId(), new ArrayList<URI>(
                         fullCopyURIs), taskId);
             } catch (ControllerException ce) {
                 s_logger.error("Failed to activate volume full copy {}", fullCopyVolume.getId(), ce);
-                _dbClient.error(Volume.class, fullCopyVolume.getId(), taskId, ce);
-            }
-
-            // Get the updated task status
-            for (URI fullCopyURI : fullCopyURIs) {
-                Volume updatedFullCopyVolume = _dbClient.queryObject(Volume.class, fullCopyURI);
-                Operation taskOpStatus = updatedFullCopyVolume.getOpStatus().get(taskId);
-                TaskResourceRep task = TaskMapper.toTask(fullCopyMap.get(fullCopyURI),
-                        taskId, taskOpStatus);
-                taskList.addTask(task);
-            }
-
-            // if Volume is part of VolumeGroup
-            if (volumeGroup != null && !partialRequest) {
-                Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
-                        ResourceOperationTypeEnum.ACTIVATE_VOLUME_GROUP_FULL_COPY);
-                taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
-
-                // create tasks for all CGs involved
-                addConsistencyGroupTasks(volumeGroupVolumes, taskList, taskId,
-                        ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_FULL_COPY);
-            } else {
-                addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                        ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_FULL_COPY);
+                handleFailedRequest(taskId, taskList,
+                        new ArrayList<Volume>(fullCopyMap.values()), ce, false);
             }
         }
 
@@ -378,49 +321,12 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
-        // If the source is in a VolumeGroup, then we will detach all the
-        // corresponding full copies for all the volumes in the VolumeGroup
-        // provided it is not a partial request.
-        Set<URI> fullCopyURIs = null;
-        Map<URI, Volume> fullCopyMap = null;
-        List<Volume> volumeGroupVolumes = null;
-        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
-                ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
-        boolean partialRequest = fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
-        if (volumeGroup != null && !partialRequest) {
-            s_logger.info("Volume {} is part of Application, detaching all full copies in the Application.", fcSourceObj.getId());
-            // get all volumes
-            volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-            // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes);
-            fullCopyURIs = new HashSet<URI>();
-            fullCopyMap = new HashMap<URI, Volume>();
-            String fullCopySetName = fullCopyVolume.getFullCopySetName();
-            List<Volume> fullCopySetVolumes = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
-            for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
-                List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
-                Volume fcSourceObject = volumeList.iterator().next();
-                // Get the full copy from source object belonging to same set
-                URI fullCopyURI = getFullCopyForSet(fcSourceObject, fullCopySetName, fullCopySetVolumes);
-                if (fullCopyURI == null) {
-                    s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
-                            fcSourceObject.getLabel(), fullCopySetName);
-                    volumeGroupVolumes.removeAll(volumeList); // to avoid CG Task creation
-                    continue;
-                }
-                Volume fullCopyObject = _dbClient.queryObject(Volume.class, fullCopyURI);
-
-                fullCopyMap.putAll(getFullCopySetMap(fcSourceObject, fullCopyObject));
-                fullCopyURIs.addAll(fullCopyMap.keySet());
-            }
-        } else {
-            // If the source is in a CG, then we will activate the corresponding
-            // full copies for all the volumes in the CG. Since we did not allow
-            // full copies for volumes or snaps in CGs prior to Jedi, there should
-            // be a full copy for all volumes in the CG.
-            fullCopyMap = getFullCopySetMap(fcSourceObj, fullCopyVolume);
-            fullCopyURIs = fullCopyMap.keySet();
-        }
+        // If the source is in a CG, then we will activate the corresponding
+        // full copies for all the volumes in the CG. Since we did not allow
+        // full copies for volumes or snaps in CGs prior to Jedi, there should
+        // be a full copy for all volumes in the CG.
+        Map<URI, Volume> fullCopyMap = getFullCopySetMap(fcSourceObj, fullCopyVolume);
+        Set<URI> fullCopyURIs = fullCopyMap.keySet();
 
         // If full copy volume is already detached, return detach action is
         // completed successfully. Also, if the state is inactive, then it was
@@ -448,49 +354,30 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                     _dbClient.persistObject(volume);
                 }
             }
-            // clear Flag set for Partial request
-            if (fullCopyVolume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
-                fullCopyVolume.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
-                _dbClient.updateObject(fullCopyVolume);
-            }
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                     fullCopyVolume.getStorageController());
             BlockController controller = getController(BlockController.class,
                     storageSystem.getSystemType());
             for (URI fullCopyURI : fullCopyURIs) {
-                _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId,
-                        ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
+                        taskId, ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
+                fullCopyMap.get(fullCopyURI).getOpStatus().put(taskId, op);
+                TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
+                        fullCopyMap.get(fullCopyURI), taskId, op);
+                taskList.getTaskList().add(fullCopyVolumeTask);
             }
+
+            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                    ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+
             try {
                 controller.detachFullCopy(storageSystem.getId(), new ArrayList<URI>(
                         fullCopyURIs), taskId);
             } catch (ControllerException ce) {
                 s_logger.error("Failed to detach volume full copy {}", fullCopyVolume.getId(), ce);
-                _dbClient.error(Volume.class, fullCopyVolume.getId(), taskId, ce);
-            }
-
-            // Get the updated task status
-            for (URI fullCopyURI : fullCopyURIs) {
-                Volume updatedFullCopyVolume = _dbClient.queryObject(Volume.class, fullCopyURI);
-                Operation taskOpStatus = updatedFullCopyVolume.getOpStatus().get(taskId);
-                TaskResourceRep task = TaskMapper.toTask(fullCopyMap.get(fullCopyURI),
-                        taskId, taskOpStatus);
-                taskList.addTask(task);
-            }
-
-            // if Volume is part of VolumeGroup
-            if (volumeGroup != null && !partialRequest) {
-                Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
-                        ResourceOperationTypeEnum.DETACH_VOLUME_GROUP_FULL_COPY);
-                taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
-
-                // create tasks for all CGs involved
-                addConsistencyGroupTasks(volumeGroupVolumes, taskList, taskId,
-                        ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
-            } else {
-                addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                        ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+                handleFailedRequest(taskId, taskList,
+                        new ArrayList<Volume>(fullCopyMap.values()), ce, false);
             }
         }
 
@@ -578,54 +465,18 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     }
 
     /**
-     * Gets the full copy from source object for the given full copy set name.
+     * Gets the varray from cache.
      *
-     * @param fcSourceObject the fc source object
-     * @param fullCopySetName the full copy set name
-     * @param fullCopySetVolumes the full copy set volumes
-     * @return the full copy for set
+     * @param vArrayCache the varray cache
+     * @param vArrayURI the virtual array
+     * @return the varray from cache
      */
-    protected URI getFullCopyForSet(Volume fcSourceObject, String fullCopySetName, List<Volume> fullCopySetVolumes) {
-        /**
-         * Case-1: If Full copies are created for an array group within Application, we set clone Set name (setName = <NAME>)
-         * --> see which full copy for a Volume has this Set name
-         * Case-2: New full copy added for new volume added to Application
-         * -a. SetName in new full copy should be set if other full copies in the set has it
-         * --> see which full copy for a Volume has this Set name
-         * -b. If SetName information is not available
-         * --> check by label, Full copies label belonging to same set start with SetName
-         * Case-3: Existing full copies are moved into application (setName = null)
-         * --> return any full copy
-         */
-        URI fullCopyURI = null;
-        StringSet fullCopies = fcSourceObject.getFullCopies();
-        if (fullCopies != null) {
-            if (fullCopySetName != null) {
-                Collection<URI> fullCopySetURIs = transform(fullCopySetVolumes, fctnDataObjectToID());
-                for (String fc : fullCopies) {
-                    URI fcURI = URI.create(fc);
-                    if (fullCopySetURIs.contains(fcURI)) {
-                        fullCopyURI = fcURI;
-                        break;
-                    }
-                }
-                // full copy not found yet. check by label. Full copies label start with SetName
-                if (fullCopyURI == null) {
-                    for (String fc : fullCopies) {
-                        URI fcURI = URI.create(fc);
-                        Volume fcObject = _dbClient.queryObject(Volume.class, fcURI);
-                        if (fcObject.getLabel().startsWith(fullCopySetName)) {
-                            fullCopyURI =  fcURI;
-                            break;
-                        }
-                    }
-                }
-            } else {
-                // return first encountered
-                fullCopyURI = URI.create(fullCopies.iterator().next());
-            }
+    protected VirtualArray getVarrayFromCache(Map<URI, VirtualArray> vArrayCache, URI vArrayURI) {
+        if (vArrayCache.get(vArrayURI) == null) {
+            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, vArrayURI);
+            vArrayCache.put(vArrayURI, vArray);
         }
-        return fullCopyURI;
+        return vArrayCache.get(vArrayURI);
     }
 
     /**
@@ -780,6 +631,44 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     protected void verifyCGSnapshotRequest() {
         // We don't support creating full copies of snapshots in consistency groups.
         throw APIException.badRequests.fullCopyNotSupportedForConsistencyGroup();
+    }
+
+    /**
+     * Updates passed volume and tasks on failure.
+     * 
+     * @param taskId The unique task id.
+     * @param taskList A list of the task responses.
+     * @param volumes The list of volumes for the operation.
+     * @param sc A reference to the error.
+     * @param markInactive true to mark the volumes inactive, false otherwise.
+     */
+    protected void handleFailedRequest(String taskId, TaskList taskList,
+            List<Volume> volumes, ServiceCoded sc, boolean markInactive) {
+        for (TaskResourceRep volumeTask : taskList.getTaskList()) {
+            volumeTask.setState(Operation.Status.error.name());
+            volumeTask.setMessage(sc.getMessage());
+            URI resourceURI = volumeTask.getResource().getId();
+            DataObject dataObject = null;
+            if (URIUtil.isType(resourceURI, BlockConsistencyGroup.class)) {
+                dataObject = _dbClient.queryObject(BlockConsistencyGroup.class, resourceURI);
+            } else if (URIUtil.isType(resourceURI, VolumeGroup.class)) {
+                dataObject = _dbClient.queryObject(VolumeGroup.class, resourceURI);
+            } else {
+                dataObject = _dbClient.queryObject(Volume.class, resourceURI);
+            }
+            Operation op = dataObject.getOpStatus().get(taskId);
+            if (op != null) {
+                op.error(sc);
+                dataObject.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.updateObject(dataObject);
+            }
+        }
+        if (markInactive) {
+            for (Volume volume : volumes) {
+                volume.setInactive(true);
+                _dbClient.updateObject(volume);
+            }
+        }
     }
 
     /**

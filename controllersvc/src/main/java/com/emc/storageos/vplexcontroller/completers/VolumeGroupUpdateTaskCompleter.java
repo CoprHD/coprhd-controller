@@ -8,6 +8,9 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -17,8 +20,9 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ApplicationTa
 public class VolumeGroupUpdateTaskCompleter extends ApplicationTaskCompleter {
 
     private static final long serialVersionUID = 8574883265512570806L;
+    private static final Logger log = LoggerFactory.getLogger(VolumeGroupUpdateTaskCompleter.class);
     
-    public VolumeGroupUpdateTaskCompleter(URI volumeGroupId, List<URI> addVolumes, List<URI>removeVols, 
+    public VolumeGroupUpdateTaskCompleter(URI volumeGroupId, Collection<URI> addVolumes, Collection<URI>removeVols, 
                                           Collection<URI>cgs, String opId) {
         super(volumeGroupId, addVolumes, removeVols, cgs, opId);
     }
@@ -32,6 +36,7 @@ public class VolumeGroupUpdateTaskCompleter extends ApplicationTaskCompleter {
     @Override
     protected void removeApplicationFromVolume(URI voluri, DbClient dbClient) {
         Volume volume = dbClient.queryObject(Volume.class, voluri);
+        log.info(String.format("removing the volume %s from application", volume.getLabel()));
         String volumeGroupId = getId().toString();
         StringSet volumeGroupIds = volume.getVolumeGroupIds();
         if(volumeGroupIds != null) {
@@ -46,6 +51,7 @@ public class VolumeGroupUpdateTaskCompleter extends ApplicationTaskCompleter {
         if (backends != null) {
             for (String backendId : backends) {
                 Volume backendVol = dbClient.queryObject(Volume.class, URI.create(backendId));
+                log.info(String.format("update the volume %s cg", backendVol.getLabel()));
                 if (backendVol != null) {
                     backendVol.setConsistencyGroup(cgURI);
                     dbClient.updateObject(backendVol);

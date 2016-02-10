@@ -411,7 +411,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             volume.setPool(((SRDFRecommendation) placement).getVirtualArrayTargetMap()
                     .get(varray.getId()).getTargetStoragePool());
         }
-        
+
         volume.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
@@ -764,7 +764,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
     @Override
     public TaskList deactivateMirror(final StorageSystem device, final URI mirrorURI,
-            final String task) {
+            final String task, String deleteType) {
         // FIXME Should use relevant ServiceCodeException here
         throw new UnsupportedOperationException();
     }

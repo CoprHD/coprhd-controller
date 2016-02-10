@@ -196,7 +196,6 @@ public class DisasterRecoveryServiceTest {
         doReturn(standbySite2).when(drUtil).getSiteFromLocalVdc(standbySite2.getUuid());
         doThrow(CoordinatorException.retryables.cannotFindSite(NONEXISTENT_ID)).when(drUtil)
                 .getSiteFromLocalVdc(NONEXISTENT_ID);
-        doReturn(primarySite.getUuid()).when(drUtil).getActiveSiteId();
         doReturn(primarySite).when(drUtil).getSiteFromLocalVdc(primarySite.getUuid());
 
         InterProcessLock lock = mock(InterProcessLock.class);
@@ -528,7 +527,6 @@ public class DisasterRecoveryServiceTest {
             doReturn(config).when(coordinator).queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND),
                     standbyUUID);
 
-            doReturn(standbyUUID).when(drUtil).getActiveSiteId();
             drService.precheckForSwitchover(standbyUUID);
             fail("should throw exception when trying to failover to a primary site");
         } catch (InternalServerErrorException e) {
@@ -538,7 +536,6 @@ public class DisasterRecoveryServiceTest {
         // test for primary unstable case
         try {
             // Mock a primary site with different uuid with to-be-failover standby, so go to next check
-            doReturn("different-uuid").when(drUtil).getActiveSiteId();
 
             doReturn(false).when(drService).isClusterStable();
             drService.precheckForSwitchover(standbyUUID);
@@ -700,16 +697,19 @@ public class DisasterRecoveryServiceTest {
 
         assertEquals(null, siteError.getCreationTime());
         assertEquals(null, siteError.getErrorMessage());
+        assertEquals(null, siteError.getOperation());
 
         standbySite2.setState(SiteState.STANDBY_ERROR);
+        standbySite2.setLastState(SiteState.STANDBY_ADDING);
 
-        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20));
+        SiteError error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(20),SiteState.STANDBY_PAUSING.name());
         doReturn(error).when(coordinator).getTargetInfo(standbySite2.getUuid(), SiteError.class);
         
         siteError = drService.getSiteError(standbySite2.getUuid());
         
         assertEquals(new Date(error.getCreationTime()), siteError.getCreationTime());
         assertEquals(error.getErrorMessage(), siteError.getErrorMessage());
+        assertEquals(error.getOperation(), siteError.getErrorMessage());
         
         try {
             drService.getSiteError(NONEXISTENT_ID);

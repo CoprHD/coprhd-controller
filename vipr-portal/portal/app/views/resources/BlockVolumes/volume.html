@@ -151,6 +151,7 @@ function accessStatus(){
     #{/ifnot}
     #{ifnot isContinuousCopy}
       #{expandPanel titleKey:'resources.volume.snapshots', url: @volumeSnapshots(volume.id) /}
+      #{expandPanel titleKey:'resources.volume.snapshot.sessions', url: @volumeSnapshotSessions(volume.id) /}
       #{expandPanel titleKey:'resources.volume.fullcopies', url: @volumeFullCopies(volume.id) /}
       #{expandPanel titleKey:'resources.volume.continuouscopies', url: @volumeContinuousCopies(volume.id) /}
       #{expandPanel titleKey:'resources.volume.migrations', url: @volumeMigrations(volume.id) /}

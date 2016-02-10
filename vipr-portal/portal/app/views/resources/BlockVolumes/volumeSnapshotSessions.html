@@ -1,0 +1,22 @@
+#{if snapshotSessions}
+  <table class='table table-condensed table-striped'>
+  <thead>
+    <tr>
+      <th>&{'resources.snapshot.session.name'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list snapshotSessions, as:'snapshot'}
+      <tr>
+        <td>
+          <a href="@{resources.BlockSnapshotSessions.snapshotSessionDetails(snapshot.id)}"
+          ><img src="/public/img/assets/Snapshot.png" style="width: 32px;"/>${snapshot.name}</a>
+        </td>
+      </tr>
+    #{/list}
+  </tbody>
+  </table>
+#{/if}
+#{else}
+  &{'resources.snapshots.none'}
+#{/else}

@@ -18,6 +18,10 @@ import java.util.Map;
 import javax.cim.CIMArgument;
 import javax.cim.CIMObjectPath;
 
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,11 +83,15 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             Map<String, URI> srcNativeIdToReplicaUriMap = new HashMap<String, URI>();
             Map<String, String> tgtToSrcMap = new HashMap<String, String>();
             String replicaGroupName = null;
+            String sessionName = null;
             for (URI replicaURI : replicaList) {
                 BlockObject replica = BlockObject.fetch(_dbClient, replicaURI);
                 // Use the existing replica group instance name for the new snaps to add.
                 labels.add(replica.getLabel());
                 replicaGroupName = replica.getReplicationGroupInstance();
+                if (sessionName == null) {
+                    sessionName = getSnapshotSessionNameFromReplicaGroupName(replicaGroupName);
+                }
                 Volume source = (Volume) _helper.getSource(replica);
                 String sourceNativeId = source.getNativeId();
                 sourceIds.add(sourceNativeId);
@@ -104,7 +112,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
             CIMObjectPath[] sourceVolumePaths = _cimPath.getVolumePaths(storage, sourceIds.toArray(new String[sourceIds.size()]));
             CIMObjectPath[] targetDevicePaths = _cimPath.getVolumePaths(storage, targetDeviceIds.toArray(new String[targetDeviceIds.size()]));
             CIMArgument[] inArgs = _helper.getCreateListReplicaInputArguments(storage, sourceVolumePaths, targetDevicePaths, labels, syncType,
-                    replicaGroupName, createInactive);
+                    replicaGroupName, sessionName, createInactive);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             _helper.invokeMethod(storage, replicationSvc, CREATE_LIST_REPLICA, inArgs, outArgs);
@@ -280,5 +288,28 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
         }
 
         return syncType;
+    }
+
+    /**
+     * Given a replication group name of a SnapVx linked target group, determine the session name
+     * by finding any member of the group that is associated to the BlockSnapshotSession instance.
+     *
+     * @param replicaGroupName  Linked target replication group name.
+     * @return                  SnapVx session name.
+     */
+    private String getSnapshotSessionNameFromReplicaGroupName(String replicaGroupName) {
+        List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicaGroupName, _dbClient);
+
+        for (BlockSnapshot snapshot : snapshots) {
+            List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                    BlockSnapshotSession.class,
+                    ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(snapshot.getId()));
+
+            if (sessions != null && !sessions.isEmpty()) {
+                return sessions.get(0).getSessionLabel();
+            }
+        }
+
+        return SmisConstants.DEFAULT_REPLICATION_SETTING_DATA_ELEMENT_NAME;
     }
 }

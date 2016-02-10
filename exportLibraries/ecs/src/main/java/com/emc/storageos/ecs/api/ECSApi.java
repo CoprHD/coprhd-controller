@@ -47,6 +47,7 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_ACL = "/object/bucket/{0}/acl.json";    
     private static final String URI_GET_NAMESPACES = "/object/namespaces.json";
     private static final String URI_GET_NAMESPACE_DETAILS = "/object/namespaces/namespace/{0}.json";
+    private static final String URI_USER_SECRET_KEYS = "/object/user-secret-keys/{0}.json";    
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -483,9 +484,9 @@ public class ECSApi {
             String responseString = null;
             clientResp = get(URI_GET_NAMESPACES);
             if (null == clientResp) {
-                throw ECSException.exceptions.getNamespacesFailed("no response from ECS");
+                throw ECSException.exceptions.getNamespacesFailedAry("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getNamespacesFailed(getResponseDetails(clientResp));
+                throw ECSException.exceptions.getNamespacesFailedAry(getResponseDetails(clientResp));
             }
 
             responseString = clientResp.getEntity(String.class);
@@ -497,7 +498,7 @@ public class ECSApi {
             }
             return namespaceIdList;
         } catch (Exception e) {
-            throw ECSException.exceptions.getNamespacesFailed(e);
+            throw ECSException.exceptions.getNamespacesFailedExc(e);
         } finally {
             if (clientResp != null) {
                 clientResp.close();
@@ -557,9 +558,9 @@ public class ECSApi {
             final String path = MessageFormat.format(URI_GET_NAMESPACE_DETAILS, namespaceId);
             clientResp = get(path);
             if (null == clientResp) {
-                throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, "no response from ECS");
+                throw ECSException.exceptions.getNamespaceDetailsFailedAry("no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, getResponseDetails(clientResp));
+                throw ECSException.exceptions.getNamespaceDetailsFailedAry(getResponseDetails(clientResp));
             }
 
             responseString = clientResp.getEntity(String.class);
@@ -588,7 +589,7 @@ public class ECSApi {
             }
             return nsRepGroup;
         } catch (Exception e) {
-            throw ECSException.exceptions.getNamespaceDetailsFailed(namespaceId, e);
+            throw ECSException.exceptions.getNamespaceDetailsFailedExc(namespaceId, e);
         } finally {
             if (clientResp != null) {
                 clientResp.close();
@@ -597,8 +598,70 @@ public class ECSApi {
         }
     }
 
-    
-    
+    /**
+     * Get the secret keys for the specified user
+     * 
+     * @param user secret key for the user ID
+     * @return Existing secret keys
+     * @throws ECSException
+     */
+    public UserSecretKeysGetCommandResult getUserSecretKeys(String user) throws ECSException {
+        _log.debug("ECSApi:getUserSecretKeys enter");
+        ClientResponse clientResp = null;
+        try {
+            String responseString = null;
+            final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);
+            getAuthToken();
+            clientResp = get(path);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getUserSecretKeysFailedAry("no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getUserSecretKeysFailedAry(getResponseDetails(clientResp));
+            }
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getUserSecretKeys ECS response is {}", responseString);
+            UserSecretKeysGetCommandResult ecsSecretKeyResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    UserSecretKeysGetCommandResult.class);
+            return ecsSecretKeyResult;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getUserSecretKeysFailedExc(user, e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getUserSecretKeys exit");
+        }
+    }
+
+    public UserSecretKeysAddCommandResult addUserSecretKey(String user, String key) throws ECSException {
+        _log.debug("ECSApi:addUserSecretKey enter");
+        ClientResponse clientResp = null;
+        String body = " { \"secretkey\": \"" + key + "\" }" ;
+        try {
+            String responseString = null;
+            final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);
+            getAuthToken();
+            clientResp = post(path, body);
+            if (null == clientResp) {
+                throw ECSException.exceptions.addUserSecretKeysFailedAry("no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.addUserSecretKeysFailedAry(getResponseDetails(clientResp));
+            }
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getUserSecretKey ECS response is {}", responseString);
+            UserSecretKeysAddCommandResult ecsSecretKeyResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
+                    UserSecretKeysAddCommandResult.class);
+            return ecsSecretKeyResult;
+        } catch (Exception e) {
+            throw ECSException.exceptions.addUserSecretKeysFailedExc(user, e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:addUserSecretKey exit");
+        }
+    }
     
     private ClientResponse get(final String uri) {
         ClientResponse clientResp = _client.get_json(_baseUrl.resolve(uri), authToken);

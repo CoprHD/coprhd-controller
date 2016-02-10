@@ -20,12 +20,18 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 /**
  * Class implements ResourceFilterFactory to add permissions filter where needed
  */
 public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFactory {
+    private static final List<String> FORBIDDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery");
+    private static final List<String> READ_ONLY_PATHS = Arrays.asList("ipsec");
+    private static final List<String> WRITE_METHODS = Arrays.asList("PUT", "POST");
+
     private BasePermissionsHelper _permissionsHelper;
 
     @Autowired(required = false)
@@ -139,19 +145,52 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
             if (!isStandby) {
                 return request;
             }
-
-            String siteId = drUtil.getActiveSiteId();
-            Site activeSite = drUtil.getSiteFromLocalVdc(siteId);
             String path = request.getPath();
-
-            // disable backup related operations on standby site
-            if (path.startsWith("backupset")) {
-                throw APIException.forbidden.disallowOperationOnDrStandby(activeSite.getVip());
+            if (isForbidden(request)) {
+                throw APIException.forbidden.disallowOperationOnDrStandby(drUtil.getActiveSite().getVip());
             }
-
             return request;
         }
-        
+
+        private boolean isForbidden(ContainerRequest request) {
+            if (isPathForbidden(request.getPath())) {
+                return true;
+            }
+
+            if (isPathInReadOnly(request.getPath()) && isWrite(request.getMethod())) {
+                return true;
+            }
+
+            return false;
+        }
+
+        private boolean isWrite(String method) {
+            for (String m : WRITE_METHODS) {
+                if (m.equalsIgnoreCase(method)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isPathInReadOnly(String path) {
+            for (String forbid : READ_ONLY_PATHS) {
+                if (path.startsWith(forbid)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isPathForbidden(String path) {
+            for (String forbid : FORBIDDEN_PATHS) {
+                if (path.startsWith(forbid)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         @Override
         public ContainerRequestFilter getRequestFilter() {
             return this;

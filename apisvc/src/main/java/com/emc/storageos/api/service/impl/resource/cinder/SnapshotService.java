@@ -80,6 +80,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -608,7 +609,7 @@ public class SnapshotService extends TaskResourceService {
         // should be returned.
         Volume volume = _permissionsHelper.getObjectById(snap.getParent(), Volume.class);
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
-        blockServiceApiImpl.deleteSnapshot(snap, task);
+        blockServiceApiImpl.deleteSnapshot(snap, snapshots, task, VolumeDeleteTypeEnum.FULL.name());
 
         StringMap extensions = snap.getExtensions();
         if (extensions == null) {
@@ -869,8 +870,8 @@ public class SnapshotService extends TaskResourceService {
 
     protected BlockSnapshot findSnapshot(String snapshot_id,
             String openstack_tenant_id) {
-        BlockSnapshot snapshot = getCinderHelper().querySnapshotByTag(
-                URI.create(snapshot_id), getUserFromContext());
+        BlockSnapshot snapshot = (BlockSnapshot) getCinderHelper().queryByTag(
+                URI.create(snapshot_id), getUserFromContext(),BlockSnapshot.class);
         if (snapshot != null) {
             Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());
             if ((project != null)
@@ -917,7 +918,7 @@ public class SnapshotService extends TaskResourceService {
 
     protected Volume queryVolumeResource(URI id, String openstack_tenant_id) {
 
-        Volume vol = getCinderHelper().queryVolumeByTag(id, getUserFromContext());
+        Volume vol = (Volume) getCinderHelper().queryByTag(id, getUserFromContext(), Volume.class);
 
         if (vol != null) {
             Project project = getCinderHelper().getProject(openstack_tenant_id, getUserFromContext());

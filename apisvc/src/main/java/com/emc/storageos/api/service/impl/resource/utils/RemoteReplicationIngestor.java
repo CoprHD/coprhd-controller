@@ -97,7 +97,7 @@ public class RemoteReplicationIngestor {
                                         volume.getVirtualArray());
                                 return false;
                             }
-                            sourceVolume.setSrdfTargets(VolumeIngestionUtil.addSRDFTargetsToSet(targetUris));
+                            sourceVolume.setSrdfTargets(VolumeIngestionUtil.convertUrisToStrings(targetUris));
                             _logger.info("Clearing internal flag for source volume {} found", sourceVolume.getNativeGuid());
                             sourceVolume.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
                             _logger.debug("Set srdf target for source volume {} found", sourceVolume.getId());
@@ -193,7 +193,7 @@ public class RemoteReplicationIngestor {
 
                 if (!targetUris.isEmpty()) {
                     // set targets from source
-                    srcVolume.setSrdfTargets(VolumeIngestionUtil.addSRDFTargetsToSet(targetUris));
+                    srcVolume.setSrdfTargets(VolumeIngestionUtil.convertUrisToStrings(targetUris));
 
                     dbClient.persistObject(targetVolumes);
                     // can remove unmanaged volume

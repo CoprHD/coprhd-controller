@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -175,4 +176,46 @@ public abstract class AbstractFileServiceApiImpl<T> implements FileServiceApi {
     abstract protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(URI systemURI,
             List<URI> fileShareURIs, String deletionType, boolean forceDelete, boolean deleteOnlyMirrors);
 
+    /**
+     * Expand fileshare
+     */
+    @Override
+    public void expandFileShare(FileShare fileshare, Long newSize, String taskId)
+            throws InternalException {
+
+        FileOrchestrationController controller = getController(
+                FileOrchestrationController.class,
+                FileOrchestrationController.FILE_ORCHESTRATION_DEVICE);
+        final List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
+
+        if (fileshare.getParentFileShare() != null && fileshare.getPersonality().equals(FileShare.PersonalityTypes.TARGET.name())) {
+            throw APIException.badRequests.expandMirrorFileSupportedOnlyOnSource(fileshare.getId());
+
+        } else {
+
+            List<String> targetfileUris = new ArrayList<String>();
+
+            // if filesystem is target then throw exception
+            if (fileshare.getMirrorfsTargets() != null && !fileshare.getMirrorfsTargets().isEmpty()) {
+                targetfileUris.addAll(fileshare.getMirrorfsTargets());
+            }
+
+            FileDescriptor descriptor = new FileDescriptor(
+                    FileDescriptor.Type.FILE_DATA,
+                    fileshare.getStorageDevice(), fileshare.getId(), fileshare.getPool(), "", false, newSize);
+            fileDescriptors.add(descriptor);
+
+            // Prepare the descriptor for targets
+            for (String target : targetfileUris) {
+                FileShare targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
+                descriptor = new FileDescriptor(
+                        FileDescriptor.Type.FILE_DATA,
+                        targetFileShare.getStorageDevice(), targetFileShare.getId(), targetFileShare.getPool(), "", false, newSize);
+                fileDescriptors.add(descriptor);
+            }
+        }
+
+        // place the expand filesystem call in queue
+        controller.expandFileSystem(fileDescriptors, taskId);
+    }
 }

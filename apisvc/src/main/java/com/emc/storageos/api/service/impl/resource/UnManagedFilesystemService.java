@@ -423,7 +423,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     fsSupportedProtocols.add(fileProtocol.name());
                 }
 
-                fsSupportedProtocols.retainAll(pool.getProtocols());
+                fsSupportedProtocols.retainAll(cos.getProtocols());
                 filesystem.getProtocol().addAll(fsSupportedProtocols);
                 filesystem.setLabel(null == deviceLabel ? "" : deviceLabel);
                 filesystem.setName(null == fsName ? "" : fsName);
@@ -627,7 +627,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             // record the events after they have been created
             for (FileShare filesystem : filesystems) {
                 recordFileSystemOperation(_dbClient,
-                        OperationTypeEnum.CREATE_FILE_SYSTEM, Status.ready,
+                        OperationTypeEnum.INGEST_FILE_SYSTEM, Status.ready,
                         filesystem.getId());
             }
 

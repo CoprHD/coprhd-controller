@@ -135,7 +135,7 @@ function renderLink(o, val) {
 
 <script type="text/javascript">
 function watchLoadStatus(datatable, itemsJson) {
-    var fields = ['status','VirtualIP','name'];
+    var fields = ['status','VirtualIP','name','networkHealth'];
     var fieldToWatch = 'status';
     var triggerValues = ['STANDBY_ADDING','STANDBY_SYNCING','STANDBY_PAUSING','STANDBY_RESUMING','STANDBY_SWITCHING_OVER','STANDBY_FAILING_OVER','ACTIVE_SWITCHING_OVER','ACTIVE_FAILING_OVER','STANDBY_DEGRADING'];
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
@@ -192,9 +192,9 @@ function standbyStatusIcon(o, val) {
     }
 
 	var messages = {
-            'ACTIVE': Messages.get("renderFunctions.disasterRecovery.status.primary"),
-            'ACTIVE_SWITCHING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.switchingover"),
-            'ACTIVE_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.primary.failingover"),
+            'ACTIVE': Messages.get("renderFunctions.disasterRecovery.status.active"),
+            'ACTIVE_SWITCHING_OVER': Messages.get("renderFunctions.disasterRecovery.status.active.switchingover"),
+            'ACTIVE_FAILING_OVER': Messages.get("renderFunctions.disasterRecovery.status.active.failingover"),
             'STANDBY_ADDING': Messages.get("renderFunctions.disasterRecovery.status.standby.adding"),
             'STANDBY_SYNCING' : Messages.get("renderFunctions.disasterRecovery.status.standby.syncing"),
             'STANDBY_SYNCED': Messages.get("renderFunctions.disasterRecovery.status.standby.synced"),
@@ -222,7 +222,7 @@ function standbyStatusIcon(o, val) {
 
 <script type="text/javascript">
 function networkHealthIcon(o, val) {
-    if (!o) {
+    if (!o.aData.networkHealth) {
         return "";
     }
     var labels = {

@@ -1415,7 +1415,7 @@ public class VolumeIngestionUtil {
                 eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
 
         // remove unmanaged mask if created if the block object is not marked as internal
-        if (!volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+        if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
                     eligibleMask.getMaskName(), unManagedVolume.getLabel());
             unManagedVolume.getUnmanagedExportMasks().remove(eligibleMask.getId().toString());
@@ -1648,7 +1648,7 @@ public class VolumeIngestionUtil {
         }
 
         // Do not add the block object to the export group if it has no public access
-        if (!volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+        if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
         }
 
@@ -3228,9 +3228,11 @@ public class VolumeIngestionUtil {
             umpset = umpsetsItr.next();
         }
 
-        DataObject alreadyLoadedUmpset = requestContext.findInUpdatedObjects(umpset.getId());
-        if (alreadyLoadedUmpset != null && (alreadyLoadedUmpset instanceof UnManagedProtectionSet)) {
-            umpset = (UnManagedProtectionSet) alreadyLoadedUmpset;
+        if (umpset != null) {
+            DataObject alreadyLoadedUmpset = requestContext.findInUpdatedObjects(umpset.getId());
+            if (alreadyLoadedUmpset != null && (alreadyLoadedUmpset instanceof UnManagedProtectionSet)) {
+                umpset = (UnManagedProtectionSet) alreadyLoadedUmpset;
+            }
         }
 
         return umpset;
@@ -3254,9 +3256,11 @@ public class VolumeIngestionUtil {
             umpset = umpsetsItr.next();
         }
 
-        DataObject alreadyLoadedUmpset = requestContext.findInUpdatedObjects(umpset.getId());
-        if (alreadyLoadedUmpset != null && (alreadyLoadedUmpset instanceof UnManagedProtectionSet)) {
-            umpset = (UnManagedProtectionSet) alreadyLoadedUmpset;
+        if (umpset != null) {
+            DataObject alreadyLoadedUmpset = requestContext.findInUpdatedObjects(umpset.getId());
+            if (alreadyLoadedUmpset != null && (alreadyLoadedUmpset instanceof UnManagedProtectionSet)) {
+                umpset = (UnManagedProtectionSet) alreadyLoadedUmpset;
+            }
         }
 
         return umpset;
@@ -3358,7 +3362,7 @@ public class VolumeIngestionUtil {
             // Set references to protection set/CGs properly in each volume
             volume.setConsistencyGroup(rpCG.getId());
             volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
-            volume.clearInternalFlags(BlockRecoverPointIngestOrchestrator.RP_INTERNAL_VOLUME_FLAGS);
+            volume.clearInternalFlags(BlockRecoverPointIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
 
             // For sources and targets, peg an RP journal volume to be associated with each.
             // This is a bit arbitrary for ingested RP volues as they may have 5 journal volumes for one source volume.

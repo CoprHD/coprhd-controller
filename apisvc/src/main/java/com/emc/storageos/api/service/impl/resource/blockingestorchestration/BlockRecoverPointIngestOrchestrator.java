@@ -36,7 +36,6 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
@@ -98,10 +97,6 @@ import com.google.common.base.Joiner;
 public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator {
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockRecoverPointIngestOrchestrator.class);
-
-    // We want to allow customers to inventory-only delete volumes of volumes whose CG isn't fully ingested yet.
-    public static final DataObject.Flag[] RP_INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] { Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE,
-            Flag.NO_METERING, Flag.NO_PUBLIC_ACCESS };
 
     private static final String LABEL_NA = "N/A";
 
@@ -185,7 +180,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 // sprinkle those references over the managed volumes.
                 decorateVolumeInformationFinalIngest(volumeContext);
             } else {
-                volume.addInternalFlags(RP_INTERNAL_VOLUME_FLAGS); // Add internal flags
+                volume.addInternalFlags(INTERNAL_VOLUME_FLAGS); // Add internal flags
             }
         }
 
@@ -234,7 +229,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 _logger.info(
                         "Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
                         unManagedVolume.getNativeGuid());
-                volume.addInternalFlags(RP_INTERNAL_VOLUME_FLAGS);
+                volume.addInternalFlags(INTERNAL_VOLUME_FLAGS);
             }
         }
 

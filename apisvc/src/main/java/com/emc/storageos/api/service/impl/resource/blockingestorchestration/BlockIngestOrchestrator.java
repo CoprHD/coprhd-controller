@@ -63,7 +63,7 @@ import com.google.common.base.Joiner;
 public abstract class BlockIngestOrchestrator {
 
     public static final DataObject.Flag[] INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] { Flag.INTERNAL_OBJECT,
-            Flag.NO_PUBLIC_ACCESS, Flag.NO_METERING };
+            Flag.PARTIALLY_INGESTED, Flag.NO_METERING, Flag.SUPPORTS_FORCE };
 
     private static final Logger _logger = LoggerFactory.getLogger(BlockIngestOrchestrator.class);
 
@@ -982,7 +982,7 @@ public abstract class BlockIngestOrchestrator {
      * @return
      */
     protected boolean isExportIngestionPending(BlockObject blockObj, URI unManagedVolumeUri, boolean unManagedVolumeExported) {
-        if (null != blockObj && !blockObj.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+        if (null != blockObj && !blockObj.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             if (!unManagedVolumeExported) {
                 _logger.warn("UnManaged Volume {} is already ingested. Skipping Ingestion", unManagedVolumeUri);
                 throw IngestionException.exceptions.unmanagedVolumeAlreadyIngested(blockObj.getLabel());

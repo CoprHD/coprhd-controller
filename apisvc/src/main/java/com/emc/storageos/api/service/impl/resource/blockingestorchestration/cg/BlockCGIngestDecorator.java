@@ -76,6 +76,10 @@ public abstract class BlockCGIngestDecorator {
             throws Exception {
         if (isExecuteDecorator(umv, requestContext)) {
             Collection<BlockObject> associatedObjects = getAssociatedObjects(cg, allCGBlockObjects, requestContext);
+            if (associatedObjects == null) {
+                logger.info("There are no associated object for CG ingestion of umv: " + umv.getLabel() + " for this decorator type.");
+                return;
+            }
             if (null != cg && !associatedObjects.isEmpty()) {
                 decorateCG(cg, associatedObjects, requestContext);
             } else {

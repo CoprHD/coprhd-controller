@@ -6,7 +6,7 @@ package com.emc.storageos.ecs.api;
 
 public class NamespaceBase {
     private String name;
-    private NamespaceLink link;
+    private ECSLink link;
     private String id;
 
     String getName() {
@@ -17,11 +17,11 @@ public class NamespaceBase {
         this.name = name;
     }
 
-    NamespaceLink getLink() {
+    ECSLink getLink() {
         return link;
     }
 
-    void setLink(NamespaceLink link) {
+    void setLink(ECSLink link) {
         this.link = link;
     }
 

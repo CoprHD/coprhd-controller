@@ -8667,9 +8667,20 @@ class Bourne:
             target_info['copy_mode'] = copy_mode
         params = dict()
         params['new_linked_targets'] = target_info
-        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS.format(session_uri), params)
-        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
-        return task
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS.format(session_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
 
     def block_snapshot_session_unlink_target(self, session_uri, target_uri, delete_target):
         target_info = dict()

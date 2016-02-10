@@ -13,9 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.FileShare;
-import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation.Status;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -46,41 +44,6 @@ public class MirrorFileStopTaskCompleter extends MirrorFileTaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-
-            switch (status) {
-
-                case ready:
-
-                    if (null != srcfileshares && null != tgtfileshares && !srcfileshares.isEmpty() && !tgtfileshares.isEmpty()) {
-                        for (FileShare sourceFS : srcfileshares) {
-                            sourceFS.setPersonality(NullColumnValueGetter.getNullStr());
-                            sourceFS.setAccessState(FileShare.FileAccessState.READWRITE.name());
-                            if (null != sourceFS.getMirrorfsTargets()) {
-                                sourceFS.getMirrorfsTargets().clear();
-                            }
-
-                            dbClient.updateObject(sourceFS);
-                        }
-
-                        for (FileShare target : tgtfileshares) {
-                            target.setPersonality(NullColumnValueGetter.getNullStr());
-                            target.setAccessState(FileShare.FileAccessState.READWRITE.name());
-                            target.setParentFileShare(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
-
-                            dbClient.updateAndReindexObject(target);
-                        }
-
-                        FileShare target = tgtfileshares.iterator().next();
-                        FileShare source = srcfileshares.iterator().next();
-
-                        recordMirrorOperation(dbClient, OperationTypeEnum.STOP_FILE_MIRROR, status,
-                                getSourceFileShare().getId().toString(),
-                                getTargetFileShare().getId().toString());
-
-                    }
-                default:
-                    _log.info("Unable to handle File Mirror Stop Operational status: {}", status);
-            }
 
             recordMirrorOperation(dbClient, OperationTypeEnum.STOP_FILE_MIRROR, status, getSourceFileShare().getId().toString(),
                     getTargetFileShare().getId().toString());

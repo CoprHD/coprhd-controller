@@ -1593,6 +1593,8 @@ public class CoordinatorClientExt {
                     SiteState.STANDBY_ADDING.equals(localSite.getState())){
                 _log.info("Updating local site from {} to STANDBY_ERROR since active is unreachable",
                         localSite.getState());
+
+                localSite.setLastState(localSite.getState());
                 localSite.setState(SiteState.STANDBY_ERROR);
                 _coordinator.persistServiceConfiguration(localSite.toConfiguration());
             }

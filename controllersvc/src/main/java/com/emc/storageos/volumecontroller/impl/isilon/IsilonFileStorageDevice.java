@@ -2374,7 +2374,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             for (URI target : targets) {
                 FileShare fileShare = _dbClient.queryObject(FileShare.class, target);
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, fileShare.getStorageDevice());
-                if (sources.contains(target)) {
+                if (sources.contains(fileShare.getParentFileShare().getURI())) {
                     biosCommandResult = rollbackCreatedFilesystem(storageSystem, target, opId, true);
                     if (biosCommandResult.getCommandSuccess()) {
                         fileShare.getOpStatus().updateTaskStatus(opId, biosCommandResult.toOperation());

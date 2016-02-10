@@ -21,7 +21,7 @@ public class BucketDeleteParam {
 
     public BucketDeleteParam() {
     }
-
+    
     public BucketDeleteParam(boolean forceDelete) {
         this.forceDelete = forceDelete;
     }
@@ -31,7 +31,8 @@ public class BucketDeleteParam {
         this.deleteType = deleteType;
     }
 
-    @XmlElement(name = "forceDelete")
+
+    @XmlElement(required = false, name = "forceDelete")
     public boolean getForceDelete() {
         return forceDelete;
     }
@@ -40,7 +41,7 @@ public class BucketDeleteParam {
         this.forceDelete = forceDelete;
     }
     
-    @XmlElement(name = "delete_type")
+    @XmlElement(required = false, name = "delete_type")
     public String getDeleteType() {
         return deleteType;
     }
@@ -48,5 +49,4 @@ public class BucketDeleteParam {
     public void setDeleteType(String deleteType) {
         this.deleteType = deleteType;
     }
-
 }

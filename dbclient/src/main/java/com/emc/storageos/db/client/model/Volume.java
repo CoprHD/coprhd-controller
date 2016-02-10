@@ -1044,24 +1044,6 @@ public class Volume extends BlockObject implements ProjectResource {
     }
 
     /**
-     * gets the COPY type VolumeGroup.
-     *
-     * @param dbClient the db client
-     * @return COPY type VolumeGroup if Volume is part of any COPY type VolumeGroup; otherwise null.
-     */
-    public VolumeGroup getCopyTypeVolumeGroup(DbClient dbClient) {
-        VolumeGroup copyVolumeGroup = null;
-        for (String volumeGroupURI : getVolumeGroupIds()) {
-            VolumeGroup volumeGroup = dbClient.queryObject(VolumeGroup.class, URI.create(volumeGroupURI));
-            if (volumeGroup.getRoles().contains(VolumeGroupRole.COPY.name())) {
-                copyVolumeGroup = volumeGroup;
-                break; // A Volume can be part of only one 'Copy' type VolumeGroup
-            }
-        }
-        return copyVolumeGroup;
-    }
-
-    /**
      * Is this volume a VPLEX virtual volume?
      * 
      * @param dbClient db client

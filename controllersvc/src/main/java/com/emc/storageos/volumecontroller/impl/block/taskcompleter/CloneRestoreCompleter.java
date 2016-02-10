@@ -43,9 +43,7 @@ public class CloneRestoreCompleter extends VolumeTaskCompleter {
                 }
 
             }
-            if (isNotifyWorkflow()) {
-                super.updateWorkflowStatus(status, coded);
-            }
+            super.complete(dbClient, status, coded);
             recordBlockVolumeOperation(dbClient, OperationTypeEnum.RESTORE_VOLUME_FULL_COPY, status,
                     coded != null ? coded.getMessage() : "");
         } catch (Exception e) {

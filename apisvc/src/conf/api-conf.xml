@@ -267,7 +267,7 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
 
-    <bean id="consistencyGroupService" class="com.emc.storageos.api.service.impl.resource.BlockConsistencyGroupService">
+    <bean id="blockConsistencyGroupService" class="com.emc.storageos.api.service.impl.resource.BlockConsistencyGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="placementManager" ref="placementManager"/>
@@ -285,7 +285,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="placementManager" ref="placementManager"/>
-        <property name="consistencyGroupService" ref="consistencyGroupService"/>
+        <property name="blockConsistencyGroupService" ref="blockConsistencyGroupService"/>
         <property name="blockServiceApis">
         	<map>
             	<entry key="block" value-ref="defaultBlockServiceApiImpl" />
@@ -723,7 +723,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.CapacityService">
                      <property name="dbClient" ref="dbclient"/>
                 </bean>
-                <ref bean="consistencyGroupService"/>
+                <ref bean="blockConsistencyGroupService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.VirtualDataCenterCapacityService">
                   <property name="dbClient" ref="dbclient"/>
                   <property name="matcherFramework" ref="matcherFramework"/>

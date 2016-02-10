@@ -262,7 +262,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException unableToRestoreFileSystemFromSnapshot(final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.FILE_CONTROLLER_ERROR)
     public DeviceControllerException createFileSystemOnPhysicalNASDisabled();
 
@@ -438,7 +438,7 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR_ASSIGNING_STORAGE_PORTS)
     public DeviceControllerException unexpectedCondition(String message);
-    
+
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException failedToUpdateVolumesFromAppication(String application, String error);
 
@@ -468,4 +468,8 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException couldNotFindSyncObjectToUnlinkTarget(final String deviceId);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException inActiveExportGroupFound(final String exportGroupName);
+
 }

@@ -120,6 +120,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         try {
             BlockStorageDevice device = getDevice();
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
             logExportGroup(exportGroup, storageURI);
@@ -171,15 +172,23 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         }
     }
 
+    protected void checkForInActiveExportGroup(ExportGroup exportGroup) {
+        if (exportGroup.getInactive()) {
+            _log.error("Inactive ExportGroup {} found & can't perform any operations.", exportGroup.getLabel());
+            throw DeviceControllerException.exceptions.inActiveExportGroupFound(exportGroup.getLabel());
+        }
+    }
+
     @Override
     public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI,
             List<URI> initiatorURIs, String token) throws Exception {
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+        checkForInActiveExportGroup(exportGroup);
+        logExportGroup(exportGroup, storageURI);
         BlockStorageDevice device = getDevice();
         String previousStep = null;
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-        logExportGroup(exportGroup, storageURI);
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token);
@@ -534,11 +543,11 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     @Override
     public void exportGroupRemoveInitiators(URI storageURI, URI exportGroupURI,
             List<URI> initiatorURIs, String token) throws Exception {
-        BlockStorageDevice device = getDevice();
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+        checkForInActiveExportGroup(exportGroup);
+        logExportGroup(exportGroup, storageURI);
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-        logExportGroup(exportGroup, storageURI);
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true,
@@ -962,11 +971,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             String token) throws Exception {
         ExportOrchestrationTask taskCompleter = null;
         try {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
+            logExportGroup(exportGroup, storageURI);
             BlockStorageDevice device = getDevice();
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            logExportGroup(exportGroup, storageURI);
             String previousStep = null;
             boolean generatedWorkFlowSteps = false;
             if (exportGroup.getExportMasks() != null) {
@@ -1250,9 +1260,10 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             throws Exception {
         ExportOrchestrationTask taskCompleter = null;
         try {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
             String previousStep = null;
             boolean someOperationDone = false;
             logExportGroup(exportGroup, storageURI);
@@ -1466,6 +1477,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                     storageURI.toString(), exportGroupURI.toString()));
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
@@ -1491,11 +1503,12 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         ExportPathUpdater updater = new ExportPathUpdater(_dbClient);
         try {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
+                    exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
                     "exportGroupChangePathParams", true, token);
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
-                    exportGroupURI);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageURI);
             BlockObject volume = BlockObject.fetch(_dbClient, volumeURI);
@@ -1530,7 +1543,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     @Override
     public void increaseMaxPaths(Workflow workflow, StorageSystem storageSystem,
             ExportGroup exportGroup, ExportMask exportMask, List<URI> newInitiators, String token)
-                    throws Exception {
+            throws Exception {
         // Increases the MaxPaths for a given ExportMask if it has Initiators that are not
         // currently zoned to ports. The method generateExportMaskAddInitiatorsWorkflow will
         // allocate additional ports for the newInitiators to be processed.

@@ -166,6 +166,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
@@ -274,6 +275,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     .on(',').join(volumes)));
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
@@ -349,6 +351,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     exportGroupURI.toString(), Joiner.on(',').join(initiatorURIs)));
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
 
@@ -505,6 +508,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageURI);
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
@@ -628,6 +632,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient
                     .queryObject(StorageSystem.class, storageURI);
             TaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI,

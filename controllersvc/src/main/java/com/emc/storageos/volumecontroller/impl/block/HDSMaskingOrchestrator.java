@@ -101,6 +101,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         try {
             BlockStorageDevice device = getDevice();
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
@@ -157,6 +158,7 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             boolean anyVolumesAdded = false;
             boolean createdNewMask = false;
             if (exportGroup.getExportMasks() != null) {

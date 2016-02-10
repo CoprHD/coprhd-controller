@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +52,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
             if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
@@ -125,6 +125,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
             if (initiatorURIs != null && !initiatorURIs.isEmpty()) {
@@ -206,6 +207,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
             if (initiatorURIs != null && !initiatorURIs.isEmpty() && exportGroup.getExportMasks() != null) {
@@ -325,6 +327,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
             List<URI> initiatorURIs = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
@@ -394,6 +397,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
             List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);
@@ -461,6 +465,7 @@ public class ScaleIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         try {
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
 
             List<ExportMask> masks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup, storageURI);

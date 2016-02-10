@@ -191,7 +191,7 @@ public interface DeviceControllerErrors {
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError changeVirtualArrayFailed(final String volUris,
             final String operationName, final Throwable cause);
-    
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError createFileSharesFailed(final String fsUris, final String operationName, final Throwable cause);
 

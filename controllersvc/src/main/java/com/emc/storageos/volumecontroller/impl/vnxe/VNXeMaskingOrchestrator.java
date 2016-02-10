@@ -78,6 +78,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         try {
             BlockStorageDevice device = getDevice();
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
@@ -130,6 +131,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageURI);
             TaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI,
@@ -188,6 +190,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
             _log.info("export_initiator_add:  creating a new export");
@@ -227,6 +230,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
@@ -300,6 +304,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                             Joiner.on(',').join(volumeMap.entrySet())));
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
@@ -376,6 +381,7 @@ public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);

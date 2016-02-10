@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
@@ -180,6 +179,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         try {
             BlockStorageDevice device = getDevice();
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
             logExportGroup(exportGroup, storageURI);
@@ -235,6 +235,7 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             logExportGroup(exportGroup, storageURI);
             boolean anyVolumesAdded = false;
             boolean createdNewMask = false;

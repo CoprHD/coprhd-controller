@@ -66,6 +66,8 @@ abstract public class AbstractMaskingFirstOrchestrator extends
         {
             BlockStorageDevice device = getDevice();
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
+
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 
@@ -131,6 +133,7 @@ abstract public class AbstractMaskingFirstOrchestrator extends
                             Joiner.on(',').join(volumeMap.entrySet())));
 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
 

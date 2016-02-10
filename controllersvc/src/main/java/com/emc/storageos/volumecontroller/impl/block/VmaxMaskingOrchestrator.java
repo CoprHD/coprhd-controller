@@ -69,7 +69,7 @@ import com.google.common.collect.ListMultimap;
 
 public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
-	private static final Logger _log = LoggerFactory.getLogger(VmaxMaskingOrchestrator
+    private static final Logger _log = LoggerFactory.getLogger(VmaxMaskingOrchestrator
             .class);
 
     private static final AtomicReference<BlockStorageDevice> VMAX_BLOCK_DEVICE = new
@@ -102,11 +102,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, Integer> volumeMap, String token) throws Exception {
         ExportOrchestrationTask taskCompleter = null;
         try {
+            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+            checkForInActiveExportGroup(exportGroup);
+            logExportGroup(exportGroup, storageURI);
             BlockStorageDevice device = getDevice();
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-            ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-            logExportGroup(exportGroup, storageURI);
             // When adding volumes to an export group, this is the most common scenario.
             // The export group has a set of export masks already associated with it, and we
             // simply need to determine which of those masks require the volumes and add them.
@@ -160,12 +161,13 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     @Override
     public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI,
             List<URI> initiatorURIs, String token) throws Exception {
+        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+        checkForInActiveExportGroup(exportGroup);
+        logExportGroup(exportGroup, storageURI);
         BlockStorageDevice device = getDevice();
         String previousStep = null;
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
         StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
-        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
-        logExportGroup(exportGroup, storageURI);
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupAddInitiators", true, token);
@@ -194,8 +196,8 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         Set<URI> partialMasks = new HashSet<>();
         Map<String, Set<URI>> initiatorToExportMaskPlacementMap =
                 determineInitiatorToExportMaskPlacements(exportGroup, storageURI,
-                initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
-                initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
+                        initiatorHelper.getResourceToInitiators(), device.findExportMasks(storage, initiatorHelper.getPortNames(), false),
+                        initiatorHelper.getPortNameToInitiatorURI(), partialMasks);
 
         if (!initiatorToExportMaskPlacementMap.isEmpty()) {
             Map<URI, ExportMaskPolicy> policyCache = new HashMap<>();
@@ -257,7 +259,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // the determineInitiatorToExportMaskPlacements() would have found the ExportMask for
                     // the cluster to place the initiators, but it would not have them added
                     // yet. The below logic will add the volumes necessary.
-                    if (mask.hasInitiator(initiatorURI.toString()) && !ExportUtils.isInitiatorShared(_dbClient, 
+                    if (mask.hasInitiator(initiatorURI.toString()) && !ExportUtils.isInitiatorShared(_dbClient,
                             initiatorURI, mask, exportMaskURIs)) {
                         _log.info(String.format("mask %s has initiator %s", mask.getMaskName(),
                                 initiator.getInitiatorPort()));
@@ -471,9 +473,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             List<URI> initiatorURIs, String token) throws Exception {
         BlockStorageDevice device = getDevice();
         ExportOrchestrationTask taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
-        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
+
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+        checkForInActiveExportGroup(exportGroup);
         logExportGroup(exportGroup, storageURI);
+        StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageURI);
         // Set up workflow steps.
         Workflow workflow = _workflowService.getNewWorkflow(
                 MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveInitiators", true,
@@ -705,7 +709,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         initiatorsToRemoveOnStorage.add(initiatorURI);
                     }
                 }
-                //CTRL-8846 fix : Compare against all the initiators
+                // CTRL-8846 fix : Compare against all the initiators
                 List<URI> allMaskInitiators = ExportUtils.getExportMaskAllInitiators(mask, _dbClient);
                 allMaskInitiators.removeAll(initiatorsToRemove);
                 if (allMaskInitiators.isEmpty()) {
@@ -969,7 +973,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // In the case of brownfield cluster, some of these port to ExportMask may be missing because the array doesn't
             // have them yet. Find this condition and add the additional ports to the map.
             if (exportGroup.forCluster() || exportGroup.forHost()) {
-            	updatePlacementMapForCluster(exportGroup, initiatorHelper.getResourceToInitiators(), initiatorToExportMaskPlacementMap);
+                updatePlacementMapForCluster(exportGroup, initiatorHelper.getResourceToInitiators(), initiatorToExportMaskPlacementMap);
             }
 
             // This loop processes all initiators that were found in the existing export masks.
@@ -977,11 +981,11 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             // In the case where initiators are missing and not represented by other masks, we need
             // to mark that these initiators need to be added to the existing masks.
             for (Map.Entry<String, Set<URI>> entry : initiatorToExportMaskPlacementMap.entrySet()) {
-            	URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
-            	Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
-            	// Keep track of those initiators that have been found to exist already
-            	// in some export mask on the array
-            	initiatorURIsCopy.remove(initiatorURI);
+                URI initiatorURI = initiatorHelper.getPortNameToInitiatorURI().get(entry.getKey());
+                Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorURI);
+                // Keep track of those initiators that have been found to exist already
+                // in some export mask on the array
+                initiatorURIsCopy.remove(initiatorURI);
 
                 List<URI> exportMaskURIs = new ArrayList<URI>();
                 exportMaskURIs.addAll(entry.getValue());
@@ -1066,8 +1070,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 }
             }
 
-            VmaxVolumeToExportMaskApplicatorContext context = createVmaxNativeApplicatorContext(workflow, exportGroup, storage, policyCache,
-                    zoningStepNeeded, token, initiatorHelper, initiatorToExportMaskPlacementMap, initiatorURIsCopy, partialMasks, volumeMap,
+            VmaxVolumeToExportMaskApplicatorContext context = createVmaxNativeApplicatorContext(workflow, exportGroup, storage,
+                    policyCache,
+                    zoningStepNeeded, token, initiatorHelper, initiatorToExportMaskPlacementMap, initiatorURIsCopy, partialMasks,
+                    volumeMap,
                     initiatorsForNewExport, existingMasksToUpdateWithNewVolumes, existingMasksToUpdateWithNewInitiators, previousStep);
             NativeVolumeToExportMaskRuleApplicator ruleApplicator = new NativeVolumeToExportMaskRuleApplicator(_dbClient, context);
             ruleApplicator.run();
@@ -1303,16 +1309,16 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             Map<URI, Set<Initiator>> maskToInitiatorsMap,
             Set<URI> partialMasks, String token) {
         boolean isVMAX3 = storage.checkIfVmax3();
-        
-		// Apply RP+VMAX best practice rules if the export is to an RP     	   
-		if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) || (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL))) {     		
-			masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, masksMap);    	        
-			if (masksMap.isEmpty()) {        	
-				_log.info("No masks were found for RP that aligned with the masks of the compute resource, proceeding to create new masks");
-				return true;
-			}
-		}
-                                 
+
+        // Apply RP+VMAX best practice rules if the export is to an RP
+        if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) || (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL))) {
+            masksMap = applyVolumesToMasksUsingRPVMAXRules(storage, exportGroup, masksMap);
+            if (masksMap.isEmpty()) {
+                _log.info("No masks were found for RP that aligned with the masks of the compute resource, proceeding to create new masks");
+                return true;
+            }
+        }
+
         // Rule 1: See if there is a mask that matches our policy and only our policy
         if (!applyVolumesToMasksUsingRule(exportGroup, token,
                 existingMasksToUpdateWithNewVolumes,
@@ -1340,151 +1346,158 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
         return true;
     }
-   
+
     /**
-     * This method checks to see if the RP+VMAX best practice rules are followed. 
+     * This method checks to see if the RP+VMAX best practice rules are followed.
      * 
      * If host information is specified in the ExportGroup (this is the case when "Create Block volume for host" service catalog is chosen):
-     * 	a) Determine all the masking views corresponding to the compute resource. 
-     *  b) Determine, if any, all the RP masking views corresponding to the RP site specified.
-     *  c) Compare the storage ports from the masking view of the compute resource and the RP masking view and see if there is a match.
-     *     If a match is found, then return all the matching RP masking views.
-     *  d) Returns an empty list of masks if there is no RP masking view that matches the given host masking view.
-     *  
+     * a) Determine all the masking views corresponding to the compute resource.
+     * b) Determine, if any, all the RP masking views corresponding to the RP site specified.
+     * c) Compare the storage ports from the masking view of the compute resource and the RP masking view and see if there is a match.
+     * If a match is found, then return all the matching RP masking views.
+     * d) Returns an empty list of masks if there is no RP masking view that matches the given host masking view.
+     * 
      * If no compute resource information is specified in the ExportGroup, just returns an empty list of masks.
      * 
-     * This method also looks at existing RP masking view to check if those masks are intended for JOURNAL volumes only, 
-     * If the ExportGroup is for RP_JOURNAL, then return the masking view with that contains the "journal" keyword in the mask name. 
-     * Returns an empty list if no such masks are found and the ExportGroup specifies RP_JOURNAL. 
-     *     
+     * This method also looks at existing RP masking view to check if those masks are intended for JOURNAL volumes only,
+     * If the ExportGroup is for RP_JOURNAL, then return the masking view with that contains the "journal" keyword in the mask name.
+     * Returns an empty list if no such masks are found and the ExportGroup specifies RP_JOURNAL.
+     * 
      *
      * @param storage Storage system
-     * @param exportGroup ExportGroup   
+     * @param exportGroup ExportGroup
      * @param masksMap Map of exportMask to policy
-     * @return Map of ExportMask to ExportPolicy, masks matching the above set of rules is returned based on whether ExportGroup specifies RP or RP_JOURNAL in the ExportGroup flags.
+     * @return Map of ExportMask to ExportPolicy, masks matching the above set of rules is returned based on whether ExportGroup specifies
+     *         RP or RP_JOURNAL in the ExportGroup flags.
      */
-    private Map<ExportMask, ExportMaskPolicy> applyVolumesToMasksUsingRPVMAXRules(StorageSystem storage, 
-    												ExportGroup exportGroup,
-    												Map<ExportMask, ExportMaskPolicy> masksMap) {
-    	
+    private Map<ExportMask, ExportMaskPolicy> applyVolumesToMasksUsingRPVMAXRules(StorageSystem storage,
+            ExportGroup exportGroup,
+            Map<ExportMask, ExportMaskPolicy> masksMap) {
+
         Map<ExportMask, ExportMaskPolicy> matchingMaskMap = new HashMap<ExportMask, ExportMaskPolicy>();
         final String RECOVERPOINT_JOURNAL = "journal";
-    	
-    	//If this an RP Export (non-journal) but there is no host information, return the existing maskMap. 
-    	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) && !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL) 
-    			&& exportGroup.getHosts() == null && exportGroup.getClusters() == null) {
-    		_log.info("ExportGroup doesnt specify any hosts/clusters to which the volumes are exported, follow normal guidelines");
-    		return masksMap;
-    	}
-    	
-    	//If this is a RP Journal export operation, try to find an existing ExportMask that contains "Journal" keyword in the name. 
-    	//If a matching mask is found, use it. (There should not be more than one journal mask on the VMAX)
-    	
-    	//TODO: Although unlikely, is it possible that there is more than one JOURNAL masking view with journal keyword in it?
-    	//If the answer to the above question is yes, we need a way to handle that.
-    	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {    		
-    		_log.info("Looking for masks with JOURNAL keyword since this export group is intended for journal volumes only");
-    	    for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {      
-    	     	ExportMask rpMaskingView = maskMap.getKey();    	     	    	     
-    	     	if (rpMaskingView.getMaskName().toLowerCase().contains(RECOVERPOINT_JOURNAL)) {
-    	     		matchingMaskMap.put(maskMap.getKey(), maskMap.getValue());
-    	     	}
-    	    }    		    	
-   
-    	    return matchingMaskMap;
-    	}
-    	    
-    	List<String> initiators = getComputeResourceInitiators(exportGroup);       
-        
-        //Fetch all the existing masks for the compute resource
-    	Map<String, Set<URI>> crMaskingViews = getDevice().findExportMasks(storage, initiators, false);   
-    	Map<URI, ExportMask> crMaskingViewMap = new HashMap<URI, ExportMask>();
-    	    	
-    	for (Entry<String, Set<URI>> crMaskingViewEntry : crMaskingViews.entrySet()) {
-    		Set<URI> crMaskingView = crMaskingViewEntry.getValue();
-    		for(URI crMaskingViewUri : crMaskingView) {
-    			crMaskingViewMap.put(crMaskingViewUri, _dbClient.queryObject(ExportMask.class, crMaskingViewUri));
-    		}
-    	}
-       	                        
-        //In the case of an RP  volume, the masksMap contains all the masks matching the RP initiators that was passed down. 
-        //We need to weed through this list to find only those masking view that is compatible with the list of masking views for the compute resource
-        for(Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {        	
-        	ExportMask rpMaskingView = maskMap.getKey();
-        	 
-        	//If we got this far, then we are looking for masks that are not meant for JOURNALs. 
-        	//Ignore RP masks with journal keyword.
-        	if (rpMaskingView.getMaskName().toLowerCase().contains(RECOVERPOINT_JOURNAL)) {
-        		_log.info(String.format("%s is a journal mask, not considering it for RP source/target copy volume", rpMaskingView.getMaskName()));
-        		continue;
-        	}
-        	
-        	for (Entry<URI, ExportMask> crMaskingViewMapEntry : crMaskingViewMap.entrySet()) {
-        		ExportMask crMaskingView = crMaskingViewMapEntry.getValue();
-        		
-    			//If the storage ports in the compute resource mask contains all the ports in the RP mask, then we have match. 
-    			if (crMaskingView.getStoragePorts().size() >= rpMaskingView.getStoragePorts().size() && 
-    					crMaskingView.getStoragePorts().containsAll(rpMaskingView.getStoragePorts())) {    					
-    				if (!matchingMaskMap.containsKey(rpMaskingView)) {
-    					_log.info(String.format("Found a RP masking view %s that has the same storage ports as the computer resource (host/cluster) mask %s to which we are exporting the volume. "
-    							+ "OK to use the RP masking view." , rpMaskingView.getMaskName(), crMaskingView.getMaskName()));
-    					matchingMaskMap.put(rpMaskingView, maskMap.getValue());        					        				        				
-    				}        		
-        		}
-        	}        	 
+
+        // If this an RP Export (non-journal) but there is no host information, return the existing maskMap.
+        if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) && !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)
+                && exportGroup.getHosts() == null && exportGroup.getClusters() == null) {
+            _log.info("ExportGroup doesnt specify any hosts/clusters to which the volumes are exported, follow normal guidelines");
+            return masksMap;
         }
-        
+
+        // If this is a RP Journal export operation, try to find an existing ExportMask that contains "Journal" keyword in the name.
+        // If a matching mask is found, use it. (There should not be more than one journal mask on the VMAX)
+
+        // TODO: Although unlikely, is it possible that there is more than one JOURNAL masking view with journal keyword in it?
+        // If the answer to the above question is yes, we need a way to handle that.
+        if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL)) {
+            _log.info("Looking for masks with JOURNAL keyword since this export group is intended for journal volumes only");
+            for (Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {
+                ExportMask rpMaskingView = maskMap.getKey();
+                if (rpMaskingView.getMaskName().toLowerCase().contains(RECOVERPOINT_JOURNAL)) {
+                    matchingMaskMap.put(maskMap.getKey(), maskMap.getValue());
+                }
+            }
+
+            return matchingMaskMap;
+        }
+
+        List<String> initiators = getComputeResourceInitiators(exportGroup);
+
+        // Fetch all the existing masks for the compute resource
+        Map<String, Set<URI>> crMaskingViews = getDevice().findExportMasks(storage, initiators, false);
+        Map<URI, ExportMask> crMaskingViewMap = new HashMap<URI, ExportMask>();
+
+        for (Entry<String, Set<URI>> crMaskingViewEntry : crMaskingViews.entrySet()) {
+            Set<URI> crMaskingView = crMaskingViewEntry.getValue();
+            for (URI crMaskingViewUri : crMaskingView) {
+                crMaskingViewMap.put(crMaskingViewUri, _dbClient.queryObject(ExportMask.class, crMaskingViewUri));
+            }
+        }
+
+        // In the case of an RP volume, the masksMap contains all the masks matching the RP initiators that was passed down.
+        // We need to weed through this list to find only those masking view that is compatible with the list of masking views for the
+        // compute resource
+        for (Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {
+            ExportMask rpMaskingView = maskMap.getKey();
+
+            // If we got this far, then we are looking for masks that are not meant for JOURNALs.
+            // Ignore RP masks with journal keyword.
+            if (rpMaskingView.getMaskName().toLowerCase().contains(RECOVERPOINT_JOURNAL)) {
+                _log.info(String.format("%s is a journal mask, not considering it for RP source/target copy volume",
+                        rpMaskingView.getMaskName()));
+                continue;
+            }
+
+            for (Entry<URI, ExportMask> crMaskingViewMapEntry : crMaskingViewMap.entrySet()) {
+                ExportMask crMaskingView = crMaskingViewMapEntry.getValue();
+
+                // If the storage ports in the compute resource mask contains all the ports in the RP mask, then we have match.
+                if (crMaskingView.getStoragePorts().size() >= rpMaskingView.getStoragePorts().size() &&
+                        crMaskingView.getStoragePorts().containsAll(rpMaskingView.getStoragePorts())) {
+                    if (!matchingMaskMap.containsKey(rpMaskingView)) {
+                        _log.info(String
+                                .format("Found a RP masking view %s that has the same storage ports as the computer resource (host/cluster) mask %s to which we are exporting the volume. "
+                                        + "OK to use the RP masking view.", rpMaskingView.getMaskName(), crMaskingView.getMaskName()));
+                        matchingMaskMap.put(rpMaskingView, maskMap.getValue());
+                    }
+                }
+            }
+        }
+
         if (matchingMaskMap.isEmpty()) {
-        	_log.info("No RP masks found that align with to the compute resources' masks");      
-        	if (!masksMap.isEmpty()) {
-        		_log.info("There are existing RP masks but none align with the masks for the compute resource. Check to see if they can be re-used");
-        		return masksMap;        		
-        	} else {
-        		_log.info("No existing masks found for the compute resource, proceed as normal");
-        	}
+            _log.info("No RP masks found that align with to the compute resources' masks");
+            if (!masksMap.isEmpty()) {
+                _log.info("There are existing RP masks but none align with the masks for the compute resource. Check to see if they can be re-used");
+                return masksMap;
+            } else {
+                _log.info("No existing masks found for the compute resource, proceed as normal");
+            }
         }
-                 	
-    	return matchingMaskMap;
+
+        return matchingMaskMap;
     }
 
-	/** Fetch all the initiators of the compute resource (host/cluster) in the export group.
-	 * 
-	 * @param exportGroup Export Group
-	 * @return List of initiators
-	 */
-	private List<String> getComputeResourceInitiators(ExportGroup exportGroup) {
-		//Get the initiators of the compute resource in the exportGroup
-    	List<String> initiators = new ArrayList<String>();    	
-    	URIQueryResultList uriQueryList = new URIQueryResultList();
-      
-    	if (exportGroup.getClusters() != null && !exportGroup.getClusters().isEmpty()) {
-    		_log.info("Exporting to Cluster");
-    		 List<URI> clusterHostUris = ComputeSystemHelper.getChildrenUris(_dbClient, URI.create(exportGroup.getClusters().iterator().next()), Host.class, "cluster");    		
-    		for (URI clusterHostUri : clusterHostUris) {
-    			 URIQueryResultList list = new URIQueryResultList();
-    			_dbClient.queryByConstraint(
-    				ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterHostUri, Initiator.class, "host"), list);
-    			Iterator<URI> uriIter = list.iterator();
-    	        while(uriIter.hasNext()) {
-    	            Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
-    	            initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
-    	            _log.info("ComputeResource (Cluster-Host) initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
-    	        }
-    		}
-    	} else if(exportGroup.getHosts() != null && !exportGroup.getHosts().isEmpty()) {
-    		_log.info("Exporting to Host");
-    		_dbClient.queryByConstraint(
-    				ContainmentConstraint.Factory.getContainedObjectsConstraint(URI.create(exportGroup.getHosts().iterator().next()), Initiator.class, "host"), uriQueryList);
-    		Iterator<URI> uriIter = uriQueryList.iterator();
-            while(uriIter.hasNext()) {
+    /**
+     * Fetch all the initiators of the compute resource (host/cluster) in the export group.
+     * 
+     * @param exportGroup Export Group
+     * @return List of initiators
+     */
+    private List<String> getComputeResourceInitiators(ExportGroup exportGroup) {
+        // Get the initiators of the compute resource in the exportGroup
+        List<String> initiators = new ArrayList<String>();
+        URIQueryResultList uriQueryList = new URIQueryResultList();
+
+        if (exportGroup.getClusters() != null && !exportGroup.getClusters().isEmpty()) {
+            _log.info("Exporting to Cluster");
+            List<URI> clusterHostUris = ComputeSystemHelper.getChildrenUris(_dbClient,
+                    URI.create(exportGroup.getClusters().iterator().next()), Host.class, "cluster");
+            for (URI clusterHostUri : clusterHostUris) {
+                URIQueryResultList list = new URIQueryResultList();
+                _dbClient.queryByConstraint(
+                        ContainmentConstraint.Factory.getContainedObjectsConstraint(clusterHostUri, Initiator.class, "host"), list);
+                Iterator<URI> uriIter = list.iterator();
+                while (uriIter.hasNext()) {
+                    Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
+                    initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));
+                    _log.info("ComputeResource (Cluster-Host) initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
+                }
+            }
+        } else if (exportGroup.getHosts() != null && !exportGroup.getHosts().isEmpty()) {
+            _log.info("Exporting to Host");
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getContainedObjectsConstraint(URI.create(exportGroup.getHosts().iterator().next()),
+                            Initiator.class, "host"), uriQueryList);
+            Iterator<URI> uriIter = uriQueryList.iterator();
+            while (uriIter.hasNext()) {
                 Initiator initiator = _dbClient.queryObject(Initiator.class, uriIter.next());
-                initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));   
+                initiators.add(Initiator.normalizePort(initiator.getInitiatorPort()));
                 _log.info("ComputeResource (Host) initiator : " + Initiator.normalizePort(initiator.getInitiatorPort()));
             }
-    	}
-		return initiators;
-	}
-    
+        }
+        return initiators;
+    }
+
     /**
      * Apply business rules to "add" volumes to specific export masks.
      *
@@ -2116,13 +2129,16 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     boolean moreVolumesThanAllowedByConfig = totalVolumesWhenAddedToExportMask > maxVolumesAllowedByConfig;
                     boolean moreVolumesThanAllowedByArray = totalVolumesWhenAddedToExportMask > policy.getMaxVolumesAllowed();
                     if (moreVolumesThanAllowedByArray || moreVolumesThanAllowedByConfig) {
-                        _log.info(String.format(
-                                "ExportMask %s (%s) is matching, but already %d volumes associated with it. " +
-                                "Adding %d volumes to it will make it go over its limit, hence it will not be used for placement.%n" +
-                                "The configuration allows %d volumes and the array allows %d as the max number of volumes to a MaskingView",
-                                exportMask.getMaskName(), exportMask.getId(),
-                                exportMask.returnTotalVolumeCount(), volumes.size(), maxVolumesAllowedByConfig,
-                                policy.getMaxVolumesAllowed()));
+                        _log.info(String
+                                .format(
+                                        "ExportMask %s (%s) is matching, but already %d volumes associated with it. "
+                                                +
+                                                "Adding %d volumes to it will make it go over its limit, hence it will not be used for placement.%n"
+                                                +
+                                                "The configuration allows %d volumes and the array allows %d as the max number of volumes to a MaskingView",
+                                        exportMask.getMaskName(), exportMask.getId(),
+                                        exportMask.returnTotalVolumeCount(), volumes.size(), maxVolumesAllowedByConfig,
+                                        policy.getMaxVolumesAllowed()));
                         continue;
                     }
 

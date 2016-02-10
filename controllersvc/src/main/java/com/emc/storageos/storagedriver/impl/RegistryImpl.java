@@ -14,6 +14,8 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.storagedriver.Registry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -26,6 +28,8 @@ import java.util.Map;
  * Implementation of persistant registry for device drivers
  */
 public class RegistryImpl implements Registry {
+
+    private Logger log = LoggerFactory.getLogger(RegistryImpl.class);
 
     private static Registry registry;
     private DbClient dbClient;
@@ -44,6 +48,8 @@ public class RegistryImpl implements Registry {
 
     @Override
     public void setDriverAttributesForKey(String driverName, String key, Map<String, List<String>> attributes) {
+
+        validateRegistryRequest(driverName, key);
 
         DriverRegistryRecord registryEntryForKey = null;
         // find existing entry for driver name and a given key
@@ -83,6 +89,8 @@ public class RegistryImpl implements Registry {
 
     @Override
     public Map<String, List<String>> getDriverAttributesForKey(String driverName, String key) {
+
+        validateRegistryRequest(driverName, key);
 
         Map<String, List<String>> attributesMap = new HashMap<>();
         // find existing entry for driver name and a given key
@@ -135,6 +143,8 @@ public class RegistryImpl implements Registry {
 
     @Override
     public void clearDriverAttributesForKey(String driverName, String key) {
+        validateRegistryRequest(driverName, key);
+
         URIQueryResultList registryEntriesUris = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getDriverRegistryEntriesByDriverName(driverName), registryEntriesUris);
         while (registryEntriesUris.iterator().hasNext()) {
@@ -150,6 +160,8 @@ public class RegistryImpl implements Registry {
 
     @Override
     public void clearDriverAttributeForKey(String driverName, String key, String attribute) {
+        validateRegistryRequest(driverName, key);
+
         URIQueryResultList registryEntriesUris = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory.getDriverRegistryEntriesByDriverName(driverName), registryEntriesUris);
         while (registryEntriesUris.iterator().hasNext()) {
@@ -170,6 +182,8 @@ public class RegistryImpl implements Registry {
 
     @Override
     public void addDriverAttributeForKey(String driverName, String key, String attribute, List<String> value) {
+        validateRegistryRequest(driverName, key);
+        
         DriverRegistryRecord registryEntryForKey = null;
         // find existing entry for a driver name and a given key
         boolean existingKey = false;
@@ -202,6 +216,14 @@ public class RegistryImpl implements Registry {
             dbClient.updateObject(registryEntryForKey);
         } else {
             dbClient.createObject(registryEntryForKey);
+        }
+    }
+
+    private void validateRegistryRequest(String driverName, String key) {
+        if (driverName == null || key == null) {
+            String msg = String.format("Illegal arguments: driverName %s , key %s ", driverName, key);
+            log.error(msg);
+            throw new IllegalArgumentException(msg);
         }
     }
 }

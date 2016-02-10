@@ -81,24 +81,32 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
          StorageSystem storageSystem = storageSystems.get(0);
         _log.info("StorageDriver: discoverStorageSystem information for storage system {}, name {} - start",
                 storageSystem.getIpAddress(), storageSystem.getSystemName());
-
-        storageSystem.setSerialNumber(storageSystem.getSystemName());
-        storageSystem.setNativeId(storageSystem.getSystemName());
-        storageSystem.setFirmwareVersion("2.4-3.12");
-        storageSystem.setIsSupportedVersion(true);
-
-        // Support both, element and group replicas.
-        Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
-        supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
-        supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
-        storageSystem.setSupportedReplications(supportedReplications);
-
         String taskType = "discover-storage-system";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        _log.info("StorageDriver: discoverStorageSystem information for storage system {}, nativeId {} - end",
-                storageSystem.getIpAddress(), storageSystem.getNativeId());
+
+        try {
+            storageSystem.setSerialNumber(storageSystem.getSystemName());
+            storageSystem.setNativeId(storageSystem.getSystemName());
+            storageSystem.setFirmwareVersion("2.4-3.12");
+            storageSystem.setIsSupportedVersion(true);
+            setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+                    storageSystem.getUsername(), storageSystem.getPassword());
+            // Support both, element and group replicas.
+            Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
+            supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
+            supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
+            storageSystem.setSupportedReplications(supportedReplications);
+
+
+            task.setStatus(DriverTask.TaskStatus.READY);
+            _log.info("StorageDriver: discoverStorageSystem information for storage system {}, nativeId {} - end",
+                    storageSystem.getIpAddress(), storageSystem.getNativeId());
+            return task;
+        } catch (Exception e) {
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            e.printStackTrace();
+        }
         return task;
 
     }
@@ -107,49 +115,58 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
 
         _log.info("Discovery of storage pools for storage system {} .", storageSystem.getNativeId());
-        for (int i =0; i <= 2; i++ ) {
-            StoragePool pool = new StoragePool();
-            pool.setNativeId("pool-1234577-" + i + storageSystem.getNativeId());
-            pool.setStorageSystemId(storageSystem.getNativeId());
-            _log.info("Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
-
-            pool.setDeviceLabel("er-pool-1234577" + i+ storageSystem.getNativeId());
-            pool.setPoolName(pool.getDeviceLabel());
-            Set<StoragePool.Protocols> protocols = new HashSet<>();
-            protocols.add(StoragePool.Protocols.FC);
-            protocols.add(StoragePool.Protocols.iSCSI);
-            pool.setProtocols(protocols);
-            pool.setPoolServiceType(StoragePool.PoolServiceType.block);
-            pool.setMaximumThickVolumeSize(3000000L);
-            pool.setMinimumThickVolumeSize(1000L);
-            pool.setMaximumThinVolumeSize(5000000L);
-            pool.setMinimumThinVolumeSize(1000L);
-            pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_AND_THICK);
-
-            pool.setSubscribedCapacity(5000000L);
-            pool.setFreeCapacity(50000000L);
-            pool.setTotalCapacity(48000000L);
-            pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
-            Set<StoragePool.SupportedDriveTypes> supportedDriveTypes = new HashSet<>();
-            supportedDriveTypes.add(StoragePool.SupportedDriveTypes.FC);
-            supportedDriveTypes.add(StoragePool.SupportedDriveTypes.SATA);
-            pool.setSupportedDriveTypes(supportedDriveTypes);
-
-//            Set<StoragePool.RaidLevels> raidLevels = new HashSet<>();
-//            raidLevels.add(StoragePool.RaidLevels.RAID5);
-//            raidLevels.add(StoragePool.RaidLevels.RAID6);
-//            pool.setSupportedRaidLevels(raidLevels);
-
-            storagePools.add(pool);
-
-        }
-
         String taskType = "discover-storage-pools";
         String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
         DriverTask task = new DriverSimulatorTask(taskId);
-        task.setStatus(DriverTask.TaskStatus.READY);
-        _log.info("StorageDriver: discoverStoragePools information for storage system {}, nativeId {} - end",
-                storageSystem.getIpAddress(), storageSystem.getNativeId());
+
+        try {
+            // Get connection information.
+            Map<String, List<String>> connectionInfo =
+                    driverRegistry.getDriverAttributesForKey("StorageDriverSimulator", storageSystem.getNativeId());
+            _log.info("Storage system connection info: {} : {}", storageSystem.getNativeId(), connectionInfo);
+            for (int i =0; i <= 2; i++ ) {
+                StoragePool pool = new StoragePool();
+                pool.setNativeId("pool-1234577-" + i + storageSystem.getNativeId());
+                pool.setStorageSystemId(storageSystem.getNativeId());
+                _log.info("Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
+
+                pool.setDeviceLabel("er-pool-1234577" + i+ storageSystem.getNativeId());
+                pool.setPoolName(pool.getDeviceLabel());
+                Set<StoragePool.Protocols> protocols = new HashSet<>();
+                protocols.add(StoragePool.Protocols.FC);
+                protocols.add(StoragePool.Protocols.iSCSI);
+                pool.setProtocols(protocols);
+                pool.setPoolServiceType(StoragePool.PoolServiceType.block);
+                pool.setMaximumThickVolumeSize(3000000L);
+                pool.setMinimumThickVolumeSize(1000L);
+                pool.setMaximumThinVolumeSize(5000000L);
+                pool.setMinimumThinVolumeSize(1000L);
+                pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_AND_THICK);
+
+                pool.setSubscribedCapacity(5000000L);
+                pool.setFreeCapacity(50000000L);
+                pool.setTotalCapacity(48000000L);
+                pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
+                Set<StoragePool.SupportedDriveTypes> supportedDriveTypes = new HashSet<>();
+                supportedDriveTypes.add(StoragePool.SupportedDriveTypes.FC);
+                supportedDriveTypes.add(StoragePool.SupportedDriveTypes.SATA);
+                pool.setSupportedDriveTypes(supportedDriveTypes);
+
+    //            Set<StoragePool.RaidLevels> raidLevels = new HashSet<>();
+    //            raidLevels.add(StoragePool.RaidLevels.RAID5);
+    //            raidLevels.add(StoragePool.RaidLevels.RAID6);
+    //            pool.setSupportedRaidLevels(raidLevels);
+
+                storagePools.add(pool);
+
+            }
+            task.setStatus(DriverTask.TaskStatus.READY);
+            _log.info("StorageDriver: discoverStoragePools information for storage system {}, nativeId {} - end",
+                    storageSystem.getIpAddress(), storageSystem.getNativeId());
+        } catch (Exception e) {
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+            e.printStackTrace();
+        }
         return task;
     }
 
@@ -448,6 +465,26 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
         return null;
     }
+
+    public void setConnInfoToRegistry(String systemNativeId, String ipAddress, int port, String username, String password) {
+        Map<String, List<String>> attributes = new HashMap<>();
+        List<String> listIP = new ArrayList<>();
+        List<String> listPort = new ArrayList<>();
+        List<String> listUserName = new ArrayList<>();
+        List<String> listPwd = new ArrayList<>();
+
+        listIP.add(ipAddress);
+        attributes.put("IP_ADDRESS", listIP);
+                listPort.add(Integer.toString(port));
+        attributes.put("PORT_NUMBER", listPort);
+                listUserName.add(username);
+        attributes.put("USER_NAME", listUserName);
+                listPwd.add(password);
+        attributes.put("PASSWORD", listPwd);
+        _log.info(String.format("StorageDriver: setting connection information for %s, attributes: %s ", systemNativeId, attributes));
+        this.driverRegistry.setDriverAttributesForKey("StorageDriverSimulator", systemNativeId, attributes);
+    }
+
 //
 //    public static void main (String[] args) {
 //        StorageDriver driver = new NewStorageDriver(RegistryImpl.getInstance(), LockManagerImpl.getInstance(null));

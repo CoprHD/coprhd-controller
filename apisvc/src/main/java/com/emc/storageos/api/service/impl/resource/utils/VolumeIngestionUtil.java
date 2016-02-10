@@ -3363,24 +3363,20 @@ public class VolumeIngestionUtil {
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
             if (volume.checkForVplexVirtualVolume(dbClient)) {
-                // Find associated volumes
-                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
-                    // First look in created block objects for the associated volumes. This would be the latest version.
-                    BlockObject blockObject = requestContext.findCreatedBlockObject(associatedVolumeIdStr);
-                    if (blockObject == null) {
-                        // Next look in the updated objects.
-                        blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(associatedVolumeIdStr));
-                    }
-                    if (blockObject == null) {
-                        // Finally look in the DB itself. It may be from a previous ingestion operation.
-                        blockObject = dbClient.queryObject(Volume.class, URI.create(associatedVolumeIdStr));
-                        // Since I pulled this in from the database, we need to add it to the list of objects to update.
-                        ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
-                                blockObject.getNativeGuid(), Arrays.asList(blockObject));
-                    }
-                    if (blockObject != null) {
-                        blockObject.setConsistencyGroup(rpCG.getId());
-                        updatedObjects.add(blockObject);
+                // We need the VPLEX ingest context to get the backend volume info
+                VplexVolumeIngestionContext vplexVolumeContext =
+                        ((RpVplexVolumeIngestionContext)
+                                requestContext.getVolumeContext()).getVplexVolumeIngestionContext();  
+                                                      
+                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
+                    // Find the associated volumes using the context maps or the db if they are already there               
+                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient, 
+                                                                                vplexVolumeContext.getObjectsToBeCreatedMap(),
+                                                                                vplexVolumeContext.getObjectsToBeUpdatedMap(), 
+                                                                                associatedVolumeIdStr);     
+                    if (associatedVolume != null) {
+                        associatedVolume.setConsistencyGroup(rpCG.getId());
+                        updatedObjects.add(associatedVolume);
                     }
                 }
             }

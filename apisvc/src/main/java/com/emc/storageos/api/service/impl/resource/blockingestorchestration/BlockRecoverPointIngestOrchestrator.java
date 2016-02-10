@@ -41,10 +41,12 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -58,6 +60,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.util.ConnectivityUtil;
 import com.google.common.base.Joiner;
 
 /**
@@ -611,54 +614,108 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
     private void performRPExportIngestion(IngestionRequestContext volumeContext,
             UnManagedVolume unManagedVolume, Volume volume) {
 
-        VirtualArray virtualArray = volumeContext.getVarray(unManagedVolume);
         Project project = volumeContext.getProject();
-    
-        ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
-        UnManagedExportMask em = findUnManagedRPExportMask(protectionSystem, unManagedVolume);
+        ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());        
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-
-        if (em == null) {
-            _logger.error("Could not find an unmanaged export mask associated with volume: " + unManagedVolume.getLabel());
+        
+        List<UnManagedExportMask> unManagedRPExportMasks = findUnManagedRPExportMask(protectionSystem, unManagedVolume);
+        
+        if (unManagedRPExportMasks.isEmpty()) {
+            _logger.error("Could not find any unmanaged export masks associated with volume: " + unManagedVolume.getLabel());
             throw IngestionException.exceptions.noUnManagedExportMaskFound(unManagedVolume.getNativeGuid());
         }
-
-        ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), em.getKnownInitiatorUris(),
-                virtualArray.getId(), _dbClient);
-        if (null == exportGroup) {
-            volumeContext.setExportGroupCreated(true);
-            Integer numPaths = em.getZoningMap().size();
-            _logger.info("Creating Export Group with label {}", em.getMaskName());
-          
-            // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that
-            // interna flag.
-            boolean isJournalExport = false;
-            if (em.getMaskName().toLowerCase().contains("journal")) {
-            	isJournalExport = true;
+        
+        // Keep a map for internal site name name and varray
+        Map<String, VirtualArray> internalSiteToVarrayMap = new HashMap<String, VirtualArray>();        
+        internalSiteToVarrayMap.put(volume.getInternalSiteName(), volumeContext.getVarray(unManagedVolume));
+        
+        // If this is a MetroPoint volume we're going to have multiple ExportMasks/ExportGroups to deal with.
+        // We'll need to query the backend volumes for extra info to populate internalSiteToVarrayMap so
+        // we can properly line up the ExportMasks/ExportGroups.
+        boolean metropoint = RPHelper.isMetroPointVolume(_dbClient, volume);
+        if (metropoint) {   
+            // We need the VPLEX ingest context to get the backend volume info
+            VplexVolumeIngestionContext vplexVolumeContext =
+                    ((RpVplexVolumeIngestionContext)
+                            volumeContext.getVolumeContext()).getVplexVolumeIngestionContext();
+            for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
+                // Find the associated volumes using the context maps or the db if they are already there               
+                Volume associatedVolume = VolumeIngestionUtil.findVolume(_dbClient, 
+                                                                            vplexVolumeContext.getObjectsToBeCreatedMap(),
+                                                                            vplexVolumeContext.getObjectsToBeUpdatedMap(), 
+                                                                            associatedVolumeIdStr);
+                // If we don't already have an entry for this internal site name, let's add it now.
+                if (!internalSiteToVarrayMap.containsKey(associatedVolume.getInternalSiteName())) {
+                    internalSiteToVarrayMap.put(associatedVolume.getInternalSiteName(), 
+                            _dbClient.queryObject(VirtualArray.class,associatedVolume.getVirtualArray()));
+                }
             }
-            exportGroup = RPHelper.createRPExportGroup(volume.getInternalSiteName(), virtualArray, project, protectionSystem,
-                    storageSystem, numPaths, isJournalExport);
-        }
+        }                
 
-        volumeContext.setExportGroup(exportGroup);
-
-        // set RP device initiators to be used as the "host" for export mask ingestion
-        List<Initiator> initiators = new ArrayList<Initiator>();
-        Iterator<Initiator> initiatorItr = _dbClient.queryIterativeObjects(Initiator.class, URIUtil.toURIList(em.getKnownInitiatorUris()));
-        while (initiatorItr.hasNext()) {
-            initiators.add(initiatorItr.next());
-        }
-        volumeContext.setDeviceInitiators(initiators);
-
-        // find the ingest export strategy and call into for this unmanaged export mask
-        IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(unManagedVolume);
-        volume = ingestStrategy.ingestExportMasks(unManagedVolume, volume, volumeContext);
-
-        if (null == volume) {
-            // an exception should have been thrown by a lower layer in
-            // ingestion did not succeed, but in case it wasn't, throw one
-            throw IngestionException.exceptions.generalVolumeException(
-                    unManagedVolume.getLabel(), "check the logs for more details");
+        // Loop on the internalSiteToVarrayMap.entrySet(), unless this is a MetroPoint volume
+        // this will more than likely only loop once.
+        for (Entry<String, VirtualArray> entry : internalSiteToVarrayMap.entrySet()) {                        
+            String internalSiteName = entry.getKey();     
+            VirtualArray virtualArray = entry.getValue();
+            UnManagedExportMask em = null;
+            
+            if (metropoint) {
+                // Since we're flagged for MetroPoint we need to determine which ExportMask to use.
+                // We need the MetroPoint volume to be added to BOTH ExportGroups that represent the
+                // two Storage Views on VPLEX for cluster-1 and cluster-2.
+                // So let's use the varray to find the cluster we're looking for on this pass and match
+                // it to the maskingViewParth of the UnManagedExportMask.
+                // This should line things up roughly as:
+                // VPLEX Storage View 1 -> VPLEX Cluster1 + RPA1
+                // VPLEX Storage View 2 -> VPLEX Cluster2 + RPA2
+                String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(virtualArray.getId(), storageSystem.getId(), _dbClient);
+                for (UnManagedExportMask exportMask : unManagedRPExportMasks) {                                    
+                    if (exportMask.getMaskingViewPath().contains("cluster-" + vplexCluster)) {
+                        em = exportMask;
+                        break;
+                    }                                                 
+                }                
+            } else {
+                em = unManagedRPExportMasks.get(0);
+            }            
+                                   
+            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), em.getKnownInitiatorUris(),
+                    virtualArray.getId(), _dbClient);
+            if (null == exportGroup) {
+                volumeContext.setExportGroupCreated(true);
+                Integer numPaths = em.getZoningMap().size();
+                _logger.info("Creating Export Group with label {}", em.getMaskName());
+              
+                // If the mask for ingested volume is in a mask that contains JOURNAL keyword, make sure the ExportGroup created contains that
+                // internal flag.
+                boolean isJournalExport = false;
+                if (em.getMaskName().toLowerCase().contains("journal")) {
+                	isJournalExport = true;
+                }
+                exportGroup = RPHelper.createRPExportGroup(internalSiteName, virtualArray, project, protectionSystem,
+                        storageSystem, numPaths, isJournalExport);
+            }
+    
+            volumeContext.setExportGroup(exportGroup);
+    
+            // set RP device initiators to be used as the "host" for export mask ingestion
+            List<Initiator> initiators = new ArrayList<Initiator>();
+            Iterator<Initiator> initiatorItr = _dbClient.queryIterativeObjects(Initiator.class, URIUtil.toURIList(em.getKnownInitiatorUris()));
+            while (initiatorItr.hasNext()) {
+                initiators.add(initiatorItr.next());
+            }
+            volumeContext.setDeviceInitiators(initiators);
+    
+            // find the ingest export strategy and call into for this unmanaged export mask
+            IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(unManagedVolume);
+            volume = ingestStrategy.ingestExportMasks(unManagedVolume, volume, volumeContext);
+    
+            if (null == volume) {
+                // an exception should have been thrown by a lower layer in
+                // ingestion did not succeed, but in case it wasn't, throw one
+                throw IngestionException.exceptions.generalVolumeException(
+                        unManagedVolume.getLabel(), "check the logs for more details");
+            }
         }
     }
 
@@ -666,19 +723,20 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * This unmanaged volume may be associated with several export masks. We need to find the export mask
      * that belongs specifically to the RP protection system supplied.
      * 
-     * Note: There should only be one (1) mask that contains both the protection system's initiators AND the volume.
-     * If this is not true, this method (and its caller) need to be reconsidered.
+     * Note: There could only be more than one mask that contains both the protection system's initiators AND the volume which
+     * would indicate MetroPoint. In a MetroPoint configuration the VPLEX Distributed Source volume is exported to RP
+     * via two different Storage Views. One per VPLEX cluster to two different RPA clusters. 
      * 
      * @param protectionSystem protection system
      * @param unManagedVolume unmanaged volume
-     * @return unmanaged export mask that belongs to the protection system that contains the unmanaged volume
+     * @return unmanaged export masks that belong to the protection system that contains the unmanaged volume
      */
-    private UnManagedExportMask findUnManagedRPExportMask(ProtectionSystem protectionSystem, UnManagedVolume unManagedVolume) {
-        UnManagedExportMask em;
+    private List<UnManagedExportMask> findUnManagedRPExportMask(ProtectionSystem protectionSystem, UnManagedVolume unManagedVolume) {        
+        List<UnManagedExportMask> unManagedRPExportMasks = new ArrayList<UnManagedExportMask>();
+        
         for (String maskIdStr : unManagedVolume.getUnmanagedExportMasks()) {
-
-            // Find the mask associated with the protection system. (Assume there's only one for this volume)
-            em = _dbClient.queryObject(UnManagedExportMask.class, URI.create(maskIdStr));
+            // Find the mask associated with the protection system. 
+            UnManagedExportMask em = _dbClient.queryObject(UnManagedExportMask.class, URI.create(maskIdStr));
             if (em == null) {
                 _logger.error("UnManagedExportMask with ID: " + maskIdStr + " could not be found in DB.  Could already be ingested.");
                 continue;
@@ -690,20 +748,25 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 continue;
             }
 
+            boolean foundMask = false;
             for (String wwn : em.getKnownInitiatorNetworkIds()) {
                 for (Entry<String, AbstractChangeTrackingSet<String>> siteInitEntry : protectionSystem.getSiteInitiators().entrySet()) {
                     if (siteInitEntry.getValue().contains(wwn)) {
                         _logger.info(String
                                 .format("UnManagedVolume %s was found in UnManagedExportMask %s and will be ingested (if not ingested already)",
                                         unManagedVolume.getLabel(), em.getMaskName()));
-                        return em;
+                        unManagedRPExportMasks.add(em);
+                        foundMask = true;
+                        break;
                     }
+                }
+                if (foundMask) {
+                    break;
                 }
             }
         }
 
-        // The caller will throw the exception
-        return null;
+        return unManagedRPExportMasks;
     }
 
     /**

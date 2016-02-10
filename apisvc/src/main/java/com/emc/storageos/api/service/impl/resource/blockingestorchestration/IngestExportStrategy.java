@@ -86,7 +86,5 @@ public class IngestExportStrategy {
         }
 
         return blockObject;
-
     }
-
 }

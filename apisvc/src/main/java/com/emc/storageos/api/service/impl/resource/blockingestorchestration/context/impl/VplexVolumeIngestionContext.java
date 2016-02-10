@@ -844,7 +844,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
         BlockObject blockObject = getObjectsToBeCreatedMap().get(nativeGuid);
         if (blockObject == null) {
-            _parentRequestContext.findCreatedBlockObject(nativeGuid);
+            blockObject = _parentRequestContext.findCreatedBlockObject(nativeGuid);
         }
 
         return blockObject;

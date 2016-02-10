@@ -335,7 +335,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
             }
 
             if (!(VirtualPool.SystemType.NONE.name().equalsIgnoreCase(param.getSystemType())
-                    || VirtualPool.SystemType.isFileTypeSystem(param.getSystemType()))) {
+            || VirtualPool.SystemType.isFileTypeSystem(param.getSystemType()))) {
                 throw APIException.badRequests.invalidSystemType("File");
             }
             if (cos.getArrayInfo() == null) {
@@ -848,6 +848,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         throw APIException.badRequests.invalidReplicationRPOValueForType(
                                 sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
                     }
+                    break;
+                case "DAYS":
+                    // No validation required for Days.
                     break;
                 default:
                     throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());

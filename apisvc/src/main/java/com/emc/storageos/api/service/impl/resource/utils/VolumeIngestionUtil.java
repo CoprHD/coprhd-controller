@@ -3223,9 +3223,11 @@ public class VolumeIngestionUtil {
             umpset = umpsetsItr.next();
         }
 
-        DataObject alreadyLoadedUmpset = requestContext.findInUpdatedObjects(umpset.getId());
-        if (alreadyLoadedUmpset != null && (alreadyLoadedUmpset instanceof UnManagedProtectionSet)) {
-            umpset = (UnManagedProtectionSet) alreadyLoadedUmpset;
+        if (umpset != null) {
+            DataObject alreadyLoadedUmpset = requestContext.findInUpdatedObjects(umpset.getId());
+            if (alreadyLoadedUmpset != null && (alreadyLoadedUmpset instanceof UnManagedProtectionSet)) {
+                umpset = (UnManagedProtectionSet) alreadyLoadedUmpset;
+            }
         }
 
         return umpset;

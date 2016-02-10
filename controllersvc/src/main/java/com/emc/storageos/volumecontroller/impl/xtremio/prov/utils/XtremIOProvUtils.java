@@ -21,6 +21,7 @@ import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
@@ -364,6 +365,9 @@ public class XtremIOProvUtils {
      */
     public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
         xtremioRestClientFactory.setModel(system.getFirmwareVersion());
+        if (null == system.getSmisProviderIP() || null == system.getSmisPortNumber()) {
+            throw XtremIOApiException.exceptions.noActiveConnectionFound(system.getSerialNumber());
+        }
         XtremIOClient client = (XtremIOClient) xtremioRestClientFactory
                 .getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),

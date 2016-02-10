@@ -38,4 +38,7 @@ public interface XtremIOApiExceptions {
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
     XtremIOApiException noConnectionFound(String operationName);
 
+    @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
+    XtremIOApiException noActiveConnectionFound(String serialNumber);
+
 }

@@ -8,6 +8,8 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupport
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
@@ -48,6 +50,8 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.application.VolumeGroupList;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
@@ -94,12 +98,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public static final String SHARED_STORAGE = "shared";
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
     public static final String LOCAL_ARRAY_SNAPSHOT_TYPE_VALUE = "local";
-    public static final String SESSION_SNAPSHOT_TYPE_VALUE = "session";
+    public static final String SNAPSHOT_SESSION_TYPE_VALUE = "session";
     public static final String CG_SNAPSHOT_TYPE_VALUE = "cg";
+    public static final String CG_SNAPSHOT_SESSION_TYPE_VALUE = "cgsession";
 
     public static final String VOLUME_OPTION_KEY = "volume";
     public static final String CONSISTENCY_GROUP_OPTION_KEY = "consistencygroup";
-    
+
     public static final String LINKED_SNAPSHOT_COPYMODE_VALUE = "copy";
     public static final String LINKED_SNAPSHOT_NOCOPYMODE_VALUE = "nocopy";
 
@@ -107,17 +112,25 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static final AssetOption CONSISTENCY_GROUP_OPTION = newAssetOption(CONSISTENCY_GROUP_OPTION_KEY,
             "block.storage.type.consistencygroup");
 
+    // Failover option keys
+    public static final String LATEST_IMAGE_OPTION_KEY = "latest";
+    public static final String PIT_IMAGE_OPTION_KEY = "pit";
+
+    private static final AssetOption LATEST_IMAGE_OPTION = newAssetOption(LATEST_IMAGE_OPTION_KEY, "failover.image.type.latest");
+    private static final AssetOption PIT_IMAGE_OPTION = newAssetOption(PIT_IMAGE_OPTION_KEY, "failover.image.type.pit");
+
     private static final AssetOption EXCLUSIVE_STORAGE_OPTION = newAssetOption(EXCLUSIVE_STORAGE, "block.storage.type.exclusive");
     private static final AssetOption SHARED_STORAGE_OPTION = newAssetOption(SHARED_STORAGE, "block.storage.type.shared");
     private static final AssetOption RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION = newAssetOption(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE,
             "block.snapshot.type.rp_bookmark");
     private static final AssetOption LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION = newAssetOption(LOCAL_ARRAY_SNAPSHOT_TYPE_VALUE,
             "block.snapshot.type.local");
-    private static final AssetOption SESSION_SNAPSHOT_TYPE_OPTION = newAssetOption(SESSION_SNAPSHOT_TYPE_VALUE,
+    private static final AssetOption SNAPSHOT_SESSION_TYPE_OPTION = newAssetOption(SNAPSHOT_SESSION_TYPE_VALUE,
             "block.snapshot.type.session");
     private static final AssetOption CG_SNAPSHOT_TYPE_OPTION = newAssetOption(CG_SNAPSHOT_TYPE_VALUE,
             "block.snapshot.type.cg");
-    
+    private static final AssetOption CG_SNAPSHOT_SESSION_TYPE_OPTION = newAssetOption(CG_SNAPSHOT_SESSION_TYPE_VALUE,
+            "block.snapshot.type.cg.session");
     private static final AssetOption LINKED_SNAPSHOT_COPYMODE_OPTION = newAssetOption(LINKED_SNAPSHOT_COPYMODE_VALUE,
             "block.snapshot.linked.copymode");
     private static final AssetOption LINKED_SNAPSHOT_NOCOPYMODE_OPTION = newAssetOption(LINKED_SNAPSHOT_NOCOPYMODE_VALUE,
@@ -197,6 +210,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return Lists.newArrayList(VOLUME_OPTION, CONSISTENCY_GROUP_OPTION);
     }
 
+    @Asset("imageToAccess")
+    @AssetDependencies("protectedBlockVolume")
+    public List<AssetOption> getImageToAccess(AssetOptionsContext ctx, URI protectedBlockVolume) {
+        List<AssetOption> options = Lists.newArrayList();
+        options = Lists.newArrayList(LATEST_IMAGE_OPTION, PIT_IMAGE_OPTION);
+
+        return options;
+    }
+
     @Asset("blockStorageType")
     public List<AssetOption> getStorageTypes(AssetOptionsContext ctx) {
         return Lists.newArrayList(EXCLUSIVE_STORAGE_OPTION, SHARED_STORAGE_OPTION);
@@ -207,6 +229,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getSourceVolumes(AssetOptionsContext ctx, URI project) {
         debug("getting source block volumes (project=%s)", project);
         return createVolumeOptions(null, listSourceVolumes(api(ctx), project));
+    }
+
+    @Asset("sourceBlockVolume")
+    @AssetDependencies({ "project", "blockVirtualPoolFilter", "consistencyGroupFilter" })
+    public List<AssetOption> getApplicationSourceVolumes(AssetOptionsContext ctx, URI project, URI vpool, URI cg) {
+        ResourceFilter<VolumeRestRep> virtualPoolFilter = vpool != null ? new VirtualPoolFilter(vpool)
+                : new DefaultResourceFilter<VolumeRestRep>();
+        ResourceFilter<VolumeRestRep> cgFilter = cg != null ? new BlockVolumeConsistencyGroupFilter(cg, false)
+                : new BlockVolumeConsistencyGroupFilter(null, true);
+
+        return createVolumeOptions(null, listSourceVolumes(api(ctx), project, virtualPoolFilter, cgFilter));
     }
 
     @Asset("sourceBlockVolumeInConsistencyGroup")
@@ -231,40 +264,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "deletionType" })
     public List<AssetOption> getSourceVolumesWithDeletion(final AssetOptionsContext ctx, URI project, String deletionType) {
         debug("getting source block volumes (project=%s)", project);
-
-        List<VolumeRestRep> volumes;
-
-        if (VolumeDeleteTypeEnum.valueOf(deletionType).equals(VolumeDeleteTypeEnum.VIPR_ONLY)) {
-
-            final List<URI> volumesWithExports = new ArrayList<URI>();
-            for (ExportGroupRestRep export : api(ctx).blockExports().findByProject(project)) {
-                for (ExportBlockParam v : export.getVolumes()) {
-                    volumesWithExports.add(v.getId());
-                }
-            }
-
-            ResourceFilter<VolumeRestRep> volumesWithNoExports = new ResourceFilter<VolumeRestRep>() {
-                @Override
-                public boolean acceptId(URI id) {
-                    return true;
-                }
-
-                @Override
-                public boolean accept(VolumeRestRep item) {
-                    if (volumesWithExports.contains(item.getId())) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                }
-            };
-
-            volumes = listSourceVolumes(api(ctx), project, volumesWithNoExports);
-
-        } else {
-            volumes = listSourceVolumes(api(ctx), project);
-        }
-
+        List<VolumeRestRep> volumes = listSourceVolumes(api(ctx), project);
         return createVolumeOptions(null, volumes);
     }
 
@@ -665,6 +665,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(api(ctx).blockVpools().getAll());
     }
 
+    @Asset("blockVirtualPoolFilter")
+    public List<AssetOption> getBlockVirtualPoolFilters(AssetOptionsContext ctx) {
+        List<AssetOption> options = createBaseResourceOptions(api(ctx).blockVpools().getAll());
+        options.add(0, new AssetOption("All", "All"));
+        return options;
+    }
+
     /**
      * Returns the virtual pools for a given virtualArray (initially added for the Create Volume service)
      *
@@ -901,11 +908,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType", "blockSnapshotType", "consistencyGroupByProjectAndType" })
-    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String storageType, String snapshotType, URI consistencyGroupId) {        
-        if (NONE_TYPE.equals(storageType)) {                
+    public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String storageType, String snapshotType,
+            URI consistencyGroupId) {
+        if (NONE_TYPE.equals(storageType)) {
             return new ArrayList<AssetOption>();
         } else {
-            if (CG_SNAPSHOT_TYPE_VALUE.equals(snapshotType)) {
+            if (CG_SNAPSHOT_TYPE_VALUE.equals(snapshotType)
+                    || CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(snapshotType)) {
                 if (consistencyGroupId == null) {
                     error("Consistency type invalid : %s", consistencyGroupId);
                     return new ArrayList<AssetOption>();
@@ -914,12 +923,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     error("Consistency Group field is required for Storage Type [%s, %s]", storageType, consistencyGroupId);
                     return new ArrayList<AssetOption>();
                 }
-                return getConsistencyGroupSnapshots(ctx, consistencyGroupId);
-            } else if (SESSION_SNAPSHOT_TYPE_VALUE.equals(snapshotType)) {
-                info("getting blockSnapshotSessions (project=%s)", project);               
+                if (CG_SNAPSHOT_SESSION_TYPE_VALUE.equals(snapshotType)) {
+                    return getConsistencyGroupSnapshotSessions(ctx, consistencyGroupId);
+                } else {
+                    return getConsistencyGroupSnapshots(ctx, consistencyGroupId);
+                }
+            } else if (SNAPSHOT_SESSION_TYPE_VALUE.equals(snapshotType)) {
+                info("getting blockSnapshotSessions (project=%s)", project);
                 return getVolumeSnapshotSessionOptionsForProject(ctx, project);
             } else {
-                info("getting blockSnapshots (project=%s)", project);                
+                info("getting blockSnapshots (project=%s)", project);
                 return getVolumeSnapshotOptionsForProject(ctx, project);
             }
         }
@@ -934,17 +947,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByVolume(volumeId, new DefaultResourceFilter<BlockSnapshotRestRep>() {
-                
-                @Override
-                public boolean accept(BlockSnapshotRestRep snapshot) {
-                    String replicaState = snapshot.getReplicaState();
-                    return replicaState != null &&
-                            !(replicaState.equals(ReplicationState.DETACHED.name())) &&
-                            !(replicaState.equals(ReplicationState.INACTIVE.name()));
-                }
-            });
-            
+            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByVolume(volumeId,
+                    new DefaultResourceFilter<BlockSnapshotRestRep>() {
+
+                        @Override
+                        public boolean accept(BlockSnapshotRestRep snapshot) {
+                            String replicaState = snapshot.getReplicaState();
+                            return replicaState != null &&
+                                    !(replicaState.equals(ReplicationState.DETACHED.name())) &&
+                                    !(replicaState.equals(ReplicationState.INACTIVE.name()));
+                        }
+                    });
+
             return constructSnapshotOptions(snapshots);
         } else {
             return getConsistencyGroupSnapshots(ctx, volumeId);
@@ -967,29 +981,33 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("blockSnapshotType")
-    @AssetDependencies({ "blockVolumeOrConsistencyType", "snapshotBlockVolume" })
-    public List<AssetOption> getBlockSnapshotType(AssetOptionsContext ctx, String storageType, URI blockVolume) {
+    @AssetDependencies({"blockVolumeOrConsistencyType", "snapshotBlockVolume"})
+    public List<AssetOption> getBlockSnapshotType(AssetOptionsContext ctx, String storageType, URI blockVolumeOrCG) {
         // These are hard coded values for now. In the future, this may be available through an API
         List<AssetOption> options = Lists.newArrayList();
-        if (isConsistencyGroupType(blockVolume)) {
+        if (isConsistencyGroupType(blockVolumeOrCG)) {                        
             options.add(CG_SNAPSHOT_TYPE_OPTION);
-        } else {
-            debug("getting blockSnapshotTypes (blockVolume=%s)", blockVolume);
+            // Only add cg session option if the CG selected supports it
             ViPRCoreClient client = api(ctx);
-            VolumeRestRep volume = client.blockVolumes().get(blockVolume);
+            BlockConsistencyGroupRestRep cg = client.blockConsistencyGroups().get(blockVolumeOrCG);
+            if (isSnapshotSessionSupportedForCG(cg)) {
+                options.add(CG_SNAPSHOT_SESSION_TYPE_OPTION);
+            } 
+        } else {
+            debug("getting blockSnapshotTypes (blockVolume=%s)", blockVolumeOrCG);
+            ViPRCoreClient client = api(ctx);
+            VolumeRestRep volume = client.blockVolumes().get(blockVolumeOrCG);
             BlockVirtualPoolRestRep virtualPool = client.blockVpools().get(volume.getVirtualPool());
+            if (isLocalSnapshotSupported(virtualPool)) {
+                options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
+            }
 
-            // Session Type trumps other types
+            if (isRPSourceVolume(volume)) {
+                options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
+            }
+            
             if (isSnapshotSessionSupportedForVolume(volume)) {
-                options.add(SESSION_SNAPSHOT_TYPE_OPTION);
-            } else {
-                if (isLocalSnapshotSupported(virtualPool)) {
-                    options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
-                }
-
-                if (isRPSourceVolume(volume)) {
-                    options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
-                }
+                options.add(SNAPSHOT_SESSION_TYPE_OPTION);
             }
         }
         return options;
@@ -1003,35 +1021,39 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         if (isConsistencyGroupType(storageType)) {
             options.add(CG_SNAPSHOT_TYPE_OPTION);
+            options.add(CG_SNAPSHOT_SESSION_TYPE_OPTION);
         } else {
             options.add(LOCAL_ARRAY_SNAPSHOT_TYPE_OPTION);
             options.add(RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_OPTION);
-            options.add(SESSION_SNAPSHOT_TYPE_OPTION);
+            options.add(SNAPSHOT_SESSION_TYPE_OPTION);
         }
         return options;
     }
-    
+
     @Asset("linkedSnapshotsForVolume")
     @AssetDependencies({ "snapshotSessionBlockVolume", "blockVolumeOrConsistencyType" })
-    public List<AssetOption> getLinkedSnapshotsForSnapshotSessionVolume(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
-        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
-            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+    public List<AssetOption> getLinkedSnapshotsForSnapshotSessionVolume(AssetOptionsContext ctx, URI volumeOrCGId, String volumeOrConsistencyType) {
+        if (!checkTypeConsistency(volumeOrCGId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeOrCGId, volumeOrConsistencyType);
             return new ArrayList<AssetOption>();
         }
+        List<BlockSnapshotRestRep> snapshots = new ArrayList<BlockSnapshotRestRep>();
+        List<BlockSnapshotSessionRestRep> snapshotSessions =  new ArrayList<BlockSnapshotSessionRestRep>();
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByVolume(volumeId, new DefaultResourceFilter<BlockSnapshotRestRep>());
-            List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByVolume(volumeId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());
-            return constructSnapshotWithSnapshotSessionOptions(snapshots, snapshotSessions);
+            snapshots = client.blockSnapshots().getByVolume(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotRestRep>());
+            snapshotSessions = client.blockSnapshotSessions().getByVolume(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());            
         } else {
-            return getConsistencyGroupSnapshots(ctx, volumeId);
+            snapshots = client.blockSnapshots().getByConsistencyGroup(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotRestRep>());
+            snapshotSessions = client.blockSnapshotSessions().getByConsistencyGroup(volumeOrCGId, new DefaultResourceFilter<BlockSnapshotSessionRestRep>());            
         }
+        return constructSnapshotWithSnapshotSessionOptions(snapshots, snapshotSessions);
     }
-    
-    @Asset("linkedSnapshotCopyMode")    
+
+    @Asset("linkedSnapshotCopyMode")
     public List<AssetOption> getLinkedSnapshotCopyMode(AssetOptionsContext ctx) {
         // These are hard coded values for now. In the future, this may be available through an API
-        List<AssetOption> options = Lists.newArrayList();               
+        List<AssetOption> options = Lists.newArrayList();
         options.add(LINKED_SNAPSHOT_COPYMODE_OPTION);
         options.add(LINKED_SNAPSHOT_NOCOPYMODE_OPTION);
         return options;
@@ -1393,7 +1415,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return createBaseResourceOptions(consistencyGroups);
         }
     }
-    
+
     @Asset("snapshotSessionBlockVolume")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getSnapshotSessionBlockVolumes(AssetOptionsContext context, URI project, String storageType) {
@@ -1413,10 +1435,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
                 debug("filter[ localSnapSupported=%s, isRPTargetVolume=%s, isRPSourceVolume=%s, isInConsistencyGroup=%s, isXio3XVolume=%s ]",
                         localSnapSupported, isRPTargetVolume, isRPSourceVolume, isInConsistencyGroup, isSnapshotSessionSupported);
-                
+
                 if (isSnapshotSessionSupported && localSnapSupported && !isInConsistencyGroup) {
                     options.add(createVolumeOption(client, null, detail.volume, volumeNames));
-                }                
+                }
             }
             return options;
         } else {
@@ -1424,16 +1446,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return createBaseResourceOptions(consistencyGroups);
         }
     }
-    
+
     @Asset("snapshotSessionsByVolume")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType", "snapshotSessionBlockVolume" })
     public List<AssetOption> getSnapshotSessionsByVolume(AssetOptionsContext ctx, URI projectId, String type, URI volumeOrCGId) {
         if (isVolumeType(type) && BlockProviderUtils.isType(volumeOrCGId, VOLUME_TYPE)) {
             List<BlockSnapshotSessionRestRep> snapshotSessions = api(ctx).blockSnapshotSessions().getByVolume(volumeOrCGId);
             return constructSnapshotSessionOptions(api(ctx), projectId, snapshotSessions);
-        } else if (isConsistencyGroupType(type) && BlockProviderUtils.isType(volumeOrCGId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
-            // Not yet supported
-            return new ArrayList<AssetOption>();
+        } else if (isConsistencyGroupType(type) && BlockProviderUtils.isType(volumeOrCGId, BLOCK_CONSISTENCY_GROUP_TYPE)) {            
+            return getConsistencyGroupSnapshotSessions(ctx, volumeOrCGId);
         } else {
             return new ArrayList<AssetOption>();
         }
@@ -1658,6 +1679,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private List<AssetOption> getConsistencyGroupSnapshots(AssetOptionsContext ctx, URI consistencyGroupId) {
         return createNamedResourceOptions(api(ctx).blockConsistencyGroups().getSnapshots(consistencyGroupId));
     }
+    
+    private List<AssetOption> getConsistencyGroupSnapshotSessions(AssetOptionsContext ctx, URI consistencyGroupId) {
+        return createNamedResourceOptions(api(ctx).blockConsistencyGroups().getSnapshotSessions(consistencyGroupId));
+    }
 
     @Asset("fullCopyAvailableForResynchronize")
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
@@ -1709,6 +1734,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
+    @Asset("application")
+    public List<AssetOption> getApplications(AssetOptionsContext ctx) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupList applications = client.application().getApplications();
+        return createNamedResourceOptions(applications.getVolumeGroups());
+    }
+
+    @Asset("applicationBlockVolume")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplications(AssetOptionsContext ctx, URI application) {
+        final ViPRCoreClient client = api(ctx);
+        return createNamedResourceOptions(client.application().listVolumes(application));
+    }
+
+    @Asset("replicationGroup")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep application = client.application().getApplication(applicationId);
+        return createStringOptions(application.getReplicationGroupNames());
+    }
+
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {
 
         private final URI virtualPoolId;
@@ -1745,11 +1792,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
      *             This should not be used, as it calls the bulk api and then individually loads the
      *             full VolumeRestRep in order to gain access to special fields on the object( HasXIO3XVolumes ).
      *             This should be viewed as a temporary patch to a problem with the bulk block volume api service.
-     * 
+     *
      * @param client
      * @param project
      * @return
      */
+    @Deprecated
     protected static List<VolumeRestRep> listVolumesNonBulk(ViPRCoreClient client, URI project) {
         List<VolumeRestRep> volumes = new ArrayList<VolumeRestRep>();
         for (VolumeRestRep volume : listVolumes(client, project)) {
@@ -1888,12 +1936,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return blockObject.getName();
     }
-    
-    private static String getBlockSnapshotLinkedLabel(BlockSnapshotRestRep snapshot, Map<URI, String> linkedSnapshotToSnapshotSessionMap) {        
+
+    private static String getBlockSnapshotLinkedLabel(BlockSnapshotRestRep snapshot, Map<URI, String> linkedSnapshotToSnapshotSessionMap) {
         String snapshotSessionName = linkedSnapshotToSnapshotSessionMap.get(snapshot.getId());
         if (snapshotSessionName != null && !snapshotSessionName.isEmpty()) {
             return getMessage("block.snapshot.linked", snapshot.getName(), snapshotSessionName);
-        }          
+        }
         return getMessage("block.snapshot.linked.unknown", snapshot.getName());
     }
 
@@ -1939,8 +1987,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
-    }    
-    
+    }
+
     protected List<AssetOption> constructSnapshotOptions(List<BlockSnapshotRestRep> snapshots) {
         List<AssetOption> options = Lists.newArrayList();
         for (BlockSnapshotRestRep snapshot : snapshots) {
@@ -1949,9 +1997,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
-    
-    protected List<AssetOption> constructSnapshotWithSnapshotSessionOptions(List<BlockSnapshotRestRep> snapshots, List<BlockSnapshotSessionRestRep> snapshotSessions) {
-        List<AssetOption> options = Lists.newArrayList();       
+
+    protected List<AssetOption> constructSnapshotWithSnapshotSessionOptions(List<BlockSnapshotRestRep> snapshots,
+            List<BlockSnapshotSessionRestRep> snapshotSessions) {
+        List<AssetOption> options = Lists.newArrayList();
         // Create a map of linked target URIs to snapshot session names for convenience when creating
         // the option labels.
         Map<URI, String> linkedSnapshotToSnapshotSessionMap = new HashMap<URI, String>();
@@ -1959,7 +2008,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             for (RelatedResourceRep linkedTarget : snapshotSession.getLinkedTarget()) {
                 linkedSnapshotToSnapshotSessionMap.put(linkedTarget.getId(), snapshotSession.getName());
             }
-        }        
+        }
         for (BlockSnapshotRestRep snapshot : snapshots) {
             options.add(new AssetOption(snapshot.getId(), getBlockSnapshotLinkedLabel(snapshot, linkedSnapshotToSnapshotSessionMap)));
         }

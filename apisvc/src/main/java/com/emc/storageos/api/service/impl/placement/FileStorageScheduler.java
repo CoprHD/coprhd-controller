@@ -21,11 +21,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.placement.FileRecommendation.FileType;
 import com.emc.storageos.api.service.impl.resource.utils.ProjectUtility;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -42,6 +44,10 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -52,7 +58,7 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
  * StorageScheduler service for block and file storage. StorageScheduler is done
  * based on desired class-of-service parameters for the provisioned storage.
  */
-public class FileStorageScheduler {
+public class FileStorageScheduler implements Scheduler {
 
     public final Logger _log = LoggerFactory
             .getLogger(FileStorageScheduler.class);
@@ -100,7 +106,7 @@ public class FileStorageScheduler {
      */
     public List<FileRecommendation> placeFileShare(VirtualArray vArray,
             VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities,
-            Project project) {
+            Project project, Map<String, Object> optionalAttributes) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.",
                 capabilities.getResourceCount(), capabilities.getSize());
@@ -109,7 +115,7 @@ public class FileStorageScheduler {
         // protocols. In addition, the pool must have enough capacity
         // to hold at least one resource of the requested size.
         List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray,
-                vPool, capabilities);
+                vPool, capabilities, optionalAttributes);
 
         // Holds the invalid virtual nas servers from both
         // assigned and un-assigned list.
@@ -184,6 +190,13 @@ public class FileStorageScheduler {
             _log.error(
                     "Could not find matching pools for virtual array {} & vpool {}",
                     vArray.getId(), vPool.getId());
+        } else { // add code for file for default recommendations for file data
+            for (FileRecommendation recommendation : fileRecommendations) {
+                FileRecommendation fileRecommendation = recommendation;
+                fileRecommendation.setFileType(FileType.FILE_SYSTEM_DATA);
+                StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
+                fileRecommendation.setDeviceType(system.getSystemType());
+            }
         }
 
         return fileRecommendations;
@@ -348,10 +361,10 @@ public class FileStorageScheduler {
      * 
      * @param vPool
      * @param vArrayURI virtual array URI
-     * @param poolRecommendations
+     * @param candidatePools
      * @param project
      * @return list of recommended storage ports for VNAS
-     *
+     * 
      */
     private Map<VirtualNAS, List<StoragePool>> getRecommendedVirtualNASBasedOnCandidatePools(
             VirtualPool vPool, URI vArrayURI,
@@ -512,6 +525,7 @@ public class FileStorageScheduler {
     private List<VirtualNAS> getUnassignedVNASServers(URI vArrayURI,
             VirtualPool vpool, Project project,
             List<VirtualNAS> invalidNasServers) {
+        _log.info("Get vNAS servers from the unreserved list...");
 
         _log.info("Get vNAS servers from the unreserved list...");
 
@@ -529,9 +543,7 @@ public class FileStorageScheduler {
             for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator
                     .hasNext();) {
                 VirtualNAS vNAS = iterator.next();
-
                 _log.info("Checking vNAS - {} : {}", vNAS.getNasName(), vNAS.getId());
-
                 if (!isVNASActive(vNAS)) {
                     _log.info("Removing vNAS {} as it is inactive",
                             vNAS.getNasName());
@@ -953,6 +965,126 @@ public class FileStorageScheduler {
             }
         }
         return result;
+    }
+
+    public List<FileRecommendation> placeFileShare(VirtualArray vArray,
+            VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities,
+            Project project) {
+        return placeFileShare(vArray, vPool, capabilities, project, null);
+    }
+
+    @Override
+    public List getRecommendationsForResources(VirtualArray vArray, Project project, VirtualPool vPool,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
+        return placeFileShare(vArray, vPool, capabilities, project, null);
+    }
+
+    /**
+     * create fileshare from the Recommendation object
+     * 
+     * @param param -file share create param
+     * @param task -task id
+     * @param taskList - task list
+     * @param project -project
+     * @param varray - Virtual Array
+     * @param vpool - Virtual Pool
+     * @param recommendations - recommendation structure
+     * @param cosCapabilities - Virtual pool wrapper
+     * @param createInactive - create device sync inactive
+     * @return
+     */
+    public List<FileShare> prepareFileSystems(FileSystemParam param, String task, TaskList taskList,
+            Project project, VirtualArray varray, VirtualPool vpool,
+            List<Recommendation> recommendations, VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
+
+        List<FileShare> preparedFileSystems = new ArrayList<>();
+        Iterator<Recommendation> recommendationsIter = recommendations.iterator();
+        while (recommendationsIter.hasNext()) {
+            FileRecommendation recommendation = (FileRecommendation) recommendationsIter.next();
+            // If id is already set in recommendation, do not prepare the fileSystem (fileSystem already exists)
+            if (recommendation.getId() != null) {
+                continue;
+            }
+
+            if (recommendation.getFileType().toString().equals(
+                    FileRecommendation.FileType.FILE_SYSTEM_DATA.toString())) {
+
+                // Grab the existing fileshare and task object from the incoming task list
+                FileShare fileShare = getPrecreatedFile(taskList, param.getLabel());
+
+                // Set the recommendation
+                _log.info(String.format("createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
+                        fileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
+                setFileRecommendation(recommendation, fileShare, vpool, createInactive);
+
+                preparedFileSystems.add(fileShare);
+
+            }
+
+        }
+        return preparedFileSystems;
+    }
+
+    public void setFileRecommendation(FileRecommendation placement,
+            FileShare fileShare, VirtualPool vpool, Boolean createInactive) {
+
+        // Now check whether the label used in the storage system or not
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
+        List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,
+                PrefixConstraint.Factory.getFullMatchConstraint(FileShare.class, "label", fileShare.getLabel()));
+        if (fileShareList != null && fileShareList.isEmpty()) {
+            for (FileShare fs : fileShareList) {
+                if (fs.getStorageDevice() != null) {
+                    if (fs.getStorageDevice().equals(system.getId())) {
+                        _log.info("Duplicate label found {} on Storage System {}", fileShare.getLabel(), system.getId());
+                        throw APIException.badRequests.duplicateLabel(fileShare.getLabel());
+                    }
+                }
+            }
+        }
+
+        // Set the storage pool
+        StoragePool pool = null;
+        if (null != placement.getSourceStoragePool()) {
+            pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
+            if (null != pool) {
+                fileShare.setProtocol(new StringSet());
+                fileShare.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
+            }
+        }
+
+        fileShare.setStorageDevice(placement.getSourceStorageSystem());
+        fileShare.setPool(placement.getSourceStoragePool());
+        if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
+            fileShare.setStoragePort(placement.getStoragePorts().get(0));
+        }
+
+        if (placement.getvNAS() != null) {
+            fileShare.setVirtualNAS(placement.getvNAS());
+        }
+
+        _dbClient.updateObject(fileShare);
+        // finally set file share id in recommendation
+        placement.setId(fileShare.getId());
+    }
+
+    /**
+     * Convenience method to return a file from a task list with a pre-labeled fileshare.
+     * 
+     * @param dbClient dbclient
+     * @param taskList task list
+     * @param label base label
+     * @return file object
+     */
+    public FileShare getPrecreatedFile(TaskList taskList, String label) {
+
+        for (TaskResourceRep task : taskList.getTaskList()) {
+            FileShare fileShare = _dbClient.queryObject(FileShare.class, task.getResource().getId());
+            if (fileShare.getLabel().equalsIgnoreCase(label)) {
+                return fileShare;
+            }
+        }
+        return null;
     }
 
 }

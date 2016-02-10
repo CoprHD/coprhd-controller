@@ -24,7 +24,6 @@ public class NamedRelatedBlockConsistencyGroupRep extends NamedRelatedResourceRe
     /**
      * The device name
      * 
-     * @valid none
      */
     @XmlElement(name = "device_name")
     public String getDeviceName() {

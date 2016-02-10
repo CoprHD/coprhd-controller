@@ -8,7 +8,7 @@
 
 <div class="clear"></div>
 <div id="fileSystemDetails" class="container" style="margin-bottom: 2em;">
-
+ 
   #{alerts/}
 
   #{if fileSystem}
@@ -50,10 +50,28 @@
         <dd class="moreDetails">#{spaceForNull storagePool?.name/}</dd>
         <dt class="moreDetails">&{'resources.filesystem.storageport'}:</dt>
         <dd class="moreDetails">#{spaceForNull storagePort?.name/}</dd>
+        
+		<dt class="moreDetails">&{'resources.filesystem.notificationLimit'}:</dt>
+        <dd class="moreDetails">#{spaceForNull fileSystem?.notificationLimit/}</dd>
+        
+        <dt class="moreDetails">&{'resources.filesystem.softLimit'}:</dt>
+        <dd class="moreDetails">#{spaceForNull fileSystem?.softLimit/}
+        #{if fileSystem.softLimitExceeded}
+                <span class="label label-warning">
+                   <span class="glyphicon glyphicon-warning-sign"></span> 
+                   &{'resources.filesystem.softLimitExeeded'}
+                </span>
+        #{/if}
+        </dd>
+        <dt class="moreDetails">&{'resources.filesystem.softGrace'}:</dt>
+        <dd class="moreDetails">#{spaceForNull fileSystem?.softGrace/}</dd>
+
+        
       #{/deadbolt.restrict}
       <dt class="moreDetails">&{'resources.filesystem.nativeid'}:</dt>
       <dd class="moreDetails">#{spaceForNull fileSystem.nativeId/}</dd>      
       #{Resources.commonAttributes resource:fileSystem /}
+      
     </dl>
 
     <div class="clearfix"></div>
@@ -64,6 +82,7 @@
     #{if fileSystem.protocols.contains('NFSv4')}
     #{expandPanel titleKey:'resources.filesystem.nfsAccessControl', url: @fileSystemNfsACLs(fileSystem.id) /}
     #{/if}
+    #{expandPanel titleKey:'resources.filesystem.snapshotPolicies', url: @fileSystemSnapshotPolicies(fileSystem.id) /}
 
     <br/>
     
@@ -254,6 +273,36 @@
 #{/Modal.dialog}
     
 
+#{Modal.dialog id:'assignPolicy', cssClass:'medium'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'resources.filesystem.snapshot.policy.assign'}</h4>
+  #{/Modal.header}
+  #{Modal.body}
+    <div ng-controller="AssignPolicyCtrl" id="policy">
+    
+       <div class="container-fluid">
+           <div class="row" style="padding-top:20px; padding-bottom:0px;">
+                <div class="pull-left col-md-3" style="text-align:center;"><strong>&{'filePolicy.name'}</strong></div>
+                <div class="pull-left col-md-6" v-field="policy" style="padding-right:0px;"><select-one options="policyOptions"></select-one>   
+           </div>
+           
+           </div>               
+           <br>
+           #{form @assignPolicyToFileSystem(), id:'policyForm', class:'form form-horizontal', autocomplete:"off"}
+            <input type="hidden" name="fileSystemId" value="${fileSystem.id}" />   
+            <input type="hidden" name="policyId" ng-value="policy" />         
+             
+             <div class="row">
+               #{Modal.buttonBar}
+                 <button type="submit" style="margin-left:45px;" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
+               #{/Modal.buttonBar}
+             </div>
+           #{/form}
+       </div>
+    </div>
+  #{/Modal.body}
+#{/Modal.dialog}
+
 
 <script>
   function modifyQuotaDirectory(quotaId) {
@@ -293,5 +342,10 @@
 		scope.populateModal();
 		$('#addNfsAclDialog').modal('show');
   }
-  
+  function showAssignPolicyDialog(){
+	 
+	  var scope = angular.element($('#policyForm')).scope();
+	  scope.populateModal();
+	  $('#assignPolicy').modal('show');
+  }
 </script>

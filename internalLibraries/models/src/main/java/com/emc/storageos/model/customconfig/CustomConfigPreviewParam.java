@@ -20,7 +20,6 @@ public class CustomConfigPreviewParam {
     /**
      * The config type name
      * 
-     * @valid none
      */
     @XmlElement(required = true, name = "config_type")
     public String getConfigType() {
@@ -34,7 +33,6 @@ public class CustomConfigPreviewParam {
     /**
      * The config value
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public String getValue() {
@@ -48,7 +46,6 @@ public class CustomConfigPreviewParam {
     /**
      * The scope
      * 
-     * @valid none
      */
     @XmlElement
     public ScopeParam getScope() {
@@ -62,7 +59,6 @@ public class CustomConfigPreviewParam {
     /**
      * The variable values used to generate config value
      * 
-     * @valid none
      */
     @XmlElement(name = "preview_variable")
     public List<PreviewVariableParam> getPreviewVariables() {

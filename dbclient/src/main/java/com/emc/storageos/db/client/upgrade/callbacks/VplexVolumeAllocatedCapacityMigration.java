@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration process to handle setting allocated capacity to match
@@ -28,7 +29,7 @@ public class VplexVolumeAllocatedCapacityMigration extends BaseCustomMigrationCa
     private static final Logger log = LoggerFactory.getLogger(VplexVolumeAllocatedCapacityMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
 
         DbClient dbClient = getDbClient();
 

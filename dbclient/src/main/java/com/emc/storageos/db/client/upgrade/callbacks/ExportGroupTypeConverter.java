@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to convert value of type field for an export group, from
@@ -29,7 +30,7 @@ public class ExportGroupTypeConverter extends BaseCustomMigrationCallback {
     private static final String OLD_TYPE_VALUE = "Exclusive";
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         log.info("Handle ExportGroup type conversion");
         DbClient dbClient = getDbClient();
         List<URI> exportGroupURIs = dbClient.queryByType(ExportGroup.class,

@@ -40,8 +40,6 @@ public class BlockSnapshotSessionBulkRep extends BulkRestRep {
     /**
      * Get the list of block snapshot sessions responses.
      * 
-     * @valid none
-     * 
      * @return The list of block snapshot sessions responses
      */
     @XmlElement(name = "block_snapshot_session")

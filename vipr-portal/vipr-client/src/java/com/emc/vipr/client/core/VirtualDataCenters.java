@@ -52,7 +52,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * 
      * @param input
      *            the vdc configuration.
-     * @return Task<VirtualDataCenterRestRep> the task to create the vdc.
+     * @return Task VirtualDataCenterRestRep the task to create the vdc.
      */
     public Task<VirtualDataCenterRestRep> create(VirtualDataCenterAddParam input) {
         return postTask(input, PathConstants.VDC_URL);
@@ -67,7 +67,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      *            the ID of the vdc to update.
      * @param input
      *            the vdc configuration.
-     * @return Task<VirtualDataCenterRestRep> the task to update the vdc.
+     * @return Task VirtualDataCenterRestRep the task to update the vdc.
      */
     public Task<VirtualDataCenterRestRep> update(URI id, VirtualDataCenterModifyParam input) {
         return putTask(input, getIdUrl(), id);
@@ -80,7 +80,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * 
      * @param id
      *            the ID of the vdc to delete.
-     * @return Task<VirtualDataCenterRestRep> the task to delete the vdc.
+     * @return Task VirtualDataCenterRestRep the task to delete the vdc.
      */
     public Task<VirtualDataCenterRestRep> delete(URI id) {
         TaskResourceRep task = client.delete(TaskResourceRep.class, getIdUrl(), id);
@@ -94,7 +94,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * 
      * @param id
      *            the ID of the vdc to reconnect.
-     * @return Task<VirtualDataCenterRestRep> the task to reconnect the vdc.
+     * @return Task VirtualDataCenterRestRep the task to reconnect the vdc.
      */
     public Task<VirtualDataCenterRestRep> reconnect(URI id) {
         return postTask(getReconnectUrl(), id);
@@ -107,7 +107,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * 
      * @param id
      *            the ID of the vdc to disconnect.
-     * @return Task<VirtualDataCenterRestRep> the task to disconnect the vdc.
+     * @return Task VirtualDataCenterRestRep the task to disconnect the vdc.
      */
     public Task<VirtualDataCenterRestRep> disconnect(URI id) {
         return postTask(getDisconnectUrl(), id);
@@ -163,7 +163,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * minimum expected version or not. This can be used in the UI to restrict a
      * view of a feature.
      * *
-     * API Call: <tt>GET /vdc/check-compatibility?expect_version={expectedVersion}
+     * API Call: <tt>GET /vdc/check-compatibility?expect_version={expectedVersion} </tt>
      * 
      * @param expectedVersion minimum expected version of all the VDCs in the federation.
      * 
@@ -182,7 +182,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * A check to see if the setup is geo-distributed multi-vdc setup.
      * This can be used in the UI to restrict a view of a feature.
      * *
-     * API Call: <tt>GET /vdc/check-geo-distributed
+     * API Call: <tt>GET /vdc/check-geo-distributed </tt>
      * 
      * @return true if the setup is geo-distributed/multi-vdc setup
      *         otherwise false.

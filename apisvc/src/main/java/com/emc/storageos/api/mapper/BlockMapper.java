@@ -248,6 +248,14 @@ public class BlockMapper {
             }
             to.setHaVolumes(backingVolumes);
         }
+        if ((from.getVolumeGroupIds() != null) && (!from.getVolumeGroupIds().isEmpty())) {
+            List<RelatedResourceRep> volumeGroups = new ArrayList<RelatedResourceRep>();
+            for (String volumeGroup : from.getVolumeGroupIds()) {
+                volumeGroups.add(toRelatedResource(ResourceTypeEnum.VOLUME_GROUP, URI.create(volumeGroup)));
+            }
+            to.setVolumeGroups(volumeGroups);
+        }
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
 
         return to;
     }
@@ -343,6 +351,12 @@ public class BlockMapper {
 
         // Map base class fields.
         mapDataObjectFields(from, to);
+
+        // Map snapshot session consistency group.
+        URI consistencyGroup = from.getConsistencyGroup();
+        if (consistencyGroup != null) {
+            to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, consistencyGroup));
+        }
 
         // Map snapshot session parent i.e., the snapshot session source.
         NamedURI parentNamedURI = from.getParent();
@@ -442,14 +456,41 @@ public class BlockMapper {
 
         BlockConsistencyGroupRestRep to = new BlockConsistencyGroupRestRep();
         mapDataObjectFields(from, to);
-
         to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
         to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
+        
+        // Default snapshot session support to false
+        to.setSupportsSnapshotSessions(Boolean.FALSE);
+        if (dbClient != null && from.getStorageController() != null) {
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
+            if (system != null && system.checkIfVmax3()) {                
+                to.setSupportsSnapshotSessions(Boolean.TRUE);                 
+            }
+        }
 
         try {
             if (from.getSystemConsistencyGroups() != null) {
                 to.setSystemConsistencyGroups(new StringSetMapAdapter().marshal(from.getSystemConsistencyGroups()));
+                
+                if (!to.getSupportsSnapshotSessions()) {
+                    // If we haven't already determined that we can support snapshot sessions,
+                    // loop through all the system cg's to find any storage systems that this
+                    // cg resides on. If any of those entries supports snapshot sessions then
+                    // we can flag this as true.
+                    if (dbClient != null && to.getSystemConsistencyGroups() != null) {
+                        for (StringSetMapAdapter.Entry entry : to.getSystemConsistencyGroups()) {
+                            String storageSystemId = entry.getKey();
+                            if (storageSystemId != null) {
+                                StorageSystem system = dbClient.queryObject(StorageSystem.class, URI.create(storageSystemId));
+                                if (system != null && system.checkIfVmax3()) {                
+                                    to.setSupportsSnapshotSessions(Boolean.TRUE);     
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             // internally ignored

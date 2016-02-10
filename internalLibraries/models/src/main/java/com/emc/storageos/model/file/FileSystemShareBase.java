@@ -36,7 +36,6 @@ public class FileSystemShareBase {
     /**
      * User provided name of the file share.
      * 
-     * @valid none
      */
     @XmlElement(name = "name", required = true)
     public String getShareName() {
@@ -50,7 +49,6 @@ public class FileSystemShareBase {
     /**
      * User provided description of the file share.
      * 
-     * @valid none
      */
     @XmlElement(name = "description")
     public String getDescription() {
@@ -65,7 +63,6 @@ public class FileSystemShareBase {
      * Maximum number of users of the file share. Default
      * is unlimited.
      * 
-     * @valid none
      */
     @XmlElement(name = "max_users")
     public String getMaxUsers() {
@@ -79,9 +76,9 @@ public class FileSystemShareBase {
     /**
      * Permission type for the file share. Default is
      * "allow".
-     * 
-     * @valid "allow" = permission type by default
-     * @valid "deny"
+     * Valid values:
+     *   allow = permission type by default
+     *   deny
      */
     @XmlElement(name = "permission_type")
     public String getPermissionType() {
@@ -95,10 +92,10 @@ public class FileSystemShareBase {
     /**
      * Permission type for the file share. Default is
      * "change".
-     * 
-     * @valid "read" = read permission only
-     * @valid "change" = read and write permissions
-     * @valid "full" = full control of the file share
+     * Valid values:
+     *   read = read permission only
+     *   change = read and write permissions
+     *   full = full control of the file share
      */
     @XmlElement(name = "permission")
     public String getPermission() {

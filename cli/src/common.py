@@ -924,13 +924,18 @@ def show_resource(ipAddr, port, componentType, uri,
 
 # Timeout handler for synchronous operations
 def timeout_handler():
+    global IS_TASK_TIMEOUT
     IS_TASK_TIMEOUT = True
 
 
 # Blocks the operation until the task is complete/error out/timeout
-def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
+def block_until_complete(componentType, resource_uri, task_id, ipAddr, port,synctimeout):
+        global IS_TASK_TIMEOUT
         IS_TASK_TIMEOUT = False
-        t = Timer(300, timeout_handler)
+        if synctimeout:
+            t = Timer(synctimeout, timeout_handler)
+        else:
+            t = Timer(300, timeout_handler)
         t.start()
         while(True):
             out = get_task_by_resourceuri_and_taskId(
@@ -956,7 +961,7 @@ def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
                                    " is failed with error: " + error_message)
 
             if(IS_TASK_TIMEOUT):
-                print "Operation timed out."
+                print "Task did not complete in %d secs. Task still in progress. Please check the logs for task status"%synctimeout
                 IS_TASK_TIMEOUT = False
                 break
         return

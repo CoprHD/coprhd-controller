@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
+ * Copyright 2013 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -160,6 +173,12 @@ public interface InternalServerErrorExceptions {
             final String type, final String volume);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException noMaxSnapshotsDefinedInVirtualPool(final String vPool, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException unmanagedVolumeVpoolConsistencyGroupMismatch(final String vPool, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException virtualPoolNotMatchingStoragePoolNicer(final String virtualPool,
             final String type, final String volume, final String vpoolList);
 
@@ -168,6 +187,9 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException virtualPoolNotMatchingVArray(final URI uri);
+
+    @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
+    public InternalServerErrorException noAssociatedQosForVirtualPool(final URI uri);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException noVolumesIngested();
@@ -223,6 +245,12 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_RECOVERY_NEW_NODE_FAILURE)
     public InternalServerErrorException newNodeFailureInNodeRecovery(final String nodes);
 
+    @DeclareServiceCode(ServiceCode.SYS_BACKUP_LIST_EXTERNAL_FAILED)
+    public InternalServerErrorException listExternalBackupFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.SYS_BACKUP_QUERY_EXTERNAL_FAILED)
+    public InternalServerErrorException queryExternalBackupFailed(final Throwable cause);
+
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
 
@@ -277,6 +305,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
     public InternalServerErrorException resumeStandbyFailed(final String siteName, String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_RETRY_STANDBY_OP_FAILED)
+    public InternalServerErrorException retryStandbyOpFailed(final String siteName, String errMsg);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_TIMEOUT)
     public InternalServerErrorException resumeStandbyFailedTimeout(final long timeoutValue);
 
@@ -294,7 +325,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
     public InternalServerErrorException switchoverStandbyFailedTimeout(String siteName, int timeoutValue);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED_TIMEOUT)
     public InternalServerErrorException failoverFailedTimeout(String siteName, int timeoutValue);
 
@@ -303,6 +334,9 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_CONCURRENT_OPERATION_NOT_ALLOWED)
     public InternalServerErrorException concurrentDROperationNotAllowed(String sitedName, String state);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_CONCURRENT_OPERATION_NOT_ALLOWED)
+    public InternalServerErrorException concurrentRemoveDROperationNotAllowed(String sitedName, String state);
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);
@@ -321,4 +355,10 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_UPDATE_SITE_FAILED)
     public InternalServerErrorException updateSiteFailed(String siteName, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException ingestNotAllowedNonRPVolume(final String vpoolLabel, final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_UPGRADE_NOT_ALLOWED)
+    public InternalServerErrorException upgradeNotAllowedWithoutPausedSite();
 }

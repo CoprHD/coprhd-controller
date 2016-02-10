@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.emc.storageos.storagedriver.Registry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -43,6 +44,7 @@ class DataCollectionJobInvoker {
     private ExtendedCommunicationInterface _commInterface;
     private Map<String, String> _configInfo;
     private String _namespace;
+    private Registry _registry;
 
     public DataCollectionJobInvoker(final AccessProfile accessProfile, final Map<String, String> configInfo,
             final DbClient dbClient, final CoordinatorClient coordinator, NetworkDeviceController networkDeviceController,
@@ -91,7 +93,13 @@ class DataCollectionJobInvoker {
                 // CTRL-10441 fix
                 String contextFile = getContextFile(contextkey);
                 if (null == contextFile) {
-                    return;
+                    // No entry for context key in configinfo map, default to external device context key
+                    String externalDeviceContextKey =
+                            _accessProfile.getProfileName() + "-" + Constants.EXTERNALDEVICE + "-" + _namespace.toLowerCase();
+                    _logger.info("No entry defined for context key: {} . Default to external device context key: {}",
+                            contextkey, externalDeviceContextKey);
+                    contextkey = externalDeviceContextKey;
+                    contextDeviceType = Constants.EXTERNALDEVICE;
                 }
                 context = new ClassPathXmlApplicationContext(new String[] { getContextFile(contextkey) },
                         parentApplicationContext);
@@ -184,7 +192,7 @@ class DataCollectionJobInvoker {
         if (null != _configInfo.get(contextKey)) {
             contextFile = _configInfo.get(contextKey);
         } else {
-            _logger.warn("Profile Name Not supported:" + contextKey);
+            _logger.warn("Profile name not defined:" + contextKey);
         }
         return contextFile;
     }

@@ -18,7 +18,6 @@ public class StorageSystemBulkRep extends BulkRestRep {
     /**
      * List of storage systems
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_system")
     public List<StorageSystemRestRep> getStorageSystems() {

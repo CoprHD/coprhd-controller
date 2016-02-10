@@ -1662,7 +1662,7 @@ public class VolumeIngestionUtil {
             }
         }
 
-        // Do not add the block object to the export group if it has no public access
+        // Do not add the block object to the export group if it is partially ingested
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
         }

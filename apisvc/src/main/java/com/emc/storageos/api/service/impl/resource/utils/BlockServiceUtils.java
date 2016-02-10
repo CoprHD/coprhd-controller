@@ -66,7 +66,7 @@ public class BlockServiceUtils {
     private static Logger _log = LoggerFactory.getLogger(BlockServiceUtils.class);
 
     /**
-     * Validate that the passed block object is not an internal block object without the partially ingested flag,
+     * Validate that the passed block object is not an internal block object,
      * such as a backend volume for a VPLEX volume. If so, throw a bad request
      * exception unless the SUPPORTS_FORCE flag is present AND force is true.
      *
@@ -77,10 +77,10 @@ public class BlockServiceUtils {
      */
     public static void validateNotAnInternalBlockObject(BlockObject blockObject, boolean force) {
         if (blockObject != null) {
-            if ((blockObject.checkInternalFlags(Flag.INTERNAL_OBJECT) && !blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED))
+            if (blockObject.checkInternalFlags(Flag.INTERNAL_OBJECT)
                     && !blockObject.checkInternalFlags(Flag.SUPPORTS_FORCE)) {
                 throw APIException.badRequests.notSupportedForInternalVolumes();
-            } else if ((blockObject.checkInternalFlags(Flag.INTERNAL_OBJECT) && !blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED))
+            } else if (blockObject.checkInternalFlags(Flag.INTERNAL_OBJECT)
                     && blockObject.checkInternalFlags(Flag.SUPPORTS_FORCE)
                     && !force) {
                 throw APIException.badRequests.notSupportedForInternalVolumes();

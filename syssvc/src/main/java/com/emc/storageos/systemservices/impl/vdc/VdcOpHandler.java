@@ -468,7 +468,7 @@ public abstract class VdcOpHandler {
                         // this will make it a lot easier if we later failover to any of the paused sites
                         standby.setState(SiteState.STANDBY_SYNCED);
                         log.info("Updating state of site {} to STANDBY_SYNCED", standby.getUuid());
-                        coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(standby.toConfiguration());
                     }
                 }
             }

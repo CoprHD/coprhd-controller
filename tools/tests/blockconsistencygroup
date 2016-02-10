@@ -341,6 +341,15 @@ def consistency_group_snapshot_session_restore_targets(args):
     else:
         print "Restore snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
 
+# List volume IDs part of the consistency group
+def list_volume_ids(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.name)
+    group = bourne.block_consistency_group_show(group_uri)
+    volumes = group["volumes"]
+    for volume in volumes:
+        print(volume["id"])
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -455,6 +464,10 @@ snapshotSessionRelinkTargets.add_argument('target_name', help = 'The name of the
 snapshotSessionRestoreTargets = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 snapshotSessionRestoreTargets.add_argument('name', help = 'The name of the snapshot session as group_name/session_name.')
 
+# list_volume_ids name
+listVolumeIds = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+listVolumeIds.add_argument('name', help = 'The name of the consistency group.')
+
 #----------------------------------------------------------------------
 # Main script
 #----------------------------------------------------------------------
@@ -543,6 +556,9 @@ try:
     elif (cmd == "restore_targets"):
         args = snapshotSessionRestoreTargets.parse_args()
         consistency_group_snapshot_session_restore_targets(args)
+    elif (cmd == "list_volume_ids"):
+        args = listVolumeIds.parse_args()
+        list_volume_ids(args)
     else:
         parser.print_help()
 

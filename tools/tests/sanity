@@ -8739,7 +8739,7 @@ snapvx_setup_once()
 
     # Create provider for VMAX3 array.
     echo "**** Creating VMAX3 provider"
-    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP 5989 $SMIS_USER "$SMIS_PASSWD" true
 
     # Discover the vmax3 array.
     echo "**** Discovering VMAX3 array"
@@ -8803,7 +8803,6 @@ snapvx_group_tests()
 	# Create snapvx sessions with no linked targets
 	run blockconsistencygroup create_snapshot_session $CG_NAME $SNAP_SESSION_NAME1
 	run blockconsistencygroup create_snapshot_session $CG_NAME $SNAP_SESSION_NAME2
-	run blockconsistencygroup create_snapshot_session $CG_NAME $SNAP_SESSION_NAME3
 
     # Restore the snapvx session.
     echo "**** Restoring SnapVx session 1"
@@ -8842,15 +8841,18 @@ snapvx_group_tests()
     echo "**** Unlinking all targets from SnapVx session 3"
     run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME2-1-1 --delete_target true
     run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME2-2-1 --delete_target true
-    run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME3-3-1 --delete_target true
+    run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME3-1-1 --delete_target true
 
 	# Create snapvx sessions with no linked targets
 	run blockconsistencygroup delete_snapshot_session $CG_NAME/$SNAP_SESSION_NAME3
 
-    # Delete the snapshot session source volume.
-    echo "**** Deleting the VMAX3 source volume"
-    volume delete $PROJECT/$VOLUME_NAME-1 --wait
-    volume delete $PROJECT/$VOLUME_NAME-2 --wait
+    # Delete the source volumes
+    volumes=`blockconsistencygroup list_volume_ids $CG_NAME | tail -n+2`
+    for volume in $volumes
+    do
+        echo "**** Deleting the VMAX3 source volume $volume"
+        volume delete $volume --wait
+    done
 
     echo "**** Deleting the VMAX3 CG"
     # Delete the snapshot session source consistency group.

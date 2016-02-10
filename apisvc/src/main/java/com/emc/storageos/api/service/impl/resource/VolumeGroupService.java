@@ -1174,12 +1174,93 @@ public class VolumeGroupService extends TaskResourceService {
         return snapsetToSnapshots;
     }
 
+    /*
+     * Wrapper of BlockConsistencyGroupService methods for snapshot operations
+     *
+     * @param volumeGroupId
+     * @param param
+     * @return a TaskList
+     */
+    private TaskList performVolumeGroupSnapshotOperation(final URI volumeGroupId, final VolumeGroupSnapshotOperationParam param, OperationTypeEnum opType) {
+        Map<String, List<BlockSnapshot>> snapsetToSnapshots = getSnapshotsGroupedBySnapset(volumeGroupId, param);
+
+        auditOp(opType, true, AuditLogManager.AUDITOP_BEGIN,
+                volumeGroupId.toString(), param.getSnapshots());
+        TaskList taskList = new TaskList();
+
+        Set<Entry<String, List<BlockSnapshot>>> entrySet = snapsetToSnapshots.entrySet();
+        for (Entry<String, List<BlockSnapshot>> entry : entrySet) {
+            Table<URI, String, BlockSnapshot> storageRgToSnapshot = ControllerUtils.getSnapshotForStorageReplicationGroup(entry.getValue());
+            for (Cell<URI, String, BlockSnapshot> cell : storageRgToSnapshot.cellSet()) {
+                log.info("{} for replication group {}", opType.getDescription(), cell.getColumnKey());
+                try {
+                    BlockSnapshot snapshot = cell.getValue();
+                    URI cgUri = snapshot.getConsistencyGroup();
+                    URI snapshotUri = snapshot.getId();
+                    switch (opType) {
+                        case ACTIVATE_VOLUME_GROUP_SNAPSHOT:
+                            taskList.addTask(_consistencyGroupService.activateConsistencyGroupSnapshot(cgUri, snapshotUri));
+                            break;
+                        case RESTORE_VOLUME_GROUP_SNAPSHOT:
+                            taskList.addTask(_consistencyGroupService.restoreConsistencyGroupSnapshot(cgUri, snapshotUri));
+                            break;
+                        case RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT:
+                            taskList.addTask(_consistencyGroupService.resynchronizeConsistencyGroupSnapshot(cgUri, snapshotUri));
+                            break;
+                        case DEACTIVATE_VOLUME_GROUP_SNAPSHOT:
+                            TaskList cgTaskList = _consistencyGroupService.deactivateConsistencyGroupSnapshot(cgUri, snapshotUri);
+                            List<TaskResourceRep> taskResourceRepList = cgTaskList.getTaskList();
+                            if (taskResourceRepList != null && !taskResourceRepList.isEmpty()) {
+                                for (TaskResourceRep taskResRep : taskResourceRepList) {
+                                    taskList.addTask(taskResRep);
+                                }
+                            }
+                            break;
+                        default:
+                            log.error("Unsupported operation {}", opType.getDescription());
+                            break;
+                    }
+                } catch (Exception e) {
+                    log.warn("Exception on {} for replication group {}: {}", opType.getDescription(), cell.getColumnKey(), e.getMessage());
+                }
+            }
+        }
+
+        auditOp(opType, true, AuditLogManager.AUDITOP_END, volumeGroupId.toString(), param.getSnapshots());
+        return taskList;
+    }
+
+    /**
+     * Activate the specified Volume group snapshot.
+     * - Activates snapshot for all the array replication groups within this Application.
+     * - If partial flag is specified, it activates snapshot only for set of array replication groups.
+     * A snapshot from each array replication group can be provided to indicate which array replication
+     * groups's snapshots needs to be activated.
+     *
+     * @prereq Create volume group snapshot.
+     *
+     * @param volumeGroupId The URI of the volume group.
+     * @param param VolumeGroupSnapshotOperationParam.
+     *
+     * @brief Activate volume group snapshot.
+     *
+     * @return TaskList
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshots/activate")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList activateVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
+            final VolumeGroupSnapshotOperationParam param) {
+        return performVolumeGroupSnapshotOperation(volumeGroupId, param, OperationTypeEnum.ACTIVATE_VOLUME_GROUP_SNAPSHOT);
+    }
+
     /**
      * Deactivate the specified Volume group snapshot.
      * - Deactivates snapshot for all the array replication groups within this Application.
      * - If partial flag is specified, it deactivates snapshot only for set of array replication groups.
      * A snapshot from each array replication group can be provided to indicate which array replication
-     * groups's snapshots needs to be detached.
+     * groups's snapshots needs to be deactivated.
      *
      * @prereq Create volume group snapshot.
      *
@@ -1196,35 +1277,57 @@ public class VolumeGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList deactivateVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
             final VolumeGroupSnapshotOperationParam param) {
-        Map<String, List<BlockSnapshot>> snapsetToSnapshots = getSnapshotsGroupedBySnapset(volumeGroupId, param);
+        return performVolumeGroupSnapshotOperation(volumeGroupId, param, OperationTypeEnum.DEACTIVATE_VOLUME_GROUP_SNAPSHOT);
+    }
 
-        auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_GROUP_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
-                volumeGroupId.toString(), param.getSnapshots());
-        TaskList taskList = new TaskList();
+    /**
+     * Restore the specified Volume group snapshot.
+     * - Restores snapshot for all the array replication groups within this Application.
+     * - If partial flag is specified, it restores snapshot only for set of array replication groups.
+     * A snapshot from each array replication group can be provided to indicate which array replication
+     * groups's snapshots needs to be restored.
+     *
+     * @prereq Create volume group snapshot.
+     *
+     * @param volumeGroupId The URI of the volume group.
+     * @param param VolumeGroupSnapshotOperationParam.
+     *
+     * @brief Restore volume group snapshot.
+     *
+     * @return TaskList
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshots/restore")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList restoreVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
+            final VolumeGroupSnapshotOperationParam param) {
+        return performVolumeGroupSnapshotOperation(volumeGroupId, param, OperationTypeEnum.RESTORE_VOLUME_GROUP_SNAPSHOT);
+    }
 
-        Set<Entry<String, List<BlockSnapshot>>> entrySet = snapsetToSnapshots.entrySet();
-        for (Entry<String, List<BlockSnapshot>> entry : entrySet) {
-            Table<URI, String, BlockSnapshot> storageRgToSnapshot = ControllerUtils.getSnapshotForStorageReplicationGroup(entry.getValue());
-            for (Cell<URI, String, BlockSnapshot> cell : storageRgToSnapshot.cellSet()) {
-                log.info("Deactivate snapshot for replication group {}", cell.getColumnKey());
-                try {
-                    BlockSnapshot snapshot = cell.getValue();
-                    TaskList cgTaskList = _consistencyGroupService.deactivateConsistencyGroupSnapshot(snapshot.getConsistencyGroup(), snapshot.getId());
-                    List<TaskResourceRep> taskResourceRepList = cgTaskList.getTaskList();
-                    if (taskResourceRepList != null && !taskResourceRepList.isEmpty()) {
-                        for (TaskResourceRep taskResRep : taskResourceRepList) {
-                            taskList.addTask(taskResRep);
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("Exception when deactivating snapshot for replication group {}: {}", cell.getColumnKey(), e.getMessage());
-                }
-            }
-        }
-
-        auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_GROUP_SNAPSHOT, true, AuditLogManager.AUDITOP_END,
-                volumeGroupId.toString(), param.getSnapshots());
-        return taskList;
+    /**
+     * Resynchronize the specified Volume group snapshot.
+     * - Resynchronizes snapshot for all the array replication groups within this Application.
+     * - If partial flag is specified, it resynchronizes snapshot only for set of array replication groups.
+     * A snapshot from each array replication group can be provided to indicate which array replication
+     * groups's snapshots needs to be resynchronized.
+     *
+     * @prereq Create volume group snapshot.
+     *
+     * @param volumeGroupId The URI of the volume group.
+     * @param param VolumeGroupSnapshotOperationParam.
+     *
+     * @brief Resynchronize volume group snapshot.
+     *
+     * @return TaskList
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshots/resynchronize")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList resynchronizeVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
+            final VolumeGroupSnapshotOperationParam param) {
+        return performVolumeGroupSnapshotOperation(volumeGroupId, param, OperationTypeEnum.RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT);
     }
 
     private List<VolumeGroupUtils> getVolumeGroupUtils(VolumeGroup volumeGroup) {

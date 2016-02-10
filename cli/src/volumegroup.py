@@ -40,12 +40,12 @@ class VolumeGroup(object):
     
     # URIs for VolumeGroup Snapshot Operations
     URI_VOLUME_GROUP_SNAPSHOT = "/volume-groups/block/{0}/protection/snapshots"
-    URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE = "/volume-groups/block/{0}/protection/snapshots/activate"
-    URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE = "/volume-groups/block/{0}/protection/snapshots/deactivate"
-    URI_VOLUME_GROUP_SNAPSHOT_RESTORE = "/volume-groups/block/{0}/protection/snapshots/restore"
-    URI_VOLUME_GROUP_SNAPSHOT_RESYNCRONIZE = "/volume-groups/block/{0}/protection/snapshots/resynchronize"
+    URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE = URI_VOLUME_GROUP_SNAPSHOT + "/activate"
+    URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE = URI_VOLUME_GROUP_SNAPSHOT + "/deactivate"
+    URI_VOLUME_GROUP_SNAPSHOT_RESTORE = URI_VOLUME_GROUP_SNAPSHOT + "/restore"
+    URI_VOLUME_GROUP_SNAPSHOT_RESYNCHRONIZE = URI_VOLUME_GROUP_SNAPSHOT + "/resynchronize"
     URI_VOLUME_GROUP_SNAPSHOT_LIST = URI_VOLUME_GROUP_SNAPSHOT
-    URI_VOLUME_GROUP_SNAPSHOT_GET= "/volume-groups/block/{0}/protection/snapshots/{1}"
+    URI_VOLUME_GROUP_SNAPSHOT_GET= URI_VOLUME_GROUP_SNAPSHOT + "/{1}"
     
     def __init__(self, ipAddr, port):
         '''
@@ -503,17 +503,16 @@ class VolumeGroup(object):
         else:
             return o
 
-
-    def volume_group_snapshot_deactivate(self, name, snapshotUris, partial, sync):
+    def volume_group_snapshot_operation(self, name, snapshotUris, partial, sync, uri):
         '''
-        Makes REST API call to deactivate volume group snapshot
+        Makes REST API call to activate/deactivate/restore/resync volume group snapshot
         Parameters:
             partial: Enable the flag to operate on snapshots for subset of VolumeGroup.
                      Please specify one snapshot from each Array Replication Group
             snapshots: A snapshot of a volume group specifying which snapshot Set to act on.
                     For partial operation, specify one snapshot from each Array Replication Group
         Returns:
-            response of the deactivate operation
+            response of the operation
         '''
         volume_group_uri = self.query_by_name(name)
 
@@ -529,7 +528,7 @@ class VolumeGroup(object):
         (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",
-                VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE.format(volume_group_uri), body)
+                uri.format(volume_group_uri), body)
 
         o = common.json_decode(s)
         if(sync):
@@ -1375,7 +1374,6 @@ def snapshot_parser(subcommand_parsers, common_parser):
 
     snapshot_parser.set_defaults(func=volume_group_snapshot)
 
-
 def volume_group_snapshot(args):
     obj = VolumeGroup(args.ip, args.port)
     if(not args.tenant):
@@ -1427,6 +1425,52 @@ def volume_group_snapshot_common_parser(cc_common_parser):
                                   action='store_true',
                                   help='Synchronous mode enabled')
 
+def volume_group_snapshot_operation(args, operation, uri):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        obj.volume_group_snapshot_operation(
+            args.name,
+            args.snapshots, #",".join(snapshotUris),
+            args.partial,
+            args.sync,
+            uri)
+        return
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot " + operation + ": " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot",
+                operation,
+                e.err_text,
+                e.err_code)
+
+# snapshot_activate_parser
+def snapshot_activate_parser(subcommand_parsers, common_parser):
+    snapshot_activate_parser = subcommand_parsers.add_parser(
+        'snapshot-activate',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Activate snapshot of a VolumeGroup',
+        description='ViPR Activate Snapshot of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_activate_parser)
+    snapshot_activate_parser.set_defaults(func=volume_group_snapshot_activate)
+
+# Activate Snapshot Function
+def volume_group_snapshot_activate(args):
+    volume_group_snapshot_operation(args, "activate", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE)
+
 # snapshot_deactivate_parser
 def snapshot_deactivate_parser(subcommand_parsers, common_parser):
     snapshot_deactivate_parser = subcommand_parsers.add_parser(
@@ -1442,32 +1486,41 @@ def snapshot_deactivate_parser(subcommand_parsers, common_parser):
 
 # Deactivate Snapshot Function
 def volume_group_snapshot_deactivate(args):
-    obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
+    volume_group_snapshot_operation(args, "deactivate", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE)
 
-    try:
-        obj.volume_group_snapshot_deactivate(
-            args.name,
-            args.snapshots, #",".join(snapshotUris),
-            args.partial,
-            args.sync)
-        return
+# snapshot_restore_parser
+def snapshot_restore_parser(subcommand_parsers, common_parser):
+    snapshot_restore_parser = subcommand_parsers.add_parser(
+        'snapshot-restore',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Restore snapshot of a VolumeGroup',
+        description='ViPR Restore Snapshot of a VolumeGroup CLI usage.')
 
-    except SOSError as e:
-        if (e.err_code == SOSError.SOS_FAILURE_ERR):
-            raise SOSError(
-                SOSError.SOS_FAILURE_ERR,
-                "Snapshot Deactivate: " +
-                args.name +
-                ", Failed\n" +
-                e.err_text)
-        else:
-            common.format_err_msg_and_raise(
-                "snapshot",
-                "deactivate",
-                e.err_text,
-                e.err_code)
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_restore_parser)
+    snapshot_restore_parser.set_defaults(func=volume_group_snapshot_restore)
+
+# Restore Snapshot Function
+def volume_group_snapshot_restore(args):
+    volume_group_snapshot_operation(args, "restore", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_RESTORE)
+
+# snapshot_resync_parser
+def snapshot_resync_parser(subcommand_parsers, common_parser):
+    snapshot_resync_parser = subcommand_parsers.add_parser(
+        'snapshot-resync',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Resynchronize snapshot of a VolumeGroup',
+        description='ViPR Resynchronize Snapshot of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_resync_parser)
+    snapshot_resync_parser.set_defaults(func=volume_group_snapshot_resync)
+
+# Resynchronize Snapshot Function
+def volume_group_snapshot_resync(args):
+    volume_group_snapshot_operation(args, "resynchronize", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_RESYNCHRONIZE)
 
 # VolumeGroup Main parser routine
 def volume_group_parser(parent_subparser, common_parser):
@@ -1532,16 +1585,16 @@ def volume_group_parser(parent_subparser, common_parser):
     snapshot_parser(subcommand_parsers, common_parser)
 
     # snapshot activate command parser
-    #snapshot_activate_parser(subcommand_parsers, common_parser)
+    snapshot_activate_parser(subcommand_parsers, common_parser)
 
     # snapshot deactivate command parser
     snapshot_deactivate_parser(subcommand_parsers, common_parser)
 
     # snapshot restore command parser
-    #snapshot_restore_parser(subcommand_parsers, common_parser)
+    snapshot_restore_parser(subcommand_parsers, common_parser)
 
     # snapshot resync command parser
-    #snapshot_resync_parser(subcommand_parsers, common_parser)
+    snapshot_resync_parser(subcommand_parsers, common_parser)
 
     # GET snapshots of a volume group command parser
     #snapshot_list_parser(subcommand_parsers, common_parser)

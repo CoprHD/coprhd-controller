@@ -3094,9 +3094,10 @@ public class FileService extends TaskResourceService {
 
         // Verify the file system and its vPool are capable of doing replication!!!
         if (!validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
-            _log.error("Mirror Operation {}  is not supported for file system {} due to {}", op.toUpperCase(),
-                    sourceFileShare.getId().toString(), notSuppReasonBuff.toString());
-            throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(), notSuppReasonBuff.toString());
+            _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op.toUpperCase(),
+                    sourceFileShare.getLabel(), notSuppReasonBuff.toString());
+            throw APIException.badRequests.unableToPerformMirrorOperation(op.toUpperCase(), sourceFileShare.getId(),
+                    notSuppReasonBuff.toString());
 
         }
         Operation status = new Operation();
@@ -3581,72 +3582,71 @@ public class FileService extends TaskResourceService {
     /**
      * Checks to see if the file replication operation is supported.
      * 
-     * @param fs File share
-     * @param currentVpool
-     *            the source virtual pool
-     * @param notSuppReasonBuff
-     *            the not supported reason string buffer
-     * @return
+     * @param fs file share object
+     * @param currentVpool source virtual pool
+     * @param notSuppReasonBuff the not supported reason string buffer
+     * @param operation mirror operation to be checked
      */
     private boolean validateMirrorOperationSupported(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff,
             String operation) {
 
-        _log.info(String.format("Checking if mirror operation is supported for file system [%s] ", fs.getLabel()));
+        _log.info("Checking if mirror operation {} is supported for file system {} ", operation, fs.getLabel());
 
         if (!doBasicMirrorValidation(fs, currentVpool, notSuppReasonBuff)) {
             return false;
         }
         String currentMirrorStatus = fs.getMirrorStatus();
+        boolean isSupported = false;
 
-        // Refresh Operation can be performed without any check.
-        if (operation.equalsIgnoreCase(ProtectionOp.REFRESH.toString())) {
-            return true;
+        switch (operation) {
+
+            // Refresh operation can be performed without any check.
+            case "refresh":
+                isSupported = true;
+                break;
+
+            // START operation can be performed only if Mirror status is UNKNOWN or DETACHED
+            case "start":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.DETACHED.toString()))
+                    isSupported = true;
+                break;
+
+            // STOP operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+            case "stop":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
+                    isSupported = true;
+                break;
+
+            // PAUSE operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+            case "pause":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
+                    isSupported = true;
+                break;
+
+            // RESUME operation can be performed only if Mirror status is SUSPENDED.
+            case "resume":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SUSPENDED.toString()))
+                    isSupported = true;
+                break;
+
+            // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
+            case "failover":
+                if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                    isSupported = true;
+                break;
+
+            // Fail back can be performed only if Mirror status is FAILED_OVER.
+            case "failback":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))
+                    isSupported = true;
+                break;
         }
-
-        // START operation can be performed only if Mirror status is UNKNOWN or DETACHED
-        if ((operation.equalsIgnoreCase(ProtectionOp.START.toString())) &&
-                (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.DETACHED.toString()))) {
-            return true;
-        }
-
-        // STOP operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
-        if ((operation.equalsIgnoreCase(ProtectionOp.STOP.toString())) &&
-                (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))) {
-            return true;
-        }
-
-        // PAUSE operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
-        if ((operation.equalsIgnoreCase(ProtectionOp.PAUSE.toString())) &&
-                (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))) {
-            return true;
-        }
-
-        // RESUME operation can be performed only if Mirror status is SUSPENDED.
-        if ((operation.equalsIgnoreCase(ProtectionOp.RESUME.toString())) &&
-                (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SUSPENDED.toString()))) {
-            return true;
-        }
-
-        // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
-        if (operation.equalsIgnoreCase(ProtectionOp.FAILOVER.toString())
-                && (!currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || !currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))) {
-            return true;
-        }
-
-        // Fail back can be performed if Mirror status is FAILED_OVER only.
-        if (operation.equalsIgnoreCase(ProtectionOp.FAILBACK.toString())
-                && currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
-            return true;
-        }
-
-        notSuppReasonBuff.append(String.format("Mirror operation %s can't be performed on the requested File System  %s"
-                + " as the file system is in %s state", operation.toUpperCase(), fs.getLabel(), currentMirrorStatus.toUpperCase()));
-        _log.info(notSuppReasonBuff.toString());
-        return false;
+        notSuppReasonBuff.append(String.format(" : file system %s is in %s state", fs.getLabel(), currentMirrorStatus.toUpperCase()));
+        return isSupported;
     }
 
     /**

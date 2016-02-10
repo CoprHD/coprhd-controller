@@ -1077,8 +1077,6 @@ class Fileshare(object):
         fsid = fsname['id']
         parms = {
                      'type' : "REMOTE_MIRROR"}
-        
-        body = None
 
         body = json.dumps(parms)
         (s, h) = common.service_json_request(
@@ -1094,8 +1092,6 @@ class Fileshare(object):
         fsid = fsname['id']
         parms = {
                      'delete_type' : "REMOTE_MIRROR"}
-
-        body = None
 
         body = json.dumps(parms)
         (s, h) = common.service_json_request(
@@ -1115,8 +1111,6 @@ class Fileshare(object):
         copy_list.append(copy_dict)
         parms = {
                  'copy' : copy_list}
-        
-        body = None
 
         body = json.dumps(parms)
         (s, h) = common.service_json_request(
@@ -1134,7 +1128,6 @@ class Fileshare(object):
         parms = {
                  'vpool' : vpoolid}
         
-        body = None
 
         body = json.dumps(parms)
         (s, h) = common.service_json_request(
@@ -2877,10 +2870,10 @@ def continous_copies_create_parser(subcommand_parsers, common_parser):
     # create continous copies command parser
     continous_copies_create_parser = subcommand_parsers.add_parser(
         'continuous-copies-create',
-        description='ViPR fileshare continous copies create cli usage',
+        description='Create the replication copies for existing file system',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Create the replication session')
+        help='Create the replication copies for existing file system')
     mandatory_args = continous_copies_create_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -2914,10 +2907,10 @@ def continous_copies_deactivate_parser(subcommand_parsers, common_parser):
     # deactivate continous copies command parser
     continous_copies_deactivate_parser = subcommand_parsers.add_parser(
         'continuous-copies-deactivate',
-        description='ViPR fileshare continous copies deactivate cli usage',
+        description='Deactivate the replication copies of file system',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Deactivate the replication session')
+        help='Deactivate the replication copies of file system')
     mandatory_args = continous_copies_deactivate_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',

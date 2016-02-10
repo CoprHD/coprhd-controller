@@ -4,12 +4,10 @@
  */
 package com.emc.sa.service.vipr.object.tasks;
 
-import static com.emc.sa.util.ArrayUtil.safeArrayCopy;
-
 import java.net.URI;
 
 import com.emc.sa.service.vipr.object.ObjectStorageUtils;
-import com.emc.sa.service.vipr.object.ObjectStorageUtils.ObjectStorageACLs;
+import com.emc.sa.service.vipr.object.ObjectStorageUtils.ObjectStorageACL;
 import com.emc.sa.service.vipr.tasks.WaitForTask;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.ObjectBucketACLUpdateParams;
@@ -18,18 +16,18 @@ import com.emc.vipr.client.Task;
 
 public class SetObjectStorageACL extends WaitForTask<BucketRestRep> {
     private final URI bucketId;
-    private final ObjectStorageACLs[] acls;
+    private final ObjectStorageACL acl;
 
-    public SetObjectStorageACL(URI bucketId, ObjectStorageACLs[] acls) {
+    public SetObjectStorageACL(URI bucketId, ObjectStorageACL acl) {
         this.bucketId = bucketId;
-        this.acls = safeArrayCopy(acls);
+        this.acl = acl;
         provideDetailArgs(bucketId);
     }
 
     @Override
     protected Task<BucketRestRep> doExecute() throws Exception {
         ObjectBucketACLUpdateParams aclUpdate = new ObjectBucketACLUpdateParams();
-        BucketACL aclsToAdd = ObjectStorageUtils.createBucketACLs(acls);
+        BucketACL aclsToAdd = ObjectStorageUtils.createBucketACLs(acl);
         aclUpdate.setAclToAdd(aclsToAdd);
         return getClient().objectBuckets().updateBucketACL(bucketId, aclUpdate);
     }

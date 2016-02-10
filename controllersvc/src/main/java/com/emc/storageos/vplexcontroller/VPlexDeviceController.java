@@ -11230,11 +11230,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     for (String backendId : backends) {
                         URI backUri = URI.create(backendId);
                         Volume backVol =  getDataObject(Volume.class, backUri, _dbClient);
-                        if (ControllerUtils.isVnxVolume(backVol, _dbClient) && 
-                                NullColumnValueGetter.isNotNullValue(backVol.getReplicationGroupInstance())) {
+                        String backRG = backVol.getReplicationGroupInstance();
+                        if (NullColumnValueGetter.isNotNullValue(backRG) &&
+                                ControllerUtils.isVnxVolume(backVol, _dbClient)) {
                             // This is a VNX volume and it is in a RG, need to convert the real RG to virtual one. 
                             vnxVolumes.add(backVol);
-                        } else {
+                        } else if (NullColumnValueGetter.isNullValue(backRG)){ 
                             allAddBEVolumes.add(URI.create(backendId));
                         }
                     }

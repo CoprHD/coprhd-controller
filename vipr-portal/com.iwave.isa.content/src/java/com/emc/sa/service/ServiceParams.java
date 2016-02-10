@@ -50,10 +50,13 @@ public interface ServiceParams {
     public String REMOVED_VOLUMES = "removedVolumes";
     public String SNAPSHOTS = "snapshots";
     public String FILESYSTEMS = "fileSystems";
+    public String FILESYSTEM = "fileSystem";
+    public String FILE_COPIES = "fileCopies";
     public String FILE_POLICY = "filePolicy";
     public String NFS_PERMISSIONS = "nfsPermissions";
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
+    public String FAILOVER_TARGET_FILE = "failoverTargetFile";
     public String IMAGE_TO_ACCESS = "imageToAccess";
     public String POINT_IN_TIME = "pointInTime";
     public String NUMBER_OF_VOLUMES = "numberOfVolumes";
@@ -125,6 +128,10 @@ public interface ServiceParams {
     public String TENANT = "tenant";
     public String OWNER = "owner";
     public String BUCKET = "bucket";
+    public String ACL_TYPE = "aclType";
+    public String ACL_NAME = "aclName";
+    public String ACL_DOMAIN = "aclDomain";
+    public String ACL_PERMISSION = "aclPermission";
 
     public String ADVISORY_LIMIT = "advisoryLimit";
     public String SOFT_LIMIT = "softLimit";

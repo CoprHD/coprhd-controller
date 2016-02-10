@@ -1133,8 +1133,8 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 return;
             }
             if (result.isCommandSuccess()) {
-                _log.info("FileSystem updated " + " with Soft Limit: " + args.getFsSoftLimit() + ", Notification Limit: " 
-            + args.getFsNotificationLimit() + ", Soft Grace: " + args.getFsSoftGracePeriod());
+                _log.info("FileSystem updated " + " with Soft Limit: " + args.getFsSoftLimit() + ", Notification Limit: "
+                        + args.getFsNotificationLimit() + ", Soft Grace: " + args.getFsSoftGracePeriod());
             }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
@@ -3421,7 +3421,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * @param deviceURI -- StorageSystem URI
      * @return deviceType String
      */
-    String getDeviceType(URI deviceURI) throws ControllerException {
+    public String getDeviceType(URI deviceURI) throws ControllerException {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, deviceURI);
         if (storageSystem == null) {
             throw DeviceControllerException.exceptions.getDeviceTypeFailed(deviceURI.toString());
@@ -3841,7 +3841,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      * 
      * @return A workflow method
      */
-    Workflow.Method rollbackMethodNullMethod() {
+    public Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
     }
 }

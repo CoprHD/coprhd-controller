@@ -331,7 +331,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
      * @param sourceFileShare
      * @param targetFileShare
      */
-    void setMirrorFileShareAttributes(FileShare sourceFileShare, FileShare targetFileShare) {
+    private void setMirrorFileShareAttributes(FileShare sourceFileShare, FileShare targetFileShare) {
 
         if (sourceFileShare != null) {
             if (sourceFileShare.getMirrorfsTargets() == null) {
@@ -351,7 +351,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
      * @param placement
      * @param fileShare
      */
-    void ValidateFileSystem(FileMirrorRecommendation placement, FileShare fileShare) {
+    private void ValidateFileSystem(FileMirrorRecommendation placement, FileShare fileShare) {
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,

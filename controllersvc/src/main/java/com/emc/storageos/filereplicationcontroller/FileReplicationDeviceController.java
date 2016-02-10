@@ -120,7 +120,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
 
         List<FileDescriptor> fileDescriptors = FileDescriptor.filterByType(filesystems,
                 new FileDescriptor.Type[] { FileDescriptor.Type.FILE_MIRROR_SOURCE,
@@ -144,7 +144,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-                    throws InternalException {
+            throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(
                 filesystems, FileDescriptor.Type.FILE_MIRROR_SOURCE);
         if (sourceDescriptors.isEmpty()) {
@@ -161,7 +161,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> fileDescriptors, String taskId)
-                    throws InternalException {
+            throws InternalException {
         // TBD
         return null;
     }
@@ -582,7 +582,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         }
     }
 
-    String isilonSyncIQFailback(Workflow workflow, StorageSystem primarysystem, FileShare sourceFileShare, FileShare targetFileShare,
+    private String isilonSyncIQFailback(Workflow workflow, StorageSystem primarysystem, FileShare sourceFileShare,
+            FileShare targetFileShare,
             String taskId) {
 
         String waitFor = null;
@@ -749,7 +750,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
      * 
      * @return A workflow method
      */
-    Workflow.Method rollbackMethodNullMethod() {
+    public Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
     }
 

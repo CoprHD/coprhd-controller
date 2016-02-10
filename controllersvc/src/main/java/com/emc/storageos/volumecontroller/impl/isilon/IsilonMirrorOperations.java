@@ -215,7 +215,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      * @return IsilonApi object
      * @throws IsilonException
      */
-    IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
+    private IsilonApi getIsilonDevice(StorageSystem device) throws IsilonException {
         IsilonApi isilonAPI;
         URI deviceURI;
         try {
@@ -240,7 +240,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      *            object
      * @return IsilonSshApi object
      */
-    IsilonSshApi getIsilonDeviceSsh(StorageSystem device) throws IsilonException {
+    private IsilonSshApi getIsilonDeviceSsh(StorageSystem device) throws IsilonException {
         IsilonSshApi sshDmApi = new IsilonSshApi();
         sshDmApi.setConnParams(device.getIpAddress(), device.getUsername(), device.getPassword());
         return sshDmApi;
@@ -695,6 +695,11 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 break;
         }
         return builder.toString();
+    }
+
+    @Override
+    public void refreshMirrorFileShareLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
+            throws DeviceControllerException {
     }
 
 }

@@ -95,8 +95,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private static String FEATURE_NAME_LDAP_GROUP_SUPPORT = "Group support for LDAP Authentication Provider";
 
-    private static final String COPRHD_URL_V2 = ":8776/v2/%(tenant_id)s";
-    private static final String COPRHD_URL_V1 = ":8776/v1/%(tenant_id)s";
+    private static final String COPRHD_URL_V2 = ":8080/v2/%(tenant_id)s";
+    private static final String COPRHD_URL_V1 = ":8080/v1/%(tenant_id)s";
     private static final String HTTP = "http://";
     private static final String PROJECT_NAME = "adminProject";
     private static final String TENANT_NAME = "OpenStack admin";
@@ -308,6 +308,7 @@ public class AuthnConfigurationService extends TaggedResource {
         userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
 
         TenantCreateParam param = new TenantCreateParam(TENANT_NAME, userMappings);
+        param.setDescription(TENANT_NAME);
         // Create a tenant.
         TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
 

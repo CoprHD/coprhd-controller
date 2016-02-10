@@ -73,7 +73,7 @@ public class BlockSnapshotSessions extends ResourceController {
             AffectedResources.VolumeDetails volume = new AffectedResources.VolumeDetails(blockSnapshotSession.volume.getId());
             renderArgs.put("volume", volume);
         }
-        
+
         List<Task<BlockSnapshotSessionRestRep>> tasks = null;
         if (blockSnapshotSession.blockSnapshotSession != null) {
             Tasks<BlockSnapshotSessionRestRep> tasksResponse = client.blockSnapshotSessions().getTasks(

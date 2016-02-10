@@ -11,15 +11,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
  * Task completer class for remove volumes from CG
@@ -54,7 +53,12 @@ public class BlockConsistencyGroupRemoveVolumeCompleter extends BlockConsistency
                                 ((Volume) blockObject).getVolumeGroupIds().remove(volumeGroup.getId().toString());
                             }
                         }
-                        blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                        if (!NullColumnValueGetter.isNullURI(blockObject.getConsistencyGroup())) {
+                            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, blockObject.getConsistencyGroup());
+                            if (!cg.checkForType(BlockConsistencyGroup.Types.RP)) {
+                                blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                            }
+                        }
                         blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                     }
 

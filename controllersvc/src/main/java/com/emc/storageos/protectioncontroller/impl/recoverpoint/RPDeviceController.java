@@ -4024,7 +4024,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             rSet.setVolumes(volumes);
                             rSets.add(rSet);
 
-                            List<Volume> standbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, standbyCopyVol.getConsistencyGroup(), standbyCopyVol.getInternalSiteName());
+                            List<Volume> standbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, standbyCopyVol.getConsistencyGroup(), standbyCopyVol.getRpCopyName());
                             
                             // compile a unique set of journal volumes
                             for (Volume standbyJournal : standbyJournals) {

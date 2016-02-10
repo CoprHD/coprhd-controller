@@ -1936,7 +1936,7 @@ public class RecoverPointScheduler implements Scheduler {
         // not contain the pool information and we would need to fetch it from the backing volumes.
         // JIRA - https://coprhd.atlassian.net/browse/COP-16684
         // Check if the storage pools used by the existing source and its journal are available in the current vpool
-        List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, srcVolume.getConsistencyGroup(), srcVolume.getInternalSiteName());
+        List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, srcVolume.getConsistencyGroup(), srcVolume.getRpCopyName());
         Volume sourceJournal = sourceJournals.get(0);
         if (!verifyStoragePoolAvailability(vpool, srcVolume.getPool())) {
             _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
@@ -2049,7 +2049,7 @@ public class RecoverPointScheduler implements Scheduler {
         recommendation.setResourceCount(capabilities.getResourceCount());
 
         // Build source journal
-        List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getInternalSiteName());
+        List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName());
         Volume sourceJournal = sourceJournals.get(0);
         RPRecommendation sourceJournalRecommendation = new RPRecommendation();
         VirtualPool sourceJournalVpool = NullColumnValueGetter.isNotNullValue(vpool.getJournalVpool()) ? dbClient.queryObject(
@@ -2269,7 +2269,7 @@ public class RecoverPointScheduler implements Scheduler {
             storagePoolCache.put(sourcePool.getId(), sourcePool);
             updateStoragePoolRequiredCapacityMap(storagePoolRequiredCapacity, sourcePool.getId(), sourceVolumesRequiredCapacity);
 
-            List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getInternalSiteName());
+            List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(), sourceVolume.getRpCopyName());
             Volume sourceJournal = sourceJournals.get(0);
             long sourceJournalSizePerPolicy = RPHelper.getJournalSizeGivenPolicy(String.valueOf(capabilities.getSize()),
                     vpool.getJournalSize(), capabilities.getResourceCount());
@@ -2458,7 +2458,7 @@ public class RecoverPointScheduler implements Scheduler {
                 && vpoolChangeVolume.checkForRp()
                 && !isMPStandby) {
             
-            List<Volume> existingJournalVolumes = RPHelper.findExistingJournalsForCopy(dbClient, vpoolChangeVolume.getConsistencyGroup(), vpoolChangeVolume.getInternalSiteName());
+            List<Volume> existingJournalVolumes = RPHelper.findExistingJournalsForCopy(dbClient, vpoolChangeVolume.getConsistencyGroup(), vpoolChangeVolume.getRpCopyName());
             Volume existingJournalVolume = existingJournalVolumes.get(0);
             
             if (RPHelper.isVPlexVolume(existingJournalVolume)) {

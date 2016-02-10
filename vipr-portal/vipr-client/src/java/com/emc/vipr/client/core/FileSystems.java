@@ -122,7 +122,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     
 	
     /**
-     * Gets the URL for File Replication Resume operation: <tt>/file/filesystems/{id}/protection/continuous-copies/resume</tt>
+     * URL for File Replication Resume operation: <tt>/file/filesystems/{id}/protection/continuous-copies/resume</tt>
      * @return Start File replication URL.
      */
     protected String getReplicationResumeUrl(){
@@ -130,15 +130,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
-     * Gets the URL for File Replication FailOver operation: <tt>/file/filesystems/{id}/protection/continuous-copies/failOver</tt>
-     * @return Start File replication URL.
-     */
-    protected String getReplicationFailOverUrl(){
-        return getIdUrl()+PathConstants.FILE_REPLICATION_FAILOVER_URL;
-    }
-    
-    /**
-     * Gets the URL for File Replication FailBack operation: <tt>/file/filesystems/{id}/protection/continuous-copies/failBack</tt>
+     * URL for File Replication FailBack operation: <tt>/file/filesystems/{id}/protection/continuous-copies/failBack</tt>
      * @return Start File replication URL.
      */
     protected String getReplicationFailBackUrl(){
@@ -146,7 +138,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
     
     /**
-     * Gets the URL for File Replication CopyPolicy operation: <tt>/file/filesystems/{id}/protection/continuous-copies/copypolicy</tt>
+     * URL for File Replication CopyPolicy operation: <tt>/file/filesystems/{id}/protection/continuous-copies/copypolicy</tt>
      * @return Start File replication URL.
      */
     protected String getReplicationCopyPolicyUrl(){
@@ -154,7 +146,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
     
     /**
-     * Gets the URL for File Replication Deactivate operation: <tt>/file/filesystems/{id}/protection/continuous-copies/deactivate</tt>
+     * URL for File Replication Deactivate operation: <tt>/file/filesystems/{id}/protection/continuous-copies/deactivate</tt>
      * @return Start File replication URL.
      */
     protected String getReplicationDeactivateUrl(){
@@ -162,7 +154,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
     
     /**
-     * Gets the URL for File Replication continous-copies operation: <tt>/file/filesystems/{id}/protection/continuous-copies</tt>
+     * URL for File Replication continous-copies operation: <tt>/file/filesystems/{id}/protection/continuous-copies</tt>
      * @return Start File replication URL.
      */
     protected String getReplicationContinousCopiesUrl(){
@@ -170,7 +162,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
     
     /**
-     * Gets the URL for File Replication details : <tt>/file/filesystems/{id}/protection/continuous-copies/{mid}</tt>
+     * URL for File Replication details : <tt>/file/filesystems/{id}/protection/continuous-copies/{mid}</tt>
      * @return Start File replication URL.
      */
     protected String getReplicationDetailsUrl(){
@@ -806,24 +798,6 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }
-    
-    /**
-     * Failover replication operation on a file system by ID
-     * <p>
-     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/failover</tt>
-     * 
-     * @param id
-     *            the ID of the file system.
-     *            
-     * @return a task for monitoring the progress of the operation.     * 
-     */
-    
-    public Tasks<FileShareRestRep> failOverReplication(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getReplicationFailOverUrl());
-        URI targetUri = builder.build(id);
-        return postTasks(param, targetUri.getPath());
-    }
-    
     
     /**
      * FailBack replication operation on a file system by ID

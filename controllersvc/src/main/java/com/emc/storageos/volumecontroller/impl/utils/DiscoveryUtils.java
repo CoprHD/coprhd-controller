@@ -847,8 +847,12 @@ public class DiscoveryUtils {
             Iterator<ObjectNamespace> objNamespaceIt = dbClient.queryIterativeObjects(ObjectNamespace.class, namespacesDiff, true);
             while (objNamespaceIt.hasNext()) {
                 ObjectNamespace namespace = objNamespaceIt.next();
-                _log.info("Object Namespace not visible {} : {}", namespace.getNativeId(), namespace.getId());
-                namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+                // Namespace is not associated with tenant
+                if (namespace.getTenant() == null) {
+                    _log.info("Object Namespace not visible & getting deleted {} : {}", namespace.getNativeId(), namespace.getId());
+                    namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+                    namespace.setInactive(true);
+                }
                 dbClient.updateObject(namespace);
             }
         }

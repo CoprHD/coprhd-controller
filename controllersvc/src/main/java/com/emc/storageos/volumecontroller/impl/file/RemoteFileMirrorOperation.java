@@ -42,6 +42,15 @@ public interface RemoteFileMirrorOperation {
     void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName);
 
     /**
+     * Starts a replication link.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     */
+    void doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer);
+
+    /**
      * stop a replication link.
      *
      * @param system

@@ -127,7 +127,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             // Source desc type for vpool change file system!!
             // Source desc type to create mirrors for existing file system!!
             if (cosCapabilities.createMirrorExistingFileSystem()) {
-                fileType = FileDescriptor.Type.FILE_EXISTING_SOURCE;
+                fileType = FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE;
             }
             if (filesystem.getPersonality() != null &&
                     filesystem.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {

@@ -41,6 +41,7 @@ import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskComplete
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailbackTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResyncTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
@@ -119,7 +120,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForCreateFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
 
         List<FileDescriptor> fileDescriptors = FileDescriptor.filterByType(filesystems,
                 new FileDescriptor.Type[] { FileDescriptor.Type.FILE_MIRROR_SOURCE,
@@ -143,7 +144,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForDeleteFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> filesystems, String taskId)
-            throws InternalException {
+                    throws InternalException {
         List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(
                 filesystems, FileDescriptor.Type.FILE_MIRROR_SOURCE);
         if (sourceDescriptors.isEmpty()) {
@@ -160,7 +161,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     @Override
     public String addStepsForExpandFileSystems(Workflow workflow,
             String waitFor, List<FileDescriptor> fileDescriptors, String taskId)
-            throws InternalException {
+                    throws InternalException {
         // TBD
         return null;
     }
@@ -177,9 +178,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             final List<FileDescriptor> fileDescriptors) {
         log.info("START create element replica steps");
 
-        List<FileDescriptor> sourceDescriptors =
-                FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                        FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE);
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE);
 
         Map<URI, FileShare> uriFileShareMap = queryFileShares(fileDescriptors);
         // call to create mirror session
@@ -482,6 +482,15 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     stopTaskCompleter.setFileShares(Arrays.asList(fileShare), Arrays.asList(targetFileShare));
                     stopTaskCompleter.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStopMirrorLink(system, targetFileShare, stopTaskCompleter);
+                }
+            } else if (opType.equalsIgnoreCase("refresh")) {
+                for (String target : targetfileUris) {
+
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    completer = new MirrorFileRefreshTaskCompleter(FileShare.class, fileShare.getId(), opId);
+                    completer.setNotifyWorkflow(false);
+                    targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    getRemoteMirrorDevice(system).doRefreshMirrorLink(system, fileShare, targetFileShare, completer);
                 }
             } else {
                 log.error("Invalid operation {}", opType);

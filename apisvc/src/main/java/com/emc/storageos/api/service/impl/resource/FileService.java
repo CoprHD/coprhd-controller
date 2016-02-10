@@ -98,7 +98,6 @@ import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
@@ -3063,13 +3062,6 @@ public class FileService extends TaskResourceService {
         }
 
         return list;
-    }
-
-    private void ValidateCopiesParam(URI uriFS, CopiesParam param) {
-        // Validate the source file share URI
-        ArgValidator.checkFieldUriType(uriFS, FileShare.class, "id");
-        // Validate the list of copies
-        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
     }
 
     private TaskResourceRep performProtectionAction(URI id, String op) throws InternalException {

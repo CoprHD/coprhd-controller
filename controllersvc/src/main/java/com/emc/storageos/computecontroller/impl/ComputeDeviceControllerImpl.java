@@ -955,7 +955,11 @@ public class ComputeDeviceControllerImpl implements ComputeDeviceController {
             ComputeSystem cs = _dbClient.queryObject(ComputeSystem.class, csId);
 
             host = _dbClient.queryObject(Host.class, hostId);
-
+	    if (NullColumnValueGetter.isNullURI(host.getComputeElement())){
+		log.info("ComputeElement is really null. NO-OP");
+	   }else if (host.getComputeElement() == null) {
+		log.info("ComputeElement is wrongly seen as null. SP will be left behind.");
+	   }
             if (host.getComputeElement() == null) {
                 // NO-OP
                 WorkflowStepCompleter.stepSucceded(stepId);

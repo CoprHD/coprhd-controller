@@ -4,7 +4,12 @@
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 	 <bean id="hdsApiFactory" class="com.emc.storageos.hds.api.HDSApiFactory"
-          init-method="init"/>
+
+          init-method="init">
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="connManagerTimeout" value="60000"/>
+        <property name="socketConnectionTimeoutMs" value="7200000" />
+     </bean>
           
     <bean id="hdsStorageDevice" class="com.emc.storageos.volumecontroller.impl.hds.prov.HDSStorageDevice">
 		<property name="dbClient" ref="dbclient"/>

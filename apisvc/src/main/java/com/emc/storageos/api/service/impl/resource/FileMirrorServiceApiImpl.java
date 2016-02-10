@@ -127,7 +127,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             // Source desc type for vpool change file system!!
             // Source desc type to create mirrors for existing file system!!
             if (cosCapabilities.createMirrorExistingFileSystem()) {
-                fileType = FileDescriptor.Type.FILE_EXISTING_SOURCE;
+                fileType = FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE;
             }
             if (filesystem.getPersonality() != null &&
                     filesystem.getPersonality().equals(FileShare.PersonalityTypes.TARGET.toString())) {
@@ -271,7 +271,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 // Set the recommendation only for source file systems which are not meant for vpool change!!
                 _log.info(String.format("createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
                         sourceFileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
-                ValidateFileSystem(recommendation, sourceFileShare);
+                validateFileSystem(recommendation, sourceFileShare);
             }
             // set the source mirror recommendations
             setFileMirrorRecommendation(recommendation, vpool, varray, false, false, sourceFileShare);
@@ -331,7 +331,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
      * @param sourceFileShare
      * @param targetFileShare
      */
-    void setMirrorFileShareAttributes(FileShare sourceFileShare, FileShare targetFileShare) {
+    private void setMirrorFileShareAttributes(FileShare sourceFileShare, FileShare targetFileShare) {
 
         if (sourceFileShare != null) {
             if (sourceFileShare.getMirrorfsTargets() == null) {
@@ -351,7 +351,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
      * @param placement
      * @param fileShare
      */
-    void ValidateFileSystem(FileMirrorRecommendation placement, FileShare fileShare) {
+    private void validateFileSystem(FileMirrorRecommendation placement, FileShare fileShare) {
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,

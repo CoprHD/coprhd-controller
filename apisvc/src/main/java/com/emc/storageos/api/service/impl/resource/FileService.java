@@ -98,7 +98,6 @@ import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
@@ -450,7 +449,7 @@ public class FileService extends TaskResourceService {
         return fs;
     }
 
-    void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+    private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
         if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_TYPE, vPool.getRpRpoType());
@@ -486,7 +485,7 @@ public class FileService extends TaskResourceService {
      * @param task
      * @return
      */
-    TaskList createFileTaskList(FileSystemParam param, Project project, TenantOrg tenantOrg,
+    private TaskList createFileTaskList(FileSystemParam param, Project project, TenantOrg tenantOrg,
             VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
         TaskList taskList = new TaskList();
         FileShare fs = prepareEmptyFileSystem(param, project, tenantOrg, varray, vpool, flags, task);
@@ -3063,13 +3062,6 @@ public class FileService extends TaskResourceService {
         }
 
         return list;
-    }
-
-    void ValidateCopiesParam(URI uriFS, CopiesParam param) {
-        // Validate the source file share URI
-        ArgValidator.checkFieldUriType(uriFS, FileShare.class, "id");
-        // Validate the list of copies
-        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
     }
 
     private TaskResourceRep performProtectionAction(URI id, String op) throws InternalException {

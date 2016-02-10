@@ -367,20 +367,20 @@ public class PlacementTestUtils {
     public static StorageSystem createVPlexOneCluster(DbClient _dbClient, String label, VirtualArray varray, 
             Network networkFE, Network networkBE, String[] vplexFE, String[] vplexBE) {
         // Create a VPLEX storage system
-        StorageSystem vplexStorageSystem = PlacementTestUtils.createStorageSystem(_dbClient, "vplex", "vplex1");
+        StorageSystem vplexStorageSystem = PlacementTestUtils.createStorageSystem(_dbClient, "vplex", label);
 
         // Create two front-end storage ports VPLEX
         List<StoragePort> fePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexFE.length; i++) {
             fePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkFE, vplexFE[i], varray,
-                    StoragePort.PortType.frontend.name(), "portGroupFE" + i, "A0+FC0" + i));
+                    StoragePort.PortType.frontend.name(), "portGroupFE" + i, label +"_A0+FC0" + i));
         }
 
         // Create two back-end storage ports VPLEX
         List<StoragePort> bePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexBE.length; i++) {
             bePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkBE, vplexBE[i], varray,
-                    StoragePort.PortType.backend.name(), "portGroupBE" + i, "B0+FC0" + i));
+                    StoragePort.PortType.backend.name(), "portGroupBE" + i, label +"_B0+FC0" + i));
         }
         return vplexStorageSystem;
     }
@@ -389,21 +389,21 @@ public class PlacementTestUtils {
             Network networkFE1, Network networkBE1, String[] vplexFE1, String[] vplexBE1,
             VirtualArray varray, Network networkFE2, Network networkBE2, String[] vplexFE2, String[] vplexBE2) {
         // Create a VPLEX storage system
-        StorageSystem vplexStorageSystem = PlacementTestUtils.createStorageSystem(_dbClient, "vplex", "vplex1");
+        StorageSystem vplexStorageSystem = PlacementTestUtils.createStorageSystem(_dbClient, "vplex", label);
 
         // Cluster one.
         // Create two front-end storage ports VPLEX
         List<StoragePort> fePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexFE1.length; i++) {
             fePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkFE1, vplexFE1[i], varray,
-                    StoragePort.PortType.frontend.name(), "portGroupFE" + i, "A0+FC0" + i));
+                    StoragePort.PortType.frontend.name(), "portGroupFE" + i, label +"_A0+FC0" + i));
         }
 
         // Create two back-end storage ports VPLEX
         List<StoragePort> bePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexBE1.length; i++) {
             bePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkBE1, vplexBE1[i], varray,
-                    StoragePort.PortType.backend.name(), "portGroupBE" + i, "B0+FC0" + i));
+                    StoragePort.PortType.backend.name(), "portGroupBE" + i, label +"_B0+FC0" + i));
         }
         
         // Cluster two.
@@ -411,14 +411,14 @@ public class PlacementTestUtils {
         fePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexFE2.length; i++) {
             fePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkFE2, vplexFE2[i], varray,
-                    StoragePort.PortType.frontend.name(), "portGroupFE" + i, "A0+FC0" + i));
+                    StoragePort.PortType.frontend.name(), "portGroupFE" + i, label +"_C0+FC0" + i));
         }
 
         // Create two back-end storage ports VPLEX
         bePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexBE2.length; i++) {
             bePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkBE2, vplexBE2[i], varray,
-                    StoragePort.PortType.backend.name(), "portGroupBE" + i, "B0+FC0" + i));
+                    StoragePort.PortType.backend.name(), "portGroupBE" + i, label +"_D0+FC0" + i));
         }
         return vplexStorageSystem;
     }

@@ -683,7 +683,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             try {
                 String os = null;
                 if (!NullColumnValueGetter.isNullURI(remainingInitiator.getHost())) {
-                    os = getInitiatorHostOS(remainingInitiator.getHost());
+                    Host host = dbClient.queryObject(Host.class, remainingInitiator.getHost());
+                    os = XtremIOProvUtils.getInitiatorHostOS(host);
                 }
                 // create initiator
                 client.createInitiator(initiatorName, igGroup.getName(),
@@ -703,28 +704,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
             }
         }
-    }
-
-    /**
-     * Returns the XtremIO supported OS based on the initiator Host OS type.
-     * 
-     * From API Doc: solaris, aix, windows, esx, other, linux, hpux
-     * 
-     * @param hostURI - Host URI of the Initiator.
-     * @return operatingSystem type.
-     */
-    private String getInitiatorHostOS(URI hostURI) {
-        String osType = null;
-        Host host = dbClient.queryObject(Host.class, hostURI);
-        if (Host.HostType.Windows.name().equalsIgnoreCase(host.getType()) ||
-                Host.HostType.Linux.name().equalsIgnoreCase(host.getType()) ||
-                Host.HostType.AIX.name().equalsIgnoreCase(host.getType()) ||
-                Host.HostType.Esx.name().equalsIgnoreCase(host.getType()) ||
-                Host.HostType.HPUX.name().equalsIgnoreCase(host.getType()) ||
-                Host.HostType.Other.name().equalsIgnoreCase(host.getType())) {
-            osType = host.getType().toLowerCase();
-        }
-        return osType;
     }
 
     private void runLunMapCreationAlgorithm(StorageSystem storage, ExportMask exportMask,

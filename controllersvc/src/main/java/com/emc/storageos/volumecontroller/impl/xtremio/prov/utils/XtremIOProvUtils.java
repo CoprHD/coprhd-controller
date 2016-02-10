@@ -7,13 +7,16 @@ package com.emc.storageos.volumecontroller.impl.xtremio.prov.utils;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -35,6 +38,17 @@ public class XtremIOProvUtils {
 
     private static final String DOT_OPERATOR = "\\.";
     private static final Integer XIO_MIN_4X_VERSION = 4;
+
+    private static final Set<String> SUPPORTED_HOST_OS_SET = new HashSet<String>();
+
+    static {
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.Windows.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.Linux.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.AIX.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.Esx.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.HPUX.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.Other.name());
+    }
 
     public static void updateStoragePoolCapacity(XtremIOClient client, DbClient dbClient, StoragePool storagePool) {
         try {
@@ -435,5 +449,21 @@ public class XtremIOProvUtils {
 
     public static boolean is4xXtremIOModel(String model) {
         return (null != model && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
+    }
+
+    /**
+     * Returns the XtremIO supported OS based on the initiator Host OS type.
+     * 
+     * From API Doc: solaris, aix, windows, esx, other, linux, hpux
+     * 
+     * @param hostURI - Host URI of the Initiator.
+     * @return operatingSystem type.
+     */
+    public static String getInitiatorHostOS(Host host) {
+        String osType = null;
+        if (SUPPORTED_HOST_OS_SET.contains(host.getType())) {
+            osType = host.getType().toLowerCase();
+        }
+        return osType;
     }
 }

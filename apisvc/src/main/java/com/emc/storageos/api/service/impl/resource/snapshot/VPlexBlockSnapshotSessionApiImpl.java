@@ -7,6 +7,7 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +21,7 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -207,6 +209,24 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.validateUnlinkSnapshotSessionTargets(snapSession, srcSideBackendVolume, project, snapshotURIs, uriInfo);
+            
+            // Don't allow if there is a VPLEX volume built on the linked target volume.
+            // The VPLEX volume must be deleted first.
+            Iterator<BlockSnapshot> snapshotIter = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
+            while (snapshotIter.hasNext()) {
+                BlockSnapshot snapshot = snapshotIter.next();
+                String snapshotNativeGuid = snapshot.getNativeGuid();
+                List<Volume> volumesWithSameNativeGuid = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid);
+                if (!volumesWithSameNativeGuid.isEmpty()) {
+                    // There should only be one and it should be a backend volume for
+                    // a VPLEX volume.
+                    List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                            _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
+                                    volumesWithSameNativeGuid.get(0).getId().toString()));
+                    throw APIException.badRequests
+                            .cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(), vplexVolumes.get(0).getLabel());
+                }
+            }
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should never be called.

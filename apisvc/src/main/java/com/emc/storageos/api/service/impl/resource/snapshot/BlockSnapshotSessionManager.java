@@ -312,6 +312,7 @@ public class BlockSnapshotSessionManager {
         } else {
             response.getTaskList().add(toTask(snapSession, taskId, snapSessionOp));
             for (BlockObject sourceForTask : snapSessionSourceObjList) {
+                @SuppressWarnings("unchecked")
                 Operation op = _dbClient.createTaskOpStatus(URIUtil.getModelClass(sourceForTask.getId()),
                         sourceForTask.getId(), taskId, ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
                 response.getTaskList().add(toTask(sourceForTask, taskId, op));

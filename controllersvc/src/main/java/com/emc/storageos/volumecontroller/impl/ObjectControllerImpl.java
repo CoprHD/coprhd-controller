@@ -15,12 +15,14 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ObjectController;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJob;
@@ -54,7 +56,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 
     @Override
     public void connectStorage(URI storage) throws InternalException {
-        _log.info("ObjectControllerImpl:connectStorage");
+        _log.debug("ObjectControllerImpl:connectStorage");
         execOb("connectStorage", storage);
 
     }
@@ -68,7 +70,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     @Override
     public void discoverStorageSystem(AsyncTask[] tasks)
             throws InternalException {
-        _log.info("ObjectControllerImpl:discoverStorageSystem");
+        _log.debug("ObjectControllerImpl:discoverStorageSystem");
         try {
             ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);
         } catch (Exception e) {
@@ -83,7 +85,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     @Override
     public void scanStorageProviders(AsyncTask[] tasks)
             throws InternalException {
-        _log.info("ObjectControllerImpl:scanStorageProviders");
+        _log.debug("ObjectControllerImpl:scanStorageProviders");
         throw ClientControllerException.fatals.unableToScanSMISProviders(tasks, "ObjectController", null);
 
     }
@@ -92,7 +94,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     public void startMonitoring(AsyncTask task, Type deviceType)
             throws InternalException {
         try {
-            _log.info("ObjectControllerImpl:startMonitoring");
+            _log.debug("ObjectControllerImpl:startMonitoring");
             MonitoringJob job = new MonitoringJob();
             job.setCompleter(new MonitorTaskCompleter(task));
             job.setDeviceType(deviceType);
@@ -103,10 +105,17 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-    public Controller lookupDeviceController(DiscoveredSystemObject device) {
+    public Controller lookupDeviceController(DiscoveredSystemObject device) throws ControllerException {
         // dummy impl that returns the first one
-        _log.info("ObjectControllerImpl:lookupDeviceController");
-        return _deviceImpl.iterator().next();
+        _log.debug("ObjectControllerImpl:lookupDeviceController");
+        if (device == null) {
+            throw ClientControllerException.fatals.unableToLookupStorageDeviceIsNull();
+        }
+        ObjectController ob = _deviceImpl.iterator().next();
+        if (ob == null) {
+            throw ClientControllerException.fatals.unableToLocateDeviceController("BlockController");
+        }
+        return ob;
     }
 
     private void execOb(String methodName, Object... args) throws InternalException {
@@ -116,10 +125,9 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     @Override
     public void createBucket(URI storage, URI stPool, URI bkt, String label, String namespace, Integer retention,
             Long hardQuota, Long softQuota, String owner, String opId) throws InternalException {
-        _log.info("ObjectControllerImpl:createBucket start");
+        _log.debug("ObjectControllerImpl:createBucket start");
         execOb("createBucket", storage, stPool, bkt, label, namespace, retention,
                 hardQuota, softQuota, owner, opId);
-        _log.debug("ObjectControllerImpl:createBucket end");
     }
 
     @Override
@@ -137,17 +145,34 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 
     @Override
     public void updateBucketACL(URI storage, URI bucket, BucketACLUpdateParams param, String opId) throws InternalException {
-        _log.info("ObjectControllerImpl:updateBucketACL start");
+        _log.debug("ObjectControllerImpl:updateBucketACL start");
         execOb("updateBucketACL", storage, bucket, param, opId);
-        _log.debug("ObjectControllerImpl:updateBucketACL end");
-
     }
 
     @Override
     public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException {
-        _log.info("ObjectControllerImpl:deleteBucketACL start");
+        _log.debug("ObjectControllerImpl:deleteBucketACL start");
         execOb("deleteBucketACL", storage, bucket, opId);
-        _log.debug("ObjectControllerImpl:deleteBucketACL end");
-        
     }
+
+    @Override
+    public ObjectUserSecretKey getUserSecretKeys(URI storage, String userId) throws InternalException {
+        _log.debug("ObjectControllerImpl:getUserSecretKey start");
+        // Synchronous call than queuing
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+        Controller controller = lookupDeviceController(storageSystem);
+        ObjectController objController = (ObjectController) controller;
+        return objController.getUserSecretKeys(storage, userId);        
+    }
+
+    @Override
+    public ObjectUserSecretKey addUserSecretKey(URI storage, String userId, String secretKey) throws InternalException {
+        _log.debug("ObjectControllerImpl:addUserSecretKey start");
+        // Synchronous call than queuing
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+        Controller controller = lookupDeviceController(storageSystem);
+        ObjectController objController = (ObjectController) controller;
+        return objController.addUserSecretKey(storage, userId, secretKey);        
+    }
+       
 }

@@ -129,6 +129,21 @@ public class VolumeIngestionUtil {
             StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
 
             try {
+                // Check if UnManagedVolume is CG enabled and VPool is not CG enabled.
+                if (checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume) && !vPool.getMultivolumeConsistency()) {
+                    _logger.error(String
+                            .format("The requested Virtual Pool %s does not have the Multi-Volume Consistency flag set, and unmanage volume %s is part of a consistency group.",
+                                    vPool.getLabel(), unManagedVolume.getLabel()));
+                    throw APIException.internalServerErrors.unmanagedVolumeVpoolConsistencyGroupMismatch(vPool.getLabel(),
+                            unManagedVolume.getLabel());
+                }
+
+                // Check if the UnManagedVolume is a snapshot & Vpool doesn't have snapshotCount defined.
+                if (isSnapshot(unManagedVolume) && 0 == vPool.getMaxNativeSnapshots()) {
+                    throw APIException.internalServerErrors.noMaxSnapshotsDefinedInVirtualPool(
+                            vPool.getLabel(), unManagedVolume.getLabel());
+                }
+
                 // a VPLEX volume and snapshot will not have an associated pool
                 if (!isVplexVolume(unManagedVolume) && !isSnapshot(unManagedVolume)) {
                     checkStoragePoolValidForUnManagedVolumeUri(unManagedVolumeInformation,

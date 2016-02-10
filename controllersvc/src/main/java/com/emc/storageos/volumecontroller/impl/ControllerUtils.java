@@ -1285,33 +1285,6 @@ public class ControllerUtils {
     }
 
     /**
-     * Returns true, if the clone is part of an Application, false otherwise.
-     * In addition to this, if a non-null {@link TaskCompleter} is provided the {@VolumeGroup} instance
-     * added to it.
-     *
-     * @param clone URI of the clone/fullcopy
-     * @param dbClient DbClient instance
-     * @param completer Optional TaskCompleter instance.
-     * @return true/false dependent on the clone being part of an application.
-     */
-    public static boolean checkCloneInApplication(URI cloneURI, DbClient dbClient, TaskCompleter completer) {
-        Volume clone = dbClient.queryObject(Volume.class, cloneURI);
-        URI sourceVolume = clone.getAssociatedSourceVolume();
-        Volume source = URIUtil.isType(sourceVolume, Volume.class) ?
-                dbClient.queryObject(Volume.class, sourceVolume) : null;
-        VolumeGroup volumeGroup = (source != null)
-                ? source.getApplication(dbClient) : null;
-
-        if (volumeGroup != null) {
-            if (completer != null) {
-                completer.addVolumeGroupId(volumeGroup.getId());
-            }
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
      * 
      * @param volume
@@ -1586,42 +1559,6 @@ public class ControllerUtils {
             arrayGroupToVolumes.get(repGroupName).add(volume);
         }
         return arrayGroupToVolumes;
-    }
-
-    /**
-     * Groups the given full copies based on their array replication group.
-     * If full copies are not part of CG, return the given full copies as a single entry.
-     * 
-     * It also adds VolumeGroup to taskCompleter if full copy is part of application.
-     */
-    public static Map<String, List<Volume>> groupFullCopiesByArrayGroup(List<URI> fullCopies,
-            DbClient dbClient, TaskCompleter completer) {
-        Map<String, List<Volume>> arrayGroupToFullCopies = null;
-        List<Volume> fullCopyVolumeObjects = queryVolumesByIterativeQuery(dbClient, fullCopies);
-
-        URI fullCopy = fullCopies.get(0);
-        // add VolumeGroup to taskCompleter
-        if (ControllerUtils.checkCloneInApplication(fullCopy, dbClient, completer)) {
-            s_logger.info("Full copy {} is part of an Application", fullCopy);
-        }
-
-        // If VPLEX, get backend src full copy and check on it
-        Volume fullCopyVolume = dbClient.queryObject(Volume.class, fullCopy);
-        if (fullCopyVolume.isVPlexVolume(dbClient)) {
-            Volume backendfullCopy = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, dbClient);
-            if (backendfullCopy != null) {
-                fullCopy = backendfullCopy.getId();
-            }
-        }
-
-        if (ConsistencyUtils.getCloneConsistencyGroup(fullCopy, dbClient) != null) {
-            arrayGroupToFullCopies = groupVolumesByArrayGroup(fullCopyVolumeObjects, dbClient);
-        } else {
-            arrayGroupToFullCopies = new HashMap<String, List<Volume>>();
-            arrayGroupToFullCopies.put("NO_ARRAY_GROUP", fullCopyVolumeObjects);
-        }
-
-        return arrayGroupToFullCopies;
     }
 
     /**

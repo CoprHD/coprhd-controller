@@ -1527,7 +1527,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1560,7 +1562,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Get the full copy source.
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
@@ -1597,7 +1601,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1630,7 +1636,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1663,9 +1671,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
-        // TODO check deactivate case
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Verify the full copy.
         verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);

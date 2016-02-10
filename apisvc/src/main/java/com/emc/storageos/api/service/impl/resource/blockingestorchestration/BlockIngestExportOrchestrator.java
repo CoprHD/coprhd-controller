@@ -155,6 +155,20 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     exportMask.removeFromExistingVolumes(blockObject);
                 }
 
+                String resourceRef;
+                if (exportMask.getResource() == null) {
+                    if (exportGroup.getType() != null) {
+                        if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
+                            resourceRef = initiators.get(0).getClusterName();
+                        } else {
+                            resourceRef = initiators.get(0).getHost().toString();
+                        }
+                        _logger.info("Setting the resource field of the mask {} to {}",
+                                exportMask.getMaskName(), resourceRef);
+                        exportMask.setResource(resourceRef);
+                    }
+                }
+
                 // Add new initiators found in ingest to list if absent.
                 exportMask.addInitiators(initiators);
                 // Add all unknown initiators to existing

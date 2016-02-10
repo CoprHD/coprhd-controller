@@ -202,6 +202,9 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     }
 
     public boolean isProtectedCG() {
+        if (requestedTypes == null || requestedTypes.isEmpty()) {
+            return false;
+        }
         return requestedTypes.contains(Types.RP.toString()) || requestedTypes.contains(Types.VPLEX.toString());
     }
 

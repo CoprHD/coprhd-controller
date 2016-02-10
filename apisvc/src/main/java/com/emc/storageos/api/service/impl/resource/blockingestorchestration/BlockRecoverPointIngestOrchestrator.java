@@ -669,12 +669,35 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 // VPLEX Storage View 1 -> VPLEX Cluster1 + RPA1
                 // VPLEX Storage View 2 -> VPLEX Cluster2 + RPA2
                 String vplexCluster = ConnectivityUtil.getVplexClusterForVarray(virtualArray.getId(), storageSystem.getId(), _dbClient);
-                for (UnManagedExportMask exportMask : unManagedRPExportMasks) {                                    
-                    if (exportMask.getMaskingViewPath().contains("cluster-" + vplexCluster)) {
-                        em = exportMask;
+                
+                // First try and match based on UnManagedExportMask ports
+                for (UnManagedExportMask exportMask : unManagedRPExportMasks) {
+                    for (String portUri : exportMask.getKnownStoragePortUris()) {
+                        StoragePort port = _dbClient.queryObject(StoragePort.class, URI.create(portUri));
+                        if (port != null && !port.getInactive()) {                                                       
+                            String vplexClusterForMask = ConnectivityUtil.getVplexClusterOfPort(port);
+                            if (vplexCluster.equals(vplexClusterForMask)) {                               
+                                em = exportMask;
+                                break;
+                            }
+                        }
+                    }
+                    if (em != null) {
                         break;
-                    }                                                 
-                }                
+                    }
+                }
+                
+                if (em == null) {
+                    // Last effort, if we still could not find the correct UnManagedExportMask try looking at
+                    // the masking view path.
+                    // It really shouldn't come to this, but leaving this code just in case.
+                    for (UnManagedExportMask exportMask : unManagedRPExportMasks) {                                    
+                        if (exportMask.getMaskingViewPath().contains("cluster-" + vplexCluster)) {
+                            em = exportMask;
+                            break;
+                        }                                                 
+                    }     
+                }
             } else {
                 em = unManagedRPExportMasks.get(0);
             }            

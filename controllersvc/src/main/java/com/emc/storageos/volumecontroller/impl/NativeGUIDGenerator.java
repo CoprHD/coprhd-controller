@@ -107,7 +107,8 @@ public class NativeGUIDGenerator {
         OBJECT_TYPE_SET.add(VIRTUAL_NAS);
     }
 
-    // Cannot get this bean throw ControllerServiceImpl context, since ControllerServiceImpl is not loaded by spring in apisvc. The context is null.
+    // Cannot get this bean from ControllerServiceImpl context,
+    // since ControllerServiceImpl is not loaded by spring in apisvc. The context is null.
     private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
            getApplicationContext().getBean("storageDriverManager");
 

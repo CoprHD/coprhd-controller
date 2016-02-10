@@ -58,7 +58,8 @@
     },
     
     accessControlList:{
-      type:"table",
+      type:"group",
+      collapsed:"false",
       items:{
         aclType:{
           type: "choice",
@@ -84,7 +85,8 @@
         
         aclPermission:{
           type:"assetType.vipr.objectACLPermission",
-          initialValue:"READ"
+          initialValue:"NONE",
+          select: "many"
         }
       }
     }

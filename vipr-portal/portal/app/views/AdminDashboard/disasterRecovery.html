@@ -25,13 +25,13 @@
 							</td>
 							<td>
 								#{if site.state == "ACTIVE"}
-									<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.primary'}</span>
+									<img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span> &{'renderFunctions.disasterRecovery.status.active'}</span>
 								#{/if}
 								#{if site.state == "ACTIVE_SWITCHING_OVER"}
-									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.switchingover'}</span>
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.active.switchingover'}</span>
 								#{/if}
 								#{if site.state == "ACTIVE_FAILING_OVER"}
-									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.primary.failingover'}</span>
+									<span class="glyphicon glyphicon-refresh rotate" style="color:#FF0000"></span><span> &{'renderFunctions.disasterRecovery.status.active.failingover'}</span>
 								#{/if}
 								#{if site.state == "STANDBY_ADDING"}
 									<span class="glyphicon glyphicon-refresh rotate" style="color:#0000FF"></span><span> &{'renderFunctions.disasterRecovery.status.standby.adding'}</span>

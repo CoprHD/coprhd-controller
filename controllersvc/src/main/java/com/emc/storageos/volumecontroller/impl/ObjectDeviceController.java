@@ -29,6 +29,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ObjectController;
+import com.emc.storageos.volumecontroller.ObjectControllerConstants;
 import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
 
@@ -119,11 +120,18 @@ public class ObjectDeviceController implements ObjectController {
     }
 
     @Override
-    public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
+    public void deleteBucket(URI storage, URI bucket, String deleteType, String task) throws ControllerException {
         _log.info("ObjectDeviceController:deleteBucket Bucket URI : {} ", bucket);
+        BiosCommandResult result;
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, task);
+        
+        if (ObjectControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType.toString())) {
+            //if inventory delete do nothing
+            result = BiosCommandResult.createSuccessfulResult();
+        } else {
+            result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, task);
+        }
 
         if (result.getCommandPending()) {
             return;

@@ -250,7 +250,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
 
             completer = new MirrorFileCreateTaskCompleter(sourceURI, targetURI, vpoolChangeUri, opId);
             // getRemoteMirrorDevice(system).doCreateMirrorLink(system, sourceURI, targetURI, completer);
-            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            ServiceError error = DeviceControllerException.errors.jobFailedOp(CREATE_FILE_MIRRORS_STEP);
             if (null != completer) {
                 completer.error(dbClient, error);
             }

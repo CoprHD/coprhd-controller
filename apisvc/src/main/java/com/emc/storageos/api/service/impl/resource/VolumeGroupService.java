@@ -1050,7 +1050,6 @@ public class VolumeGroupService extends TaskResourceService {
             // duplicate group names will be overwritten
             repGroupToFullCopyMap.put(repGroupName, fullCopy);
         }
-        // TODO how do we group full copies when volumes of different RGs with fullCopies are added to Application?
         return repGroupToFullCopyMap;
     }
 

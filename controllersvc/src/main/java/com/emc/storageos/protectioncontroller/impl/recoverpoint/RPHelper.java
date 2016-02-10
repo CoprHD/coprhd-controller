@@ -1088,9 +1088,9 @@ public class RPHelper {
             Long cgVolumeSize = 0L;
             Long cgVolumeSizeInBytes = 0L;
             for (Volume cgVolume : cgVolumes) {
-                if (!Volume.PersonalityTypes.METADATA.name().equals(cgVolume.getPersonality())
+                if (!cgVolume.checkPersonality(Volume.PersonalityTypes.METADATA.name())
                         && copyInternalSiteName.equalsIgnoreCase(cgVolume.getInternalSiteName())) {
-                        cgVolumeSize += cgVolume.getProvisionedCapacity();
+                    cgVolumeSize += cgVolume.getProvisionedCapacity();
                 }            
             }
             cgVolumeSizeInBytes = SizeUtil.translateSize(String.valueOf(cgVolumeSize));

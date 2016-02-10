@@ -1,0 +1,15 @@
+{
+    baseKey:"Activiti WorkFlow",
+    serviceId:"CustomSample",
+    fields:{
+        name:{
+        type:"text",
+        validation:{
+            regEx:"[a-zA-Z0-9_]+",
+            min:2,
+            max:128
+        }
+     }
+    }
+
+}

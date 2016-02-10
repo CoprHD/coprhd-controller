@@ -7,13 +7,18 @@ package com.emc.vipr.client.impl;
 import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.impl.jersey.*;
 import com.sun.jersey.api.client.*;
+import com.sun.jersey.api.client.ClientRequest.Builder;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 
 import org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider;
 import org.slf4j.LoggerFactory;
+
 import javax.net.ssl.HttpsURLConnection;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
 
+import java.io.File;
 import java.net.URI;
 import java.util.Properties;
 
@@ -185,6 +190,7 @@ public class RestClient {
         return resource(path, args).post(responseType, request);
     }
 
+    
     public void post(Object request, String path, Object... args) {
         resource(path, args).post(request);
     }
@@ -232,4 +238,16 @@ public class RestClient {
     public <T> T getURI(GenericType<T> responseType, URI uri) {
         return resource(uri).get(responseType);
     }
+    
+    public <T> T postWithXML(Class<T> responseType, String filePath, String path) {
+    	final WebResource service = client.resource(UriBuilder.fromUri(path).build());
+    	com.sun.jersey.api.client.WebResource.Builder builder = service.type(MediaType.APPLICATION_XML);
+    	builder = builder.accept(MediaType.TEXT_PLAIN);
+    	builder = builder.header(HttpHeaders.AUTHORIZATION, "HEADER");
+
+    	File file = new File(filePath);
+    	builder = builder.entity(file);
+        return builder.post(responseType);
+    }
 }
+

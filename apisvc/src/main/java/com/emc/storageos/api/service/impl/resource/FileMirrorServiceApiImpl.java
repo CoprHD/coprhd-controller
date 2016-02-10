@@ -271,7 +271,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                 // Set the recommendation only for source file systems which are not meant for vpool change!!
                 _log.info(String.format("createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
                         sourceFileShare.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
-                ValidateFileSystem(recommendation, sourceFileShare);
+                validateFileSystem(recommendation, sourceFileShare);
             }
             // set the source mirror recommendations
             setFileMirrorRecommendation(recommendation, vpool, varray, false, false, sourceFileShare);
@@ -351,7 +351,7 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
      * @param placement
      * @param fileShare
      */
-    private void ValidateFileSystem(FileMirrorRecommendation placement, FileShare fileShare) {
+    private void validateFileSystem(FileMirrorRecommendation placement, FileShare fileShare) {
         // Now check whether the label used in the storage system or not
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, placement.getSourceStorageSystem());
         List<FileShare> fileShareList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, FileShare.class,

@@ -318,7 +318,7 @@ public class FileService extends TaskResourceService {
      * the internal object case
      * NOTE - below method should always work with project being null
      */
-    private TaskResourceRep createFSInternal(FileSystemParam param, Project project,
+    public TaskResourceRep createFSInternal(FileSystemParam param, Project project,
             TenantOrg tenant, DataObject.Flag[] flags) throws InternalException {
         ArgValidator.checkFieldUriType(param.getVpool(), VirtualPool.class, "vpool");
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");

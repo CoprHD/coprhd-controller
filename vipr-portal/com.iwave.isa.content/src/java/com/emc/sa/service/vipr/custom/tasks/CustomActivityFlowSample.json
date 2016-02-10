@@ -1,6 +1,6 @@
 {
     baseKey:"Activiti WorkFlow",
-    serviceId:"CustomSample",
+    serviceId:"CustomActivityFlowSample",
     fields:{
         name:{
         type:"text",

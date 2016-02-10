@@ -9,7 +9,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.storageos.model.custom.CustomDataObjectRestRep;
 import com.emc.vipr.client.Task;
 
-@Service("CustomSample")
+@Service("CustomActivityFlowSample")
 public class CustomActivityFlowSampleService extends ViPRService {
 
 

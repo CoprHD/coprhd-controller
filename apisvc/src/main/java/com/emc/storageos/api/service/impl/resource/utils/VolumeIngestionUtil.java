@@ -3417,12 +3417,12 @@ public class VolumeIngestionUtil {
                         // Finally look in the DB itself. It may be from a previous ingestion operation.
                         blockObject = dbClient.queryObject(Volume.class, URI.create(associatedVolumeIdStr));
                         if (blockObject == null) {
-                            // This may not be a failure if we're not ingesting backing volumes.  Put a warning to the log.
+                            // This may not be a failure if we're not ingesting backing volumes. Put a warning to the log.
                             _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
                         } else {
                             // Since I pulled this in from the database, we need to add it to the list of objects to update.
                             ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
-                                blockObject.getNativeGuid(), Arrays.asList(blockObject));
+                                    blockObject.getNativeGuid(), Arrays.asList(blockObject));
                         }
                     }
                     if (blockObject != null) {
@@ -3707,9 +3707,9 @@ public class VolumeIngestionUtil {
      * with the protection set and the block CG.
      * It also clears the RP volumes' replicas' flags.
      *
-     * @param requestContext
-     * @param umpset
-     * @param updatedObjects
+     * @param requestContext current unManagedVolume Ingestion context.
+     * @param umpset Unmanaged protection set for which a protection set has to be created
+     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
     public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, List<DataObject> updatedObjects,

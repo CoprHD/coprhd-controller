@@ -43,13 +43,18 @@
     </script>
   #{/if}
   <dt>&{'disasterRecovery.networkLatencyInMs'}</dt>
-  <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
+    #{if disasterSiteDetails.networkLatencyInMs == -1.0}
+    <dd>&{'disasterRecovery.networkLatency.notAvailable'}</dd>
+    #{/if}
+    #{else}
+    <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
+    #{/else}
   #{if isActive == false}
       <dt>&{'disasterRecovery.paused.time'}</dt>
-      <dd id="pausedTime-${uuid}">Not Available</dd>
+      <dd id="pausedTime-${uuid}">&{'disasterRecovery.paused.time.notAvailable'}</dd>
       #{if disasterSiteDetails.dataSynced}
       <script>
-          $('#pausedTime-' + '${uuid}').text("Up To Date");
+          $('#pausedTime-' + '${uuid}').text("&{'disasterRecovery.paused.time.notPaused'}");
       </script>
       #{/if}
       #{elseif pausedTime}

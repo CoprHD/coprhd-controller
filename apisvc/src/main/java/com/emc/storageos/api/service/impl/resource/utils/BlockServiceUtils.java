@@ -370,6 +370,12 @@ public class BlockServiceUtils {
      * @param dbClient A reference to a database client.
      */
     public static void checkForDuplicateArraySnapshotName(String requestedName, URI sourceURI, DbClient dbClient) {
+        // First ensure the requested snapshot name is no more than 63 characters in length.
+        // If we remove special characters and truncate to 63 characters, this could lead
+        // to invalid duplicate name exceptions (COP-14512). By restricting to 63 characters in total, this
+        // won't happen.
+        ArgValidator.checkFieldLengthMaximum(requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH, "snapshotName");
+
         // We need to check the BlockSnapshotSession instances created using
         // the new Create Snapshot Session service as it creates a native
         // array snapshot.

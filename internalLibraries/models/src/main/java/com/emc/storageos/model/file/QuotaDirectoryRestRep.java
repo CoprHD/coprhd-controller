@@ -5,7 +5,10 @@
 
 package com.emc.storageos.model.file;
 
-import javax.xml.bind.annotation.*;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -17,6 +20,7 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     private String quotaSize;
     private Integer softLimit;
     private Integer softGrace;
+    private Boolean softLimitExceeded;
     private Integer notificationLimit;
     private RelatedResourceRep parentFileSystem;
     private String nativeId;
@@ -62,8 +66,8 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     public void setQuotaSize(String size) {
         this.quotaSize = size;
     }
-    
-    @XmlElement(name="soft_limit", required=false)
+
+    @XmlElement(name = "soft_limit", required = false)
     public Integer getSoftLimit() {
         return softLimit;
     }
@@ -72,7 +76,7 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
         this.softLimit = softLimit;
     }
 
-    @XmlElement(name="soft_grace", required=false)
+    @XmlElement(name = "soft_grace", required = false)
     public Integer getSoftGrace() {
         return softGrace;
     }
@@ -80,7 +84,17 @@ public class QuotaDirectoryRestRep extends DataObjectRestRep {
     public void setSoftGrace(Integer softGrace) {
         this.softGrace = softGrace;
     }
-    @XmlElement(name="notification_limit", required=false)
+
+    @XmlElement(name = "soft_limit_exceeded", required = false)
+    public Boolean getSoftLimitExceeded() {
+        return softLimitExceeded;
+    }
+
+    public void setSoftLimitExceeded(Boolean softLimitExceeded) {
+        this.softLimitExceeded = softLimitExceeded;
+    }
+
+    @XmlElement(name = "notification_limit", required = false)
     public Integer getNotificationLimit() {
         return notificationLimit;
     }

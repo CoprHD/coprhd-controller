@@ -179,6 +179,7 @@
       	#{nav.separator/}
         #{nav.item 'block.volumes', href: @resources.BlockVolumes.volumes()/}
         #{nav.item 'block.snapshots', href: @resources.BlockSnapshots.snapshots()/}
+        #{nav.item 'block.snapshotsessions', href: @resources.BlockSnapshotSessions.snapshotSessions()/}
         #{nav.item 'block.exportgroups', href: @resources.BlockExportGroups.exportGroups()/}
         #{nav.separator/}
         #{nav.item 'file.filesystems', href: @resources.FileSystems.fileSystems()/}
@@ -206,6 +207,7 @@
         #{/deadbolt.restrict}            
         #{deadbolt.restrict roles:[['TENANT_ADMIN'], ['PROJECT_ADMIN']]}
           #{nav.item 'projects', href: @tenant.Projects.list()/}
+          #{nav.item 'schedulepolicies', href: @tenant.SchedulePolicies.list()/}
           #{license.ifController}
             #{nav.item 'consistencygroups', href: @resources.ConsistencyGroups.list()/}
           #{/license.ifController}

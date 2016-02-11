@@ -24,6 +24,8 @@ import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -35,6 +37,9 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
+import com.emc.storageos.model.object.ObjectNamespaceRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
@@ -333,6 +338,44 @@ public class SystemsMapper {
         to.setInitiatorLoad(MetricsKeys.getLong(MetricsKeys.initiatorCount, from.getMetrics()));
 
         to.setAllocationDisqualified(MetricsKeys.getBoolean(MetricsKeys.allocationDisqualified, from.getMetrics()));
+        return to;
+    }
+
+    public static ObjectNamespaceRestRep map(ObjectNamespace from) {
+        if (from == null) {
+            return null;
+        }
+        ObjectNamespaceRestRep to = new ObjectNamespaceRestRep();
+        to.setNsName(from.getNsName());
+        to.setNativeId(from.getNativeId());
+        to.setMapped(from.getMapped());
+        to.setTenant(from.getTenant());
+        to.setStorageDevice(from.getStorageDevice());
+        
+        return to;
+    }
+    
+    public static ObjectUserSecretKeysRestRep map(ObjectUserSecretKey from) {
+        if (from == null) {
+            return null;
+        }
+        ObjectUserSecretKeysRestRep to = new ObjectUserSecretKeysRestRep();
+        to.setSecret_key_1(from.getSecret_key_1());
+        to.setSecret_key_1_expiry_timestamp(from.getSecret_key_1_expiry_timestamp());
+        to.setSecret_key_2(from.getSecret_key_2());
+        to.setSecret_key_2_expiry_timestamp(from.getSecret_key_2_expiry_timestamp());
+
+        return to;
+    }
+    
+    public static ObjectUserSecretKeyAddRestRep map(ObjectUserSecretKey from, boolean b) {
+        if (from == null) {
+            return null;
+        }
+        ObjectUserSecretKeyAddRestRep to = new ObjectUserSecretKeyAddRestRep();
+        to.setSecret_key(from.getSecret_key_1());
+        to.setSecret_key_expiry_timestamp(from.getSecret_key_1_expiry_timestamp());
+
         return to;
     }
 

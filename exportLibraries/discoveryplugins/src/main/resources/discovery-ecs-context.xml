@@ -10,6 +10,9 @@
 
 	<bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
 		init-method="init">
+		<property name="connectionTimeoutMs" value="30000"/>
+		<property name="connManagerTimeout" value="60000"/>
+        <property name="socketConnectionTimeoutMs" value="7200000" />
 	</bean>
 
 </beans>

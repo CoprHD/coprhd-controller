@@ -9,34 +9,42 @@
 # it is provided by or on behalf of EMC.
 #
 
+DIR="$(dirname $0)"
+
+. ${DIR}/restore-libs.sh
 
 #This script is used to help user to restore a backupset simply
 usage() {
     echo "Usage:"
-    echo "       $0 <Backup Zip File>"
+    echo "       $0 <Backup Zip File> | <Local Backup Dir>"
     echo "For example:"
-    echo "       $0 /tmp/test.zip"
+    echo "       $0 /tmp/test.zip or $0 /data/backup/some-backup-dir"
     echo "NOTE: restore on standby site is not supported."
 }
 
 validate_parameters() {
-    if [ ! -f $BACKUP_ZIP ]; then
-        echo "$BACKUP_ZIP not exist"
+    if [ -d ${RESTORE_DIR} ]; then
+        if [[ $(is_local_backup) == "false" ]]; then
+            echo "The ${RESTORE_DIR} is not a local backup"
+            exit 3
+        fi
+    elif [ ! -f "${BACKUP_ZIP}" ]; then
+        echo "${BACKUP_ZIP} not exist"
         exit 2
     fi
+
     echo "This operation will erase existing db and zk data from the cluster."
     user_confirm "Are you sure you want to continue?"
 }
 
-init_variables() {
-    RESTORE_DIR="/data/restore-`date +%s`"
-    NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
-    LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
-}
-
 upload_backup() {
-    input_password
-    echo -n "Uploading backup files to all nodes.."
+    local is_local_backup=$(is_local_backup)
+    if [[ "${is_local_backup}" == "true" ]] ; then
+        echo "This is a local backup, no need to upload to other nodes"
+        return
+    fi
+
+    echo -n "Uploading backup files to all nodes ... "
     create_restore_folder
     extract_backup_files
     copy_to_other_nodes
@@ -49,9 +57,9 @@ input_password() {
         ssh_execute "$LOCAL_NODE" "mkdir -p $RESTORE_DIR"
         if [ -d $RESTORE_DIR ]; then
             break
-        else
-            echo "Password is incorrect."
         fi
+
+        echo "Password is incorrect."
     done
 }
 
@@ -62,28 +70,16 @@ create_restore_folder() {
 
 extract_backup_files() {
     cd $RESTORE_DIR
-    unzip $BACKUP_ZIP >/dev/null
+    unzip "${BACKUP_ZIP}" >/dev/null
 
-    local fileArray=($(ls -f *geodb*.zip))
+    is_vdc_connected
 
-    local geodbType=`ls ${fileArray[0]} | awk '{split($0,a,"_"); print a[2]}'`
-    if [ -z "$geodbType" ]; then
-        echo -e "\nCan't identify the type of geodb from backup file name, exiting.."
-        exit 2
-    elif [ "$geodbType" == "geodb" ]; then
-        IS_CONNECTED_VDC="false"
-    elif [ "$geodbType" == "geodbmultivdc" ]; then
-        IS_CONNECTED_VDC="true"
-    else
-        echo -e "\nInvalid geodb type: $geodbType, exiting.."
-        exit 2
-    fi
-
-    validate_backup_files ${#fileArray[@]}
+    validate_backup_files
 }
 
 validate_backup_files() {
-    local fileNodeCount=${1}
+    local geodb_files=($(ls -f *geodb*.zip))
+    local fileNodeCount=${#geodb_files[@]}
 
     BACKUP_NODE_COUNT=$((`grep -o "," ${RESTORE_DIR}/*_info.properties | wc -l` + 1))
     if [ ${fileNodeCount} -eq 0 ]; then
@@ -106,7 +102,7 @@ validate_backup_files() {
             echo -e "\nNodes count of cluster taken backup should not be less than quorum nodes count of cluster to be restored, exiting.."
             exit 2
         elif [ $NODE_COUNT != $BACKUP_NODE_COUNT ]; then
-            if [ "$IS_CONNECTED_VDC" == "true" ]; then
+            if [ ${IS_CONNECTED_VDC} == true ]; then
                 echo -e "\nCluster nodes count can't change when backup was taken in geo system, exiting.."
                 exit 2
             else
@@ -114,23 +110,22 @@ validate_backup_files() {
             fi
         fi
     fi
-
 }
 
 copy_to_other_nodes() {
     chmod -R 777 "$RESTORE_DIR"
     local command="scp svcuser@$LOCAL_NODE:$RESTORE_DIR/* $RESTORE_DIR"
-    loop_execute "${command}" "false"
+    loop_execute "${command}" "false" # "${NODE_COUNT}" "${LOCAL_NODE}" "${ROOT_PASSWORD}"
 }
 
 confirm_vdc_status() {
-    if [ "$IS_CONNECTED_VDC" == "true" ]; then
+    if [ ${IS_CONNECTED_VDC} == true ]; then
         local message="This vdc is in geo federation, does the federation still have alive vdcs?"
         while true; do
             read -p "$message(yes/no)" yn
             case $yn in
-                [Yy]es ) GEO_RESTORE_FROM_SCRATCH="false"; disconnect_vdc; break;;
-                [Nn]o )  GEO_RESTORE_FROM_SCRATCH="true"; break;;
+                [Yy]es ) RESTORE_GEO_FROM_SCRATCH="false"; disconnect_vdc; break;;
+                [Nn]o )  RESTORE_GEO_FROM_SCRATCH="true"; break;;
                 * ) echo "Invalid input.";;
             esac
         done
@@ -140,97 +135,6 @@ confirm_vdc_status() {
 disconnect_vdc() {
     echo "To avoid affecting other vdcs, please disconnect it from other vdcs."
     user_confirm "Are you sure it has been disconnected from others?"
-}
-
-stop_service() {
-    echo -n "Stopping storageos services on all nodes.."
-    local command="/etc/storageos/storageos stop"
-    loop_execute "${command}" "true"
-    echo "done"
-}
-
-restore_data() {
-    echo -n "Restoring data on all nodes.."
-    set +e
-    RESTORE_RESULT="successful"
-    for i in $(seq 1 $NODE_COUNT)
-    do
-        local viprNode=$(get_nodeid)
-        ls $RESTORE_DIR/*_${viprNode}_* &>/dev/null
-        if [ $? == 0 ]; then
-            restore_node "${viprNode}"
-        else
-            purge_node "${viprNode}"
-        fi
-        if [ $? != 0 ]; then
-            echo -n "failed on ${viprNode}.."
-            RESTORE_RESULT="failed"
-        fi
-    done
-    set -e
-    echo "done"
-}
-
-purge_node() {
-    local viprNode=${1}
-    if [ "$IS_CONNECTED_VDC" == "true" ]; then
-        initdb="yes"
-    else
-        initdb="no"
-    fi
-    local command="/opt/storageos/bin/bkutils -p $initdb"
-    ssh_execute "$viprNode" "$command"
-}
-
-restore_node() {
-    local viprNode=${1}
-    cd $RESTORE_DIR
-    local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
-    local command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag"
-    if [ "$GEO_RESTORE_FROM_SCRATCH" == "true" ]; then
-        command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag -f"
-    fi
-    ssh_execute "$viprNode" "$command"
-}
-
-clean_up() {
-    local command="rm -rf $RESTORE_DIR"
-    loop_execute "${command}" "true"
-}
-
-gen_config() {
-    vdcpropsfile="/data/zk/version-2/vdcconfig.properties"
-    if [ ! -f $vdcpropsfile ]; then
-        return
-    fi
-    echo -n "Regenerating storageos configuration files based on restored vdc properties on all nodes.."
-    local command="mv ${vdcpropsfile} /tmp && /etc/systool --setvdcprops /tmp/vdcconfig.properties && /etc/systool --getprops | /etc/genconfig"
-    loop_execute "bash -c \"${command}\"" "true"
-    echo "done"
-}
-
-start_service() {
-    echo -n "Starting storageos services on all nodes.."
-    local command="/etc/storageos/storageos start"
-    loop_execute "${command}" "true"
-    echo "done"
-    finish_message
-}
-
-finish_message() {
-    echo "Restore $RESTORE_RESULT!"
-    if [ "$RESTORE_RESULT" == "failed" ]; then
-        echo "Please check bkutils.log for the details."
-        exit 1
-    fi
-    echo "Note: nodes will reboot if there is any change of property in this cluster."
-    if [ "$IS_CONNECTED_VDC" == "true" ]; then
-        if [ "$GEO_RESTORE_FROM_SCRATCH" == "false" ]; then
-            echo "Please reconnect this vdc after the status of cluster is stable."
-        fi
-        echo "(If there is any vdc with version 2.1 in this geo federation, then you need to remove blacklist manually from other vdcs,"
-        echo "by using this command: \"/opt/storageos/bin/dbutils geoblacklist reset <vdc short id>\")"
-    fi    
 }
 
 user_confirm() {
@@ -245,38 +149,6 @@ user_confirm() {
     done
 }
 
-loop_execute() {
-    set +e
-    local command=${1}
-    local includeLocal=${2}
-
-    for i in $(seq 1 $NODE_COUNT)
-    do
-        local viprNode=$(get_nodeid)
-        if [ "$viprNode" != "$LOCAL_NODE" -o "$includeLocal" == "true" ]; then
-            ssh_execute "$viprNode" "$command" &
-        fi
-    done
-    wait
-    set -e
-}
-
-ssh_execute() {
-    local viprNode=${1}
-    local command=${2}
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '$ROOT_PASSWORD' | sudo -S $command" &>/dev/null
-}
-
-get_nodeid() {
-    local nodeId
-    if [ $NODE_COUNT -eq 1 ]; then
-        nodeId="$LOCAL_NODE"
-    else
-        nodeId="vipr$i"
-    fi
-    echo "$nodeId"
-}
-
 check_standby() {
     local is_standby=$(/etc/systool --getvdcprops | awk '/^site_is_standby=/ {print substr($0, length("site_is_standby=") + 1)}')
     if [ "$is_standby" == "true" ]; then
@@ -285,24 +157,38 @@ check_standby() {
     fi
 }
 
-if [ $# -eq 1 ]; then
-    if [ $1 == "--help" -o $1 == "-h" -o $1 == "-help" ]; then
-        usage
-        exit 0
-    fi
-    check_standby
-    BACKUP_ZIP=$(readlink -f $1)
-    validate_parameters
-    init_variables
-else
+if [ $# -ne 1 ]; then
     usage
     exit 2
 fi
 
+if [ "$1" == "--help" -o "$1" == "-h" -o "$1" == "-help" ]; then
+    usage
+    exit 0
+fi
+
+check_standby
+
+RESTORE_DIR="/data/restore-`date +%s`"
+NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
+LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
+
+if [ -d "$1" ] ; then
+    RESTORE_DIR="$1" 
+else
+    BACKUP_ZIP=$(readlink -f "$1")
+fi
+
 trap clean_up EXIT
 
-comands=(upload_backup confirm_vdc_status stop_service restore_data gen_config start_service)
+validate_parameters
+
+input_password
+
+comands=(upload_backup confirm_vdc_status)
 for cmd in ${comands[@]}
 do
     $cmd
 done
+
+${DIR}/restore-internal.sh "${RESTORE_DIR}" "${ROOT_PASSWORD}" "${RESTORE_GEO_FROM_SCRATCH}"

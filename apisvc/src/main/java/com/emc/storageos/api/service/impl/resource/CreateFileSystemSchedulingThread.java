@@ -75,7 +75,7 @@ public class CreateFileSystemSchedulingThread implements Runnable {
             List recommendations = this.fileService._filePlacementManager.getRecommendationsForFileCreateRequest(
                     varray, project, vpool, capabilities);
             if (recommendations.isEmpty()) {
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
             } else {
                 // Call out to the respective file service implementation to prepare
                 // and create the fileshares based on the recommendations.
@@ -96,7 +96,7 @@ public class CreateFileSystemSchedulingThread implements Runnable {
                 // Set the fileshare to inactive
                 FileShare file = this.fileService._dbClient.queryObject(FileShare.class, taskObj.getResource().getId());
                 file.setInactive(true);
-                this.fileService._dbClient.updateAndReindexObject(file);
+                this.fileService._dbClient.updateObject(file);
             }
         }
         _log.info("Ending scheduling/placement thread...");

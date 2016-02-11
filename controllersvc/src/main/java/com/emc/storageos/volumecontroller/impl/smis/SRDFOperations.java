@@ -727,7 +727,8 @@ public class SRDFOperations implements SmisConstants {
         }
     }
 
-    public void createListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer) {
+    public void createListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, boolean addWaitForCopyState,
+            TaskCompleter completer) {
         try {
 
             Volume firstTarget = dbClient.queryObject(Volume.class, targets.get(0));
@@ -760,7 +761,7 @@ public class SRDFOperations implements SmisConstants {
             CIMArgument[] inArgs = helper.getCreateListReplicaInputArguments(system,
                     sourcePaths.toArray(new CIMObjectPath[sourcePaths.size()]),
                     targetPaths.toArray(new CIMObjectPath[targetPaths.size()]),
-                    modeValue, repCollectionPath, replicationSettingDataInstance);
+                    modeValue, repCollectionPath, replicationSettingDataInstance, addWaitForCopyState);
             CIMArgument[] outArgs = new CIMArgument[5];
 
             helper.invokeMethodSynchronously(system, srcRepSvcPath,
@@ -1464,6 +1465,13 @@ public class SRDFOperations implements SmisConstants {
             ctxFactory.build(detachOp, target).perform();
 
             utils.removeFromRemoteGroups(target);
+        } catch (RemoteGroupAssociationNotFoundException e){
+            log.info("SRDF link is already detached {}", target.getSrdfParent().getURI(), e);
+            // If SRDF link is already detached then we won't find the association hence we can just move on
+            // to the next step.This is added because of SMIS intermittent issue where during delete volume
+            // detach works but then after detach there is failure then retry never work if we don't catch
+            // this exception. This is added to so that user can retry to delete volume.
+            completer.ready(dbClient);
         } catch (Exception e) {
             log.error("Failed to detach srdf link {}", target.getSrdfParent().getURI(), e);
             error = SmisException.errors.jobFailed(e.getMessage());
@@ -1571,7 +1579,9 @@ public class SRDFOperations implements SmisConstants {
             Collection<Volume> tgtVolumes = newArrayList(filter(volumes, utils.volumePersonalityPredicate(TARGET)));
 
             ctxFactory.build(SRDFOperation.SUSPEND, target).perform();
-            if (target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString())) {
+
+            boolean isTargetCopyModeActive = target.getSrdfCopyMode() != null && target.getSrdfCopyMode().equals(Mode.ACTIVE.toString());
+            if (isTargetCopyModeActive && !target.hasConsistencyGroup()) {
                 Volume source = getSourceVolume(target);
                 ((SRDFLinkStopCompleter) completer).setVolumes(Arrays.asList(source), Arrays.asList(target));
                 log.info("Source: {}", source.getNativeId());
@@ -1612,6 +1622,17 @@ public class SRDFOperations implements SmisConstants {
                 log.info("Sources: {}", Joiner.on(", ").join(transform(srcVolumes, fctnBlockObjectToNativeGuid())));
                 log.info("Targets: {}", Joiner.on(", ").join(transform(tgtVolumes, fctnBlockObjectToNativeGuid())));
                 ctxFactory.build(SRDFOperation.DELETE_GROUP_PAIRS, target).perform();
+
+                if (isTargetCopyModeActive) {
+                    // If Active SRDF copy mode then refresh storage system and update volume properties
+                    // as target volume wwn changes after stop
+                    ArrayList<URI> volumeURIs = new ArrayList<URI>(Arrays.asList(target.getId()));
+                    for (Volume tgtVolume : tgtVolumes) {
+                        volumeURIs.add(tgtVolume.getId());
+                    }
+                    refreshStorageSystem(system.getId());
+                    refreshVolumeProperties(system.getId(), volumeURIs);
+                }
             }
 
             if (target.hasConsistencyGroup()) {
@@ -2219,8 +2240,9 @@ public class SRDFOperations implements SmisConstants {
         // Update and persist target volumes with BCG
         for (BlockObject targetObj : targetVolumes) {
             targetObj.setConsistencyGroup(newConsistencyGroup.getId());
+            targetObj.setReplicationGroupInstance(newConsistencyGroup.getAlternateLabel());
         }
-        dbClient.persistObject(targetVolumes);
+        dbClient.updateObject(targetVolumes);
     }
 
     private void refreshTargetVolumeProperties(StorageSystem targetSystem, Volume target) throws Exception {

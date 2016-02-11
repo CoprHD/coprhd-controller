@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -202,20 +201,6 @@ public abstract class TaskLockingCompleter extends TaskCompleter {
         if (isNotifyWorkflow()) {
             // If there is a workflow, update the step to complete.
             updateWorkflowStatus(status, coded);
-        }
-    }
-
-    private void updateConsistencyGroupTasks(DbClient dbClient, Operation.Status status, ServiceCoded coded) {
-        for (URI consistencyGroupId : getConsistencyGroupIds()) {
-            _logger.info("Updating consistency group task: {}", consistencyGroupId);
-            switch (status) {
-                case error:
-                    setErrorOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId, coded);
-                    break;
-                case ready:
-                    setReadyOnDataObject(dbClient, BlockConsistencyGroup.class, consistencyGroupId);
-                    break;
-            }
         }
     }
 

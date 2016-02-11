@@ -7,17 +7,21 @@ package util;
 
 import static util.BourneUtil.getViprClient;
 
+import java.util.Iterator;
 import java.util.List;
 
-import com.emc.storageos.model.dr.SiteDetailRestRep;
+import plugin.StorageOsPlugin;
+
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteDetailRestRep;
 import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteIdListParam;
 import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SiteUpdateParam;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.google.common.collect.Lists;
 import com.sun.jersey.api.client.ClientResponse;
 
@@ -31,6 +35,10 @@ public class DisasterRecoveryUtils {
 
     public static SiteList getAllSites() {
         return getViprClient().site().listAllSites();
+    }
+
+    public static int getSiteCount() {
+        return getViprClient().site().listAllSites().getSites().size();
     }
 
     public static SiteActive checkActiveSite() {
@@ -51,6 +59,10 @@ public class DisasterRecoveryUtils {
 
     public static SiteRestRep resumeStandby(String uuid) {
         return getViprClient().site().resumeSite(uuid);
+    }
+
+    public static SiteRestRep retryStandby(String uuid) {
+        return getViprClient().site().retrySite(uuid);
     }
 
     public static SiteRestRep getSite(String uuid) {
@@ -82,6 +94,21 @@ public class DisasterRecoveryUtils {
         return false;
     }
 
+    public static boolean hasAnyStandbySite() {
+        List<SiteRestRep> sites = DisasterRecoveryUtils.getSiteDetails();
+        return sites.size() > 1;
+    }
+
+    public static boolean hasPausedSite() {
+        List<SiteRestRep> sites = DisasterRecoveryUtils.getSiteDetails();
+        for (SiteRestRep site : sites) {
+            if (SiteState.STANDBY_PAUSED.toString().equals(site.getState())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static ClientResponse doSwitchover(String id) {
         return getViprClient().site().doSwitchover(id);
     }
@@ -98,6 +125,18 @@ public class DisasterRecoveryUtils {
             }
         }
         return null;
+    }
+
+    public static List<SiteRestRep> getStandbySites() {
+        List<SiteRestRep> sites = getViprClient().site().listAllSites().getSites();
+        Iterator<SiteRestRep> iterator = sites.iterator();
+        while (iterator.hasNext()) {
+            SiteRestRep site = iterator.next();
+            if (site.getState().toUpperCase().equals(String.valueOf(SiteState.ACTIVE))) {
+                iterator.remove();
+            }
+        }
+        return sites;
     }
 
     public static boolean isActiveSite() {
@@ -121,5 +160,9 @@ public class DisasterRecoveryUtils {
     public static SiteDetailRestRep getSiteDetails(String uuid) {
         return getViprClient().site().getSiteDetails(uuid);
     }
-
+    
+    public static String getLocalSiteState() {
+        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
+        return getViprClient().site().getSite(coordinatorClient.getSiteId()).getState();
+    }
 }

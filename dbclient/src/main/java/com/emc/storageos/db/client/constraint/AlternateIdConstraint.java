@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -66,6 +67,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedNFSShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.storagedriver.DriverRegistryRecord;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
@@ -329,7 +331,7 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(ExportMask.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("initiators"), altId);
         }
-
+              
         public static AlternateIdConstraint getNetworkStoragePortConstraint(String networkId) {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("network"), networkId);
@@ -689,6 +691,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
         }
 
+        public static AlternateIdConstraint getDriverRegistryEntriesByDriverName(String driverName) {
+            DataObjectType doType = TypeMap.getDoType(DriverRegistryRecord.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("driverName"), driverName);
+        }
+
         public static AlternateIdConstraint getBlockSnapshotBySettingsInstance(String settingsInstance) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("settingsInstance"), settingsInstance);
@@ -697,6 +704,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getBlockSnapshotSessionBySessionInstance(String sessionInstance) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("sessionInstance"), sessionInstance);
+        }
+
+        public static AlternateIdConstraint getObjectNamespaceByNativeGuidConstraint(String nativeGuid) {
+            DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
     }
 }

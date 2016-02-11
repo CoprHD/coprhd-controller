@@ -1721,6 +1721,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
             BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+            
+            CIMObjectPath syncObjPath = getSyncObject(system, snapshot);
+            String[] props = new String[] { SmisConstants.CP_SYNC_TYPE };
+            CIMInstance syncObj = _helper.getInstance(system, syncObjPath, false, false, props);
+            String syncType = syncObj.getProperty(SmisConstants.CP_SYNC_TYPE).getValue().toString();
+            boolean copyMode = false;
+            if (String.valueOf(SYNC_TYPE.CLONE.getValue()).equals(syncType)) {
+                copyMode = true;
+            }
+            
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
             URI sourceURI = tgtSnapSession.getParent().getURI();
             BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
@@ -1730,7 +1740,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath targetDevicePath = _cimPath.getBlockObjectPath(system, snapshot);
             CIMArgument[] inArgs = null;
             CIMArgument[] outArgs = new CIMArgument[5];
-            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(settingsStatePath, targetDevicePath);
+            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(system, settingsStatePath, targetDevicePath, copyMode);
             _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
             CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
             ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,

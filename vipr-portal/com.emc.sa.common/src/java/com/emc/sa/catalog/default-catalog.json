@@ -217,7 +217,11 @@
         {
           "image": "Service_Remove_File_Quota_Dir.png",
           "baseService": "RemoveFileSystemQuotaDirectory"
-        }        
+        },
+        {
+          "image": "Service_Change_File_Virtual_Pool.png",
+          "baseService": "ChangeFileVirtualPool"
+        }    
       ]
     },
     {
@@ -238,6 +242,14 @@
           "baseService": "RemoveFileSnapshot"
         },
         {
+          "image": "Service_Associate_File_Policy_File_System.png",
+          "baseService": "AssociateFilePolicyToFileSystem"
+        },
+        {
+          "image": "Service_Associate_File_Policy_File_System.png",
+          "baseService": "DissociateFilePolicyFromFileSystem"
+        },
+        {
           "image": "icon_folder_CIFS_add.png",
           "baseService": "ShareFileSnapshot"
         },
@@ -252,6 +264,19 @@
         {
           "image": "icon_folder_NFS_remove.png",
           "baseService": "DeleteFileSnapshotExport"
+        },
+        {
+          "image": "Service_Create_File_Continuous_Copy.png",
+          "baseService": "CreateFileContinuousCopy"
+        }
+        ,
+        {
+          "image": "Service_Remove_File_Continuous_Copy.png",
+          "baseService": "RemoveFileContinuousCopy"
+        },
+        {
+          "image": "Service_Failover_File_System.png",
+          "baseService": "FailoverFileSystem"
         }
       ]
     },

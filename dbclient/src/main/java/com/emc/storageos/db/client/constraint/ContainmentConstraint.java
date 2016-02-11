@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.ComputeSanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ObjectNamespace;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.FCEndpoint;
@@ -479,6 +480,10 @@ public interface ContainmentConstraint extends Constraint {
             return getConstraint(BlockSnapshot.class, "consistencyGroup", cgId);
         }
 
+        public static ContainmentConstraint getBlockSnapshotSessionByConsistencyGroup(URI cgId) {
+            return getConstraint(BlockSnapshotSession.class, "consistencyGroup", cgId);
+        }
+
         public static ContainmentConstraint getExportMaskExportGroupConstraint(URI id) {
             DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
             ColumnField field = doType.getColumnField("exportMasks");
@@ -788,6 +793,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(SchedulePolicy.class);
             ColumnField field = doType.getColumnField("tenantOrg");
             return new ContainmentConstraintImpl(tenantOrg, SchedulePolicy.class, field);
+        }
+        
+        public static ContainmentConstraint getStorageDeviceObjectNamespaceConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(device, ObjectNamespace.class, field);
         }
     }
 }

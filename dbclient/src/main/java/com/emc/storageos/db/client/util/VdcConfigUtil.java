@@ -120,7 +120,7 @@ public class VdcConfigUtil {
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
         String activeSiteId = null;
         try {
-            activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+            activeSiteId = drUtil.getActiveSite().getUuid();
         } catch (RetryableCoordinatorException e) {
             log.warn("Failed to find active site id from ZK, go on since it maybe switchover case");
         }
@@ -130,10 +130,6 @@ public class VdcConfigUtil {
         
         if (StringUtils.isEmpty(activeSiteId) && SiteInfo.DR_OP_SWITCHOVER.equals(siteInfo.getActionRequired())) {
             activeSiteId = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()).getUuid();
-        }
-        
-        if (StringUtils.isEmpty(activeSiteId)) {
-            throw new IllegalStateException("No valid active site UUID found");
         }
         
         Collections.sort(sites, new Comparator<Site>() {
@@ -153,7 +149,7 @@ public class VdcConfigUtil {
 
             // exclude the paused sites from the standby site list on every site except the paused site
             // this will make it easier to resume the data replication.
-            if (!drUtil.isLocalSite(site)) {
+            if (!drUtil.isLocalSite(site) && !SiteState.STANDBY_PAUSED.equals(site.getState())) {
                 if (site.getState().equals(SiteState.STANDBY_PAUSING)
                         || site.getState().equals(SiteState.STANDBY_PAUSED)
                         || site.getState().equals(SiteState.STANDBY_REMOVING)

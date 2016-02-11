@@ -173,6 +173,12 @@ public interface InternalServerErrorExceptions {
             final String type, final String volume);
 
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException noMaxSnapshotsDefinedInVirtualPool(final String vPool, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException unmanagedVolumeVpoolConsistencyGroupMismatch(final String vPool, final String volume);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException virtualPoolNotMatchingStoragePoolNicer(final String virtualPool,
             final String type, final String volume, final String vpoolList);
 
@@ -299,6 +305,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
     public InternalServerErrorException resumeStandbyFailed(final String siteName, String errMsg);
 
+    @DeclareServiceCode(ServiceCode.SYS_DR_RETRY_STANDBY_OP_FAILED)
+    public InternalServerErrorException retryStandbyOpFailed(final String siteName, String errMsg);
+
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_TIMEOUT)
     public InternalServerErrorException resumeStandbyFailedTimeout(final long timeoutValue);
 
@@ -316,7 +325,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
     public InternalServerErrorException switchoverStandbyFailedTimeout(String siteName, int timeoutValue);
-    
+
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED_TIMEOUT)
     public InternalServerErrorException failoverFailedTimeout(String siteName, int timeoutValue);
 
@@ -325,6 +334,9 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_CONCURRENT_OPERATION_NOT_ALLOWED)
     public InternalServerErrorException concurrentDROperationNotAllowed(String sitedName, String state);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_CONCURRENT_OPERATION_NOT_ALLOWED)
+    public InternalServerErrorException concurrentRemoveDROperationNotAllowed(String sitedName, String state);
 
     @DeclareServiceCode(ServiceCode.UNFORSEEN_ERROR)
     public InternalServerErrorException unexpectedErrorVolumePlacement(Exception ex);
@@ -343,4 +355,10 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_UPDATE_SITE_FAILED)
     public InternalServerErrorException updateSiteFailed(String siteName, String errMsg);
+
+    @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
+    public InternalServerErrorException ingestNotAllowedNonRPVolume(final String vpoolLabel, final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.SYS_DR_UPGRADE_NOT_ALLOWED)
+    public InternalServerErrorException upgradeNotAllowedWithoutPausedSite();
 }

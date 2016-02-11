@@ -561,7 +561,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, waitFor, workflow);
         }
         if (null != targetSystem) {
-            addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
+            waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
+        }
+
+        // Refresh target volume properties
+        Mode SRDFMode = getSRDFMode(sourceDescriptors, uriVolumeMap);
+        if (Mode.ACTIVE.equals(SRDFMode)) {
+            refreshVolumeProperties(targetDescriptors, targetSystem, waitFor, workflow);
         }
     }
 
@@ -624,10 +630,24 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
         }
 
+        Mode SRDFMode = getSRDFMode(sourceDescriptors, uriVolumeMap);
+        if (Mode.ACTIVE.equals(SRDFMode)) {
+            /*
+             * Invoke Suspend on the SRDF group as more ACTIVE pairs cannot be added until all other
+             * existing pairs are in NOT-READY state
+             */
+            Method suspendGroupMethod = suspendSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
+            Method resumeRollbackMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
+
+            stepId = workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+                    SUSPEND_SRDF_MIRRORS_STEP_DESC, waitFor, system.getId(),
+                    system.getSystemType(), getClass(), suspendGroupMethod, resumeRollbackMethod, null);
+        }
+
         /*
          * 1. Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
@@ -654,10 +674,23 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri, forceAdd);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIs, false);
-        return workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
+        String addVolumestoCgStep = workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
                 system.getSystemType(), getClass(), addMethod, rollbackAddMethod,
                 null);
+
+        if (Mode.ACTIVE.equals(SRDFMode)) {
+            /*
+             * Invoke Resume on the SRDF group to get all pairs back in the READY state.
+             */
+            Method resumeGroupMethod = resumeSRDFGroupMethod(system.getId(), group, sourceURIs, targetURIs);
+            return workflow.createStep(CREATE_SRDF_ACTIVE_VOLUME_PAIR_STEP_GROUP,
+                    RESUME_SRDF_MIRRORS_STEP_DESC, addVolumestoCgStep, system.getId(),
+                    system.getSystemType(), getClass(), resumeGroupMethod, rollbackMethodNullMethod(), null);
+
+        } else {
+            return addVolumestoCgStep;
+        }
     }
 
     private void createSrdfCGPairStepsOnPopulatedGroup(Volume source,
@@ -877,6 +910,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Map<URI, RemoteDirectorGroup> srdfGroupMap = new HashMap<URI, RemoteDirectorGroup>();
         Map<URI, List<URI>> srdfGroupToSourceVolumeMap = new HashMap<URI, List<URI>>();
         Map<URI, List<URI>> srdfGroupToTargetVolumeMap = new HashMap<URI, List<URI>>();
+        Map<URI, String> srdfGroupToTargetVolumeAccessState = new HashMap<URI, String>();
         Map<URI, String> srdfGroupToLastWaitFor = new HashMap<URI, String>();
         // invoke deletion of volume within CG
         for (Volume source : sourcesVolumeMap.values()) {
@@ -928,6 +962,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         srdfGroupToSourceVolumeMap.get(groupId).add(source.getId());
                         srdfGroupToTargetVolumeMap.get(groupId).add(targetURI);
                         srdfGroupToLastWaitFor.put(groupId, waitFor);
+                        srdfGroupToTargetVolumeAccessState.put(groupId, target.getAccessState());
                     }
 
                 } else {
@@ -965,6 +1000,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             // Add step to resume each Active SRDF group
             for (URI srdfGroupURI : srdfGroupMap.keySet()) {
                 RemoteDirectorGroup group = srdfGroupMap.get(srdfGroupURI);
+                if(srdfGroupToTargetVolumeAccessState.get(srdfGroupURI).equals(Volume.VolumeAccessState.NOT_READY.name())){
+                    log.info("Srdf group {} {} was already in a suspended state hence skipping resume on this group.", srdfGroupURI, group.getNativeGuid());
+                    continue;
+                }
                 List<URI> sourceVolumes = srdfGroupToSourceVolumeMap.get(srdfGroupURI);
                 List<URI> targetVolumes = srdfGroupToTargetVolumeMap.get(srdfGroupURI);
                 String lastWaitFor = srdfGroupToLastWaitFor.get(srdfGroupURI);
@@ -1319,11 +1358,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
-    private Workflow.Method createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs) {
-        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs);
+    private Workflow.Method
+            createListReplicasMethod(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, boolean addWaitForCopyState) {
+        return new Workflow.Method(CREATE_LIST_REPLICAS_METHOD, systemURI, sourceURIs, targetURIs, addWaitForCopyState);
     }
 
-    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, String opId) {
+    public boolean createListReplicas(URI systemURI, List<URI> sourceURIs, List<URI> targetURIs, boolean addWaitForCopyState, String opId) {
         log.info("START Creating list of replicas");
         TaskCompleter completer = null;
         try {
@@ -1335,7 +1375,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             combined.addAll(targetURIs);
 
             completer = new SRDFMirrorCreateCompleter(combined, null, opId);
-            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, completer);
+            getRemoteMirrorDevice().doCreateListReplicas(system, sourceURIs, targetURIs, addWaitForCopyState, completer);
             log.info("Sources: {}", Joiner.on(',').join(sourceURIs));
             log.info("Targets: {}", Joiner.on(',').join(targetURIs));
             log.info("OpId: {}", opId);
@@ -1449,7 +1489,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, true);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 
@@ -1505,7 +1545,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         /*
          * Invoke CreateListReplica with all source/target pairings.
          */
-        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs);
+        Method createListMethod = createListReplicasMethod(system.getId(), sourceURIs, targetURIs, false);
         // false here because we want to rollback individual links not the entire (pre-existing) group.
         Method rollbackMethod = rollbackSRDFLinksMethod(system.getId(), sourceURIs, targetURIs, false);
 

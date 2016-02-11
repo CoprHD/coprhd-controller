@@ -10,6 +10,10 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
+import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
+
 /**
  * Class represents an array snapshot point-in-time copy.
  */
@@ -22,6 +26,9 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         copy,
         nocopy
     }
+
+    // The id of the source consistency group, if any.
+    private URI consistencyGroup;
 
     // The id of source Volume or BlockSnapshot for the array
     // snapshot session.
@@ -49,6 +56,17 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     // maintain this reference because it may not be navigable
     // using the API.
     private String _sessionInstance;
+
+    @RelationIndex(cf = "RelationIndex", type = BlockConsistencyGroup.class)
+    @Name("consistencyGroup")
+    public URI getConsistencyGroup() {
+        return consistencyGroup;
+    }
+
+    public void setConsistencyGroup(URI consistencyGroup) {
+        this.consistencyGroup = consistencyGroup;
+        setChanged("consistencyGroup");
+    }
 
     @NamedRelationIndex(cf = "NamedRelationIndex", type = BlockObject.class)
     @Name("parent")
@@ -111,5 +129,9 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     public void setSessionInstance(String sessionInstance) {
         _sessionInstance = sessionInstance;
         setChanged("sessionInstance");
+    }
+
+    public boolean hasConsistencyGroup() {
+        return !isNullURI(consistencyGroup);
     }
 }

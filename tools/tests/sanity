@@ -7221,7 +7221,7 @@ wait_for_site_stable()
         echo "Waiting for $ip to be stable ..."
         BOURNE_IPADDR=$ip
         security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-        dr waitforstable --ip $ip 10 600
+        dr waitforstable --ip "${ip}" 10 600
     done
     BOURNE_IPADDR=$old_bourne_ipaddr
 }

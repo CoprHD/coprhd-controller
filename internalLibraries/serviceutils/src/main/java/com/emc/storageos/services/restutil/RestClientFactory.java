@@ -39,6 +39,7 @@ abstract public class RestClientFactory {
     private int _maxConn;
     private int _maxConnPerHost;
     private int _connTimeout;
+    private int connManagerTimeout;
     private int _socketConnTimeout;
     private boolean _needCertificateManager;
 
@@ -83,6 +84,20 @@ abstract public class RestClientFactory {
 
     public int getConnectionTimeoutMs() {
         return _connTimeout;
+    }
+
+    /**
+     * @return the connManagerTimeout
+     */
+    public int getConnManagerTimeout() {
+        return connManagerTimeout;
+    }
+
+    /**
+     * @param connManagerTimeout the connManagerTimeout to set
+     */
+    public void setConnManagerTimeout(int connManagerTimeout) {
+        this.connManagerTimeout = connManagerTimeout;
     }
 
     /**
@@ -131,6 +146,7 @@ abstract public class RestClientFactory {
         _connectionManager.closeIdleConnections(0);  // close idle connections immediately
 
         HttpClient client = new HttpClient(_connectionManager);
+        client.getParams().setConnectionManagerTimeout(connManagerTimeout);
         client.getParams().setParameter(HttpMethodParams.RETRY_HANDLER, new HttpMethodRetryHandler() {
             @Override
             public boolean retryMethod(HttpMethod httpMethod, IOException e, int i) {

@@ -145,6 +145,8 @@ public enum OperationTypeEnum {
     ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyAssign", "FileSystemPolicyAssignFailed", "FileSystem Policy Assigned"),
     UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyUnassign", "FileSystemPolicyUnassignFailed", "FileSystem Policy Unassigned"),
     DELETE_FILE_SYSTEM_SHARE("FileSystemShareDeleted", "FileSystemShareDeleteFailed", "FileSystem share deleted"),
+    GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("FileSystemScheduleSnapshot", "FileSystemScheduleSnapshotFailed",
+            "FileSystem Schedule Snapshot List"),
 
     CREATE_FILE_SYSTEM_SNAPSHOT("FileSystemSnapshotCreated", "FileSystemSnapshotCreateFailed", "FileSystem snapshot created"),
     DELETE_FILE_SNAPSHOT("FileSystemSnapshotDeleted", "FileSystemSnapshotDeleteFailed", "FileSystem snapshot deleted"),

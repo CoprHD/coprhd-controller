@@ -3833,9 +3833,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
-    }
+}
 
-    /**
+ /**
      * Creates a rollback workflow method that does nothing, but allows rollback
      * to continue to prior steps back up the workflow chain.
      * 
@@ -3844,4 +3844,84 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
     }
+
+
+    @Override
+    public void listSanpshotByPolicy(URI storage, URI fsURI, URI policy, String opId) throws InternalException {
+        ControllerUtils.setThreadLocalLogData(fsURI, opId);
+        FileDeviceInputOutput args = new FileDeviceInputOutput();
+        FileShare fs = null;
+        try {
+            fs = _dbClient.queryObject(FileShare.class, fsURI);
+            SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, policy);
+
+            if (fs != null && fp != null) {
+                StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
+                _log.info("Controller Recieved File Policy  {}", policy);
+
+                args.addFSFileObject(fs);
+                args.setFileSystemPath(fs.getPath());
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        fs.getPool());
+                args.addStoragePool(pool);
+                args.addFilePolicy(fp);
+                args.setFileOperation(true);
+                args.setOpId(opId);
+
+                // Do the Operation on device.
+                BiosCommandResult result = getDevice(storageObj.getSystemType())
+                        .listSanpshotByPolicy(storageObj, args);
+
+                if (result.isCommandSuccess()) {
+                    // Update FS database
+                    StringSet fpolicies = fs.getFilePolicies();
+                    if (fpolicies != null && fpolicies.contains(policy.toString())) {
+                        fpolicies.remove(policy.toString());
+                        fs.setFilePolicies(fpolicies);
+                    }
+
+                    // Update SchedulePolicy database
+                    StringSet resources = fp.getAssignedResources();
+                    if (resources != null && resources.contains(fs.getId().toString())) {
+                        resources.remove(fs.getId().toString());
+                        fp.setAssignedResources(resources);
+                    }
+                }
+
+                if (result.getCommandPending()) {
+                    return;
+                }
+                // Audit & Update the task status
+                OperationTypeEnum auditType = null;
+                auditType = OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE;
+
+                fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
+
+                // Monitoring - Event Processing
+                String eventMsg = result.isCommandSuccess() ? "" : result
+                        .getMessage();
+
+                recordFileDeviceOperation(_dbClient,
+                        auditType,
+                        result.isCommandSuccess(),
+                        eventMsg,
+                        args.getFileSystemPath(),
+                        fs, storageObj);
+
+                _dbClient.updateObject(fs);
+                _dbClient.updateObject(fp);
+            } else {
+
+                throw DeviceControllerException.exceptions.invalidObjectNull();
+            }
+        } catch (Exception e) {
+            String[] params = { storage.toString(), fsURI.toString(), e.getMessage() };
+            _log.error("Unable to get schedule snapshots : storage {}, FS URI {},: Error {}", params);
+
+            updateTaskStatus(opId, fs, e);
+        }
+
+    }
+
 }

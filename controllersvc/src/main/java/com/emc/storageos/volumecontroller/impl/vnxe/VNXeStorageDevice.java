@@ -2527,14 +2527,14 @@ public class VNXeStorageDevice extends VNXeOperations
     }
     
     //file mirror related operations
-    public void doCreateMirror(StorageSystem storage, URI mirror, 
-    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
-    	throw DeviceControllerException.exceptions.operationNotSupported();
+    public void doCreateMirror(StorageSystem storage, URI mirror,
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
-    public void doDeleteMirror(StorageSystem storage, URI mirror, 
-    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
-    	throw DeviceControllerException.exceptions.operationNotSupported();
+
+    public void doDeleteMirror(StorageSystem storage, URI mirror,
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
@@ -2607,6 +2607,12 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }

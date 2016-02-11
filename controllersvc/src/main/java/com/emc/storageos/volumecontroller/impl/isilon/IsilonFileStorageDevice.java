@@ -42,6 +42,7 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
+import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
@@ -50,6 +51,7 @@ import com.emc.storageos.isilon.restapi.IsilonNFSACL.Acl;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
+import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
@@ -2534,6 +2536,32 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             }
         }
         return seconds.intValue();
+    }
+
+    @Override
+    public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        SchedulePolicy fp = args.getFilePolicy();
+        String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
+        IsilonApi isi = getIsilonDevice(storageObj);
+        String resumeToken = null;
+        IsilonList<IsilonSnapshot> Allsnapshots = new IsilonList<IsilonSnapshot>();
+        try {
+            do {
+                IsilonList<IsilonSnapshot> snapshots = isi.listSnapshotsCreatedByPolicy(resumeToken, snapshotScheduleName);
+                if (snapshots != null) {
+                    Allsnapshots.addList(snapshots.getList());
+                    resumeToken = snapshots.getToken();
+                }
+            } while (resumeToken != null);
+
+            for (IsilonSnapshot islon_snap : Allsnapshots.getList()) {
+                _log.info("file policy snapshot is  : " + islon_snap.getName());
+            }
+        } catch (IsilonException e) {
+            _log.error("listing snapshot by file policy failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+        return BiosCommandResult.createSuccessfulResult();
     }
 
 }

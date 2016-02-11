@@ -268,7 +268,7 @@ public class SchedulePolicies extends ViprResourceController {
         // Schedule Snapshot expire after
         public int expireValue = 2;
 
-        public String expiration = "NEVER";
+        public String expiration = "EXPIRE_TIME";
         public String referrerUrl;
 
         public String scheduleHour;

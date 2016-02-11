@@ -1303,6 +1303,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 _log.warn("Volume [{}] does not have PERSONALITY set. We will not be able to compare this volume.", volume.getLabel());
             }
         }
+        
+        // Flag to indicate that there are VMAX2 and VMAX3 storage
+        // systems in the request. Special handling will be required.
+        boolean vmax2Vmax3StorageCombo = false;
 
         // There should be at least 2 volumes to compare, Source and Target (if not more)
         if (!allVolumesToCompare.isEmpty() && (allVolumesToCompare.size() >= 2)) {
@@ -1325,9 +1329,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
 
                 storageSystem = volumeStorageSystemMap.get(volUri);
-
+                vmax2Vmax3StorageCombo = checkVMAX2toVMAX3(storageSystemToCompare, storageSystem);
+                
                 if (!storageSystemToCompare.getSystemType().equals(storageSystem.getSystemType())
-                        || checkVMAX2toVMAX3(storageSystemToCompare, storageSystem)) {
+                        || vmax2Vmax3StorageCombo) {
                     // The storage systems do not all match so we need to determine the allocated
                     // capacity on each system.
                     storageSystemsMatch = false;
@@ -1359,7 +1364,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 // Determine if the provisioning request requires storage systems
                 // which cannot allocate storage at the exact same amount
-                if (!capacitiesCanMatch(volumeStorageSystemMap)) {
+                if (!capacitiesCanMatch(volumeStorageSystemMap) || vmax2Vmax3StorageCombo) {
                     setUnMatchedCapacities(allVolumesToUpdateCapacity, associatedVolumePersonalityMap, isExpand,
                             capacityToUseInCalculation);
                 } else {

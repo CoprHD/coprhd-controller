@@ -118,5 +118,10 @@
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualNASMultipleProjectsAssociationMigration"/>
             </list>
         </entry>
+        <entry key="2.5">
+            <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.ExceptionMigration"/>
+            </list>
+        </entry>
     </util:map>
 </beans>

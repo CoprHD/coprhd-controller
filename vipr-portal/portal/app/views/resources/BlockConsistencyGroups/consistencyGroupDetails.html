@@ -99,7 +99,7 @@
 	  <div id="snapshotSessions">
 	  <div class="section-header"><h1>&{'resources.volume.snapshot.sessions'}</h1></div>
 	  <div class="content">
-	  #{if blockConsistencyGroup.snapshotSessions}
+	  #{if blockConsistencyGroup.snapshotSessionsCG}
 	  	<table class='table table-condensed table-striped'>
 	  		<thead>
 	  			<tr>
@@ -108,7 +108,7 @@
 	  			</tr>	  			
 	  		</thead>
 	  		<tbody>
-	  		#{list items:blockConsistencyGroup.snapshotSessions, as:'session'}
+	  		#{list items:blockConsistencyGroup.snapshotSessionsCG, as:'session'}
 	  		<tr>
 	  			<td>
 							<a href="@{resources.BlockSnapshotSessions.snapshotSessionDetails(session.blockSnapshotSession.id)}"

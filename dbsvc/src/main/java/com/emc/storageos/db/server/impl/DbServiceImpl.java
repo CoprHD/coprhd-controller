@@ -603,6 +603,11 @@ public class DbServiceImpl implements DbService {
         StartupMode mode = null;
 
         try {
+            if (_schemaUtil.isStandby()) {
+                // wait for standby site leaves ADDING state before first initialization
+                _schemaUtil.checkSiteAddingOnStandby();
+            }
+
             // we use this lock to discourage more than one node bootstrapping / joining at the same time
             // Cassandra can handle this but it's generally not recommended to make changes to schema concurrently
             lock = getLock(getSchemaLockName());

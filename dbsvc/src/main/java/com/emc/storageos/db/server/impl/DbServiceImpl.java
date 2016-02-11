@@ -596,7 +596,22 @@ public class DbServiceImpl implements DbService {
         }
         System.setProperty("cassandra.config", _config);
         System.setProperty("cassandra.config.loader", CassandraConfigLoader.class.getName());
-
+        
+        // Set to false to clear all gossip state for the node on restart.
+        //
+        // We encounter a weird Cassandra grossip issue(COP-19246) - some nodes are missing from gossip
+        // when rebooting the entire cluster simultaneously. Critical Gossip fields(ApplicationState.STATUS, ApplicationState.TOKENS)
+        // are not synchronized during handshaking. It looks like some problem caused by incorrect gossip version/generation
+        // at system local table. So add this option to cleanup local gossip state during reboot
+        //
+        // Make sure add-vdc/add-standby passed when you would remove this option in the future.
+        System.setProperty("cassandra.load_ring_state", "false");
+        
+        // Nodes in new data center should not auto-bootstrap.  
+        // See https://docs.datastax.com/en/cassandra/2.0/cassandra/operations/ops_add_dc_to_cluster_t.html
+        if (_schemaUtil.isStandby()) {
+            System.setProperty("cassandra.auto_bootstrap", "false");
+        }
         InterProcessLock lock = null;
         Configuration config = null;
 

@@ -692,7 +692,10 @@ public class VPlexScheduler implements Scheduler {
         // If only specified VPlexes are desired, filter the vplexPoolMapForSrcNH
         // to only use pools from the requestedVPlexSystems.
         if (requestedVPlexSystems != null && requestedVPlexSystems.isEmpty() == false) {
-            for (String vplexKey : vplexPoolMapForSrcVarray.keySet()) {
+            Set<String> keys = vplexPoolMapForSrcVarray.keySet();
+            Iterator<String> it = keys.iterator();
+            while (it.hasNext()) {
+                String vplexKey = it.next();
                 URI vplexURI = null;
                 try {
                     vplexURI = new URI(vplexKey);
@@ -701,7 +704,7 @@ public class VPlexScheduler implements Scheduler {
                     continue;
                 }
                 if (false == requestedVPlexSystems.contains(vplexURI)) {
-                    vplexPoolMapForSrcVarray.remove(vplexKey);
+                    it.remove();
                 }
             }
         }

@@ -3268,7 +3268,7 @@ public class BlockService extends TaskResourceService {
             blockServiceAPI.changeVolumeVirtualPool(volumes, vPool,
                     oldParam, taskId);
             _log.info("Executed VirtualPool change for given volumes.");
-        } catch (InternalException | APIException e) {
+        } catch (Exception e) {
             String errorMsg = String.format(
                     "Volume VirtualPool change error: %s", e.getMessage());
             _log.error(errorMsg);

@@ -268,14 +268,35 @@ public class PlacementTestUtils {
         return placementManager.getRecommendationsForVirtualPool(varray, project, vpool, capabilities);
     }
     
+    public static StorageSystem createStorageSystem(DbClient dbClient, 
+            String label, Network network, String[] portWWNs, VirtualArray varray) {
+        StorageSystem storageSystem = PlacementTestUtils.createStorageSystem(dbClient, "vmax", label);
+        
+     // Create two front-end storage ports system1.
+        List<StoragePort> system1Ports = new ArrayList<StoragePort>();
+        for (int i = 0; i < portWWNs.length; i++) {
+            system1Ports.add(PlacementTestUtils.createStoragePort(dbClient, storageSystem, network, portWWNs[i], varray,
+                    StoragePort.PortType.frontend.name(), "portGroupSite3vmax" + i, label + "_C0+FC0" + i));
+        }
+        return storageSystem;
+    }
+    
     /**
-     * Creates a pair of SRDF connected storage systems.
+     * Create SRDF paired vmax arrays.
      * @param _dbClient
-     * @param label1 -- Label for the first system
-     * @param label2 == Label for the second system
-     * @return StorageSystem[1] and StorageSystem[2] objects in array (StorageSystem[0] not used
+     * @param label1
+     * @param network1
+     * @param portWWNs1
+     * @param varray1
+     * @param label2
+     * @param network2
+     * @param portWWNs2
+     * @param varray2
+     * @return StorageSystem[1] and StorageSystem[2]; StorageSystem[0] not used.
      */
-    public static StorageSystem[] createSRDFStorageSystems(DbClient _dbClient, String label1, String label2) {
+    public static StorageSystem[] createSRDFStorageSystems(DbClient _dbClient, 
+            String label1, Network network1, String[] portWWNs1, VirtualArray varray1, 
+            String label2, Network network2, String[] portWWNs2, VirtualArray varray2) {
         StorageSystem[] storageSystems = new StorageSystem[3];
         // Create 2 storage systems
         StorageSystem storageSystem1 = PlacementTestUtils.createStorageSystem(_dbClient, "vmax", label1);
@@ -326,7 +347,41 @@ public class PlacementTestUtils {
         rdg2.setSourceStorageSystemUri(storageSystem2.getId());
         rdg2.setSupportedCopyMode(RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name());
         _dbClient.createObject(rdg2);
+        
+        // Create two front-end storage ports system1.
+        List<StoragePort> system1Ports = new ArrayList<StoragePort>();
+        for (int i = 0; i < portWWNs1.length; i++) {
+            system1Ports.add(PlacementTestUtils.createStoragePort(_dbClient, storageSystem1, network1, portWWNs1[i], varray1,
+                    StoragePort.PortType.frontend.name(), "portGroupSite1vmax" + i, "C0+FC0" + i));
+        }
+
+        // Create two front-end storage ports system2
+        List<StoragePort> system2Ports = new ArrayList<StoragePort>();
+        for (int i = 0; i < portWWNs2.length; i++) {
+            system2Ports.add(PlacementTestUtils.createStoragePort(_dbClient, storageSystem2, network2, portWWNs2[i], varray2,
+                    StoragePort.PortType.frontend.name(), "portGroupSite2vmax" + i, "D0+FC0" + i));
+        }
         return storageSystems;
+    }
+    
+    public static StoragePool[] createStoragePools(DbClient dbClient, StorageSystem storageSystem, VirtualArray varray) {
+        StoragePool[] storagePools = new StoragePool[7];
+        // Create a storage pool for storageSystem
+        storagePools[1] = PlacementTestUtils.createStoragePool(dbClient, varray, storageSystem, 
+                storageSystem.getLabel() + "pool1", storageSystem.getLabel() + "Pool1",
+                Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+        // Create a storage pool for storageSystem
+        storagePools[2] = PlacementTestUtils.createStoragePool(dbClient, varray, storageSystem, 
+                storageSystem.getLabel() + "pool2", storageSystem.getLabel() + "Pool2",
+                Long.valueOf(SIZE_GB * 10), Long.valueOf(SIZE_GB * 10), 300, 300,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+        // Create a bad storage pool for vmstorageSystemax1
+        storagePools[3] = PlacementTestUtils.createStoragePool(dbClient, varray, storageSystem, 
+                storageSystem.getLabel() + "pool3", storageSystem.getLabel() + "Pool3",
+                Long.valueOf(SIZE_GB * 1), Long.valueOf(SIZE_GB * 1), 100, 100,
+                StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
+        return storagePools;
     }
     
     public static StoragePool[] createStoragePoolsForTwo(DbClient _dbClient, StorageSystem storageSystem1, VirtualArray varray1, 
@@ -385,9 +440,24 @@ public class PlacementTestUtils {
         return vplexStorageSystem;
     }
     
-    public static StorageSystem createVPlexTwoCluster(DbClient _dbClient, String label, VirtualArray varray1, 
-            Network networkFE1, Network networkBE1, String[] vplexFE1, String[] vplexBE1,
-            VirtualArray varray, Network networkFE2, Network networkBE2, String[] vplexFE2, String[] vplexBE2) {
+    /**
+     * @param _dbClient
+     * @param label
+     * @param varray1
+     * @param networkFE1
+     * @param networkBE1
+     * @param vplexFE1
+     * @param vplexBE1
+     * @param varray2
+     * @param networkFE2
+     * @param networkBE2
+     * @param vplexFE2
+     * @param vplexBE2
+     * @return
+     */
+    public static StorageSystem createVPlexTwoCluster(DbClient _dbClient, String label, 
+            VirtualArray varray1, Network networkFE1, Network networkBE1, String[] vplexFE1, String[] vplexBE1,
+            VirtualArray varray2, Network networkFE2, Network networkBE2, String[] vplexFE2, String[] vplexBE2) {
         // Create a VPLEX storage system
         StorageSystem vplexStorageSystem = PlacementTestUtils.createStorageSystem(_dbClient, "vplex", label);
 
@@ -395,14 +465,14 @@ public class PlacementTestUtils {
         // Create two front-end storage ports VPLEX
         List<StoragePort> fePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexFE1.length; i++) {
-            fePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkFE1, vplexFE1[i], varray,
+            fePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkFE1, vplexFE1[i], varray1,
                     StoragePort.PortType.frontend.name(), "portGroupFE" + i, label +"_A0+FC0" + i));
         }
 
         // Create two back-end storage ports VPLEX
         List<StoragePort> bePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexBE1.length; i++) {
-            bePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkBE1, vplexBE1[i], varray,
+            bePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkBE1, vplexBE1[i], varray1,
                     StoragePort.PortType.backend.name(), "portGroupBE" + i, label +"_B0+FC0" + i));
         }
         
@@ -410,14 +480,14 @@ public class PlacementTestUtils {
         // Create two front-end storage ports VPLEX
         fePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexFE2.length; i++) {
-            fePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkFE2, vplexFE2[i], varray,
+            fePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkFE2, vplexFE2[i], varray2,
                     StoragePort.PortType.frontend.name(), "portGroupFE" + i, label +"_C0+FC0" + i));
         }
 
         // Create two back-end storage ports VPLEX
         bePorts = new ArrayList<StoragePort>();
         for (int i = 0; i < vplexBE2.length; i++) {
-            bePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkBE2, vplexBE2[i], varray,
+            bePorts.add(PlacementTestUtils.createStoragePort(_dbClient, vplexStorageSystem, networkBE2, vplexBE2[i], varray2,
                     StoragePort.PortType.backend.name(), "portGroupBE" + i, label +"_D0+FC0" + i));
         }
         return vplexStorageSystem;

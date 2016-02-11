@@ -53,6 +53,9 @@ public class ObjectBuckets extends ResourceController {
     private static final String UNKNOWN = "resources.buckets.unknown";
     protected static final String DELETED = "resources.buckets.acl.deleted";
     protected static final String ADDED = "resources.buckets.acl.added";
+    protected static final String USER = "User";
+    protected static final String GROUP = "Group";
+    protected static final String CUSTOMGROUP = "Customgroup";
 
     private static ObjectBucketsDataTable objectbucketsDataTable = new ObjectBucketsDataTable();
 
@@ -167,12 +170,12 @@ public class ObjectBuckets extends ResourceController {
         List<BucketACLDataTable.AclInfo> acl = Lists.newArrayList();
         for (BucketACE ace : bucketAcl) {
             String userOrGroupOrCustomgroup = ace.getUser();
-            String type = "User";
+            String type = USER;
             if (ace.getGroup() != null && !ace.getGroup().isEmpty()) {
-                type = "Group";
+                type = GROUP;
                 userOrGroupOrCustomgroup = ace.getGroup();
             } else if (ace.getCustomGroup() != null && !ace.getCustomGroup().isEmpty()) {
-                type = "Customgroup";
+                type = CUSTOMGROUP;
                 userOrGroupOrCustomgroup = ace.getCustomGroup();
             }
             acl.add(new BucketACLDataTable.AclInfo(userOrGroupOrCustomgroup, type, ace.getPermissions(), id, ace.getDomain()));
@@ -201,9 +204,9 @@ public class ObjectBuckets extends ResourceController {
                 String name = BucketACLForm.extractNameFromId(id);
                 String domain = BucketACLForm.extractDomainFromId(id);
                 BucketACE ace = new BucketACE();
-                if ("Group".equalsIgnoreCase(type)) {
+                if (GROUP.equalsIgnoreCase(type)) {
                     ace.setGroup(name);
-                } else if ("Customgroup".equalsIgnoreCase(type)) {
+                } else if (CUSTOMGROUP.equalsIgnoreCase(type)) {
                     ace.setCustomGroup(name);
                 } else {
                     ace.setUser(name);
@@ -273,9 +276,9 @@ public class ObjectBuckets extends ResourceController {
         BucketACE ace = new BucketACE();
         BucketACL aclToModify = new BucketACL();
 
-        if ("GROUP".equalsIgnoreCase(type)) {
+        if (GROUP.equalsIgnoreCase(type)) {
             ace.setGroup(name);
-        } else if ("CUSTOMGROUP".equalsIgnoreCase(type)) {
+        } else if (CUSTOMGROUP.equalsIgnoreCase(type)) {
             ace.setCustomGroup(name);
         } else {
             ace.setUser(name);
@@ -330,9 +333,9 @@ public class ObjectBuckets extends ResourceController {
             if (uiDomain != null && !uiDomain.isEmpty() && !"null".equals(uiDomain)) {
                 bucketAce.setDomain(uiDomain);
             }
-            if ("GROUP".equalsIgnoreCase(uiType.trim())) {
+            if (GROUP.equalsIgnoreCase(uiType.trim())) {
                 bucketAce.setGroup(uiName.trim());
-            }else if ("CUSTOMGROUP".equalsIgnoreCase(uiType.trim())) {
+            }else if (CUSTOMGROUP.equalsIgnoreCase(uiType.trim())) {
                 bucketAce.setCustomGroup(uiName.trim());
             } else {
                 bucketAce.setUser(uiName.trim());

@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.mapper.BlockMapper;
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.PlacementManager;
@@ -46,6 +47,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -65,6 +67,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
@@ -72,6 +75,7 @@ import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeGroupFullCopyActivateParam;
@@ -542,7 +546,7 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param cgURI The URI of the volume group.
+     * @param volumeGroupId The URI of the volume group.
      *
      * @brief List full copies for a volume group
      *
@@ -579,7 +583,7 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param cgURI The URI of the volume group.
+     * @param volumeGroupId The URI of the volume group.
      * @param fullCopyURI The URI of the full copy.
      *
      * @brief Get the specified volume group full copy.
@@ -1176,6 +1180,27 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
+     * Creates a Task on given snapshot with Error state
+     *
+     * @param opType
+     * @param snapshot
+     * @param serviceCoded
+     * @return the failed task for snapshot
+     */
+    private TaskResourceRep createFailedTaskOnSnapshot(BlockSnapshot snapshot, ResourceOperationTypeEnum opType, ServiceCoded serviceCoded) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opType);
+        _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId, op);
+
+        op = snapshot.getOpStatus().get(taskId);
+        op.error(serviceCoded);
+        snapshot.getOpStatus().updateTaskStatus(taskId, op);
+        _dbClient.updateObject(snapshot);
+        return TaskMapper.toTask(snapshot, taskId, op);
+    }
+
+    /**
      * Creates a volume group snapshot
      * - Creates snapshot for all the array replication groups within this Application.
      * - If partial flag is specified, it creates snapshot only for set of array replication groups.
@@ -1264,8 +1289,8 @@ public class VolumeGroupService extends TaskResourceService {
                         taskList.addTask(taskResRep);
                     }
                 }
-            } catch (Exception e) {
-                log.warn("Exception when creating snapshot with consistency group {}: {}", cgUri, e.getMessage());
+            } catch (InternalException | APIException e) {
+                log.error("Exception when creating snapshot with consistency group {}: {}", cgUri, e.getMessage());
             }
         }
 
@@ -1273,6 +1298,87 @@ public class VolumeGroupService extends TaskResourceService {
                 param.getName());
 
         return taskList;
+    }
+
+    /**
+     * List snapshots for a volume group
+     *
+     * @prereq none
+     * @param volumeGroupId The URI of the volume group.
+     * @brief List snapshots for a volume group
+     * @return SnapshotList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshots")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public SnapshotList getVolumeGroupSnapshots(@PathParam("id") final URI volumeGroupId) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // query volume group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate replica operation for volume group
+        validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
+
+        // get all volumes
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+
+        // get the snapshots for each volume in the group
+        SnapshotList snapshotList = new SnapshotList();
+        for (Volume volume : volumes) {
+            URIQueryResultList snapshotURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                    volume.getId()), snapshotURIs);
+            if (!snapshotURIs.iterator().hasNext()) {
+                return snapshotList;
+            }
+
+            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
+            for (BlockSnapshot snapshot : snapshots) {
+                snapshotList.getSnapList().add(toNamedRelatedResource(snapshot));
+            }
+        }
+
+        return snapshotList;
+    }
+
+    /**
+     * Get the specified volume group snapshot.
+     *
+     * @prereq none
+     * @param volumeGroupId The URI of the volume group.
+     * @param snapshotId The URI of the snapshot.
+     * @brief Get the specified volume group snapshot.
+     * @return BlockSnapshotRestRep.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshots/{sid}")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public BlockSnapshotRestRep getVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
+            @PathParam("sid") URI snapshotId) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate replica operation for volume group
+        validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
+
+        // validate snapshot ID
+        ArgValidator.checkFieldUriType(snapshotId, BlockSnapshot.class, "sid");
+
+        // get snapshot
+        BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotId);
+        ArgValidator.checkEntity(snapshot, snapshotId,isIdEmbeddedInURL(snapshotId), true);
+
+        // validate that source of the provided snapshot is part of the volume group
+        Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
+        if (volume == null || volume.getInactive() || !volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+            throw APIException.badRequests
+                    .replicaOperationNotAllowedVolumeNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(), volume.getLabel());
+        }
+
+        return BlockMapper.map(_dbClient, snapshot);
     }
 
     /**
@@ -1375,8 +1481,8 @@ public class VolumeGroupService extends TaskResourceService {
                             log.error("Unsupported operation {}", opType.getDescription());
                             break;
                     }
-                } catch (Exception e) {
-                    log.warn("Exception on {} for replication group {}: {}", opType.getDescription(), cell.getColumnKey(), e.getMessage());
+                } catch (InternalException | APIException e) {
+                    log.error("Exception on {} for replication group {}: {}", opType.getDescription(), cell.getColumnKey(), e.getMessage());
                 }
             }
         }

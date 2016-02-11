@@ -87,6 +87,7 @@ public class BlockMapper {
         to.setDeviceLabel(from.getDeviceLabel() != null ? from.getDeviceLabel() : "");
         to.setNativeId(from.getNativeId() != null ? from.getNativeId() : "");
         to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance() != null ? from.getReplicationGroupInstance() : "");
     }
 
     public static VolumeRestRep map(Volume from) {
@@ -334,6 +335,7 @@ public class BlockMapper {
         to.setSyncActive(from.getIsSyncActive());
         to.setReplicaState(getReplicaState(from));
         to.setReadOnly(from.getIsReadOnly());
+        to.setSnapsetLabel(from.getSnapsetLabel() != null ? from.getSnapsetLabel() : "");
         return to;
     }
 

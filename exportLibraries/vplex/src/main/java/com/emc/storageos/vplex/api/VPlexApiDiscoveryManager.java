@@ -974,11 +974,7 @@ public class VPlexApiDiscoveryManager {
                 List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = getVirtualVolumesForCluster(clusterId);
                 for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
                     s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
-                    // We use contains as at times the passed name is only
-                    // a portion of the virtual volume name for example, it
-                    // may be the name of one of the storage volumes used by
-                    // the virtual volume.
-                    if (volumeInfo.getName().contains(volumeNameSubstr)) {
+                    if (volumeInfo.getName().equals(volumeNameSubstr)) {
                         s_logger.info("Found virtual volume {}", volumeInfo.getName());
                         return volumeInfo;
                     }
@@ -1608,7 +1604,7 @@ public class VPlexApiDiscoveryManager {
             return new ArrayList<VPlexInitiatorInfo>();
         } else {
             throw VPlexApiException.exceptions
-                .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
+                    .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
         }
     }
 

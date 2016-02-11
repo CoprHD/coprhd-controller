@@ -576,7 +576,7 @@ public class VPlexApiMigrationManager {
             s_logger.info("No migration found in the VPLEX", vae);
             return;
         }
-        
+
         // Verify that the migrations are in a state in which they can be removed.
         StringBuilder migrationArgBuilder = new StringBuilder();
         for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
@@ -1188,11 +1188,19 @@ public class VPlexApiMigrationManager {
                         VPlexApiConstants.EXTENT_PREFIX.length(),
                         migrationSrcName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
 
+                // Extent migration is used for VPLEX Local volumes so prefix with device_
+                // and suffix with _vol to create volume name.
+                StringBuilder localVirtualVolumeName = new StringBuilder();
+
+                localVirtualVolumeName.append(VPlexApiConstants.DEVICE_PREFIX);
+                localVirtualVolumeName.append(srcVolumeName);
+                localVirtualVolumeName.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+
                 // Find the virtual volume containing the source volume
                 // name.
                 for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                     virtualVolumeInfo = discoveryMgr.findVirtualVolume(
-                            clusterInfo.getName(), srcVolumeName, false);
+                            clusterInfo.getName(), localVirtualVolumeName.toString(), false);
                     if (virtualVolumeInfo != null) {
                         break;
                     }

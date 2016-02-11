@@ -692,10 +692,9 @@ public class VPlexScheduler implements Scheduler {
         // If only specified VPlexes are desired, filter the vplexPoolMapForSrcNH
         // to only use pools from the requestedVPlexSystems.
         if (requestedVPlexSystems != null && requestedVPlexSystems.isEmpty() == false) {
-            Set<String> keys = vplexPoolMapForSrcVarray.keySet();
-            Iterator<String> it = keys.iterator();
+            Iterator<Map.Entry<String, List<StoragePool>>> it = vplexPoolMapForSrcVarray.entrySet().iterator();
             while (it.hasNext()) {
-                String vplexKey = it.next();
+                String vplexKey = it.next().getKey();
                 URI vplexURI = null;
                 try {
                     vplexURI = new URI(vplexKey);

@@ -9,13 +9,13 @@
 export DO_NOT_START := yes
 WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := CoprHD
-VERSION := 2.5.0.0
+VERSION := 3.0.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
 ISO_URL := http://download.opensuse.org/distribution/13.2/iso/$(ISO_FILE)
 SOURCE_RPM := jenkins
-STORAGEOS_VERSION := 2.5.0.0
+STORAGEOS_VERSION := 3.0.0.0
 STORAGEOS_STABLE := $(shell wget --no-check-certificate --quiet -O - https://build.coprhd.org/jenkins/job/CH-coprhd-controller-master/lastStableBuild/buildNumber)
 ifeq ($(SOURCE_RPM),jenkins)
     JOB := $(STORAGEOS_STABLE)

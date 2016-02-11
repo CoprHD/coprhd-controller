@@ -1721,12 +1721,12 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
             BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            CIMObjectPath syncObjPath = getSyncObject(system, snapshot);
-            boolean targetLinkedInCopyMode = isTargetOrGroupCopyMode(system, syncObjPath);
-            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
             URI sourceURI = tgtSnapSession.getParent().getURI();
             BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
             CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
+            CIMObjectPath syncObjPath = getSyncObject(system, snapshot, sourceObj);
+            boolean targetLinkedInCopyMode = isTargetOrGroupCopyMode(system, syncObjPath);
+            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
             String syncAspectPath = tgtSnapSession.getSessionInstance();
             CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
             CIMObjectPath targetDevicePath = _cimPath.getBlockObjectPath(system, snapshot);

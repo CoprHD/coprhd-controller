@@ -533,7 +533,7 @@ public class ECSApi {
            
             return responseString;
         } catch (Exception e) {
-            throw ECSException.exceptions.getNamespacesFailed(e);
+            throw ECSException.exceptions.bucketACLSyncFailed(bucketName, e.getMessage());
         } finally {
             if (clientResp != null) {
                 clientResp.close();

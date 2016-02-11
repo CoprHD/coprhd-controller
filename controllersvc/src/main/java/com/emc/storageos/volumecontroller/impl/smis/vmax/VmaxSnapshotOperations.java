@@ -1837,7 +1837,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
                         replicationGroupName, _dbClient);
             } else {
-                syncObjectPath = getSyncObject(system, snapshot);
+                BlockObject sourceObj = BlockObject.fetch(_dbClient, snapshot.getParent().getURI());
+                syncObjectPath = getSyncObject(system, snapshot, sourceObj);
                 snapshots = Lists.newArrayList(snapshot);
             }
 
@@ -1904,10 +1905,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * 
      * @param system A reference to the system.
      * @param snapshot A reference to the snapshot.
+     * @param sourceObj The snapshot source.
      * 
      * @return The StorgeSynchronized path for the passed block snapshot.
      */
-    private CIMObjectPath getSyncObject(StorageSystem system, BlockSnapshot snapshot) {
+    private CIMObjectPath getSyncObject(StorageSystem system, BlockSnapshot snapshot, BlockObject sourceObj) {
         CIMObjectPath returnPath = SmisConstants.NULL_CIM_OBJECT_PATH;
         CloseableIterator<CIMObjectPath> syncObjIter = null;
         try {
@@ -1915,11 +1917,15 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             while (syncObjIter.hasNext()) {
                 CIMObjectPath syncObjPath = syncObjIter.next();
                 CIMObjectPath syncedElementPath = (CIMObjectPath) syncObjPath.getKey("SyncedElement").getValue();
-                String deviceId = syncedElementPath.getKey("DeviceID").getValue().toString();
-                if (snapshot.getNativeId().equals(deviceId)) {
-                    _log.info("Found synchronization {} for snapshot target {}", syncObjPath, snapshot.getNativeGuid());
-                    returnPath = syncObjPath;
-                    break;
+                String syncDeviceId = syncedElementPath.getKey("DeviceID").getValue().toString();
+                if (snapshot.getNativeId().equals(syncDeviceId)) {
+                    CIMObjectPath systemElementPath = (CIMObjectPath) syncObjPath.getKey("SystemElement").getValue();
+                    String sysDeviceId = systemElementPath.getKey("DeviceID").getValue().toString();
+                    if (sourceObj.getNativeId().equals(sysDeviceId)) {
+                        _log.info("Found synchronization {} for snapshot target {}", syncObjPath, snapshot.getNativeGuid());
+                        returnPath = syncObjPath;
+                        break;
+                    }
                 }
             }
         } finally {

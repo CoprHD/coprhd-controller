@@ -8,6 +8,7 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.db.common.VdcUtil;
@@ -54,7 +55,7 @@ public class IPsecManager {
     private DrUtil drUtil;
 
     @Autowired
-    private VdcUtil vdcUtil;
+    DbClient dbClient;
 
     @Autowired
     private GeoClientCacheManager geoClientManager;
@@ -266,7 +267,8 @@ public class IPsecManager {
     }
 
     private boolean hasOngoingVdcOp() {
-        VirtualDataCenter localVdc = vdcUtil.getLocalVdc();
+        VdcUtil.setDbClient(dbClient);
+        VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
         return ! localVdc.getConnectionStatus().equals(VirtualDataCenter.ConnectionStatus.CONNECTED);
     }
 

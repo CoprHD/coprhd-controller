@@ -2971,16 +2971,16 @@ recoverpoint_ingest_test()
         # Make sure it fails against a different sync policy than what's on the RPA
         fail unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp-sync $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 
-            # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
-        #run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-        #volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
-            # Recreate unmanaged volumes/protection sets
-        #run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
-        #if [ ${RPVPLEX_TESTS} = "1" ]; then
-        #    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-        #    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-        #fi
-        #run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+        # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
+        # Recreate unmanaged volumes/protection sets
+	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	if [ ${RPVPLEX_TESTS} = "1" ]; then
+	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	fi
+	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
@@ -3038,18 +3038,18 @@ recoverpoint_ingest_test()
     # Re-ingest
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
-	#run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
-	#/opt/storageos/bin/dbutils list Volume > /tmp/vol1.txt
-	#volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
-	#/opt/storageos/bin/dbutils list Volume > /tmp/vol2.txt
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
+	/opt/storageos/bin/dbutils list Volume > /tmp/vol1.txt
+	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
+	/opt/storageos/bin/dbutils list Volume > /tmp/vol2.txt
         # Recreate unmanaged volumes/protection sets
-	#run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
-	#if [ ${RPVPLEX_TESTS} = "1" ]; then
-	#    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	#    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	#fi
-	#run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
-	#/opt/storageos/bin/dbutils list Volume > /tmp/vol3.txt
+	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	if [ ${RPVPLEX_TESTS} = "1" ]; then
+	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	fi
+	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+	/opt/storageos/bin/dbutils list Volume > /tmp/vol3.txt
 
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
@@ -7247,7 +7247,7 @@ wait_for_site_stable()
         echo "Waiting for $ip to be stable ..."
         BOURNE_IPADDR=$ip
         security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-        dr waitforstable --ip $ip 10 600
+        dr waitforstable --ip "${ip}" 10 600
     done
     BOURNE_IPADDR=$old_bourne_ipaddr
 }

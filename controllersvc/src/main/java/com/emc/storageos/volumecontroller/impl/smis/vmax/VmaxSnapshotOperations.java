@@ -1721,16 +1721,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
             BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            
             CIMObjectPath syncObjPath = getSyncObject(system, snapshot);
-            String[] props = new String[] { SmisConstants.CP_SYNC_TYPE };
-            CIMInstance syncObj = _helper.getInstance(system, syncObjPath, false, false, props);
-            String syncType = syncObj.getProperty(SmisConstants.CP_SYNC_TYPE).getValue().toString();
-            boolean copyMode = false;
-            if (String.valueOf(SYNC_TYPE.CLONE.getValue()).equals(syncType)) {
-                copyMode = true;
-            }
-            
+            boolean targetLinkedInCopyMode = isTargetOrGroupCopyMode(system, syncObjPath);
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
             URI sourceURI = tgtSnapSession.getParent().getURI();
             BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
@@ -1740,7 +1732,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath targetDevicePath = _cimPath.getBlockObjectPath(system, snapshot);
             CIMArgument[] inArgs = null;
             CIMArgument[] outArgs = new CIMArgument[5];
-            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(system, settingsStatePath, targetDevicePath, copyMode);
+            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(system, settingsStatePath, targetDevicePath, targetLinkedInCopyMode);
             _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
             CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
             ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
@@ -1769,11 +1761,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
             String syncAspectPath = tgtSnapSession.getSessionInstance();
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-
             String groupName = _helper.extractGroupName(snapshot.getReplicationGroupInstance());
             CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(system, groupName);
-
-            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
 
             // We need a single source volume for the session.
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, tgtSnapSession.getConsistencyGroup());
@@ -1782,9 +1771,15 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
             CIMObjectPath settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
             
+            // We need to know if the group was linked in copy mode or nocopy mode.
+            CIMObjectPath groupSyncPath = _cimPath.getGroupSynchronizedPath(system, sourceGroupName, groupName);
+            boolean targetGroupLinkedInCopyMode = isTargetOrGroupCopyMode(system, groupSyncPath);
+            
             CIMArgument[] inArgs = null;
             CIMArgument[] outArgs = new CIMArgument[5];
-            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargetGroups(settingsStatePath, replicationGroupPath);
+            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargetGroups(system, settingsStatePath, replicationGroupPath,
+                    targetGroupLinkedInCopyMode);
+            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
             _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
             CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
             ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
@@ -1939,6 +1934,28 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         }
 
         return returnPath;
+    }
+    
+    /**
+     * Determines if the target or target group represented by the passed synchronization object path
+     * is linked to the snapshot session in "copy" mode.
+     * 
+     * @param system A reference to the storage system.
+     * @param syncObjPath The synchronization object path.
+     * 
+     * @return true if the target is linked in "copy" mode, false otherwise.
+     * 
+     * @throws Exception When an exception occurs getting the CIM_StorageSynchronized instance representing the linked target
+     */
+    private boolean isTargetOrGroupCopyMode(StorageSystem system, CIMObjectPath syncObjPath) throws Exception {
+        boolean isCopyMode = false;
+        String[] props = new String[] { SmisConstants.CP_SYNC_TYPE };
+        CIMInstance syncObj = _helper.getInstance(system, syncObjPath, false, false, props);
+        String syncType = syncObj.getProperty(SmisConstants.CP_SYNC_TYPE).getValue().toString();
+        if (String.valueOf(SYNC_TYPE.CLONE.getValue()).equals(syncType)) {
+            isCopyMode = true;
+        }
+        return isCopyMode;
     }
 
     /**

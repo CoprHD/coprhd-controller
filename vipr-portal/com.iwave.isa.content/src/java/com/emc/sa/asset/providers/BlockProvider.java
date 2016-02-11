@@ -8,9 +8,8 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupport
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
@@ -73,7 +72,6 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
-import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsParam;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
@@ -118,8 +116,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     
     public static final String SOURCE_OPTION_KEY = "source";
     public static final String HA_OPTION_KEY = "HA";
-    private static final AssetOption SOURCE_OPTION = newAssetOption(SOURCE_OPTION_KEY, "block.storage.type.source");
-    private static final AssetOption HA_OPTION = newAssetOption(HA_OPTION_KEY, "block.storage.type.ha");
+    public static final String TARGET_OPTION_KEY = "HA";
+    private static final AssetOption SOURCE_OPTION = newAssetOption(SOURCE_OPTION_KEY, "protection.site.type.source");
+    private static final AssetOption HA_OPTION = newAssetOption(HA_OPTION_KEY, "protection.site.type.ha");
+    private static final AssetOption TARGET_OPTION = newAssetOption(TARGET_OPTION_KEY, "protection.site.type.target");
 
     // Failover option keys
     public static final String LATEST_IMAGE_OPTION_KEY = "latest";
@@ -1822,7 +1822,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("application")
     public List<AssetOption> getApplicationVirtualArrays(AssetOptionsContext ctx, URI applicationId) {
         final ViPRCoreClient client = api(ctx);
-        NamedVolumesList volList = client.application().getFullCopiesByApplication(applicationId);
+        NamedVolumesList volList = client.application().getVolumeByApplication(applicationId);
         boolean isVplex = false;
         boolean isRP = false;
         if (volList != null && volList.getVolumes() != null && !volList.getVolumes().isEmpty()) {
@@ -1843,34 +1843,32 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         	options.add(HA_OPTION);
         }
         if (isRP) {
-        	
-           // public List<AssetOption> getFailoverTarget(AssetOptionsContext ctx, URI protectedBlockVolume) {
 
         	List<VolumeRestRep> allVols = client.blockVolumes().getByRefs(volList.getVolumes());
-        	List<RelatedResourceRep> cgIds = new ArrayList<RelatedResourceRep>();
+            Set<URI> cgIds = new HashSet<URI>();
         	for (VolumeRestRep vol : allVols) {
-        		cgIds.add(vol.getConsistencyGroup());
+                cgIds.add(vol.getConsistencyGroup().getId());
         	}
-        	Set
-        	List<BlockConsistencyGroupRestRep> cgs = client.blockConsistencyGroups().getByRefs(cgIds);
-        	for (BlockConsistencyGroupRestRep cg : cgs) {
-        		
+
+            List<AssetOption> targetOptions = new ArrayList<AssetOption>();
+            for (URI cgId : cgIds) {
+                targetOptions.addAll(getFailoverTarget(ctx, cgId));
         	}
-        	List<URI> varrayIds = new ArrayList<URI>();
-        	for (BlockVirtualPoolRestRep vpool : vpools) {
-        		if (vpool.getProtection() != null && vpool.getProtection().getRecoverPoint() != null && 
-        				vpool.getProtection().getRecoverPoint().getCopies() != null) {
-        			for (VirtualPoolProtectionVirtualArraySettingsParam param : vpool.getProtection().getRecoverPoint().getCopies()) {
-        				varrayIds.add(param.getVarray());
-        			}
-        		}
-        	}
-        	List<VirtualArrayRestRep> tgtVarrays = client.varrays().getByIds(varrayIds);
-        	List<NamedRelatedResourceRep> targetRefs = new ArrayList<NamedRelatedResourceRep>();
-        	for (VirtualArrayRestRep tgtVarray : tgtVarrays) {
-        		targetRefs.add(ResourceUtils.createNamedRef(tgtVarray));
-        	}
-        	options.addAll(createNamedResourceOptions(targetRefs));
+
+            // sort the targets
+            AssetOptionsUtils.sortOptionsByLabel(targetOptions);
+
+            // remove duplicates
+            AssetOption previous = null;
+            List<AssetOption> tgtOptions = new ArrayList<AssetOption>();
+            for (AssetOption option : targetOptions) {
+                if (previous == null || !option.key.equals(previous.key)) {
+                    tgtOptions.add(option);
+                }
+            }
+
+            options.addAll(tgtOptions);
+
         }
         return options;
     }

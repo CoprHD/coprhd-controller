@@ -1787,7 +1787,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     @Asset("applicationBlockVolume")
     @AssetDependencies("application")
-    public List<AssetOption> getApplications(AssetOptionsContext ctx, URI application) {
+    public List<AssetOption> getApplicationVolumes(AssetOptionsContext ctx, URI application) {
         final ViPRCoreClient client = api(ctx);
         List<NamedRelatedResourceRep> volList = client.application().listVolumes(application);
         List<AssetOption> options = new ArrayList<AssetOption>();
@@ -1911,11 +1911,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             AssetOptionsUtils.sortOptionsByLabel(targetOptions);
 
             // remove duplicates
-            AssetOption previous = null;
+            String previous = null;
             List<AssetOption> tgtOptions = new ArrayList<AssetOption>();
             for (AssetOption option : targetOptions) {
-                if (previous == null || !option.key.equals(previous.key)) {
+                if (previous == null || !option.key.equals(previous)) {
                     tgtOptions.add(newAssetOption(option.key, "protection.site.type.target", option.value));
+                    previous = option.key;
                 }
             }
 

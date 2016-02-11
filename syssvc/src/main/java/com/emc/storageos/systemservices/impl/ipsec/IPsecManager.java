@@ -8,7 +8,9 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.model.ipsec.IpsecParam;
 import com.emc.storageos.security.geo.GeoClientCacheManager;
@@ -50,6 +52,9 @@ public class IPsecManager {
     
     @Autowired
     private DrUtil drUtil;
+
+    @Autowired
+    private VdcUtil vdcUtil;
 
     @Autowired
     private GeoClientCacheManager geoClientManager;
@@ -252,12 +257,17 @@ public class IPsecManager {
         }
 
         // check if local vdc is stable
-        if (drUtil.isAllSitesStable()) {
+        if (drUtil.isAllSitesStable() && !hasOngoingVdcOp()) {
             // cluster is stable for ipsec change
             return;
         } else {
             throw APIException.serviceUnavailable.clusterStateNotStable();
         }
+    }
+
+    private boolean hasOngoingVdcOp() {
+        VirtualDataCenter localVdc = vdcUtil.getLocalVdc();
+        return ! localVdc.getConnectionStatus().equals(VirtualDataCenter.ConnectionStatus.CONNECTED);
     }
 
     /**

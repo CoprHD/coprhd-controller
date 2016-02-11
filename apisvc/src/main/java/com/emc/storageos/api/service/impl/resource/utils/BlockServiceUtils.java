@@ -69,7 +69,7 @@ public class BlockServiceUtils {
      * Validate that the passed block object is not an internal block object,
      * such as a backend volume for a VPLEX volume. If so, throw a bad request
      * exception unless the SUPPORTS_FORCE flag is present AND force is true.
-     * 
+     *
      * @param blockObject A reference to a BlockObject
      * @param force true if an operation should be forced regardless of whether
      *            or not the passed block object is an internal object, false
@@ -80,8 +80,7 @@ public class BlockServiceUtils {
             if (blockObject.checkInternalFlags(Flag.INTERNAL_OBJECT)
                     && !blockObject.checkInternalFlags(Flag.SUPPORTS_FORCE)) {
                 throw APIException.badRequests.notSupportedForInternalVolumes();
-            }
-            else if (blockObject.checkInternalFlags(Flag.INTERNAL_OBJECT)
+            } else if (blockObject.checkInternalFlags(Flag.INTERNAL_OBJECT)
                     && blockObject.checkInternalFlags(Flag.SUPPORTS_FORCE)
                     && !force) {
                 throw APIException.badRequests.notSupportedForInternalVolumes();
@@ -92,10 +91,10 @@ public class BlockServiceUtils {
     /**
      * Gets and verifies that the VirtualArray passed in the request is
      * accessible to the tenant.
-     * 
+     *
      * @param project A reference to the project.
      * @param varrayURI The URI of the VirtualArray
-     * 
+     *
      * @return A reference to the VirtualArray.
      */
     public static VirtualArray verifyVirtualArrayForRequest(Project project,
@@ -110,10 +109,10 @@ public class BlockServiceUtils {
     /**
      * Determine if the unique id for a resource is embedded in the passed
      * resource URI.
-     * 
+     *
      * @param resourceURI A resource URI.
      * @param uriInfo A reference to the URI info.
-     * 
+     *
      * @return true if the unique id for a resource is embedded in the passed
      *         resource URI, false otherwise.
      */
@@ -125,10 +124,10 @@ public class BlockServiceUtils {
     /**
      * Determine if the unique id for a resource is embedded in the passed
      * resource id.
-     * 
+     *
      * @param resourceId A resource Id.
      * @param uriInfo A reference to the URI info.
-     * 
+     *
      * @return true if the unique id for a resource is embedded in the passed
      *         resource Id, false otherwise.
      */
@@ -152,23 +151,23 @@ public class BlockServiceUtils {
 
     /**
      * Verify the user is authorized for a request.
-     * 
+     *
      * @param project A reference to the Project.
      */
     public static void verifyUserIsAuthorizedForRequest(Project project,
             StorageOSUser user, PermissionsHelper permissionsHelper) {
         if (!(permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.TENANT_ADMIN) || permissionsHelper.userHasGivenACL(user,
-                project.getId(), ACL.OWN, ACL.ALL))) {
+                        project.getId(), ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
 
     /**
      * Get StorageOSUser from the passed security context.
-     * 
+     *
      * @param securityContext A reference to the security context.
-     * 
+     *
      * @return A reference to the StorageOSUser.
      */
     public static StorageOSUser getUserFromContext(SecurityContext securityContext) {
@@ -180,9 +179,9 @@ public class BlockServiceUtils {
 
     /**
      * Determine if the security context has a valid StorageOSUser object.
-     * 
+     *
      * @param securityContext A reference to the security context.
-     * 
+     *
      * @return true if the StorageOSUser is present.
      */
     public static boolean hasValidUserInContext(SecurityContext securityContext) {
@@ -196,7 +195,7 @@ public class BlockServiceUtils {
 
     /**
      * For VMAX3, We can't create fullcopy/mirror when there are active snap sessions.
-     * 
+     *
      * @TODO remove this validation when provider add support for this.
      * @param sourceVolURI
      * @param dbClient
@@ -224,9 +223,9 @@ public class BlockServiceUtils {
     /**
      * For VMAX, creating/deleting volume in/from CG with existing group relationship is supported for SMI-S provider version 8.0.3 or
      * higher
-     * 
+     *
      * Fox XtremIO creating/deleting volume in/from CG with existing CG is supported.
-     * 
+     *
      * For VNX, creating/deleting volume in/from CG with existing group relationship is supported for virtual replication group
      *
      * @param volume Volume part of the CG
@@ -254,7 +253,7 @@ public class BlockServiceUtils {
     /**
      * Check if the storage system type is openstack, vnxblock, vmax or ibmxiv.
      * Snapshot full copy is supported only on these storage systems.
-     * 
+     *
      * @param blockSnapURI SnapshotURI for which storage system type needs to be checked
      * @param dbClient DBClient object
      * @return
@@ -271,10 +270,10 @@ public class BlockServiceUtils {
     /**
      * Return a list of active BlockMirror URI's that are known to be active
      * (in Synchronized state).
-     * 
+     *
      * @param volume Volume to check for mirrors against
      * @param dbClient A reference to a database client.
-     * 
+     *
      * @return List of active BlockMirror URI's
      */
     public static List<URI> getActiveMirrorsForVolume(Volume volume, DbClient dbClient) {
@@ -293,9 +292,9 @@ public class BlockServiceUtils {
 
     /**
      * Determines if the passed volume has attached mirrors.
-     * 
+     *
      * @param volume A reference to a Volume.
-     * 
+     *
      * @return true if passed volume has attached mirrors, false otherwise.
      */
     public static boolean hasMirrors(Volume volume) {
@@ -304,10 +303,10 @@ public class BlockServiceUtils {
 
     /**
      * Return a list of active VplexMirror URI's that are known to be active.
-     * 
+     *
      * @param volume Volume to check for mirrors against.
      * @param dbClient A reference to a database client.
-     * 
+     *
      * @return List of active VplexMirror URI's.
      */
     public static List<URI> getActiveMirrorsForVplexVolume(Volume volume, DbClient dbClient) {
@@ -365,7 +364,7 @@ public class BlockServiceUtils {
 
     /**
      * Checks if there are any native array snapshots with the requested name.
-     * 
+     *
      * @param requestedName A name requested for a new native array snapshot.
      * @param sourceURI The URI of the snapshot source.
      * @param dbClient A reference to a database client.
@@ -404,10 +403,10 @@ public class BlockServiceUtils {
     /**
      * Gets the number of native array snapshots created for the source with
      * the passed URI.
-     * 
+     *
      * @param sourceURI The URI of the source.
      * @param dbClient A reference to a database client.
-     * 
+     *
      * @return The number of native array snapshots for the source.
      */
     public static int getNumNativeSnapshots(URI sourceURI, DbClient dbClient) {
@@ -441,7 +440,7 @@ public class BlockServiceUtils {
     /**
      * Given a Tenant and DataObject references, check if any of the DataObjects have pending
      * Tasks against them. If so, generate an error that this cannot be deleted.
-     * 
+     *
      * @param tenant - [in] Tenant URI
      * @param dataObjects - [in] List of DataObjects to check
      * @param dbClient - Reference to a database client

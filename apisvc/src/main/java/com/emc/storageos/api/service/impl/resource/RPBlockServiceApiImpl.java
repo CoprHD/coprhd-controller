@@ -1326,7 +1326,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 storageSystem = volumeStorageSystemMap.get(volUri);
 
-                if (!storageSystemToCompare.getSystemType().equals(storageSystem.getSystemType())) {
+                if (!storageSystemToCompare.getSystemType().equals(storageSystem.getSystemType())
+                        || checkVMAX2toVMAX3(storageSystemToCompare, storageSystem)) {
                     // The storage systems do not all match so we need to determine the allocated
                     // capacity on each system.
                     storageSystemsMatch = false;
@@ -1472,6 +1473,31 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         return capacity;
+    }
+
+    /**
+     * Checks to see if the two storage systems are VMAX and if so, then
+     * further check to see if one of them is a VMAX2 while the other is a
+     * VMAX3.
+     * 
+     * The capacity checks for these systems are slightly different so we
+     * need to ensure that they get calculated.
+     * 
+     * @param storageSystem1 First StorageSystem to check
+     * @param storageSystem2 Second StorageSystem to check
+     * @return true if we do have the case of a VMAX2 to VMAX3 
+     *         difference between the Storage Systems, false otherwise.
+     */
+    private boolean checkVMAX2toVMAX3(StorageSystem storageSystem1, StorageSystem storageSystem2) {
+        if (storageSystem1 != null && storageSystem2 != null) {
+            if (DiscoveredDataObject.Type.vmax.name().equals(storageSystem1.getSystemType())
+                    && DiscoveredDataObject.Type.vmax.name().equals(storageSystem2.getSystemType())
+                    && ((!storageSystem1.checkIfVmax3() && storageSystem2.checkIfVmax3())
+                            || (storageSystem1.checkIfVmax3() && !storageSystem2.checkIfVmax3()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

@@ -156,7 +156,7 @@
           </control-group>
         </div>
         <control-group v-field='vpool.multiVolumeConsistency'>
-          <boolean-checkbox v-disabled='locked'></boolean-checkbox>
+          <boolean-checkbox v-disabled='locked && (vpool.systemType != "${models.StorageSystemTypes.XTREMIO}")'></boolean-checkbox>
         </control-group>
 
         <control-group v-field='vpool.expandable'>

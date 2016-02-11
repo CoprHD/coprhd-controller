@@ -444,7 +444,9 @@ public class BlockVirtualPoolForm extends VirtualPoolCommonForm<BlockVirtualPool
         applyCommon(builder);
         builder.setSnapshots(defaultInt(maxSnapshots));
         builder.setContinuousCopies(maxContinuousCopies, uri(continuousCopyVirtualPool));
-
+		if(isLocked() && StorageSystemTypes.isXtremIO(systemType)){
+        	builder.setMultiVolumeConsistency(defaultBoolean(multiVolumeConsistency));
+        }
         // Only allow updating these fields if not locked
         if (!isLocked()) {
             builder.setMinPaths(defaultInt(minPaths, 1));

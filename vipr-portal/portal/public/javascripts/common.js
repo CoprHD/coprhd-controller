@@ -177,9 +177,6 @@ util.loadOptionsHandler = function(selector) {
                 if (data[i].id == selectedValue) {
                     option += "selected";
                 }
-                //if (data[i].disabled) {
-                	option += " disabled";
-                //}
                 option += ">"+data[i].name+"</option>";
                 $select.append(option);
             }

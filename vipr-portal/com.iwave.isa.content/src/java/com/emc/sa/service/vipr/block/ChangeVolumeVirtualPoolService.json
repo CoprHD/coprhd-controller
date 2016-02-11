@@ -16,6 +16,7 @@
     
     virtualPoolChangeOperation:{
       type:"assetType.vipr.virtualPoolChangeOperation",
+      select: "disableEmpty",
       lockable: true
     },
    	

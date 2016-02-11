@@ -118,13 +118,24 @@ angular.module("services", []).directive({
                 	}
                 	else {
 	                    item.options = scope.$root[scope.item.type + "-options"];
-	                    tagAttrs = {
-	                        'options': "item.options",
-	                        'value-property': "key",
-	                        'label-property': "value",
-	                        'ng-disabled': "item.disabled",
-	                        'auto-select-if-one': item.required
-	                    };
+	                    if (item.select == 'disableEmpty') {
+	                    	tagAttrs = {
+			                        'options': "item.options",
+			                        'value-property': "key",
+			                        'label-property': "value",
+			                        'ng-disabled': "item.disabled",
+			                        'auto-select-if-one': item.required,
+			                        'disable-empty': "true"
+			                    };
+	                    } else {
+		                    tagAttrs = {
+		                        'options': "item.options",
+		                        'value-property': "key",
+		                        'label-property': "value",
+		                        'ng-disabled': "item.disabled",
+		                        'auto-select-if-one': item.required
+		                    };
+                		}
 	                    if (item.select == 'many') {
 	                    	type = '<select-many>';
 	                    }

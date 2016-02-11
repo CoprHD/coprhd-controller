@@ -2264,14 +2264,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     if (isCorrectOperation) {
                         available.add(new AssetOption(vpoolChange.getId(), vpoolChange.getName()));
                     } else {
-                        wrongOperation.add(new AssetOption(vpoolChange.getId(), 
+                        wrongOperation.add(new AssetOption("", 
                                 getMessage("block.virtualPool.vpoolChangeOperation", vpoolChange.getName(), 
                                         getAllowedChangeOperationNames(vpoolChange.getAllowedChangeOperations())), 
                                 true));
                     }
                 }
             } else {
-                notAllowed.add(new AssetOption(vpoolChange.getId(), 
+                notAllowed.add(new AssetOption("", 
                         getMessage("block.virtualPool.vpoolChangeReason", vpoolChange.getName(), vpoolChange.getNotAllowedReason()),
                         true));
             }

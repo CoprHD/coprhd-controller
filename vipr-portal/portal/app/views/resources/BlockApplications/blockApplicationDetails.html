@@ -13,6 +13,15 @@ function renderLink(o, val) {
     
     return "<a href='"+href+"'>" + val + "</a>";
 }
+
+function renderCloneLink(o,val) {
+	var data = o.aData;
+	var application = '${application}';
+	var url = #{jsAction @resources.BlockApplications.getAssociatedVolumes(':id',application.id)/};
+	var href = url(data);
+    return "<a href='"+href+"'>" + val + "</a>";
+}
+
 function updateVolumes(oSettings) {
     var count = $('#volumeApplication table').dataTable({ bRetrieve: true }).fnGetData().length;
     

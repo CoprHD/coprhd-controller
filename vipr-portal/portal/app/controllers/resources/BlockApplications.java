@@ -105,7 +105,7 @@ public class BlockApplications extends ResourceController {
     public static class CloneApplicationDataTable extends DataTable {
         public CloneApplicationDataTable() {
             addColumn("name");
-            addColumn("volumes").setRenderFunction("renderLink");
+            addColumn("cloneGroups").setRenderFunction("renderCloneLink");
             addColumn("size");
             addColumn("status");
             addColumn("protocol");
@@ -120,7 +120,7 @@ public class BlockApplications extends ResourceController {
             public String size;
             public String status;
             public Set<String> protocol;
-            public String volumes;
+            public String cloneGroups;
             public URI refs;
 
             public Clone(VolumeRestRep volume) {
@@ -130,7 +130,7 @@ public class BlockApplications extends ResourceController {
                 status = volume.getProtection().getFullCopyRep().getReplicaState();
                 protocol = volume.getProtocols();
                 refs = volume.getProtection().getFullCopyRep().getAssociatedSourceVolume().getId();
-                volumes = BourneUtil.getViprClient().blockVolumes().get(refs).getName();
+                cloneGroups = volume.getProtection().getFullCopyRep().getFullCopySetName();
             }
         }
     }

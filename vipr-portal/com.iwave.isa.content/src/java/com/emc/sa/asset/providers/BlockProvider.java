@@ -1863,7 +1863,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<AssetOption> tgtOptions = new ArrayList<AssetOption>();
             for (AssetOption option : targetOptions) {
                 if (previous == null || !option.key.equals(previous.key)) {
-                    tgtOptions.add(option);
+                    AssetOption newOption = new AssetOption(option.key, getMessage("protection.site.type.target", option.value));
+                    tgtOptions.add(newOption);
                 }
             }
 

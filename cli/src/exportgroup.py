@@ -376,8 +376,9 @@ class ExportGroup(object):
             path_parameters['min_paths'] = minpaths
         if(pathsperinitiator is not None):
             path_parameters['paths_per_initiator'] = pathsperinitiator
-            
-        parms['path_parameters'] = path_parameters
+        
+        if(maxpaths):   
+            parms['path_parameters'] = path_parameters
         parms['volume_changes'] = volChanges
        
         o = self.send_json_request(exportgroup_uri, parms)

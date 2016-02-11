@@ -45,23 +45,25 @@ public class ObjectStorageUtils {
         return bucketId;
     }
     
-    public static BucketACL createBucketACLs(ObjectStorageACLs[] acls) {
+    public static BucketACL createBucketACLs(ObjectStorageACL acl) {
         BucketACL aclsToAdd = new BucketACL();
         List<BucketACE> aclList = new ArrayList<BucketACE>();
 
-        for (ObjectStorageACLs objectACL : acls) {
-            BucketACE bucketAce = new BucketACE();
-            if (objectACL.aclType.equalsIgnoreCase("GROUP")) {
-                bucketAce.setGroup(objectACL.aclName);
-            } else {
-                bucketAce.setUser(objectACL.aclName);
-            }
-            if (!StringUtils.isEmpty(objectACL.aclDomain)) {
-                bucketAce.setDomain(objectACL.aclDomain);
-            }
-            bucketAce.setPermissions(objectACL.aclPermission);
-            aclList.add(bucketAce);
+        BucketACE bucketAce = new BucketACE();
+        
+        if (acl.aclType.equalsIgnoreCase("GROUP")) {
+            bucketAce.setGroup(acl.aclName);
+        } else {
+            bucketAce.setUser(acl.aclName);
         }
+        
+        if (!StringUtils.isEmpty(acl.aclDomain)) {
+            bucketAce.setDomain(acl.aclDomain);
+        }
+        
+        bucketAce.setPermissions(StringUtils.join(acl.aclPermission, "|").toLowerCase());
+        
+        aclList.add(bucketAce);
         aclsToAdd.setBucketACL(aclList);
         return aclsToAdd;
     }
@@ -94,39 +96,37 @@ public class ObjectStorageUtils {
         return String.valueOf(DiskSizeConversionUtils.gbToBytes(sizeInGB));
     }
     
-    public static void setObjectShareACL(URI bucketId, ObjectStorageACLs[] acls) {
-        Task<BucketRestRep> task = execute(new SetObjectStorageACL(bucketId, acls));
+    public static void setObjectShareACL(URI bucketId, ObjectStorageACL acl) {
+        Task<BucketRestRep> task = execute(new SetObjectStorageACL(bucketId, acl));
         addAffectedResource(task);
         logInfo("object.bucket.acl", bucketId, task.getOpId());
     }
     
-    public static List<String> getInvalidObjectACLs(ObjectStorageACLs[] objectACLs) {
+    public static List<String> getInvalidObjectACL(ObjectStorageACL objectACL) {
         List<String> names = new ArrayList<String>();
-        for (ObjectStorageUtils.ObjectStorageACLs acl : objectACLs) {
-            if (StringUtils.contains(acl.aclName, "\\")) {
-                names.add(acl.aclName);
-            }
+        if (StringUtils.contains(objectACL.aclName, "\\")) {
+            names.add(objectACL.aclName);
         }
         
         return names;
     }
 
-    public static ObjectStorageACLs[] clearEmptyObjectACLs(ObjectStorageACLs[] objectACLs) {
-        List<ObjectStorageUtils.ObjectStorageACLs> toRemove = new ArrayList<ObjectStorageUtils.ObjectStorageACLs>();
-        for (ObjectStorageUtils.ObjectStorageACLs acl : objectACLs) {
+    public static ObjectStorageACL[] clearEmptyObjectACLs(ObjectStorageACL[] objectACLs) {
+        List<ObjectStorageUtils.ObjectStorageACL> toRemove = new ArrayList<ObjectStorageUtils.ObjectStorageACL>();
+        for (ObjectStorageUtils.ObjectStorageACL acl : objectACLs) {
             if (acl.aclName != null && acl.aclName.isEmpty()) {
                 toRemove.add(acl);
             }
         }
 
-        for (ObjectStorageUtils.ObjectStorageACLs element : toRemove) {
-            objectACLs = (ObjectStorageUtils.ObjectStorageACLs[]) ArrayUtils.removeElement(objectACLs, element);
+        for (ObjectStorageUtils.ObjectStorageACL element : toRemove) {
+            objectACLs = (ObjectStorageUtils.ObjectStorageACL[]) ArrayUtils.removeElement(objectACLs, element);
         }
 
         return objectACLs;
     }
     
-    public static class ObjectStorageACLs {
+    public static class ObjectStorageACL {
         @Param
         public String aclType;
 
@@ -137,6 +137,6 @@ public class ObjectStorageUtils {
         public String aclDomain;
 
         @Param
-        public String aclPermission;
+        public List<String> aclPermission;
     }
 }

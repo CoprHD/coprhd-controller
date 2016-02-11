@@ -295,9 +295,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                     requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
-                    requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
-                    requestContext.getProcessedUnManagedVolumeMap().put(
-                            unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);

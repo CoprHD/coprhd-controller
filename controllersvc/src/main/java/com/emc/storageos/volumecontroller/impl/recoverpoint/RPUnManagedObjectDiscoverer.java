@@ -144,6 +144,10 @@ public class RPUnManagedObjectDiscoverer {
                     StringSet protectionId = new StringSet();
                     protectionId.add("" + cg.getCgId());
                     unManagedProtectionSet.putCGInfo(SupportedCGInformation.PROTECTION_ID.toString(), protectionId);
+                    
+                    // Default MP to false until proven otherwise
+                    unManagedProtectionSet.getCGCharacteristics().put(
+                            UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name(), Boolean.FALSE.toString());
 
                     newCG = true;
                 } else {
@@ -498,7 +502,7 @@ public class RPUnManagedObjectDiscoverer {
                 // Set the flag to true if it hasn't already been set
                 unManagedProtectionSet.getCGCharacteristics().put(
                         UnManagedProtectionSet.SupportedCGCharacteristics.IS_MP.name(), Boolean.TRUE.toString());
-            }                        
+            }
         } else {
             unManagedVolume.putVolumeInfo(SupportedVolumeInformation.RP_COPY_NAME.toString(),
                     rpCopyName); 

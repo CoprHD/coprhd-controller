@@ -605,7 +605,11 @@ public class DbServiceImpl implements DbService {
         // at system local table. So add this option to cleanup local gossip state during reboot
         //
         // Make sure add-vdc/add-standby passed when you would remove this option in the future.
-        System.setProperty("cassandra.load_ring_state", "false");
+        //
+        // Disable it for standby site. We don't want to be too aggressive
+        if (!_schemaUtil.isStandby()) {
+            System.setProperty("cassandra.load_ring_state", "false");
+        }
         
         // Nodes in new data center should not auto-bootstrap.  
         // See https://docs.datastax.com/en/cassandra/2.0/cassandra/operations/ops_add_dc_to_cluster_t.html

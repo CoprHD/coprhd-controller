@@ -67,11 +67,13 @@ import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
+import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsParam;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
@@ -113,6 +115,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     private static final AssetOption VOLUME_OPTION = newAssetOption(VOLUME_OPTION_KEY, "block.storage.type.volume");
     private static final AssetOption CONSISTENCY_GROUP_OPTION = newAssetOption(CONSISTENCY_GROUP_OPTION_KEY,
             "block.storage.type.consistencygroup");
+    
+    public static final String SOURCE_OPTION_KEY = "source";
+    public static final String HA_OPTION_KEY = "HA";
+    private static final AssetOption SOURCE_OPTION = newAssetOption(SOURCE_OPTION_KEY, "block.storage.type.source");
+    private static final AssetOption HA_OPTION = newAssetOption(HA_OPTION_KEY, "block.storage.type.ha");
 
     // Failover option keys
     public static final String LATEST_IMAGE_OPTION_KEY = "latest";
@@ -1815,23 +1822,57 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("application")
     public List<AssetOption> getApplicationVirtualArrays(AssetOptionsContext ctx, URI applicationId) {
         final ViPRCoreClient client = api(ctx);
-        VolumeGroupRestRep application = client.application().getApplication(applicationId);
-        return createNamedResourceOptions(application.getVirtualArrays());
-    }
-    
-    @Asset("applicationVirtualPool")
-    @AssetDependencies({ "application", "applicationVirtualArray" })
-    public List<AssetOption> getApplicationVirtualPools(AssetOptionsContext ctx, URI applicationId, URI varrayId) {
-        final ViPRCoreClient client = api(ctx);
-        NamedVolumesList volumes = client.application().getVolumeByApplication(applicationId);
-        Set<URI> vpoolIds = new HashSet<URI>();
-        for (NamedRelatedResourceRep volResource : volumes.getVolumes()) {
-            VolumeRestRep vol = client.blockVolumes().get(volResource.getId());
-            if (vol.getVirtualArray().getId().equals(varrayId)) {
-                vpoolIds.add(vol.getVirtualPool().getId());
-            }
+        NamedVolumesList volList = client.application().getFullCopiesByApplication(applicationId);
+        boolean isVplex = false;
+        boolean isRP = false;
+        if (volList != null && volList.getVolumes() != null && !volList.getVolumes().isEmpty()) {
+        	VolumeRestRep vol = client.blockVolumes().get(volList.getVolumes().get(0));
+        	StorageSystemRestRep sys = client.storageSystems().get(vol.getStorageController());
+        	if (sys.getSystemType().equals("vplex")) {
+        		isVplex = true;
+        	}
+        	if (vol.getProtection() != null) {
+        		isRP = true;
+        	}
         }
-        return createBaseResourceOptions(client.blockVpools().getByIds(vpoolIds));
+        List<AssetOption> options = new ArrayList<AssetOption>();
+        if (isVplex || isRP) {
+        	options.add(SOURCE_OPTION);
+        }
+        if (isVplex) {
+        	options.add(HA_OPTION);
+        }
+        if (isRP) {
+        	
+           // public List<AssetOption> getFailoverTarget(AssetOptionsContext ctx, URI protectedBlockVolume) {
+
+        	List<VolumeRestRep> allVols = client.blockVolumes().getByRefs(volList.getVolumes());
+        	List<RelatedResourceRep> cgIds = new ArrayList<RelatedResourceRep>();
+        	for (VolumeRestRep vol : allVols) {
+        		cgIds.add(vol.getConsistencyGroup());
+        	}
+        	Set
+        	List<BlockConsistencyGroupRestRep> cgs = client.blockConsistencyGroups().getByRefs(cgIds);
+        	for (BlockConsistencyGroupRestRep cg : cgs) {
+        		
+        	}
+        	List<URI> varrayIds = new ArrayList<URI>();
+        	for (BlockVirtualPoolRestRep vpool : vpools) {
+        		if (vpool.getProtection() != null && vpool.getProtection().getRecoverPoint() != null && 
+        				vpool.getProtection().getRecoverPoint().getCopies() != null) {
+        			for (VirtualPoolProtectionVirtualArraySettingsParam param : vpool.getProtection().getRecoverPoint().getCopies()) {
+        				varrayIds.add(param.getVarray());
+        			}
+        		}
+        	}
+        	List<VirtualArrayRestRep> tgtVarrays = client.varrays().getByIds(varrayIds);
+        	List<NamedRelatedResourceRep> targetRefs = new ArrayList<NamedRelatedResourceRep>();
+        	for (VirtualArrayRestRep tgtVarray : tgtVarrays) {
+        		targetRefs.add(ResourceUtils.createNamedRef(tgtVarray));
+        	}
+        	options.addAll(createNamedResourceOptions(targetRefs));
+        }
+        return options;
     }
 
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {

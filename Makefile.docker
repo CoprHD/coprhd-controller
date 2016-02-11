@@ -15,7 +15,7 @@ ifeq ($(BUILD_TYPE),oss)
     DEVKIT_LOCAL=CoprHDDevKit.x86_64-2.5.0.0.$(DEVKIT_BUILD).tbz
     DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/2.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
 else
-    DEVKIT_BUILD=6
+    DEVKIT_BUILD=7
     DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.5.0.0.$(DEVKIT_BUILD)
 endif
 

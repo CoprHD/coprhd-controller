@@ -5,23 +5,21 @@
 
 package com.emc.storageos.svcs.errorhandling.resources;
 
+import com.emc.storageos.model.block.export.VolumeParam;
+import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
+
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.storageos.model.block.export.VolumeParam;
-import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-
 /**
  * This interface holds all the methods used to create an error condition that will be associated
  * with an HTTP status of Bad Request (400)
  * <p/>
- * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the
- * annotation
- * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new
- * service code if there
+ * Remember to add the English message associated to the method in BadRequestExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
  * is no an existing one suitable for your error condition.
  * <p/>
  * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
@@ -947,23 +945,23 @@ public interface BadRequestExceptions {
     public BadRequestException noIntiatorsConnectedToVolumes();
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingRecoverPointProtectionPools(final URI varrayId,
-            final URI vPoolId, final Set<String> varrayIds);
+    public BadRequestException noMatchingRecoverPointProtectionPools(final String varrayLabel,
+            final String vPoolLabel, final Set<String> varrayLabels);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingRecoverPointStoragePoolsForVpoolAndVarrays(
-            final URI vpoolId, final Set<String> varrayId);
+            final String vpoolLabel, final Set<String> varrayLabels);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingStoragePoolsForVpoolAndVarray(final URI vpoolId,
-            final URI varrayId);
+    public BadRequestException noMatchingStoragePoolsForVpoolAndVarray(final String vpoolLabel,
+            final String varrayLabel);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingStoragePoolsForVpoolAndVarrayForClones(final URI vpoolId,
-            final URI varrayId, final URI volumeId);
+    public BadRequestException noMatchingStoragePoolsForVpoolAndVarrayForClones(final String vpoolLabel,
+            final String varrayLabel, final URI volumeId);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noStoragePoolsForVpoolInVarray(final URI varrayId, final URI vpoolId);
+    public BadRequestException noStoragePoolsForVpoolInVarray(final String varrayLabel, final String vpoolLabel);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForContinuousCopiesVpoolForVplex(final String varrayLabel, final String vpoolLabel,
@@ -971,11 +969,11 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForRemoteFileReplication(
-            final URI vpoolId, final Set<String> varrayId);
+            final String vpoolLabel, final Set<String> varrayLabels);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarrays(
-            final URI vpoolId, final Set<String> varrayId);
+            final String vpoolLabel, final Set<String> varrayLabel);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_MISSING)
     public BadRequestException noRoleSpecifiedInAssignmentEntry();
@@ -984,8 +982,8 @@ public interface BadRequestExceptions {
     public BadRequestException noStorageFoundForVolume();
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noStorageFoundForVolumeMigration(final URI vPoolId,
-            final URI vArrayId, final URI volumeId);
+    public BadRequestException noStorageFoundForVolumeMigration(final String vPoolLabel,
+            final String vArrayLabel, final URI volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAnInstanceOf(final String clazzName);
@@ -1149,6 +1147,12 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidReplicationRPOType(String rpoType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidReplicationRPOValue();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidReplicationRPOValueForType(String rpovalue, String units);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidVirtualPoolFromVirtualArray(URI vpool, URI varray);
@@ -1587,11 +1591,11 @@ public interface BadRequestExceptions {
     public BadRequestException missingPersonalityAttribute(String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingSRDFPools(final URI varrayId, final URI vPoolId,
-            final Set<String> varrayIds);
+    public BadRequestException noMatchingSRDFPools(final String varrayLabel, final String vPoolLabel,
+            final Set<String> varrayLabels);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException unableToFindSuitablePoolForTargetVArray(final URI varrayId);
+    public BadRequestException unableToFindSuitablePoolForTargetVArray(final String varrayLabel);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException srdfNoSolutionsFoundError();
@@ -1847,6 +1851,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotIsNotForConsistencyGroup(final String snapshotName, final String cgName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionIsNotForConsistencyGroup(final String snapSessionName, final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_INVALID_MAX_CONTINUOUS_COPIES)
     public BadRequestException invalidMaxContinuousCopiesForVplex(final Integer maxCopies);
@@ -2490,6 +2497,12 @@ public interface BadRequestExceptions {
     public BadRequestException operationOnlyAllowedOnPausedSite(final String siteId, final String siteState);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationOnlyAllowedOnErrorSite(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationRetryOnlyAllowedOnLastState(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2856,4 +2869,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_INVALID_ACTION_FOR_LOCAL_MIRRORS)
     public BadRequestException actionNotApplicableForLocalMirrors(final String actionName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException expandMirrorFileSupportedOnlyOnSource(URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToPerformMirrorOperation(String operation, final URI fsUri, String reason);
 }

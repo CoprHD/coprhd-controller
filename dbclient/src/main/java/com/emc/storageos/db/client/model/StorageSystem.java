@@ -16,6 +16,9 @@ import com.google.common.base.Strings;
 @Cf("StorageSystem")
 public class StorageSystem extends DiscoveredSystemObject {
 
+    // Unigue native identifier (system level identifier)
+    private String _nativeId;
+
     // serial number
     private String _serialNumber;
 
@@ -682,5 +685,16 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     public void setVplexAssemblyIdtoClusterId(StringMap vplexAssemblyIdtoClusterId) {
         this.vplexAssemblyIdtoClusterId = vplexAssemblyIdtoClusterId;
+    }
+
+    @Name("nativeId")
+    public String getNativeId() {
+        return _nativeId;
+    }
+
+
+    public void setNativeId(String nativeId) {
+        _nativeId = nativeId;
+        setChanged("nativeId");
     }
 }

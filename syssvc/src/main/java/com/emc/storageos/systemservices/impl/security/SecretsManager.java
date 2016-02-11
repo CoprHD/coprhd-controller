@@ -64,6 +64,14 @@ public class SecretsManager extends AbstractManager {
         while (doRun) {
             log.debug("Main loop: Start");
 
+            // Wait for target info initialized
+            PropertyInfoExt targetInfo = coordinator.getTargetInfo(PropertyInfoExt.class);
+            if (targetInfo == null) {
+                log.info("The target info in ZK has not been initialized yet. Waiting...");
+                retrySleep();
+                continue;
+            }
+
             // Step0: Configure ssh if needed. Probably only run once in first boot.
             try {
                 sshConfig.run();

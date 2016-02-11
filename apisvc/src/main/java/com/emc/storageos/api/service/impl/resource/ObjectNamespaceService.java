@@ -16,6 +16,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
@@ -34,7 +37,7 @@ import com.emc.storageos.security.authorization.Role;
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ObjectNamespaceService extends TaggedResource {
-
+    private static final Logger _log = LoggerFactory.getLogger(ObjectNamespaceService.class);
     private int _retry_attempts;
     
     /**
@@ -46,7 +49,7 @@ public class ObjectNamespaceService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ObjectNamespaceList getObjectNamespaces() {
-
+        _log.info("Getting namespaces from all object storage systesm");
         ObjectNamespaceList objNamespaceList = new ObjectNamespaceList();
         List<URI> ids = _dbClient.queryByType(ObjectNamespace.class, true);
         for (URI id : ids) {
@@ -70,7 +73,7 @@ public class ObjectNamespaceService extends TaggedResource {
     @Path("/{id}")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ObjectNamespaceRestRep getObjectNamespace(@PathParam("id") URI id) {
-
+        _log.info("Getting details for the namespace: {}", id);
         ArgValidator.checkFieldUriType(id, ObjectNamespace.class, "id");
         ArgValidator.checkUri(id);
         ObjectNamespace objNamespace = _dbClient.queryObject(ObjectNamespace.class, id);

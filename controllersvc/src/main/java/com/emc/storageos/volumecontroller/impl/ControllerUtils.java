@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -33,6 +36,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -409,6 +413,14 @@ public class ControllerUtils {
                 } catch (DatabaseException e) {
                     s_logger.error("Exception caught", e);
                 }
+            } else if (resource instanceof BlockSnapshotSession) {
+                BlockSnapshotSession session = (BlockSnapshotSession) resource;
+                try {
+                    id = session.getId();
+                    projectURI = session.getProject().getURI();
+                } catch (DatabaseException e) {
+                    s_logger.error("Exception caught", e);
+                }
             } else if (resource instanceof ExportGroup) {
                 ExportGroup exportGroup = (ExportGroup) resource;
                 try {
@@ -656,7 +668,10 @@ public class ControllerUtils {
                 dbClient.queryByConstraint(AlternateIdConstraint.Factory
                         .getFASTPolicyByNameConstraint(policyNameInVpool), result);
             } else {
-                StringSet systemType = vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
+                StringSet systemType = new StringSet();
+                if (vPool.getArrayInfo() != null) {
+                    systemType.addAll(vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE));
+                }
                 if (systemType.contains(DiscoveredDataObject.Type.vnxblock.name())) {
                     dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getFASTPolicyByNameConstraint(policyNameInVpool), result);
@@ -1240,6 +1255,17 @@ public class ControllerUtils {
         return false;
     }
 
+    public static boolean checkSnapshotSessionConsistencyGroup(URI snapshotSession, DbClient dbClient, TaskCompleter completer) {
+        BlockConsistencyGroup group = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapshotSession, dbClient);
+        if (group != null) {
+            if (completer != null) {
+                completer.addConsistencyGroupId(group.getId());
+            }
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
      *
@@ -1473,5 +1499,18 @@ public class ControllerUtils {
             arrayGroupToVolumes.get(repGroupName).add(volume);
         }
         return arrayGroupToVolumes;
+    }
+
+    /**
+     * Return snapshot sessions based on the given snapshot session instance.
+     *
+     * @param instance
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> getSnapshotSessionsByInstance(String instance, DbClient dbClient) {
+        URIQueryResultList resultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(instance), resultList);
+        return newArrayList(resultList.iterator());
     }
 }

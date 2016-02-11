@@ -72,6 +72,17 @@ public interface FileServiceApi {
     public <T extends DataObject> String checkForDelete(T object) throws InternalException;
 
     /**
+     * Expand the capacity of size of given size
+     *
+     * @param fileshare
+     * @param newSize
+     * @param taskId
+     * @throws InternalException
+     */
+    public void expandFileShare(FileShare fileshare, Long newSize, String taskId)
+            throws InternalException;
+
+    /**
      * Create Continuous Copies for existing source file system
      * 
      * @param fs -source file system for which mirror file system to be created
@@ -90,4 +101,5 @@ public interface FileServiceApi {
             VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
             VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
+
 }

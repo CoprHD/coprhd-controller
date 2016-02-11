@@ -48,9 +48,15 @@ public class FileDescriptor implements Serializable {
     }
 
     public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
+            String deletionType, boolean forceDelete, Long fileSize) {
+        this(type, deviceURI, fsURI, poolURI, deletionType, forceDelete);
+
+        this._fileSize = fileSize;
+    }
+
+    public FileDescriptor(Type type, URI deviceURI, URI fsURI, URI poolURI,
             String deletionType, boolean forceDelete, boolean deleteTargetOnly) {
         super();
-
         this._type = type;
         this._deviceURI = deviceURI;
         this._fsURI = fsURI;
@@ -71,8 +77,7 @@ public class FileDescriptor implements Serializable {
         FILE_EXISTING_SOURCE(4),        // existing source file
         FILE_MIRROR_SOURCE(5),          // remote mirror source
         FILE_MIRROR_TARGET(6),          // remote mirror target
-        FILE_EXISTING_MIRROR_SOURCE(7);
-
+        FILE_EXISTING_MIRROR_SOURCE(7); // change vpool of filesystem
         private final int order;
 
         private Type(int order) {

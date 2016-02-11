@@ -137,6 +137,24 @@ public class ExportMaskPlacementDescriptor {
     }
 
     /**
+     * Remove the placement of the volume from the mappings for the ExportMask and
+     * also remove the maskToVolumes entry if we remove the last volume for that
+     * ExportMask URI key.
+     *
+     * @param volumeURI [IN] - Volume URI reference to be removed
+     * @param exportMaskURI [IN] - ExportMask URI
+     */
+    public void unplaceVolumeFromMask(URI volumeURI, URI exportMaskURI) {
+        Map<URI, Volume> map = maskToVolumes.get(exportMaskURI);
+        if (map != null) {
+            map.remove(volumeURI);
+            if (map.isEmpty()) {
+                maskToVolumes.remove(exportMaskURI);
+            }
+        }
+    }
+
+    /**
      * Get the set of volumes that has been mapped to the ExportMask
      * 
      * @param exportMaskURI
@@ -145,7 +163,8 @@ public class ExportMaskPlacementDescriptor {
      * @return Volume URI to Volume object map (Read-only)
      */
     public Map<URI, Volume> getPlacedVolumes(URI exportMaskURI) {
-        return Collections.unmodifiableMap(maskToVolumes.get(exportMaskURI));
+        Map<URI, Volume> map = maskToVolumes.get(exportMaskURI);
+        return (map != null) ? Collections.unmodifiableMap(map) : Collections.<URI, Volume> emptyMap();
     }
 
     /**

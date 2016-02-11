@@ -553,7 +553,7 @@ public class RecoverPointClient {
                         copy.setRole(GetCopyResponse.GetCopyRole.UNKNOWN);
                     }
                     
-                    // Add an entry for this copy name and it's defined role
+                    // Add an entry for this copy name and its defined role
                     copyNameToRoleMap.put(copy.getName(), copy.getRole().toString());                   
 
                     if (copySettings.getJournal() == null || copySettings.getJournal().getJournalVolumes() == null) {
@@ -605,7 +605,7 @@ public class RecoverPointClient {
                             volResp.setProduction(true);
                             // Check to see if this a MetroPoint standby volume entry by checking the 
                             // volumes copy name to role mapping that was populated earlier.
-                            if (GetCopyResponse.GetCopyRole.STANDBY_PRODUCTION.toString().equals(
+                            if (GetCopyResponse.GetCopyRole.STANDBY_PRODUCTION.toString().equalsIgnoreCase(
                                     copyNameToRoleMap.get(volResp.getRpCopyName()))) {
                                 volResp.setProductionStandby(true);
                             }

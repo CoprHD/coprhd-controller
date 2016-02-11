@@ -3485,6 +3485,16 @@ public class VolumeIngestionUtil {
             DbClient dbClient) {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
 
+        // In the case where IS_VOLUME_IN_CONSISTENCYGROUP flag is set to TRUE, but there is no UnManagedConsistencyGroup, we
+        // can't perform this check fully and need to return null.  This will occur with VMAX/VNX volumes in CGs until we have
+        // CG ingestion support for such volumes.
+        if (umcg == null || umcg.getUnManagedVolumesMap() == null) {
+            _logger.info("There is no unmanaged consistency group associated with unmanaged volume {}, however " +
+                         "the volume has the IS_VOLUME_IN_CONSISTENCYGROUP flag set to true.  Ignoring CG operation" +
+                         " as there is not enough information to put this volume in a CG by itself.", unManagedVolume.getNativeGuid());
+            return null;
+        }
+        
         boolean isLastUmvToIngest = isLastUnManagedVolumeToIngest(umcg, unManagedVolume);
         boolean isVplexOrRPProtected = isRPOrVplexProtected(unManagedVolume);
         if (isVplexOrRPProtected || !isLastUmvToIngest) {

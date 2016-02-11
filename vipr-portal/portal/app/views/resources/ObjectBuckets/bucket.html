@@ -15,9 +15,7 @@
   
     #{Resources.header resource:bucket, typeKey: 'resources.bucket'/}
     #{Resources.actions hide:bucket?.inactive }
-      <!-- <a href="@{deleteBucket(bucket.id)}"
-        onclick="return confirm('&{'resources.bucket.deleteConfirm'}');"
-      >&{'resources.bucket.deleteLink'}</a><br/>     -->
+
       <div class="btn-group">
           <button type="button" class="btn btn-danger dropdown-toggle" name="button.delete" data-toggle="dropdown">
             <span class="glyphicon glyphicon-trash"></span>

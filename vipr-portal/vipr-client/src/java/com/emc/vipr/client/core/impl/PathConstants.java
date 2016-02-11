@@ -168,17 +168,4 @@ public class PathConstants {
     public static final String APP_SUPPORT_VOLUME_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/volumes";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
 
-    
-    public static final String FILE_REPLICATION_URL="/protection/continuous-copies";
-    public static final String FILE_REPLICATION_START_URL = FILE_REPLICATION_URL+"/start";
-    public static final String FILE_REPLICATION_STOP_URL = FILE_REPLICATION_URL+"/stop";
-    public static final String FILE_REPLICATION_PAUSE_URL = FILE_REPLICATION_URL+"/pause";
-    public static final String FILE_REPLICATION_RESUME_URL = FILE_REPLICATION_URL+"/resume";
-    public static final String FILE_REPLICATION_FAILOVER_URL = FILE_REPLICATION_URL+"/failover";
-    public static final String FILE_REPLICATION_FAILBACK_URL = FILE_REPLICATION_URL+"/failback";
-    public static final String FILE_REPLICATION_DEACTIVATE_URL = FILE_REPLICATION_URL+"/deactivate";
-    public static final String FILE_REPLICATION_COPYPOLICY_URL = FILE_REPLICATION_URL+"/copypolicy";
-    public static final String FILE_REPLICATION_INFO_URL = FILE_REPLICATION_URL+"/{mid}";
-    public static final String FILE_VPOOL_CHANGE_URL = "/vpool-change";
-    
 }

@@ -747,7 +747,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     
     public Tasks<FileShareRestRep> resumeContinousCopies(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getIdUrl()+PathConstants.FILE_REPLICATION_RESUME_URL);
+        UriBuilder builder = client.uriBuilder(getIdUrl()+"/protection/continuous-copies/resume");
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }
@@ -764,7 +764,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     
     public Tasks<FileShareRestRep> failBackContinousCopies(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getIdUrl()+PathConstants.FILE_REPLICATION_FAILBACK_URL);
+        UriBuilder builder = client.uriBuilder(getIdUrl()+"/protection/continuous-copies/failback");
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }
@@ -781,25 +781,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     
     public Tasks<FileShareRestRep> replicationInfo(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getIdUrl()+PathConstants.FILE_REPLICATION_INFO_URL);
+        UriBuilder builder = client.uriBuilder(getIdUrl()+"/protection/continuous-copies/{mid}");
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }
     
-    /**
-     * Change vpool of the file system by ID
-     * <p>
-     * API Call: <tt>Post /file/filesystems/{id}/vpool-change</tt>
-     * 
-     * @param id
-     *            the ID of the file system.
-     *            
-     * @return a task for monitoring the progress of the operation.     * 
-     */
-    
-    public Task<FileShareRestRep> changeVpool(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getIdUrl()+PathConstants.FILE_VPOOL_CHANGE_URL);
-        URI targetUri = builder.build(id);
-        return putTaskURI(param, targetUri);
-    }
 }

@@ -16,12 +16,12 @@
     
     virtualPoolChangeOperation:{
       type:"assetType.vipr.virtualPoolChangeOperation",
-      select: "disableEmpty",
       lockable: true
     },
    	
     targetVirtualPool:{
-      type:"assetType.vipr.targetVirtualPool"
+      type:"assetType.vipr.targetVirtualPool",
+      select:"disableEmpty"
     },
     
     consistencyGroup: {

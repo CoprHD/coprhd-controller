@@ -171,7 +171,7 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     	scope.field.value = firstOptionValue;
                     }
                     
-                    if (attrs.disableEmpty == "true") {
+                    if (attrs.disableEmpty != null && attrs.disableEmpty == "true") {
 	                    element.find("option").each(function(i) {
 		                    if (i > 0 && newOptions[i-1] != null) {
 		                    	$(this).prop('disabled', newOptions[i-1].key == '');

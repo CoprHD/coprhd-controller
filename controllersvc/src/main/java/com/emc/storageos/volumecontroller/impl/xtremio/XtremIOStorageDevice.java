@@ -367,7 +367,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
      * 
      * @param volList - CG Volume List
      * @param volume - Volume to check.
-     * @return
+     * @return true if the volume Exists in CG
+     *         false if the volume not found in CG.
      */
     private boolean checkIfVolumeExistsInCG(List<List<Object>> volList, Volume volume) {
         for (List<Object> vols : volList) {

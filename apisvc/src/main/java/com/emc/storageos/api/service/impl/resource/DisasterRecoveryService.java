@@ -789,7 +789,7 @@ public class DisasterRecoveryService {
                         SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion, secretKey);
                         try (InternalSiteServiceClient internalSiteServiceClient = new InternalSiteServiceClient()) {
                             internalSiteServiceClient.setCoordinatorClient(coordinator);
-                            internalSiteServiceClient.setServer(site.getVip());
+                            internalSiteServiceClient.setServer(site.getVipEndPoint());
                             internalSiteServiceClient.initStandby(configParam);
                         }
                     }

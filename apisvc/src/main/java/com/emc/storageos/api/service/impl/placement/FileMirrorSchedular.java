@@ -221,7 +221,7 @@ public class FileMirrorSchedular implements Scheduler {
         return fileMirrorRecommendations;
     }
 
-    void prepareTargetFileRecommendation(final String fsCopyMode, final VirtualArray targetVarray,
+    private void prepareTargetFileRecommendation(final String fsCopyMode, final VirtualArray targetVarray,
             FileRecommendation targetFileRecommendation,
             FileMirrorRecommendation fileMirrorRecommendation) {
 
@@ -256,7 +256,7 @@ public class FileMirrorSchedular implements Scheduler {
      * @throws java.net.URISyntaxException
      * @throws com.emc.storageos.db.exceptions.DatabaseException
      */
-    static public List<VirtualArray> getTargetVirtualArraysForVirtualPool(final Project project,
+    public static List<VirtualArray> getTargetVirtualArraysForVirtualPool(final Project project,
             final VirtualPool vpool, final DbClient dbClient,
             final PermissionsHelper permissionHelper) {
         List<VirtualArray> targetVirtualArrays = new ArrayList<VirtualArray>();

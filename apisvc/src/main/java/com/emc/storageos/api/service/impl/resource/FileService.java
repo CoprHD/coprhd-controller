@@ -3671,7 +3671,7 @@ public class FileService extends TaskResourceService {
                     && !fs.getMirrorfsTargets().isEmpty()) {
                 notSuppReasonBuff
                         .append(String
-                                .format("File system given in request has active target file system %s.",
+                                .format("File system %s given in request has active target file systems.",
                                         fs.getLabel()));
                 _log.info(notSuppReasonBuff.toString());
                 return true;

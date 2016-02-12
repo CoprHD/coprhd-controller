@@ -254,6 +254,11 @@ public class BlockServiceUtils {
             // Allow volumes to be added/removed to/from CG for VPLEX and RP
             // when the backend volume is VMAX/VNX/XtremIO
             if (storage.deviceIsType(Type.vplex)) {
+                // TODO
+                // Adding new VPLEX volume to CG which is part to Application, has to be done in 2 steps.
+                // Step-1: Create volume - backend volume will not be added to RG.
+                // Step-2: Add to Application - backend volume will be added to RG and clone will be created for it.
+                // Limitation: Only backend clone will be created, VPLEX virtual clone will not be created.
                 if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
                     for (String associatedVolumeId : volume.getAssociatedVolumes()) {
                         Volume associatedVolume = dbClient.queryObject(Volume.class,

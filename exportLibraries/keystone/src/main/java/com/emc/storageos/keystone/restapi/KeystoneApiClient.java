@@ -114,10 +114,8 @@ public class KeystoneApiClient extends StandardRestClient {
 
         log.debug("START - getKeystoneEndpoints");
 
-        // Authenticate user if there is no token available.
-        if(_authToken == null){
-            authenticate_keystone();
-        }
+        // Authenticate user.
+        authenticate_keystone();
 
         // Send a request to Keystone API.
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_ENDPOINTS));
@@ -138,6 +136,11 @@ public class KeystoneApiClient extends StandardRestClient {
             throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
         }
 
+        if (endpointResponse == null) {
+            log.error("Keystone endpoint response is null");
+            throw new NullPointerException("Keystone does not have any endpoints!");
+        }
+
         log.debug("END - getKeystoneEndpoints");
         return endpointResponse;
     }
@@ -151,10 +154,8 @@ public class KeystoneApiClient extends StandardRestClient {
 
         log.debug("START - getKeystoneServices");
 
-        // Authenticate user if there is no token available.
-        if(_authToken == null){
-            authenticate_keystone();
-        }
+        // Authenticate user.
+        authenticate_keystone();
 
         // Send a request to Keystone API.
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_SERVICES));
@@ -175,6 +176,11 @@ public class KeystoneApiClient extends StandardRestClient {
             throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
         }
 
+        if (serviceResponse == null) {
+            log.error("Keystone service response is null");
+            throw new NullPointerException("Keystone does not have any services!");
+        }
+
         log.debug("END - getKeystoneServices");
         return serviceResponse;
     }
@@ -188,10 +194,13 @@ public class KeystoneApiClient extends StandardRestClient {
 
         log.debug("START - deleteKeystoneEndpoint");
 
-        // Authenticate user if there is no token available.
-        if(_authToken == null){
-            authenticate_keystone();
+        if (endpointId == null) {
+            log.error("endpointId is null");
+            throw new NullPointerException("Endpoint id cannot be null!");
         }
+
+        // Authenticate user.
+        authenticate_keystone();
 
         // Create correct delete URI.
         String uri = KeystoneConstants.URI_ENDPOINTS + "/" + endpointId;
@@ -217,10 +226,13 @@ public class KeystoneApiClient extends StandardRestClient {
 
         log.debug("START - createKeystoneEndpoint");
 
-        // Authenticate user if there is no token available.
-        if(_authToken == null){
-            authenticate_keystone();
+        if (endpoint == null) {
+            log.error("endpoint is null");
+            throw new NullPointerException("Endpoint cannot be null!");
         }
+
+        // Authenticate user.
+        authenticate_keystone();
 
         // Construct the Java pojo request object
         CreateEndpointRequest endpointRequest = new CreateEndpointRequest();
@@ -271,10 +283,8 @@ public class KeystoneApiClient extends StandardRestClient {
 
         log.debug("START - getKeystoneTenants");
 
-        // Authenticate user if there is no token available.
-        if(_authToken == null){
-            authenticate_keystone();
-        }
+        // Authenticate user.
+        authenticate_keystone();
 
         // Send a request to Keystone API.
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_TENANTS));

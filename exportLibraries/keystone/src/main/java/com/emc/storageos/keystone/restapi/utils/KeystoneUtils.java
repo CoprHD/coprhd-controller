@@ -68,6 +68,12 @@ public class KeystoneUtils {
      */
     public static EndpointV2 retrieveEndpoint(EndpointResponse response, String serviceId){
         _log.debug("START - retrieveEndpoint");
+
+        if (serviceId == null) {
+            _log.error("serviceId is null");
+            throw new NullPointerException("Service id cannot be null!");
+        }
+
         for(EndpointV2 endpoint : response.getEndpoints()){
             if(endpoint.getServiceId().equals(serviceId)){
                 _log.debug("END - retrieveEndpoint");
@@ -89,6 +95,12 @@ public class KeystoneUtils {
      */
     public static TenantV2 retrieveTenant(TenantResponse response, String tenantName){
         _log.debug("START - retrieveTenant");
+
+        if (tenantName == null) {
+            _log.error("tenantName is null");
+            throw new NullPointerException("Tenant name cannot be null!");
+        }
+
         for(TenantV2 tenant : response.getTenants()){
             if(tenant.getName().equals(tenantName)){
                 _log.debug("END - retrieveTenant");
@@ -96,6 +108,7 @@ public class KeystoneUtils {
             }
         }
         _log.error("Tenant {} does not exist in OpenStack", tenantName);
+        // Raise an exception if tenant is missing.
         throw BadRequestException.badRequests.unableToFindTenant(URI.create("OpenStack tenant is missing - " + tenantName));
     }
 
@@ -103,23 +116,29 @@ public class KeystoneUtils {
      * Retrieves OpenStack service ID with given service name.
      *
      * @param keystoneApi Keystone Api client.
-     * @param name Name of a service to retrieve.
+     * @param serviceName Name of a service to retrieve.
      * @return ID of service with given name.
      */
-    public static String retrieveServiceId(KeystoneApiClient keystoneApi, String name){
+    public static String retrieveServiceId(KeystoneApiClient keystoneApi, String serviceName){
         _log.debug("START - retrieveServiceId");
+
+        if (serviceName == null) {
+            _log.error("serviceName is null");
+            throw new NullPointerException("Service name cannot be null!");
+        }
+
         // Get Keystone services from Keystone API.
         ServiceResponse services = keystoneApi.getKeystoneServices();
 
         for(ServiceV2 service : services.getServices()){
-            if(service.getName().equals(name)){
+            if(service.getName().equals(serviceName)){
                 _log.debug("END - retrieveServiceId");
                 return service.getId();
             }
         }
-        _log.error("Missing service {}", name);
+        _log.error("Missing service {}", serviceName);
         // Raise an exception if service is missing.
-        throw KeystoneApiException.exceptions.missingService(name);
+        throw KeystoneApiException.exceptions.missingService(serviceName);
     }
 
     /**

@@ -6087,10 +6087,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private List<URI> getFullCopiesForVolumes(List<URI> allFullCopies, List<Volume> volumes) {
         List<URI> fullCopyURIs = new ArrayList<URI>();
         for (Volume vol : volumes) {
-            for (String fullCopy : vol.getFullCopies()) {
-                URI fullCopyURI = URI.create(fullCopy);
-                if (allFullCopies.contains(fullCopyURI)) {
-                    fullCopyURIs.add(fullCopyURI);
+            if (vol.getFullCopies() != null) {
+                for (String fullCopy : vol.getFullCopies()) {
+                    URI fullCopyURI = URI.create(fullCopy);
+                    if (allFullCopies.contains(fullCopyURI)) {
+                        fullCopyURIs.add(fullCopyURI);
+                    }
                 }
             }
         }

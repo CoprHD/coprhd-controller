@@ -11,8 +11,11 @@ import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -39,7 +42,7 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForFullCopyRequest(BlockObject fcSourceObj) {
-        throw APIException.methodNotAllowed.notSupportedForRP();
+        return super.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
     }
 
     /**
@@ -47,7 +50,7 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        throw APIException.methodNotAllowed.notSupportedForRP();
+        super.validateFullCopyCreateRequest(fcSourceObjList, count);
     }
 
     /**
@@ -56,7 +59,14 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
             String name, boolean createInactive, int count, String taskId) {
-        throw APIException.methodNotAllowed.notSupportedForRP();
+        BlockFullCopyApi fullCopyApiImpl = null;
+        if (fcSourceObjList != null && !fcSourceObjList.isEmpty()) {
+            fullCopyApiImpl = getFullCopyApiImpl(fcSourceObjList.get(0));
+        }
+        if (fullCopyApiImpl == null) {
+            throw APIException.methodNotAllowed.notSupportedForRP();
+        }
+        return fullCopyApiImpl.create(fcSourceObjList, varray, name, createInactive, count, taskId);
     }
 
     /**
@@ -64,7 +74,11 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public TaskList activate(BlockObject fcSourceObj, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForRP();
+        BlockFullCopyApi fullCopyApiImpl = getFullCopyApiImpl(fcSourceObj);
+        if (fullCopyApiImpl == null) {
+            throw APIException.methodNotAllowed.notSupportedForRP();
+        }
+        return fullCopyApiImpl.activate(fcSourceObj, fullCopyVolume);
     }
 
     /**
@@ -72,7 +86,11 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForRP();
+        BlockFullCopyApi fullCopyApiImpl = getFullCopyApiImpl(fcSourceObj);
+        if (fullCopyApiImpl == null) {
+            throw APIException.methodNotAllowed.notSupportedForRP();
+        }
+        return fullCopyApiImpl.detach(fcSourceObj, fullCopyVolume);
     }
 
     /**
@@ -80,7 +98,11 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public TaskList restoreSource(Volume sourceVolume, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForRP();
+        BlockFullCopyApi fullCopyApiImpl = getFullCopyApiImpl(sourceVolume);
+        if (fullCopyApiImpl == null) {
+            throw APIException.methodNotAllowed.notSupportedForRP();
+        }
+        return fullCopyApiImpl.restoreSource(sourceVolume, fullCopyVolume);
     }
 
     /**
@@ -88,7 +110,11 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
-        throw APIException.methodNotAllowed.notSupportedForRP();
+        BlockFullCopyApi fullCopyApiImpl = getFullCopyApiImpl(sourceVolume);
+        if (fullCopyApiImpl == null) {
+            throw APIException.methodNotAllowed.notSupportedForRP();
+        }
+        return fullCopyApiImpl.resynchronizeCopy(sourceVolume, fullCopyVolume);
     }
 
     /**
@@ -97,5 +123,24 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         throw APIException.methodNotAllowed.notSupportedForRP();
+    }
+
+    /**
+     * get the full copy implementation based on the block object
+     * 
+     * @param fcSourceObj block object
+     * @return
+     */
+    private BlockFullCopyApi getFullCopyApiImpl(BlockObject fcSourceObj) {
+        BlockFullCopyApi fullCopyApiImpl = null;
+        if (!NullColumnValueGetter.isNullURI(fcSourceObj.getStorageController())) {
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, fcSourceObj.getStorageController());
+            if (storage.getSystemType().equals(DiscoveredDataObject.Type.vplex.name())) {
+                fullCopyApiImpl = _fullCopyMgr.getVplexFullCopyImpl();
+            } else {
+                fullCopyApiImpl = _fullCopyMgr.getPlatformSpecificFullCopyImplForSystem(storage);
+            }
+        }
+        return fullCopyApiImpl;
     }
 }

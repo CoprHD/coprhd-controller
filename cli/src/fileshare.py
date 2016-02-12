@@ -17,6 +17,7 @@ import commands
 from common import SOSError
 from threading import Timer
 import schedulepolicy
+import virtualpool
 
 
 class Fileshare(object):
@@ -62,6 +63,10 @@ class Fileshare(object):
     URI_CONTINUOS_COPIES_STOP = '/file/filesystems/{0}/protection/continuous-copies/stop'
     URI_CONTINUOS_COPIES_FAILOVER = '/file/filesystems/{0}/protection/continuous-copies/failover'
     URI_CONTINUOS_COPIES_FAILBACK = '/file/filesystems/{0}/protection/continuous-copies/failback'
+    URI_CONTINUOS_COPIES_CREATE = '/file/filesystems/{0}/protection/continuous-copies/create'
+    URI_CONTINUOS_COPIES_DEACTIVATE = '/file/filesystems/{0}/protection/continuous-copies/deactivate'
+    URI_CONTINUOS_COPIES_REFRESH = '/file/filesystems/{0}/protection/continuous-copies/refresh'
+    URI_VPOOL_CHANGE = '/file/filesystems/{0}/vpool-change'
 
     isTimeout = False
     timeout = 300
@@ -1066,8 +1071,72 @@ class Fileshare(object):
             body)
 
         return
+    
+    def continous_copies_create(self, filesharename):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+        parms = {
+                     'type' : "REMOTE_MIRROR"}
+
+        body = json.dumps(parms)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Fileshare.URI_CONTINUOS_COPIES_CREATE.format(fsid),
+            body)
+
+        return
+    
+    def continous_copies_deactivate(self, filesharename):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+        parms = {
+                     'delete_type' : "REMOTE_MIRROR"}
+
+        body = json.dumps(parms)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Fileshare.URI_CONTINUOS_COPIES_DEACTIVATE.format(fsid),
+            body)
+
+        return
+    
+    def continous_copies_refresh(self, filesharename):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+        copy_dict = {
+                     'type' : "REMOTE_MIRROR"}
+        copy_list = []
+        copy_list.append(copy_dict)
+        parms = {
+                 'copy' : copy_list}
+
+        body = json.dumps(parms)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Fileshare.URI_CONTINUOS_COPIES_REFRESH.format(fsid),
+            body)
+
+        return
+    
+    def change_vpool(self, filesharename, vpoolid):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+         
+        parms = {
+                 'vpool' : vpoolid}
         
 
+        body = json.dumps(parms)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "PUT",
+            Fileshare.URI_VPOOL_CHANGE.format(fsid),
+            body)
+
+        return
 
 # Fileshare Create routines
 
@@ -2581,7 +2650,7 @@ def policy_list(args):
 def continous_copies_start_parser(subcommand_parsers, common_parser):
     # start continous copies command parser
     continous_copies_start_parser = subcommand_parsers.add_parser(
-        'continous-copies-start',
+        'continuous-copies-start',
         description='ViPR fileshare continous copies start cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2617,7 +2686,7 @@ def continous_copies_start(args):
 def continous_copies_pause_parser(subcommand_parsers, common_parser):
     # pause continous copies command parser
     continous_copies_pause_parser = subcommand_parsers.add_parser(
-        'continous-copies-pause',
+        'continuous-copies-pause',
         description='ViPR fileshare continous copies pause cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2654,7 +2723,7 @@ def continous_copies_pause(args):
 def continous_copies_resume_parser(subcommand_parsers, common_parser):
     # resume continous copies command parser
     continous_copies_resume_parser = subcommand_parsers.add_parser(
-        'continous-copies-resume',
+        'continuous-copies-resume',
         description='ViPR fileshare continous copies resume cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2690,7 +2759,7 @@ def continous_copies_resume(args):
 def continous_copies_stop_parser(subcommand_parsers, common_parser):
     # stop continous copies command parser
     continous_copies_stop_parser = subcommand_parsers.add_parser(
-        'continous-copies-stop',
+        'continuous-copies-stop',
         description='ViPR fileshare continous copies stop cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2728,7 +2797,7 @@ def continous_copies_stop(args):
 def continous_copies_failover_parser(subcommand_parsers, common_parser):
     # failover continous copies command parser
     continous_copies_failover_parser = subcommand_parsers.add_parser(
-        'continous-copies-failover',
+        'continuous-copies-failover',
         description='ViPR fileshare continous copies failover cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2764,7 +2833,7 @@ def continous_copies_failover(args):
 def continous_copies_failback_parser(subcommand_parsers, common_parser):
     # failback continous copies command parser
     continous_copies_failback_parser = subcommand_parsers.add_parser(
-        'continous-copies-failover',
+        'continuous-copies-failback',
         description='ViPR fileshare continous copies failback cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2796,6 +2865,165 @@ def continous_copies_failback(args):
         return
     except SOSError as e:
         raise e
+    
+def continous_copies_create_parser(subcommand_parsers, common_parser):
+    # create continous copies command parser
+    continous_copies_create_parser = subcommand_parsers.add_parser(
+        'continuous-copies-create',
+        description='Create the replication copies for existing file system',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Create the replication copies for existing file system')
+    mandatory_args = continous_copies_create_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    continous_copies_create_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    continous_copies_create_parser.set_defaults(func=continous_copies_create)
+
+
+def continous_copies_create(args):
+    obj = Fileshare(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.continous_copies_create(args.tenant + "/" + args.project + "/" + args.name)
+        return
+    except SOSError as e:
+        raise e
+    
+    
+def continous_copies_deactivate_parser(subcommand_parsers, common_parser):
+    # deactivate continous copies command parser
+    continous_copies_deactivate_parser = subcommand_parsers.add_parser(
+        'continuous-copies-deactivate',
+        description='Deactivate the replication copies of file system',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Deactivate the replication copies of file system')
+    mandatory_args = continous_copies_deactivate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    continous_copies_deactivate_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    continous_copies_deactivate_parser.set_defaults(func=continous_copies_deactivate)
+
+
+def continous_copies_deactivate(args):
+    obj = Fileshare(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.continous_copies_deactivate(args.tenant + "/" + args.project + "/" + args.name)
+        return
+    except SOSError as e:
+        raise e
+    
+
+def continous_copies_refresh_parser(subcommand_parsers, common_parser):
+    # refresh continous copies command parser
+    continous_copies_refresh_parser = subcommand_parsers.add_parser(
+        'continuous-copies-refresh',
+        description='ViPR fileshare continous copies refresh cli usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Refresh the replication session')
+    mandatory_args = continous_copies_refresh_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    continous_copies_refresh_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    continous_copies_refresh_parser.set_defaults(func=continous_copies_refresh)
+
+
+def continous_copies_refresh(args):
+    obj = Fileshare(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.continous_copies_refresh(args.tenant + "/" + args.project + "/" + args.name)
+        return
+    except SOSError as e:
+        raise e
+    
+    
+def change_vpool_parser(subcommand_parsers, common_parser):
+    # change vpool command parser
+    change_vpool_parser = subcommand_parsers.add_parser(
+        'change-vpool',
+        description='ViPR fileshare change vpool cli usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Change vpool of the fileshare')
+    mandatory_args = change_vpool_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    change_vpool_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-vpool', '-vp',
+                                help='Name of the target vpool',
+                                metavar='<vpool>',
+                                dest='vpool',
+                                required=True)
+    change_vpool_parser.set_defaults(func=change_vpool)
+
+
+def change_vpool(args):
+    obj = Fileshare(args.ip, args.port)
+    from virtualpool import VirtualPool
+    vpool_obj = VirtualPool(args.ip, args.port)
+    vpoolid = vpool_obj.vpool_query(args.vpool, "file")
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.change_vpool(args.tenant + "/" + args.project + "/" + args.name, vpoolid)
+        return
+    except SOSError as e:
+        raise e
+    
+    
+    
+
 
 #
 # Fileshare Main parser routine
@@ -2902,3 +3130,15 @@ def fileshare_parser(parent_subparser, common_parser):
     
     #CONTINOUS COPIES FAILBACK PARSER
     continous_copies_failback_parser(subcommand_parsers, common_parser)
+    
+    #CONTINOUS COPIES CREATE PARSER
+    continous_copies_create_parser(subcommand_parsers, common_parser)
+    
+    #CONTINOUS COPIES DEACTIVATE PARSER
+    continous_copies_deactivate_parser(subcommand_parsers, common_parser)
+    
+    #CONTINOUS COPIES REFRESH PARSER
+    continous_copies_refresh_parser(subcommand_parsers, common_parser)
+    
+    #change vpool command parser
+    change_vpool_parser(subcommand_parsers, common_parser)

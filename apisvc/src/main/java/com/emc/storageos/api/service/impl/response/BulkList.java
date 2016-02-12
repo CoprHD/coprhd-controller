@@ -6,25 +6,42 @@ package com.emc.storageos.api.service.impl.response;
 
 import java.net.URI;
 import java.util.Collection;
-import java.util.Set;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ListIterator;
+import java.util.Set;
 
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.google.common.base.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.HostInterface;
+import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProjectResource;
+import com.emc.storageos.db.client.model.SchedulePolicy;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.UserGroup;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.Type;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
-import org.springframework.util.CollectionUtils;
+import com.google.common.base.Function;
 
 /**
  * Iterator based list of resources
@@ -176,8 +193,8 @@ public class BulkList<T> implements List<T> {
      * - Same class allows filtering or not
      */
     public static class AdaptingIterator<E extends DataObject, T> implements Iterator<T> {
-        private Iterator<E> dbIterator;
-        private Function<E, T> adapter;
+        private final Iterator<E> dbIterator;
+        private final Function<E, T> adapter;
         private ResourceFilter<E> filter = null;
 
         E _next = null;
@@ -253,7 +270,7 @@ public class BulkList<T> implements List<T> {
         protected PermissionsHelper _permissionsHelper;
         protected StorageOSUser _user;
 
-        private ResourceFilteringCache _cache = new ResourceFilteringCache();
+        private final ResourceFilteringCache _cache = new ResourceFilteringCache();
 
         protected PermissionsEnforcingResourceFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
@@ -741,6 +758,21 @@ public class BulkList<T> implements List<T> {
         public boolean isAccessible(UserGroup resource) {
             return (_permissionsHelper.userHasGivenRoleInAnyTenant(_user, Role.SECURITY_ADMIN, Role.TENANT_ADMIN) || _permissionsHelper
                     .userHasGivenProjectACL(_user, ACL.OWN));
+        }
+    }
+
+    public static class SchedulePolicyFilter
+            extends PermissionsEnforcingResourceFilter<SchedulePolicy> {
+
+        public SchedulePolicyFilter(StorageOSUser user,
+                PermissionsHelper permissionsHelper) {
+            super(user, permissionsHelper);
+        }
+
+        @Override
+        public boolean isAccessible(SchedulePolicy resource) {
+            return _permissionsHelper.userHasGivenRole(
+                    _user, resource.getId(), Role.TENANT_ADMIN, Role.SYSTEM_MONITOR);
         }
     }
 }

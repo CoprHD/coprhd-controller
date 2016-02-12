@@ -449,7 +449,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
         Set<String> selectedRGs = null;
-        if (param.getVolumes() != null) {
+        if (!param.getVolumes().isEmpty()) {
             selectedRGs = BlockServiceUtils.getReplicationGroupsFromVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
         }
 

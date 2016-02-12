@@ -32,6 +32,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,11 +66,13 @@ import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.LabelSet;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
@@ -97,6 +100,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 
@@ -128,6 +132,15 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.ibmxiv.name(),
             DiscoveredDataObject.Type.srdf.name()));
     private static final String BLOCK = "block";
+    private static final String ID_FIELD = "id";
+    private static final String NAME_FIELD = "name";
+    private static final String VOLUMES_FIELD = "volumes";
+    private static final String VOLUME_FIELD = "volume";
+    private static final String LABEL_FIELD = "label";
+    private static final String SNAPSHOT_ID_FIELD = "sid";
+    private static final String SNAPSHOTS_FIELD = "snapshots";
+    private static final String SNAPSHOT_FIELD = "snapshot";
+
     private static enum ReplicaTypeEnum {
         FULL_COPY("Full copy"),
         SNAPSHOT("Snapshot"),
@@ -1179,25 +1192,37 @@ public class VolumeGroupService extends TaskResourceService {
         return sourceURI;
     }
 
-    /**
-     * Creates a Task on given snapshot with Error state
-     *
-     * @param opType
-     * @param snapshot
-     * @param serviceCoded
-     * @return the failed task for snapshot
+    /*
+     * get all snapsetLabels associated with the volume group
      */
-    private TaskResourceRep createFailedTaskOnSnapshot(BlockSnapshot snapshot, ResourceOperationTypeEnum opType, ServiceCoded serviceCoded) {
-        String taskId = UUID.randomUUID().toString();
-        Operation op = new Operation();
-        op.setResourceType(opType);
-        _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId, op);
+    private LabelSet getVolumeGroupSnapsetLabels(VolumeGroup volumeGroup) {
+        // get all volumes
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
-        op = snapshot.getOpStatus().get(taskId);
-        op.error(serviceCoded);
-        snapshot.getOpStatus().updateTaskStatus(taskId, op);
-        _dbClient.updateObject(snapshot);
-        return TaskMapper.toTask(snapshot, taskId, op);
+        // get the snapshots for each volume in the group
+        LabelSet labelSet = new LabelSet();
+        Set<String> labels = labelSet.getLabels();
+
+        for (Volume volume : volumes) {
+            URIQueryResultList snapshotURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                    volume.getId()), snapshotURIs);
+            if (!snapshotURIs.iterator().hasNext()) {
+                continue;
+            }
+
+            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
+            for (BlockSnapshot snapshot : snapshots) {
+                if (snapshot != null && !snapshot.getInactive()) {
+                    String snapsetLabel = snapshot.getSnapsetLabel();
+                    if (NullColumnValueGetter.isNotNullValue(snapsetLabel)) {
+                        labels.add(snapsetLabel);
+                    }
+                }
+            }
+        }
+
+        return labelSet;
     }
 
     /**
@@ -1227,13 +1252,33 @@ public class VolumeGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
     public TaskList createVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
             VolumeGroupSnapshotCreateParam param) {
-        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // Query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
         ArgValidator.checkEntityNotNull(volumeGroup, volumeGroupId, isIdEmbeddedInURL(volumeGroupId));
 
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
+
+        // validate name
+        String name = param.getName();
+        ArgValidator.checkFieldNotEmpty(name, NAME_FIELD);
+
+        // snapsetLabel is normalized in RP, do it here too to avoid potential mismatch
+        name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
+        if (StringUtils.isEmpty(name)) {
+            // original name has special chars only
+            throw APIException.badRequests.invalidReplicaSetLabel(param.getName(),
+                    ReplicaTypeEnum.SNAPSHOT.toString());
+        }
+
+        // check name provided is not duplicate
+        LabelSet labelSet = getVolumeGroupSnapsetLabels(volumeGroup);
+        if (labelSet.getLabels().contains(name)) {
+            // duplicate name
+            throw APIException.badRequests.duplicateReplicaSetLabel(param.getName(),
+                    ReplicaTypeEnum.SNAPSHOT.toString());
+        }
 
         // volumes to be processed
         List<Volume> volumes = null;
@@ -1242,12 +1287,12 @@ public class VolumeGroupService extends TaskResourceService {
             log.info("Snapshot requested for subset of array groups in Application.");
 
             // validate that at least one volume URI is provided
-            ArgValidator.checkFieldNotEmpty(param.getVolumes(), "volumes");
+            ArgValidator.checkFieldNotEmpty(param.getVolumes(), VOLUMES_FIELD);
 
             volumes = new ArrayList<Volume>();
             // validate that provided volumes
             for (URI volumeURI : param.getVolumes()) {
-                ArgValidator.checkFieldUriType(volumeURI, Volume.class, "volume");
+                ArgValidator.checkFieldUriType(volumeURI, Volume.class, VOLUME_FIELD);
                 // Get the volume
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
                 ArgValidator.checkEntityNotNull(volume, volumeURI, isIdEmbeddedInURL(volumeURI));
@@ -1271,7 +1316,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN, volumeGroupId.toString(),
-                param.getName());
+                name);
         TaskList taskList = new TaskList();
 
         Map<URI, List<URI>> cgToVolUris = ControllerUtils.groupVolumeURIsByCG(volumes);
@@ -1281,7 +1326,7 @@ public class VolumeGroupService extends TaskResourceService {
             log.info("Create snapshot with consistency group {}", cgUri);
             try {
                 BlockConsistencyGroupSnapshotCreate cgSnapshotParam = new BlockConsistencyGroupSnapshotCreate(
-                        param.getName(), entry.getValue(), param.getCreateInactive(), param.getReadOnly());
+                        name, entry.getValue(), param.getCreateInactive(), param.getReadOnly());
                 TaskList cgTaskList = _blockConsistencyGroupService.createConsistencyGroupSnapshot(cgUri, cgSnapshotParam);
                 List<TaskResourceRep> taskResourceRepList = cgTaskList.getTaskList();
                 if (taskResourceRepList != null && !taskResourceRepList.isEmpty()) {
@@ -1295,7 +1340,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_SNAPSHOT, true, AuditLogManager.AUDITOP_END, volumeGroupId.toString(),
-                param.getName());
+                name);
 
         return taskList;
     }
@@ -1313,7 +1358,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public SnapshotList getVolumeGroupSnapshots(@PathParam("id") final URI volumeGroupId) {
-        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
@@ -1330,19 +1375,21 @@ public class VolumeGroupService extends TaskResourceService {
             _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
                     volume.getId()), snapshotURIs);
             if (!snapshotURIs.iterator().hasNext()) {
-                return snapshotList;
+                continue;
             }
 
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
             for (BlockSnapshot snapshot : snapshots) {
-                snapshotList.getSnapList().add(toNamedRelatedResource(snapshot));
+                if (snapshot != null && !snapshot.getInactive()) {
+                    snapshotList.getSnapList().add(toNamedRelatedResource(snapshot));
+                }
             }
         }
 
         return snapshotList;
     }
 
-    /**
+   /**
      * Get the specified volume group snapshot.
      *
      * @prereq none
@@ -1357,7 +1404,7 @@ public class VolumeGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public BlockSnapshotRestRep getVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
             @PathParam("sid") URI snapshotId) {
-        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
@@ -1365,7 +1412,7 @@ public class VolumeGroupService extends TaskResourceService {
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
 
         // validate snapshot ID
-        ArgValidator.checkFieldUriType(snapshotId, BlockSnapshot.class, "sid");
+        ArgValidator.checkFieldUriType(snapshotId, BlockSnapshot.class, SNAPSHOT_ID_FIELD);
 
         // get snapshot
         BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotId);
@@ -1379,6 +1426,74 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         return BlockMapper.map(_dbClient, snapshot);
+    }
+
+    /**
+     * Get all snapsetLabels for a volume group
+     *
+     * @prereq none
+     * @param volumeGroupId The URI of the volume group
+     * @brief List snapsetLabels for a volume group
+     * @return LabelSet
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshots/labels")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public LabelSet getVolumeGroupSnapsetLabels(@PathParam("id") final URI volumeGroupId) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
+        // query volume group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+        return getVolumeGroupSnapsetLabels(volumeGroup);
+    }
+
+    /**
+     * List snapshots in a snapshot set for a volume group
+     *
+     * @prereq none
+     * @param volumeGroupId The URI of the volume group
+     * @brief List snapshots in snapshot set for a volume group
+     * @return SnapshotList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshots/labels/{label}")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public SnapshotList getVolumeGroupSnapshotsByLabel(@PathParam("id") final URI volumeGroupId, @PathParam("label") String snapsetLabel) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
+        // query volume group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate replica operation for volume group
+        validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
+
+        // validate snapsetLabel
+        ArgValidator.checkFieldNotEmpty(snapsetLabel, LABEL_FIELD);
+
+        // get all volumes
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+
+        // get the snapshots for each volume in the group
+        SnapshotList snapshotList = new SnapshotList();
+        for (Volume volume : volumes) {
+            URIQueryResultList snapshotURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                    volume.getId()), snapshotURIs);
+            if (!snapshotURIs.iterator().hasNext()) {
+                continue;
+            }
+
+            List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
+            for (BlockSnapshot snapshot : snapshots) {
+                if (snapshot != null && !snapshot.getInactive()) {
+                    if (snapsetLabel.equals(snapshot.getSnapsetLabel())) {
+                        snapshotList.getSnapList().add(toNamedRelatedResource(snapshot));
+                    }
+                }
+            }
+        }
+
+        return snapshotList;
     }
 
     /**
@@ -1401,11 +1516,11 @@ public class VolumeGroupService extends TaskResourceService {
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
 
         // validate that at least one snapshot URI is provided
-        ArgValidator.checkFieldNotEmpty(param.getSnapshots(), "snapshots");
+        ArgValidator.checkFieldNotEmpty(param.getSnapshots(), SNAPSHOTS_FIELD);
 
         Map<String, List<BlockSnapshot>> snapsetToSnapshots = new HashMap<String, List<BlockSnapshot>>();
         for (URI snapshotURI : param.getSnapshots()) {
-            ArgValidator.checkFieldUriType(snapshotURI, BlockSnapshot.class, "snapshot");
+            ArgValidator.checkFieldUriType(snapshotURI, BlockSnapshot.class, SNAPSHOT_FIELD);
             // Get the snapshot
             BlockSnapshot snapshot = BlockServiceUtils.querySnapshotResource(snapshotURI, uriInfo, _dbClient);
 

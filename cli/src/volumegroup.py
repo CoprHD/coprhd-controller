@@ -46,7 +46,8 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_SNAPSHOT_RESYNCHRONIZE = URI_VOLUME_GROUP_SNAPSHOT + "/resynchronize"
     URI_VOLUME_GROUP_SNAPSHOT_LIST = URI_VOLUME_GROUP_SNAPSHOT
     URI_VOLUME_GROUP_SNAPSHOT_GET= URI_VOLUME_GROUP_SNAPSHOT + "/{1}"
-    
+    URI_VOLUME_GROUP_SNAPSHOT_GET_LABELS= URI_VOLUME_GROUP_SNAPSHOT + "/labels"
+
     def __init__(self, ipAddr, port):
         '''
         Constructor: takes IP address and port of the ViPR instance. These are
@@ -535,13 +536,17 @@ class VolumeGroup(object):
         else:
             return o
 
-    def volume_group_snapshot_list(self, name):
+    def volume_group_snapshot_list(self, name, label):
         volume_group_uri = self.query_by_name(name)
+
+        uri = VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_LIST.format(volume_group_uri);
+        if(label and len(label) > 0):
+            uri = VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_GET_LABELS.format(volume_group_uri) + "/" + label
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
-            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_LIST.format(volume_group_uri), None)
+            uri, None)
 
         o = common.json_decode(s)
 
@@ -549,7 +554,6 @@ class VolumeGroup(object):
             return o['snapshot']
         else:
             return []
-        #return o
 
     def snapshot_query(self, name, snapshotname):
         '''
@@ -575,6 +579,16 @@ class VolumeGroup(object):
             self.__ipAddr, self.__port,
             "GET",
             VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_GET.format(volumeGroupUri, snapshotUri), None)
+
+        o = common.json_decode(s)
+        return o
+
+    def volume_group_snapshot_get_labels(self, name):
+        volumeGroupUri = self.query_by_name(name)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_GET_LABELS.format(volumeGroupUri), None)
 
         o = common.json_decode(s)
         return o
@@ -1571,7 +1585,7 @@ def snapshot_list_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         help='Get Snapshot list of a VolumeGroup',
-        description='ViPR Snapshot List of a VolumeGroup CLI usage.')
+        description='ViPR List Snapshot of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshot_list_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-project', '-pr',
@@ -1588,6 +1602,9 @@ def snapshot_list_parser(subcommand_parsers, common_parser):
                              metavar='<tenantname>',
                              dest='tenant',
                              help='Name of tenant')
+    snapshot_list_parser.add_argument('-label', '-l',
+                              dest='label',
+                              help='Get snapshots by snapsetLabel')
     snapshot_list_parser.set_defaults(func=volume_group_snapshot_list)
 
 # List Snapshot Function
@@ -1595,7 +1612,7 @@ def volume_group_snapshot_list(args):
     obj = VolumeGroup(args.ip, args.port)
 
     try:
-        res= obj.volume_group_snapshot_list(args.name)
+        res= obj.volume_group_snapshot_list(args.name, args.label)
         return common.format_json_object(res)
 
     except SOSError as e:
@@ -1613,13 +1630,14 @@ def volume_group_snapshot_list(args):
                 e.err_text,
                 e.err_code)
 
+# snapshot_get_parser
 def snapshot_get_parser(subcommand_parsers, common_parser):
     snapshot_get_parser = subcommand_parsers.add_parser(
         'snapshot-show',
         parents=[common_parser],
         conflict_handler='resolve',
         help='Show a Snapshot details of a VolumeGroup',
-        description='ViPR Snapshot show of a VolumeGroup CLI usage.')
+        description='ViPR Show Snapshot of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshot_get_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-project', '-pr',
@@ -1660,14 +1678,67 @@ def volume_group_snapshot_get(args):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Clone show: " +
+                "Snapshot show: " +
                 args.name +
                 ", Failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "clone",
+                "snapshot",
                 "show",
+                e.err_text,
+                e.err_code)
+
+# snapshot_get_labels_parser
+def snapshot_get_labels_parser(subcommand_parsers, common_parser):
+    snapshot_get_labels_parser = subcommand_parsers.add_parser(
+        'snapshot-get-labels',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get snapsetLabels of a VolumeGroup',
+        description='ViPR Get snapsetLabels of a VolumeGroup CLI usage.')
+
+    mandatory_args = snapshot_get_labels_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    snapshot_get_labels_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+
+    snapshot_get_labels_parser.set_defaults(func=volume_group_snapshot_get_labels)
+
+# Get Snapshot Function
+def volume_group_snapshot_get_labels(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        res= obj.volume_group_snapshot_get_labels(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot get labels: " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot",
+                "get labels",
                 e.err_text,
                 e.err_code)
 
@@ -1748,5 +1819,8 @@ def volume_group_parser(parent_subparser, common_parser):
     # GET snapshots of a volume group command parser
     snapshot_list_parser(subcommand_parsers, common_parser)
 
-    # GET snapshots of a volume group command parser
+    # GET snapshot of a volume group command parser
     snapshot_get_parser(subcommand_parsers, common_parser)
+
+    # GET snapsetLabels of a volume group command parser
+    snapshot_get_labels_parser(subcommand_parsers, common_parser)

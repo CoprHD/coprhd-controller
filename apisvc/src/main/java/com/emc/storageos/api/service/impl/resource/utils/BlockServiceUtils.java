@@ -485,9 +485,6 @@ public class BlockServiceUtils {
      * @return Set of replication groups
      */
     public static Set<String> getReplicationGroupsFromVolumes(List<URI> volumes, URI cgUri, DbClient dbClient, UriInfo uriInfo) {
-        // validate that at least one volume URI is provided
-        ArgValidator.checkFieldNotEmpty(volumes, "volumes");
-
         Set<String> rgs = new HashSet<String>();
         for (URI volumeUri : volumes) {
             ArgValidator.checkFieldUriType(volumeUri, Volume.class, "volume");

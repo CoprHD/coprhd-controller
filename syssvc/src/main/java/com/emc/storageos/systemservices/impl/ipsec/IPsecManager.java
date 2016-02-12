@@ -269,7 +269,9 @@ public class IPsecManager {
     private boolean hasOngoingVdcOp() {
         VdcUtil.setDbClient(dbClient);
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
-        return ! localVdc.getConnectionStatus().equals(VirtualDataCenter.ConnectionStatus.CONNECTED);
+        VirtualDataCenter.ConnectionStatus vdcStatus = localVdc.getConnectionStatus();
+        return ! (vdcStatus.equals(VirtualDataCenter.ConnectionStatus.CONNECTED) ||
+                vdcStatus.equals(VirtualDataCenter.ConnectionStatus.ISOLATED));
     }
 
     /**

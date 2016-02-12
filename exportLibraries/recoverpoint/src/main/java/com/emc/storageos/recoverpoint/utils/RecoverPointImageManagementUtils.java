@@ -1466,8 +1466,7 @@ public class RecoverPointImageManagementUtils {
             ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgUID);
             List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();
             for (ConsistencyGroupCopySettings copySetting : copySettings) {
-                if (copySetting.getRoleInfo().getRole().equals(ConsistencyGroupCopyRole.ACTIVE) || 
-                	(copySetting.getRoleInfo().getRole().equals(ConsistencyGroupCopyRole.TEMPORARY_ACTIVE)) &&
+                if (copySetting.getRoleInfo().getRole().equals(ConsistencyGroupCopyRole.ACTIVE)  &&
                 		copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
                         copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() > 0) {
                     logger.info("Setting link state for snapshot technology.");

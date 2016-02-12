@@ -728,8 +728,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
                 igName = getIGNameForInitiator(initiator, storage.getSerialNumber(), client, xioClusterName);
                 if (igName == null || igName.isEmpty()) {
-                    _log.info("initiator {} - no IG found. Adding to create list",
-                            initiator.getLabel(), igName);
+                    _log.info("initiator {} - no IG found. Adding to create list", initiator.getLabel(), igName);
                     initiatorsToBeCreated.add(initiator);
                 } else {
                     groupInitiatorsByIG.put(igName, initiator);
@@ -737,8 +736,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             }
 
             _log.info("Found {} existing IGs: {} after running selection process",
-                    groupInitiatorsByIG.size(),
-                    Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()));
+                    groupInitiatorsByIG.size(), Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()));
 
             // since we're reusing existing IGs, volumes might get exposed to other initiators in
             // IG.
@@ -764,13 +762,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // create Lun Maps
             for (VolumeURIHLU volURIHLU : volumeURIHLUs) {
                 BlockObject blockObj = BlockObject.fetch(dbClient, volURIHLU.getVolumeURI());
-                String hluValue = volURIHLU.getHLU().equalsIgnoreCase(
-                        ExportGroup.LUN_UNASSIGNED_STR) ? "-1" : volURIHLU.getHLU();
+                String hluValue = volURIHLU.getHLU().equalsIgnoreCase(ExportGroup.LUN_UNASSIGNED_STR) ? "-1" : volURIHLU.getHLU();
                 _log.info("HLU value {}", hluValue);
                 for (String igName : igNames) {
                     // Create lun map
-                    _log.info("Creating Lun Map for  Volume {} using IG {}", blockObj.getLabel(),
-                            igName);
+                    _log.info("Creating Lun Map for  Volume {} using IG {}", blockObj.getLabel(), igName);
                     client.createLunMap(blockObj.getDeviceLabel(), igName, hluValue, xioClusterName);
                 }
             }
@@ -781,12 +777,11 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                 Integer hluNumberFound = 0;
                 // get volume/snap details again and populate wwn and hlu
                 XtremIOVolume xtremIOVolume = null;
-                if (URIUtil.isType(blockObj.getId(), Volume.class)) {
-                    xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
-                            blockObj.getLabel(), xioClusterName);
-                } else {
-                    xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
-                            blockObj.getDeviceLabel(), xioClusterName);
+                String deviceName = blockObj.getDeviceLabel();
+                xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client, deviceName, xioClusterName);
+                // COP-19828: If we can't find a volume by the given name, try to find a snap with the given name
+                if (xtremIOVolume == null) {
+                    xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client, deviceName, xioClusterName);
                 }
 
                 if (xtremIOVolume != null) {
@@ -794,7 +789,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     if (!xtremIOVolume.getWwn().isEmpty()) {
                         blockObj.setWWN(xtremIOVolume.getWwn());
                         blockObj.setNativeId(xtremIOVolume.getWwn());
-                        dbClient.updateAndReindexObject(blockObj);
+                        dbClient.updateObject(blockObj);
                     }
 
                     for (String igName : igNames) {
@@ -816,15 +811,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                                 continue;
                             }
 
-                            @SuppressWarnings("unchecked")
                             Double hluNumber = (Double) lunMapEntries.get(2);
                             _log.info("Found HLU {} for volume {}", hluNumber, blockObj.getLabel());
                             // for each IG involved, the same volume is visible thro different HLUs.
                             // TODO we might need a list of HLU for each Volume URI
                             hluNumberFound = hluNumber.intValue();
-                            exportMask.getVolumes().put(blockObj.getId().toString(),
-                                    String.valueOf(hluNumberFound));
-
+                            exportMask.getVolumes().put(blockObj.getId().toString(), String.valueOf(hluNumberFound));
                         }
                     }
                 }
@@ -832,7 +824,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
             _log.info("Updated Volumes with HLUs {} after successful export",
                     Joiner.on(",").join(exportMask.getVolumes().entrySet()));
-            dbClient.updateAndReindexObject(exportMask);
+            dbClient.updateObject(exportMask);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error(String.format("Export Operations failed - maskName: %s", exportMask.getId()

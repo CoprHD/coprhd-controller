@@ -20,10 +20,10 @@
     >&{'resources.snapshot.session.deleteLink'}</a><br/>
  #{/Resources.actions}
   <dl class="dl-horizontal pull-left">
-      
+      #{if volume}
       <dt>&{'affectedResources.blockSnapshotSession.volume'}:</dt>
       <dd><img src="/public/img/assets/Volume.png" style="width: 32px;"/><a href="@{resources.BlockVolumes.volume(blockSnapshotSession.volume.id)}">#{spaceForNull blockSnapshotSession.volume?.name/}</a></dd>
-      
+      #{/if}
     #{Resources.commonAttributes resource:blockSnapshotSession.blockSnapshotSession /}
   </dl>
 

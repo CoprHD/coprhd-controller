@@ -21,6 +21,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,7 +132,7 @@ public class ExportProcessor extends Processor {
         EnumerateResponse<CIMInstance> response = null;
         List<Initiator> matchedInitiators = new ArrayList<Initiator>();
         List<StoragePort> matchedPorts = new ArrayList<StoragePort>();
-        WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
+        WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
         StringSet knownIniSet = new StringSet();
         StringSet knownNetworkIdSet = new StringSet();
         StringSet knownPortSet = new StringSet();

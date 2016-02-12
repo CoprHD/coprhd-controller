@@ -465,6 +465,13 @@ public class ConnectionManager {
         s_logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
 
+    /**
+     * Looks up the 'hostAndPort' connection in the map. If it exists, the underlying
+     * connection will be closed, it will be removed from the map, and related data
+     * structures will be updated.
+     * 
+     * @param hostAndPort [IN] - Host + Port key used for looking up connection
+     */
     private void internalRemoveConnection(String hostAndPort) {
         // Verify the passed host is not null or blank.
         if ((hostAndPort == null) || (hostAndPort.length() == 0)) {

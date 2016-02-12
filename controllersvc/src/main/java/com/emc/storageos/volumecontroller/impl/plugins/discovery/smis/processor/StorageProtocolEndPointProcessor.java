@@ -141,7 +141,7 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
                     !(portinMemory.getPortNetworkId().equals(endPointInstanceId))) {
                 // Since this is a new protocol endpoint and for V3, a single physical port can have multiple
                 // virtualiSCSIProtocolEndpoints, we will need to create new port object
-                StoragePort newPortinMemory = (StoragePort) portinMemory.clone();
+                StoragePort newPortinMemory = portinMemory.clone();
                 newPortinMemory.setId(URIUtil.createId(StoragePort.class));
                 newPortinMemory.setPortNetworkId(endPointInstanceId);
                 newPortinMemory.setPortEndPointID(endPointInstance.getObjectPath().getKey(NAME)
@@ -177,7 +177,7 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
                     .getValue().toString());
             port.setCompatibilityStatus(portinMemory.getCompatibilityStatus());
             port.setDiscoveryStatus(portinMemory.getDiscoveryStatus());
-            if (port.getOperationalStatus() != OperationalStatus.OK.name()) {
+            if (!OperationalStatus.OK.name().equals(port.getOperationalStatus())) {
                 port.setOperationalStatus(portinMemory.getOperationalStatus());
             }
             _logger.info("Updating port - {} : {}", port.getLabel(), port.getNativeGuid());

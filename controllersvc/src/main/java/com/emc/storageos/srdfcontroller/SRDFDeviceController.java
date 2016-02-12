@@ -666,7 +666,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          * Note: This is supported from SMI-S 8.0.3.11 onwards.
          * Step-2 will be called from API to create replica objects for new volumes and add them to DMG.
          */
-        boolean forceAdd = utils.checkIfR1OrR2HasReplica(group);
+        boolean forceAdd = true;
 
         /*
          * 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1
@@ -723,7 +723,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     null);
         }
         /* 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1 */
-        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null, false);
+        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null, true);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIS, false);
         workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
@@ -2040,7 +2040,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
 
                             Workflow.Method addSyncPairMethod = addVolumePairsToCgMethod(system.getId(),
-                                    sourceUris, group.getId(), null, false);
+                                    sourceUris, group.getId(), null, true);
 
                             String removeAsyncPairStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     removePairFromGroupWorkflowDesc, waitFor, system.getId(),

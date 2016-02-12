@@ -7,7 +7,7 @@
       type:"assetType.vipr.application"
     },
     
-    virtualArray:{
+    applicationSite:{
       type:"assetType.vipr.applicationVirtualArray",
       required:"false"
     },

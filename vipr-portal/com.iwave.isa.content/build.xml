@@ -46,7 +46,7 @@
     
   <target name="StopServices" description="Stop the StorageOS services.">
     <!--  Stop the services -->
-    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos stop" trust="true"/>
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="ps -ef | grep /opt/storageos/bin/sasvc | grep -v grep | awk '{print $2}' | xargs kill" trust="true"/>
   </target>
 
   <target name="ChangePermissionJar" description="Change the permission of the jar">
@@ -54,8 +54,8 @@
   </target>
 
   <target name="StartServices" description="Start the StorageOS services.">
-    <!--  Start the services -->
-    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos start" trust="true"/>
+    <!--  Start the services 
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.passwd}" command="/etc/storageos/storageos start" trust="true"/> -->
   </target> 
 
 </project>

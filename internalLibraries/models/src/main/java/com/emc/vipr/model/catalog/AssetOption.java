@@ -13,7 +13,7 @@ public class AssetOption {
 
     public AssetOption() {
     }
-    
+
     public AssetOption(String key, String value) {
         this.key = key;
         this.value = value;

@@ -823,7 +823,8 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             // for each IG involved, the same volume is visible thro different HLUs.
                             // TODO we might need a list of HLU for each Volume URI
                             hluNumberFound = hluNumber.intValue();
-                            exportMask.getVolumes().put(blockObj.getId().toString(), String.valueOf(hluNumberFound));
+                            exportMask.addVolume(blockObj.getId(), hluNumberFound);
+
                         }
                     }
                 }

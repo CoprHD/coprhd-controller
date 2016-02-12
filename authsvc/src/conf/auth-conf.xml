@@ -15,7 +15,7 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans
        http://www.springframework.org/schema/beans/spring-beans.xsd
        http://www.springframework.org/schema/context 
-	http://www.springframework.org/schema/context/spring-context-3.1.xsd">
+	http://www.springframework.org/schema/context/spring-context-3.2.xsd">
 
     <context:annotation-config />
     <import resource="classpath:dbclient-conf.xml"/>
@@ -58,6 +58,10 @@
                 </bean>
                 <bean class="com.emc.storageos.security.resource.UserInfoPage" />
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
+                <bean class="com.emc.storageos.auth.service.impl.resource.SamlAuthenticationResource" >
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
 			</set>
 		</property>
 	</bean>
@@ -164,4 +168,18 @@
         <property name="localUsers" ref="localUserMap"/>
     </bean>
 
+    <!-- Central storage of cryptographic keys -->
+    <bean id="keyManager" class="org.springframework.security.saml.key.JKSKeyManager">
+        <constructor-arg value="classpath:storageos.ks"/>
+        <constructor-arg type="java.lang.String" value="geostorageos"/>
+        <constructor-arg>
+            <map>
+                <entry key="vipr_key_and_certificate" value="geostorageos"/>
+            </map>
+        </constructor-arg>
+        <constructor-arg type="java.lang.String" value="vipr_key_and_certificate"/>
+    </bean>
+
+    <!-- Initialization of OpenSAML library-->
+    <bean class="org.springframework.security.saml.SAMLBootstrap"/>
 </beans>

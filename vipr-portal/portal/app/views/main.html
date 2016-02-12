@@ -263,6 +263,7 @@
 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
         #{nav.item 'keystores', href: @auth.Keystores.updateCertificate()/}
+        #{nav.item 'sso', href: @auth.SamlSingleSignOn.metadata()/}
         #{/deadbolt.restrict}
 
         #{if isActiveSite }

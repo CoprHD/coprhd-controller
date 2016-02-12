@@ -141,6 +141,7 @@ nav.object.buckets=Buckets
 nav.app=Applications
 nav.disasterRecovery=System Disaster Recovery
 nav.ipsec=IPsec
+nav.sso=Single Sign-On
 
 # Override messages in the Secure plugin
 secure.title=
@@ -1322,6 +1323,35 @@ ipsecFailure.node=Node
 ipsecFailure.keysGeneratedOn=IPsec Key Generated On
 ipsecFailure.status=Status
 
+saml.metadata.title= SAML Service Provider Metadata
+saml.metadata.description=Enables single sign-on with external SAML Identity Provider.
+saml.metadata.create=Create
+saml.metadata.view=View
+saml.metadata.saved=SAML metadata for the Service Provider entity %s is saved successfully.
+saml.metadata.deleted=SAML metadata for the Service Provider entity is deleted successfully.
+saml.metadata.dialog.title=SAML SP Metadata
+metadata.entityID=Entity ID
+metadata.entityID.description=SAML Service Provider EntityID, that will be used by the IDP to uniquely identify the Service Provider.
+metadata.entityBaseURL=Entity Base URL
+metadata.entityBaseURL.description=SAML Service Provider base url.
+metadata.requestSigned=Sign Authentication Request
+metadata.requestSigned.description=Sign all the authentication request from SP to IDP.
+metadata.assertionSigned=Sign SAML Assertion
+metadata.assertionSigned.description=Sign all the SAML assertions from IDP to SP.
+metadata.entityAlias=Entity Alias
+metadata.entityAlias.description=SAML Service Provider Entity Alias.
+metadata.logoutRequestSigned=Sign Logout Request.
+metadata.logoutRequestSigned.description=Sign all the SAML logout request from SP to IDP.
+metadata.logoutResponseSigned=Sign Logout Response.
+metadata.logoutResponseSigned.description=Sign all the SAML logout request from IDP to SP.
+metadata.artifactResolveSigned=Sign SAML Artifacts
+metadata.artifactResolveSigned.description=Sign the SAML artifacts in SAML artifact binding.
+metadata.hostNameVerification=Hostname Verification Scheme
+metadata.hostNameVerification.description=Allow the incoming SAML messages based on the source of the messages.
+metadata.signMetadata=Sign Metadata
+metadata.signMetadata.description=Sign the SAML Service Provider metadata.
+metadata.signingAlgorithm=Signing Algorithm
+metadata.signingAlgorithm.description=Algorithm to be used to sign the metadata.
 
 disk.name=Name
 disk.status=Status
@@ -3661,6 +3691,7 @@ button.associate=Associate Project
 button.dissociate=Dissociate Project
 button.failover=Failover
 button.ipsec.rotate.keys=Rotate IPsec Key
+button.saml.metadata.view=View SP Metadata
 selectOne.chooseOption=-- Please Choose --
 
 common.yes=Yes

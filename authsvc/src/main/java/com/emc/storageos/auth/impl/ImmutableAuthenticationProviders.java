@@ -390,7 +390,7 @@ public class ImmutableAuthenticationProviders {
     private static LdapContextSource createLDAPContextSource(
             CoordinatorClient coordinator,
             final AuthnProvider authenticationConfiguration,
-            final Map<String, String> environmentProperties) {
+            final Map<String, Object> environmentProperties) {
         LdapContextSource contextSource = new LdapContextSource();
         contextSource.setAnonymousReadOnly(false);
         contextSource.setPooled(false);
@@ -445,7 +445,7 @@ public class ImmutableAuthenticationProviders {
      */
     private static LdapContextSource createConfiguredLDAPContextSource(
             CoordinatorClient coordinator, AuthnProvider authProvider, int timeout) {
-        Map<String, String> environmentProperties = new HashMap<String, String>();
+        Map<String, Object> environmentProperties = new HashMap<String, Object>();
         environmentProperties.put("java.naming.security.authentication",
                 "simple");
         if (authProvider.getMode().equalsIgnoreCase(AuthnProvider.ProvidersType.ad.toString())) {

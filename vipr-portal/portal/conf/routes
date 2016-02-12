@@ -164,6 +164,7 @@ POST    /Catalog/service/delete                 catalog.EditCatalog.deleteServic
 
 *       /certificates/{action}        	        auth.Certificates.{action}
 *       /security/ipsec                         auth.IPsec.ipsec
+*       /security/sso                           auth.SamlSingleSignOn.metadata
 
 ## Execution Windows API
 ##begin

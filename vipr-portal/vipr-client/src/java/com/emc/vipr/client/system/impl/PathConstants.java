@@ -68,4 +68,8 @@ public class PathConstants {
 
     public static final String IPSEC_URL = "/ipsec";
     public static final String IPSEC_KEY_URL = "/ipsec/key";
+
+    public static final String SAML_METADATA_URL = "/saml/metadata";
+    public static final String SAML_METADATA_OBJECT_URL = SAML_METADATA_URL + "/object";
+    public static final String SAML_METADATA_DELETE_URL = SAML_METADATA_URL + "/delete";
 }

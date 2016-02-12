@@ -157,4 +157,8 @@ public interface Constants {
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
     public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";
     public static final String FAILBACK_DETECT_LEADER = "failbackDetectLeader";
+
+    public static final String SAML_METADATA = "saml/metadata";
+    public static final String SAML_METADATA_SP = "sp";
+    public static final String SAML_METADATA_IDP = "idp";
 }

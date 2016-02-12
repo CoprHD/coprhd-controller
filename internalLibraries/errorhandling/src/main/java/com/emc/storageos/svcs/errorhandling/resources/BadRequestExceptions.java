@@ -2805,6 +2805,8 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteMirrorFileShareTargetWithActiveSource(URI target, URI source);
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToFindSamlSPMetadata(String path);
 }
 
 

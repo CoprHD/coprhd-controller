@@ -1,0 +1,132 @@
+%{
+titleKey = 'saml.metadata.title';
+descriptionKey = 'saml.metadata.description';
+}%
+
+#{extends 'main.html' /}
+#{set navSelected: ['nav.security', 'nav.sso'] /}
+
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+    <script type="text/javascript">
+        function showMetadataDialog() {
+        $('#metadataDialog').modal();
+        }
+   </script>
+#{/set}
+
+<div class="container">
+    #{Form.header titleKey:titleKey, descriptionKey:descriptionKey /}
+    #{alerts/}
+
+    #{form @save(), id:'samlMetadataForm', class:'form form-horizontal', autocomplete:"off"}
+        <fieldset>
+            #{field 'metadata.entityID'}
+                %{
+                    field.required = true
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.inputTextControlGroup field:field /}
+            #{/field}
+
+            #{field 'metadata.entityBaseURL'}
+                %{
+                    field.required = true
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.inputTextControlGroup field:field /}
+            #{/field}
+
+            #{field 'metadata.entityAlias'}
+                %{
+                    field.required = true
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.inputTextControlGroup field:field /}
+            #{/field}
+
+            #{field 'metadata.hostNameVerification'}
+                %{
+                    field.required = true
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.inputTextControlGroup field:field /}
+            #{/field}
+
+            #{field 'metadata.signingAlgorithm'}
+                %{
+                    field.required = true
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.inputTextControlGroup field:field /}
+            #{/field}
+
+            #{field 'metadata.requestSigned'}
+                %{
+                    field.cssClass = 'span0'
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.booleanCheckBoxControlGroup field:field/}
+            #{/field}
+
+            #{field 'metadata.assertionSigned'}
+                %{
+                    field.cssClass = 'span0'
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.booleanCheckBoxControlGroup field:field/}
+            #{/field}
+
+            #{field 'metadata.logoutRequestSigned'}
+                %{
+                    field.cssClass = 'span0'
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.booleanCheckBoxControlGroup field:field/}
+            #{/field}
+
+            #{field 'metadata.logoutResponseSigned'}
+                %{
+                    field.cssClass = 'span0'
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.booleanCheckBoxControlGroup field:field/}
+            #{/field}
+
+            #{field 'metadata.artifactResolveSigned'}
+                %{
+                    field.cssClass = 'span0'
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.booleanCheckBoxControlGroup field:field/}
+            #{/field}
+
+            #{field 'metadata.signMetadata'}
+                %{
+                    field.cssClass = 'span0'
+                    field.helpTextKey = field.name + '.description'
+                }%
+                #{Form.booleanCheckBoxControlGroup field:field/}
+            #{/field}
+        </fieldset>
+
+        #{Modal.dialog id:'metadataDialog', titleKey: 'saml.metadata.dialog.title'}
+            #{Modal.body cssClass:'form-horizontal'}
+                #{field 'metadata.viewMetadata'}
+                    %{
+                        field.value= viewMetadata;
+                    }%
+                    #{Form.textArea noLabel:true, field:field/}
+                #{/field}
+            #{/Modal.body}
+            #{Modal.footer}
+                #{Form.button 'button.close', icon:'trash', data:['dismiss':'modal']/}
+            #{/Modal.footer}
+        #{/Modal.dialog}
+
+        #{Form.buttonBar}
+            #{Form.button name:'button.saml.metadata.view', class:'primary',action:'showMetadataDialog()'/}
+            <button type="submit" class="btn btn-primary btn-large">#{icon 'ok-sign'/} &{'button.save'}</button>
+        #{/Form.buttonBar}
+    #{/form}
+</div>

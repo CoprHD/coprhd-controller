@@ -43,6 +43,7 @@ import com.emc.vipr.client.core.ObjectVirtualPools;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
+import com.emc.vipr.client.core.SamlSingleSignOn;
 import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StoragePools;
 import com.emc.vipr.client.core.StoragePorts;
@@ -404,5 +405,9 @@ public class ViPRCoreClient {
     
     public ApplicationSupport application() {
         return new ApplicationSupport(client);
+    }
+
+    public SamlSingleSignOn getSamlSingleSignOn() {
+        return new SamlSingleSignOn(client);
     }
 }

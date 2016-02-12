@@ -396,12 +396,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
                             args.addQuotaDirectory(null);
                             doFSDeleteQuotaDirsFromDB(args);
-                            doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                         }
                     }
 
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
+                    doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                     SMBShareMap cifsSharesMap = fsObj.getSMBFileShares();
                     if (cifsSharesMap != null && !cifsSharesMap.isEmpty()) {
                         cifsSharesMap.clear();
@@ -2108,7 +2108,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
 
             StringSet fsURIs = fp.getAssignedResources();
-            fsURIs.remove(fs.getId());
+            fsURIs.remove(fs.getId().toString());
             fp.setAssignedResources(fsURIs);
             _dbClient.updateObject(fp);
 

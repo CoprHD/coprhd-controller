@@ -83,7 +83,10 @@ public class RecoverPointImageManagementUtils {
 			if (waitForLinkState) {
 				// Make sure the CG is ready for enable
 				waitForCGLinkState(impl, cgCopy.getGroupUID(), RecoverPointImageManagementUtils.getPipeActiveState(impl, cgCopy.getGroupUID()));
+			} else {
+				logger.info("Not waiting on any link states, proceeding with the operation");
 			}
+			
 
             if (bookmarkName == null) {
                 // Time based enable

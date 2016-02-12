@@ -25,7 +25,6 @@ public class DisasterRecoveryDataTable extends DataTable {
         public String description;
         public String VirtualIP;
         public String status;
-        public String siteId;
         public String id;
         public String networkHealth;
 

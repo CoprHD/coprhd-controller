@@ -93,25 +93,25 @@ public class FailoverBlockVolumeService extends ViPRService {
 
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             // The type selected is volume
-            if (type != null && type.equals(RECOVER_POINT) && (!BlockProvider.LATEST_IMAGE_OPTION_KEY.equals(imageToAccess))) {
+            if (type != null && type.equals(RECOVER_POINT) && BlockProvider.PIT_IMAGE_OPTION_KEY.equals(imageToAccess)) {
                 // This is a RP failover request so we need to pass along the copyName and pointInTime values.
                 // We only want to do this if the image selected is NOT the latest image (this is handled by
                 // the default case) but a specific snapshot or point in time.
                 setImageToAccessForRP();
 
-                tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, imageToAccess, pointInTime));
+                tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, pointInTime));
             } else {
                 tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
             }
         } else {
             // The type selected is consistency group
-            if (type != null && type.equals(RECOVER_POINT) && (!BlockProvider.LATEST_IMAGE_OPTION_KEY.equals(imageToAccess))) {
+            if (type != null && type.equals(RECOVER_POINT) && (BlockProvider.PIT_IMAGE_OPTION_KEY.equals(imageToAccess))) {
                 // This is a RP failover request so we need to pass along the copyName and pointInTime values.
                 // We only want to do this if the image selected is NOT the latest image (this is handled by
                 // the default case) but a specific snapshot or point in time.
                 setImageToAccessForRP();
 
-                tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type, imageToAccess, pointInTime));
+                tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type, pointInTime));
             } else {
                 tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type));
             }

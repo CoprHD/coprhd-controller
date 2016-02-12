@@ -109,31 +109,31 @@ public class ObjectBuckets extends ResourceController {
     }
 
     @FlashException(referrer = { "bucket" })
-    public static void deleteBucket(String bucketId) {
+    public static void deleteBucket(String bucketId, String deleteType) {
         if (StringUtils.isNotBlank(bucketId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
 
             boolean forceDelete = false;
             Task<BucketRestRep> task = client.objectBuckets().deactivate(uri(bucketId),
-                    new BucketDeleteParam(forceDelete));
+                    new BucketDeleteParam(forceDelete, deleteType));
             flash.put("info", MessagesUtils.get("resources.bucket.deactivate"));
         }
         bucket(bucketId);
     }
 
     @FlashException(value = "buckets")
-    public static void delete(@As(",") String[] ids) {
-        delete(uris(ids));
+    public static void delete(@As(",") String[] ids, String deleteType) {
+        delete(uris(ids), deleteType);
     }
 
-    private static void delete(List<URI> ids) {
+    private static void delete(List<URI> ids, String deleteType) {
         if (ids != null) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             List<Task<BucketRestRep>> tasks = Lists.newArrayList();
             for (URI id : ids) {
                 boolean forceDelete = false;
                 Task<BucketRestRep> task = client.objectBuckets().deactivate(id,
-                        new BucketDeleteParam(forceDelete));
+                        new BucketDeleteParam(forceDelete, deleteType));
                 tasks.add(task);
             }
             if (!tasks.isEmpty()) {

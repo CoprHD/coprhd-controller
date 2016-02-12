@@ -49,7 +49,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
      */
     public InternalSiteServiceClient(Site site) {
         this.site = site;
-        setServer(site.getVip());
+        setServer(site.getVipEndPoint());
     }
 
     /**

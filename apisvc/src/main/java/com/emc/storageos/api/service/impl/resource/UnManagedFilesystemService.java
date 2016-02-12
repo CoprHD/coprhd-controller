@@ -422,7 +422,8 @@ public class UnManagedFilesystemService extends TaggedResource {
                 for (StorageProtocol.File fileProtocol : StorageProtocol.File.values()) {
                     fsSupportedProtocols.add(fileProtocol.name());
                 }
-
+                // fs support protocol which is present in StoragePool and VirtualPool both
+                fsSupportedProtocols.retainAll(pool.getProtocols());
                 fsSupportedProtocols.retainAll(cos.getProtocols());
                 filesystem.getProtocol().addAll(fsSupportedProtocols);
                 filesystem.setLabel(null == deviceLabel ? "" : deviceLabel);

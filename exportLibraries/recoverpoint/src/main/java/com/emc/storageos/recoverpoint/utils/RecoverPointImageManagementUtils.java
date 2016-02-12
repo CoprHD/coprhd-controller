@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.fapiclient.ws.ClusterUID;
+import com.emc.fapiclient.ws.ConsistencyGroupCopyRole;
+import com.emc.fapiclient.ws.ConsistencyGroupCopyRoleInfo;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySnapshots;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyState;
@@ -1450,6 +1452,7 @@ public class RecoverPointImageManagementUtils {
 
     /**
      * Determines if the specified consistency group is using snapshot technology
+     * Returns true if the RP source copy is using snapshot technology, false otherwise
      *
      * @param impl the FAPI reference.
      * @param cgCopyUID the copy to be set as the production copy.
@@ -1463,11 +1466,13 @@ public class RecoverPointImageManagementUtils {
             ConsistencyGroupSettings groupSettings = impl.getGroupSettings(cgUID);
             List<ConsistencyGroupCopySettings> copySettings = groupSettings.getGroupCopiesSettings();
             for (ConsistencyGroupCopySettings copySetting : copySettings) {
-                if (copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
+                if (copySetting.getRoleInfo().getRole().equals(ConsistencyGroupCopyRole.ACTIVE) || 
+                	(copySetting.getRoleInfo().getRole().equals(ConsistencyGroupCopyRole.TEMPORARY_ACTIVE)) &&
+                		copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() != null &&
                         copySetting.getPolicy().getSnapshotsPolicy().getNumOfDesiredSnapshots() > 0) {
                     logger.info("Setting link state for snapshot technology.");
                     return true;
-                }
+                } 
             }
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.cantCheckLinkState(cgName, e);

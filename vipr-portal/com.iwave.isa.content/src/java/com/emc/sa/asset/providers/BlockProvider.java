@@ -1874,10 +1874,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     }
                 }
         	}
-        	if (vol.getProtection() != null) {
+            if (vol.getProtection() != null && vol.getProtection().getRpRep() != null) {
         		isRP = true;
                 for (VolumeRestRep rpvol : allVols) {
-                    if (rpvol.getProtection() != null && rpvol.getProtection().getRpRep().getPersonality().equals("SOURCE")) {
+                    if (rpvol.getProtection() != null && rpvol.getProtection().getRpRep() != null
+                            && rpvol.getProtection().getRpRep().getPersonality() != null
+                            && rpvol.getProtection().getRpRep().getPersonality().equals("SOURCE")) {
                         sourceVarrayId = rpvol.getVirtualArray().getId();
                         break;
                     }

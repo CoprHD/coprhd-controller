@@ -1486,7 +1486,7 @@ public class ControllerUtils {
      */
     public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
 
-        return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
+        return (volume != null && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance()));
     }
 
     /**

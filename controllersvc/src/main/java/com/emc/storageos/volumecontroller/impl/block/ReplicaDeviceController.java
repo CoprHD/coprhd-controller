@@ -96,6 +96,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
             if (!(volume != null && volume.isInCG() &&
                     (ControllerUtils.isVmaxVolumeUsing803SMIS(volume, _dbClient) || ControllerUtils.isNotInRealVNXRG(volume, _dbClient)))) {
+                log.info("No replica steps required");
                 return waitFor;
             }
             log.info("CG URI:{}", volume.getConsistencyGroup());
@@ -107,7 +108,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
             if (!cg.getArrayConsistency() && isBackendVolumeForVplexOrRp(volumes)) {
-                log.info("Skipping add replica step for CG {} as array consistency is disabled.", cg.getLabel());
+                log.info("No replica steps required for CG {} as array consistency is disabled.", cg.getLabel());
                 return waitFor;
             }
         }

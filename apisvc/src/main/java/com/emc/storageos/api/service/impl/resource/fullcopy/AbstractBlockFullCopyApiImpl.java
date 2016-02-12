@@ -138,7 +138,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
         URI cgURI = fcSourceObj.getConsistencyGroup();
         if ((!isNullURI(cgURI))
-                && (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient))) {
+                && (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient))
+                && (NullColumnValueGetter.isNotNullValue(fullCopyVolume.getReplicationGroupInstance()))) {
             // If the full copy is not detached and the source is
             // in a CG, then the full copy is treated as a set and
             // there should be a full copy for each source in the

@@ -180,9 +180,11 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     AlternateIdConstraint.Factory
                             .getVolumeByAssociatedVolumesConstraint(backendCopyIter.next()
                                     .toString()), queryResults);
-            URI vplexCopyVolumeURI = queryResults.iterator().next();
-            fullCopyMap.put(vplexCopyVolumeURI,
-                    _dbClient.queryObject(Volume.class, vplexCopyVolumeURI));
+            if (queryResults.iterator().hasNext()) {
+                URI vplexCopyVolumeURI = queryResults.iterator().next();
+                fullCopyMap.put(vplexCopyVolumeURI,
+                        _dbClient.queryObject(Volume.class, vplexCopyVolumeURI));
+            }
         }
 
         return fullCopyMap;

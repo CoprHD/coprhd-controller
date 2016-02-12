@@ -67,13 +67,14 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyActivateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
-import com.emc.storageos.model.application.VolumeGroupFullCopySetList;
+import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
@@ -305,7 +306,6 @@ public class VolumeGroupService extends TaskResourceService {
      */
     @POST
     @Path("/{id}/deactivate")
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public Response deactivateVolumeGroup(@PathParam("id") URI id) {
@@ -419,6 +419,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -532,7 +533,7 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param cgURI The URI of the volume group.
+     * @param volumeGroupId The URI of the volume group.
      *
      * @brief List full copies for a volume group
      *
@@ -564,9 +565,7 @@ public class VolumeGroupService extends TaskResourceService {
     /**
      * List full copy set names for a volume group
      *
-     * @prereq none
-     *
-     * @param cgURI The URI of the volume group.
+     * @param volumeGroupId The URI of the volume group.
      *
      * @brief List full copy set names for a volume group
      *
@@ -574,9 +573,9 @@ public class VolumeGroupService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/full-copies/full-copy-sets")
+    @Path("/{id}/protection/full-copies/copy-sets")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public VolumeGroupFullCopySetList getVolumeGroupFullCopySets(@PathParam("id") final URI volumeGroupId) {
+    public VolumeGroupCopySetList getVolumeGroupFullCopySets(@PathParam("id") final URI volumeGroupId) {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
         // Query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
@@ -586,7 +585,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         // Cycle over the volumes in the volume group and
         // get the full copies for each volume in the group.
-        VolumeGroupFullCopySetList fullCopySets = new VolumeGroupFullCopySetList();
+        VolumeGroupCopySetList fullCopySets = new VolumeGroupCopySetList();
         for (Volume volume : volumes) {
             StringSet fullCopyIds = volume.getFullCopies();
             if (fullCopyIds != null) {
@@ -599,10 +598,10 @@ public class VolumeGroupService extends TaskResourceService {
                         continue;
                     }
                     String setName = fullCopyVolume.getFullCopySetName();
-                    if (setName == null) {
+                    if (setName == null) {  // This should not happen
                         setName = "";
                     }
-                    fullCopySets.getFullCopySets().add(setName);
+                    fullCopySets.getCopySets().add(setName);
                 }
             }
         }
@@ -611,32 +610,33 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * List full copies for a volume group belonging to the provided set name
+     * List full copies for a volume group belonging to the provided copy set name
      *
-     * @prereq none
+     * @param volumeGroupId The URI of the volume group.
+     * @param param VolumeGroupCopySetParam containing the copy set name
      *
-     * @param cgURI The URI of the volume group.
+     * @brief List full copies for a volume group belonging to the provided copy set name
      *
-     * @brief List full copies for a volume group belonging to the provided set name
-     *
-     * @return The list of full copies for the volume group belonging to the provided set name
+     * @return The list of full copies for the volume group belonging to the provided copy set name
      */
-    @GET
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/full-copies/full-copy-sets/{full-copy-set-name}")
+    @Path("/{id}/protection/full-copies/copy-sets")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public NamedVolumesList getVolumeGroupFullCopiesForSet(@PathParam("id") final URI volumeGroupId,
-            @PathParam("full-copy-set-name") final String fullCopySetName) {
+            final VolumeGroupCopySetParam param) {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
         // Query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
         // validate that full copy set name is provided
-        ArgValidator.checkFieldNotNull(fullCopySetName, "full-copy-set-name");
+        String fullCopySetName = param.getCopySetName();
+        ArgValidator.checkFieldNotNull(fullCopySetName, "copy_set_name");
 
         // validate that the provided set name actually belongs to this Application
-        VolumeGroupFullCopySetList fullCopySetNames = getVolumeGroupFullCopySets(volumeGroupId);
-        if (!fullCopySetNames.getFullCopySets().contains(fullCopySetName)) {
+        VolumeGroupCopySetList fullCopySetNames = getVolumeGroupFullCopySets(volumeGroupId);
+        if (!fullCopySetNames.getCopySets().contains(fullCopySetName)) {
             throw APIException.badRequests.
                     setNameDoesNotBelongToVolumeGroup("Full Copy Set name", fullCopySetName, volumeGroup.getLabel());
         }
@@ -655,7 +655,7 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param cgURI The URI of the volume group.
+     * @param volumeGroupId The URI of the volume group.
      * @param fullCopyURI The URI of the full copy.
      *
      * @brief Get the specified volume group full copy.
@@ -703,6 +703,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/activate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -804,6 +805,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/detach")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -904,6 +906,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/restore")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1005,6 +1008,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/resynchronize")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })

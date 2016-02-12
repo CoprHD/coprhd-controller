@@ -657,22 +657,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         /**
          * If R1/R2 has group snap/clone/mirror, add pair to group is not supported unless we provide force flag.
-         * Step-1: In such a case, provide force flag.
-         * When force flag is provided, existing volume-replica group relation becomes INVALID.
-         * Step-2: Create new snap/clone/mirror for new R1/R2 volumes,
+         * Force flag is implemented by default
+         * Create new snap/clone/mirror for new R1/R2 volumes,
          * add them to DeviceMaskingGroup (DMG) which is equivalent to its ReplicationGroup (RG)
          * (adding new devices to existing RG is not supported. As a workaround, add them to DMG)
          * 
          * Note: This is supported from SMI-S 8.0.3.11 onwards.
-         * Step-2 will be called from API to create replica objects for new volumes and add them to DMG.
+         * It will be called from API to create replica objects for new volumes and add them to DMG.
          */
-        boolean forceAdd = true;
 
         /*
          * 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1
          */
 
-        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri, forceAdd);
+        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIs, false);
         String addVolumestoCgStep = workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
@@ -723,7 +721,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     null);
         }
         /* 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1 */
-        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null, true);
+        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIS, false);
         workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
@@ -1611,20 +1609,19 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
-    private Method addVolumePairsToCgMethod(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri,
-            boolean forceAdd) {
-        return new Workflow.Method(ADD_SYNC_VOLUME_PAIRS_METHOD, systemURI, sourceURIs, remoteDirectorGroupURI, vpoolChangeUri, forceAdd);
+    private Method addVolumePairsToCgMethod(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri) {
+        return new Workflow.Method(ADD_SYNC_VOLUME_PAIRS_METHOD, systemURI, sourceURIs, remoteDirectorGroupURI, vpoolChangeUri);
     }
 
     public boolean addVolumePairsToCgMethodStep(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri,
-            boolean forceAdd, String opId) {
+            String opId) {
         log.info("START Add VolumePair to CG");
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             completer = new SRDFAddPairToGroupCompleter(sourceURIs, vpoolChangeUri, opId);
-            getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, forceAdd, completer);
+            getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
@@ -2040,7 +2037,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
 
                             Workflow.Method addSyncPairMethod = addVolumePairsToCgMethod(system.getId(),
-                                    sourceUris, group.getId(), null, true);
+                                    sourceUris, group.getId(), null);
 
                             String removeAsyncPairStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     removePairFromGroupWorkflowDesc, waitFor, system.getId(),

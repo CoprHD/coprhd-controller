@@ -147,7 +147,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         BiosCommandResult result;
         try {
             ECSApi objectAPI = getAPI(storageObj);
-            if (ObjectControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType.toString())) {
+            if (ObjectControllerConstants.DeleteTypeEnum.INTERNAL_DB_ONLY.toString().equalsIgnoreCase(deleteType.toString())) {
                 _log.info("Inventory only bucket delete {}", bucket.getName());
             } else {
                 objectAPI.deleteBucket(bucket.getName(), bucket.getNamespace());

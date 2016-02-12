@@ -18,7 +18,7 @@ public interface ObjectControllerConstants {
     
     public enum DeleteTypeEnum {
         FULL,
-        VIPR_ONLY,
+        INTERNAL_DB_ONLY,
     }
 
 }

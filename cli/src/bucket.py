@@ -356,7 +356,7 @@ def delete_parser(subcommand_parsers, common_parser):
                                metavar='<delete_type>',
                                help='Delete bucket either from Inventory only or full delete, default FULL',
                                default='FULL',
-                               choices=["FULL", "VIPR_ONLY"])
+                               choices=["FULL", "INTERNAL_DB_ONLY"])
 
     delete_parser.set_defaults(func=bucket_delete)
 

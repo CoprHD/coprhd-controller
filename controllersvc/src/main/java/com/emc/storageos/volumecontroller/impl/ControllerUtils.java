@@ -1563,7 +1563,7 @@ public class ControllerUtils {
     }
 
     /**
-     * Group volumes by array group. For VPLEX virtual volumes, group them by backend src volumes's array group.
+     * Group volumes by array group + storage system Id. For VPLEX virtual volumes, group them by backend src volumes's array group.
      *
      * @param volumes the volumes
      * @param dbClient dbCLient instance
@@ -1580,10 +1580,11 @@ public class ControllerUtils {
                     repGroupName = backedVol.getReplicationGroupInstance();
                 }
             }
-            if (arrayGroupToVolumes.get(repGroupName) == null) {
-                arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
+            String key = repGroupName + volume.getStorageController().toString();
+            if (arrayGroupToVolumes.get(key) == null) {
+                arrayGroupToVolumes.put(key, new ArrayList<Volume>());
             }
-            arrayGroupToVolumes.get(repGroupName).add(volume);
+            arrayGroupToVolumes.get(key).add(volume);
         }
         return arrayGroupToVolumes;
     }

@@ -1576,7 +1576,7 @@ public class VolumeGroupService extends TaskResourceService {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "The storage system type that the volume created in is not allowed ");
                 }
-                String volType = getVolumeType(type);
+                String volType = getVolumeType(volume, dbClient);
                 if (addedVolType == null) {
                     addedVolType = volType;
                     firstVolLabel = volume.getLabel();
@@ -1618,10 +1618,8 @@ public class VolumeGroupService extends TaskResourceService {
             List<Volume> existingVols = ControllerUtils.getVolumeGroupVolumes(dbClient, volumeGroup);
             if (!existingVols.isEmpty()) {
                 Volume firstVolume = existingVols.get(0);
-                URI systemUri = firstVolume.getStorageController();
-                StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
-                String type = system.getSystemType();
-                String existingType = getVolumeType(type);
+                
+                String existingType = getVolumeType(firstVolume, dbClient);
                 if (!existingType.equals(addedVolType)) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
                             "The volume type is not same as existing volumes in the application");
@@ -1738,12 +1736,21 @@ public class VolumeGroupService extends TaskResourceService {
          * @param type The system type
          * @return
          */
-        private static String getVolumeType(String type) {
-            if (BLOCK_TYPES.contains(type)) {
-                return BLOCK;
-            } else {
-                return type;
+        
+        private static String getVolumeType(Volume volume, DbClient dbClient) {
+            if (!isNullURI(volume.getProtectionController())
+                    && volume.checkForRp()) {
+                return DiscoveredDataObject.Type.rp.name();             
             }
+            if (Volume.checkForSRDF(dbClient, volume.getId())) {
+                return DiscoveredDataObject.Type.srdf.name();
+            }
+            if (volume.checkForVplexVirtualVolume(dbClient)) {
+                return DiscoveredDataObject.Type.vplex.name();
+            }
+            
+            return BLOCK;
+            
         }
 
         private void updateFailedCGTasks(DbClient dbClient, Set<URI> uriList, String taskId, ServiceCoded e) {
@@ -1768,10 +1775,7 @@ public class VolumeGroupService extends TaskResourceService {
                 return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
             }
 
-            URI systemUri = volume.getStorageController();
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
-            String type = system.getSystemType();
-            String volType = getVolumeType(type);
+            String volType = getVolumeType(volume, dbClient);
             return getBlockServiceImpl(volType);
         }   
         

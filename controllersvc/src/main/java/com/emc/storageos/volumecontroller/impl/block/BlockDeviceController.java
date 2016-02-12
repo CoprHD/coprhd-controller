@@ -3400,8 +3400,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     _dbClient.queryObject(Volume.class, sourceVolume) : null;
             VolumeGroup volumeGroup = (source != null)
                     ? source.getApplication(_dbClient) : null;
-            if (volumeGroup != null
-                    && !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, source)) {
+            if (volumeGroup != null) {
                 /**
                  * If a Volume is in Volume Group (COPY type),
                  * Query all volumes belonging to that Volume Group,

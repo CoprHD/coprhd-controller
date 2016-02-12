@@ -7477,10 +7477,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(fullCopyVolume, _dbClient);
                         fullCopyVolume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
 
-                        if (NullColumnValueGetter.isNotNullValue(fullCopyVolume.getReplicationGroupInstance())) {
-                            fullCopyVolume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
-                        }
-
                         if (NullColumnValueGetter.isNotNullValue(fullCopyVolume.getFullCopySetName())) {
                             fullCopyVolume.setFullCopySetName(NullColumnValueGetter.getNullStr());
                         }

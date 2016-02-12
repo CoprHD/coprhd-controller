@@ -8,7 +8,8 @@
     },
     
     copyName:{
-      type:"assetType.vipr.fullCopyName"
+      type:"assetType.vipr.fullCopyName",
+      required:"true"
     }
   }
 }

@@ -435,8 +435,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                             sourceVol.getId(),
                                             standbyJournal.getLabel(),
                                             standbyJournal.getId()));
-                                    sourceVol.setSecondaryRpJournalVolume(standbyJournal.getId());
-                                    _dbClient.persistObject(sourceVol);
                                     // All RP+VPLEX Metro volumes in this CG need to have their backing volume
                                     // references updated with the internal site names for exports.
                                     setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
@@ -681,23 +679,26 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         if (!journalOnlyCreate) {
             // If the CG already contains RP volumes, then we need to check if new/additional journal
             // volumes need to be created, based on the journal policy specified.
-            cgSourceVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.SOURCE.toString());
-            cgTargetVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
+            cgSourceVolumes = RPHelper.getCgVolumes(_dbClient, consistencyGroup.getId(), Volume.PersonalityTypes.SOURCE.toString());
+            cgTargetVolumes = RPHelper.getCgVolumes(_dbClient, consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
 
             if (!cgSourceVolumes.isEmpty()) {
                 boolean isAdditionalSourceJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(vpool.getJournalSize(),
                         consistencyGroup, param.getSize(),
-                        numberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(),
-                        cgSourceVolumes.get(0).getInternalSiteName());
+                        numberOfVolumesInRequest,
+                        sourceCopyName);
                 if (!isAdditionalSourceJournalRequired) {
                     _log.info(String.format("Re-use existing Source Journals"));
                     // If the CG contains volumes already and no new additional journals are provisioned,
                     // then we simply update the reference on the source for the journal volume.
-                    sourceJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
+                    List<Volume> existingSourceJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), sourceCopyName);
+                    sourceJournal = existingSourceJournals.get(0);                    
                     _log.info(String.format("Existing Primary Source Journal: [%s] (%s)", sourceJournal.getLabel(), sourceJournal.getId()));
 
                     if (VirtualPool.vPoolSpecifiesMetroPoint(vpool) && !isChangeVpoolForProtectedVolume) {
-                        standbyJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, true);
+                        String standbyInternalSiteName = RPHelper.getStandbyInternalSite(_dbClient, cgSourceVolumes.get(0));
+                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), standbyInternalSiteName);                        
+                        standbyJournal = existingStandbyJournals.get(0);
                         _log.info(String.format("Existing Standby Source Journal: [%s] (%s)", standbyJournal.getLabel(),
                                 standbyJournal.getId()));
                     }
@@ -821,14 +822,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
                     boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(
                             protectionSettings.getJournalSize(), consistencyGroup, param.getSize(),
-                            numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(),
+                            numberOfVolumesInRequest,
                             targetJournalRec.getInternalSiteName());
                     if (!isAdditionalTargetJournalRequired) {
                         // If the CG contains volumes already and no new additional journals are provisioned,
                         // then we simply update the reference on the source for the journal volume.
-                        _log.info(String.format("Re-use existing Target Journal for target [%s]", targetJournalVarray.getLabel()));
-                        Volume existingTargetJournalVolume = _rpHelper.selectExistingJournalForTargetVolume(cgTargetVolumes,
-                                targetJournalVarray.getId(), targetJournalRec.getInternalSiteName());
+                        _log.info(String.format("Re-use existing Target Journal for target [%s]", targetJournalVarray.getLabel()));                                               
+                        List<Volume> existingTargetJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), targetJournalRec.getInternalSiteName());                        
+                        Volume existingTargetJournalVolume = existingTargetJournals.get(0);                        
                         targetJournals.put(targetJournalVarray.getId(), existingTargetJournalVolume);
                         _log.info(String.format("Existing Target Journal: [%s] (%s)", existingTargetJournalVolume.getLabel(),
                                 existingTargetJournalVolume.getId()));
@@ -1571,14 +1572,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
 
             volume.setVirtualArray(varray.getId());
-        }
-
-        if (journalVolume != null) {
-            volume.setRpJournalVolume(journalVolume.getId());
-        }
-
-        if (standbyJournalVolume != null) {
-            volume.setSecondaryRpJournalVolume(standbyJournalVolume.getId());
         }
 
         // Set all Journal Volumes to have the INTERNAL_OBJECT flag.
@@ -3092,18 +3085,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 buf.append(String.format("\t RP MetroPoint enabled : [%s]%n",
                         (VirtualPool.vPoolSpecifiesMetroPoint(vpool) ? "true" : "false")));
             }
-
-            if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) {
-                Volume journalVolume = _dbClient.queryObject(Volume.class, volume.getRpJournalVolume());
-                buf.append(String.format("\t RP Journal Volume : [%s] (%s)%n", journalVolume.getLabel(), journalVolume.getId()));
-            }
-
-            if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
-                Volume standbyJournalVolume = _dbClient.queryObject(Volume.class, volume.getSecondaryRpJournalVolume());
-                buf.append(String.format("\t RP Standby Journal Volume : [%s] (%s)%n", standbyJournalVolume.getLabel(),
-                        standbyJournalVolume.getId()));
-            }
-
+            
             if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
                 buf.append(String.format("\t RP Target Volume(s) for Source : ["));
                 for (String targetVolumeId : volume.getRpTargets()) {
@@ -3360,7 +3342,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         // if it's a metropoint volume we need to determine the internal site name for
         // both the active and the standby copies
-        if (_rpHelper.isMetroPointVolume(firstSrc)) {
+        if (RPHelper.isMetroPointVolume(_dbClient, firstSrc)) {
             StringSet associatedVolumes = firstSrc.getAssociatedVolumes();
             if (associatedVolumes != null && !associatedVolumes.isEmpty()) {
                 for (String associatedVolumeStr : associatedVolumes) {

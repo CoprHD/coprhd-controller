@@ -3450,7 +3450,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
                                     volumesWithSameNativeGuid.get(0).getId().toString()));
                     throw APIException.badRequests
-                            .cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(), vplexVolumes.get(0).getLabel());
+                            .cantDeleteSnapshotExposedByVolume(snapshot.forDisplay(), vplexVolumes.get(0).getLabel());
                 }
             }
         }

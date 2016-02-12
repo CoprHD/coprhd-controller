@@ -145,14 +145,12 @@ public class XtremIOV1Client extends XtremIOClient {
         return volumeList;
     }
 
-    
-    
     @Override
-	public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {   	
-    	throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroups");
-	}
+    public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroups");
+    }
 
-	@Override
+    @Override
     public List<XtremIOObjectInfo> getXtremIOVolumeLinks(String clusterName) throws Exception {
         ClientResponse response = get(XtremIOConstants.XTREMIO_VOLUMES_URI);
         XtremIOVolumesInfo volumeLinks = getResponseObject(XtremIOVolumesInfo.class, response);
@@ -280,11 +278,15 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
-    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String clusterName) throws Exception {
+    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String os, String clusterName)
+            throws Exception {
         XtremIOInitiatorCreate initiatorCreate = new XtremIOInitiatorCreate();
         initiatorCreate.setInitiatorGroup(igId);
         initiatorCreate.setName(initiatorName);
         initiatorCreate.setPortAddress(portAddress);
+        if (null != os) {
+            initiatorCreate.setOperatingSystem(os);
+        }
 
         log.info("Calling Initiator Create with: {}", initiatorCreate.toString());
 
@@ -550,9 +552,9 @@ public class XtremIOV1Client extends XtremIOClient {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getSnapshotSetDetails");
     }
 
-	@Override
-	public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(
-			XtremIOObjectInfo cgVolume, String clusterName) throws Exception {
-		throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroupInfo");
-	}
+    @Override
+    public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(
+            XtremIOObjectInfo cgVolume, String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroupInfo");
+    }
 }

@@ -2,7 +2,7 @@
  * Copyright (c) 2015 EMC
  * All Rights Reserved
  */
-package com.emc.sa.service.vipr.application;
+package com.emc.sa.service.vipr.application.tasks;
 
 import java.net.URI;
 

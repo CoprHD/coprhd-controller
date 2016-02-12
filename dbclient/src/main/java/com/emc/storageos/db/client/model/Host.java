@@ -40,6 +40,8 @@ public class Host extends AbstractComputeSystem {
     private URI _computeElement;
     private Boolean discoverable;
     private String provisioningStatus;
+    private StringSet volumeGroupIds;
+
     /**
      * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when
      * deactivating a Host
@@ -375,6 +377,28 @@ public class Host extends AbstractComputeSystem {
     public void setProvisioningStatus(String provisioningStatus) {
         this.provisioningStatus = provisioningStatus;
         setChanged("provisioningStatus");
+    }
+
+    /**
+     * Getter for the ids of the volume groups
+     * 
+     * @return The set of application ids
+     */
+    @Name("volumeGroupIds")
+    @AlternateId("VolumeGroups")
+    public StringSet getVolumeGroupIds() {
+        if (volumeGroupIds == null) {
+            volumeGroupIds = new StringSet();
+        }
+        return volumeGroupIds;
+    }
+
+    /**
+     * Setter for the volume group ids
+     */
+    public void setVolumeGroupIds(StringSet applicationIds) {
+        this.volumeGroupIds = applicationIds;
+        setChanged("volumeGroupIds");
     }
 
 }

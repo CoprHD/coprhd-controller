@@ -50,6 +50,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _propertyManagerThread = null;
     private Thread _vdcManagerThread = null;
     private Thread _ipreconfigManagerThread = null;
+    private Thread _drNetworkMonitorThread = null;
     private int _timeout;
     private SoftwareUpdate _softwareUpdate;
 
@@ -177,9 +178,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     private void startNetworkMonitor() {
-        _ipreconfigManagerThread = new Thread(_drSiteNetworkMonitor);
-        _ipreconfigManagerThread.setName("DrSiteNetworkMonitor");
-        _ipreconfigManagerThread.start();
+        _drNetworkMonitorThread = new Thread(_drSiteNetworkMonitor);
+        _drNetworkMonitorThread.setName("DrSiteNetworkMonitor");
+        _drNetworkMonitorThread.start();
     }
 
     @Override

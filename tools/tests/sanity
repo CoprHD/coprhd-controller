@@ -2959,15 +2959,15 @@ recoverpoint_ingest_test()
 	fail unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp-sync $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 
         # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
-	#run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-	#volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
         # Recreate unmanaged volumes/protection sets
-	#run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
-	#if [ ${RPVPLEX_TESTS} = "1" ]; then
-	#    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	#    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	#fi
-	#run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	if [ ${RPVPLEX_TESTS} = "1" ]; then
+	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	fi
+	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
@@ -3025,18 +3025,18 @@ recoverpoint_ingest_test()
     # Re-ingest
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
-	#run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
-	#/opt/storageos/bin/dbutils list Volume > /tmp/vol1.txt
-	#volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
-	#/opt/storageos/bin/dbutils list Volume > /tmp/vol2.txt
+	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
+	/opt/storageos/bin/dbutils list Volume > /tmp/vol1.txt
+	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
+	/opt/storageos/bin/dbutils list Volume > /tmp/vol2.txt
         # Recreate unmanaged volumes/protection sets
-	#run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
-	#if [ ${RPVPLEX_TESTS} = "1" ]; then
-	#    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	#    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	#fi
-	#run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
-	#/opt/storageos/bin/dbutils list Volume > /tmp/vol3.txt
+	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	if [ ${RPVPLEX_TESTS} = "1" ]; then
+	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	fi
+	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+	/opt/storageos/bin/dbutils list Volume > /tmp/vol3.txt
 
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
@@ -8727,7 +8727,8 @@ snapvx_vpool_setup()
                       --max_snapshots 10 \
 	               --system_type vmax \
                       --provisionType 'Thin' \
-			 --neighborhoods $NH
+			 --neighborhoods $NH \
+                         --multiVolumeConsistency
 }
 
 snapvx_setup_once()
@@ -8738,7 +8739,7 @@ snapvx_setup_once()
 
     # Create provider for VMAX3 array.
     echo "**** Creating VMAX3 provider"
-    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+    smisprovider create $VMAX3_SMIS_DEV $VMAX3_SMIS_IP 5989 $SMIS_USER "$SMIS_PASSWD" true
 
     # Discover the vmax3 array.
     echo "**** Discovering VMAX3 array"
@@ -8775,6 +8776,90 @@ snapvx_setup()
 }
 
 snapvx_tests()
+{
+   snapvx_group_tests
+   snapvx_single_tests
+}
+
+snapvx_group_tests()
+{
+    echo "**** Executing snapvx group tests"
+    CG_NAME=SnapVxCG${RANDOM}
+    VOLUME_NAME=SnapVxTest-CG-${RANDOM}
+    SNAP_SESSION_NAME1=SnapSession-CG-${RANDOM}
+    SNAP_SESSION_NAME2=SnapSession-CG-${RANDOM}
+    SNAP_SESSION_NAME3=SnapSession-CG-${RANDOM}
+    SNAP_SESSION_TGT_NAME1=SnapSessionTgt-CG-${RANDOM}
+    SNAP_SESSION_TGT_NAME2=SnapSessionTgt-CG-${RANDOM}
+    SNAP_SESSION_TGT_NAME3=SnapSessionTgt-CG-${RANDOM}
+
+    run blockconsistencygroup create $PROJECT $CG_NAME
+
+    # Create a VMAX3 volumes in CG to serve as the snapshot session sources.
+    echo "**** Creating VMAX3 source volume"
+    volume create $VOLUME_NAME-1 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
+    volume create $VOLUME_NAME-2 $PROJECT $NH $COS_VMAX3BLOCK_FC $BLK_SIZE --consistencyGroup $CG_NAME
+
+	# Create snapvx sessions with no linked targets
+	run blockconsistencygroup create_snapshot_session $CG_NAME $SNAP_SESSION_NAME1
+	run blockconsistencygroup create_snapshot_session $CG_NAME $SNAP_SESSION_NAME2
+
+    # Restore the snapvx session.
+    echo "**** Restoring SnapVx session 1"
+    run blockconsistencygroup restore_targets $CG_NAME/$SNAP_SESSION_NAME1
+
+    # Link target to the snapvx session 1 in default nocopy mode.
+    echo "**** Linking target to SnapVx session 1"
+    run blockconsistencygroup link_targets $CG_NAME/$SNAP_SESSION_NAME1 1 $SNAP_SESSION_TGT_NAME1
+
+    # Relink target to the snapvx session 2.
+    echo "**** Relinking target to SnapVx session 2"
+    run blockconsistencygroup relink_targets $CG_NAME/$SNAP_SESSION_NAME2 $CG_NAME/${SNAP_SESSION_TGT_NAME1}-1-1
+
+    # Unlink target from the snapvx session and delete target volume.
+    echo "**** unlinking target from SnapVx session 2"
+    run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME2 $CG_NAME/${SNAP_SESSION_TGT_NAME1}-1-1 --delete_target true
+
+    # Delete the snapvx sessions.
+    echo "**** Deleting SnapVx sessions 1 and 2"
+    run blockconsistencygroup delete_snapshot_session $CG_NAME/$SNAP_SESSION_NAME1
+    run blockconsistencygroup delete_snapshot_session $CG_NAME/$SNAP_SESSION_NAME2
+
+    # Create a snapvx session with multiple linked targets in copy mode
+    echo "**** Creating SnapVx session 3 with multiple linked targets"
+    run blockconsistencygroup create_snapshot_session $CG_NAME $SNAP_SESSION_NAME3 --target_count 2 --target_name $SNAP_SESSION_TGT_NAME2 --target_copymode copy
+
+    # Link another target to the snapvx session.
+    echo "**** Linking another target to SnapVx session 3 in copy mode"
+    run blockconsistencygroup link_targets $CG_NAME/$SNAP_SESSION_NAME3 1 $SNAP_SESSION_TGT_NAME3 --target_copymode copy
+
+    # Restore the source from a linked target
+    echo "**** Restoring source from linked target"
+    run blockconsistencygroup restore_snapshot $CG_NAME $SNAP_SESSION_TGT_NAME3-1-1
+
+    # Unlink target from the snapvx session and delete target volume.
+    echo "**** Unlinking all targets from SnapVx session 3"
+    run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME2-1-1 --delete_target true
+    run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME2-2-1 --delete_target true
+    run blockconsistencygroup unlink_targets $CG_NAME/$SNAP_SESSION_NAME3 $CG_NAME/$SNAP_SESSION_TGT_NAME3-1-1 --delete_target true
+
+	# Create snapvx sessions with no linked targets
+	run blockconsistencygroup delete_snapshot_session $CG_NAME/$SNAP_SESSION_NAME3
+
+    # Delete the source volumes
+    volumes=`blockconsistencygroup list_volume_ids $CG_NAME | tail -n+2`
+    for volume in $volumes
+    do
+        echo "**** Deleting the VMAX3 source volume $volume"
+        volume delete $volume --wait
+    done
+
+    echo "**** Deleting the VMAX3 CG"
+    # Delete the snapshot session source consistency group.
+    run blockconsistencygroup delete $CG_NAME
+}
+
+snapvx_single_tests()
 {
     echo "**** Executing snapvx tests"
     VOLUME_NAME=SnapVxTest-${RANDOM}

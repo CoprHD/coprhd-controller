@@ -274,19 +274,19 @@ public class AuthnConfigurationService extends TaggedResource {
         KeystoneApiClient keystoneApi = getKeystoneApi(provider);
         // Find Id of cinderv2 service.
         String cinderv2ServiceId = KeystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
-        // Find Id of cinder service.
+        // Find Id of cinderv1 service.
         String cinderServiceId = KeystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
         // Delete old endpoint for cinderv2 service.
         KeystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderv2ServiceId);
-        // Delete old endpoint for cinder service.
+        // Delete old endpoint for cinderv1 service.
         KeystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderServiceId);
         // Prepare new endpoint for cinderv2 service.
         EndpointV2 newEndpointV2 = prepareNewCinderEndpoint(KeystoneUtils.OPENSTACK_DEFAULT_REGION, cinderv2ServiceId, true);
-        // Prepare new endpoint for cinder service.
+        // Prepare new endpoint for cinderv1 service.
         EndpointV2 newEndpointV1 = prepareNewCinderEndpoint(KeystoneUtils.OPENSTACK_DEFAULT_REGION, cinderServiceId, false);
         // Create a new endpoint pointing to CoprHD for cinderv2 using Keystone API.
         keystoneApi.createKeystoneEndpoint(newEndpointV2);
-        // Create a new endpoint pointing to CoprHD for cinder using Keystone API.
+        // Create a new endpoint pointing to CoprHD for cinderv1 using Keystone API.
         keystoneApi.createKeystoneEndpoint(newEndpointV1);
         // Get Tenant name.
         StringMap map = getUsernameAndTenant(provider);

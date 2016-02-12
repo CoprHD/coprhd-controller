@@ -2123,10 +2123,16 @@ public class RecoverPointClient {
             // benign error -- cgName is only used for logging
             logger.error(e.getMessage(), e);
         }
-
-        logger.info("Waiting for links to become active for CG " + (cgName == null ? "unknown CG name" : cgName));
-        RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();        
-        rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
+        
+        boolean waitForLinkStates = false;
+        //Be default, per JIRA 17082 (CoprHD), we will not wait for links to be active.
+        //In a true DR scenario, we cant expect links to become active and that should not fail the swap/failover operation.
+        if (waitForLinkStates) {
+	        logger.info("Waiting for links to become active for CG " + (cgName==null?"unknown CG name":cgName));
+	        (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
+        } else {
+        	logger.info("Not waiting for links to become active for CG" + (cgName==null?"unknown CG name":cgName));
+        }
         logger.info(String.format("Replication sets have been added to consistency group %s.",
                 (cgName == null ? "unknown CG name" : cgName)));
     }

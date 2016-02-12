@@ -8,9 +8,8 @@ import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalMirrorSupport
 import static com.emc.sa.asset.providers.BlockProviderUtils.isLocalSnapshotSupported;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPSourceVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRPTargetVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
-import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isRemoteSnapshotSupported;
+import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForCG;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isSnapshotSessionSupportedForVolume;
 import static com.emc.sa.asset.providers.BlockProviderUtils.isVpoolProtectedByVarray;
 import static com.emc.vipr.client.core.util.ResourceUtils.name;
@@ -25,6 +24,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -67,6 +67,7 @@ import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -1774,11 +1775,41 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createNamedResourceOptions(applications.getVolumeGroups());
     }
 
+    private boolean isRPTargetReplicationGroup(String rg) {
+        if (rg != null) {
+            String[] parts = StringUtils.split(rg, '-');
+            if (parts.length > 1 && parts[1].equals("RPTARGET")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Asset("applicationBlockVolume")
     @AssetDependencies("application")
-    public List<AssetOption> getApplications(AssetOptionsContext ctx, URI application) {
+    public List<AssetOption> getApplicationVolumes(AssetOptionsContext ctx, URI application) {
         final ViPRCoreClient client = api(ctx);
-        return createNamedResourceOptions(client.application().listVolumes(application));
+        List<NamedRelatedResourceRep> volList = client.application().listVolumes(application);
+        List<AssetOption> options = new ArrayList<AssetOption>();
+        if (volList != null && !volList.isEmpty()) {
+            List<VolumeRestRep> allVols = client.blockVolumes().getByRefs(volList);
+            Map<String, List<VolumeRestRep>> repGrpVolMap = new HashMap<String, List<VolumeRestRep>>();
+            for (VolumeRestRep vol : allVols) {
+                if (!isRPTargetReplicationGroup(vol.getReplicationGroupInstance())) {
+                    if (repGrpVolMap.get(vol.getReplicationGroupInstance()) == null) {
+                        repGrpVolMap.put(vol.getReplicationGroupInstance(), new ArrayList<VolumeRestRep>());
+                    }
+                    repGrpVolMap.get(vol.getReplicationGroupInstance()).add(vol);
+                }
+            }
+            for (Entry<String, List<VolumeRestRep>> entry : repGrpVolMap.entrySet()) {
+                for (VolumeRestRep vol : entry.getValue()) {
+                    options.add(new AssetOption(vol.getId(),
+                            getMessage("application.volumes.replication_group", vol.getName(), vol.getReplicationGroupInstance())));
+                }
+            }
+        }
+        return options;
     }
 
     @Asset("replicationGroup")
@@ -1810,28 +1841,91 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return createStringOptions(fullCopyNames);
     }
-    
+
     @Asset("applicationVirtualArray")
     @AssetDependencies("application")
     public List<AssetOption> getApplicationVirtualArrays(AssetOptionsContext ctx, URI applicationId) {
         final ViPRCoreClient client = api(ctx);
-        VolumeGroupRestRep application = client.application().getApplication(applicationId);
-        return createNamedResourceOptions(application.getVirtualArrays());
-    }
-    
-    @Asset("applicationVirtualPool")
-    @AssetDependencies({ "application", "applicationVirtualArray" })
-    public List<AssetOption> getApplicationVirtualPools(AssetOptionsContext ctx, URI applicationId, URI varrayId) {
-        final ViPRCoreClient client = api(ctx);
-        NamedVolumesList volumes = client.application().getVolumeByApplication(applicationId);
-        Set<URI> vpoolIds = new HashSet<URI>();
-        for (NamedRelatedResourceRep volResource : volumes.getVolumes()) {
-            VolumeRestRep vol = client.blockVolumes().get(volResource.getId());
-            if (vol.getVirtualArray().getId().equals(varrayId)) {
-                vpoolIds.add(vol.getVirtualPool().getId());
-            }
+        List<NamedRelatedResourceRep> volList = client.application().listVolumes(applicationId);
+        List<AssetOption> options = new ArrayList<AssetOption>();
+        boolean isVplex = false;
+        boolean isRP = false;
+        boolean isDistributed = false;
+        URI sourceVarrayId = null;
+        URI haVarrayId = null;
+        List<VolumeRestRep> allVols = null;
+
+        if (volList != null && !volList.isEmpty()) {
+            allVols = client.blockVolumes().getByRefs(volList);
+            VolumeRestRep vol = client.blockVolumes().get(volList.get(0));
+        	StorageSystemRestRep sys = client.storageSystems().get(vol.getStorageController());
+        	if (sys.getSystemType().equals("vplex")) {
+        		isVplex = true;
+                sourceVarrayId = vol.getVirtualArray().getId();
+                List<RelatedResourceRep> assocVols = vol.getHaVolumes();
+                if (assocVols.size() > 1) {
+                    isDistributed = true;
+                    for (RelatedResourceRep backingVolRef : assocVols) {
+                        VolumeRestRep backingVol = client.blockVolumes().get(backingVolRef.getId());
+                        if (!backingVol.getVirtualArray().getId().equals(sourceVarrayId)) {
+                            haVarrayId = backingVol.getVirtualArray().getId();
+                            break;
+                        }
+                    }
+                }
+        	}
+            if (vol.getProtection() != null && vol.getProtection().getRpRep() != null) {
+        		isRP = true;
+                for (VolumeRestRep rpvol : allVols) {
+                    if (rpvol.getProtection() != null && rpvol.getProtection().getRpRep() != null
+                            && rpvol.getProtection().getRpRep().getPersonality() != null
+                            && rpvol.getProtection().getRpRep().getPersonality().equals("SOURCE")) {
+                        sourceVarrayId = rpvol.getVirtualArray().getId();
+                        break;
+                    }
+                }
+        	}
+        } else {
+            return options;
         }
-        return createBaseResourceOptions(client.blockVpools().getByIds(vpoolIds));
+
+        // if the volumes are vplex or RP display source as an option
+        if (isVplex || isRP) {
+            options.add(newAssetOption(sourceVarrayId, "protection.site.type.source"));
+        }
+        // if the volumes are vplex distributed display HA as an option
+        if (isVplex && isDistributed) {
+            options.add(newAssetOption(haVarrayId, "protection.site.type.ha"));
+        }
+        // if the volumes are RP (vplex or not) add the RP targets as options
+        if (isRP) {
+            Set<URI> cgIds = new HashSet<URI>();
+        	for (VolumeRestRep vol : allVols) {
+                cgIds.add(vol.getConsistencyGroup().getId());
+        	}
+
+            List<AssetOption> targetOptions = new ArrayList<AssetOption>();
+            for (URI cgId : cgIds) {
+                targetOptions.addAll(getFailoverTarget(ctx, cgId));
+        	}
+
+            // sort the targets
+            AssetOptionsUtils.sortOptionsByLabel(targetOptions);
+
+            // remove duplicates
+            String previous = null;
+            List<AssetOption> tgtOptions = new ArrayList<AssetOption>();
+            for (AssetOption option : targetOptions) {
+                if (previous == null || !option.key.equals(previous)) {
+                    tgtOptions.add(newAssetOption(option.key, "protection.site.type.target", option.value));
+                    previous = option.key;
+                }
+            }
+
+            options.addAll(tgtOptions);
+
+        }
+        return options;
     }
 
     class VirtualPoolFilter extends DefaultResourceFilter<VolumeRestRep> {

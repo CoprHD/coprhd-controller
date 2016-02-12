@@ -8,11 +8,8 @@
     },
     
     virtualArray:{
-      type:"assetType.vipr.applicationVirtualArray"
-    },
-
-    virtualPool:{
-      type:"assetType.vipr.applicationVirtualPool"
+      type:"assetType.vipr.applicationVirtualArray",
+      required:"false"
     },
     
     name:{

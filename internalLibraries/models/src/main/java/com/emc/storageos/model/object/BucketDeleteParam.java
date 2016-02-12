@@ -14,16 +14,25 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "bucket_deactivate")
 public class BucketDeleteParam {
 
+    private static final String DELETE_TYPE = "FULL";
+    
     private boolean forceDelete;
+    private String deleteType = DELETE_TYPE;
 
     public BucketDeleteParam() {
     }
-
+    
     public BucketDeleteParam(boolean forceDelete) {
         this.forceDelete = forceDelete;
     }
 
-    @XmlElement(name = "forceDelete")
+    public BucketDeleteParam(boolean forceDelete, String deleteType) {
+        this.forceDelete = forceDelete;
+        this.deleteType = deleteType;
+    }
+
+
+    @XmlElement(required = false, name = "forceDelete")
     public boolean getForceDelete() {
         return forceDelete;
     }
@@ -31,5 +40,13 @@ public class BucketDeleteParam {
     public void setForceDelete(boolean forceDelete) {
         this.forceDelete = forceDelete;
     }
+    
+    @XmlElement(required = false, name = "delete_type")
+    public String getDeleteType() {
+        return deleteType;
+    }
 
+    public void setDeleteType(String deleteType) {
+        this.deleteType = deleteType;
+    }
 }

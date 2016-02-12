@@ -1173,7 +1173,7 @@ public class ExportMaskUtils {
             if (!mask.hasExistingVolume(normalizedWWN) && !mask.hasUserCreatedVolume(normalizedWWN)) {
                 // https://coprhd.atlassian.net/browse/COP-18518. If the HLU is null, then it's possible that some
                 // other process just added the volume to the ExportMask, but the HLU selection by the array has
-                // not completed. In that case, we won't indicate that the is volume added just yet.
+                // not completed. In that case, we won't indicate that the volume is added just yet.
                 // That other process should add the volume and its HLU in the ExportMask addVolume post process.
                 if (hlu != null) {
                     volumesToAdd.put(normalizedWWN, hlu);

@@ -771,8 +771,13 @@ public class BulkList<T> implements List<T> {
 
         @Override
         public boolean isAccessible(SchedulePolicy resource) {
-            return _permissionsHelper.userHasGivenRole(
-                    _user, resource.getId(), Role.TENANT_ADMIN, Role.SYSTEM_MONITOR);
+            boolean ret = false;
+            ret = isTenantAccessible(resource.getTenantOrg().getURI());
+            if (!ret) {
+                return ret = _permissionsHelper.userHasGivenRole(
+                        _user, resource.getId(), Role.SECURITY_ADMIN, Role.TENANT_ADMIN, Role.SYSTEM_MONITOR);
+            }
+            return ret;
         }
     }
 }

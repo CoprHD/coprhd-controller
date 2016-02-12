@@ -40,6 +40,7 @@ import javax.ws.rs.core.Response;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.model.response.*;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
+import com.emc.storageos.model.project.ProjectElement;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.model.tenant.TenantCreateParam;
@@ -308,12 +309,22 @@ public class AuthnConfigurationService extends TaggedResource {
         userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
 
         TenantCreateParam param = new TenantCreateParam(TENANT_NAME, userMappings);
+        param.setDescription(TENANT_NAME);
+
         // Create a tenant.
         TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
 
         // Create a project.
         ProjectParam projectParam = new ProjectParam(PROJECT_NAME);
-        _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
+        ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
+
+        // Tag project with OpenStack tenant_id
+        Project project = _dbClient.queryObject(Project.class, projectElement.getId());
+        ScopedLabelSet tagSet = new ScopedLabelSet();
+        ScopedLabel tagLabel = new ScopedLabel(tenantOrgRestRep.getId().toString(), tenant.getId());
+        tagSet.add(tagLabel);
+        project.setTag(tagSet);
+        _dbClient.updateObject(project);
 
         _log.debug("END - register CoprHD in Keystone");
     }

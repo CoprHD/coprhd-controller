@@ -425,6 +425,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -1417,6 +1418,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -1446,6 +1448,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -1477,6 +1480,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return A TaskList representing the snapshot session task.
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions/{sid}/link-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1502,6 +1506,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return A TaskResourceRep representing the snapshot session task.
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions/{sid}/unlink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })

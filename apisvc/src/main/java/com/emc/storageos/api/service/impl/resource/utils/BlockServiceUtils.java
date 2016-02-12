@@ -250,6 +250,27 @@ public class BlockServiceUtils {
             } else if (storage.deviceIsType(Type.xtremio)) {
                 return true;
             }
+
+            // Allow volumes to be added/removed to/from CG for VPLEX and RP
+            // when the backend volume is VMAX/VNX/XtremIO
+            if (storage.deviceIsType(Type.vplex)) {
+                if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
+                    for (String associatedVolumeId : volume.getAssociatedVolumes()) {
+                        Volume associatedVolume = dbClient.queryObject(Volume.class,
+                                URI.create(associatedVolumeId));
+                        StorageSystem backendSystem = dbClient.queryObject(StorageSystem.class,
+                                associatedVolume.getStorageController());
+                        if (backendSystem == null ||
+                                !(backendSystem.deviceIsType(Type.vmax) || backendSystem.deviceIsType(Type.vnxblock)
+                                || backendSystem.deviceIsType(Type.xtremio))) {
+                            return false;   // one of the backend volume does not meet the criteria
+                        }
+                    }
+                    // all backend volumes have met the criteria
+                    return true;
+                }
+            }
+            // TODO check for RP and RP+VPLEX
         }
 
         return false;

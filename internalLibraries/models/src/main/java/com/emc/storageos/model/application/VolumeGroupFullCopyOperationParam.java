@@ -2,7 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.model.block;
+package com.emc.storageos.model.application;
 
 import java.net.URI;
 import java.util.ArrayList;

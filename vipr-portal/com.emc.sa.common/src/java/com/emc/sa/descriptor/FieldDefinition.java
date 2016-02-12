@@ -22,6 +22,9 @@ public class FieldDefinition extends ItemDefinition {
     /** Whether the field can be 'locked' down (pre-defined) by an admin in the catalog. */
     public boolean lockable = false;
 
+    /** Whether the field will disable the option choice if key is left blank. */
+    public boolean disableEmpty = false;
+    
     /** The initial field value. */
     public String initialValue;
 
@@ -40,6 +43,7 @@ public class FieldDefinition extends ItemDefinition {
         toString(builder);
         builder.append("required", required);
         builder.append("lockable", lockable);
+        builder.append("disableEmpty", disableEmpty);
         builder.append("initialValue", initialValue);
         builder.append("select", select);
         builder.append("options", options);

@@ -40,6 +40,9 @@ public class ServiceField extends ServiceItem {
 
     /** Indicates that the field can be 'locked' down (pre-defined) by an admin in the catalog. */
     private boolean lockable;
+    
+    /** Indicates that the field will disable empty key value from the dropdown. */
+    private boolean disableEmpty;
 
     /** The initial value of the field. */
     private String initialValue;
@@ -67,6 +70,14 @@ public class ServiceField extends ServiceItem {
 
     public void setLockable(boolean lockable) {
         this.lockable = lockable;
+    }
+    
+    public boolean isDisableEmpty() {
+        return disableEmpty;
+    }
+
+    public void setDisableEmpty(boolean disableEmpty) {
+        this.disableEmpty = disableEmpty;
     }
 
     public String getInitialValue() {
@@ -127,6 +138,7 @@ public class ServiceField extends ServiceItem {
         toString(builder);
         builder.append("required", required);
         builder.append("lockable", lockable);
+        builder.append("disableEmpty", disableEmpty);
         builder.append("initialValue", initialValue);
         builder.append("select", select);
         builder.append("options", options);

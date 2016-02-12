@@ -51,6 +51,7 @@ public class ServiceDescriptorMapper {
         to.setFailureMessage(from.getValidation().getError());
         to.setInitialValue(from.getInitialValue());
         to.setLockable(from.isLockable());
+        to.setDisableEmpty(from.isDisableEmpty());
         to.setMax(from.getValidation().getMax());
         to.setMin(from.getValidation().getMin());
         to.setRegEx(from.getValidation().getRegEx());

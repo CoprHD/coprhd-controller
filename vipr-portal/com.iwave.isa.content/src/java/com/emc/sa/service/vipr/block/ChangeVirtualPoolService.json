@@ -21,7 +21,7 @@
         
     targetVirtualPool:{
       type:"assetType.vipr.targetVirtualPool",
-      select:"disableEmpty"
+      disableEmpty: true
     },
     
     consistencyGroup: {

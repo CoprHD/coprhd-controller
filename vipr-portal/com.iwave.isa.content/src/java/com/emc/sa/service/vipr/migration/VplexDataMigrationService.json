@@ -21,7 +21,7 @@
         
     targetVirtualPool:{
       type:"assetType.vipr.migrationTargetVirtualPool",
-      select:"disableEmpty"
+      disableEmpty: true
     },
     
     volume:{

@@ -2283,11 +2283,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
     
     private String getAllowedChangeOperationNames(List<StringHashMapEntry> allowedChangeOperations) {
-        String names = new String();
+        List<String> names = Lists.newArrayList();
         for (StringHashMapEntry allowedChangeOperation : allowedChangeOperations) {
-            names += allowedChangeOperation.getName();
+            names.add(getMessage("virtualPoolChange.operation." + allowedChangeOperation.getName()));
         }
-        return names;
+        return StringUtils.join(names, ',');
     }
 
     protected List<BlockObjectRestRep>

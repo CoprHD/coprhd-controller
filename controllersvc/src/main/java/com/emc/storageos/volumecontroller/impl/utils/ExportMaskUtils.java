@@ -17,6 +17,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.net.util.IPAddressUtil;
+
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -59,8 +61,6 @@ import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
-
-import sun.net.util.IPAddressUtil;
 
 public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
@@ -1155,4 +1155,33 @@ public class ExportMaskUtils {
         return exportMasksWithInitiator;
     }
 
+    /**
+     * Compare the ExportMask's volumes with a map containing the latest discovered volumes. Return a map of volumes
+     * that are new.
+     * 
+     * @param mask [IN] - ExportMask to check
+     * @param discoveredVolumes [IN] - Map of Volume WWN to Integer HLU representing discovered volumes.
+     * @return Map of Volume WWN (normalized) to Integer HLU representing new volumes, which do not exist in the ExportMask.
+     */
+    public static Map<String, Integer> diffAndFindNewVolumes(final ExportMask mask, final Map<String, Integer> discoveredVolumes) {
+        Map<String, Integer> volumesToAdd = new HashMap<>();
+        // Iterate through the volume WWNs
+        for (String volumeWWN : discoveredVolumes.keySet()) {
+            Integer hlu = discoveredVolumes.get(volumeWWN);
+            // Normalize the WWN, so that we can look it up in the ExportMask
+            String normalizedWWN = BlockObject.normalizeWWN(volumeWWN);
+            if (!mask.hasExistingVolume(normalizedWWN) && !mask.hasUserCreatedVolume(normalizedWWN)) {
+                // https://coprhd.atlassian.net/browse/COP-18518. If the HLU is null, then it's possible that some
+                // other process just added the volume to the ExportMask, but the HLU selection by the array has
+                // not completed. In that case, we won't indicate that the is volume added just yet.
+                // That other process should add the volume and its HLU in the ExportMask addVolume post process.
+                if (hlu != null) {
+                    volumesToAdd.put(normalizedWWN, hlu);
+                } else {
+                    _log.info("Volume {} does not have an HLU. It could be getting assigned.", normalizedWWN);
+                }
+            }
+        }
+        return volumesToAdd;
+    }
 }

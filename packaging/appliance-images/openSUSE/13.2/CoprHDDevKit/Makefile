@@ -14,6 +14,7 @@ VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso
 ISO_URL := http://download.opensuse.org/distribution/13.2/iso/$(ISO_FILE)
 RAM := 8192
+MAC := $(shell printf "00%02X%02X%02X%02X%02X" $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256] $$[RANDOM%256])
 
 ##################################################
 #  Target files/folders
@@ -25,10 +26,14 @@ VMDK := $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
 OVF := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).ovf
 VMX := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmx
 TBZ := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).tbz
+BOX := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).box
+VHD := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vhd
+VBOX := $(BUILD_DIR)/$(NAME)-$(VERSION).$(JOB).vbox
+QCOW2 := $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).qcow2
 ZYPPER_PARAMS := --reposd-dir $(WORKSPACE)/zypper/reposd --cache-dir $(WORKSPACE)/zypper/cache --solv-cache-dir $(WORKSPACE)/zypper/solv --pkg-cache-dir $(WORKSPACE)/zypper/pkg
 
 .DEFAULT: all
-.PHONY: downloadISO downloadRPM createREPO ovf vmx tbz appliance devkit clean destroy
+.PHONY: downloadISO downloadRPM createREPO ovf vmx tbz box vhd vbox qcow2 appliance devkit clean destroy
 all: appliance
 
 ##################################################
@@ -79,7 +84,7 @@ destroy:
 	rm -fr $(WORKSPACE)/{iso,build,image,output,zypper}
 	$(call targetLog,-)
 
-appliance: | ovf vmx tbz
+appliance: | ovf vmx box tbz
 
 ovf: | $(OVF)
 	$(call targetLog,+)
@@ -92,6 +97,26 @@ vmx: | $(VMX)
 	$(call targetLog,-)
 
 tbz: | $(TBZ)
+	$(call targetLog,+)
+	chmod a+r $(BUILD_DIR)/*
+	$(call targetLog,-)
+
+box: | $(BOX)
+	$(call targetLog,+)
+	chmod a+r $(BUILD_DIR)/*
+	$(call targetLog,-)
+
+vhd: | $(VHD)
+	$(call targetLog,+)
+	chmod a+r $(BUILD_DIR)/*
+	$(call targetLog,-)
+
+vbox: | $(VBOX)
+	$(call targetLog,+)
+	chmod a+r $(BUILD_DIR)/*
+	$(call targetLog,-)
+
+qcow2: | $(QCOW2)
 	$(call targetLog,+)
 	chmod a+r $(BUILD_DIR)/*
 	$(call targetLog,-)
@@ -134,13 +159,13 @@ $(VMDK): | downloadISO createREPO
 
 $(OVF): | $(VMDK)
 	$(call targetLog,+)
+	ln -fs $(NAME).x86_64-$(VERSION).$(JOB).vmdk $(OUTPUT_DIR)/disk.vmdk
 	VBoxManage createvm --name "$(NAME)-$(VERSION).$(JOB)" --basefolder $(OUTPUT_DIR) --register
 	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory $(RAM) --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
 	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
-	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(VMDK)
+	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(OUTPUT_DIR)/disk.vmdk
 	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(OVF)
-	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)"
-	rm -fr "$${HOME}/.config/VirtualBox/$(OUTPUT_DIR)"
+	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)" --delete
 	bash $(WORKSPACE)/configure.sh updateOVF $(OVF)
 	$(call targetLog,-)
 
@@ -168,4 +193,53 @@ $(TBZ): | $(VMDK)
 	sed -i s/"udev_rules = 1"/"udev_rules = 0"/g $(IMAGE_DIR)/etc/lvm/lvm.conf
 	[ ! -x /usr/bin/pigz ] || tar -c -f $(TBZ) -C $(IMAGE_DIR) -I pigz .
 	[ -x /usr/bin/pigz ] || tar -c -f $(TBZ) -C $(IMAGE_DIR) -J .
+	$(call targetLog,-)
+
+$(BOX): | $(VMDK)
+	$(call targetLog,+)
+	chroot $(IMAGE_DIR) /opt/ADG/conf/configure.sh installVagrant
+	-! mountpoint -q $(IMAGE_DIR)/var/cache/kiwi || umount $(IMAGE_DIR)/var/cache/kiwi
+	-mountpoint -q $(WORKSPACE)/iso/mount || mount $(WORKSPACE)/iso/$(ISO_FILE) $(WORKSPACE)/iso/mount
+	kiwi --verbose 3 --yes --create $(IMAGE_DIR) --add-profile appliance --type vmx --destdir $(OUTPUT_DIR)/box
+	-umount $(WORKSPACE)/iso/mount
+	chroot $(IMAGE_DIR) userdel -r vagrant
+	chroot $(IMAGE_DIR) groupdel vagrant
+	sed -i "/^vagrant/d" $(IMAGE_DIR)/etc/sudoers
+	VBoxManage createvm --name "$(NAME)-$(VERSION).$(JOB)" --basefolder $(OUTPUT_DIR)/box --register
+	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory $(RAM) --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
+	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
+	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(OUTPUT_DIR)/box/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
+	VBoxManage export "$(NAME)-$(VERSION).$(JOB)" --vsys 0 --product $(NAME) --version $(VERSION).$(JOB) --vendor $(VENDOR) --output $(OUTPUT_DIR)/box/box.ovf
+	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)" --delete
+	bash $(WORKSPACE)/configure.sh updateOVF $(OUTPUT_DIR)/box/box.ovf
+	@echo '{ "provider" : "virtualbox", "format" : "vmdk" }' > $(OUTPUT_DIR)/box/metadata.json
+	tar -czf $(BOX) -C $(OUTPUT_DIR)/box box.ovf metadata.json box-disk1.vmdk
+	cp -fr $(WORKSPACE)/templates/Vagrantfile.orig $(BUILD_DIR)/Vagrantfile
+	sed -i "s|__NAME__|$(NAME)|g" $(BUILD_DIR)/Vagrantfile
+	sed -i "s|__VERSION__|$(VERSION).$(JOB)|g" $(BUILD_DIR)/Vagrantfile
+	sed -i "s|__MAC__|$(MAC)|g" $(BUILD_DIR)/Vagrantfile
+	sed -i "s|__RAM__|$(RAM)|g" $(BUILD_DIR)/Vagrantfile
+	$(call targetLog,-)
+
+$(VHD): | $(VMDK)
+	$(call targetLog,+)
+	VBoxManage clonehd $(VMDK) $(VHD) -format VHD
+	$(call targetLog,-)
+
+$(VBOX): | $(VMDK)
+	$(call targetLog,+)
+	[ -f $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk ] || cp $(VMDK) $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
+	VBoxManage createvm --name "$(NAME)-$(VERSION).$(JOB)" --basefolder $(WORKSPACE)/build  --register
+	VBoxManage modifyvm "$(NAME)-$(VERSION).$(JOB)" --memory $(RAM) --cpus 1 --acpi on --boot1 dvd --nic1 bridged --bridgeadapter1 eth0 --ostype Linux_64
+	VBoxManage storagectl "$(NAME)-$(VERSION).$(JOB)" --name "IDE Controller" --add ide
+	VBoxManage storageattach "$(NAME)-$(VERSION).$(JOB)" --storagectl "IDE Controller" --port 0 --device 0 --type hdd --medium $(BUILD_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).vmdk
+	VBoxManage unregistervm "$(NAME)-$(VERSION).$(JOB)"
+	rm -fr "$${HOME}/.config/VirtualBox/$(OUTPUT_DIR)
+	sed -i 's|$(BUILD_DIR)/||g' $(VBOX)
+	rm $(VBOX)-prev
+	$(call targetLog,-)
+
+$(QCOW2): | $(VMDK)
+	$(call targetLog,+)
+	qemu-img convert -O qcow2 $(OUTPUT_DIR)/$(NAME).x86_64-$(VERSION).$(JOB).raw $(QCOW2)
 	$(call targetLog,-)

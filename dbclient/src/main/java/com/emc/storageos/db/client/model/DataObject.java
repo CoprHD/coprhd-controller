@@ -469,7 +469,7 @@ public abstract class DataObject implements Serializable {
     }
 
     public String forDisplay() {
-        if (_label != null) {
+        if (_label != null && !_label.isEmpty()) {
             return String.format("%s (%s)", _label, _id);
         } else {
             return _id.toString();

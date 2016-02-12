@@ -2266,14 +2266,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     } else {
                         wrongOperation.add(new AssetOption("", 
                                 getMessage("block.virtualPool.vpoolChangeOperation", vpoolChange.getName(), 
-                                        getAllowedChangeOperationNames(vpoolChange.getAllowedChangeOperations())), 
-                                true));
+                                        getAllowedChangeOperationNames(vpoolChange.getAllowedChangeOperations()))));
                     }
                 }
             } else {
                 notAllowed.add(new AssetOption("", 
-                        getMessage("block.virtualPool.vpoolChangeReason", vpoolChange.getName(), vpoolChange.getNotAllowedReason()),
-                        true));
+                        getMessage("block.virtualPool.vpoolChangeReason", vpoolChange.getName(), vpoolChange.getNotAllowedReason())));
             }
         }
         options.addAll(available);

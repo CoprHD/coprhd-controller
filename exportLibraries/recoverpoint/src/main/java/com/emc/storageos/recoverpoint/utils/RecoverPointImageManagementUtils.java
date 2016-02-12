@@ -1052,7 +1052,7 @@ public class RecoverPointImageManagementUtils {
             }
         }
 
-        boolean waitForLinkState = true;
+        boolean waitForLinkState = false;
         imageManager.enableCGCopy(impl, cgCopyUID, waitForLinkState, ImageAccessMode.LOGGED_ACCESS, bookmarkName, apitTime);
     }
 

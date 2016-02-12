@@ -20,16 +20,21 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSBucketACL;
 import com.emc.storageos.ecs.api.ECSException;
+import com.emc.storageos.ecs.api.UserSecretKeysAddCommandResult;
+import com.emc.storageos.ecs.api.UserSecretKeysGetCommandResult;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.ObjectControllerConstants;
 import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -138,11 +143,15 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, final String taskId) {
+    public BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, String deleteType, final String taskId) {
         BiosCommandResult result;
         try {
             ECSApi objectAPI = getAPI(storageObj);
-            objectAPI.deleteBucket(bucket.getName(), bucket.getNamespace());
+            if (ObjectControllerConstants.DeleteTypeEnum.INTERNAL_DB_ONLY.toString().equalsIgnoreCase(deleteType.toString())) {
+                _log.info("Inventory only bucket delete {}", bucket.getName());
+            } else {
+                objectAPI.deleteBucket(bucket.getName(), bucket.getNamespace());
+            }
             // Deleting the ACL for bucket if any
             List<ObjectBucketACL> aclToDelete = queryDbBucketACL(bucket);
             if (aclToDelete != null && !aclToDelete.isEmpty()) {
@@ -498,6 +507,40 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
         return new Gson().toJson(ecsBucketAcl);
     }
+    
+    @Override
+    public ObjectUserSecretKey doGetUserSecretKeys(StorageSystem storageObj, String userId) throws InternalException {
+        ECSApi ecsApi = getAPI(storageObj);
+        ObjectUserSecretKey secretKey = new ObjectUserSecretKey();
+
+        try {
+            UserSecretKeysGetCommandResult secretKeyRes = ecsApi.getUserSecretKeys(userId);
+            secretKey.setSecret_key_1(secretKeyRes.getSecret_key_1());
+            secretKey.setSecret_key_1_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_1());
+            secretKey.setSecret_key_2(secretKeyRes.getSecret_key_2());
+            secretKey.setSecret_key_2_expiry_timestamp(secretKeyRes.getKey_expiry_timestamp_2());
+        } catch (Exception e) {
+           _log.error("ECSObjectStorageDevice:doGetUserSecretKey failed.");
+        }
+        return secretKey;
+    }
+
+    @Override
+    public ObjectUserSecretKey doAddUserSecretKey(StorageSystem storageObj, String userId, String secretKey) throws InternalException {
+        ECSApi ecsApi = getAPI(storageObj);
+        ObjectUserSecretKey secretKeyRes = new ObjectUserSecretKey();
+        
+        try {
+            UserSecretKeysAddCommandResult cmdRes = ecsApi.addUserSecretKey(userId, secretKey);
+            secretKeyRes.setSecret_key_1(cmdRes.getSecret_key()); 
+            secretKeyRes.setSecret_key_1_expiry_timestamp(cmdRes.getKey_expiry_timestamp());
+            return secretKeyRes;
+        } catch (Exception e) {
+            _log.error("ECSObjectStorageDevice:doAddUserSecretKey failed");
+            throw e;
+        }
+    }
+
 
     private ECSApi getAPI(StorageSystem storageObj) throws ControllerException {
         ECSApi objectAPI = null;
@@ -524,4 +567,5 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
         completer.statusReady(_dbClient, message);
     }
+
 }

@@ -27,7 +27,6 @@ public class HostsParam {
     @XmlElementWrapper(required = false)
     /**
      * List of host URIs.
-     * @valid none
      */
     @XmlElement(name = "host")
     public List<URI> getHosts() {

@@ -44,13 +44,14 @@ public interface RemoteMirroring {
 
     /**
      * Create and establish replication links from a list of source and target volumes.
-     *
+     * 
      * @param system
      * @param sources
      * @param targets
      * @param completer
      */
-    void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer);
+    void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, boolean addWaitForCopyState,
+            TaskCompleter completer);
 
     /**
      * Detach a source and target from their replication link.
@@ -239,7 +240,7 @@ public interface RemoteMirroring {
 
     /**
      * Change SRDF Copy Mode.
-     *
+     * 
      * @param system
      * @param target
      * @param completer

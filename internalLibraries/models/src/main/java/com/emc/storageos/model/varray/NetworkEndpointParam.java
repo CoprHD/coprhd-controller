@@ -34,7 +34,6 @@ public class NetworkEndpointParam {
      * List of endpoints (WWN, iqn, IP address of port and host interfaces)
      * to be added to the network or removed from it.
      * 
-     * @valid none
      */
     @XmlElementWrapper(required = true, name = "endpoints")
     @XmlElement(name = "endpoint")
@@ -52,7 +51,6 @@ public class NetworkEndpointParam {
     /**
      * Operation to add or remove endpoints from the network.
      * 
-     * @valid none
      */
     @XmlElement(required = true)
     public String getOp() {

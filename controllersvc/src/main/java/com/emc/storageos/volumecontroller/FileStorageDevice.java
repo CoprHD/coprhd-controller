@@ -6,13 +6,11 @@
 package com.emc.storageos.volumecontroller;
 
 import java.util.List;
-import java.net.URI;
 
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 /**
@@ -126,7 +124,7 @@ public interface FileStorageDevice {
      */
     public BiosCommandResult doExpandFS(StorageSystem storage, FileDeviceInputOutput fd)
             throws ControllerException;
-
+    
     /**
      * 
      * @param storage
@@ -234,14 +232,8 @@ public interface FileStorageDevice {
 
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj,
             FileDeviceInputOutput args);
-    
-    
-    // file mirror related operations
-    public void doCreateMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    public void doDeleteMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
-    	
-    
+    public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
+
+    public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args);
 }

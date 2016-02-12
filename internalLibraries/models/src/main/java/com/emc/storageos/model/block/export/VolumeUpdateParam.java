@@ -29,7 +29,6 @@ public class VolumeUpdateParam {
     /**
      * Add lists of volume or volume snapshot changes.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "add", required = false)
     @XmlElement(name = "volume")
@@ -43,7 +42,6 @@ public class VolumeUpdateParam {
     /**
      * Remove lists of volume or volume snapshot changes.
      * 
-     * @valid none
      */
     @XmlElementWrapper(required = false)
     @XmlElement(name = "volume")

@@ -596,13 +596,37 @@ public class DbServiceImpl implements DbService {
         }
         System.setProperty("cassandra.config", _config);
         System.setProperty("cassandra.config.loader", CassandraConfigLoader.class.getName());
-
+        
+        // Set to false to clear all gossip state for the node on restart.
+        //
+        // We encounter a weird Cassandra grossip issue(COP-19246) - some nodes are missing from gossip
+        // when rebooting the entire cluster simultaneously. Critical Gossip fields(ApplicationState.STATUS, ApplicationState.TOKENS)
+        // are not synchronized during handshaking. It looks like some problem caused by incorrect gossip version/generation
+        // at system local table. So add this option to cleanup local gossip state during reboot
+        //
+        // Make sure add-vdc/add-standby passed when you would remove this option in the future.
+        //
+        // Disable it for standby site. We don't want to be too aggressive
+        if (!_schemaUtil.isStandby()) {
+            System.setProperty("cassandra.load_ring_state", "false");
+        }
+        
+        // Nodes in new data center should not auto-bootstrap.  
+        // See https://docs.datastax.com/en/cassandra/2.0/cassandra/operations/ops_add_dc_to_cluster_t.html
+        if (_schemaUtil.isStandby()) {
+            System.setProperty("cassandra.auto_bootstrap", "false");
+        }
         InterProcessLock lock = null;
         Configuration config = null;
 
         StartupMode mode = null;
 
         try {
+            if (_schemaUtil.isStandby()) {
+                // wait for standby site leaves ADDING state before first initialization
+                _schemaUtil.checkSiteAddingOnStandby();
+            }
+
             // we use this lock to discourage more than one node bootstrapping / joining at the same time
             // Cassandra can handle this but it's generally not recommended to make changes to schema concurrently
             lock = getLock(getSchemaLockName());
@@ -1014,14 +1038,14 @@ public class DbServiceImpl implements DbService {
     }
 
     /**
-     * Output more clear message in the log when new node down during node recovery introduced by CASSANDRA-2434 in cassandra 2.1.
+     * Output more clear message in the log when a node down during node recovery introduced by CASSANDRA-2434 in cassandra 2.1.
     */
     private void printRecoveryWorkAround(Exception e) {
         if (e.getMessage().startsWith("A node required to move the data consistently is down (")) {
             String sourceIp = e.getMessage().split("\\(")[1].split("\\)")[0];
-            _log.error("{} of node {} is unavailable during node recovery, please double check the node {} status. " +
-                    "Node recovery will fail in 30 minutes if {} not back to normal state.", isGeoDbsvc() ? "geodbsvc" : "dbsvc",
-                    sourceIp, sourceIp, sourceIp);
+            _log.error("{} of node {} is unavailable during node recovery, please double check the node status.",
+                    isGeoDbsvc() ? "geodbsvc" : "dbsvc",sourceIp);
+            _log.error("Node recovery will fail in 30 minutes if {} not back to normal state.", sourceIp);
         }
     }
 }

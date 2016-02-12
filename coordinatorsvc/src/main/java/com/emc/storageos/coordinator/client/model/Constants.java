@@ -19,6 +19,7 @@ public interface Constants {
 
     public static final String REMOTE_DOWNLOAD_LEADER = "remoteDownloadLeader";
     public static final String TARGET_INFO = "targetInfo";
+    String DOWNLOADINFO_KIND = "downloadinfo";
     public static final String NODE_INFO = "nodeInfo";
 
     public static final String TARGET_INFO_LOCK = "targetInfoLock";
@@ -153,6 +154,7 @@ public interface Constants {
     public static final String SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE = "switchoverBarrierSetStateToActive";
     public static final String SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE = "switchoverStandbySiteRemoveBarrier";
     public static final String SWITCHOVER_BARRIER_RESTART = "switchoverRestartBarrier";
+    public static final String RESUME_BARRIER_RESTART_DBSVC = "resumeRestartDbsvcBarrier";
     public static final String FAILOVER_BARRIER = "failoverBarrier";
     public static final String DB_DOWNTIME_TRACKER_CONFIG = "dbDowntimeTracker";
     public static final String DB_CONSISTENCY_STATUS = "dbconsistencystatus";

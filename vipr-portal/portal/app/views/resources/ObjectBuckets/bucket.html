@@ -15,9 +15,17 @@
   
     #{Resources.header resource:bucket, typeKey: 'resources.bucket'/}
     #{Resources.actions hide:bucket?.inactive }
-      <a href="@{deleteBucket(bucket.id)}"
-        onclick="return confirm('&{'resources.bucket.deleteConfirm'}');"
-      >&{'resources.bucket.deleteLink'}</a><br/>      
+
+      <div class="btn-group">
+          <button type="button" class="btn btn-danger dropdown-toggle" name="button.delete" data-toggle="dropdown">
+            <span class="glyphicon glyphicon-trash"></span>
+            &{'resources.bucket.deleteLink'} <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" role="menu">
+            <li><a href="@{deleteBucket(bucket.id, 'FULL')}" onclick="return confirm('&{'resources.bucket.deleteConfirm.FULL'}');">&{'resources.bucket.deleteLink.FULL'}</a></li>
+            <li><a href="@{deleteBucket(bucket.id, 'INTERNAL_DB_ONLY')}" onclick="return confirm('&{'resources.bucket.deleteConfirm.INTERNAL_DB_ONLY'}');">&{'resources.bucket.deleteLink.INTERNAL_DB_ONLY'}</a></li>
+          </ul>
+    </div> 
     #{/Resources.actions}
     
     <dl class="dl-horizontal pull-left">  

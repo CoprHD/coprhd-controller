@@ -22,6 +22,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -56,20 +57,30 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
     public TaskList createFileSystems(FileSystemParam param, Project project, VirtualArray varray,
             VirtualPool vpool, TenantOrg tenantOrg, DataObject.Flag[] flags, List<Recommendation> recommendations,
             TaskList taskList, String taskId, VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
-        // TBD
         return getFileMirrorServiceApiImpl().createFileSystems(param, project, varray, vpool, tenantOrg, flags,
                 recommendations, taskList, taskId, vpoolCapabilities);
     }
 
     @Override
-    public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType, boolean forceDelete, String task)
+    public void deleteFileSystems(URI systemURI, List<URI> fileSystemURIs, String deletionType,
+            boolean forceDelete, boolean deleteOnlyMirrors, String task)
             throws InternalException {
-        super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, task);
+        super.deleteFileSystems(systemURI, fileSystemURIs, deletionType, forceDelete, deleteOnlyMirrors, task);
+    }
+
+    @Override
+    public TaskResourceRep createTargetsForExistingSource(FileShare fs, Project project,
+            VirtualPool vpool, VirtualArray varray, TaskList taskList, String task, List<Recommendation> recommendations,
+            VirtualPoolCapabilityValuesWrapper vpoolCapabilities) throws InternalException {
+        return getFileMirrorServiceApiImpl().createTargetsForExistingSource(fs, project, vpool, varray, taskList,
+                task, recommendations, vpoolCapabilities);
+
     }
 
     @Override
     protected List<FileDescriptor> getDescriptorsOfFileShareDeleted(
-            URI systemURI, List<URI> fileShareURIs, String deletionType, boolean forceDelete) {
+            URI systemURI, List<URI> fileShareURIs, String deletionType,
+            boolean forceDelete, boolean deleteOnlyMirrors) {
         List<FileDescriptor> fileDescriptors = new ArrayList<FileDescriptor>();
         for (URI fileURI : fileShareURIs) {
             FileShare fileShare = _dbClient.queryObject(FileShare.class, fileURI);
@@ -90,7 +101,7 @@ public class FileRemoteMirrorServiceApiImpl extends AbstractFileServiceApiImpl<F
 
             FileDescriptor fileDescriptor = new FileDescriptor(descriptorType,
                     fileShare.getStorageDevice(), fileShare.getId(),
-                    fileShare.getPool(), deletionType, forceDelete);
+                    fileShare.getPool(), deletionType, forceDelete, deleteOnlyMirrors);
             fileDescriptors.add(fileDescriptor);
         }
         return fileDescriptors;

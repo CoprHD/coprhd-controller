@@ -38,8 +38,6 @@ public class ProtectionSystemRequestParam {
     /**
      * The label given to the new Protection System
      * 
-     * @valid String value between 2 and 128 characters
-     * @valid example: protection_system1
      */
     @XmlElement(required = true, name = "name")
     @Length(min = 2, max = 128)
@@ -54,7 +52,6 @@ public class ProtectionSystemRequestParam {
     /**
      * System type for the new Protection System
      * 
-     * @valid rp - this is only current Type available for Protection Systems
      */
     @XmlElement(required = true, name = "system_type")
     public String getSystemType() {
@@ -68,8 +65,6 @@ public class ProtectionSystemRequestParam {
     /**
      * IP Address of the Protection System device
      * 
-     * @valid IPv4 only
-     * @valid example: 10.27.100.99
      */
     @XmlElement(required = true, name = "ip_address")
     public String getIpAddress() {
@@ -83,8 +78,6 @@ public class ProtectionSystemRequestParam {
     /**
      * Management Port Number of the Protection System device
      * 
-     * @valid Numerical value 1 through 65535
-     * @valid example: 7225
      */
     @XmlElement(required = true, name = "port_number")
     public Integer getPortNumber() {
@@ -98,7 +91,6 @@ public class ProtectionSystemRequestParam {
     /**
      * The user name to connect to the Protection System device management port
      * 
-     * @valid example: user1
      */
     @XmlElement(required = true, nillable = true, name = "user_name")
     public String getUserName() {
@@ -112,7 +104,6 @@ public class ProtectionSystemRequestParam {
     /**
      * The password to connect to the Protection System device management port
      * 
-     * @valid example: abc123
      */
     @XmlElement(name = "password", required = true, nillable = true)
     public String getPassword() {
@@ -125,9 +116,9 @@ public class ProtectionSystemRequestParam {
 
     /**
      * The registration mode for the Protection System
-     * 
-     * @valid REGISTERED
-     * @valid UNREGISTERED
+     * Valid values:
+     *  REGISTERED
+     *  UNREGISTERED
      */
     @XmlElement(name = "registration_mode")
     public String getRegistrationMode() {

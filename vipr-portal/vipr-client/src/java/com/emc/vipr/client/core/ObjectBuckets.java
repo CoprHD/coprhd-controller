@@ -121,6 +121,7 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      *            the update/create configuration
      * @return a task for monitoring the progress of the operation.
      */
+
     public Task<BucketRestRep> updateBucketACL(URI id, ObjectBucketACLUpdateParams param) {
         UriBuilder builder = client.uriBuilder(getBucketACLUrl());
         URI targetUri = builder.build(id);

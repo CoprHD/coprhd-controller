@@ -25,7 +25,6 @@ public class RPClusterVirtualArrayResourceUpdateParam {
     /**
      * The list of virtual arrays to be added to or removed from the resource.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "varray_assignment_changes")
     @XmlElement(name = "varray_assignment_change")

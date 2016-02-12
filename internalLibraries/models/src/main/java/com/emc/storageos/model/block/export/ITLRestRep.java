@@ -34,7 +34,6 @@ public class ITLRestRep {
     /**
      * The storage device containing the targets.
      * 
-     * @valid none
      * @return ITLBlockObjectRestRep
      */
     @XmlElement(name = "device")
@@ -49,7 +48,6 @@ public class ITLRestRep {
     /**
      * The Storage Port being used for access to the volume.
      * 
-     * @valid none
      * @return ITLStoragePortRestRep
      */
     @XmlElement(name = "target")
@@ -64,7 +62,6 @@ public class ITLRestRep {
     /**
      * An Initiator that is accessing the volume.
      * 
-     * @valid none
      * @return ITLInitiatorRestRep
      */
     @XmlElement(name = "initiator")
@@ -79,7 +76,6 @@ public class ITLRestRep {
     /**
      * An ViPR ExportGroup that is providing the initiator - target - lun Mapping.
      * 
-     * @valid none
      * @return NamedRelatedResourceRep
      */
     @XmlElement(name = "export")
@@ -97,8 +93,8 @@ public class ITLRestRep {
 
     /**
      * A SAN zone name that maps the initiator to the target.
-     * 
-     * @valid String name starting with alpha and containing alpha-number and underscore characters.
+     * Valid value:
+     *      String name starting with alpha and containing alpha-number and underscore characters.
      */
     @XmlElement(name = "san_zone_name")
     public String getSanZoneName() {
@@ -108,7 +104,6 @@ public class ITLRestRep {
     /**
      * An integer value giving the Host Logical Unit number.
      * 
-     * @valid a positive number
      * @return int
      */
     @XmlElement(name = "hlu")
@@ -134,7 +129,6 @@ public class ITLRestRep {
         /**
          * The ViPR URI for the Storage Port.
          * 
-         * @valid URI
          */
         @XmlElement(name = "id")
         public URI getId() {
@@ -148,7 +142,6 @@ public class ITLRestRep {
         /**
          * The IP protocol address assigned to the port if any.
          * 
-         * @valid IPv4 or IPv6 address.
          */
         @XmlElement(name = "ip_address")
         public String getIpAddress() {
@@ -162,7 +155,6 @@ public class ITLRestRep {
         /**
          * A REST link to the StoragePort object.
          * 
-         * @valid none
          */
         @XmlElement(name = "link")
         public RestLinkRep getLink() {
@@ -177,8 +169,12 @@ public class ITLRestRep {
          * The port's network address assigned by the Storage Device.
          * Thie could be a Fiber Channel WWN, an iSCSI IQN or EUI value,
          * or an IP address.
+         * Valid value:
+         *      WWN
+         *      IQN
+         *      EUI
+         *      IP
          * 
-         * @valid WWN, IQN, EUI, or IP network address.
          */
         @XmlElement(name = "port")
         public String getPort() {
@@ -191,8 +187,8 @@ public class ITLRestRep {
 
         /**
          * The TCP port number used by the port (if any).
-         * 
-         * @valid Integer value between 1 and 32767.
+         * Valid value:
+         *      Integer value between 1 and 32767.
          */
         @XmlElement(name = "tcp_port")
         public String getTcpPort() {
@@ -212,8 +208,8 @@ public class ITLRestRep {
 
         /**
          * The ViPR URI of the Storage Device containing the volume.
-         * 
-         * @valid URI
+         * Valid value:
+         *      URI
          */
         @XmlElement(name = "id")
         public URI getId() {
@@ -227,7 +223,6 @@ public class ITLRestRep {
         /**
          * A REST link to the Storage Device object.
          * 
-         * @valid none
          */
         @XmlElement(name = "link")
         public RestLinkRep getLink() {
@@ -240,8 +235,8 @@ public class ITLRestRep {
 
         /**
          * The WWN of the volume.
-         * 
-         * @valid a World Wide Name.
+         * Valid value:
+         *      World Wide Name
          */
         @XmlElement(name = "wwn")
         public String getWwn() {
@@ -262,7 +257,6 @@ public class ITLRestRep {
         /**
          * The ViPR URI for the Initiator accessing the volume.
          * 
-         * @valid a URI
          */
         @XmlElement(name = "id")
         public URI getId() {
@@ -276,7 +270,6 @@ public class ITLRestRep {
         /**
          * A REST link to the Initiator that is accessing the volume.
          * 
-         * @valid none
          */
         @XmlElement(name = "link")
         public RestLinkRep getLink() {
@@ -290,8 +283,10 @@ public class ITLRestRep {
         /**
          * The address of the initiator. For Fiber Channel, this is a WWN.
          * For iSCSI, this is an IQN or EUI value.
-         * 
-         * @valid WWN, IQN, or EUI value
+         * Valid value:
+         *      WWN
+         *      IQN
+         *      EUI
          */
         @XmlElement(name = "port")
         public String getPort() {

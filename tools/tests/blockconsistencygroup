@@ -162,8 +162,10 @@ def consistency_group_failover(args):
     group_uri = bourne.block_consistency_group_query(args.group)
     tgt_varray_uri = bourne.neighborhood_query(args.targetVarray)
     print "Failover Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
+    if (args.pit):
+        print "Failover Consistency Group " + str(args.group) + " to point-in-time " + str(args.pit)
     start = time.time()
-    s = bourne.block_consistency_group_failover(group_uri, args.copyType, tgt_varray_uri)
+    s = bourne.block_consistency_group_failover(group_uri, args.copyType, tgt_varray_uri, args.pit)
     bourne.pretty_print_json(s)         
     
 def consistency_group_failover_cancel(args):
@@ -236,6 +238,118 @@ def consistency_group_snapshot_list(args):
         snapshot = bourne.block_consistency_group_snapshot_show(group_uri, uri)
         bourne.pretty_print_json(snapshot)
 		            
+def consistency_group_snapshot_session_create(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    group = bourne.block_consistency_group_show(group_uri)
+    start = time.time()
+    (tasklist, state, message) = bourne.block_consistency_group_snapshot_session_create(group_uri, args.label, args.target_count, args.target_name, args.target_copymode)
+    total = time.time() - start
+    print "Create snapshot session for group " + group['name'] + ' ' + group['id'] + " completed in", "{0:.2f}".format(total), "seconds."
+    if (state == 'ready'):
+        for task in tasklist['task']:
+           print "Snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " successfully created"
+
+# Delete snapshot session.
+def consistency_group_snapshot_session_delete(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_consistency_group_snapshot_session_query(args.name)
+    start = time.time()
+    (tasklist, state, message) = bourne.block_snapshot_session_delete(session_uri)
+    total = time.time() - start
+    print "Delete snapshot session completed in", "{0:.2f}".format(total), "seconds."
+    if (state == 'ready'):
+        for task in tasklist['task']:
+            print "Snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " successfully deleted"
+    else:
+        print "Delete snapshot session failed with error " + message
+
+def consistency_group_snapshot_session_list(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    uris = bourne.block_consistency_group_snapshot_session_list(group_uri)
+    for uri in uris:
+        session = bourne.block_consistency_group_snapshot_session_show(uri)
+        bourne.pretty_print_json(session)
+
+def consistency_group_snapshot_session_show(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_consistency_group_snapshot_session_query(args.name)
+    session = bourne.block_consistency_group_snapshot_session_show(session_uri)
+    bourne.pretty_print_json(session) 
+
+def consistency_group_snapshot_session_link_targets(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_consistency_group_snapshot_session_query(args.name)
+    start = time.time()
+    (tasklist, state, message) = bourne.block_consistency_group_snapshot_session_link_targets(session_uri, args.target_count, args.target_name, args.target_copymode)
+    total = time.time() - start
+    print "Link targets to snapshot session completed in", "{0:.2f}".format(total), "seconds."
+    if (state == 'ready'):
+        for task in tasklist['task']:
+            print "Target successfully linked to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
+    else:
+        for task in tasklist['task']:
+            print "Link target to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+
+# Unlink a target from a block snapshot session.
+def consistency_group_snapshot_session_unlink_targets(args):
+    bourne.connect(args.ip)
+    (group_name, session_name) = args.name.rsplit('/', 1)
+    group_uri = bourne.block_consistency_group_query(group_name)
+    session_uri = bourne.block_consistency_group_snapshot_session_query(args.name)
+    (group_name, snapshot_name) = args.target_name.rsplit('/', 1)
+    target_uri = bourne.block_consistency_group_snapshot_query(group_uri, snapshot_name)
+    target = bourne.block_snapshot_show(target_uri)
+    start = time.time()
+    task = bourne.block_snapshot_session_unlink_target(session_uri, target_uri, args.delete_target)
+    total = time.time() - start
+    print "Unlink target " + target['name'] + ' ' + target['id'] + " from snapshot session completed in", "{0:.2f}".format(total), "seconds."
+    if (task['state'] == 'ready'):
+        print "Target successfully unlinked from snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
+    else:
+        print "Unlink target from snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+
+# Relink a target from a block snapshot session.
+def consistency_group_snapshot_session_relink_targets(args):
+    bourne.connect(args.ip)
+    (group_name, session_name) = args.name.rsplit('/', 1)
+    group_uri = bourne.block_consistency_group_query(group_name)
+    session_uri = bourne.block_consistency_group_snapshot_session_query(args.name)
+    (group_name, snapshot_name) = args.target_name.rsplit('/', 1)
+    target_uri = bourne.block_consistency_group_snapshot_query(group_uri, snapshot_name)
+    target = bourne.block_snapshot_show(target_uri)
+    start = time.time()
+    (tasklist, state, message) = bourne.block_snapshot_session_relink_target(session_uri, target_uri)
+    if (state == 'ready'):
+        for task in tasklist['task']:
+            print "Target successfully relinked from snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
+    else:
+        for task in tasklist['task']:
+            print "Relink target from snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+
+# Restore a target from a block snapshot session.
+def consistency_group_snapshot_session_restore_targets(args):
+    bourne.connect(args.ip)
+    session_uri = bourne.block_consistency_group_snapshot_session_query(args.name)
+    start = time.time()
+    task = bourne.block_snapshot_session_restore(session_uri)
+    total = time.time() - start
+    print "Restore snapshot completed in", "{0:.2f}".format(total), "seconds."
+    if (task['state'] == 'ready'):
+        print "Snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " successfully restored"
+    else:
+        print "Restore snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+
+# List volume IDs part of the consistency group
+def list_volume_ids(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.name)
+    group = bourne.block_consistency_group_show(group_uri)
+    volumes = group["volumes"]
+    for volume in volumes:
+        print(volume["id"])
+
 #----------------------------------------------------------------------
 # command-line parsing
 #----------------------------------------------------------------------
@@ -306,6 +420,53 @@ protectionOperation = argparse.ArgumentParser(parents = [parser], conflict_handl
 protectionOperation.add_argument('group', help = 'name of consistency group')
 protectionOperation.add_argument('--copyType', help = 'copy type (rp or srdf)')
 protectionOperation.add_argument('--targetVarray', help = 'name of target virtual array')
+protectionOperation.add_argument('--pit', help = 'any UTC point-in-time formatted as yyyy-MM-dd_HH:mm:ss or datetime in milliseconds')
+
+# consistency group snapshot session arguments parser
+snapshotSessionOperation = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+snapshotSessionOperation.add_argument('group', help = 'name of consistency group')
+
+# consistency group snapshot session arguments parser
+snapshotSessionShow = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+snapshotSessionShow.add_argument('name', help = 'The name of the snapshot session as group_name/session_name.')
+
+# consistency group snapshot session create group label [--ip ipaddr]
+snapshotSessionCreate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+snapshotSessionCreate.add_argument('group', help = 'The name of the snapshot session source consistency group as project/name.')
+snapshotSessionCreate.add_argument('label', help = 'The name for the new snapshot session.')
+snapshotSessionCreate.add_argument('--target_count', help = 'The number of targets to create and link to the snapshot session.')
+snapshotSessionCreate.add_argument('--target_name', help = 'The base name for newly created targets.')
+snapshotSessionCreate.add_argument('--target_copymode', help = 'The copy mode for newly created targets, copy or nocopy, default=nocopy.')
+
+# consistency group delete name [--ip ipaddr]
+snapshotSessionDelete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+snapshotSessionDelete.add_argument('name', help = 'The name of the snapshot session as group_name/session_name.')
+
+# consistency group link_targets name [--ip ipaddr]
+snapshotSessionLinkTargets = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+snapshotSessionLinkTargets.add_argument('name', help = 'The name of the snapshot session as group_name/session_name.')
+snapshotSessionLinkTargets.add_argument('target_count', help = 'The number of targets to create and link to the snapshot session.')
+snapshotSessionLinkTargets.add_argument('target_name', help = 'The base name for the newly created targets.')
+snapshotSessionLinkTargets.add_argument('--target_copymode', help = 'The copy mode for newly created targets, copy or nocopy, default=nocopy.')
+
+# consistency group unlink_target name [--ip ipaddr]
+snapshotSessionUnlinkTargets = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+snapshotSessionUnlinkTargets.add_argument('name', help = 'The name of the snapshot session for which the target is unlinked from group_name/session_name.')
+snapshotSessionUnlinkTargets.add_argument('target_name', help = 'The name of the linked target to be unlinked from the snapshot session as group_name/snapshot_name.')
+snapshotSessionUnlinkTargets.add_argument('--delete_target', help = 'If true, the target volume is deleted, default=false')
+
+# consistency group relink_target name [--ip ipaddr]
+snapshotSessionRelinkTargets = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+snapshotSessionRelinkTargets.add_argument('name', help = 'The name of the snapshot session to which the target is relinked as group_name/session_name.')
+snapshotSessionRelinkTargets.add_argument('target_name', help = 'The name of the linked target to be relinked to the snapshot session as as group_name/snapshot_name.')
+
+# consistency group restore name [--ip ipaddr]
+snapshotSessionRestoreTargets = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+snapshotSessionRestoreTargets.add_argument('name', help = 'The name of the snapshot session as group_name/session_name.')
+
+# list_volume_ids name
+listVolumeIds = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+listVolumeIds.add_argument('name', help = 'The name of the consistency group.')
 
 #----------------------------------------------------------------------
 # Main script
@@ -371,6 +532,33 @@ try:
     elif (cmd == "failover_cancel"):
         args = protectionOperation.parse_args()
         consistency_group_failover_cancel(args)    	
+    elif (cmd == "create_snapshot_session"):
+        args = snapshotSessionCreate.parse_args()
+        consistency_group_snapshot_session_create(args)
+    elif (cmd == "delete_snapshot_session"):
+        args = snapshotSessionDelete.parse_args()
+        consistency_group_snapshot_session_delete(args)
+    elif (cmd == "list_snapshot_sessions"):
+        args = snapshotSessionOperation.parse_args()
+        consistency_group_snapshot_session_list(args)
+    elif (cmd == "show_snapshot_session"):
+        args = snapshotSessionShow.parse_args()
+        consistency_group_snapshot_session_show(args)
+    elif (cmd == "link_targets"):
+        args = snapshotSessionLinkTargets.parse_args()
+        consistency_group_snapshot_session_link_targets(args)
+    elif (cmd == "unlink_targets"):
+        args = snapshotSessionUnlinkTargets.parse_args()
+        consistency_group_snapshot_session_unlink_targets(args)
+    elif (cmd == "relink_targets"):
+        args = snapshotSessionRelinkTargets.parse_args()
+        consistency_group_snapshot_session_relink_targets(args)
+    elif (cmd == "restore_targets"):
+        args = snapshotSessionRestoreTargets.parse_args()
+        consistency_group_snapshot_session_restore_targets(args)
+    elif (cmd == "list_volume_ids"):
+        args = listVolumeIds.parse_args()
+        list_volume_ids(args)
     else:
         parser.print_help()
 

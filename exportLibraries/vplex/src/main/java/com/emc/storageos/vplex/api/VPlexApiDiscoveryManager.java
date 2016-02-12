@@ -2035,7 +2035,7 @@ public class VPlexApiDiscoveryManager {
         argsMap.put(VPlexApiConstants.ARG_DASH_I, initiatorName);
         JSONObject postDataObject = VPlexApiUtils
                 .createPostData(argsMap, false);
-        s_logger.info("Create storage view POST data is {}",
+        s_logger.info("Find storage view POST data is {}",
                 postDataObject.toString());
         response = _vplexApiClient.post(requestURI, postDataObject.toString());
         String responseStr = response.getEntity(String.class);

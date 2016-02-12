@@ -26,7 +26,6 @@ public class ITLRestRepList {
      * A list of Initiator-Target-Lun Rest Response objects.
      * Each entry in the list represents one initiator - target connection to a volume.
      * 
-     * @valid none
      */
     @XmlElement(name = "itl")
     public List<ITLRestRep> getExportList() {

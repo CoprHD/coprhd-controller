@@ -11,7 +11,7 @@ import java.util.List;
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.VolumeGroupFullCopyDetachParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
 import com.emc.vipr.client.Tasks;
 
 // TODO move to tasks package

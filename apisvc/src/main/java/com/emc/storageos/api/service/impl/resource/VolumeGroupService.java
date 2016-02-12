@@ -68,16 +68,17 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyActivateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopySetList;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeGroupFullCopyActivateParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyDetachParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyRestoreParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
@@ -546,9 +547,6 @@ public class VolumeGroupService extends TaskResourceService {
         // Query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
-        // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY);
-
         // get all volumes
         List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
@@ -558,6 +556,95 @@ public class VolumeGroupService extends TaskResourceService {
         for (Volume volume : volumes) {
             NamedVolumesList volumeFullCopies = getFullCopyManager().getFullCopiesForSource(volume.getId());
             fullCopyList.getVolumes().addAll(volumeFullCopies.getVolumes());
+        }
+
+        return fullCopyList;
+    }
+
+    /**
+     * List full copy set names for a volume group
+     *
+     * @prereq none
+     *
+     * @param cgURI The URI of the volume group.
+     *
+     * @brief List full copy set names for a volume group
+     *
+     * @return The list of full copy set names for the volume group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies/full-copy-sets")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public VolumeGroupFullCopySetList getVolumeGroupFullCopySets(@PathParam("id") final URI volumeGroupId) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // get all volumes
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+
+        // Cycle over the volumes in the volume group and
+        // get the full copies for each volume in the group.
+        VolumeGroupFullCopySetList fullCopySets = new VolumeGroupFullCopySetList();
+        for (Volume volume : volumes) {
+            StringSet fullCopyIds = volume.getFullCopies();
+            if (fullCopyIds != null) {
+                for (String fullCopyId : fullCopyIds) {
+                    Volume fullCopyVolume = _dbClient.queryObject(Volume.class,
+                            URI.create(fullCopyId));
+                    if (fullCopyVolume == null || fullCopyVolume.getInactive()) {
+                        log.warn("Stale full copy {} found for volume {}", fullCopyId,
+                                volume.getLabel());
+                        continue;
+                    }
+                    String setName = fullCopyVolume.getFullCopySetName();
+                    if (setName == null) {
+                        setName = "";
+                    }
+                    fullCopySets.getFullCopySets().add(setName);
+                }
+            }
+        }
+
+        return fullCopySets;
+    }
+
+    /**
+     * List full copies for a volume group belonging to the provided set name
+     *
+     * @prereq none
+     *
+     * @param cgURI The URI of the volume group.
+     *
+     * @brief List full copies for a volume group belonging to the provided set name
+     *
+     * @return The list of full copies for the volume group belonging to the provided set name
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies/full-copy-sets/{full-copy-set-name}")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public NamedVolumesList getVolumeGroupFullCopiesForSet(@PathParam("id") final URI volumeGroupId,
+            @PathParam("full-copy-set-name") final String fullCopySetName) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate that full copy set name is provided
+        ArgValidator.checkFieldNotNull(fullCopySetName, "full-copy-set-name");
+
+        // validate that the provided set name actually belongs to this Application
+        VolumeGroupFullCopySetList fullCopySetNames = getVolumeGroupFullCopySets(volumeGroupId);
+        if (!fullCopySetNames.getFullCopySets().contains(fullCopySetName)) {
+            throw APIException.badRequests.
+                    setNameDoesNotBelongToVolumeGroup("Full Copy Set name", fullCopySetName, volumeGroup.getLabel());
+        }
+
+        NamedVolumesList fullCopyList = new NamedVolumesList();
+        List<Volume> fullCopiesForSet = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
+        for (Volume fullCopy : fullCopiesForSet) {
+            fullCopyList.getVolumes().add(toNamedRelatedResource(fullCopy));
         }
 
         return fullCopyList;

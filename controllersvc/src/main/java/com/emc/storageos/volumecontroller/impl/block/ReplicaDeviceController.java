@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -101,6 +102,16 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             cgURI = volume.getConsistencyGroup();
         }
 
+        // if array consistency in disabled in CG and VPLEX/RP provisioning, skip creating replicas.
+        // Reason:Provisioning new volumes for VPLEX/RP CG in Application does not add backend volume to RG
+        if (!NullColumnValueGetter.isNullURI(cgURI)) {
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+            if (!cg.getArrayConsistency() && isBackendVolumeForVplexOrRp(volumes)) {
+                log.info("Skipping add replica step for CG {} as array consistency is disabled.", cg.getLabel());
+                return waitFor;
+            }
+        }
+        
         List<VolumeDescriptor> nonSrdfVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA }, null);
 
@@ -158,6 +169,38 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         return waitFor;
+    }
+
+    /**
+     * Checks if the requested volume descriptors has a mix of Block and VPLEX/RP volumes
+     *
+     * @param volumes all volume descriptors
+     * @return true, if is backend volume for vplex or rp
+     */
+    private boolean isBackendVolumeForVplexOrRp(List<VolumeDescriptor> volumes) {
+        // Get only the block volumes from the descriptors
+        List<VolumeDescriptor> blockVolumes = VolumeDescriptor.filterByType(volumes,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA },
+                new VolumeDescriptor.Type[] {});
+
+        // Get only the VPlex volumes from the descriptors
+        List<VolumeDescriptor> vplexVolumes = VolumeDescriptor.filterByType(volumes,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+
+        // Get only the RP volumes from the descriptors
+        List<VolumeDescriptor> protectedVolumes = VolumeDescriptor.filterByType(volumes,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_TARGET,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET,
+                        VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE,
+                        VolumeDescriptor.Type.RP_JOURNAL,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL },
+                new VolumeDescriptor.Type[] {});
+
+        if (!blockVolumes.isEmpty() && (!vplexVolumes.isEmpty() || !protectedVolumes.isEmpty())) {
+            return true;
+        }
+        return false;
     }
 
     /**

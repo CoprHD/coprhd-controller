@@ -682,7 +682,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             _log.info("Initiator {}  ", initiatorName);
             try {
                 String os = null;
-                if (!NullColumnValueGetter.isNullURI(remainingInitiator.getHost())) {
+                if (client.isVersion2() && !NullColumnValueGetter.isNullURI(remainingInitiator.getHost())) {
                     Host host = dbClient.queryObject(Host.class, remainingInitiator.getHost());
                     os = XtremIOProvUtils.getInitiatorHostOS(host);
                 }

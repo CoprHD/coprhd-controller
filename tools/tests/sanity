@@ -3837,9 +3837,9 @@ recoverpoint_tests()
 		recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
             
                 # Change Replication Mode Test
-                echo 'RP change vpool - replication mode'
-                recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool_sync}
-                recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool}
+                echo 'RP change vpool - replication mode, not supported on RP/VPLEX yet'
+                # recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool_sync}
+                # recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool}
             fi
 
             # MP test cases
@@ -3858,9 +3858,9 @@ recoverpoint_tests()
 		recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${rpmpvolume}${volume_name_modifier} ${rpmp_src_varray} ${rpmp_tgt_volumes} ${rpmp_tgt_varrays}
             
                 # Change Replication Mode Test
-                echo 'RP change vpool - replication mode'
-                recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool_sync}
-                recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool}
+                echo 'RP change vpool - replication mode, not supported on RP/MP yet'
+                # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool_sync}
+                # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool}
             fi
         fi
 

@@ -319,15 +319,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String HYPHEN_OPERATOR = "-";
 
     // migration speed to transfer size map
-    private static final Map<String, String> mgirationSpeedToTransferSizeMap;
+    private static final Map<String, String> migrationSpeedToTransferSizeMap;
 
     static {
-        mgirationSpeedToTransferSizeMap = new HashMap<String, String>();
-        mgirationSpeedToTransferSizeMap.put("Lowest", "128KB");
-        mgirationSpeedToTransferSizeMap.put("Low", "2MB");
-        mgirationSpeedToTransferSizeMap.put("Medium", "8MB");
-        mgirationSpeedToTransferSizeMap.put("High", "16MB");
-        mgirationSpeedToTransferSizeMap.put("Highest", "32MB");
+        migrationSpeedToTransferSizeMap = new HashMap<String, String>();
+        migrationSpeedToTransferSizeMap.put("Lowest", "128KB");
+        migrationSpeedToTransferSizeMap.put("Low", "2MB");
+        migrationSpeedToTransferSizeMap.put("Medium", "8MB");
+        migrationSpeedToTransferSizeMap.put("High", "16MB");
+        migrationSpeedToTransferSizeMap.put("Highest", "32MB");
     }
 
     // Volume restore step data keys
@@ -5213,7 +5213,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
                     vplexSystem.getSystemType(), null);
             _log.info("Migration speed is {}", speed);
-            String transferSize = mgirationSpeedToTransferSizeMap.get(speed);
+            String transferSize = migrationSpeedToTransferSizeMap.get(speed);
             // Make a call to the VPlex API client to migrate the virtual
             // volume. Note that we need to do a remote migration when a
             // local virtual volume is being migrated to the other VPlex
@@ -5747,7 +5747,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Get the configured migration speed. This value would be set in VPLEX through
             // "rebuild set-transfer-speed" command.
             if (setTransferSpeed != null) {
-                transferSize = mgirationSpeedToTransferSizeMap.get(setTransferSpeed);
+                transferSize = migrationSpeedToTransferSizeMap.get(setTransferSpeed);
                 if (transferSize == null) {
                     _log.info("Transfer speed parameter {} is invalid", setTransferSpeed);
                 }
@@ -5756,7 +5756,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
                         vplexSystem.getSystemType(), null);
                 _log.info("Migration speed is {}", speed);
-                transferSize = mgirationSpeedToTransferSizeMap.get(speed);
+                transferSize = migrationSpeedToTransferSizeMap.get(speed);
             }
             Workflow.Method vplexSetTransferSizeMethod = rebuildSetTransferSizeMethod(vplexVolume.getStorageController(), transferSize);
             // Create a step for updating the transfer speed in VPLEX.

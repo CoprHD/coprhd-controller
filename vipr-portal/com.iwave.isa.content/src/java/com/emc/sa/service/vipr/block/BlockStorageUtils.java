@@ -564,9 +564,27 @@ public class BlockStorageUtils {
                 removeSnapshotsForVolume(volumeId);
                 removeContinuousCopiesForVolume(volumeId);
                 removeFullCopiesForVolume(volumeId, blockResourceIds);
+            } else {
+                unexportReplicas(volumeId, blockResourceIds);
             }
         }
         deactivateBlockResources(blockResourceIds, type);
+    }
+
+    public static void unexportReplicas(URI volumeId, Collection<URI> blockResourceIds) {
+        List<URI> snapshotIds = getActiveSnapshots(volumeId);
+        removeBlockResourcesFromExports(snapshotIds);
+
+        if (!ResourceType.isType(BLOCK_SNAPSHOT, volumeId)) {
+            Collection<URI> continuousCopyIds = getActiveContinuousCopies(volumeId);
+            removeBlockResourcesFromExports(continuousCopyIds);
+        }
+
+        List<URI> fullCopyIds = getActiveFullCopies(volumeId);
+        blockResourceIds.removeAll(fullCopyIds);
+        for (URI fullCopyId : fullCopyIds) {
+            removeBlockResources(Collections.singletonList(fullCopyId), VolumeDeleteTypeEnum.FULL);
+        }
     }
 
     public static boolean canRemoveReplicas(URI blockResourceId) {

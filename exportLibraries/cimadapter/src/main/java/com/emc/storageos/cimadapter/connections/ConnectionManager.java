@@ -48,7 +48,7 @@ public class ConnectionManager {
     private static final int ONE_MINUTE = 1;
     private static final int INITIAL_DELAY = ONE_MINUTE;
     private static final long MIN_IN_MS = 60 * 1000; // Total minutes in milliseconds
-    private static final long DEFAULT_TTL = 5; // minutes
+    private static final long DEFAULT_TTL = -1; // implies that CIMConnection reaping will be disabled
     private static long maxConnectionTTL = DEFAULT_TTL * MIN_IN_MS;
     private static final String CIM_CONNECTION_MAX_INACTIVE_TIME = "cim-connection-max-inactive-time";
     private static boolean configured = false;
@@ -120,10 +120,15 @@ public class ConnectionManager {
                 // Value's unit should be N minutes
                 maxConnectionTTL = Long.valueOf(maxTTLString) * MIN_IN_MS;
             }
-            // Start up the CimConnection reaper
-            executorService.scheduleAtFixedRate(new CimConnectionReaper(), INITIAL_DELAY, ONE_MINUTE, TimeUnit.MINUTES);
-            s_logger.info("ConnectionManager config: CimConnections that have been inactive for more than {} minutes will be reaped",
-                    maxConnectionTTL/MIN_IN_MS);
+            if (maxConnectionTTL != -1) {
+                // Start up the CimConnection reaper
+                executorService.scheduleAtFixedRate(new CimConnectionReaper(), INITIAL_DELAY, ONE_MINUTE, TimeUnit.MINUTES);
+                s_logger.info("ConnectionManager config: CimConnections that have been inactive for more than {} minutes will be reaped",
+                        maxConnectionTTL / MIN_IN_MS);
+            } else {
+                s_logger.info("ConnectionManager config: {} was set to {}, CIMConnection reaper is disabled",
+                        CIM_CONNECTION_MAX_INACTIVE_TIME, maxTTLString);
+            }
             configured = true;
         } finally {
             connectionLock.unlock();

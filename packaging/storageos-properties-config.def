@@ -2678,4 +2678,18 @@
      controlNodeOnly : true,
      siteSpecific : true,
     },
+    {
+        key : "cim_connection_max_inactive_time",
+        label : "CIM Connection TTL",
+        description : "Maximum number of minutes before an inactive CIMConnection is reaped.",
+        type : "uint32",
+        userConfigurable : false,
+        userMutable : true,
+        advanced : true,
+        tag : "Discovery",
+        reconfigRequired : false,
+        rebootRequired : true,
+        controlNodeOnly : true,
+        value : "5",
+    },
 ]

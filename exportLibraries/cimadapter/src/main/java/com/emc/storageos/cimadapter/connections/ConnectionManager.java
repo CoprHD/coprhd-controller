@@ -34,6 +34,7 @@ import com.emc.storageos.cimadapter.connections.cim.CimListener;
 import com.emc.storageos.cimadapter.connections.cim.CimListenerInfo;
 import com.emc.storageos.cimadapter.connections.ecom.EcomConnection;
 import com.emc.storageos.cimadapter.consumers.CimIndicationConsumerList;
+import com.emc.storageos.model.property.PropertyInfo;
 
 /**
  * The ConnectionManager manages the connections to the storage arrays whose
@@ -44,9 +45,13 @@ import com.emc.storageos.cimadapter.consumers.CimIndicationConsumerList;
  */
 public class ConnectionManager {
 
-    private static final int INITIAL_DELAY = 1;
-    private static final int PERIOD_MINS = 1;
-    private static final long THRESHOLD_TIME = 10 * 60 * 1000; // Total minutes in milliseconds
+    private static final int ONE_MINUTE = 1;
+    private static final int INITIAL_DELAY = ONE_MINUTE;
+    private static final long MIN_IN_MS = 60 * 1000; // Total minutes in milliseconds
+    private static final long DEFAULT_TTL = 5; // minutes
+    private static long maxConnectionTTL = DEFAULT_TTL * MIN_IN_MS;
+    private static final String CIM_CONNECTION_MAX_INACTIVE_TIME = "cim-connection-max-inactive-time";
+    private static boolean configured = false;
 
     // A reference to the connection manager configuration.
     private ConnectionManagerConfiguration _configuration;
@@ -87,7 +92,6 @@ public class ConnectionManager {
         if (_configuration == null) {
             throw new ConnectionManagerException("Invalid null connection manager configuration.");
         }
-        executorService.scheduleAtFixedRate(new CimConnectionReaper(), INITIAL_DELAY, PERIOD_MINS, TimeUnit.MINUTES);
     }
 
     /**
@@ -95,6 +99,35 @@ public class ConnectionManager {
      */
     @SuppressWarnings("unused")
     private ConnectionManager() {
+    }
+
+    /**
+     * Using the propertyInfo retrieved from the CoordinatorClient, we will configure the ConnectionManager.
+     *
+     * @param propertyInfo [IN] - PropertyInfo representing configuration parameters
+     */
+    public void configure(PropertyInfo propertyInfo) {
+        connectionLock.lock();
+        try {
+            // Allow the configure() to be run only once by the first thread that calls it
+            if (configured) {
+                return;
+            }
+            s_logger.info("Configuring ConnectionManager");
+            String maxTTLString = propertyInfo.getProperty(CIM_CONNECTION_MAX_INACTIVE_TIME);
+            // If there is a value specified for the configuration properties and it's a number ...
+            if (maxTTLString != null && maxTTLString.matches("\\d+")) {
+                // Value's unit should be N minutes
+                maxConnectionTTL = Long.valueOf(maxTTLString) * MIN_IN_MS;
+            }
+            // Start up the CimConnection reaper
+            executorService.scheduleAtFixedRate(new CimConnectionReaper(), INITIAL_DELAY, ONE_MINUTE, TimeUnit.MINUTES);
+            s_logger.info("ConnectionManager config: CimConnections that have been inactive for more than {} minutes will be reaped",
+                    maxConnectionTTL/MIN_IN_MS);
+            configured = true;
+        } finally {
+            connectionLock.unlock();
+        }
     }
 
     /**
@@ -517,7 +550,7 @@ public class ConnectionManager {
             Thread currentThread = Thread.currentThread();
             currentThread.setName(String.format("CimConnectionReaper %d", currentThread.getId()));
             try {
-                s_logger.info("CimConnectionReaper start");
+                s_logger.debug("CimConnectionReaper start");
                 int connectionsReaped = 0;
                 // Copy the keys to prevent ConcurrentUpdate exception
                 Set<String> connectionKeys = new HashSet<>(connectionLastTouch.keySet());
@@ -525,17 +558,18 @@ public class ConnectionManager {
                     Long lastTime = connectionLastTouch.get(hostAndPort);
                     Long diff = System.currentTimeMillis() - lastTime;
                     String timeAndDate = new Date(lastTime).toString();
-                    if (diff >= THRESHOLD_TIME) {
-                        s_logger.info("Reaping connection {} that was last touched at {}", hostAndPort, timeAndDate);
+                    if (diff >= maxConnectionTTL) {
+                        s_logger.info(
+                                String.format("Reaping connection %s that was last touched %s (%s)", hostAndPort, timeAndDate, lastTime));
                         internalRemoveConnection(hostAndPort);
                         connectionsReaped++;
                     } else {
-                        s_logger.info(String.format("Connection %s was last touched at %s (%s)", hostAndPort, timeAndDate, lastTime));
+                        s_logger.info(String.format("Connection %s was last touched %s (%s)", hostAndPort, timeAndDate, lastTime));
                     }
                 }
-                s_logger.info("CimConnectionReaper end - There were {} connections reaped", connectionsReaped);
+                s_logger.debug("CimConnectionReaper end - There were {} connections reaped", connectionsReaped);
             } catch (Exception exp) {
-                s_logger.info("Exception occurred", exp);
+                s_logger.error("Exception occurred", exp);
             } finally {
                 connectionLock.unlock();
             }

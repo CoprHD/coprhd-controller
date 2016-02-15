@@ -102,6 +102,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public static final String RECOVERPOINT_BOOKMARK_SNAPSHOT_TYPE_VALUE = "rp";
     public static final String LOCAL_ARRAY_SNAPSHOT_TYPE_VALUE = "local";
     public static final String SNAPSHOT_SESSION_TYPE_VALUE = "session";
+    public static final String SNAPSHOT_TARGET_TYPE_VALUE = "target";
     public static final String CG_SNAPSHOT_TYPE_VALUE = "cg";
     public static final String CG_SNAPSHOT_SESSION_TYPE_VALUE = "cgsession";
 
@@ -130,6 +131,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             "block.snapshot.type.local");
     private static final AssetOption SNAPSHOT_SESSION_TYPE_OPTION = newAssetOption(SNAPSHOT_SESSION_TYPE_VALUE,
             "block.snapshot.type.session");
+    private static final AssetOption SNAPSHOT_TARGET_TYPE_OPTION = newAssetOption(SNAPSHOT_TARGET_TYPE_VALUE,
+            "block.snapshot.type.target");
+
     private static final AssetOption CG_SNAPSHOT_TYPE_OPTION = newAssetOption(CG_SNAPSHOT_TYPE_VALUE,
             "block.snapshot.type.cg");
     private static final AssetOption CG_SNAPSHOT_SESSION_TYPE_OPTION = newAssetOption(CG_SNAPSHOT_SESSION_TYPE_VALUE,
@@ -1012,6 +1016,42 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         } else {
             return Lists.newArrayList(newAssetOption(NONE_TYPE, "None"));
         }
+    }
+
+    @Asset("applicationSnapshotType")
+    public List<AssetOption> getApplicationSnapshotTypes(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(SNAPSHOT_TARGET_TYPE_OPTION);
+        options.add(SNAPSHOT_SESSION_TYPE_OPTION);
+        return options;
+    }
+
+    @Asset("applicationCopySets")
+    @AssetDependencies({ "application" })
+    public List<AssetOption> getApplicationCopySets(AssetOptionsContext ctx, URI application) {
+        return createOptions(api(ctx).application().getSnapshotSessionCopySets(application).getCopySets().toArray());
+    }
+
+    @Asset("applicationCopySets")
+    @AssetDependencies({ "application", "applicationSnapshotType" })
+    public List<AssetOption> getApplicationCopySets(AssetOptionsContext ctx, URI application, String snapshotType) {
+        if (snapshotType.equalsIgnoreCase(SNAPSHOT_SESSION_TYPE_VALUE)) {
+            return createOptions(api(ctx).application().getSnapshotSessionCopySets(application).getCopySets().toArray());
+        } else if (snapshotType.equalsIgnoreCase(SNAPSHOT_TARGET_TYPE_VALUE)) {
+            // TODO wait for API to be implemented
+            // this.createOptions(api(ctx).application().getSnapshotCopySets(application));
+        }
+        return Lists.newArrayList();
+    }
+
+    @Asset("replicationGroup")
+    @AssetDependencies({ "application", "applicationSnapshotType", "applicationCopySets" })
+    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId, String snapshotType,
+            String copySet) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep application = client.application().getApplication(applicationId);
+        // TODO based on snapshotType, use correct API call
+        return createStringOptions(application.getReplicationGroupNames());
     }
 
     @Asset("blockSnapshotType")

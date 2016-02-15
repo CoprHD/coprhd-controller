@@ -1,0 +1,18 @@
+{
+  baseKey:"UnlinkSnapshotOfApplication.Application",
+  serviceId:"UnlinkSnapshotOfApplication",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+    applicationCopySets:{
+      type:"assetType.vipr.applicationCopySets"
+    },
+    
+    applicationSubGroup:{
+      type:"assetType.vipr.replicationGroup"
+    }
+  }
+}

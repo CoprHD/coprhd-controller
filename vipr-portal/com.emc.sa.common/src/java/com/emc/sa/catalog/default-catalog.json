@@ -591,6 +591,30 @@
         {
           "image": "icon_application_resych_full_copy.png",
           "baseService": "ResynchronizeApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_create_full_copy.png",
+          "baseService": "CreateSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_create_full_copy.png",
+          "baseService": "RestoreSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_create_full_copy.png",
+          "baseService": "ResyncSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_create_full_copy.png",
+          "baseService": "DeleteSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_create_full_copy.png",
+          "baseService": "LinkSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_create_full_copy.png",
+          "baseService": "UnlinkSnapshotOfApplication"
         }
       ]
     }

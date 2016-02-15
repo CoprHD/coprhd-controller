@@ -79,6 +79,7 @@ public interface ServiceParams {
     public String NEW_APPLICATION_SUB_GROUP = "newApplicationSubGroup";
     public String FULL_COPY_NAME = "fullCopyName";
 
+    public String APPLICATION_SNAPSHOT_TYPE = "applicationSnapshotType";
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";
 

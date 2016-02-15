@@ -115,6 +115,9 @@ public class DisasterRecoveryService {
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     private static final String NTPSERVERS = "network_ntpservers";
     private static final int SITE_NAME_LENGTH_LIMIT = 64;
+    
+    private static final int SITE_CONNECT_TEST_TIMEOUT = 10 * 1000;
+    private static final int SITE_CONNECTION_TEST_PORT = 443;
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -1817,6 +1820,10 @@ public class DisasterRecoveryService {
     private void checkSiteConnectivity(Site site) {
         if (site.getNetworkHealth() == NetworkHealth.BROKEN) {
             throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), "Network health state is broken.");
+        }
+        
+        if (drUtil.testPing(site.getVip(), SITE_CONNECTION_TEST_PORT, SITE_CONNECT_TEST_TIMEOUT) == -1) {
+            throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), String.format("Can't connect to site by virtual IP: %s", site.getVip()));
         }
     }
 

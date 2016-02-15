@@ -16,16 +16,16 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.google.common.base.Joiner;
 
@@ -34,14 +34,14 @@ public class RemoteReplicationIngestor {
             .getLogger(RemoteReplicationIngestor.class);
 
     private static final DataObject.Flag[] INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] {
-            Flag.INTERNAL_OBJECT, Flag.NO_PUBLIC_ACCESS, Flag.NO_METERING };
+            Flag.INTERNAL_OBJECT, Flag.PARTIALLY_INGESTED, Flag.NO_METERING };
 
     /**
      * If unmanaged volume is a Target Volume, then 1. Find if source is ingested 2. If yes, then
      * find whether expected targets of this source had been ingested already excluding the current
      * target. 3. If yes, establish links between source and targets. 4. If not,then make sure
      * unmanaged volume hasn't been deleted.
-     * 
+     *
      * @param unManagedVolume
      * @param volume
      * @param unManagedVolumes
@@ -97,7 +97,7 @@ public class RemoteReplicationIngestor {
                                         volume.getVirtualArray());
                                 return false;
                             }
-                            sourceVolume.setSrdfTargets(VolumeIngestionUtil.addSRDFTargetsToSet(targetUris));
+                            sourceVolume.setSrdfTargets(VolumeIngestionUtil.convertUrisToStrings(targetUris));
                             _logger.info("Clearing internal flag for source volume {} found", sourceVolume.getNativeGuid());
                             sourceVolume.clearInternalFlags(INTERNAL_VOLUME_FLAGS);
                             _logger.debug("Set srdf target for source volume {} found", sourceVolume.getId());
@@ -146,7 +146,7 @@ public class RemoteReplicationIngestor {
     /**
      * If unmanaged volume is of type Source, then check if all its target volumes are already
      * ingested. if yes, establish links.
-     * 
+     *
      * @param unManagedVolume
      * @param srcVolume
      * @param unManagedVolumes
@@ -165,7 +165,8 @@ public class RemoteReplicationIngestor {
             // check whether target exists
             List<URI> targetUris = VolumeIngestionUtil.getVolumeUris(targetVolumeNativeGuids, dbClient);
             _logger.info("Expected targets : {} -->Found Target URIs : {}", targetUnManagedVolumeGuids.size(), targetUris.size());
-            _logger.debug("Expected Targets {} : Found {}", Joiner.on("\t").join(targetVolumeNativeGuids), Joiner.on("\t").join(targetUris));
+            _logger.debug("Expected Targets {} : Found {}", Joiner.on("\t").join(targetVolumeNativeGuids),
+                    Joiner.on("\t").join(targetUris));
             if (targetUris.size() != targetUnManagedVolumeGuids.size()) {
                 _logger.info("Found Target Volumes still not ingested.Skipping Remote Replication Link establishment.");
             } else {
@@ -193,7 +194,7 @@ public class RemoteReplicationIngestor {
 
                 if (!targetUris.isEmpty()) {
                     // set targets from source
-                    srcVolume.setSrdfTargets(VolumeIngestionUtil.addSRDFTargetsToSet(targetUris));
+                    srcVolume.setSrdfTargets(VolumeIngestionUtil.convertUrisToStrings(targetUris));
 
                     dbClient.persistObject(targetVolumes);
                     // can remove unmanaged volume

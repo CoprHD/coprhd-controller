@@ -64,6 +64,7 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -87,6 +88,9 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceController;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.recoverpoint.requests.RecreateReplicationSetRequestParams;
 import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.audit.AuditLogManagerFactory;
@@ -339,6 +343,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private VPlexApiLockManager _vplexApiLockManager;
     private DbClient _dbClient;
     private BlockDeviceController _blockDeviceController;
+    private RPDeviceController _rpDeviceController;
     private BlockOrchestrationDeviceController _blockOrchestrationController;
     private NetworkDeviceController _networkDeviceController;
     private BlockStorageScheduler _blockScheduler;
@@ -374,7 +379,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void setReplicaDeviceController(ReplicaDeviceController replicaDeviceController) {
         _replicaDeviceController = replicaDeviceController;
     }
-    
+
     public void setConsistencyGroupManagers(Map<String, ConsistencyGroupManager> serviceInterfaces) {
         consistencyGroupManagers = serviceInterfaces;
     }
@@ -3182,7 +3187,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     for (String maskVolUri : exportMask.getVolumes().keySet()) {
                         for (String egVolUri : exportGroup.getVolumes().keySet()) {
                             BlockObject blockObject = Volume.fetchExportMaskBlockObject(_dbClient, URI.create(egVolUri));
-                            if (blockObject.getId().toString().equals(maskVolUri)) {
+                            if (blockObject.getId().toString().equals(maskVolUri) && !volumeURIs.contains(blockObject.getId())) {
                                 volumesFromThisMaskAreStillInExportGroup = true;
                                 break;
                             }
@@ -4591,6 +4596,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         this._blockDeviceController = _blockDeviceController;
     }
 
+    public void setRpDeviceController(RPDeviceController rpDeviceController) {
+        _rpDeviceController = rpDeviceController;
+    }
+
     public void setBlockOrchestrationDeviceController(BlockOrchestrationDeviceController blockOrchestrationController) {
         _blockOrchestrationController = blockOrchestrationController;
     }
@@ -5635,7 +5644,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     @Override
     public void importVolume(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
-            URI vplexSystemProject, URI vplexSystemTenant, URI newCosURI, String newLabel, String setTransferSpeed, 
+            URI vplexSystemProject, URI vplexSystemTenant, URI newCosURI, String newLabel, String setTransferSpeed,
             String opId) throws ControllerException {
         // Figure out the various arguments.
         List<VolumeDescriptor> vplexDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -5734,27 +5743,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
                         volumeMap, projectURI, tenantURI, waitFor);
             }
-            String transferSize = null; 
-            // Get the configured migration speed. This value would be set in VPLEX through 
-            // "rebuild set-transfer-speed" command. 
+            String transferSize = null;
+            // Get the configured migration speed. This value would be set in VPLEX through
+            // "rebuild set-transfer-speed" command.
             if (setTransferSpeed != null) {
-            	transferSize = mgirationSpeedToTransferSizeMap.get(setTransferSpeed);
-            	if (transferSize == null){
-            		_log.info("Transfer speed parameter {} is invalid", setTransferSpeed);
-            	}
+                transferSize = mgirationSpeedToTransferSizeMap.get(setTransferSpeed);
+                if (transferSize == null) {
+                    _log.info("Transfer speed parameter {} is invalid", setTransferSpeed);
+                }
             }
             if (transferSize == null) {
                 String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
                         vplexSystem.getSystemType(), null);
                 _log.info("Migration speed is {}", speed);
-                transferSize = mgirationSpeedToTransferSizeMap.get(speed);      	
+                transferSize = mgirationSpeedToTransferSizeMap.get(speed);
             }
             Workflow.Method vplexSetTransferSizeMethod = rebuildSetTransferSizeMethod(vplexVolume.getStorageController(), transferSize);
-            //Create a step for updating the transfer speed in VPLEX. 
+            // Create a step for updating the transfer speed in VPLEX.
             workflow.createStep(TRANSFER_SPEED_STEP, String.format("VPlex %s setting transfer size speed",
-                            vplexSystem.getId().toString()), EXPORT_STEP, vplexURI, vplexSystem.getSystemType(), this.getClass(), vplexSetTransferSizeMethod, 
-                            rollbackMethodNullMethod(), null);
-            
+                    vplexSystem.getId().toString()), EXPORT_STEP, vplexURI, vplexSystem.getSystemType(), this.getClass(),
+                    vplexSetTransferSizeMethod,
+                    rollbackMethodNullMethod(), null);
+
             // Now make a Step to create the VPlex Virtual volumes.
             // This will be done from this controller.
             String stepId = workflow.createStepId();
@@ -5782,7 +5792,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     VPLEX_STEP,
                     String.format("VPlex %s creating virtual volume",
                             vplexSystem.getId().toString()),
-                            TRANSFER_SPEED_STEP, vplexURI,
+                    TRANSFER_SPEED_STEP, vplexURI,
                     vplexSystem.getSystemType(), this.getClass(), vplexExecuteMethod,
                     vplexRollbackMethod, stepId);
 
@@ -5941,28 +5951,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vplexURI, vplexVolumeURI, existingVolumeURI, newVolumeURI,
                 vplexSystemProject, vplexSystemTenant, newCosURI, newLabel);
     }
-    
+
     private Workflow.Method rebuildSetTransferSizeMethod(URI vplexURI, String transferSize) {
-    	return new Workflow.Method(REBUILD_SET_TRANSFER_SIZE, vplexURI,  transferSize);
+        return new Workflow.Method(REBUILD_SET_TRANSFER_SIZE, vplexURI, transferSize);
     }
-    
-    public void rebuildSetTransferSize(URI vplexURI, String transferSize, String stepId) 
-    		throws WorkflowException {
-    	try {
+
+    public void rebuildSetTransferSize(URI vplexURI, String transferSize, String stepId)
+            throws WorkflowException {
+        try {
             WorkflowStepCompleter.stepExecuting(stepId);
             // Get the API client.
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            
+
             client.setTransferSize(transferSize);
             WorkflowStepCompleter.stepSucceded(stepId);
-    	} catch(Exception ex){
-    		ServiceError serviceError; 
-    		 _log.error("Exception while setting transfer size");
-    		 String opName = ResourceOperationTypeEnum.REBUILD_SET_TRANSFER_SPEED.getName();
-    		 serviceError = VPlexApiException.errors.rebuildSetTransferSpeed(opName, ex);
-    		 WorkflowStepCompleter.stepFailed(stepId, serviceError);
-    	}
+        } catch (Exception ex) {
+            ServiceError serviceError;
+            _log.error("Exception while setting transfer size");
+            String opName = ResourceOperationTypeEnum.REBUILD_SET_TRANSFER_SPEED.getName();
+            serviceError = VPlexApiException.errors.rebuildSetTransferSpeed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
     }
 
     /**
@@ -9681,13 +9691,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Varray matching the Varray of our ExportMask.
                 // This is done because the other ExportGroup might have volumes it isn't allowed to
                 // export to this Varray because autoCrossConnectExport == false for those volumes.
-                List<URI> otherGroupVolumes = StringSetUtil.stringSetToUriList(otherGroup.getVolumes().keySet());
-                Map<URI, Set<URI>> varrayToVolumesMap = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
-                        otherGroupVolumes, exportMask.getStorageDevice(), otherGroup);
-                for (URI varray : varrayToVolumesMap.keySet()) {
-                    if (ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
-                        _log.info("volume list from other group is " + varrayToVolumesMap.get(varray).toString());
-                        volumeURIList.removeAll(varrayToVolumesMap.get(varray));
+                if (null != otherGroup.getVolumes()) {
+                    List<URI> otherGroupVolumes = StringSetUtil.stringSetToUriList(otherGroup.getVolumes().keySet());
+                    Map<URI, Set<URI>> varrayToVolumesMap = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
+                            otherGroupVolumes, exportMask.getStorageDevice(), otherGroup);
+                    for (URI varray : varrayToVolumesMap.keySet()) {
+                        if (ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
+                            _log.info("volume list from other group is " + varrayToVolumesMap.get(varray).toString());
+                            volumeURIList.removeAll(varrayToVolumesMap.get(varray));
+                        }
                     }
                 }
                 // if (otherGroup.getVolumes() != null) {
@@ -10744,30 +10756,52 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         BlockSnapshotSession snapSession = getDataObject(BlockSnapshotSession.class, snapSessionURI, _dbClient);
         try {
             // Generate the Workflow.
-            Workflow workflow = _workflowService.getNewWorkflow(this,
-                    RESTORE_SNAP_SESSION_WF_NAME, false, opId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, RESTORE_SNAP_SESSION_WF_NAME, false, opId);
             _log.info("Created restore snapshot session workflow with operation id {}", opId);
-
-            // Get some info from the snapshot we need to do the native
-            // restore of the backend volume.
-            URI parentVolumeURI = snapSession.getParent().getURI();
-            Volume parentVolume = getDataObject(Volume.class, parentVolumeURI, _dbClient);
-            StorageSystem parentSystem = getDataObject(StorageSystem.class, parentVolume.getStorageController(), _dbClient);
 
             // Get the VPLEX system.
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
 
-            // Get the VPLEX volume to be restored.
-            Volume vplexVolume = Volume.fetchVplexVolume(_dbClient, parentVolume);
-            URI vplexVolumeURI = vplexVolume.getId();
+            // Get the VPLEX volume(s) to be restored.
+            List<Volume> vplexVolumes = new ArrayList<Volume>();
+            if (!snapSession.hasConsistencyGroup()) {
+                // If the snap session is not in a CG, the only VPLEX
+                // volume to restore is the VPLEX volume using the
+                // snap session parent.
+                URI parentVolumeURI = snapSession.getParent().getURI();
+                URIQueryResultList queryResults = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeByAssociatedVolumesConstraint(parentVolumeURI.toString()),
+                        queryResults);
+                vplexVolumes.add(_dbClient.queryObject(Volume.class, queryResults.iterator().next()));
+            } else {
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
+                List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
+                // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
+                // that are RP source volumes.
+                for (Volume vplexVolume : allVplexVolumesInCG) {
+                    String personality = vplexVolume.getPersonality();
+                    if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
+                        vplexVolumes.add(vplexVolume);
+                    }
+                }
+            }
+
+            // Determine the backend storage system containing the native snapshot session.
+            Volume firstVplexVolume = vplexVolumes.get(0);
+            Volume firstSnapSessionParentVolume = VPlexUtil.getVPLEXBackendVolume(firstVplexVolume, true, _dbClient);
+            StorageSystem snapSessionSystem = getDataObject(StorageSystem.class, firstSnapSessionParentVolume.getStorageController(),
+                    _dbClient);
 
             // The workflow depends on if the VPLEX volume is local or distributed.
+            boolean isLocal = firstVplexVolume.getAssociatedVolumes().size() == 1;
             String waitFor = null;
-            boolean isLocal = vplexVolume.getAssociatedVolumes().size() == 1;
             if (isLocal) {
-                // Create a step to invalidate the read cache for the VPLEX volume.
-                waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                        vplexVolumeURI, null, null);
+                for (Volume vplexVolume : vplexVolumes) {
+                    // Create a step to invalidate the read cache for the VPLEX volume.
+                    waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                            vplexVolume.getId(), null, null);
+                }
 
                 // Now create a workflow step to natively restore the backend
                 // volume. We execute this after the invalidate cache. We
@@ -10775,60 +10809,85 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // but what if the invalidate cache fails, but the restore succeeds,
                 // the cache now has invalid data and a cache read hit could return
                 // invalid data.
-                createWorkflowStepForRestoreNativeSnapshotSession(workflow, parentSystem,
+                createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
                         snapSessionURI, waitFor, null);
             } else {
-                // For distributed volumes we take snapshots of and restore the
-                // source backend volume. Before we can do the restore, we need
-                // to detach the HA mirror of the distributed volume. So,
-                // determine the HA backend volume and create a workflow step
-                // to detach it from the source.
-                Volume haVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, false, _dbClient);
-                URI haVolumeURI = haVolume.getId();
-                String detachStepId = workflow.createStepId();
-                Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
-                        vplexURI, vplexVolumeURI, haVolumeURI, vplexVolume.getConsistencyGroup(), detachStepId);
-                waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem, vplexVolume,
-                        haVolumeURI, detachStepId, null, restoreVolumeRollbackMethod);
+                // Check for RP, there are pre/post steps that need to be executed in this case.
+                boolean isRP = firstVplexVolume.checkForRp();
 
-                // We now create a step to invalidate the cache for the
-                // VPLEX volume. Note that if this step fails we need to
-                // rollback and reattach the HA mirror.
-                waitFor = createWorkflowStepForInvalidateCache(workflow, vplexSystem,
-                        vplexVolumeURI, waitFor, rollbackMethodNullMethod());
+                // Create the steps that need to be executed on each VPLEX volume.
+                for (Volume vplexVolume : vplexVolumes) {
+                    // For distributed volumes we take snaps of and restore the
+                    // source backend volume. Before we can do the restore, we need
+                    // to detach the HA mirror of the distributed volume. So,
+                    // determine the HA backend volume and create a workflow step
+                    // to detach it from the source.
+                    URI vplexVolumeURI = vplexVolume.getId();
+                    Volume haVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, false, _dbClient);
+                    URI haVolumeURI = haVolume.getId();
+                    String detachStepId = workflow.createStepId();
+                    Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
+                            vplexURI, vplexVolumeURI, haVolumeURI, vplexVolume.getConsistencyGroup(), detachStepId);
+                    waitFor = createWorkflowStepForDetachMirror(workflow, vplexSystem, vplexVolume,
+                            haVolumeURI, detachStepId, isRP ? RPDeviceController.STEP_PRE_VOLUME_RESTORE : null,
+                            restoreVolumeRollbackMethod);
 
-                // Create a workflow step to natively restore the backend volume.
-                // We could execute this in parallel with the cache invalidate
-                // for a little better efficiency, but what if the invalidate cache
-                // fails, but the restore succeeds, the cache now has invalid data
-                // and a cache read hit could return invalid data. If this step fails,
-                // then again, we need to be sure and rollback and reattach the HA
-                // mirror. There is nothing to rollback for the cache invalidate step.
-                // It just means there will be no read cache hits on the volume for
-                // a while until the cache is repopulated.
-                waitFor = createWorkflowStepForRestoreNativeSnapshotSession(workflow, parentSystem,
-                        snapSessionURI, waitFor, rollbackMethodNullMethod());
+                    // We now create a step to invalidate the cache for the
+                    // VPLEX volume. Note that if this step fails we need to
+                    // rollback and reattach the HA mirror.
+                    createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                            vplexVolumeURI, waitFor, rollbackMethodNullMethod());
 
-                // Now create a workflow step to reattach the mirror to initiate
-                // a rebuild of the HA mirror for the distributed volume. Note that
-                // these steps will not run until after the native restore, which
-                // only gets executed once, not for every VPLEX volume.
-                waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem, vplexVolume,
-                        haVolumeURI, detachStepId, waitFor, rollbackMethodNullMethod());
+                    // Now create a workflow step to reattach the mirror to initiate
+                    // a rebuild of the HA mirror for the distributed volume. Note that
+                    // these steps will not run until after the native restore, which
+                    // only gets executed once, not for every VPLEX volume.
+                    waitFor = createWorkflowStepForAttachMirror(workflow, vplexSystem, vplexVolume,
+                            haVolumeURI, detachStepId, RESTORE_SNAP_SESSION_STEP, rollbackMethodNullMethod());
 
-                // Create a step to wait for rebuild of the HA volume to
-                // complete. This should not do any rollback if the step
-                // fails because at this point the restore is really
-                // complete.
-                createWorkflowStepForWaitOnRebuild(workflow, vplexSystem, vplexVolumeURI, waitFor);
+                    // Create a step to wait for rebuild of the HA volume to
+                    // complete. This should not do any rollback if the step
+                    // fails because at this point the restore is really
+                    // complete.
+                    createWorkflowStepForWaitOnRebuild(workflow, vplexSystem, vplexVolumeURI, waitFor);
+                }
+
+                // Create the pre/post RP steps if necessary.
+                if (isRP) {
+                    ProtectionSystem rpSystem = getDataObject(ProtectionSystem.class,
+                            firstVplexVolume.getProtectionController(), _dbClient);
+
+                    // Create the pre restore step which will be the first step executed
+                    // in the workflow.
+                    createWorkflowStepForDeleteReplicationSet(workflow, rpSystem, vplexVolumes, null);
+
+                    // Create the post restore step, which will be the last step executed
+                    // in the workflow after the volume shave been rebuilt.
+                    createWorkflowStepForRecreateReplicationSet(workflow, rpSystem, vplexVolumes, WAIT_ON_REBUILD_STEP);
+                }
+
+                // Create a workflow step to native restore the backend volume
+                // from the passed snap session. This step is executed after the
+                // cache has been invalidated for each VPLEX volume. Note that
+                // if the snap session is associated with a CG, then block controller
+                // will restore all backend volumes in the CG. We could execute this
+                // in parallel with the invalidate for a little better efficiency,
+                // but what if the invalidate cache fails, but the restore succeeds,
+                // the cache now has invalid data and a cache read hit could return
+                // invalid data. If this step fails, then again, we need to be sure
+                // and rollback and reattach the HA mirror. There is nothing to
+                // rollback for the cache invalidate step. It just means there will
+                // be no read cache hits on the volume for a while until the cache
+                // is repopulated.
+                createWorkflowStepForRestoreNativeSnapshotSession(workflow, snapSessionSystem,
+                        snapSessionURI, INVALIDATE_CACHE_STEP, rollbackMethodNullMethod());
             }
 
             // Execute the workflow.
             _log.info("Executing workflow plan");
             TaskCompleter completer = new BlockSnapshotSessionRestoreWorkflowCompleter(snapSessionURI, Boolean.TRUE, opId);
             String successMsg = String.format(
-                    "Restore VPLEX volume from snapshot session %s of backend volume %s "
-                            + "completed successfully", snapSessionURI, parentVolumeURI);
+                    "Restore VPLEX volume(s) from snapshot session %s" + "completed successfully", snapSessionURI);
             workflow.executePlan(completer, successMsg);
             _log.info("Workflow plan executing");
         } catch (Exception e) {
@@ -10840,6 +10899,78 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     snapSessionURI.toString(), e);
             completer.error(_dbClient, serviceError);
         }
+    }
+
+    /**
+     * Create a step in the passed workflow that will temporarily delete the RP replication
+     * set prior to a snapshot session restore.
+     * 
+     * @param workflow A reference to a workflow.
+     * @param rpSystem A reference to the RP protection system.
+     * @param vplexVolumes A list of the VPLEX distributed volumes.
+     * @param waitFor The step to wait for completion.
+     * 
+     * @return RPDeviceController.STEP_PRE_VOLUME_RESTORE
+     */
+    private String createWorkflowStepForDeleteReplicationSet(Workflow workflow, ProtectionSystem rpSystem,
+            List<Volume> vplexVolumes, String waitFor) {
+        List<URI> vplexVolumeURIs = new ArrayList<>();
+        Map<String, RecreateReplicationSetRequestParams> params = getRecreateReplicationSetParams(rpSystem, vplexVolumes, vplexVolumeURIs);
+        Workflow.Method executeMethod = new Workflow.Method(RPDeviceController.METHOD_DELETE_RSET_STEP, rpSystem.getId(), vplexVolumeURIs);
+        Workflow.Method rollbackMethod = new Workflow.Method(RPDeviceController.METHOD_RECREATE_RSET_STEP, rpSystem.getId(),
+                vplexVolumeURIs, params);
+        workflow.createStep(RPDeviceController.STEP_PRE_VOLUME_RESTORE,
+                "Delete RP replication set step for snapshot session restore",
+                waitFor, rpSystem.getId(), rpSystem.getSystemType(), RPDeviceController.class,
+                executeMethod, rollbackMethod, null);
+
+        return RPDeviceController.STEP_PRE_VOLUME_RESTORE;
+    }
+
+    /**
+     * Create a step in the passed workflow that will recreate the RP replication set
+     * during a snapshot session restore after the remote mirrors have been reattached
+     * and the distributed VPLEX volumes are added back to their consistency group.
+     * 
+     * @param workflow A reference to a workflow.
+     * @param rpSystem A reference to the RP protection system.
+     * @param vplexVolumes A list of the VPLEX distributed volumes.
+     * @param waitFor The step to wait for completion.
+     * 
+     * @return RPDeviceController.STEP_POST_VOLUME_RESTORE
+     */
+    private String createWorkflowStepForRecreateReplicationSet(Workflow workflow, ProtectionSystem rpSystem,
+            List<Volume> vplexVolumes, String waitFor) {
+        List<URI> vplexVolumeURIs = new ArrayList<>();
+        Map<String, RecreateReplicationSetRequestParams> params = getRecreateReplicationSetParams(rpSystem, vplexVolumes, vplexVolumeURIs);
+        Workflow.Method executeMethod = new Workflow.Method(RPDeviceController.METHOD_RECREATE_RSET_STEP, rpSystem.getId(),
+                vplexVolumeURIs, params);
+        workflow.createStep(RPDeviceController.STEP_POST_VOLUME_RESTORE,
+                "Recreate RP replication set step for snapshot session restore",
+                waitFor, rpSystem.getId(), rpSystem.getSystemType(), RPDeviceController.class,
+                executeMethod, rollbackMethodNullMethod(), null);
+        return RPDeviceController.STEP_POST_VOLUME_RESTORE;
+    }
+
+    /**
+     * Gets the replication set parameters.
+     * 
+     * @param rpSystem A reference to the RP protection system.
+     * @param vplexVolumes A list of the VPLEX distributed volumes.
+     * @param vplexVolumeURIs An OUT parameters containing the URIs of the passed VPLEX volumes.
+     * 
+     * @return
+     */
+    private Map<String, RecreateReplicationSetRequestParams> getRecreateReplicationSetParams(ProtectionSystem rpSystem,
+            List<Volume> vplexVolumes, List<URI> vplexVolumeURIs) {
+        Map<String, RecreateReplicationSetRequestParams> params = new HashMap<String, RecreateReplicationSetRequestParams>();
+        for (Volume vplexVolume : vplexVolumes) {
+            URI vplexVolumeURI = vplexVolume.getId();
+            vplexVolumeURIs.add(vplexVolumeURI);
+            RecreateReplicationSetRequestParams volumeParam = _rpDeviceController.getReplicationSettings(rpSystem, vplexVolumeURI);
+            params.put(RPHelper.getRPWWn(vplexVolumeURI, _dbClient), volumeParam);
+        }
+        return params;
     }
 
     /**
@@ -10919,19 +11050,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Remove the volumes from the replication group
                     workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP,
                             String.format("Remove volumes from replication group %s", vol.getReplicationGroupInstance()),
-                            null,storageUri, storageSystem.getSystemType(), BlockDeviceController.class, 
+                            null, storageUri, storageSystem.getSystemType(), BlockDeviceController.class,
                             removeVolumeFromCGMethod(storageUri, cguri, removeVols),
                             addVolumeToCGMethod(storageUri, cguri, vol.getReplicationGroupInstance(), removeVols), null);
                 }
             }
-            if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
+            if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
                 _log.info("Creating steps for adding volumes to the volume group");
                 addVols = addVolList.getVolumes();
                 URI firstVol = addVols.get(0);
                 Volume firstVolume = getDataObject(Volume.class, firstVol, _dbClient);
                 URI cguri = firstVolume.getConsistencyGroup();
                 String replicationGroupName = addVolList.getReplicationGroupName();
-                
+
                 // Sort the backend volumes by their storage systems. all volumes in the list should belong to the same VPLEX CG
                 Map<URI, List<URI>> addSrcVolsMap = new HashMap<URI, List<URI>>();
                 Map<URI, List<URI>> addHAVolsMap = new HashMap<URI, List<URI>>();
@@ -10939,20 +11070,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     Volume addVplexVol = getDataObject(Volume.class, addVol, _dbClient);
                     Volume backendSrcVol = VPlexUtil.getVPLEXBackendVolume(addVplexVol, true, _dbClient, false);
                     addVolumeToMap(backendSrcVol, addSrcVolsMap);
-                    
+
                     Volume backendHAVol = VPlexUtil.getVPLEXBackendVolume(addVplexVol, false, _dbClient, false);
                     if (backendHAVol != null) {
                         addVolumeToMap(backendHAVol, addHAVolsMap);
                     }
                 }
-                
+
                 waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addSrcVolsMap, replicationGroupName, cguri, opId);
                 if (!addHAVolsMap.isEmpty()) {
                     // Append ha to the replicationGroupName for HA part replication group name
                     String rpName = replicationGroupName + "_ha";
-                    waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addHAVolsMap, rpName, cguri, opId); 
+                    waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addHAVolsMap, rpName, cguri, opId);
                 }
-                
+
             }
             completer = new VolumeGroupUpdateTaskCompleter(volumeGroup, addVols, removeVolumeList, opId);
             // Finish up and execute the plan.
@@ -10963,17 +11094,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         } catch (Exception e) {
             _log.error("Exception while updating the volume group", e);
             if (completer != null) {
-                completer.error(_dbClient, DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(volumeGroup.toString(), e.getMessage()));
+                completer.error(_dbClient,
+                        DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(volumeGroup.toString(), e.getMessage()));
             }
         }
     }
-    
+
     /**
      * Add the volume to the map
+     * 
      * @param volume
      * @param map the volume's storage system URI is the key in the map
      */
-    private void addVolumeToMap(Volume volume, Map<URI, List<URI>>map) {
+    private void addVolumeToMap(Volume volume, Map<URI, List<URI>> map) {
         URI storageUri = volume.getStorageController();
         List<URI> addVols = map.get(storageUri);
         if (addVols == null) {
@@ -10982,9 +11115,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         addVols.add(volume.getId());
         map.put(storageUri, addVols);
     }
-    
+
     /**
      * Add steps to add backend volumes to replication group.
+     * 
      * @param workflow
      * @param waitFor
      * @param addVolumes
@@ -10993,16 +11127,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param opId
      * @return the last step Id
      */
-    private String addStepsToAddVolumesToReplicationGroup(Workflow workflow, String waitFor, Map<URI, List<URI>>addVolumes, 
+    private String addStepsToAddVolumesToReplicationGroup(Workflow workflow, String waitFor, Map<URI, List<URI>> addVolumes,
             String replicationGroupName, URI cguri, String opId) {
         for (Map.Entry<URI, List<URI>> entry : addVolumes.entrySet()) {
             URI storageUri = entry.getKey();
             StorageSystem storage = getDataObject(StorageSystem.class, storageUri, _dbClient);
-            
+
             String groupName = ControllerUtils.generateReplicationGroupName(storage, cguri, replicationGroupName, _dbClient);
-            
+
             // check if cg is created, if not create it
-            BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cguri,_dbClient);
+            BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cguri, _dbClient);
             if (!cg.created(groupName, storageUri)) {
                 _log.info("Consistency group not created. Creating it");
                 waitFor = workflow.createStep(CREATE_REPLICATION_GROUP_STEP,
@@ -11036,11 +11170,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup) {
         return new Workflow.Method("deleteConsistencyGroup", storage, consistencyGroup, false);
     }
-    
+
     private Workflow.Method removeVolumeFromCGMethod(URI storageUri, URI cguri, List<URI> removeVols) {
         return new Workflow.Method(REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME, storageUri, cguri, removeVols);
     }
-    
+
     private Workflow.Method addVolumeToCGMethod(URI storageUri, URI cguri, String replicationGroupName, List<URI> addVols) {
         return new Workflow.Method(ADD_TO_CONSISTENCY_GROUP_METHOD_NAME, storageUri, cguri, replicationGroupName, addVols);
     }

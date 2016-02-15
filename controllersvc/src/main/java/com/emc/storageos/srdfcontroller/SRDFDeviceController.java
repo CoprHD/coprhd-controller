@@ -910,6 +910,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Map<URI, RemoteDirectorGroup> srdfGroupMap = new HashMap<URI, RemoteDirectorGroup>();
         Map<URI, List<URI>> srdfGroupToSourceVolumeMap = new HashMap<URI, List<URI>>();
         Map<URI, List<URI>> srdfGroupToTargetVolumeMap = new HashMap<URI, List<URI>>();
+        Map<URI, String> srdfGroupToTargetVolumeAccessState = new HashMap<URI, String>();
         Map<URI, String> srdfGroupToLastWaitFor = new HashMap<URI, String>();
         // invoke deletion of volume within CG
         for (Volume source : sourcesVolumeMap.values()) {
@@ -961,6 +962,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         srdfGroupToSourceVolumeMap.get(groupId).add(source.getId());
                         srdfGroupToTargetVolumeMap.get(groupId).add(targetURI);
                         srdfGroupToLastWaitFor.put(groupId, waitFor);
+                        srdfGroupToTargetVolumeAccessState.put(groupId, target.getAccessState());
                     }
 
                 } else {
@@ -998,6 +1000,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             // Add step to resume each Active SRDF group
             for (URI srdfGroupURI : srdfGroupMap.keySet()) {
                 RemoteDirectorGroup group = srdfGroupMap.get(srdfGroupURI);
+                if(srdfGroupToTargetVolumeAccessState.get(srdfGroupURI).equals(Volume.VolumeAccessState.NOT_READY.name())){
+                    log.info("Srdf group {} {} was already in a suspended state hence skipping resume on this group.", srdfGroupURI, group.getNativeGuid());
+                    continue;
+                }
                 List<URI> sourceVolumes = srdfGroupToSourceVolumeMap.get(srdfGroupURI);
                 List<URI> targetVolumes = srdfGroupToTargetVolumeMap.get(srdfGroupURI);
                 String lastWaitFor = srdfGroupToLastWaitFor.get(srdfGroupURI);

@@ -17,9 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.vipr.client.Tasks;
-import com.emc.vipr.client.exceptions.ViPRHttpException;
-
 import models.datatable.BlockVolumesDataTable;
 
 import org.apache.commons.lang.StringUtils;
@@ -38,17 +35,24 @@ import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.ResourceType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -64,6 +68,7 @@ public class BlockVolumes extends ResourceController {
     public static final String COPY_SRDF = "srdf";
 
     private static final String UNKNOWN = "resources.volumes.unknown";
+    private static final String NOTARGET = "resources.snapshot.session.targets.none";
 
     private static BlockVolumesDataTable blockVolumesDataTable = new BlockVolumesDataTable();
 
@@ -84,20 +89,19 @@ public class BlockVolumes extends ResourceController {
         List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }
-    
+
     public static void volumeDetails(String volumeId) {
-    	ViPRCoreClient client = BourneUtil.getViprClient();
-    	String consistencygroup = "";
-    	VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
+        ViPRCoreClient client = BourneUtil.getViprClient();
+        String consistencygroup = "";
+        VolumeRestRep volume = client.blockVolumes().get(uri(volumeId));
         if (volume == null) {
             error(MessagesUtils.get(UNKNOWN, volumeId));
         }
-        if(volume.getConsistencyGroup() != null){
-        	consistencygroup = client.blockConsistencyGroups().get(volume.getConsistencyGroup().getId()).getName();
+        if (volume.getConsistencyGroup() != null) {
+            consistencygroup = client.blockConsistencyGroups().get(volume.getConsistencyGroup().getId()).getName();
         }
         render(consistencygroup);
     }
-
 
     public static void volume(String volumeId, String continuousCopyId) {
 
@@ -144,7 +148,6 @@ public class BlockVolumes extends ResourceController {
         if (volume.getAccessState() == null || volume.getAccessState().isEmpty()) {
             renderArgs.put("isAccessStateEmpty", "true");
         }
-       
 
         Tasks<VolumeRestRep> tasksResponse = client.blockVolumes().getTasks(volume.getId());
         List<Task<VolumeRestRep>> tasks = tasksResponse.getTasks();
@@ -206,6 +209,54 @@ public class BlockVolumes extends ResourceController {
         List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(refs);
 
         render(snapshots);
+    }
+    
+    public static void volumeSnapshotSessions(String volumeId) {
+
+        ViPRCoreClient client = BourneUtil.getViprClient();
+
+        List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
+        
+        List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
+
+        render(snapshotSessions, volumeId);
+    }
+
+    public static void unlinkTargetSnapshot(String sessionId, String volumeId, Boolean deleteOption) {
+
+        ViPRCoreClient client = BourneUtil.getViprClient();
+
+        SnapshotSessionUnlinkTargetsParam sessionTargets = new SnapshotSessionUnlinkTargetsParam();
+
+        SnapshotSessionUnlinkTargetParam targetList = new SnapshotSessionUnlinkTargetParam();
+
+        List<SnapshotSessionUnlinkTargetParam> targetLists = Lists.newArrayList();
+
+        List<RelatedResourceRep> targets = client.blockSnapshotSessions().get(uri(sessionId)).getLinkedTarget();
+
+        List<BlockSnapshotRestRep> snapshots = client.blockSnapshots().getByRefs(targets);
+
+        for (BlockSnapshotRestRep snap : snapshots) {
+
+            targetList.setId(snap.getId());
+
+            targetList.setDeleteTarget(deleteOption);
+
+            targetLists.add(targetList);
+        }
+
+        if (!targetLists.isEmpty()) {
+
+            sessionTargets.setLinkedTargets(targetLists);
+
+            Task<BlockSnapshotSessionRestRep> tasks = client.blockSnapshotSessions().unlinkTargets(uri(sessionId), sessionTargets);
+
+            flash.put("info", MessagesUtils.get("resources.snapshot.session.unlink.success", sessionId));
+        }
+        else {
+            flash.error(MessagesUtils.get(NOTARGET, sessionId));
+        }
+        volume(volumeId, null);
     }
 
     public static void volumeContinuousCopies(String volumeId) {
@@ -292,7 +343,7 @@ public class BlockVolumes extends ResourceController {
         if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(continuousCopyId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             CopiesParam input = createCopiesParam(continuousCopyId);
-            Tasks<VolumeRestRep> tasks = client.blockVolumes().deactivateContinuousCopies(uri(volumeId), input);
+            Tasks<VolumeRestRep> tasks = client.blockVolumes().deactivateContinuousCopies(uri(volumeId), input, VolumeDeleteTypeEnum.FULL);
             flash.put("info", MessagesUtils.get("resources.continuouscopy.deactivate"));
         }
         volume(volumeId, continuousCopyId);

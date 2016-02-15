@@ -28,7 +28,7 @@ import com.emc.storageos.security.exceptions.SecurityException;
  * in maintaining Client state, methods for constructing requests, and
  * adding HMAC signatures and tokens.
  */
-public abstract class BaseServiceClient {
+public abstract class BaseServiceClient implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(BaseServiceClient.class);
     private volatile boolean initialized = false;
     private ClientRequestHelper clientRequestHelper;
@@ -235,5 +235,10 @@ public abstract class BaseServiceClient {
                 }
             }
         }
+    }
+    
+    @Override
+    public void close() {
+        this.shutdown();
     }
 }

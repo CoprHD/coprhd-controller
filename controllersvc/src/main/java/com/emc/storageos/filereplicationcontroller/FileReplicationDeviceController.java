@@ -41,6 +41,7 @@ import com.emc.storageos.volumecontroller.impl.file.MirrorFileCreateTaskComplete
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailbackTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileFailoverTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFilePauseTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.file.MirrorFileRefreshTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileResyncTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.MirrorFileStartTaskCompleter;
@@ -177,9 +178,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             final List<FileDescriptor> fileDescriptors) {
         log.info("START create element replica steps");
 
-        List<FileDescriptor> sourceDescriptors =
-                FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
-                        FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE);
+        List<FileDescriptor> sourceDescriptors = FileDescriptor.filterByType(fileDescriptors, FileDescriptor.Type.FILE_MIRROR_SOURCE,
+                FileDescriptor.Type.FILE_EXISTING_MIRROR_SOURCE);
 
         Map<URI, FileShare> uriFileShareMap = queryFileShares(fileDescriptors);
         // call to create mirror session
@@ -294,7 +294,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             completer = new FileMirrorRollbackCompleter(sourceURIs, opId);
-            getRemoteMirrorDevice(system).doRollbackMirrorLink(system, sourceURIs, targetURIs, completer);
+            getRemoteMirrorDevice(system).doRollbackMirrorLink(system, sourceURIs, targetURIs, completer, opId);
         } catch (Exception e) {
             log.error("Ignoring exception while rolling back Mirror sources: {}", sourceURIs, e);
             // Succeed here, to allow other rollbacks to run
@@ -483,6 +483,15 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
                     stopTaskCompleter.setNotifyWorkflow(false);
                     getRemoteMirrorDevice(system).doStopMirrorLink(system, targetFileShare, stopTaskCompleter);
                 }
+            } else if (opType.equalsIgnoreCase("refresh")) {
+                for (String target : targetfileUris) {
+
+                    FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    completer = new MirrorFileRefreshTaskCompleter(FileShare.class, fileShare.getId(), opId);
+                    completer.setNotifyWorkflow(false);
+                    targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                    getRemoteMirrorDevice(system).doRefreshMirrorLink(system, fileShare, targetFileShare, completer);
+                }
             } else {
                 log.error("Invalid operation {}", opType);
             }
@@ -573,7 +582,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         }
     }
 
-    String isilonSyncIQFailback(Workflow workflow, StorageSystem primarysystem, FileShare sourceFileShare, FileShare targetFileShare,
+    private String isilonSyncIQFailback(Workflow workflow, StorageSystem primarysystem, FileShare sourceFileShare,
+            FileShare targetFileShare,
             String taskId) {
 
         String waitFor = null;
@@ -740,7 +750,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
      * 
      * @return A workflow method
      */
-    Workflow.Method rollbackMethodNullMethod() {
+    public Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
     }
 

@@ -358,7 +358,7 @@ public class SchemaUtil {
                 setCurrentVersion(_service.getVersion());
             }
             Site currentSite = drUtil.getLocalSite();
-            if (currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
+            if (SiteState.STANDBY_SYNCING.equals(currentSite.getState())) {
                 // Ensure schema agreement before checking the strategy options,
                 // since the strategy options from the local site might be older than the active site
                 // and shouldn't be relied on any more.
@@ -389,18 +389,28 @@ public class SchemaUtil {
     public void rebuildDataOnStandby() {
         Site currentSite = drUtil.getLocalSite();
 
-        if (currentSite.getState().equals(SiteState.STANDBY_ADDING) ||
-            currentSite.getState().equals(SiteState.STANDBY_RESUMING)) {
-            currentSite.setState(SiteState.STANDBY_SYNCING);
-            _coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-        }
-
         if (currentSite.getState().equals(SiteState.STANDBY_SYNCING)) {
             dbRebuildRunnable.run();
         }
     }
 
-
+    public void checkSiteAddingOnStandby() {
+        Site currentSite = drUtil.getLocalSite();
+        int count = 0;
+        while (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+            try {
+                _log.info("Current site state is {}. Wait for its state changed by active site", currentSite.getState());
+                Thread.sleep(DBINIT_RETRY_INTERVAL * 1000);
+            } catch (InterruptedException ex) {
+                _log.warn("Thread is interrupted during wait for retry", ex);
+            }
+            
+            if (++count > DBINIT_RETRY_MAX) {
+                throw new IllegalStateException("Unable to wait for readiness for standby initialization");
+            }
+            currentSite = drUtil.getLocalSite();
+        }
+    }
     
     /**
      * Remove paused sites from db/geodb strategy options on the active site.
@@ -450,7 +460,7 @@ public class SchemaUtil {
         
         // If we upgrade from pre-yoda versions, the strategy option does not contains active site.
         // we do it once during first add-standby operation on standby site
-        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        Site activeSite = drUtil.getActiveSite();
         String activeSiteDcId = drUtil.getCassandraDcId(activeSite);
         if (!strategyOptions.containsKey(activeSiteDcId)) {
             _log.info("Add {} to strategy options", activeSiteDcId);
@@ -495,8 +505,14 @@ public class SchemaUtil {
         }
         
         _log.debug("vdcList = {}", _vdcList);
+        // on newly added vdc - vdc short id is changed
         if (_vdcList.size() == 1 && !_vdcList.contains(_vdcShortId)) {
-            // the current vdc is removed
+            strategyOptions.clear();
+        }
+        
+        // on removed vdc, its strategyOption need be reset
+        boolean isDrConfig = drUtil.listSites().size() > 1;
+        if (_vdcList.size() == 1 && strategyOptions.size() > 1 && !isDrConfig) {
             strategyOptions.clear();
         }
         
@@ -512,7 +528,6 @@ public class SchemaUtil {
         if (currentSite != null) {
             dcName = drUtil.getCassandraDcId(currentSite); 
         }
-        
         
         if (strategyOptions.containsKey(dcName)) {
             return false;
@@ -783,84 +798,6 @@ public class SchemaUtil {
     }
 
     /**
-     * Check if node ip or vip is changed. VirtualDataCenter object should be updated
-     * to reflect this change.
-     */
-    private void checkIPChanged() {
-        Site site = drUtil.getLocalSite();
-        Map<String, String> ipv4Addrs = site.getHostIPv4AddressMap();
-        Map<String, String> ipv6Addrs = site.getHostIPv6AddressMap();
-
-        CoordinatorClientInetAddressMap nodeMap = _coordinator.getInetAddessLookupMap();
-        Map<String, DualInetAddress> controlNodes = nodeMap.getControllerNodeIPLookupMap();
-
-        String nodeId;
-        int nodeIndex = 0;
-        boolean changed = false;
-
-        // check node ip
-        for (Map.Entry<String, DualInetAddress> cnode : controlNodes.entrySet()) {
-            nodeIndex++;
-            nodeId = VDC_NODE_PREFIX + nodeIndex;
-            DualInetAddress addr = cnode.getValue();
-
-            String inet4Addr = ipv4Addrs.get(nodeId);
-            if (addr.hasInet4()) {
-                String newInet4Addr = addr.getInet4();
-                if (!newInet4Addr.equals(inet4Addr)) {
-                    changed = true;
-                    ipv4Addrs.put(nodeId, newInet4Addr);
-                    _log.info(String.format("Node %s inet4 address changed from %s to %s", nodeId, inet4Addr, newInet4Addr));
-                }
-            } else if (inet4Addr != null) {
-                changed = true;
-                ipv4Addrs.remove(nodeId);
-                _log.info(String.format("Node %s previous inet4 address %s removed", nodeId, inet4Addr));
-            }
-
-            String inet6Addr = ipv6Addrs.get(nodeId);
-            if (addr.hasInet6()) {
-                String newInet6Addr = addr.getInet6();
-                if (!newInet6Addr.equals(inet6Addr)) {
-                    changed = true;
-                    ipv6Addrs.put(nodeId, newInet6Addr);
-                    _log.info(String.format("Node %s inet6 address changed from %s to %s", nodeId, inet6Addr, newInet6Addr));
-                }
-            } else if (inet6Addr != null) {
-                changed = true;
-                ipv6Addrs.remove(nodeId);
-                _log.info(String.format("Node %s previous inet6 address %s removed", nodeId, inet6Addr));
-            }
-        }
-
-        // check node count
-        if (_vdcHosts != null && _vdcHosts.size() != site.getNodeCount()) {
-            if (_vdcHosts.size() < site.getNodeCount()) {
-                for (nodeIndex = _vdcHosts.size() + 1; nodeIndex <= site.getNodeCount(); nodeIndex++) {
-                    nodeId = VDC_NODE_PREFIX + nodeIndex;
-                    ipv4Addrs.remove(nodeId);
-                    ipv6Addrs.remove(nodeId);
-                }
-            }
-            changed = true;
-            site.setNodeCount(_vdcHosts.size());
-            _log.info("Vdc host count changed from {} to {}", site.getNodeCount(), _vdcHosts.size());
-        }
-
-        // Check VIP
-        if (_vdcEndpoint != null && !_vdcEndpoint.equals(site.getVip())) {
-            changed = true;
-            site.setVip(_vdcEndpoint);
-            _log.info("Vdc vip changed to {}", _vdcEndpoint);
-        }
-
-        if (changed) {
-            _coordinator.persistServiceConfiguration(site.toConfiguration());
-            _log.info("vdc ip change detected, updated vdc resource ok");
-        }
-    }
-
-    /**
      * Insert default root tenant
      */
     private void insertDefaultRootTenant(DbClient dbClient) {
@@ -903,7 +840,6 @@ public class SchemaUtil {
         }
         VirtualDataCenter localVdc = queryLocalVdc(dbClient);
         if (localVdc != null) {
-            checkIPChanged();
             return;
         }
 
@@ -1138,7 +1074,10 @@ public class SchemaUtil {
     }
 
     public void insertVdcVersion(final DbClient dbClient) {
-
+        insertOrUpdateVdcVersion(dbClient, false);
+    }
+    
+    public void insertOrUpdateVdcVersion(final DbClient dbClient, boolean update) {
         String dbFullVersion = this._service.getVersion();
         String[] parts = StringUtils.split(dbFullVersion, DbConfigConstants.VERSION_PART_SEPERATOR);
         String version = parts[0] + "." + parts[1];
@@ -1146,13 +1085,6 @@ public class SchemaUtil {
 
         List<URI> vdcVersionIds = dbClient.queryByType(VdcVersion.class, true);
         List<VdcVersion> vdcVersions = dbClient.queryObject(VdcVersion.class, vdcVersionIds);
-        _log.info("insert Vdc db version vdcId={}, dbVersion={}", vdcId, version);
-
-        if (isVdcVersionExist(vdcVersions, vdcId, version)) {
-            _log.info("Vdc db version exists already, skip insert");
-            return;
-        }
-
         VdcVersion vdcVersion = getVdcVersion(vdcVersions, vdcId);
 
         if (vdcVersion == null) {
@@ -1162,15 +1094,17 @@ public class SchemaUtil {
             vdcVersion.setVdcId(vdcId);
             vdcVersion.setVersion(version);
             dbClient.createObject(vdcVersion);
+        } else {
+            _log.info("Skip inserting because Vdc version exists for vdc={}, dbVersion={}", vdcId, version);
         }
 
-        if (!vdcVersion.getVersion().equals(version)) {
+        if (update && !vdcVersion.getVersion().equals(version)) {
             _log.info("update Vdc db version vdc={} to dbVersion={}", vdcId, version);
             vdcVersion.setVersion(version);
             dbClient.persistObject(vdcVersion);
         }
     }
-
+    
     private static VdcVersion getVdcVersion(List<VdcVersion> vdcVersions, URI vdcId) {
         if (vdcVersions == null || !vdcVersions.iterator().hasNext()) {
             return null;
@@ -1184,19 +1118,6 @@ public class SchemaUtil {
         return null;
     }
 
-    private static boolean isVdcVersionExist(final List<VdcVersion> vdcVersions, final URI vdcId, final String version) {
-        if (vdcVersions == null || !vdcVersions.iterator().hasNext()) {
-            return false;
-        }
-        String origVersion = null;
-        for (VdcVersion vdcVersion : vdcVersions) {
-            if (vdcVersion.getVdcId().equals(vdcId)) {
-                origVersion = vdcVersion.getVersion();
-            }
-        }
-        return origVersion != null && version.equals(origVersion);
-    }
-    
     public boolean dropUnusedCfsIfExists() {
         AstyanaxContext<Cluster> context = clientContext.getClusterContext();
         try {

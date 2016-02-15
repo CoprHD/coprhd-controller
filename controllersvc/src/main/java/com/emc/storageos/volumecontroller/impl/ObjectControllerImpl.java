@@ -156,12 +156,8 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-
     public void syncBucketACL(URI storage, URI bucketId, String opId) throws InternalException {
-        _log.info("ObjectControllerImpl:syncBucketACL start");
         execOb("syncBucketACL", storage, bucketId, opId);
-        _log.debug("ObjectControllerImpl:syncBucketACL end");
-        
     }
     
     

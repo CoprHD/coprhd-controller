@@ -594,6 +594,14 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         return content;
     }
 
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.ObjectStorageDevice#doSyncBucketACL(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.Bucket, com.emc.storageos.volumecontroller.ObjectDeviceInputOutput, java.lang.String)
+     * 
+     * Gets the ACl for the bucket from ECS and persist in coprhd DB.
+     */
     @Override
     public BiosCommandResult doSyncBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId)
             throws ControllerException {
@@ -670,12 +678,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         completeTask(bucket.getId(), taskId, "Bucket ACL Sync Successful.");
         return BiosCommandResult.createSuccessfulResult();
     }
-    private String formatPermissions(String[] permArray){
+
+    private String formatPermissions(String[] permArray) {
         StringBuffer strBuff = new StringBuffer("");
-        for(String perm:permArray){
+        for (String perm : permArray) {
             strBuff.append(perm).append("|");
         }
-        return strBuff.substring(0, strBuff.length()-1);
+        return strBuff.substring(0, strBuff.length() - 1);
     }
 
 }

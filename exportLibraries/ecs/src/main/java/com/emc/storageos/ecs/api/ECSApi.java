@@ -523,9 +523,9 @@ public class ECSApi {
             getAuthToken();
             clientResp = get(path);
             if (null == clientResp) {
-                throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, "no response from ECS");
+                throw ECSException.exceptions.getBucketACLFailed(bucketName, "no response from ECS");
             } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.bucketACLUpdateFailed(bucketName, getResponseDetails(clientResp));
+                throw ECSException.exceptions.getBucketACLFailed(bucketName, getResponseDetails(clientResp));
             }
 
             responseString = clientResp.getEntity(String.class);
@@ -533,7 +533,7 @@ public class ECSApi {
            
             return responseString;
         } catch (Exception e) {
-            throw ECSException.exceptions.bucketACLSyncFailed(bucketName, e.getMessage());
+            throw ECSException.exceptions.getBucketACLFailed(bucketName, e.getMessage());
         } finally {
             if (clientResp != null) {
                 clientResp.close();

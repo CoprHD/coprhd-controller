@@ -679,13 +679,22 @@ public class BucketService extends TaskResourceService {
             if ((System.currentTimeMillis() - startTime) > 3000) {
                 breakLoop = true;
             }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+                // When we catch the InterruptException and swallow it, we essentially prevent any higher level methods/thread groups from
+                // noticing the interrupt. Which may cause problems.
+                // By calling Thread.currentThread().interrupt(), we set the interrupt flag of the thread, so higher level interrupt
+                // handlers will notice it and can handle it appropriately.
+                Thread.currentThread().interrupt();
+            }
         }
         if (!failedOp) {
             bucket.setVersion(_VERSION);
             _dbClient.updateObject(bucket);
         } else {
             throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(),
-                    "Could not get ACL from ECS. Please try again later or proceed with ACL add");
+                    "Could not get ACL from ECS. Please try again later.");
         }
 
     }

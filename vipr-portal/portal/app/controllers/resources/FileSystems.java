@@ -1065,10 +1065,7 @@ public class FileSystems extends ResourceController {
         }
 
         public void validate(String formName) {
-            if (permissions == null || permissions.isEmpty()) {
-                Validation.addError(formName + ".permissions",
-                        "resources.filesystem.share.acl.invalid.permissions");
-            }
+            Validation.required(formName + ".permissions", permissions);
         }
 
         public static String createId(String name, String type,

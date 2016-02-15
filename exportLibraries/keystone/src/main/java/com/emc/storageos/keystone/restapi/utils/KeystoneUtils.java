@@ -18,6 +18,7 @@
 package com.emc.storageos.keystone.restapi.utils;
 
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
+import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
 import com.emc.storageos.keystone.restapi.errorhandling.KeystoneApiException;
 import com.emc.storageos.keystone.restapi.model.response.*;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
@@ -38,13 +39,19 @@ public class KeystoneUtils {
     public static final String OPENSTACK_TENANT_ID = "tenant_id";
     public static String OPENSTACK_DEFAULT_REGION = "RegionOne";
 
+    private KeystoneRestClientFactory _keystoneApiFactory;
+
+    public void setKeystoneFactory(KeystoneRestClientFactory factory) {
+        this._keystoneApiFactory = factory;
+    }
+
     /**
      * Delete endpoint for the service with given ID.
      *
      * @param keystoneApi KeystoneApiClient.
      * @param serviceId OpenStack service ID.
      */
-    public static void deleteKeystoneEndpoint(KeystoneApiClient keystoneApi, String serviceId){
+    public void deleteKeystoneEndpoint(KeystoneApiClient keystoneApi, String serviceId){
         _log.debug("START - deleteKeystoneEndpoint");
         // Get Keystone endpoints from Keystone API.
         EndpointResponse endpoints = keystoneApi.getKeystoneEndpoints();
@@ -66,7 +73,7 @@ public class KeystoneUtils {
      * @param serviceId Service ID.
      * @return OpenStack endpoint for the given service ID.
      */
-    public static EndpointV2 retrieveEndpoint(EndpointResponse response, String serviceId){
+    public EndpointV2 retrieveEndpoint(EndpointResponse response, String serviceId){
         _log.debug("START - retrieveEndpoint");
 
         if (serviceId == null) {
@@ -93,7 +100,7 @@ public class KeystoneUtils {
      * @param tenantName Name of a tenant to look for.
      * @return Tenant with given name.
      */
-    public static TenantV2 retrieveTenant(TenantResponse response, String tenantName){
+    public TenantV2 retrieveTenant(TenantResponse response, String tenantName){
         _log.debug("START - retrieveTenant");
 
         if (tenantName == null) {
@@ -119,7 +126,7 @@ public class KeystoneUtils {
      * @param serviceName Name of a service to retrieve.
      * @return ID of service with given name.
      */
-    public static String retrieveServiceId(KeystoneApiClient keystoneApi, String serviceName){
+    public String retrieveServiceId(KeystoneApiClient keystoneApi, String serviceName){
         _log.debug("START - retrieveServiceId");
 
         if (serviceName == null) {
@@ -147,12 +154,31 @@ public class KeystoneUtils {
      * @param serverUrls Set of strings representing server urls.
      * @return First URI from server urls param.
      */
-    public static URI retrieveUriFromServerUrls(Set<String> serverUrls){
+    public URI retrieveUriFromServerUrls(Set<String> serverUrls){
         URI authUri = null;
         for (String uri : serverUrls) {
             authUri = URI.create(uri);
             break; // There will be single URL only
         }
         return authUri;
+    }
+
+    /**
+     * Get Keystone API client.
+     *
+     * @param authUri URI pointing to Keystone server.
+     * @param username OpenStack username.
+     * @param usernamePassword OpenStack password.
+     * @param tenantName OpenStack tenantname.
+     * @return keystoneApi KeystoneApiClient.
+     */
+    public KeystoneApiClient getKeystoneApi(URI authUri, String username, String usernamePassword, String tenantName){
+
+        // Get Keystone API Client.
+        KeystoneApiClient keystoneApi = (KeystoneApiClient) _keystoneApiFactory.getRESTClient(
+                authUri, username, usernamePassword);
+        keystoneApi.setTenantName(tenantName);
+
+        return keystoneApi;
     }
 }

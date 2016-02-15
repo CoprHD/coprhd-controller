@@ -124,8 +124,8 @@ public class AuthnConfigurationService extends TaggedResource {
         this._tenantsService = tenantsService;
     }
 
-    public void setKeystoneUtils(KeystoneUtils _keystoneUtils) {
-        this._keystoneUtils = _keystoneUtils;
+    public void setKeystoneUtils(KeystoneUtils keystoneUtils) {
+        this._keystoneUtils = keystoneUtils;
     }
 
     /**

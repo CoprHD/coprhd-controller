@@ -547,7 +547,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         log.info("start doFailBackMirrorSession operation");
         TaskCompleter taskCompleter = null;
         try {
-            taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, sourceFileShare.getId(), taskId);
+
             // Generate the Workflow.
             Workflow workflow = workflowService.getNewWorkflow(this,
                     FAILBACK_MIRROR_FILESHARE_WF_NAME, false, taskId);
@@ -556,8 +556,12 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             for (String target : targetfileUris) {
                 // target share
                 FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
+                taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, sourceFileShare.getId(), taskId);
+                List<URI> combined = new ArrayList<URI>();
                 // call device specific action
                 if (primarysystem.getSystemType().equalsIgnoreCase("isilon")) {
+                    combined.add(sourceFileShare.getId());
+                    combined.add(targetFileShare.getId());
 
                     isilonSyncIQFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else {

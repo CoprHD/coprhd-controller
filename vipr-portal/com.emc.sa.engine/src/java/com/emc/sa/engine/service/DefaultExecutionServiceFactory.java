@@ -4,6 +4,7 @@
  */
 package com.emc.sa.engine.service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,11 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 
+import com.emc.sa.catalog.ExtentionClassLoader;
+import com.emc.sa.descriptor.ServiceDefinitionLoader;
+import com.emc.sa.descriptor.TestExternalInterface;
+import com.emc.sa.engine.ExecutionTask;
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.google.common.collect.Maps;
@@ -52,15 +58,40 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
 
     @Override
     public ExecutionService createService(Order order, CatalogService catalogService) throws ServiceNotFoundException {
-        String serviceName = catalogService.getBaseService();
-        Class<? extends ExecutionService> serviceClass = services.get(serviceName);
+    	Class<? extends ExecutionService> serviceClass=null;
+    	String serviceName = catalogService.getBaseService();
+    	boolean isExtended = false;
+        
+    	if(serviceName.endsWith("@Extension")){
+    		serviceName=serviceName.substring(0, serviceName.length()-"@Extension".length());
+    		//serviceClass = services.get(serviceName);com.emc.sa.service.vipr.plugins.tasks.CustomSample.class
+    		//serviceClass = (Class<? extends ExecutionService>) ExtentionClassLoader.getProxyObject("com.emc.sa.service.vipr.plugins.tasks."+serviceName);
+    		serviceClass = services.get("GenericPlugin");
+    		isExtended=true;
+    		return newInstance(serviceClass, serviceName,isExtended);
+
+    	}
+
+    	serviceClass = services.get(serviceName);
+    	        
+        
         if (serviceClass == null) {
             throw new ServiceNotFoundException(String.format("Service '%s' not found", serviceName));
         }
         return newInstance(serviceClass, serviceName);
     }
 
-    protected ExecutionService newInstance(Class<? extends ExecutionService> serviceClass, String serviceName) {
+    private ExecutionService newInstance(Class<? extends ExecutionService> serviceClass, String serviceName, boolean isExtended) {
+    	ExecutionService executionService=newInstance(serviceClass, "GenericPlugin");
+    	if (executionService instanceof ExternalTaskExecutor){
+    		ExternalTaskApdapterInterface task=	 ExtentionClassLoader.getProxyObject("com.emc.sa.service.vipr.plugins.tasks."+serviceName);
+			((ExternalTaskExecutor) executionService).setGenericExtensionTask(task);
+    	}
+    	
+    	return executionService;
+	}
+
+	protected ExecutionService newInstance(Class<? extends ExecutionService> serviceClass, String serviceName) {
         try {
             ExecutionService newService = serviceClass.newInstance();
             AutowireCapableBeanFactory factory = applicationContext.getAutowireCapableBeanFactory();
@@ -73,4 +104,19 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
             throw new UnhandledException(e);
         }
     }
-}
+
+    
+    public static void main(String[] args) throws ServiceNotFoundException {
+    	DefaultExecutionServiceFactory def = new DefaultExecutionServiceFactory();
+    	
+
+    	Order order = new Order();
+    	
+    	CatalogService catalogService = new CatalogService();
+    	catalogService.setBaseService("CustomSample@Extension");
+
+    	def.createService(order, catalogService);
+    	
+    	
+	}
+ }

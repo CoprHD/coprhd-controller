@@ -72,7 +72,7 @@ public interface ObjectStorageDevice {
     
 
     /**
-     * SSync bucket ACL with the Object storage
+     * Sync bucket ACL with the Object storage
      * @param storageObj
      * @param bucket
      * @param objectArgs

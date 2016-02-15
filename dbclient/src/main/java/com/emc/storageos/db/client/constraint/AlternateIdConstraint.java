@@ -711,7 +711,7 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
         
-        public static AlternateIdConstraint getFCZoneReferenceByURI(String pwwnKey) {
+        public static AlternateIdConstraint getFCZoneReferenceByWWNKey(String pwwnKey) {
             DataObjectType doType = TypeMap.getDoType(FCZoneReference.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("pwwnKey"), pwwnKey);       	
         }

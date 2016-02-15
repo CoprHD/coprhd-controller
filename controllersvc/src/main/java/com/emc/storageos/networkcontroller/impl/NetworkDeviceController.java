@@ -414,14 +414,14 @@ public class NetworkDeviceController implements NetworkController {
                                 //Retrieve other zone references that have the same Port WWN. These zone references should be made
                                 //inactive as well since the initiator is no longer available. 
                                 URIQueryResultList queryResults = new URIQueryResultList();
-                                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFCZoneReferenceByURI(refKey), queryResults);
+                                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFCZoneReferenceByWWNKey(refKey), queryResults);
                                 Iterator<URI> queryResultsIter = queryResults.iterator();
                                 while (queryResultsIter.hasNext()) {
-                                	FCZoneReference ref1 = _dbClient.queryObject(FCZoneReference.class, queryResultsIter.next());
-                                    _dbClient.markForDeletion(ref1);
+                                	FCZoneReference refForWWNKey = _dbClient.queryObject(FCZoneReference.class, queryResultsIter.next());
+                                    _dbClient.markForDeletion(refForWWNKey);
                                     _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
-                                            ref1.getPwwnKey(), ref1.getVolumeUri(), ref1.getId().toString()));
-                                    recordZoneEvent(ref1, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
+                                            refForWWNKey.getPwwnKey(), refForWWNKey.getVolumeUri(), refForWWNKey.getId().toString()));
+                                    recordZoneEvent(refForWWNKey, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
                                             OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
                                 }
   

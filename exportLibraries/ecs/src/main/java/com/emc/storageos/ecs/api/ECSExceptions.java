@@ -63,7 +63,6 @@ public interface ECSExceptions {
     public ECSException getNamespaceDetailsFailedAry(final String info);
 
     @DeclareServiceCode(ServiceCode.ECS_GET_NAMESPACE_DETAILS_ERROR)
-
     public ECSException getNamespaceDetailsFailed(final String namespace, final Throwable e);
     
     @DeclareServiceCode(ServiceCode.ECS_BUCKET_ACL_ERROR)

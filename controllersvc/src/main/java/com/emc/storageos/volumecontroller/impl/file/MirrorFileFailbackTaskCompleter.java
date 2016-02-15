@@ -50,7 +50,7 @@ public class MirrorFileFailbackTaskCompleter extends MirrorFileTaskCompleter {
 
     @Override
     protected FileShare.MirrorStatus getFileMirrorStatusForSuccess() {
-        return this.mirrorSyncStatus = MirrorStatus.IN_SYNC;
+        return this.mirrorSyncStatus = MirrorStatus.SYNCHRONIZED;
     }
 
 }

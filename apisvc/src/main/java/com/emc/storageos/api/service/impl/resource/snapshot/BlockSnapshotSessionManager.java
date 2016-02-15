@@ -699,6 +699,29 @@ public class BlockSnapshotSessionManager {
     }
 
     /**
+     * Gets the snapshot sessions for consistency group.
+     *
+     * @param group the consistency group
+     * @return the snapshot sessions for consistency group
+     */
+    public List<BlockSnapshotSession> getSnapshotSessionsForCG(BlockConsistencyGroup group) {
+        List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(group.getId(), _dbClient);
+
+        if (volumes.isEmpty()) {
+            // TODO create empty list
+            return new ArrayList<BlockSnapshotSession>();
+        }
+
+        Volume sourceVolume = volumes.get(0);
+
+        // Get the platform specific block snapshot session implementation.
+        BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(sourceVolume);
+
+        // Get the BlockSnapshotSession instances for the source.
+        return snapSessionApiImpl.getSnapshotSessionsForConsistencyGroup(group);
+    }
+
+    /**
      * Delete the snapshot session with the passed URI.
      * 
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.

@@ -57,6 +57,15 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     // using the API.
     private String _sessionInstance;
 
+    // Name reference of replication group that the object belong to.
+    // There can be multiple array replication groups within an Application,
+    // this property shows the replication group for which this session was created within a CG.
+    private String _replicationGroupInstance;
+
+    // Snapshot Session set name which user provided while creating sessions for volumes/CGs in an Application.
+    // There can be multiple array replication groups within an Application.
+    private String _sessionSetName;
+
     @RelationIndex(cf = "RelationIndex", type = BlockConsistencyGroup.class)
     @Name("consistencyGroup")
     public URI getConsistencyGroup() {
@@ -129,6 +138,28 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     public void setSessionInstance(String sessionInstance) {
         _sessionInstance = sessionInstance;
         setChanged("sessionInstance");
+    }
+
+    @AlternateId("AltIdIndex")
+    @Name("replicationGroupInstance")
+    public String getReplicationGroupInstance() {
+        return _replicationGroupInstance;
+    }
+
+    public void setReplicationGroupInstance(String replicaGroupInstance) {
+        _replicationGroupInstance = replicaGroupInstance;
+        setChanged("replicationGroupInstance");
+    }
+
+    @AlternateId("AltIdIndex")
+    @Name("sessionSetName")
+    public String getSessionSetName() {
+        return _sessionSetName;
+    }
+
+    public void setSessionSetName(String sessionSetName) {
+        this._sessionSetName = sessionSetName;
+        setChanged("sessionSetName");
     }
 
     public boolean hasConsistencyGroup() {

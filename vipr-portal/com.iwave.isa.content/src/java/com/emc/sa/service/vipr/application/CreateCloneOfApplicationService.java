@@ -11,6 +11,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.application.tasks.CreateCloneOfApplication;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.vipr.client.Tasks;
@@ -27,9 +28,12 @@ public class CreateCloneOfApplicationService extends ViPRService {
     @Param(ServiceParams.COUNT)
     protected Integer count;
 
+    @Param(ServiceParams.VIRTUAL_ARRAY)
+    protected URI virtualArrayId;
+
     @Override
     public void execute() throws Exception {
-        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateCloneOfApplication(applicationId, name, count));
+        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateCloneOfApplication(applicationId, name, virtualArrayId, count));
         addAffectedResources(tasks);
     }
     

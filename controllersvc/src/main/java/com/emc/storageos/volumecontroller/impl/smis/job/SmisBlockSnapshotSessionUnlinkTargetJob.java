@@ -153,6 +153,8 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
                     volume.setProtocol(protocols);
                     volume.setOpStatus(new OpStatusMap());
                     volume.setConsistencyGroup(cgId);
+                    String repGrpInstance = snapshot.getReplicationGroupInstance();
+                    volume.setReplicationGroupInstance(repGrpInstance.substring(repGrpInstance.indexOf("+") + 1));
                     dbClient.createObject(volume);
                 }
             }
@@ -195,6 +197,12 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
             StringSetMap map = new StringSetMap();
             map.put(snapshot.getStorageController().toString(), new StringSet(Arrays.asList(repGrpName)));
             cg.setSystemConsistencyGroups(map);
+            
+            StringSet types = new StringSet();
+            types.add(BlockConsistencyGroup.Types.LOCAL.name());
+            cg.setTypes(types);
+            cg.setRequestedTypes(types);
+            cg.setStorageController(snapshot.getStorageController());
 
             s_logger.info("Creating new BlockConsistencyGroup for ReplicationGroup {} with ID: {}",
                     groupInstance, cg.getId());

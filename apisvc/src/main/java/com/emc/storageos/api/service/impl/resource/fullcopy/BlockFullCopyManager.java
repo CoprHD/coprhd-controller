@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -274,6 +272,29 @@ public class BlockFullCopyManager {
             s_logger.info("Volume {} is part of Application, Creating full copy for all volumes in the Application.", sourceURI);
             // get all volumes
             List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            
+            // if RP get source or target volumes
+            if (volumes != null && !volumes.isEmpty() && Volume.checkForRP(_dbClient, volumes.iterator().next().getId())) {
+                List<Volume> rpVolumes = new ArrayList<Volume>();
+                for (Volume volume : volumes) {
+                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                        if (param.getVarrayId() != null) {
+                            if (param.getVpoolId() != null) {
+                                if (volume.getVirtualArray().equals(param.getVarrayId()) && volume.getVirtualPool().equals(param.getVpoolId())) {
+                                    rpVolumes.add(volume);
+                                }
+                            } else if (volume.getVirtualArray().equals(param.getVarrayId())) {
+                                rpVolumes.add(volume);
+                            }
+                        } else if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
+                            rpVolumes.add(volume);
+                        }
+                    }
+                }
+                volumes.clear();
+                volumes.addAll(rpVolumes);
+            }
+            
             // group volumes by Array Group
             Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumes, _dbClient);
             fcSourceObjList = new ArrayList<BlockObject>();
@@ -986,6 +1007,15 @@ public class BlockFullCopyManager {
         }
 
         return fullCopyApi;
+    }
+    
+    /**
+     * returns the vplex specific full copy implementation
+     * 
+     * @return vplex specific full copy implementation
+     */
+    public BlockFullCopyApi getVplexFullCopyImpl() {
+        return _fullCopyImpls.get(FullCopyImpl.vplex.name());
     }
 
     /**

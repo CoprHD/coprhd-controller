@@ -250,11 +250,11 @@ public class BlockMapper {
             List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
             for (String backingVolume : from.getAssociatedVolumes()) {
                 backingVolumes.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(backingVolume)));
-                if (to.getReplicationGroupInstance() == null) {
-                    Volume backendVolume = dbClient.queryObject(Volume.class, URI.create(backingVolume));
-                    to.setReplicationGroupInstance(backendVolume.getReplicationGroupInstance());
-                }
-
+            }
+            // Get ReplicationGroupInstance from source back end volume
+            if (to.getReplicationGroupInstance() == null) {
+                Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
+                to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
             }
             to.setHaVolumes(backingVolumes);
         }

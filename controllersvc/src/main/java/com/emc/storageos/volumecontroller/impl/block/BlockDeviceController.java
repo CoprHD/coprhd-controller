@@ -3400,8 +3400,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     _dbClient.queryObject(Volume.class, sourceVolume) : null;
             VolumeGroup volumeGroup = (source != null)
                     ? source.getApplication(_dbClient) : null;
-            if (volumeGroup != null
-                    && !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, source)) {
+            if (volumeGroup != null) {
                 /**
                  * If a Volume is in Volume Group (COPY type),
                  * Query all volumes belonging to that Volume Group,
@@ -6087,10 +6086,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private List<URI> getFullCopiesForVolumes(List<URI> allFullCopies, List<Volume> volumes) {
         List<URI> fullCopyURIs = new ArrayList<URI>();
         for (Volume vol : volumes) {
-            for (String fullCopy : vol.getFullCopies()) {
-                URI fullCopyURI = URI.create(fullCopy);
-                if (allFullCopies.contains(fullCopyURI)) {
-                    fullCopyURIs.add(fullCopyURI);
+            if (vol.getFullCopies() != null) {
+                for (String fullCopy : vol.getFullCopies()) {
+                    URI fullCopyURI = URI.create(fullCopy);
+                    if (allFullCopies.contains(fullCopyURI)) {
+                        fullCopyURIs.add(fullCopyURI);
+                    }
                 }
             }
         }

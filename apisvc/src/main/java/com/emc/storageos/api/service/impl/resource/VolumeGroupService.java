@@ -57,27 +57,31 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VolumeGroup.VolumeGroupRole;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.VolumeGroupCopySetList;
+import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyActivateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeGroupFullCopyActivateParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyDetachParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyRestoreParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
@@ -251,6 +255,7 @@ public class VolumeGroupService extends TaskResourceService {
         VolumeGroup volumeGroup = (VolumeGroup) queryResource(id);
         VolumeGroupRestRep resp = DbObjectMapper.map(volumeGroup);
         resp.setReplicationGroupNames(CopyVolumeGroupUtils.getReplicationGroupNames(volumeGroup, _dbClient));
+        resp.setVirtualArrays(CopyVolumeGroupUtils.getVirtualArrays(volumeGroup, _dbClient));
         return resp;
     }
 
@@ -267,7 +272,8 @@ public class VolumeGroupService extends TaskResourceService {
         List<URI> ids = _dbClient.queryByType(VolumeGroup.class, true);
         Iterator<VolumeGroup> iter = _dbClient.queryIterativeObjects(VolumeGroup.class, ids);
         while (iter.hasNext()) {
-            volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(iter.next()));
+            VolumeGroup vg = iter.next();
+            volumeGroupList.getVolumeGroups().add(toNamedRelatedResource(vg));
         }
         return volumeGroupList;
     }
@@ -362,7 +368,6 @@ public class VolumeGroupService extends TaskResourceService {
      */
     @POST
     @Path("/{id}/deactivate")
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public Response deactivateVolumeGroup(@PathParam("id") URI id) {
@@ -486,6 +491,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -599,7 +605,7 @@ public class VolumeGroupService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param cgURI The URI of the volume group.
+     * @param volumeGroupId The URI of the volume group.
      * 
      * @brief List full copies for a volume group
      * 
@@ -613,9 +619,6 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
         // Query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
-
-        // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, FULL_COPY);
 
         // get all volumes
         List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
@@ -632,11 +635,98 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
+     * List full copy set names for a volume group
+     * 
+     * @param volumeGroupId The URI of the volume group.
+     * 
+     * @brief List full copy set names for a volume group
+     * 
+     * @return The list of full copy set names for the volume group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies/copy-sets")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public VolumeGroupCopySetList getVolumeGroupFullCopySets(@PathParam("id") final URI volumeGroupId) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // get all volumes
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+
+        // Cycle over the volumes in the volume group and
+        // get the full copies for each volume in the group.
+        VolumeGroupCopySetList fullCopySets = new VolumeGroupCopySetList();
+        for (Volume volume : volumes) {
+            StringSet fullCopyIds = volume.getFullCopies();
+            if (fullCopyIds != null) {
+                for (String fullCopyId : fullCopyIds) {
+                    Volume fullCopyVolume = _dbClient.queryObject(Volume.class,
+                            URI.create(fullCopyId));
+                    if (fullCopyVolume == null || fullCopyVolume.getInactive()) {
+                        log.warn("Stale full copy {} found for volume {}", fullCopyId,
+                                volume.getLabel());
+                        continue;
+                    }
+                    String setName = fullCopyVolume.getFullCopySetName();
+                    if (setName == null) {  // This should not happen
+                        setName = "";
+                    }
+                    fullCopySets.getCopySets().add(setName);
+                }
+            }
+        }
+
+        return fullCopySets;
+    }
+
+    /**
+     * List full copies for a volume group belonging to the provided copy set name
+     * 
+     * @param volumeGroupId The URI of the volume group.
+     * @param param VolumeGroupCopySetParam containing the copy set name
+     * 
+     * @brief List full copies for a volume group belonging to the provided copy set name
+     * 
+     * @return The list of full copies for the volume group belonging to the provided copy set name
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies/copy-sets")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public NamedVolumesList getVolumeGroupFullCopiesForSet(@PathParam("id") final URI volumeGroupId,
+            final VolumeGroupCopySetParam param) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate that full copy set name is provided
+        String fullCopySetName = param.getCopySetName();
+        ArgValidator.checkFieldNotNull(fullCopySetName, "copy_set_name");
+
+        // validate that the provided set name actually belongs to this Application
+        VolumeGroupCopySetList fullCopySetNames = getVolumeGroupFullCopySets(volumeGroupId);
+        if (!fullCopySetNames.getCopySets().contains(fullCopySetName)) {
+            throw APIException.badRequests.
+                    setNameDoesNotBelongToVolumeGroup("Full Copy Set name", fullCopySetName, volumeGroup.getLabel());
+        }
+
+        NamedVolumesList fullCopyList = new NamedVolumesList();
+        List<Volume> fullCopiesForSet = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
+        for (Volume fullCopy : fullCopiesForSet) {
+            fullCopyList.getVolumes().add(toNamedRelatedResource(fullCopy));
+        }
+
+        return fullCopyList;
+    }
+
+    /**
      * Get the specified volume group full copy.
      * 
      * @prereq none
-     * 
-     * @param cgURI The URI of the volume group.
+     * @param volumeGroupId The URI of the volume group.
      * @param fullCopyURI The URI of the full copy.
      * 
      * @brief Get the specified volume group full copy.
@@ -684,6 +774,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/activate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -785,6 +876,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/detach")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -885,6 +977,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/restore")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -986,6 +1079,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/resynchronize")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1104,7 +1198,7 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Returns a map of replication group name to full copy.
-     *
+     * 
      * @param fullCopies the full copies
      * @return the map of replication group to full copy
      */
@@ -1122,13 +1216,12 @@ public class VolumeGroupService extends TaskResourceService {
             // duplicate group names will be overwritten
             repGroupToFullCopyMap.put(repGroupName, fullCopy);
         }
-        // TODO how do we group full copies when volumes of different RGs with fullCopies are added to Application?
         return repGroupToFullCopyMap;
     }
 
     /**
      * Gets the consistency group for full copy.
-     *
+     * 
      * @param fullCopy the full copy
      * @return the consistency group for full copy
      */
@@ -1144,7 +1237,7 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Creates a Task on given volume with Error state
-     *
+     * 
      * @param opr the opr
      * @param volume the volume
      * @param sc the sc
@@ -1164,6 +1257,7 @@ public class VolumeGroupService extends TaskResourceService {
         _dbClient.updateObject(volume);
         return TaskMapper.toTask(volume, taskId, op);
     }
+
     /**
      * allow replica operation only for COPY type VolumeGroup.
      * 
@@ -1685,6 +1779,34 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         /**
+         * return the list of virtual arrays for a volume group
+         * 
+         * @param group
+         * @param dbClient
+         * @return
+         */
+        public static Set<NamedRelatedResourceRep> getVirtualArrays(VolumeGroup group, DbClient dbClient) {
+
+            Set<URI> varrayIds = new HashSet<URI>();
+            if (group.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.toString())) {
+                List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(dbClient, group);
+                if (volumes != null && !volumes.isEmpty()) {
+                    for (Volume volume : volumes) {
+                        varrayIds.add(volume.getVirtualArray());
+                    }
+                }
+            }
+            Set<NamedRelatedResourceRep> virtualArrays = new HashSet<NamedRelatedResourceRep>();
+            for (URI varrayId : varrayIds) {
+                VirtualArray varray = dbClient.queryObject(VirtualArray.class, varrayId);
+                if (varray != null && !varray.getInactive()) {
+                    virtualArrays.add(DbObjectMapper.toNamedRelatedResource(varray));
+                }
+            }
+            return virtualArrays;
+        }
+
+        /**
          * Validate the volumes to be added to the volume group.
          * For role COPY:
          * All volumes should be the same type (block, or RP, or VPLEX, or SRDF), and should be in consistency groups
@@ -1725,7 +1847,7 @@ public class VolumeGroupService extends TaskResourceService {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "The storage system type that the volume created in is not allowed ");
                 }
-                String volType = getVolumeType(type);
+                String volType = getVolumeType(volume, dbClient);
                 if (addedVolType == null) {
                     addedVolType = volType;
                     firstVolLabel = volume.getLabel();
@@ -1767,10 +1889,8 @@ public class VolumeGroupService extends TaskResourceService {
             List<Volume> existingVols = ControllerUtils.getVolumeGroupVolumes(dbClient, volumeGroup);
             if (!existingVols.isEmpty()) {
                 Volume firstVolume = existingVols.get(0);
-                URI systemUri = firstVolume.getStorageController();
-                StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
-                String type = system.getSystemType();
-                String existingType = getVolumeType(type);
+
+                String existingType = getVolumeType(firstVolume, dbClient);
                 if (!existingType.equals(addedVolType)) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
                             "The volume type is not same as existing volumes in the application");
@@ -1898,12 +2018,21 @@ public class VolumeGroupService extends TaskResourceService {
          * @param type The system type
          * @return
          */
-        private static String getVolumeType(String type) {
-            if (BLOCK_TYPES.contains(type)) {
-                return BLOCK;
-            } else {
-                return type;
+
+        private static String getVolumeType(Volume volume, DbClient dbClient) {
+            if (!isNullURI(volume.getProtectionController())
+                    && volume.checkForRp()) {
+                return DiscoveredDataObject.Type.rp.name();
             }
+            if (Volume.checkForSRDF(dbClient, volume.getId())) {
+                return DiscoveredDataObject.Type.srdf.name();
+            }
+            if (volume.checkForVplexVirtualVolume(dbClient)) {
+                return DiscoveredDataObject.Type.vplex.name();
+            }
+
+            return BLOCK;
+
         }
 
         private void updateFailedCGTasks(DbClient dbClient, Set<URI> uriList, String taskId, ServiceCoded e) {
@@ -1928,10 +2057,7 @@ public class VolumeGroupService extends TaskResourceService {
                 return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
             }
 
-            URI systemUri = volume.getStorageController();
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
-            String type = system.getSystemType();
-            String volType = getVolumeType(type);
+            String volType = getVolumeType(volume, dbClient);
             return getBlockServiceImpl(volType);
         }
 

@@ -2,7 +2,7 @@
  * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.model.block;
+package com.emc.storageos.model.application;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -11,6 +11,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+
+import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 
 @XmlRootElement(name = "volume_group_full_copy_create")
 public class VolumeGroupFullCopyCreateParam extends VolumeFullCopyCreateParam {

@@ -82,7 +82,10 @@
     #{if fileSystem.protocols.contains('NFSv4')}
     #{expandPanel titleKey:'resources.filesystem.nfsAccessControl', url: @fileSystemNfsACLs(fileSystem.id) /}
     #{/if}
+    #{expandPanel titleKey:'resources.filesystem.mirroring', url: @fileSystemMirrors(fileSystem.id) /}
     #{expandPanel titleKey:'resources.filesystem.snapshotPolicies', url: @fileSystemSnapshotPolicies(fileSystem.id) /}
+    
+    
 
     <br/>
     

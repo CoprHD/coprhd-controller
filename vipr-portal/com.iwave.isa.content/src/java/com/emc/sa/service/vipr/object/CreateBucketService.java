@@ -4,6 +4,10 @@
  */
 package com.emc.sa.service.vipr.object;
 
+import static com.emc.sa.service.ServiceParams.ACL_TYPE;
+import static com.emc.sa.service.ServiceParams.ACL_NAME;
+import static com.emc.sa.service.ServiceParams.ACL_DOMAIN;
+import static com.emc.sa.service.ServiceParams.ACL_PERMISSION;
 import static com.emc.sa.service.ServiceParams.HARD_QUOTA;
 import static com.emc.sa.service.ServiceParams.NAME;
 import static com.emc.sa.service.ServiceParams.OWNER;
@@ -16,8 +20,9 @@ import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.engine.ExecutionUtils;
-import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
@@ -49,19 +54,32 @@ public class CreateBucketService extends ViPRService {
     @Param(value = OWNER, required = false)
     protected String owner;
     
-    @Bindable(itemType = ObjectStorageUtils.ObjectStorageACLs.class)
-    protected ObjectStorageUtils.ObjectStorageACLs[] objectStorageACLs;
+    protected ObjectStorageUtils.ObjectStorageACL objectStorageACL = new ObjectStorageUtils.ObjectStorageACL();
+    
+    @Param(ACL_TYPE)
+    public String aclType;
+
+    @Param(ACL_NAME)
+    public String aclName;
+    
+    @Param(ACL_DOMAIN)
+    public String aclDomain;
+
+    @Param(ACL_PERMISSION)
+    public List<String> aclPermissions;
     
     protected URI bucketId;
     
     @Override
     public void precheck() throws Exception {
-        if (objectStorageACLs != null && objectStorageACLs.length > 0) {
-            List<String> invalidNames = ObjectStorageUtils.getInvalidObjectACLs(objectStorageACLs);
-            if (!invalidNames.isEmpty()) {
-                ExecutionUtils.fail("failTask.CreateBucketACL.invalidName", invalidNames, invalidNames);
-            }
-            objectStorageACLs = ObjectStorageUtils.clearEmptyObjectACLs(objectStorageACLs);
+        objectStorageACL.aclType = aclType;
+        objectStorageACL.aclName = aclName;
+        objectStorageACL.aclDomain = aclDomain;
+        objectStorageACL.aclPermission = aclPermissions;
+        
+        List<String> invalidNames = ObjectStorageUtils.getInvalidObjectACL(objectStorageACL);
+        if (!invalidNames.isEmpty()) {
+            ExecutionUtils.fail("failTask.CreateBucketACL.invalidName", invalidNames, invalidNames);
         }
     }
 
@@ -69,8 +87,8 @@ public class CreateBucketService extends ViPRService {
     public void execute() throws Exception {
         this.bucketId = ObjectStorageUtils.createBucket(bucketName, virtualArray, virtualPool, project, softQuota, hardQuota, retention, owner);
         
-        if (objectStorageACLs != null && objectStorageACLs.length > 0) {
-            ObjectStorageUtils.setObjectShareACL(bucketId, objectStorageACLs);
+        if (!StringUtils.isBlank(objectStorageACL.aclName)) {
+            ObjectStorageUtils.setObjectShareACL(bucketId, objectStorageACL);
         }
     }
 }

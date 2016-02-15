@@ -16,6 +16,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -27,6 +28,7 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
     private String migrationType;
     private String migrationGroupBy;
     private Set<String> replicationGroupNames;
+    private Set<NamedRelatedResourceRep> virtualArrays;
 
     @XmlElement
     public String getDescription() {
@@ -113,5 +115,21 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
      */
     public void setReplicationGroupNames(Set<String> replicationGroupNames) {
         this.replicationGroupNames = replicationGroupNames;
+    }
+
+    /**
+     * @return the virtualArrays
+     */
+    @XmlElementWrapper(name = "virtual_arrays")
+    @XmlElement(name = "virtual_array")
+    public Set<NamedRelatedResourceRep> getVirtualArrays() {
+        return virtualArrays;
+    }
+
+    /**
+     * @param virtualArrays the virtualArrays to set
+     */
+    public void setVirtualArrays(Set<NamedRelatedResourceRep> virtualArrays) {
+        this.virtualArrays = virtualArrays;
     }
 }

@@ -2762,6 +2762,9 @@ public interface BadRequestExceptions {
             replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException setNameDoesNotBelongToVolumeGroup(final String setType, final String setName, final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidIpsecStatus();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

@@ -54,7 +54,7 @@ public class VolumeGroupCreateParam {
     /**
      * volume group description
      */
-    @XmlElement
+    @XmlElement(required = false)
     public String getDescription() {
         return description;
     }

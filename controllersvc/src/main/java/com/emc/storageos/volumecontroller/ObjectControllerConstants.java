@@ -15,5 +15,10 @@ public interface ObjectControllerConstants {
     String BUCKET_PERMISSION_WRITE = "write";
     String BUCKET_PERMISSION_READ_ACL = "read_acl";
     String BUCKET_PERMISSION_WRITE_ACL = "write_acl";
+    
+    public enum DeleteTypeEnum {
+        FULL,
+        INTERNAL_DB_ONLY,
+    }
 
 }

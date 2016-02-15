@@ -2,7 +2,7 @@
  * Copyright (c) 2015 EMC
  * All Rights Reserved
  */
-package com.emc.sa.service.vipr.application;
+package com.emc.sa.service.vipr.application.tasks;
 
 import java.net.URI;
 import java.util.List;
@@ -19,13 +19,11 @@ public class AddVolumesToApplication extends WaitForTasks<TaskResourceRep> {
     private final List<URI> volumeIds;
     private final URI applicationId;
     private final String replicationGroup;
-    private final URI consistencyGroupId;
 
-    public AddVolumesToApplication(URI applicationId, List<URI> volumeIds, String replicationGroup, URI consistencyGroupId) {
+    public AddVolumesToApplication(URI applicationId, List<URI> volumeIds, String replicationGroup) {
         this.volumeIds = volumeIds;
         this.applicationId = applicationId;
         this.replicationGroup = replicationGroup;
-        this.consistencyGroupId = consistencyGroupId;
         provideDetailArgs(applicationId, volumeIds, replicationGroup);
     }
 
@@ -37,7 +35,6 @@ public class AddVolumesToApplication extends WaitForTasks<TaskResourceRep> {
         if (replicationGroup != null && !replicationGroup.isEmpty()) {
             addVolumesList.setReplicationGroupName(replicationGroup);
         }
-        addVolumesList.setConsistencyGroup(consistencyGroupId);
         input.setAddVolumesList(addVolumesList);
 
         TaskList taskList = getClient().application().updateApplication(applicationId, input);

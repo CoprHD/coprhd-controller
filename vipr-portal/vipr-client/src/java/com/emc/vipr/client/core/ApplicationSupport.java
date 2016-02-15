@@ -4,18 +4,18 @@
  */
 package com.emc.vipr.client.core;
 
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_CLUSTERS_APP_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_HOSTS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DETACH_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_FULL_COPY_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_CLUSTERS_APP_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_HOSTS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -26,18 +26,18 @@ import javax.ws.rs.core.UriBuilder;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
-import com.emc.storageos.model.block.VolumeGroupFullCopyDetachParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyRestoreParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.vipr.client.impl.RestClient;
 
 public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
@@ -154,7 +154,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
      * GET /volume-groups/block/{id}/protection/full-copies
      */
     public NamedVolumesList getClonesByApplication(URI id) {
-    	return client.get(NamedVolumesList.class, APP_SUPPORT_CLONE_URL, id);
+        return client.get(NamedVolumesList.class, APP_SUPPORT_CLONE_URL, id);
     }
 
     /**
@@ -177,7 +177,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
     public NamedVolumesList getFullCopiesByApplication(URI id) {
         return client.get(NamedVolumesList.class, APP_SUPPORT_FULL_COPY_URL, id);
     }
-    
+
     /**
      * Detaches a full copy of an application.
      * API Call: POST /volume-groups/block/{id}/protection/full-copies/detach
@@ -190,7 +190,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_DETACH_FULL_COPY_URL);
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
     }
-    
+
     /**
      * Restores a full copy of an application.
      * API Call: POST /volume-groups/block/{id}/protection/full-copies/restore
@@ -203,7 +203,7 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESTORE_FULL_COPY_URL);
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
     }
-    
+
     /**
      * Resynchronizes a full copy of an application.
      * API Call: POST /volume-groups/block/{id}/protection/full-copies/resynchronize

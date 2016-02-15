@@ -7,6 +7,11 @@
       type:"assetType.vipr.application"
     },
     
+    applicationSite:{
+      type:"assetType.vipr.applicationVirtualArray",
+      required:"false"
+    },
+    
     name:{
       type:"text",
       validation:{

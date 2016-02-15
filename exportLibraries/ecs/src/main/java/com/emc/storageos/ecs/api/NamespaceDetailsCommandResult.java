@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class NamespaceDetailsCommandResult {
     private String name;
     private String id;
-    private NamespaceLink link;
+    private ECSLink link;
     private String inactive;
     private String global;
     private String remote;
@@ -38,11 +38,11 @@ public class NamespaceDetailsCommandResult {
         this.id = id;
     }
     
-    NamespaceLink getLink() {
+    ECSLink getLink() {
         return link;
     }
 
-    void setLink(NamespaceLink link) {
+    void setLink(ECSLink link) {
         this.link = link;
     }
     

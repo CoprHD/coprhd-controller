@@ -683,6 +683,7 @@ public class BucketService extends TaskResourceService {
             }
             if ((System.currentTimeMillis() - startTime) > MAX_SYNC_TIMEOUT) {
                 breakLoop = true;
+                message = "Request Time-Out";
             }
             try {
                 Thread.sleep(100);

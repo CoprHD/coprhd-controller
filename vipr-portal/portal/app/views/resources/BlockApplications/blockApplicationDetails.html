@@ -62,7 +62,7 @@ function updateClones(oSettings) {
   #{collapse 'resources.volume.fullcopies',badge:'cloneCountBadge', noPanelBody: true}          
           #{DataTable.table id:'cloneApplication',
                   dataTable:cloneTable,
-                  source:@applicationCloneJson(application.id),                  
+                  source:@applicationCloneJson(application.id),
                   cssClass:'editableRows',
                   options:['iDisplayLength': '5', 'fnDrawCallback': 'updateClones']/} 
           

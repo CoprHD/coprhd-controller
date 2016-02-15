@@ -65,8 +65,8 @@ public class BlockApplications extends ResourceController {
 
     public static void applicationCloneJson(String id) {
         List<Clone> cloneDetails = Lists.newArrayList();
-        List<NamedRelatedResourceRep> clones = AppSupportUtil.getFullCopiesByApplication(id);
-        for (NamedRelatedResourceRep clone : clones) {
+        List<NamedRelatedResourceRep> clonesSet = AppSupportUtil.getFullCopySetsByApplication(id);
+        for (NamedRelatedResourceRep clone : clonesSet) {
             VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get((clone.getId()));
             cloneDetails.add(new Clone(blockVolume));
         }
@@ -104,11 +104,7 @@ public class BlockApplications extends ResourceController {
 
     public static class CloneApplicationDataTable extends DataTable {
         public CloneApplicationDataTable() {
-            addColumn("name");
             addColumn("cloneGroups").setRenderFunction("renderCloneLink");
-            addColumn("size");
-            addColumn("status");
-            addColumn("protocol");
             sortAll();
         }
 
@@ -116,20 +112,10 @@ public class BlockApplications extends ResourceController {
         @SuppressWarnings("ClassVariableVisibilityCheck")
         public static class Clone {
             public URI id;
-            public String name;
-            public String size;
-            public String status;
-            public Set<String> protocol;
             public String cloneGroups;
-            public URI refs;
 
             public Clone(VolumeRestRep volume) {
                 id = volume.getId();
-                name = volume.getName();
-                size = volume.getProvisionedCapacity();
-                status = volume.getProtection().getFullCopyRep().getReplicaState();
-                protocol = volume.getProtocols();
-                refs = volume.getProtection().getFullCopyRep().getAssociatedSourceVolume().getId();
                 cloneGroups = volume.getProtection().getFullCopyRep().getFullCopySetName();
             }
         }

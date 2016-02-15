@@ -14,6 +14,7 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRON
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_SET_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -136,6 +137,15 @@ public class ApplicationSupport {
      */
     public NamedVolumesList getFullCopiesByApplication(URI id) {
         return client.get(NamedVolumesList.class, APP_SUPPORT_FULL_COPY_URL, id);
+    }
+    
+    /**
+     * Get full copy set for an application
+     * GET /volume-groups/block/{id}/protection/full-copies/full-copy-sets
+     */
+    
+    public NamedVolumesList getFullCopySetsByApplication(URI id) {
+        return client.get(NamedVolumesList.class, APP_SUPPORT_CLONE_SET_URL, id);
     }
     
     /**

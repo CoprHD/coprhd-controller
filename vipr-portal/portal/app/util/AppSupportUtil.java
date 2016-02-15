@@ -63,4 +63,8 @@ public class AppSupportUtil {
     public static List<NamedRelatedResourceRep> getFullCopiesByApplication(String id) {
     	return BourneUtil.getViprClient().application().getClonesByApplication(uri(id)).getVolumes();
     }
+    
+    public static List<NamedRelatedResourceRep> getFullCopySetsByApplication(String id) {
+        return BourneUtil.getViprClient().application().getFullCopySetsByApplication(uri(id)).getVolumes();
+    }
 }

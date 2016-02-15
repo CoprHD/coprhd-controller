@@ -633,7 +633,7 @@ public class BucketACLUtility {
                 }
             }
         } else {
-            _log.error("Invalid value for permission: {}", permissionsValue);
+            _log.error("permissions are not provided: {}", permissionsValue);
             bucketACE.cancelNextStep(BucketACLOperationErrorType.INVALID_PERMISSIONS);
             return;
         }

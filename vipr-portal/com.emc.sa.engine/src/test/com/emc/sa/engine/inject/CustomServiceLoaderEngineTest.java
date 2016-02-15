@@ -1,4 +1,4 @@
-package com.emc.sa.zookeeper;
+package com.emc.sa.engine.inject;
 
 import java.util.List;
 import java.util.Locale;
@@ -8,15 +8,19 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.emc.sa.catalog.ExtentionClassLoader;
 import com.emc.sa.descriptor.ServiceDefinition;
 import com.emc.sa.descriptor.ServiceDefinitionLoader;
 import com.emc.sa.descriptor.ServiceDescriptor;
 import com.emc.sa.descriptor.ServiceField;
+import com.emc.sa.engine.service.DefaultExecutionServiceFactory;
 import com.emc.sa.util.TestCoordinatorService;
+import com.emc.sa.zookeeper.ServiceDescriptorTests;
+import com.emc.sa.zookeeper.ZkServiceDescriptors;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.Order;
 
-public class CustomServiceLoaderTest {
+public class CustomServiceLoaderEngineTest {
 	
 	
     private TestCoordinatorService coordinatorService;
@@ -51,14 +55,24 @@ public class CustomServiceLoaderTest {
     }
 
     public static void main(String[] args) throws Exception {
-    	CustomServiceLoaderTest customServiceLoaderTest =new CustomServiceLoaderTest();
+    	CustomServiceLoaderEngineTest customServiceLoaderTest =new CustomServiceLoaderEngineTest();
     	
     	customServiceLoaderTest.setup();
     	
     	customServiceLoaderTest.testLoadingAndRetrieving();
     	
+    	Object obj2 = ExtentionClassLoader.getProxyObject("com.emc.sa.service.vipr.plugins.tasks.CustomSample");
+    	System.out.println("Messge from extension loader "+obj2.getClass().getCanonicalName());
+    	
+    	DefaultExecutionServiceFactory def = new DefaultExecutionServiceFactory();
+    	Order order = new Order();
+    	CatalogService catalogService = new CatalogService();
+    	catalogService.setBaseService("CustomSample@Extension");
+    	def.createService(order, catalogService);
+    	
     	customServiceLoaderTest.tearDown();
     	
+
     	
     	
 	}

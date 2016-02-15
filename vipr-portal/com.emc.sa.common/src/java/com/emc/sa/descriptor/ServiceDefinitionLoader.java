@@ -85,7 +85,7 @@ public class ServiceDefinitionLoader {
 		for (InputStream extResStream : extResStreams) {
 
 			ServiceDefinition service = reader.readService(extResStream);
-			System.out.println(service.toString());
+			System.out.println("MANOJ LOADING EXTERNAL SERVICE DEFS "+service.toString());
 			IOUtils.closeQuietly(extResStream);
 			if (service != null) {
 				if (!service.disabled) {
@@ -103,7 +103,7 @@ public class ServiceDefinitionLoader {
 
 
     private static List<InputStream> getExternalResources() throws IOException {
-    	List<String> sysDecriptors =  Arrays.asList("CustomSampleService.json","ManojSampleService.json");
+    	List<String> sysDecriptors =  Arrays.asList("CustomSampleService.json");
     	
     	List<InputStream> resStreams= new ArrayList<InputStream>();
     	
@@ -125,7 +125,7 @@ public class ServiceDefinitionLoader {
     }
 	
     public static void main(String[] args) throws IOException {
-    	ExtentionClassLoader.getProxy("C:/HDRIVE/ECLIPSE-WS/CoPRHD-WS/JCL-master/Test");
+    	ExtentionClassLoader.getProxyObject("com.emc.sa.descriptor.TestExternalInterfaceImpl");
     	ServiceDefinitionLoader.loadExternal(null);
 		
 	}

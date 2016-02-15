@@ -2,9 +2,6 @@
     baseKey:"CreateVolume.Block",
     serviceId:"CustomSample",
     fields:{
-        externalParam:{
-            type:"text"
-         },
         virtualArray:{
             type:"assetType.vipr.virtualArray",
             lockable: true
@@ -50,7 +47,6 @@
             type:"assetType.vipr.consistencyGroup",
             required:false
         }
-    
-  }
+    }
 
 }

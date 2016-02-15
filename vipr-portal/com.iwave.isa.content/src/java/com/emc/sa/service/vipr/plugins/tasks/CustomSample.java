@@ -5,13 +5,17 @@
 package com.emc.sa.service.vipr.plugins.tasks;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
-import com.emc.sa.service.vipr.tasks.WaitForTasks;
-import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.vipr.client.Tasks;
 
-public class CustomSample extends WaitForTasks<VolumeRestRep> {
+
+
+//import com.emc.sa.engine.ExecutionTask;
+import com.emc.sa.engine.service.ExternalTaskApdapterInterface;
+import com.emc.storageos.vasa.async.TaskInfo;
+
+public class CustomSample implements ExternalTaskApdapterInterface {
+//public class CustomSample extends ExecutionTask<Object> {
     private URI vpoolId;
     private URI varrayId;
     private URI projectId;
@@ -20,9 +24,13 @@ public class CustomSample extends WaitForTasks<VolumeRestRep> {
     private String name;
     private URI consistencyGroupId;
 
+    public CustomSample(){
+    	
+    }
     public CustomSample(String vpoolId, String varrayId, String projectId, String size, Integer count,
-            String name, String consistencyGroupId) {
-        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, name, uri(consistencyGroupId));
+            String name, String consistencyGroupId) throws URISyntaxException {
+    	this(new URI(vpoolId), new URI(varrayId), new URI(projectId), size, count, name, new URI(consistencyGroupId));
+        
     }
 
     public CustomSample(URI vpoolId, URI varrayId, URI projectId, String size, Integer count, String name,
@@ -34,29 +42,53 @@ public class CustomSample extends WaitForTasks<VolumeRestRep> {
         this.count = count;
         this.name = name;
         this.consistencyGroupId = consistencyGroupId;
-        provideDetailArgs(name, size, vpoolId, varrayId, projectId);
     }
 
-    @Override
-    public Tasks<VolumeRestRep> doExecute() throws Exception {
-        VolumeCreate create = new VolumeCreate();
-        create.setVpool(vpoolId);
-        create.setVarray(varrayId);
-        create.setProject(projectId);
-        create.setName(name);
-        create.setSize(size);
-        int numberOfVolumes = 1;
-        if ((count != null) && (count > 1)) {
-            numberOfVolumes = count;
-        }
-        create.setCount(numberOfVolumes);
-        create.setConsistencyGroup(consistencyGroupId);
+ 	@Override
+	public void init() throws Exception {
+		System.out.println("Custom Task init");
+		
+	}
+	@Override
+	public void precheck() throws Exception {
+		System.out.println("Custom Task precheck");
+		
+	}
+	@Override
+	public void preLuanch() throws Exception {
+		System.out.println("Custom Task preLuanch");
+		
+	}
+	@Override
+	public TaskInfo execute() throws Exception {
+		TaskInfo taskInfo= new TaskInfo();
+		System.out.println("Custom Task execute" + name+size +vpoolId+ varrayId +count+consistencyGroupId+projectId);
+		taskInfo.setProgress(100);
+		taskInfo.setTaskState("SUCCESS");
+		
+		taskInfo.setResult("Extrenal Task Completed");
+		return taskInfo;
 
-        Tasks<VolumeRestRep> tasks = getClient().blockVolumes().create(create);
-        // There should only be as many tasks as is the count
-        if (tasks.getTasks().size() != numberOfVolumes) {
-            throw stateException("CreateBlockVolume.illegalState.invalid", tasks.getTasks().size());
-        }
-        return tasks;
-    }
+		
+	}
+	@Override
+	public void postcheck() throws Exception {
+		System.out.println("Custom Task postcheck");
+		
+	}
+	@Override
+	public void postLuanch() throws Exception {
+		System.out.println("Custom Task postLuanch");
+		
+	}
+	@Override
+	public void getStatus() throws Exception {
+		System.out.println("Custom Task getStatus");
+		
+	}
+	@Override
+	public void destroy() {
+		System.out.println("Custom Task destroy");
+		
+	}
 }

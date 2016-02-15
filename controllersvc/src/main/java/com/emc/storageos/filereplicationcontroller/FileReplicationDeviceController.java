@@ -556,13 +556,13 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
             for (String target : targetfileUris) {
                 // target share
                 FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
-                taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, sourceFileShare.getId(), taskId);
+
                 List<URI> combined = new ArrayList<URI>();
                 // call device specific action
                 if (primarysystem.getSystemType().equalsIgnoreCase("isilon")) {
                     combined.add(sourceFileShare.getId());
                     combined.add(targetFileShare.getId());
-
+                    taskCompleter = new MirrorFileFailbackTaskCompleter(FileShare.class, combined, taskId);
                     isilonSyncIQFailback(workflow, primarysystem, sourceFileShare, targetFileShare, taskId);
                 } else {
                     throw DeviceControllerException.exceptions.operationNotSupported();

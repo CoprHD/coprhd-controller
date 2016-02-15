@@ -2647,7 +2647,7 @@
 	</bean>
 	<bean id="cim_connection_max_inactive_time" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="CIM Connection TTL" />
-		<property name="description" value="Maximum number of minutes before an inactive CIMConnection is reaped." />
+		<property name="description" value="Maximum number of seconds before an inactive SMI-S is reaped. Should be less than the Discovery Scan interval. If set to 0, reaping is disabled." />
 		<property name="type" value="uint32" />
 		<property name="tag" value="Discovery" />
 		<property name="advanced" value="true" />
@@ -2655,7 +2655,7 @@
 		<property name="userConfigurable" value="false" />
 		<property name="reconfigRequired" value="false" />
 		<property name="rebootRequired" value="true" />
-		<property name="value" value="5" />
+		<property name="value" value="0" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="metadata" class="com.emc.storageos.model.property.PropertiesMetadata">

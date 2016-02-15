@@ -667,16 +667,21 @@ public class BucketService extends TaskResourceService {
         boolean breakLoop = false;
         boolean failedOp = true;
         long startTime = System.currentTimeMillis();
+        String READY = "ready";
+        String ERROR = "error";
+        String message = "";
+        int MAX_SYNC_TIMEOUT = 3000;
         while (!breakLoop) {
             Task dbTask = TaskUtils.findTaskForRequestId(_dbClient, bucket.getId(), task);
-            if ("ready".equals(dbTask.getStatus())) {
+            if (READY.equals(dbTask.getStatus())) {
                 breakLoop = true;
                 failedOp = false;
             }
-            if ("error".equals(dbTask.getStatus())) {
+            if (ERROR.equals(dbTask.getStatus())) {
                 breakLoop = true;
+                message = dbTask.getMessage();
             }
-            if ((System.currentTimeMillis() - startTime) > 3000) {
+            if ((System.currentTimeMillis() - startTime) > MAX_SYNC_TIMEOUT) {
                 breakLoop = true;
             }
             try {
@@ -694,7 +699,7 @@ public class BucketService extends TaskResourceService {
             _dbClient.updateObject(bucket);
         } else {
             throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(),
-                    "Could not get ACL from ECS. Please try again later.");
+                    "Could not get ACL from ECS {} " + message + " Please try again later.");
         }
 
     }

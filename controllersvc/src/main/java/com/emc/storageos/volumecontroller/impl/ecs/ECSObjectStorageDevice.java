@@ -573,6 +573,9 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         completer.statusReady(_dbClient, message);
     }
     
+    /**
+     * Reads the product file and returns the product version. 
+     */
     private String readFile(String path) {
         BufferedReader br = null;
         String content = null;
@@ -608,22 +611,22 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         ECSApi objectAPI = getAPI(storageObj);
         try {
             String aclResponse = objectAPI.getBucketAclFromECS(objectArgs.getName());
-            _log.info("aclResponse {} "+aclResponse);
-            ECSBucketACL bucketACl = new Gson().fromJson(SecurityUtils.sanitizeJsonString(aclResponse),   ECSBucketACL.class);
+            _log.info("aclResponse {} " + aclResponse);
+            ECSBucketACL bucketACl = new Gson().fromJson(SecurityUtils.sanitizeJsonString(aclResponse), ECSBucketACL.class);
             ECSBucketACL.Acl acl = bucketACl.getAcl();
             List<ECSBucketACL.UserAcl> user_acl = acl.getUseAcl();
             List<ECSBucketACL.GroupAcl> group_acl = acl.getGroupAcl();
             List<ECSBucketACL.CustomGroupAcl> customgroup_acl = acl.getCustomgroupAcl();
             List<BucketACE> aclToAdd = Lists.newArrayList();
             final String DELIMETER = "@";
-            for(ECSBucketACL.UserAcl userAce : user_acl){
+            for (ECSBucketACL.UserAcl userAce : user_acl) {
                 String userWithDomain = userAce.getUser();
                 String[] usrDomain = userWithDomain.split(DELIMETER);
                 BucketACE bucketAce = new BucketACE();
-                if(usrDomain.length > 1){
+                if (usrDomain.length > 1) {
                     bucketAce.setDomain(usrDomain[1]);
                     bucketAce.setUser(usrDomain[0]);
-                }else if(usrDomain.length == 1){
+                } else if (usrDomain.length == 1) { // username without domain
                     bucketAce.setUser(usrDomain[0]);
                 }
                 String[] permArray = userAce.getPermission();
@@ -631,39 +634,39 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                 bucketAce.setPermissions(permissions);
                 aclToAdd.add(bucketAce);
             }
-            
-            for(ECSBucketACL.GroupAcl groupAce : group_acl){
+
+            for (ECSBucketACL.GroupAcl groupAce : group_acl) {
                 String groupWithDomain = groupAce.getGroup();
-                String[] customGrpDomain = groupWithDomain.split(DELIMETER);
+                String[] grpDomain = groupWithDomain.split(DELIMETER);
                 BucketACE bucketAce = new BucketACE();
-                if(customGrpDomain.length > 1){
-                    bucketAce.setDomain(customGrpDomain[1]);
-                    bucketAce.setCustomGroup(customGrpDomain[0]);
-                }else if(customGrpDomain.length == 1){
-                    bucketAce.setCustomGroup(customGrpDomain[0]);
+                if (grpDomain.length > 1) {
+                    bucketAce.setDomain(grpDomain[1]);
+                    bucketAce.setGroup(grpDomain[0]);
+                } else if (grpDomain.length == 1) { // group without domain
+                    bucketAce.setGroup(grpDomain[0]);
                 }
                 String[] permArray = groupAce.getPermission();
                 String permissions = formatPermissions(permArray);
                 bucketAce.setPermissions(permissions);
                 aclToAdd.add(bucketAce);
             }
-            
-            for(ECSBucketACL.CustomGroupAcl customGroupAce : customgroup_acl){
+
+            for (ECSBucketACL.CustomGroupAcl customGroupAce : customgroup_acl) {
                 String customGroupWithDomain = customGroupAce.getCustomgroup();
                 String[] grpDomain = customGroupWithDomain.split(DELIMETER);
                 BucketACE bucketAce = new BucketACE();
-                if(grpDomain.length > 1){
+                if (grpDomain.length > 1) {
                     bucketAce.setDomain(grpDomain[1]);
-                    bucketAce.setGroup(grpDomain[0]);
-                }else if(grpDomain.length == 1){
-                    bucketAce.setGroup(grpDomain[0]);
+                    bucketAce.setCustomGroup(grpDomain[0]);
+                } else if (grpDomain.length == 1) { // custom group without domain
+                    bucketAce.setCustomGroup(grpDomain[0]);
                 }
                 String[] permArray = customGroupAce.getPermission();
                 String permissions = formatPermissions(permArray);
                 bucketAce.setPermissions(permissions);
                 aclToAdd.add(bucketAce);
             }
-            
+
             BucketACLUpdateParams param = new BucketACLUpdateParams();
             BucketACL aclForAddition = new BucketACL();
             aclForAddition.setBucketACL(aclToAdd);
@@ -674,7 +677,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             completeTask(bucket.getId(), taskId, e);
             return BiosCommandResult.createErrorResult(e);
         }
-       
+
         completeTask(bucket.getId(), taskId, "Bucket ACL Sync Successful.");
         return BiosCommandResult.createSuccessfulResult();
     }

@@ -574,6 +574,8 @@ public enum ServiceCode {
 
     // customConfig controller errors (62000 - 62099)
     CONTROLLER_CUSTOMCONFIG_ERROR(62000),
+
+    // Keystone errors (62100-62199)
     KEYSTONE_API_ERROR(62100),
     KEYSTONE_REQUEST_PARSE_ERRORS(62101),
     KEYSTONE_RESPONSE_PARSE_ERROR(62102),

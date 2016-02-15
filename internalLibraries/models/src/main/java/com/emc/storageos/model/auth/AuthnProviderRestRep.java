@@ -67,9 +67,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     /**
      * Specifies if OpenStack Projects will be auto-registered as Tenants in CoprHD.
-     * 
-     * @valid true = Projects will be registered as tenants
-     * @valid false = Projects will NOT be registered as tenants 
+     *
      */
     @XmlElement(name = "auto_register")
     public Boolean getAutoRegisterOpenStackProjects() {

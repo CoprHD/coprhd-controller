@@ -33,6 +33,8 @@ import util.datatable.DataTablesSupport;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.host.HostRestRep;
 import com.emc.vipr.client.exceptions.ViPRException;
 import com.google.common.collect.Lists;
 
@@ -74,7 +76,7 @@ public class MobilityGroups extends ViprResourceController {
     }
 
     public static void mobilityGroupResourcesTable(String id) {
-        List<controllers.arrays.MobilityGroups.MobilityGroupResourcesTable.MobilityGroupResource> mobilityGroupResourcesTable = new MobilityGroupResourcesTable(
+        List<controllers.arrays.MobilityGroups.MobilityGroupResourcesTable.MobilityGroupResource> mobilityGroupResourcesTable = getTable(
                 uri(id)).fetch();
         renderJSON(DataTablesSupport.createJSON(mobilityGroupResourcesTable, params));
     }
@@ -85,12 +87,25 @@ public class MobilityGroups extends ViprResourceController {
             MobilityGroupForm mobilityGroupForm = new MobilityGroupForm(mobilityGroup);
             renderArgs.put("migrationTypes", StringOption.options(MIGRATION_TYPE));
             renderArgs.put("migrationGroupBys", StringOption.options(GROUP_BY, false));
-            renderArgs.put("mobilityGroupResourcesTable", new MobilityGroupResourcesTable(mobilityGroup.getId()));
+            renderArgs.put("mobilityGroupResourcesTable", getTable(mobilityGroup.getId()));
             edit(mobilityGroupForm);
         }
         else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
             list();
+        }
+    }
+
+    private static MobilityGroupResourcesTable getTable(URI uri) {
+        VolumeGroupRestRep mobilityGroup = MobilityGroupSupportUtil.getMobilityGroup(uri.toString());
+        if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+            return new MobilityGroupVolumesResourcesTable(mobilityGroup.getId());
+        } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+            return new MobilityGroupHostsResourcesTable(mobilityGroup.getId());
+        } else if (mobilityGroup.getMigrationGroupBy().equalsIgnoreCase(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+            return new MobilityGroupClustersResourcesTable(mobilityGroup.getId());
+        } else {
+            return null;
         }
     }
 
@@ -200,36 +215,117 @@ public class MobilityGroups extends ViprResourceController {
         }
     }
 
-    public static class MobilityGroupResourcesTable extends DataTable {
-        private final URI id;
-
-        public MobilityGroupResourcesTable(URI id) {
-            this.id = id;
-            addColumn("name");
-            addColumn("id");
-            sortAll();
-            setDefaultSort("name", "asc");
+    public static class MobilityGroupVolumesResourcesTable extends MobilityGroupResourcesTable {
+        public MobilityGroupVolumesResourcesTable(URI id) {
+            super(id);
+            addColumn("name").setRenderFunction("renderVolumes");
+            addColumn("virtualArray");
+            addColumn("virtualPool");
         }
 
+        @Override
         public List<MobilityGroupResource> fetch() {
 
             List<MobilityGroupResource> resources = Lists.newArrayList();
             List<NamedRelatedResourceRep> relatedReps = Lists.newArrayList();
 
-            VolumeGroupRestRep mobilityGroup = BourneUtil.getViprClient().application().get(id);
-            if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
-                relatedReps = BourneUtil.getViprClient().application().getVolumes(id);
-            } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
-                relatedReps = BourneUtil.getViprClient().application().getHosts(id);
-            } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
-                relatedReps = BourneUtil.getViprClient().application().getClusters(id);
-            }
+            relatedReps = BourneUtil.getViprClient().application().getVolumes(this.id);
 
             for (NamedRelatedResourceRep resource : relatedReps) {
                 resources.add(new MobilityGroupResource(resource.getId(), resource.getName()));
             }
             return resources;
         }
+
+        public static class Volume extends MobilityGroupResource {
+            public String type;
+            public String virtualArray;
+            public String virtualPool;
+
+            public Volume(URI uri, String name) {
+                super(uri, name);
+                VolumeRestRep volume = BourneUtil.getViprClient().blockVolumes().get(uri);
+                URI varray = volume.getVirtualArray().getId();
+                URI vpool = volume.getVirtualPool().getId();
+                virtualArray = BourneUtil.getViprClient().varrays().get(varray).getName();
+                virtualPool = BourneUtil.getViprClient().blockVpools().get(vpool).getName();
+            }
+        }
+    }
+
+    public static class MobilityGroupHostsResourcesTable extends MobilityGroupResourcesTable {
+        public MobilityGroupHostsResourcesTable(URI id) {
+            super(id);
+            addColumn("name").setRenderFunction("renderVolumes");
+            addColumn("hostname");
+            addColumn("type");
+        }
+
+        @Override
+        public List<MobilityGroupResource> fetch() {
+
+            List<NamedRelatedResourceRep> relatedReps = BourneUtil.getViprClient().application().getHosts(this.id);
+
+            for (NamedRelatedResourceRep resource : relatedReps) {
+                resources.add(new Host(resource.getId(), resource.getName()));
+            }
+            return resources;
+        }
+
+        public static class Host extends MobilityGroupResource {
+            public String type;
+            public String hostname;
+
+            public Host(URI uri, String name) {
+                super(uri, name);
+                HostRestRep host = BourneUtil.getViprClient().hosts().get(uri);
+                type = host.getType();
+                hostname = host.getHostName();
+            }
+        }
+
+    }
+
+    public static class MobilityGroupClustersResourcesTable extends MobilityGroupResourcesTable {
+        public MobilityGroupClustersResourcesTable(URI id) {
+            super(id);
+            addColumn("name").setRenderFunction("renderVolumes");
+            addColumn("tenant");
+        }
+
+        @Override
+        public List<MobilityGroupResource> fetch() {
+
+            List<NamedRelatedResourceRep> relatedReps = BourneUtil.getViprClient().application().getClusters(this.id);
+
+            for (NamedRelatedResourceRep resource : relatedReps) {
+                resources.add(new Cluster(resource.getId(), resource.getName()));
+            }
+            return resources;
+        }
+
+        public static class Cluster extends MobilityGroupResource {
+            public String tenant;
+
+            public Cluster(URI uri, String name) {
+                super(uri, name);
+                URI tenantId = BourneUtil.getViprClient().clusters().get(uri).getTenant().getId();
+                tenant = BourneUtil.getViprClient().tenants().get(tenantId).getName();
+            }
+        }
+    }
+
+    public abstract static class MobilityGroupResourcesTable extends DataTable {
+        protected final URI id;
+        protected List<MobilityGroupResource> resources = Lists.newArrayList();
+
+        public MobilityGroupResourcesTable(URI id) {
+            this.id = id;
+            sortAll();
+            setDefaultSort("name", "asc");
+        }
+
+        public abstract List<MobilityGroupResource> fetch();
 
         public static class MobilityGroupResource {
             public URI id;

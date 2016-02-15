@@ -21,6 +21,24 @@
 $(document).ready(function() {
 	var editMode = #{get 'editMode'/};
 });
+
+function renderVolumes(o, val) {
+    return renderLink(o, val, #{jsAction @resources.BlockVolumes.volume(':id')/});
+}
+
+function renderHosts(o, val) {
+    return renderLink(o, val, #{jsAction @compute.Hosts.edit(':id')/});
+}
+
+function renderClusters(o, val) {
+    return renderLink(o, val, #{jsAction @compute.HostClusters.edit(':id')/});
+}
+
+function renderLink(o, val, url) {
+	var data = o.aData;
+    var href = url(data);
+    return "<a href='"+href+"'>" + val + "</a>";
+}
 </script>
 
 <div class="container">

@@ -123,7 +123,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
         // Throw an exception when response code is other than OK
         if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
-            throw KeystoneApiException.exceptions.endpointRequestFailure(response.getClientResponseStatus().name());
+            throw KeystoneApiException.exceptions.apiExecutionFailed(response.toString());
         }
 
         // Parse response to Java object.
@@ -163,7 +163,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
         // Throw an exception when response code is other than OK.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
-            throw KeystoneApiException.exceptions.serviceRequestFailure(response.getClientResponseStatus().name());
+            throw KeystoneApiException.exceptions.apiExecutionFailed(response.toString());
         }
 
         // Parse response to Java object.
@@ -210,7 +210,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
         // Throw an exception when response code is other than NO_CONTENT.
         if (response.getClientResponseStatus() != ClientResponse.Status.NO_CONTENT) {
-            throw KeystoneApiException.exceptions.endpointRequestFailure(response.getClientResponseStatus().name());
+            throw KeystoneApiException.exceptions.apiExecutionFailed(response.toString());
         }
 
         log.debug("END - deleteKeystoneEndpoint");
@@ -257,7 +257,7 @@ public class KeystoneApiClient extends StandardRestClient {
         // Throw an exception when response code is other than OK or CREATED.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK
                 && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
-            throw KeystoneApiException.exceptions.endpointRequestFailure(response.getClientResponseStatus().name());
+            throw KeystoneApiException.exceptions.apiExecutionFailed(response.toString());
         }
 
         // Parse response to Java object.
@@ -292,7 +292,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
         // Throw an exception when response code is other than OK.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
-            throw KeystoneApiException.exceptions.tenantRequestFailure(response.getClientResponseStatus().name());
+            throw KeystoneApiException.exceptions.apiExecutionFailed(response.toString());
         }
 
         // Parse response to Java object.

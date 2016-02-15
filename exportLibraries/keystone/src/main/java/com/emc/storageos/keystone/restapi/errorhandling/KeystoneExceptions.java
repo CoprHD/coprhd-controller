@@ -27,17 +27,8 @@ public interface KeystoneExceptions {
 	@DeclareServiceCode(ServiceCode.KEYSTONE_API_ERROR)
     KeystoneApiException authenticationFailure(String keystoneUri) ;
 
-	@DeclareServiceCode(ServiceCode.KEYSTONE_API_ERROR)
-    KeystoneApiException endpointRequestFailure(String responseCode);
-
-    @DeclareServiceCode(ServiceCode.KEYSTONE_API_ERROR)
-    KeystoneApiException serviceRequestFailure(String responseCode);
-
     @DeclareServiceCode(ServiceCode.KEYSTONE_CONFIGURATION_ERROR)
     KeystoneApiException missingService(String serviceName);
-
-    @DeclareServiceCode(ServiceCode.KEYSTONE_API_ERROR)
-    KeystoneApiException tenantRequestFailure(String responseCode);
 
 	@DeclareServiceCode(ServiceCode.KEYSTONE_REQUEST_PARSE_ERRORS)
 	KeystoneApiException requestJsonPayloadParseFailure(String requestPayload);

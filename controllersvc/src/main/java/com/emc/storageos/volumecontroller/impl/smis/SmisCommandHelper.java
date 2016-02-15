@@ -7106,35 +7106,50 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Get the SMI-S input arguments when re-linking a target to an array snapshot.
      *
+     * @param system A reference to the storage system.
      * @param settingsStatePath The CIM object path of the CIM_SettingsDefineState for the target array snapshot.
      * @param targetDevicePath The CIM object path of the target volume.
+     * @param isCopyMode true if the target is currently linked in "copy" mode, false otherwise.
      *
      * @return An array of CIMArgument
      */
-    public CIMArgument[] getModifySettingsDefinedStateForRelinkTargets(CIMObjectPath settingsStatePath,
-            CIMObjectPath targetDevicePath) {
-        return new CIMArgument[] {
-                _cimArgument.uint16(CP_OPERATION, RELINK_TARGET_VALUE),
-                _cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath),
-                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
-        };
+    public CIMArgument[] getModifySettingsDefinedStateForRelinkTargets(StorageSystem system, CIMObjectPath settingsStatePath,
+            CIMObjectPath targetDevicePath, boolean isCopyMode) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.uint16(CP_OPERATION, RELINK_TARGET_VALUE));
+        args.add(_cimArgument.reference(CP_TARGET_ELEMENT, targetDevicePath));
+        args.add(_cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath));
+        if (isCopyMode) {
+            CIMInstance replicationsettingDataInstance = getReplicationSettingDataInstanceForDesiredCopyMethod(system,
+                    COPY_METHODOLOGY_FULL_COPY, false);
+            args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, replicationsettingDataInstance));
+        }
+
+        return args.toArray(new CIMArgument[args.size()]);
     }
 
     /**
      * Get the SMI-S input arguments when re-linking a target group to an array snapshot.
      *
+     * @param system A reference to the storage system.
      * @param settingsStatePath The CIM object path of the CIM_SettingsDefineState for the target array snapshot.
      * @param targetDevicePath The CIM object path of the target volume.
+     * @param isCopyMode true if the target group is currently linked in "copy" mode, false otherwise.
      *
      * @return An array of CIMArgument
      */
-    public CIMArgument[] getModifySettingsDefinedStateForRelinkTargetGroups(CIMObjectPath settingsStatePath,
-                                                                       CIMObjectPath replicationGroupPath) {
-        return new CIMArgument[] {
-                _cimArgument.uint16(CP_OPERATION, RELINK_TARGET_VALUE),
-                _cimArgument.reference(CP_TARGET_GROUP, replicationGroupPath),
-                _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath)
-        };
+    public CIMArgument[] getModifySettingsDefinedStateForRelinkTargetGroups(StorageSystem system, CIMObjectPath settingsStatePath, 
+            CIMObjectPath replicationGroupPath, boolean isCopyMode) {
+        List<CIMArgument> args = new ArrayList<CIMArgument>();
+        args.add(_cimArgument.uint16(CP_OPERATION, RELINK_TARGET_VALUE));
+        args.add(_cimArgument.reference(CP_TARGET_GROUP, replicationGroupPath));
+        args.add(_cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath));
+        if (isCopyMode) {
+            CIMInstance replicationsettingDataInstance = getReplicationSettingDataInstanceForDesiredCopyMethod(system,
+                    COPY_METHODOLOGY_FULL_COPY, false);
+            args.add(_cimArgument.object(CP_REPLICATIONSETTING_DATA, replicationsettingDataInstance));
+        }
+        return args.toArray(new CIMArgument[args.size()]);
     }
 
     /**

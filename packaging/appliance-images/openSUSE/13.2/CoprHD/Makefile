@@ -113,18 +113,18 @@ createREPO: | downloadRPM downloadTGZ
 	$(call targetLog,-)
 
 clean:
-	rm -fr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
-	rm -fr $(WORKSPACE)/image/$(JOB)
-	rm -fr $(WORKSPACE)/output
-	rm -fr $(WORKSPACE)/zypper/repo
-	rm -fr $(WORKSPACE)/zypper/reposd
+	@rm -fr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+	@rm -fr $(WORKSPACE)/image/$(JOB)
+	@rm -fr $(WORKSPACE)/output
+	@rm -fr $(WORKSPACE)/zypper/repo
+	@rm -fr $(WORKSPACE)/zypper/reposd
 
 destroy:
-	rm -fr $(WORKSPACE)/iso
-	rm -fr $(WORKSPACE)/build
-	rm -fr $(WORKSPACE)/image
-	rm -fr $(WORKSPACE)/output
-	rm -fr $(WORKSPACE)/zypper
+	@rm -fr $(WORKSPACE)/iso
+	@rm -fr $(WORKSPACE)/build
+	@rm -fr $(WORKSPACE)/image
+	@rm -fr $(WORKSPACE)/output
+	@rm -fr $(WORKSPACE)/zypper
 
 appliance: | ovf vmx box tgz
 

@@ -48,6 +48,7 @@ function installPackages
   cp -f /etc/zypp/repos.d/suse-13.2-oss.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-monitoring.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-python.repo /tmp/coprhd.d/
+  cp -f /etc/zypp/repos.d/suse-13.2-network.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-seife.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-containers.repo /tmp/coprhd.d/
 

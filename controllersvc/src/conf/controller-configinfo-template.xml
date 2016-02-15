@@ -65,6 +65,7 @@
         <entry key="Metering-vnxfile" value="metering-vnxfile-context.xml" />
         <entry key="Metering-isilon" value="metering-block-context.xml" />
         <entry key="Metering-netapp" value="metering-block-context.xml" />
+        <entry key="Metering-netappc" value="metering-block-context.xml" />
         <entry key="Metering-vplex" value="metering-block-context.xml" />
         <entry key="Metering-datadomain" value="discovery-datadomain-context.xml" />
 

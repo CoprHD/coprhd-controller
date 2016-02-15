@@ -11,7 +11,9 @@ import java.util.Set;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
@@ -49,8 +51,9 @@ public class BlockApplications extends ResourceController {
     public static void blockApplicationDetails(String id) {
         renderArgs.put("dataTable", new VolumeApplicationDataTable());
         renderArgs.put("cloneTable", new CloneApplicationDataTable());
+        Set<String> clonesSet = AppSupportUtil.getFullCopySetsByApplication(id);
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
-        render(application);
+        render(application,clonesSet);
     }
 
     public static void applicationVolumeJson(String id) {
@@ -63,33 +66,20 @@ public class BlockApplications extends ResourceController {
         renderJSON(DataTablesSupport.createJSON(volumeDetails, params));
     }
 
-    public static void applicationCloneJson(String id) {
-        List<Clone> cloneDetails = Lists.newArrayList();
-        List<NamedRelatedResourceRep> clonesSet = AppSupportUtil.getFullCopySetsByApplication(id);
-        for (NamedRelatedResourceRep clone : clonesSet) {
-            VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get((clone.getId()));
-            cloneDetails.add(new Clone(blockVolume));
-        }
-        renderJSON(DataTablesSupport.createJSON(cloneDetails, params));
-    }
 
-    public static void getAssociatedVolume(String id, String applicationId) {
-        render(id, applicationId);
-    }
-
-    public static void getAssociatedVolumes(String id, String applicationId) {
+    public static void getAssociatedVolumes(String id, String copySet) {
         renderArgs.put("dataTable", new VolumeApplicationDataTable());
-        VolumeRestRep clone = BourneUtil.getViprClient().blockVolumes().get(uri(id));
-        VolumeGroupRestRep application = AppSupportUtil.getApplication(applicationId);
-        render(clone, application);
+        VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
+        render(application, copySet);
     }
 
-    public static void getAssociatedVolumesJSON(String id) {
-        VolumeRestRep clone = BourneUtil.getViprClient().blockVolumes().get(uri(id));
-        URI associatedVolumeId = clone.getProtection().getFullCopyRep().getAssociatedSourceVolume().getId();
-        VolumeRestRep volumes = BourneUtil.getViprClient().blockVolumes().get(associatedVolumeId);
+    public static void getAssociatedVolumesJSON(String copySet, String id) {
         List<Volume> volumeDetails = Lists.newArrayList();
-        volumeDetails.add(new Volume(volumes, virtualArrays, virtualPools));
+//        List<NamedRelatedResourceRep> volumeDetailClone = AppSupportUtil.getVolumeGroupFullCopiesForSet(id,copySet);
+//        for(NamedRelatedResourceRep volume:volumeDetailClone) {
+//            VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get(volume.getId());
+//            volumeDetails.add(new Volume(blockVolume, virtualArrays, virtualPools));
+//        }
         renderJSON(DataTablesSupport.createJSON(volumeDetails, params));
     }
 
@@ -111,12 +101,10 @@ public class BlockApplications extends ResourceController {
         // Suppressing Sonar violation of need for accessor methods.
         @SuppressWarnings("ClassVariableVisibilityCheck")
         public static class Clone {
-            public URI id;
-            public String cloneGroups;
+            public Set<String> cloneGroups;
 
-            public Clone(VolumeRestRep volume) {
-                id = volume.getId();
-                cloneGroups = volume.getProtection().getFullCopyRep().getFullCopySetName();
+            public Clone(Set<String> clonesSet) {
+                cloneGroups = clonesSet;
             }
         }
     }

@@ -24,6 +24,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
@@ -141,12 +142,22 @@ public class ApplicationSupport {
     
     /**
      * Get full copy set for an application
-     * GET /volume-groups/block/{id}/protection/full-copies/full-copy-sets
+     * GET /volume-groups/block/{id}/protection/full-copies/copy-sets
      */
     
-    public NamedVolumesList getFullCopySetsByApplication(URI id) {
-        return client.get(NamedVolumesList.class, APP_SUPPORT_CLONE_SET_URL, id);
+    public VolumeGroupCopySetList getFullCopySetsByApplication(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_CLONE_SET_URL, id);
     }
+    
+    /**
+     * POST /volume-groups/block/{id}/protection/full-copies/copy-sets/{id}
+     * 
+     */
+    public NamedVolumesList getVolumeGroupFullCopiesForSet(URI applicationId, VolumeGroupCopySetList param) {
+        UriBuilder uribuilder = client.uriBuilder(APP_SUPPORT_CLONE_SET_URL);
+        return client.postURI(NamedVolumesList.class, param, uribuilder.build(applicationId));
+    }
+    
     
     /**
      * Detaches a full copy of an application.

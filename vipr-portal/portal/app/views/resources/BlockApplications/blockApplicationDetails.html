@@ -14,13 +14,7 @@ function renderLink(o, val) {
     return "<a href='"+href+"'>" + val + "</a>";
 }
 
-function renderCloneLink(o,val) {
-	var data = o.aData;
-	var application = '${application}';
-	var url = #{jsAction @resources.BlockApplications.getAssociatedVolumes(':id',application.id)/};
-	var href = url(data);
-    return "<a href='"+href+"'>" + val + "</a>";
-}
+
 
 function updateVolumes(oSettings) {
     var count = $('#volumeApplication table').dataTable({ bRetrieve: true }).fnGetData().length;
@@ -30,12 +24,7 @@ function updateVolumes(oSettings) {
     }
   }
   
-function updateClones(oSettings) {
-	var count = $('#cloneApplication table').dataTable({ bRetrieve: true }).fnGetData().length;
-	if (count!= '0') {
-		$('#cloneCountBadge').text(count);
-	}
-}
+
 </script>
 <div class="clear"></div>
 
@@ -59,13 +48,18 @@ function updateClones(oSettings) {
     </div>
   </div>
   <div class="col-sm-12">
-  #{collapse 'resources.volume.fullcopies',badge:'cloneCountBadge', noPanelBody: true}          
-          #{DataTable.table id:'cloneApplication',
-                  dataTable:cloneTable,
-                  source:@applicationCloneJson(application.id),
-                  cssClass:'editableRows',
-                  options:['iDisplayLength': '5', 'fnDrawCallback': 'updateClones']/} 
-          
+  #{collapse 'resources.volume.fullcopies', noPanelBody: true}          
+          <table class='table table-condensed table-striped'>
+          <thead>
+          <tr>
+          <th>&{'cloneApplication.cloneGroups'}</th>
+          </tr>
+          </thead>
+          <tbody>
+          #{list items:clonesSet, as:'clones'}
+          <tr>
+          <td><a href="@{resources.BlockApplications.getAssociatedVolumes(application.id,clones)}">${clones}</a></td>
+          </tr>#{/list}</table>
 #{/collapse}
   </div>
 #{/if}

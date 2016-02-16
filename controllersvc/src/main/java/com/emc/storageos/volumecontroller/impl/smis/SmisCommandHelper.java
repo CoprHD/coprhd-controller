@@ -81,6 +81,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
@@ -2325,8 +2326,13 @@ public class SmisCommandHelper implements SmisConstants {
     public boolean doApplyRecoverPointTag(final StorageSystem storageSystem,
             Volume volume, boolean flag) throws Exception {
         boolean tagSet = false;
+        boolean validRPVolume = false;
+
+        // A valid RP volume for tagging is one that has a valid RP copy name and that isn't a VPlex backing volume
+        validRPVolume = volume.checkForRp() && !RPHelper.isAssociatedToAllRpVplexTypes(volume, _dbClient);
+
         // Set/Unset the RP tag (if applicable)
-        if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
+        if (volume != null && storageSystem != null && validRPVolume && storageSystem.getSystemType() != null
                 && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
@@ -2379,7 +2385,7 @@ public class SmisCommandHelper implements SmisConstants {
             if (e.getMessage().contains("is already set to the requested state")) {
                 _log.info("Found the volume was already in the proper RecoverPoint tag state");
                 tagSet = true;
-            } else {                
+            } else {
                 _log.error(String.format("Encountered an error while trying to %s the RecoverPoint tag", tag ? "enable" : "disable"), e);
             }
         }
@@ -2404,7 +2410,7 @@ public class SmisCommandHelper implements SmisConstants {
             _log.error("Unable to set RecoverPoint Tag for VMAX V3 and beyond");
             return tagSet;
         }
-        
+
         while (!tagSet && setTagTries-- > 0) {
             if ((MAX_WAIT_TOTAL_TRIES - setTagTries) != 1) {
                 _log.info("Briefly sleeping before attempting to set RecoverPoint tag (Attempt #{} / {})", MAX_WAIT_TOTAL_TRIES
@@ -2726,7 +2732,7 @@ public class SmisCommandHelper implements SmisConstants {
         return new CIMArgument[] {
                 _cimArgument.uint16(CP_OPERATION, RESTORE_FROM_SYNC_SETTINGS),
                 _cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath),
-                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, RESTORED_COPY_STATE)                
+                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, RESTORED_COPY_STATE)
         };
     }
 
@@ -4329,7 +4335,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Simple puts the thread to sleep for the passed duration.
-     * 
+     *
      * @param duration How long to pause in milliseconds.
      */
     static void pauseThread(long duration) {
@@ -4465,12 +4471,12 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getCreateSynchronizationAspectForGroupInput(CIMObjectPath replicationGroup, boolean skipRefresh,
-                                                                     String name, Integer mode) {
+            String name, Integer mode) {
         return getCreateSynchronizationAspectInput(replicationGroup, skipRefresh, name, mode, CP_SOURCE_GROUP);
     }
 
     public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, boolean skipRefresh,
-                                                                     String name, Integer mode) {
+            String name, Integer mode) {
         return getCreateSynchronizationAspectInput(sourcePath, skipRefresh, name, mode, CP_SOURCE_ELEMENT);
     }
 
@@ -4487,7 +4493,7 @@ public class SmisCommandHelper implements SmisConstants {
      * @return An array of CIMArgument
      */
     public CIMArgument[] getCreateSynchronizationAspectInput(CIMObjectPath sourcePath, boolean skipRefresh, String name,
-                                                             Integer mode, String sourceParameter) {
+            Integer mode, String sourceParameter) {
         List<CIMArgument> argList = new ArrayList<CIMArgument>();
         argList.add(_cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE));
         argList.add(_cimArgument.reference(sourceParameter, sourcePath));
@@ -5485,7 +5491,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get the policy by BlockObject autoTieringPolicy URI.
-     * 
+     *
      * @param pool
      * @param autoTierPolicyName
      * @param policyURI
@@ -7031,7 +7037,7 @@ public class SmisCommandHelper implements SmisConstants {
                         }
 
                         CIMProperty<?> elementNameProp = new CIMProperty<Object>(SmisConstants.CP_ELEMENT_NAME, STRING_T,
-                                    elementName);
+                                elementName);
                         list.add(elementNameProp);
 
                         modifiedInstance = repInstance.deriveInstance(list.toArray(new CIMProperty[] {}));
@@ -7080,13 +7086,13 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     public CIMArgument[] getModifySettingsDefinedStateForLinkTargetGroup(StorageSystem system, CIMObjectPath settingsStatePath,
-                                                                     CIMObjectPath targetDevicePath, String copyMode) {
+            CIMObjectPath targetDevicePath, String copyMode) {
         return getModifySettingsDefinedStateForLinking(system, settingsStatePath, targetDevicePath, copyMode, CP_TARGET_GROUP);
     }
 
     public CIMArgument[] getModifySettingsDefinedStateForLinking(StorageSystem system, CIMObjectPath settingsStatePath,
-                                                                 CIMObjectPath targetPath, String copyMode,
-                                                                 String targetKey) {
+            CIMObjectPath targetPath, String copyMode,
+            String targetKey) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.add(_cimArgument.reference(CP_SETTINGS_STATE, settingsStatePath));
         args.add(_cimArgument.reference(targetKey, targetPath));
@@ -7138,7 +7144,7 @@ public class SmisCommandHelper implements SmisConstants {
      *
      * @return An array of CIMArgument
      */
-    public CIMArgument[] getModifySettingsDefinedStateForRelinkTargetGroups(StorageSystem system, CIMObjectPath settingsStatePath, 
+    public CIMArgument[] getModifySettingsDefinedStateForRelinkTargetGroups(StorageSystem system, CIMObjectPath settingsStatePath,
             CIMObjectPath replicationGroupPath, boolean isCopyMode) {
         List<CIMArgument> args = new ArrayList<CIMArgument>();
         args.add(_cimArgument.uint16(CP_OPERATION, RELINK_TARGET_VALUE));
@@ -7169,8 +7175,8 @@ public class SmisCommandHelper implements SmisConstants {
     // TODO Constantize these strings
 
     public CIMArgument[] fabricateSourceGroupSynchronizationAspectInputArguments(StorageSystem system,
-                                                                                 BlockConsistencyGroup cg,
-                                                                                 String sessionLabel) {
+            BlockConsistencyGroup cg,
+            String sessionLabel) {
         List<String> addSFSEntries = new ArrayList<>();
         addSFSEntries.add("AddSFSEntries");
         String repGrpName = cg.getCgNameOnStorageSystem(system.getId());
@@ -7191,7 +7197,7 @@ public class SmisCommandHelper implements SmisConstants {
      * This method will extract and return only the group name, if required.
      *
      * @param groupName Replication group name, possibly containing the system serial.
-     * @return          Replication group name.
+     * @return Replication group name.
      */
     public String extractGroupName(String groupName) {
         Pattern p = Pattern.compile("^\\S+\\+(\\S+)$");

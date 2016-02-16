@@ -47,7 +47,8 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_ACL = "/object/bucket/{0}/acl.json";    
     private static final String URI_GET_NAMESPACES = "/object/namespaces.json";
     private static final String URI_GET_NAMESPACE_DETAILS = "/object/namespaces/namespace/{0}.json";
-    private static final String URI_USER_SECRET_KEYS = "/object/user-secret-keys/{0}.json";    
+    private static final String URI_USER_SECRET_KEYS = "/object/user-secret-keys/{0}.json"; 
+    private static final String URI_GET_BUCKET_ACL = "/object/bucket/{0}/acl.json?namespace={1}";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -513,13 +514,13 @@ public class ECSApi {
      * @return String response 
      * @throws ECSException
      */
-    public String getBucketAclFromECS(String bucketName) throws ECSException {
+    public String getBucketAclFromECS(String bucketName, String namespace) throws ECSException {
         _log.debug("ECSApi:getBucketAclFromECS");
         ClientResponse clientResp = null;
        
         try {
             String responseString = null;
-            final String path = MessageFormat.format(URI_UPDATE_BUCKET_ACL, bucketName);
+            final String path = MessageFormat.format(URI_GET_BUCKET_ACL, bucketName, namespace);
             getAuthToken();
             clientResp = get(path);
             if (null == clientResp) {

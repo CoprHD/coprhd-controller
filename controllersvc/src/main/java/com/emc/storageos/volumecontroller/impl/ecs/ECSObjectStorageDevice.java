@@ -616,7 +616,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             throws ControllerException {
         ECSApi objectAPI = getAPI(storageObj);
         try {
-            String aclResponse = objectAPI.getBucketAclFromECS(objectArgs.getName());
+            String aclResponse = objectAPI.getBucketAclFromECS(objectArgs.getName(), objectArgs.getNamespace());
             _log.info("aclResponse {} " + aclResponse);
             ECSBucketACL bucketACl = new Gson().fromJson(SecurityUtils.sanitizeJsonString(aclResponse), ECSBucketACL.class);
             ECSBucketACL.Acl acl = bucketACl.getAcl();

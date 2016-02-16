@@ -13,6 +13,7 @@ import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDa
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
 import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.CONTROLLER_ERROR;
 import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.model.block.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -424,6 +426,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -729,6 +732,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
 
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
+
+        // Snapshot session linked targets must be unlinked instead.
+        BlockSnapshotSession session = BlockSnapshotSessionUtils.getLinkedTargetSnapshotSession(snapshot, _dbClient);
+        if (session != null) {
+            return deactivateAndUnlinkTargetVolumesForSession(session, snapshot);
+        }
 
         // Generate task id
         final String task = UUID.randomUUID().toString();
@@ -1422,6 +1431,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -1451,6 +1461,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -1482,6 +1493,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return A TaskList representing the snapshot session task.
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions/{sid}/link-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1507,6 +1519,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return A TaskResourceRep representing the snapshot session task.
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions/{sid}/unlink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1515,6 +1528,21 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                                                          SnapshotSessionUnlinkTargetsParam param) {
         validateSessionPartOfConsistencyGroup(id, sessionId);
         return getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(sessionId, param);
+    }
+
+    /**
+     * This method is called when a linked BlockSnapshot for a BlockSnapshotSession is passed to
+     * {@link #deactivateConsistencyGroupSnapshot(URI, URI)} and we must instead unlink&delete it.
+     *
+     * @param session   The BlockSnapshotSession.
+     * @param snapshot  The BlockSnapshot.
+     * @return          TaskList wrapping the single TaskResourceRep.
+     */
+    private TaskList deactivateAndUnlinkTargetVolumesForSession(BlockSnapshotSession session, BlockSnapshot snapshot) {
+        SnapshotSessionUnlinkTargetParam unlink = new SnapshotSessionUnlinkTargetParam(snapshot.getId(), true);
+        SnapshotSessionUnlinkTargetsParam param = new SnapshotSessionUnlinkTargetsParam(newArrayList(unlink));
+        TaskResourceRep task = unlinkTargetVolumesForSession(session.getConsistencyGroup(), session.getId(), param);
+        return new TaskList(newArrayList(task));
     }
 
     /**

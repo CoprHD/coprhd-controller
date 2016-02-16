@@ -298,12 +298,16 @@ public class XtremIOV2Client extends XtremIOClient {
     }
 
     @Override
-    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String clusterName) throws Exception {
+    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String os, String clusterName)
+            throws Exception {
         XtremIOInitiatorCreate initiatorCreate = new XtremIOInitiatorCreate();
         initiatorCreate.setClusterName(clusterName);
         initiatorCreate.setInitiatorGroup(igId);
         initiatorCreate.setName(initiatorName);
         initiatorCreate.setPortAddress(portAddress);
+        if (null != os) {
+            initiatorCreate.setOperatingSystem(os);
+        }
 
         log.info("Calling Initiator Create with: {}", initiatorCreate.toString());
 

@@ -94,6 +94,7 @@ public class ControllerLockingUtil {
         // Now make a key for every host / storage pair
         for (String hostName : hostNames) {
             String key = hostName +  DELIMITER + storageKey;
+            key = key.replaceAll("\\s",  "");
             if (!lockKeys.contains(key)) {
                 lockKeys.add(key);
             }
@@ -136,6 +137,7 @@ public class ControllerLockingUtil {
         // Now make a key for every host / storage pair
         for (String hostName : hostNames) {
             String key = hostName +  DELIMITER + storageKey;
+            key = key.replaceAll("\\s", ""); //remove any spaces as ZK has an issue with space in lockKeys
             if (!lockKeys.contains(key)) {
                 lockKeys.add(key);
             }
@@ -156,7 +158,8 @@ public class ControllerLockingUtil {
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
         String storageKey = getStorageKey(dbClient, storageURI);
         if (consistencyGroup != null) {
-            return consistencyGroup.getLabel() + DELIMITER + storageKey;
+        	
+            return consistencyGroup.getLabel().replaceAll("\\s",  "") + DELIMITER + storageKey;
         } else {
             return cgURI.toString() + DELIMITER + storageKey;
         }

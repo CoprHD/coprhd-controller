@@ -582,10 +582,10 @@ public class DrUtil {
         boolean bStable = true;
 
         for (Site site : listSites()) {
-            // skip checking node state for paused sites.
-            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
-                continue;
+            if (site.getState().isDROperationOngoing()) {
+                return false;
             }
+
             int nodeCount = site.getNodeCount();
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
             if (state != ClusterInfo.ClusterState.STABLE) {

@@ -1034,7 +1034,7 @@ public class BlockFullCopyManager {
         s_logger.info("Get Full copies belonging to the copy set {}", fullCopySetName);
 
         if (NullColumnValueGetter.isNotNullValue(fullCopySetName)) {
-            return ControllerUtils.getClonesBySetName(fullCopySetName, volumeGroup.getId(), _dbClient);
+            return BlockFullCopyUtils.getClonesBySetName(fullCopySetName, volumeGroup.getId(), _dbClient);
         }
 
         // get all volumes for volume group

@@ -1592,31 +1592,6 @@ public class ControllerUtils {
         return arrayGroupToVolumes;
     }
 
-    /**
-     * Gets all clones for the given set name and volume group.
-     * 
-     * @param cloneSetName
-     * @param volumeGroupId
-     * @param dbClient
-     * @return
-     */
-    public static List<Volume> getClonesBySetName(String cloneSetName, URI volumeGroupId, DbClient dbClient) {
-        List<Volume> setClones = new ArrayList<Volume>();
-        if (cloneSetName != null) {
-            URIQueryResultList list = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                    getFullCopiesBySetName(cloneSetName), list);
-            Iterator<Volume> iter = dbClient.queryIterativeObjects(Volume.class, list);
-            while (iter.hasNext()) {
-                Volume vol = iter.next();
-                if (vol.getVolumeGroupIds() != null && vol.getVolumeGroupIds().contains(volumeGroupId)) {
-                    setClones.add(vol);
-                }
-            }
-        }
-        return setClones;
-    }
-
     /*
      * Check replicationGroup contains all and only volumes provided
      *

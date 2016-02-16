@@ -46,9 +46,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -649,7 +647,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         NamedVolumesList fullCopyList = new NamedVolumesList();
-        List<Volume> fullCopiesForSet = ControllerUtils.getClonesBySetName(fullCopySetName, volumeGroupId, _dbClient);
+        List<Volume> fullCopiesForSet = BlockFullCopyUtils.getClonesBySetName(fullCopySetName, volumeGroupId, _dbClient);
         for (Volume fullCopy : fullCopiesForSet) {
             fullCopyList.getVolumes().add(toNamedRelatedResource(fullCopy));
         }
@@ -1214,21 +1212,11 @@ public class VolumeGroupService extends TaskResourceService {
      * @return The URI of the replica's source.
      */
     private URI verifyReplicaForCopyRequest(BlockObject replica, URI volumeGroupUri) {
-        URI sourceURI = null;
-        String replicaType = null;
-        if (replica instanceof BlockSnapshot) {
-            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
-            replicaType = "Snapshot";
-        } else if (replica instanceof BlockMirror) {
-            sourceURI = ((BlockMirror) replica).getSource().getURI();
-            replicaType = "Continuous copy";
-        } else if (replica instanceof Volume) {
-            sourceURI = ((Volume) replica).getAssociatedSourceVolume();
-            replicaType = FULL_COPY;
-        }
+        URI sourceURI = BlockFullCopyUtils.getSourceIdForFullCopy(replica);
 
         if (NullColumnValueGetter.isNullURI(sourceURI)) {
-            throw APIException.badRequests.replicaOperationNotAllowedNotAReplica(replicaType, replica.getLabel());
+            throw APIException.badRequests.replicaOperationNotAllowedNotAReplica(BlockFullCopyUtils.getReplicaType(replica),
+                    replica.getLabel());
         }
 
         Volume sourceVol = _dbClient.queryObject(Volume.class, sourceURI);
@@ -1237,7 +1225,8 @@ public class VolumeGroupService extends TaskResourceService {
             return sourceURI;
         }
 
-        throw APIException.badRequests.replicaOperationNotAllowedSourceNotInVolumeGroup(replicaType, replica.getLabel());
+        throw APIException.badRequests.replicaOperationNotAllowedSourceNotInVolumeGroup(BlockFullCopyUtils.getReplicaType(replica),
+                replica.getLabel());
     }
 
     private List<VolumeGroupUtils> getVolumeGroupUtils(VolumeGroup volumeGroup) {

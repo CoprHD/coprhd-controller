@@ -17,7 +17,6 @@ import java.util.*;
  */
 @XmlRootElement(name = "cluster_ipinfo")
 public class ClusterIpInfo implements Serializable {
-
     private ClusterIpv4Setting ipv4_setting;
     private ClusterIpv6Setting ipv6_setting;
 
@@ -189,7 +188,6 @@ public class ClusterIpInfo implements Serializable {
     }
 
     public boolean weakEqual(String vip, String vip6, Map<String, String> ipv4Addresses, Map<String, String> ipv6Addresses) {
-        
         if (!ipv6_setting.getNetworkVip6().equals(vip6)) {
             return false;
         }

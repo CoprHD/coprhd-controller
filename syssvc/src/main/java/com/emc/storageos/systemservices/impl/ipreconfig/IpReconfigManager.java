@@ -786,6 +786,7 @@ public class IpReconfigManager implements Runnable {
                 log.info("local site IPs are not consistent with ZK, updating.");
                 log.info("    local ipinfo:{}", localIpinfo.toString());
                 log.info("    zk ipinfo: vip={}", site.getVip());
+                log.info("    zk ipinfo: vip6={}", site.getVip6());
                 SortedSet<String> nodeIds = new TreeSet<String>(site.getHostIPv4AddressMap().keySet());
                 for (String nodeId : nodeIds) {
                     log.info("    {}: ipv4={}", nodeId, site.getHostIPv4AddressMap().get(nodeId));

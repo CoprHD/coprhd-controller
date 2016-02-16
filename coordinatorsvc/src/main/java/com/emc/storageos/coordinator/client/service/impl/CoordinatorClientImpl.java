@@ -30,6 +30,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.DeleteBuilder;
 import org.apache.curator.framework.api.transaction.CuratorTransaction;
@@ -243,8 +244,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
-        site.setVip(vip);
-        site.setVip6(vip6);
+        if (StringUtils.isBlank(vip)) {
+            site.setVip(PropertyConstants.IPV4_ADDR_DEFAULT);
+        } else {
+            site.setVip(vip);
+        }
+        if (StringUtils.isBlank(vip6)) {
+            site.setVip6(PropertyConstants.IPV6_ADDR_DEFAULT);
+        } else {
+            site.setVip6(vip6);
+        }
         site.setNodeCount(getNodeCount());
 
         Map<String, DualInetAddress> controlNodes = getInetAddessLookupMap().getControllerNodeIPLookupMap();

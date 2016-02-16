@@ -98,8 +98,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.google.common.collect.Collections2;
 
 @Path("/vdc/unmanaged")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class UnManagedVolumeService extends TaskResourceService {
     public static final String EVENT_SERVICE_TYPE = "block";
     public static final String EVENT_SERVICE_SOURCE = "UnManagedVolumeService";
@@ -108,8 +108,6 @@ public class UnManagedVolumeService extends TaskResourceService {
     public static final String AUTO_TIERING_NOT_CONFIGURED = "UnManaged Volume %s Auto Tiering Policy %s does not match"
             + " with the Policy %s in given vPool %s. Skipping Ingestion";
     public static final String INGESTION_SUCCESSFUL_MSG = "Successfully ingested volume.";
-    public static final DataObject.Flag[] INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] {
-            Flag.INTERNAL_OBJECT, Flag.NO_PUBLIC_ACCESS, Flag.NO_METERING };
 
     private static BlockCGIngestDecorator volumeCGDecorator = null;
     private static BlockCGIngestDecorator vplexCGDecorator = null;
@@ -149,9 +147,9 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * Show the details of unmanaged volume.
-     * 
+     *
      * @param id the URN of a ViPR unmanaged volume
      * @prereq none
      * @brief Show unmanaged volume
@@ -174,9 +172,9 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * List data of specified unmanaged volumes.
-     * 
+     *
      * @param param
      *            POST data containing the id list.
      * @prereq none
@@ -217,7 +215,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      * /vdc/unmanaged/volumes/bulk. Using unsupported virtual pool would result in an error.
      * Size of unmanaged volumes which can be ingested via a single API Call is limited to
      * 4000.
-     * 
+     *
      * @param param
      *            parameters required for unmanaged volume ingestion
      * @prereq none
@@ -297,9 +295,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                     requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
-                    requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
-                    requestContext.getProcessedUnManagedVolumeMap().put(
-                            unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
@@ -354,10 +349,10 @@ public class UnManagedVolumeService extends TaskResourceService {
                             VolumeIngestionUtil.VOLUME));
                     _logger.info("checking partial ingestion status of block object " + createdObject);
                     if ((null != createdObject)
-                            && (!createdObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) ||
-                            // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
-                            (createdObject instanceof Volume && ((Volume) createdObject).checkForRp() && ((Volume) createdObject)
-                                    .getProtectionSet() == null))
+                            && (!createdObject.checkInternalFlags(Flag.PARTIALLY_INGESTED) ||
+                                    // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
+                                    (createdObject instanceof Volume && ((Volume) createdObject).checkForRp() && ((Volume) createdObject)
+                                            .getProtectionSet() == null))
                             ||
                             // If this is a successfully processed VPLEX backend volume, it will have the INTERNAL_OBJECT Flag
                             (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume) && createdObject
@@ -416,7 +411,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Persist the ConsistencyGroups in DB.
-     * 
+     *
      * @param cgsToPersist
      */
     private void persistConsistencyGroups(Collection<BlockConsistencyGroup> cgsToPersist) {
@@ -447,7 +442,7 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * @param requestContext
      * @param taskMap
      */
@@ -537,7 +532,7 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * @param requestContext
      * @param taskMap
      * @param exportIngestParam
@@ -573,7 +568,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.getObjectsIngestedByExportProcessing().add(blockObject);
 
                 // If the ingested object is internal, flag an error. If it's an RP volume, it's exempt from this check.
-                if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) &&
+                if (blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED) &&
                         !(blockObject instanceof Volume && ((Volume) blockObject).getRpCopyName() != null)) {
                     StringBuffer taskStatus = requestContext.getTaskStatusMap().get(processedUnManagedVolume.getNativeGuid());
                     String taskMessage = "";
@@ -622,21 +617,21 @@ public class UnManagedVolumeService extends TaskResourceService {
     /**
      * For each UnManaged Volume Find the list of masking views this volume
      * is exposed to.
-     * 
+     *
      * If only 1 masking view verify if all the initiators are available on
      * the existing MV. Verify the storage Ports are available in given
      * VArray Verify if this export mask is available already If not, then
      * create a new Export Mask with the storage Ports, initiators from
      * ViPr. Else, add volume to export mask.
-     * 
+     *
      * If more than 1 masking view verify if all the initiators are
      * available on all existing MVs. Verify the storage Ports within each
      * Masking view are available in given VArray. Verify if this export
      * mask is available already If not, then create a new Export Mask with
      * the storage Ports, initiators from ViPr. Else, add volume to export
      * mask.
-     * 
-     * 
+     *
+     *
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -757,7 +752,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * group initiators by Protocol
-     * 
+     *
      * @param iniStrList
      * @param dbClient
      * @return
@@ -783,7 +778,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Record volume related event and audit
-     * 
+     *
      * @param dbClient
      *            db client
      * @param opType
@@ -815,7 +810,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Generate and Record a Bourne volume specific event
-     * 
+     *
      * @param dbClient
      * @param evtType
      * @param status
@@ -824,7 +819,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      */
     public void recordBourneVolumeEvent(DbClient dbClient,
             String evtType, Operation.Status status, String desc, URI id)
-            throws Exception {
+                    throws Exception {
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
         BlockObject blockObject = null;
@@ -854,7 +849,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Return the OperationTypeEnum based on the volume type.
-     * 
+     *
      * @param blockObj
      * @return
      */

@@ -24,14 +24,14 @@ import javax.ws.rs.core.UriBuilder;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyDetachParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyRestoreParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.vipr.client.impl.RestClient;
 
 public class ApplicationSupport {

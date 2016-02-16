@@ -2,14 +2,14 @@
  * Copyright (c) 2015 EMC
  * All Rights Reserved
  */
-package com.emc.sa.service.vipr.application;
+package com.emc.sa.service.vipr.application.tasks;
 
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
 import com.emc.vipr.client.Tasks;
 
 // TODO move to tasks package

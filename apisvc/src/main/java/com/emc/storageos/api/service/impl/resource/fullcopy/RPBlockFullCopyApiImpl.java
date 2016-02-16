@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.placement.Scheduler;
@@ -42,7 +43,11 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForFullCopyRequest(BlockObject fcSourceObj) {
-        return super.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
+        BlockFullCopyApi fullCopyApiImpl = getFullCopyApiImpl(fcSourceObj);
+        if (fullCopyApiImpl == null) {
+            throw APIException.methodNotAllowed.notSupportedForRP();
+        }
+        return fullCopyApiImpl.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
     }
 
     /**
@@ -50,7 +55,33 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      */
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
-        super.validateFullCopyCreateRequest(fcSourceObjList, count);
+        BlockFullCopyApi fullCopyApiImpl = null;
+        List<BlockObject> vplexList = new ArrayList<BlockObject>();
+        List<BlockObject> blockList = new ArrayList<BlockObject>();
+        if (fcSourceObjList != null && !fcSourceObjList.isEmpty()) {
+            // Sort the volume list for vplex and non-vplex volumes
+            for (BlockObject src : fcSourceObjList) {
+                URI storageUri = src.getStorageController();
+                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageUri);
+                if (storage.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vplex.toString())) {
+                    vplexList.add(src);
+                } else {
+                   blockList.add(src);
+                }
+            }
+        } else {
+            throw APIException.methodNotAllowed.notSupportedForRP();
+        }
+        if (!vplexList.isEmpty()) {
+            fullCopyApiImpl = _fullCopyMgr.getVplexFullCopyImpl();
+            fullCopyApiImpl.validateFullCopyCreateRequest(vplexList, count);
+        }
+        if (!blockList.isEmpty()) {
+            BlockObject block = blockList.get(0);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, block.getStorageController());
+            fullCopyApiImpl = _fullCopyMgr.getPlatformSpecificFullCopyImplForSystem(system);
+            fullCopyApiImpl.validateFullCopyCreateRequest(blockList, count);
+        }
     }
 
     /**
@@ -60,13 +91,34 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
             String name, boolean createInactive, int count, String taskId) {
         BlockFullCopyApi fullCopyApiImpl = null;
+        TaskList taskList = new TaskList();
+        List<BlockObject> vplexList = new ArrayList<BlockObject>();
+        List<BlockObject> blockList = new ArrayList<BlockObject>();
         if (fcSourceObjList != null && !fcSourceObjList.isEmpty()) {
-            fullCopyApiImpl = getFullCopyApiImpl(fcSourceObjList.get(0));
-        }
-        if (fullCopyApiImpl == null) {
+            // Sort the volume list for vplex and non-vplex volumes
+            for (BlockObject src : fcSourceObjList) {
+                URI storageUri = src.getStorageController();
+                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageUri);
+                if (storage.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vplex.toString())) {
+                    vplexList.add(src);
+                } else {
+                   blockList.add(src);
+                }
+            }
+        } else {
             throw APIException.methodNotAllowed.notSupportedForRP();
         }
-        return fullCopyApiImpl.create(fcSourceObjList, varray, name, createInactive, count, taskId);
+        if (!vplexList.isEmpty()) {
+            fullCopyApiImpl = _fullCopyMgr.getVplexFullCopyImpl();
+            taskList.getTaskList().addAll(fullCopyApiImpl.create(vplexList, varray, name, createInactive, count, taskId).getTaskList());
+        }
+        if (!blockList.isEmpty()) {
+            BlockObject block = blockList.get(0);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, block.getStorageController());
+            fullCopyApiImpl = _fullCopyMgr.getPlatformSpecificFullCopyImplForSystem(system);
+            taskList.getTaskList().addAll(fullCopyApiImpl.create(blockList, varray, name, createInactive, count, taskId).getTaskList());
+        }
+        return taskList;
     }
 
     /**

@@ -2740,10 +2740,10 @@ public interface BadRequestExceptions {
     public BadRequestException volumeCantBeRemovedFromVolumeGroup(final String volumeName, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidReplicaSetLabel(String label, String replicaType);
+    public BadRequestException invalidCopySetName(String copySetName, String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException duplicateReplicaSetLabel(String label, String replicaType);
+    public BadRequestException duplicateCopySetName(String copySetName, String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotNotAllowedWhenBackendVolumeDoestHavingCG();
@@ -2760,6 +2760,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException
             replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException setNameDoesNotBelongToVolumeGroup(final String setType, final String setName, final String volumeGroupName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidIpsecStatus();
@@ -2849,7 +2852,7 @@ public interface BadRequestExceptions {
     public BadRequestException multipleACLsWithUserOrGroupOrCustomGroupFound(String opType, String userOrGroup);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException bucketACLNotFoundFound(String opType, String acl);
+    public BadRequestException bucketACLNotFound(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException bucketACLAlreadyExists(String opType, String acl);

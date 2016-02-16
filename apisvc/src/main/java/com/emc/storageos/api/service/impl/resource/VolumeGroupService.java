@@ -77,10 +77,16 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.application.LabelSet;
+import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCopySetListTemp;
 import com.emc.storageos.model.application.VolumeGroupCopySetParamTemp;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyActivateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
+import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionCreateParam;
@@ -100,11 +106,6 @@ import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.storageos.model.block.VolumeGroupFullCopyActivateParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyDetachParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyRestoreParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.block.VolumeGroupSnapshotCreateParam;
 import com.emc.storageos.model.block.VolumeGroupSnapshotOperationParam;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -155,7 +156,7 @@ public class VolumeGroupService extends TaskResourceService {
     private static final String NAME_FIELD = "name";
     private static final String VOLUMES_FIELD = "volumes";
     private static final String VOLUME_FIELD = "volume";
-    private static final String LABEL_FIELD = "label";
+    private static final String COPY_SET_NAME_FIELD = "copy_set_name";
     private static final String SNAPSHOT_ID_FIELD = "sid";
     private static final String SNAPSHOTS_FIELD = "snapshots";
     private static final String SNAPSHOT_FIELD = "snapshot";
@@ -358,7 +359,6 @@ public class VolumeGroupService extends TaskResourceService {
      */
     @POST
     @Path("/{id}/deactivate")
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public Response deactivateVolumeGroup(@PathParam("id") URI id) {
@@ -472,6 +472,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -595,9 +596,6 @@ public class VolumeGroupService extends TaskResourceService {
         // Query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
-        // validate replica operation for volume group
-        validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.FULL_COPY);
-
         // get all volumes
         List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
@@ -607,6 +605,94 @@ public class VolumeGroupService extends TaskResourceService {
         for (Volume volume : volumes) {
             NamedVolumesList volumeFullCopies = getFullCopyManager().getFullCopiesForSource(volume.getId());
             fullCopyList.getVolumes().addAll(volumeFullCopies.getVolumes());
+        }
+
+        return fullCopyList;
+    }
+
+    /**
+     * List full copy set names for a volume group
+     *
+     * @param volumeGroupId The URI of the volume group.
+     *
+     * @brief List full copy set names for a volume group
+     *
+     * @return The list of full copy set names for the volume group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies/copy-sets")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public VolumeGroupCopySetList getVolumeGroupFullCopySets(@PathParam("id") final URI volumeGroupId) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // get all volumes
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+
+        // Cycle over the volumes in the volume group and
+        // get the full copies for each volume in the group.
+        VolumeGroupCopySetList fullCopySets = new VolumeGroupCopySetList();
+        for (Volume volume : volumes) {
+            StringSet fullCopyIds = volume.getFullCopies();
+            if (fullCopyIds != null) {
+                for (String fullCopyId : fullCopyIds) {
+                    Volume fullCopyVolume = _dbClient.queryObject(Volume.class,
+                            URI.create(fullCopyId));
+                    if (fullCopyVolume == null || fullCopyVolume.getInactive()) {
+                        log.warn("Stale full copy {} found for volume {}", fullCopyId,
+                                volume.getLabel());
+                        continue;
+                    }
+                    String setName = fullCopyVolume.getFullCopySetName();
+                    if (setName == null) {  // This should not happen
+                        setName = "";
+                    }
+                    fullCopySets.getCopySets().add(setName);
+                }
+            }
+        }
+
+        return fullCopySets;
+    }
+
+    /**
+     * List full copies for a volume group belonging to the provided copy set name
+     *
+     * @param volumeGroupId The URI of the volume group.
+     * @param param VolumeGroupCopySetParam containing the copy set name
+     *
+     * @brief List full copies for a volume group belonging to the provided copy set name
+     *
+     * @return The list of full copies for the volume group belonging to the provided copy set name
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/full-copies/copy-sets")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public NamedVolumesList getVolumeGroupFullCopiesForSet(@PathParam("id") final URI volumeGroupId,
+            final VolumeGroupCopySetParam param) {
+        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
+        // Query Volume Group
+        final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
+
+        // validate that full copy set name is provided
+        String fullCopySetName = param.getCopySetName();
+        ArgValidator.checkFieldNotNull(fullCopySetName, "copy_set_name");
+
+        // validate that the provided set name actually belongs to this Application
+        VolumeGroupCopySetList fullCopySetNames = getVolumeGroupFullCopySets(volumeGroupId);
+        if (!fullCopySetNames.getCopySets().contains(fullCopySetName)) {
+            throw APIException.badRequests.
+                    setNameDoesNotBelongToVolumeGroup("Full Copy Set name", fullCopySetName, volumeGroup.getLabel());
+        }
+
+        NamedVolumesList fullCopyList = new NamedVolumesList();
+        List<Volume> fullCopiesForSet = ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
+        for (Volume fullCopy : fullCopiesForSet) {
+            fullCopyList.getVolumes().add(toNamedRelatedResource(fullCopy));
         }
 
         return fullCopyList;
@@ -665,6 +751,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/activate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -766,6 +853,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/detach")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -866,6 +954,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/restore")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -967,6 +1056,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies/resynchronize")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1225,16 +1315,16 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /*
-     * get all snapsetLabels associated with the volume group
+     * get all snapshot sets associated with the volume group
      */
-    private LabelSet getVolumeGroupSnapsetLabels(VolumeGroup volumeGroup) {
+    private VolumeGroupCopySetList getVolumeGroupSnapshotSets(VolumeGroup volumeGroup) {
         // get all volumes
         List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
-        // get the snapshots for each volume in the group
-        LabelSet labelSet = new LabelSet();
-        Set<String> labels = labelSet.getLabels();
+        VolumeGroupCopySetList copySetList = new VolumeGroupCopySetList();
+        Set<String> copySets = copySetList.getCopySets();
 
+        // get snapshots for each volume in the group
         for (Volume volume : volumes) {
             URIQueryResultList snapshotURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
@@ -1248,13 +1338,13 @@ public class VolumeGroupService extends TaskResourceService {
                 if (snapshot != null && !snapshot.getInactive()) {
                     String snapsetLabel = snapshot.getSnapsetLabel();
                     if (NullColumnValueGetter.isNotNullValue(snapsetLabel)) {
-                        labels.add(snapsetLabel);
+                        copySets.add(snapsetLabel);
                     }
                 }
             }
         }
 
-        return labelSet;
+        return copySetList;
     }
 
     /**
@@ -1300,15 +1390,15 @@ public class VolumeGroupService extends TaskResourceService {
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
         if (StringUtils.isEmpty(name)) {
             // original name has special chars only
-            throw APIException.badRequests.invalidReplicaSetLabel(param.getName(),
+            throw APIException.badRequests.invalidCopySetName(param.getName(),
                     ReplicaTypeEnum.SNAPSHOT.toString());
         }
 
         // check name provided is not duplicate
-        LabelSet labelSet = getVolumeGroupSnapsetLabels(volumeGroup);
-        if (labelSet.getLabels().contains(name)) {
+        VolumeGroupCopySetList copySetList = getVolumeGroupSnapshotSets(volumeGroup);
+        if (copySetList.getCopySets().contains(name)) {
             // duplicate name
-            throw APIException.badRequests.duplicateReplicaSetLabel(param.getName(),
+            throw APIException.badRequests.duplicateCopySetName(param.getName(),
                     ReplicaTypeEnum.SNAPSHOT.toString());
         }
 
@@ -1461,22 +1551,22 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Get all snapsetLabels for a volume group
+     * Get all snapshot set names for a volume group
      *
      * @prereq none
      * @param volumeGroupId The URI of the volume group
-     * @brief List snapsetLabels for a volume group
-     * @return LabelSet
+     * @brief List snapshot set names for a volume group
+     * @return The list of snapshot set names for the volume group
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/snapshots/labels")
+    @Path("/{id}/protection/snapshots/copy-sets")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public LabelSet getVolumeGroupSnapsetLabels(@PathParam("id") final URI volumeGroupId) {
+    public VolumeGroupCopySetList getVolumeGroupSnapshotSets(@PathParam("id") final URI volumeGroupId) {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
-        return getVolumeGroupSnapsetLabels(volumeGroup);
+        return getVolumeGroupSnapshotSets(volumeGroup);
     }
 
     /**
@@ -1487,11 +1577,12 @@ public class VolumeGroupService extends TaskResourceService {
      * @brief List snapshots in snapshot set for a volume group
      * @return SnapshotList
      */
-    @GET
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/snapshots/labels/{label}")
+    @Path("/{id}/protection/snapshots/copy-sets")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public SnapshotList getVolumeGroupSnapshotsByLabel(@PathParam("id") final URI volumeGroupId, @PathParam("label") String snapsetLabel) {
+    public SnapshotList getVolumeGroupSnapshotsForSet(@PathParam("id") final URI volumeGroupId, final VolumeGroupCopySetParam param) {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
@@ -1499,8 +1590,9 @@ public class VolumeGroupService extends TaskResourceService {
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
 
-        // validate snapsetLabel
-        ArgValidator.checkFieldNotEmpty(snapsetLabel, LABEL_FIELD);
+        // validate copy set name
+        String copySetName = param.getCopySetName();
+        ArgValidator.checkFieldNotEmpty(copySetName, COPY_SET_NAME_FIELD);
 
         // get all volumes
         List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
@@ -1518,7 +1610,7 @@ public class VolumeGroupService extends TaskResourceService {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
             for (BlockSnapshot snapshot : snapshots) {
                 if (snapshot != null && !snapshot.getInactive()) {
-                    if (snapsetLabel.equals(snapshot.getSnapsetLabel())) {
+                    if (copySetName.equals(snapshot.getSnapsetLabel())) {
                         snapshotList.getSnapList().add(toNamedRelatedResource(snapshot));
                     }
                 }
@@ -2707,7 +2799,7 @@ public class VolumeGroupService extends TaskResourceService {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "The storage system type that the volume created in is not allowed ");
                 }
-                String volType = getVolumeType(type);
+                String volType = getVolumeType(volume, dbClient);
                 if (addedVolType == null) {
                     addedVolType = volType;
                     firstVolLabel = volume.getLabel();
@@ -2749,10 +2841,8 @@ public class VolumeGroupService extends TaskResourceService {
             List<Volume> existingVols = ControllerUtils.getVolumeGroupVolumes(dbClient, volumeGroup);
             if (!existingVols.isEmpty()) {
                 Volume firstVolume = existingVols.get(0);
-                URI systemUri = firstVolume.getStorageController();
-                StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
-                String type = system.getSystemType();
-                String existingType = getVolumeType(type);
+                
+                String existingType = getVolumeType(firstVolume, dbClient);
                 if (!existingType.equals(addedVolType)) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
                             "The volume type is not same as existing volumes in the application");
@@ -2869,12 +2959,21 @@ public class VolumeGroupService extends TaskResourceService {
          * @param type The system type
          * @return
          */
-        private static String getVolumeType(String type) {
-            if (BLOCK_TYPES.contains(type)) {
-                return BLOCK;
-            } else {
-                return type;
+        
+        private static String getVolumeType(Volume volume, DbClient dbClient) {
+            if (!isNullURI(volume.getProtectionController())
+                    && volume.checkForRp()) {
+                return DiscoveredDataObject.Type.rp.name();             
             }
+            if (Volume.checkForSRDF(dbClient, volume.getId())) {
+                return DiscoveredDataObject.Type.srdf.name();
+            }
+            if (volume.checkForVplexVirtualVolume(dbClient)) {
+                return DiscoveredDataObject.Type.vplex.name();
+            }
+            
+            return BLOCK;
+            
         }
 
         private void updateFailedCGTasks(DbClient dbClient, Set<URI> uriList, String taskId, ServiceCoded e) {
@@ -2899,10 +2998,7 @@ public class VolumeGroupService extends TaskResourceService {
                 return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
             }
 
-            URI systemUri = volume.getStorageController();
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
-            String type = system.getSystemType();
-            String volType = getVolumeType(type);
+            String volType = getVolumeType(volume, dbClient);
             return getBlockServiceImpl(volType);
         }   
         

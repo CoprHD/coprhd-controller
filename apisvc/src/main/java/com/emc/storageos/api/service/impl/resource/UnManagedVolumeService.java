@@ -553,12 +553,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
                 }
 
-                URI storageSystemUri = processedUnManagedVolume.getStorageSystemUri();
-                StorageSystem system = requestContext.getStorageSystemCache().get(storageSystemUri.toString());
                 // Build the Strategy , which contains reference to Block object & export orchestrators
                 IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
-                // TODO: get rid of exportIngestParam, deviceInitiators, others in requestContext
-                // when reducing params in the orchestrator interfaces
+
                 BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume,
                         processedBlockObject, requestContext);
                 if (null == blockObject) {
@@ -591,7 +588,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                                                                                                                                // props
                                                                                                                                // message
                 }
-                // Update the related objects if any after successful export mask ingestion
+
                 // Update the related objects if any after successful export mask ingestion
                 List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {

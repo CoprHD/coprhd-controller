@@ -1221,7 +1221,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         Volume sourceVol = _dbClient.queryObject(Volume.class, sourceURI);
         if (sourceVol != null && !sourceVol.getInactive() && sourceVol.getVolumeGroupIds() != null
-                && sourceVol.getVolumeGroupIds().contains(volumeGroupUri)) {
+                && sourceVol.getVolumeGroupIds().contains(volumeGroupUri.toString())) {
             return sourceURI;
         }
 

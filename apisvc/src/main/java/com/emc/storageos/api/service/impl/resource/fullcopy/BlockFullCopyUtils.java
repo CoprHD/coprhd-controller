@@ -598,7 +598,7 @@ public class BlockFullCopyUtils {
                 if (sourceId != null) {
                     Volume sourceVol = dbClient.queryObject(Volume.class, sourceId);
                     if (sourceVol != null && !sourceVol.getInactive() && sourceVol.getVolumeGroupIds() != null
-                            && sourceVol.getVolumeGroupIds().contains(volumeGroupId)) {
+                            && sourceVol.getVolumeGroupIds().contains(volumeGroupId.toString())) {
                         setClones.add(vol);
                     }
                 }

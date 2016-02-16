@@ -1580,8 +1580,7 @@ public class ControllerUtils {
                 }
             }
             if (NullColumnValueGetter.isNullValue(repGroupName)) {
-                s_logger.warn(String.format("skipping volume %s because replicationGroupInstance is null", volume.getLabel()));
-                continue;
+                repGroupName = "";
             }
             String key = repGroupName + volume.getStorageController().toString();
             if (arrayGroupToVolumes.get(key) == null) {

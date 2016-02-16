@@ -21,6 +21,14 @@ public interface CinderConstants {
     public static String REST_API_VERSION_2 = "/v2";
     public static String DEFAULT_API_VERSION = REST_API_VERSION_2; // By default using v2
 
+    String COPRHD_URL_V2 = ":8776/v2/%(tenant_id)s";
+    String COPRHD_URL_V1 = ":8776/v1/%(tenant_id)s";
+    String PROJECT_NAME = "adminProject";
+    String TENANT_NAME = "OpenStack admin";
+
+    String USERNAME = "username";
+    String TENANTNAME = "tenantname";
+
     public final static String KEY_CINDER_HOST_NAME = "CINDER_HOST_NAME";
     public final static String KEY_CINDER_REST_PASSWORD = "REST_PASSWORD";           
     public final static String KEY_CINDER_REST_USER = "REST_USERNAME";

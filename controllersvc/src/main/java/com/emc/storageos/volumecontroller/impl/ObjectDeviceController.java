@@ -120,11 +120,11 @@ public class ObjectDeviceController implements ObjectController {
     }
 
     @Override
-    public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
+    public void deleteBucket(URI storage, URI bucket, String deleteType, String task) throws ControllerException {
         _log.info("ObjectDeviceController:deleteBucket Bucket URI : {} ", bucket);
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, task);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, deleteType, task);
 
         if (result.getCommandPending()) {
             return;

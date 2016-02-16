@@ -86,13 +86,15 @@ def snapshot_session_link_targets(args):
     bourne.connect(args.ip)
     session_uri = bourne.block_snapshot_session_query(args.name)
     start = time.time()
-    task = bourne.block_snapshot_session_link_targets(session_uri, args.target_count, args.target_name, args.target_copymode)
+    (tasklist, state, message) = bourne.block_snapshot_session_link_targets(session_uri, args.target_count, args.target_name, args.target_copymode)
     total = time.time() - start
     print "Link targets to snapshot session completed in", "{0:.2f}".format(total), "seconds."
-    if (task['state'] == 'ready'):
-        print "Target successfully linked to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
+    if (state == 'ready'):
+        for task in tasks:
+            print "Target successfully linked to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
     else:
-        print "Link target to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+        for task in tasks:
+            print "Link target to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
 
 # Relink a target to a new snapshot session of the same source.
 def snapshot_session_relink_target(args):
@@ -101,13 +103,15 @@ def snapshot_session_relink_target(args):
     target_uri = bourne.block_snapshot_query(args.target_name)
     target = bourne.block_snapshot_show(target_uri)
     start = time.time()
-    task = bourne.block_snapshot_session_relink_target(session_uri, target_uri)
+    (tasklist, state, message) = bourne.block_snapshot_session_relink_target(session_uri, target_uri)
     total = time.time() - start
     print "Relink target " + target['name'] + ' ' + target['id'] + " from snapshot session completed in", "{0:.2f}".format(total), "seconds."
-    if (task['state'] == 'ready'):
-        print "Target successfully relinked to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
+    if (state == 'ready'):
+        for task in tasks:
+            print "Target successfully relinked to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id']
     else:
-        print "Relink target to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
+        for task in tasks:
+            print "Relink target to snapshot session " + task['resource']['name'] + ' ' + task['resource']['id'] + " failed with error " + task['message']
 
 # Unlink a target from a block snapshot session.
 def snapshot_session_unlink_target(args):

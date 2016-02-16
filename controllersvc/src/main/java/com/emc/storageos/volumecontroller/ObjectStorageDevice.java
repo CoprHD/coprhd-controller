@@ -52,7 +52,7 @@ public interface ObjectStorageDevice {
      * @return Result of operation
      * @throws ControllerException if Delete fails
      */
-    BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, String taskId) throws ControllerException;
+    BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, String deleteType, String taskId) throws ControllerException;
     
     /**
      * @param storageObj

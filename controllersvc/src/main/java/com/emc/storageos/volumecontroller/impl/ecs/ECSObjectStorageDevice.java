@@ -38,6 +38,7 @@ import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.ObjectControllerConstants;
 import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
@@ -150,11 +151,15 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
 
     @Override
-    public BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, final String taskId) {
+    public BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, String deleteType, final String taskId) {
         BiosCommandResult result;
         try {
             ECSApi objectAPI = getAPI(storageObj);
-            objectAPI.deleteBucket(bucket.getName(), bucket.getNamespace());
+            if (ObjectControllerConstants.DeleteTypeEnum.INTERNAL_DB_ONLY.toString().equalsIgnoreCase(deleteType.toString())) {
+                _log.info("Inventory only bucket delete {}", bucket.getName());
+            } else {
+                objectAPI.deleteBucket(bucket.getName(), bucket.getNamespace());
+            }
             // Deleting the ACL for bucket if any
             List<ObjectBucketACL> aclToDelete = queryDbBucketACL(bucket);
             if (aclToDelete != null && !aclToDelete.isEmpty()) {
@@ -466,7 +471,8 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
                 type = aceToAdd.getGroup() != null ? "group" : "customgroup";
             }
             if (aceToAdd.getDomain() != null && !aceToAdd.getDomain().isEmpty()) {
-                userOrGroupOrCustomgroup = aceToAdd.getDomain() + "\\" + userOrGroupOrCustomgroup;
+                //ECS accepts username@domain format.
+                userOrGroupOrCustomgroup = userOrGroupOrCustomgroup + "@" + aceToAdd.getDomain();
             }
 
             switch (type) {

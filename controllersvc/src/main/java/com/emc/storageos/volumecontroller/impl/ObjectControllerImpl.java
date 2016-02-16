@@ -131,9 +131,9 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-    public void deleteBucket(URI storage, URI bucket, String task) throws InternalException {
+    public void deleteBucket(URI storage, URI bucket, String deleteType, String task) throws InternalException {
         _log.debug("ObjectControllerImpl:deleteBucket");
-        execOb("deleteBucket", storage, bucket, task);
+        execOb("deleteBucket", storage, bucket, deleteType, task);
     }
 
     @Override

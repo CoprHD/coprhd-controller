@@ -38,14 +38,15 @@ _get_dbconf_props() {
 
     if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
         local list=''
-        local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_node_count"
-        for i in $(seq ${!var}); do
-            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_${i}_ipaddr"
-            var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${_GENCONFIG_site_active_id}_network_${i}_ipaddr6"
+        local OLD_IFS="${IFS}"; IFS="${IFS},"
+        for site in ${_GENCONFIG_site_ids}; do
+            local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_network_1_ipaddr"
+            local var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_${site}_network_1_ipaddr6"
             local ipaddr=${!var}
             [ -z "${ipaddr}" -o "${ipaddr}" = "0.0.0.0" ] && ipaddr="[${!var6}]"
             list+=" ${ipaddr}"
         done
+        IFS="${OLD_IFS}"
         echo "standby_seeds_ipaddr=$(echo $list | tr ' ' ',')"
     else
         echo "standby_seeds_ipaddr="

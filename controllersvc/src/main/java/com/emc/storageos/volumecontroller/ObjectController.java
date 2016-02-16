@@ -42,7 +42,7 @@ public interface ObjectController extends StorageController {
      * @param task Task ID
      * @throws InternalException if error occurs during Bucket delete
      */
-    public void deleteBucket(URI storage, URI bucket, String task) throws InternalException;
+    public void deleteBucket(URI storage, URI bucket, String deleteType, String task) throws InternalException;
 
     /**
      * Updates Bucket instance

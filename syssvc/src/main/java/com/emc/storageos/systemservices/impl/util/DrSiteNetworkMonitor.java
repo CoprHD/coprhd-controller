@@ -112,7 +112,7 @@ public class DrSiteNetworkMonitor implements Runnable{
             }
             
             Site.NetworkHealth previousState = site.getNetworkHealth();
-            String host = site.getVip();
+            String host = site.getVipEndPoint();
             double ping = testPing(host,SOCKET_TEST_PORT);
 
             //if ping successful get an average, format to 3 decimal places

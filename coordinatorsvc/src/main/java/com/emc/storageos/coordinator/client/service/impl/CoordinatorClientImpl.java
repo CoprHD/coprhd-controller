@@ -118,7 +118,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private int nodeCount = 0;
     private String vdcShortId;
-    private String vdcEndpoint;
+    private String vip;
+    private String vip6;
 
     private String sysSvcName;
     private String sysSvcVersion;
@@ -164,8 +165,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return nodeCount;
     }
 
-    public void setVdcEndpoint(String vdcEndpoint) {
-        this.vdcEndpoint = vdcEndpoint;
+    public void setVip(String vip) {
+        this.vip = vip;
+    }
+    
+    public void setVip6(String vip) {
+        this.vip6 = vip;
     }
 
     public void setSysSvcName(String name) {
@@ -238,11 +243,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
-        String vip = vdcEndpoint;
-        if (vdcEndpoint.contains(":")) {
-            vip = DualInetAddress.normalizeInet6Address(vdcEndpoint);
-        }
         site.setVip(vip);
+        site.setVip6(vip6);
         site.setNodeCount(getNodeCount());
 
         Map<String, DualInetAddress> controlNodes = getInetAddessLookupMap().getControllerNodeIPLookupMap();

@@ -19,6 +19,7 @@ public class SiteRestRep extends DataObjectRestRep {
     private String sitename;
     private String description;
     private String vip;
+    private String vip6;
     private String state;
     private String networkHealth;
     private long createTime;
@@ -66,6 +67,15 @@ public class SiteRestRep extends DataObjectRestRep {
 
     public void setVip(String vip) {
         this.vip = vip;
+    }
+
+    @XmlElement(name = "vip6")
+    public String getVip6() {
+        return vip6;
+    }
+
+    public void setVip6(String vip6) {
+        this.vip6 = vip6;
     }
 
     @XmlElement(name = "state")

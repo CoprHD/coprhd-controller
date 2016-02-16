@@ -198,8 +198,8 @@ public class DisasterRecoveryService {
             standbySite.setCreationTime((new Date()).getTime());
             standbySite.setName(param.getName());
             standbySite.setVdcShortId(drUtil.getLocalVdcShortId());
-            standbySite.setVip(param.getVip());
-
+            standbySite.setVip(standbyConfig.getVip());
+            standbySite.setVip6(standbyConfig.getVip6());
             standbySite.getHostIPv4AddressMap().putAll(new StringMap(standbyConfig.getHostIPv4AddressMap()));
             standbySite.getHostIPv6AddressMap().putAll(new StringMap(standbyConfig.getHostIPv6AddressMap()));
             standbySite.setNodeCount(standbyConfig.getNodeCount());
@@ -578,6 +578,7 @@ public class DisasterRecoveryService {
         SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep();
         siteConfigRestRep.setUuid(siteId);
         siteConfigRestRep.setVip(site.getVip());
+        siteConfigRestRep.setVip6(site.getVip6());
         siteConfigRestRep.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
         siteConfigRestRep.setHostIPv4AddressMap(site.getHostIPv4AddressMap());
         siteConfigRestRep.setHostIPv6AddressMap(site.getHostIPv6AddressMap());
@@ -1003,7 +1004,7 @@ public class DisasterRecoveryService {
             log.error(String.format("Error happened when switchover from site %s to site %s", oldActiveUUID, uuid), e);
             coordinator.discardTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.SWITCHOVER, AuditLogManager.AUDITLOG_FAILURE, null,
-                    newActiveSite.getName(), newActiveSite.getVip());
+                    newActiveSite.getName(), newActiveSite.getVipEndPoint());
             throw APIException.internalServerErrors.switchoverFailed(oldActiveSite.getName(), newActiveSite.getName(), e.getMessage());
         } finally {
             try {
@@ -1149,7 +1150,7 @@ public class DisasterRecoveryService {
             log.error("Error happened when failover at site %s", uuid, e);
             coordinator.discardTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null,
-                    currentSite.getName(), currentSite.getVip());
+                    currentSite.getName(), currentSite.getVipEndPoint());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
         }
     }
@@ -1220,7 +1221,7 @@ public class DisasterRecoveryService {
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Error happened when failover at site %s", uuid, e);
-            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVip(),
+            auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null, uuid, currentSite.getVipEndPoint(),
                     currentSite.getName());
             throw APIException.internalServerErrors.failoverFailed(currentSite.getName(), e.getMessage());
         }
@@ -1269,12 +1270,12 @@ public class DisasterRecoveryService {
             site.setDescription(siteParam.getDescription());
             coordinator.persistServiceConfiguration(site.toConfiguration());
 
-            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_SUCCESS, null, site.getName(), site.getVip(),
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_SUCCESS, null, site.getName(), site.getVipEndPoint(),
                     site.getUuid());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             log.error("Error happened when update site %s", uuid, e);
-            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_FAILURE, null, site.getName(), site.getVip(),
+            auditDisasterRecoveryOps(OperationTypeEnum.UPDATE_SITE, AuditLogManager.AUDITLOG_FAILURE, null, site.getName(), site.getVipEndPoint(),
                     site.getUuid());
             throw APIException.internalServerErrors.updateSiteFailed(site.getName(), e.getMessage());
         }

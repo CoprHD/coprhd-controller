@@ -7854,7 +7854,7 @@ vdc_federation_setup()
     fi
     
     echo "Adding new vdc into current vipr system"
-    vdc add $VDC_ENDPOINT_B_NAME $VDC_ENDPOINT_B $VDC_ENDPOINT_B_SECRETKEY "$VDC_ENDPOINT_B_CERTCHAIN"
+    vdc add $VDC_ENDPOINT_B_NAME "$VDC_ENDPOINT_B" $VDC_ENDPOINT_B_SECRETKEY "$VDC_ENDPOINT_B_CERTCHAIN"
     if [ $? -ne 0 ]; then
         echo "Add vdc B failed."
         exit 1
@@ -7865,7 +7865,7 @@ vdc_federation_setup()
     
     if [ "$VDC_ENDPOINT_C" != "$VDC_DEFAULT_ENDPOINT" ] ; then
         echo "Adding the 3rd vdc into current vipr system"
-        vdc add $VDC_ENDPOINT_C_NAME $VDC_ENDPOINT_C $VDC_ENDPOINT_C_SECRETKEY "$VDC_ENDPOINT_C_CERTCHAIN"
+        vdc add $VDC_ENDPOINT_C_NAME "$VDC_ENDPOINT_C" $VDC_ENDPOINT_C_SECRETKEY "$VDC_ENDPOINT_C_CERTCHAIN"
         if [ $? -ne 0 ]; then
             echo "Add vdc C failed."
             exit 1
@@ -7914,7 +7914,7 @@ vdc_discon_reconn_test()
     echo "Disconnecting with $VDC_ENDPOINT_B"
 
     # Stop all the services on the vdc which we want to disconnect, make it to inaccessable.
-    stop_vdc_services $VDC_ENDPOINT_B 
+    stop_vdc_services "$VDC_ENDPOINT_B" 
     sleep 30
     vdc disconnect $VDC_ENDPOINT_B_ID
     if [ $? -ne 0 ]; then
@@ -7936,7 +7936,7 @@ vdc_discon_reconn_test()
     fi
 
     # Restart all the services on the vdc which we disconnected, make it back online to reconnect.
-    start_vdc_services $VDC_ENDPOINT_B
+    start_vdc_services "$VDC_ENDPOINT_B"
     sleep 60
     echo "Waiting for vdc stable $VDC_ENDPOINT_B"
     export BOURNE_IPADDR=$VDC_ENDPOINT_B

@@ -71,6 +71,7 @@ import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -3765,18 +3766,15 @@ public class BlockService extends TaskResourceService {
     public MigrationList getVolumeMigrations(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         MigrationList volumeMigrations = new MigrationList();
-        List<URI> migrationURIs = _dbClient.queryByType(Migration.class, true);
-        Iterator<URI> uriIter = migrationURIs.iterator();
-        while (uriIter.hasNext()) {
-            URI migrationURI = uriIter.next();
+        URIQueryResultList migrationURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationVolumeConstraint(id), migrationURIs);
+        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+        while (migrationURIsIter.hasNext()) {
+            URI migrationURI = migrationURIsIter.next();
             Migration migration = _permissionsHelper.getObjectById(migrationURI,
                     Migration.class);
-            if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
-                    getUserFromContext(), _permissionsHelper)) {
-                URI volumeURI = migration.getVolume();
-                if (volumeURI.toString().equals(id.toString())) {
-                    volumeMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
-                }
+            if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration, getUserFromContext(), _permissionsHelper)) {
+                volumeMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
             }
         }
 

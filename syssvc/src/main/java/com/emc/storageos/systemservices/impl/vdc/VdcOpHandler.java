@@ -843,6 +843,7 @@ public abstract class VdcOpHandler {
                 waitForAllNodesAndReboot(site);
             } else {
                 reconfigVdc();
+                localRepository.restartCoordinator("observer");
             }
         }
         

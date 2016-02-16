@@ -829,17 +829,13 @@ public abstract class VdcOpHandler {
 
         public DrFailoverHandler() {
         }
-
-        @Override
-        public boolean isConcurrentRebootNeeded() {
-            return true;
-        }
         
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
 
             if (isNewActiveSiteForFailover(site)) {
+                setConcurrentRebootNeeded(true);
                 coordinator.stopCoordinatorSvcMonitor();
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
@@ -847,6 +843,12 @@ public abstract class VdcOpHandler {
                 waitForAllNodesAndReboot(site);
             } else {
                 reconfigVdc();
+                // Flush vdc properties includes VDC_CONFIG_VERSION to disk here, since the next step restarts syssvc
+                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+                localRepository.setVdcPropertyInfo(vdcProperty);
+
+                localRepository.restartCoordinator("observer");
             }
         }
         

@@ -78,8 +78,6 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
-import com.emc.storageos.model.application.VolumeGroupCopySetListTemp;
-import com.emc.storageos.model.application.VolumeGroupCopySetParamTemp;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyActivateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
@@ -1833,12 +1831,12 @@ public class VolumeGroupService extends TaskResourceService {
     /*
      * get all snapshot session set names associated with the volume group
      */
-    private VolumeGroupCopySetListTemp getVolumeGroupSnapsetSessionSets(VolumeGroup volumeGroup) {
+    private VolumeGroupCopySetList getVolumeGroupSnapsetSessionSets(VolumeGroup volumeGroup) {
         // get all volumes
         List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
         // get the snapshots for each volume in the group
-        VolumeGroupCopySetListTemp copySetList = new VolumeGroupCopySetListTemp();
+        VolumeGroupCopySetList copySetList = new VolumeGroupCopySetList();
         Set<String> copySets = copySetList.getCopySets();
 
         // get the snapshot sessions for each CG in the volume group
@@ -1906,15 +1904,15 @@ public class VolumeGroupService extends TaskResourceService {
         name = ResourceOnlyNameGenerator.removeSpecialCharsForName(name, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
         if (StringUtils.isEmpty(name)) {
             // original name has special chars only
-            throw APIException.badRequests.invalidReplicaSetLabel(param.getName(),
+            throw APIException.badRequests.invalidCopySetName(param.getName(),
                     ReplicaTypeEnum.SNAPSHOT.toString());
         }
 
         // check name provided is not duplicate
-        VolumeGroupCopySetListTemp sessionSet = getVolumeGroupSnapsetSessionSets(volumeGroup);
+        VolumeGroupCopySetList sessionSet = getVolumeGroupSnapsetSessionSets(volumeGroup);
         if (sessionSet.getCopySets().contains(name)) {
             // duplicate name
-            throw APIException.badRequests.duplicateReplicaSetLabel(param.getName(),
+            throw APIException.badRequests.duplicateCopySetName(param.getName(),
                     ReplicaTypeEnum.SNAPSHOT.toString());
         }
 
@@ -2071,7 +2069,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions/copy-sets")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public VolumeGroupCopySetListTemp getVolumeGroupSnapsetSessionSets(@PathParam("id") final URI volumeGroupId) {
+    public VolumeGroupCopySetList getVolumeGroupSnapsetSessionSets(@PathParam("id") final URI volumeGroupId) {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
@@ -2092,7 +2090,7 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/protection/snapshot-sessions/copy-sets")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public BlockSnapshotSessionList getVolumeGroupSnapshotSessionsByCopySet(@PathParam("id") final URI volumeGroupId,
-            final VolumeGroupCopySetParamTemp param) {
+            final VolumeGroupCopySetParam param) {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
@@ -2105,7 +2103,7 @@ public class VolumeGroupService extends TaskResourceService {
         BlockSnapshotSessionList snapshotSessionList = new BlockSnapshotSessionList();
 
         // validate that the provided set name actually belongs to this Application
-        VolumeGroupCopySetListTemp copySetList = getVolumeGroupSnapsetSessionSets(volumeGroup);
+        VolumeGroupCopySetList copySetList = getVolumeGroupSnapsetSessionSets(volumeGroup);
         if (!copySetList.getCopySets().contains(sessionsetName)) {
             // throw APIException.badRequests.
             // setNameDoesNotBelongToVolumeGroup("Snapshot Session Set name", sessionsetName, volumeGroup.getLabel());
@@ -2358,6 +2356,8 @@ public class VolumeGroupService extends TaskResourceService {
                 OperationTypeEnum.LINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET);
     }
 
+    // TODO relink API needed?
+    
     /**
      * The method implements the API to unlink target volumes from an existing
      * BlockSnapshotSession instances and optionally delete those target volumes in the volume group.

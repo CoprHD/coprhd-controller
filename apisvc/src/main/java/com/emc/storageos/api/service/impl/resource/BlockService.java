@@ -758,7 +758,7 @@ public class BlockService extends TaskResourceService {
         }
 
         // Find the implementation that services this vpool and volume request
-        BlockServiceApi blockServiceImpl = getBlockServiceImpl(null, vpool, _dbClient);
+        BlockServiceApi blockServiceImpl = getBlockServiceImpl(vpool, _dbClient);
 
         BlockConsistencyGroup consistencyGroup = null;
         final Boolean isMultiVolumeConsistencyOn = vpool.getMultivolumeConsistency() == null ? FALSE
@@ -1090,19 +1090,11 @@ public class BlockService extends TaskResourceService {
      * @param vpool Virtual Pool
      * @return block service implementation object
      */
-    private static BlockServiceApi getBlockServiceImpl(Volume volume, VirtualPool vpool, DbClient dbClient) {
-        String systemType = null;
-        if ((volume != null) && (!NullColumnValueGetter.isNullURI(volume.getStorageController()))) {
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-            if (system != null) {
-                systemType = system.getSystemType();
-            }
-        }
-
+    private static BlockServiceApi getBlockServiceImpl(VirtualPool vpool, DbClient dbClient) {
         // Mutually exclusive logic that selects an implementation of the block service
         if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
-        } else if ((VirtualPool.vPoolSpecifiesHighAvailability(vpool)) && (DiscoveredDataObject.Type.vplex.name().equals(systemType))) {
+        } else if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
         } else if (VirtualPool.vPoolSpecifiesSRDF(vpool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.srdf.name());
@@ -1144,7 +1136,7 @@ public class BlockService extends TaskResourceService {
 
         // Otherwise the volume sent in is assigned to a virtual pool that tells us what block service to return
         VirtualPool vPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-        return getBlockServiceImpl(volume, vPool, dbClient);
+        return getBlockServiceImpl(vPool, dbClient);
     }
 
     /**

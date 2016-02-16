@@ -28,8 +28,24 @@
                   cssClass:'editableRows',
                   selectable:true}
   #{DataTable.buttonBar}
-     #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', data:['enabled':'selected']/}
+     <div class="btn-group">
+      <button type="button" class="btn btn-danger dropdown-toggle" name="button.delete" data-toggle="dropdown" data-enabled="selected">
+        <span class="glyphicon glyphicon-trash"></span>
+        &{'resources.buckets.deleteLink'} <span class="caret"></span>
+      </button>
+      <ul class="dropdown-menu" role="menu">
+        <li><a onclick="return $('#deleteFormFull').submit();">&{'resources.bucket.deleteLink.FULL'}</a></li>
+        <li><a onclick="return $('#deleteFormViPRonly').submit();">&{'resources.bucket.deleteLink.INTERNAL_DB_ONLY'}</a></li>
+      </ul>
+    </div>
     #{doBody/}
   #{/DataTable.buttonBar}
- #{DataTable.formAction @delete(), id:'deleteForm', table:'buckets', confirm:messages.get('resources.buckets.deleteConfirm')/}                  
+
+#{DataTable.formAction @delete(), id:'deleteFormFull', table:'buckets', confirm:messages.get('resources.buckets.deleteConfirm.FULL')}
+    <input type="hidden" name="deleteType" value="FULL">
+  #{/DataTable.formAction}
+  #{DataTable.formAction @delete(), id:'deleteFormViPRonly', table:'buckets', confirm:messages.get('resources.buckets.deleteConfirm.INTERNAL_DB_ONLY')}
+    <input type="hidden" name="deleteType" value="INTERNAL_DB_ONLY">
+  #{/DataTable.formAction} 
+                  
 #{/DataTable.table}

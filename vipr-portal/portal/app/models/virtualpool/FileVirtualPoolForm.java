@@ -138,9 +138,6 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         builder.setLongTermRetention(longTermRetention);
 
         FileReplicationPolicy fileReplicationPolicy = new FileReplicationPolicy();
-        if(replicationType == null|| replicationType.isEmpty()) {
-            replicationType = "NONE";
-        }
         fileReplicationPolicy.setReplicationType(replicationType);
         FileVirtualPoolReplicationParam replicationParam = new FileVirtualPoolReplicationParam();
 

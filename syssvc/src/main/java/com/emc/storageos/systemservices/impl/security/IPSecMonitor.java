@@ -225,6 +225,12 @@ public class IPSecMonitor implements Runnable {
             GeoClientCacheManager geoClientMgr = getGeoClientManager();
             if (geoClientMgr != null) {
                 GeoServiceClient geoClient = geoClientMgr.getGeoClient(getVdcShortIdByIp(node));
+                String version = geoClient.getViPRVersion();
+                if (version.compareTo("vipr-2.5") < 0) {
+                    log.info("remote vdc version is less than 2.5, skip getting ipsec properties");
+                    return props;
+                }
+
                 VdcIpsecPropertiesResponse ipsecProperties = geoClient.getIpsecProperties();
                 if (ipsecProperties != null) {
                     props.put(IPSEC_KEY, ipsecProperties.getIpsecKey());
@@ -264,6 +270,11 @@ public class IPSecMonitor implements Runnable {
 
         boolean bKeyEqual = false;
         boolean bStatusEqual = false;
+        
+        if (StringUtils.isEmpty(props.get(IPSEC_KEY))) {
+            log.info("remote nodes' latest ipsec_key is empty, skip sync");
+            return false;
+        }
 
         if (localKey == null && props.get(IPSEC_KEY) == null) {
             bKeyEqual = true;

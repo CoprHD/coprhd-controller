@@ -789,7 +789,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 volumeMap.put(volume.getId(), volume);
             }
 
-            boolean isMetroPoint = _rpHelper.isMetroPointVolume(volume);
+            boolean isMetroPoint = RPHelper.isMetroPointVolume(_dbClient, volume);
             boolean isRPSource = _rpHelper.isRPSource(volumeDescriptor);
             boolean isRPTarget = _rpHelper.isRPTarget(volumeDescriptor);
             boolean extraParamsGathered = false;
@@ -1547,7 +1547,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             for (VolumeDescriptor sourceVolumedescriptor : sourceVolumeDescriptors) {
                 Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumedescriptor.getVolumeURI());
-                metropoint = _rpHelper.isMetroPointVolume(sourceVolume);
+                metropoint = RPHelper.isMetroPointVolume(_dbClient, sourceVolume);
                 // if this is a change vpool, attachAsClean should be false so that source and target are synchronized
                 if (VolumeDescriptor.Type.RP_EXISTING_SOURCE.equals(sourceVolumedescriptor.getType())) {
                     attachAsClean = false;
@@ -3194,7 +3194,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Gather information necessary to give a good error message...
             Volume volume = null;
             if (URIUtil.isType(completer.getId(), BlockConsistencyGroup.class)) {
-                List<Volume> volumes = RPHelper.getCgVolumes(completer.getId(), _dbClient);
+                List<Volume> volumes = RPHelper.getAllCgVolumes(completer.getId(), _dbClient);
                 if (volumes != null && !volumes.isEmpty()) {
                     volume = volumes.get(0);
                 }
@@ -3993,7 +3993,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // 1. delete the standby CDP copy
                 // 2. add back the standby production copy
                 // 3. add back the standby CDP copy
-                if (_rpHelper.isMetroPointVolume(protectionVolume)) {
+                if (RPHelper.isMetroPointVolume(_dbClient, protectionVolume)) {
 
                     _log.info(String.format(
                             "Adding back standby production copy after swap back to original VPlex Metro for Metropoint volume %s (%s)",
@@ -4024,9 +4024,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             rSet.setVolumes(volumes);
                             rSets.add(rSet);
 
+                            List<Volume> standbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, standbyCopyVol.getConsistencyGroup(), standbyCopyVol.getRpCopyName());
+                            
                             // compile a unique set of journal volumes
-                            if (standbyCopyVol.getRpJournalVolume() != null) {
-                                journalVolumes.add(standbyCopyVol.getRpJournalVolume());
+                            for (Volume standbyJournal : standbyJournals) {
+                                journalVolumes.add(standbyJournal.getId());
                             }
                         }
 
@@ -4057,10 +4059,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                     + protectionVolume.getLabel());
                         }
                     }
+                    
+                    String standbyInternalSiteName = RPHelper.getStandbyInternalSite(_dbClient, protectionVolume);                
+                    // Build standby journal
+                    if (standbyInternalSiteName != null) {            
+                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, protectionVolume.getConsistencyGroup(), standbyInternalSiteName);                        
+                        Volume standbyProdJournal = existingStandbyJournals.get(0);
 
-                    Volume standbyProdJournal = _dbClient.queryObject(Volume.class, protectionVolume.getSecondaryRpJournalVolume());
-
-                    if (standbyProdJournal != null) {
                         _log.info(String.format("Found standby production journal volume %s (%s) for metropoint volume %s (%s)",
                                 standbyProdJournal.getLabel(), standbyProdJournal.getId().toString(),
                                 protectionVolume.getLabel(), protectionVolume.getId().toString()));
@@ -5707,10 +5712,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param rpSystem The rpSystem we're using
      */
     private void upgradeRPVPlexToMetroPoint(Volume sourceVolume, VirtualPool newVpool, VirtualPool oldVpool, ProtectionSystem rpSystem) {
-        // Grab the standby journal
-        Volume standbyProdJournal = _dbClient.queryObject(Volume.class, sourceVolume.getSecondaryRpJournalVolume());
+        // Grab the new standby journal from the CG               
+        String standbyInternalSiteName = RPHelper.getStandbyInternalSite(_dbClient, sourceVolume);                                  
+        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, sourceVolume.getConsistencyGroup(), standbyInternalSiteName);                        
+        Volume standbyProdJournal = existingStandbyJournals.get(0);
 
-        // Add new standby jounrnal
+        // Add new standby journal
         if (standbyProdJournal != null) {
             _log.info(String.format("Upgrade RP+VPLEX CG to MetroPoint by adding new standby journal [%s] to the CG",
                     standbyProdJournal.getLabel()));

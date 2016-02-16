@@ -119,16 +119,17 @@ public interface XtremIOProvisioningClient {
     public void deleteSnapshotSet(String snapshotSetName, String clusterName) throws Exception;
 
     /**
-     * Creates an initiator
+     * Creates an initiator & add it to InitiatorGroup.
      * 
-     * @param initiatorName
-     * @param igId
-     * @param portAddress
-     * @param clusterName
+     * @param initiatorName - InitiatorName to register.
+     * @param igId - InitiatorGroup to add initiator.
+     * @param portAddress - Initiator wwn.
+     * @param os - Operation-System of Host to register.
+     * @param clusterName - XIO clusterName.
      * @return
      * @throws Exception
      */
-    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String clusterName)
+    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String os, String clusterName)
             throws Exception;
 
     /**

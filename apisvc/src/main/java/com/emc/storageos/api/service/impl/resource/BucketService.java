@@ -309,7 +309,7 @@ public class BucketService extends TaskResourceService {
         op.setDescription("Bucket deactivate");
 
         ObjectController controller = getController(ObjectController.class, device.getSystemType());
-        controller.deleteBucket(bucket.getStorageDevice(), id, task);
+        controller.deleteBucket(bucket.getStorageDevice(), id, param.getDeleteType(), task);
 
         auditOp(OperationTypeEnum.DELETE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 bucket.getId().toString(), device.getId().toString());

@@ -844,7 +844,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
         BlockObject blockObject = getObjectsToBeCreatedMap().get(nativeGuid);
         if (blockObject == null) {
-            blockObject = _parentRequestContext.getObjectsToBeCreatedMap().get(nativeGuid);
+            blockObject = _parentRequestContext.findCreatedBlockObject(nativeGuid);
         }
 
         return blockObject;
@@ -911,6 +911,21 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public DataObject findInUpdatedObjects(URI uri) {
+
+        if (!URIUtil.isValid(uri)) {
+            _logger.warn("URI ({}) for findCreatedBlockObject is null or invalid", uri);
+            return null;
+        }
+
+        for (List<DataObject> objectsToBeUpdated : this.getObjectsToBeUpdatedMap().values()) {
+            for (DataObject o : objectsToBeUpdated) {
+                if (o.getId().equals(uri)) {
+                    _logger.info("\tfound data object in vplex request context: " + o.forDisplay());
+                    return o;
+                }
+            }
+        }
+
         return _parentRequestContext.findInUpdatedObjects(uri);
     }
 
@@ -919,6 +934,19 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public BlockObject findCreatedBlockObject(URI uri) {
+
+        if (!URIUtil.isValid(uri)) {
+            _logger.warn("URI ({}) for findCreatedBlockObject is null or invalid", uri);
+            return null;
+        }
+
+        for (BlockObject bo : getObjectsToBeCreatedMap().values()) {
+            if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
+                _logger.info("\tfound block object in vplex request context: " + bo.forDisplay());
+                return bo;
+            }
+        }
+
         return _parentRequestContext.findCreatedBlockObject(uri);
     }
 }

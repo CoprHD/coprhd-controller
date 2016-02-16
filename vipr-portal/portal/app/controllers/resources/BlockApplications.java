@@ -30,7 +30,6 @@ public class BlockApplications extends ResourceController {
     private static ApplicationSupportDataTable blockApplicationsDataTable = new ApplicationSupportDataTable();
     private static Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
     private static Map<URI, String> virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
-    public static final String ACTIVE_COPY = "copySet";
 
     public static void blockApplications() {
         renderArgs.put("dataTable", blockApplicationsDataTable);

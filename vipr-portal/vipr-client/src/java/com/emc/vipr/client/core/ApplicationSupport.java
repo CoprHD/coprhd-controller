@@ -25,6 +25,7 @@ import javax.ws.rs.core.UriBuilder;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.VolumeGroupCopySetList;
+import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
@@ -153,7 +154,7 @@ public class ApplicationSupport {
      * POST /volume-groups/block/{id}/protection/full-copies/copy-sets/{id}
      * 
      */
-    public NamedVolumesList getVolumeGroupFullCopiesForSet(URI applicationId, VolumeGroupCopySetList param) {
+    public NamedVolumesList getVolumeGroupFullCopiesForSet(URI applicationId, VolumeGroupCopySetParam param) {
         UriBuilder uribuilder = client.uriBuilder(APP_SUPPORT_CLONE_SET_URL);
         return client.postURI(NamedVolumesList.class, param, uribuilder.build(applicationId));
     }

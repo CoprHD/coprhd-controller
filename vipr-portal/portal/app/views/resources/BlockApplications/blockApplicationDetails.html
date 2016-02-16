@@ -14,8 +14,6 @@ function renderLink(o, val) {
     return "<a href='"+href+"'>" + val + "</a>";
 }
 
-
-
 function updateVolumes(oSettings) {
     var count = $('#volumeApplication table').dataTable({ bRetrieve: true }).fnGetData().length;
     
@@ -36,7 +34,7 @@ function updateVolumes(oSettings) {
 <div class="col-sm-12">
     <div class="panel-group">
       
-        #{collapse 'resources.volumes', badge: 'volumesCountBadge', noPanelBody: true}          
+        #{collapse 'resources.volumes', noPanelBody: true}
           #{DataTable.table id:'volumeApplication',
                   dataTable:dataTable,
                   source:@applicationVolumeJson(application.id), 

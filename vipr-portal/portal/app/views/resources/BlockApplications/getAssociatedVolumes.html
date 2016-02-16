@@ -3,14 +3,14 @@
   #{breadcrumb.item @blockApplications()}&{'resources.applications'}#{/breadcrumb.item}
   #{breadcrumb.item @blockApplicationDetails(application.id)}${application?.name}#{/breadcrumb.item}
   #{breadcrumb.item active:true}${copySet}#{/breadcrumb.item}
-
 #{/breadcrumb.container}
 
 #{DataTable.header titleKey:'application.copy.volumes' /}
 #{DataTable.table id:'volumes',
                   dataTable:dataTable,
-                  source:@getAssociatedVolumesJSON(copySet, application.id),
-                  selectable:true /}
+                  source:@getAssociatedVolumesJSON(copyLabel),
+                  selectable:true/}
+
 <script type="text/javascript">
 function renderLink(o, val) {
     return val;

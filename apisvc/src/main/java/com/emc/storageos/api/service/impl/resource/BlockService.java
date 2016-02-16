@@ -52,6 +52,7 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
@@ -3997,13 +3998,10 @@ public class BlockService extends TaskResourceService {
                                             .volumeForVpoolChangeHasSnaps(volume.getId().toString());
                                 }
 
-                                // Also check for snapshot sessions.
-                                List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                                        BlockSnapshotSession.class,
-                                        ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
-                                if (!snapSessions.isEmpty()) {
-                                    throw APIException.badRequests
-                                            .volumeForVpoolChangeHasSnaps(volume.getId().toString());
+                                // Also check for snapshot sessions for the volume or if the volume is
+                                // in a CG, check the group.
+                                if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(srcVolume, _dbClient)) {
+                                    throw APIException.badRequests.volumeForVpoolChangeHasSnaps(volume.getLabel());
                                 }
 
                                 // Can't migrate the source side backend volume if it is

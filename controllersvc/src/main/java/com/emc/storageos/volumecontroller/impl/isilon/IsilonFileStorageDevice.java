@@ -28,6 +28,8 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
@@ -37,6 +39,7 @@ import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -2545,6 +2548,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         IsilonApi isi = getIsilonDevice(storageObj);
         String resumeToken = null;
         IsilonList<IsilonSnapshot> Allsnapshots = new IsilonList<IsilonSnapshot>();
+        List<Snapshot> snaplist = new ArrayList<Snapshot>();
         try {
             do {
                 IsilonList<IsilonSnapshot> snapshots = isi.listSnapshotsCreatedByPolicy(resumeToken, snapshotScheduleName);
@@ -2556,6 +2560,20 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
             for (IsilonSnapshot islon_snap : Allsnapshots.getList()) {
                 _log.info("file policy snapshot is  : " + islon_snap.getName());
+                Snapshot snap = new Snapshot();
+                snap.setLabel(islon_snap.getName());
+                snap.setMountPath(islon_snap.getPath());
+                snap.setName(islon_snap.getName());
+                snap.setId(URIUtil.createId(Snapshot.class));
+                snap.setOpStatus(new OpStatusMap());
+                snap.setProject(new NamedURI(args.getProject().getId(), args.getProjectNameWithNoSpecialCharacters()));
+                snap.setParent(new NamedURI(args.getFsId(), args.getFsName()));
+                StringMap map = new StringMap();
+                map.put("Schedule", fp.getPolicyName());
+                snap.setExtensions(map);
+                snaplist.add(snap);
+
+                _dbClient.updateObject(snap);
             }
         } catch (IsilonException e) {
             _log.error("listing snapshot by file policy failed.", e);

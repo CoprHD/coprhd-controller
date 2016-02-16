@@ -80,6 +80,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1244,7 +1245,13 @@ public class VolumeIngestionUtil {
 
         // Don't create CG if the vplex is behind RP. Add a check here.
         if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
-            blockObj.setReplicationGroupInstance(cgName);
+            StringSet clusterEntries = PropertySetterUtil.extractValuesFromStringSet(
+                    SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString(),
+                    unManagedVolume.getVolumeInformation());
+            for (String clusterEntry : clusterEntries) {
+                // It is assumed that distributed volumes contain both clusters and either is OK in the CG name key.
+                blockObj.setReplicationGroupInstance(BlockConsistencyGroupUtils.buildClusterCgName(clusterEntry, cgName));
+            }
             return null;
         }
 

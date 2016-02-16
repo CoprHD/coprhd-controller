@@ -36,10 +36,6 @@ import com.emc.storageos.util.VPlexUtil;
 /**
  * Utilities class for processing fully copy request
  */
-/**
- * @author cgarber
- *
- */
 public class BlockFullCopyUtils {
 
     /**

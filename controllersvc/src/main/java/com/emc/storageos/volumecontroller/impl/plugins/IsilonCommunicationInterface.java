@@ -245,7 +245,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             if (null != fileSystem.getSoftLimit()) {
                                 fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                             }
-                            _dbClient.persistObject(fileSystem);
+                            _dbClient.updateObject(fileSystem);
                         }
                     }
                 }
@@ -273,7 +273,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 if (null != fileSystem.getSoftLimit()) {
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                 }
-                                _dbClient.persistObject(fileSystem);
+                                _dbClient.updateObject(fileSystem);
                             }
                         }
                     }

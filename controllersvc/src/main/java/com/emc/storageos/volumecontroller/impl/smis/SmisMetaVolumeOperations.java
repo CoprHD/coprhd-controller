@@ -12,8 +12,6 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisAbstractCreateVolumeJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,20 +25,28 @@ import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.Job;
 import com.emc.storageos.volumecontroller.MetaVolumeOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MetaVolumeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisAbstractCreateVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMetaVolumeHeadJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMetaVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMetaVolumeMembersJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVolumeExpandJob;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class SmisMetaVolumeOperations implements MetaVolumeOperations {
+
+    // Max retries for RP expand operation
+    private static final int MAX_RP_EXPAND_RETRIES = 20;
+    // Wait 15 seconds before attempting another call to delete the RP associated XIO volume
+    private static final int RP_EXPAND_WAIT_FOR_RETRY = 5000;
 
     private static final String EMC_IS_BOUND = SmisConstants.CP_EMC_IS_BOUND;
     private static final Logger _log = LoggerFactory.getLogger(MetaVolumeOperations.class);
@@ -74,7 +80,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
     /**
      * Create meta volume head device. Meta volume is represented by its head.
      * We create it as a regular bound volume.
-     * 
+     *
      * @param storageSystem
      * @param storagePool
      * @param metaHead
@@ -83,6 +89,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
      * @param metaVolumeTaskCompleter
      * @throws Exception
      */
+    @Override
     public void createMetaVolumeHead(StorageSystem storageSystem, StoragePool storagePool, Volume metaHead, long capacity,
             VirtualPoolCapabilityValuesWrapper capabilities, MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws Exception {
         String label;
@@ -150,7 +157,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
     /**
      * Create meta volume member devices. These devices provide capacity to meta volume.
      * SMI-S requires that these devices be created unbound form a pool.
-     * 
+     *
      * @param storageSystem
      * @param storagePool
      * @param metaHead
@@ -160,6 +167,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
      * @return list of native ids of meta member devices
      * @throws Exception
      */
+    @Override
     public List<String> createMetaVolumeMembers(StorageSystem storageSystem, StoragePool storagePool, Volume metaHead, int memberCount,
             long memberCapacity, MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws Exception {
         _log.info(String.format(
@@ -206,7 +214,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
 
     /**
      * Create meta volume from provided meta head and meta members
-     * 
+     *
      * @param storageSystem storageSystem
      * @param metaHead meta head
      * @param metaMembers list of native ids of meta volume members (not including meta head)
@@ -214,6 +222,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
      * @param capabilities capabilities
      * @param metaVolumeTaskCompleter task completer
      */
+    @Override
     public void createMetaVolume(StorageSystem storageSystem, StoragePool storagePool, Volume metaHead, List<String> metaMembers,
             String metaType,
             VirtualPoolCapabilityValuesWrapper capabilities, MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws Exception {
@@ -283,7 +292,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
 
     /**
      * Create meta volumes.
-     * 
+     *
      * @param storageSystem storageSystem
      * @param metaHead meta head
      * @param metaMembers list of native ids of meta volume members (not including meta head)
@@ -294,7 +303,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
 
     /**
      * Create meta volumes
-     * 
+     *
      * @param storageSystem
      * @param storagePool
      * @param volumes
@@ -302,6 +311,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
      * @param taskCompleter
      * @throws Exception
      */
+    @Override
     public void createMetaVolumes(StorageSystem storageSystem, StoragePool storagePool, List<Volume> volumes,
             VirtualPoolCapabilityValuesWrapper capabilities, TaskCompleter taskCompleter) throws Exception {
 
@@ -384,7 +394,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
 
     /**
      * Expand regular volume as a meta volume.
-     * 
+     *
      * @param storageSystem
      * @param metaHead
      * @param metaMembers
@@ -392,6 +402,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
      * @param metaVolumeTaskCompleter
      * @throws DeviceControllerException
      */
+    @Override
     public void expandVolumeAsMetaVolume(StorageSystem storageSystem, StoragePool storagePool, Volume metaHead, List<String> metaMembers,
             String metaType,
             MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws DeviceControllerException {
@@ -403,37 +414,80 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                 storageSystem.getSerialNumber(), metaHead.getLabel(), metaType, metaMembers));
 
         label = metaHead.getLabel();
-        try {
-            CIMObjectPath elementCompositionServicePath = _cimPath.getElementCompositionSvcPath(storageSystem);
+        boolean isRPVolume = false;
 
-            CIMArgument[] inArgs;
-            inArgs = _helper.getCreateMetaVolumeInputArguments(storageSystem, label, metaHead, metaMembers, metaType, true);
+        if (metaHead != null) {
+            // A volume is of type RP if the volume has an RP copy name or it's a VPlex backing volume associated to a
+            // VPlex RP source volume.
+            isRPVolume = metaHead.checkForRp() || RPHelper.isAssociatedToAllRpVplexTypes(metaHead, _dbClient);
+        }
 
-            CIMArgument[] outArgs = new CIMArgument[5];
-            // TODO evaluate use of asunc call for the last operation in extend sequence
-            // _helper.invokeMethod(storageSystem, elementCompositionServicePath, SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT, inArgs,
-            // outArgs);
-            // CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-            // if (job != null) {
-            // ControllerServiceImpl.enqueueJob(new QueueJob(new SmisVolumeExpandJob(job, storageSystem.getId(),
-            // taskCompleter, "ExpandAsMetaVolume")));
-            // }
-            //
-            StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, metaHead);
-            _log.info("Selected Provider : {}", forProvider.getNativeGuid());
-            SmisJob smisJobCompleter = new SmisVolumeExpandJob(null, forProvider.getId(), storagePool.getId(),
-                    metaVolumeTaskCompleter, "ExpandAsMetaVolume");
-            _helper.invokeMethodSynchronously(forProvider, elementCompositionServicePath,
-                    SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT, inArgs,
-                    outArgs, smisJobCompleter);
-        } catch (WBEMException e) {
-            _log.error("Problem making SMI-S call: ", e);
-            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
-            metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
-        } catch (Exception e) {
-            _log.error("Problem in expandVolumeAsMetaVolume: ", e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("expandVolumeAsMetaVolume", e.getMessage());
-            metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
+        // initialize the retry/attempt variables
+        int attempt = 1;
+        int retries = 1;
+
+        if (isRPVolume) {
+            // if we are dealing with an RP volume, we need to set the retry count appropriately
+            retries = MAX_RP_EXPAND_RETRIES;
+        }
+
+        // Execute one-to-many expand attempts depending on if this is an RP volume or not. If the
+        // volume is RP, retry if we get the "The requested device has active sessions" error. This is
+        // because RP has issued an asynchronous call to the array to terminate the active session but it
+        // has not been received or processed yet.
+        while (attempt++ <= retries) {
+            try {
+                CIMObjectPath elementCompositionServicePath = _cimPath.getElementCompositionSvcPath(storageSystem);
+
+                CIMArgument[] inArgs;
+                inArgs = _helper.getCreateMetaVolumeInputArguments(storageSystem, label, metaHead, metaMembers, metaType, true);
+
+                CIMArgument[] outArgs = new CIMArgument[5];
+                // TODO evaluate use of asunc call for the last operation in extend sequence
+                // _helper.invokeMethod(storageSystem, elementCompositionServicePath, SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT,
+                // inArgs,
+                // outArgs);
+                // CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                // if (job != null) {
+                // ControllerServiceImpl.enqueueJob(new QueueJob(new SmisVolumeExpandJob(job, storageSystem.getId(),
+                // taskCompleter, "ExpandAsMetaVolume")));
+                // }
+                //
+                StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, metaHead);
+                _log.info("Selected Provider : {}", forProvider.getNativeGuid());
+                SmisJob smisJobCompleter = new SmisVolumeExpandJob(null, forProvider.getId(), storagePool.getId(),
+                        metaVolumeTaskCompleter, "ExpandAsMetaVolume");
+
+                if (metaHead.checkForRp()) {
+                    _log.info(String.format("Attempt %s/%s to expand volume %s, which is associated with RecoverPoint", attempt,
+                            MAX_RP_EXPAND_RETRIES, metaHead.getLabel()));
+                }
+
+                _helper.invokeMethodSynchronously(forProvider, elementCompositionServicePath,
+                        SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT, inArgs,
+                        outArgs, smisJobCompleter);
+            } catch (WBEMException e) {
+                _log.error("Problem making SMI-S call: ", e);
+                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+                metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
+            } catch (Exception e) {
+                if (attempt != retries && isRPVolume && e.getMessage().contains("The requested device has active sessions")) {
+                    // RP has issued an async request to terminate the active session so we just need to wait
+                    // and retry the expand.
+                    _log.warn(String
+                            .format("Encountered exception attempting to expand RP volume %s.  Waiting %s milliseconds before trying again.  Error: %s",
+                                    metaHead.getLabel(), RP_EXPAND_WAIT_FOR_RETRY, e.getMessage()));
+                    try {
+                        Thread.sleep(RP_EXPAND_WAIT_FOR_RETRY);
+                    } catch (InterruptedException e1) {
+                        Thread.currentThread().interrupt();
+                    }
+                } else {
+                    _log.error("Problem in expandVolumeAsMetaVolume: ", e);
+                    ServiceError error = DeviceControllerErrors.smis.methodFailed("expandVolumeAsMetaVolume", e.getMessage());
+                    metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
+                }
+            }
         }
 
         _log.info(String.format(
@@ -443,13 +497,14 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
 
     /**
      * Expand meta volume.
-     * 
+     *
      * @param storageSystem
      * @param metaHead
      * @param newMetaMembers
      * @param metaVolumeTaskCompleter
      * @throws DeviceControllerException
      */
+    @Override
     public void expandMetaVolume(StorageSystem storageSystem, StoragePool storagePool,
             Volume metaHead, List<String> newMetaMembers, MetaVolumeTaskCompleter metaVolumeTaskCompleter) throws DeviceControllerException {
 
@@ -543,11 +598,12 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
 
     /**
      * Deletes 'SMI_BCV_META_...' helper volume form array.
-     * 
+     *
      * @param storageSystem
      * @param volume
      * @throws Exception
      */
+    @Override
     public void deleteBCVHelperVolume(StorageSystem storageSystem, Volume volume) throws Exception {
 
         _log.info(String.format("Start executing BCV helper volume from array: %s, for volume: %s",

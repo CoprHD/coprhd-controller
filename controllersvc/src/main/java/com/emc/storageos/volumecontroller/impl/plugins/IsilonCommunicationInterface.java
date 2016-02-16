@@ -249,7 +249,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                 fsChanged = true;
                             }
-                            if (fsChanged = true)
+                            if (fsChanged == true)
                                 _dbClient.updateObject(fileSystem);
                         }
                     }
@@ -281,7 +281,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }
-                                if (fsChanged = true)
+                                if (fsChanged == true)
                                     _dbClient.updateObject(fileSystem);
                             }
                         }

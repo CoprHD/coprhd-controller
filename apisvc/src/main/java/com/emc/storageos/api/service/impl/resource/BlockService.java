@@ -3998,8 +3998,7 @@ public class BlockService extends TaskResourceService {
                                             .volumeForVpoolChangeHasSnaps(volume.getId().toString());
                                 }
 
-                                // Also check for snapshot sessions for the volume or if the volume is
-                                // in a CG, check the group.
+                                // Check for snapshot sessions for the volume.
                                 if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(srcVolume, _dbClient)) {
                                     throw APIException.badRequests.volumeForVpoolChangeHasSnaps(volume.getLabel());
                                 }

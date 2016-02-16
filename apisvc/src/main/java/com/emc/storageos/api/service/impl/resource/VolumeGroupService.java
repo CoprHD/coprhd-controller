@@ -729,9 +729,6 @@ public class VolumeGroupService extends TaskResourceService {
         // validate that at least one full copy URI is provided
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
 
-        // get full copy manager
-        BlockFullCopyManager fullCopyManager = getFullCopyManager();
-
         // validate the requested full copies
         List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), volumeGroupId);
 
@@ -752,10 +749,6 @@ public class VolumeGroupService extends TaskResourceService {
             fullCopyVolumesInRequest.clear();
             fullCopyVolumesInRequest.addAll(getClonesBySetName(fullCopy.getFullCopySetName(), volumeGroup.getId()));
 
-            // make sure we don't pick up full copies of volumes not belonging to this application
-            for (Volume fullCopyVolume : fullCopyVolumesInRequest) {
-                verifyReplicaForCopyRequest(fullCopyVolume, volumeGroupId);
-            }
         } else {
             log.info("Full Copy operation requested for subset of array replication groups in Application.");
         }
@@ -827,9 +820,6 @@ public class VolumeGroupService extends TaskResourceService {
         // validate that at least one full copy URI is provided
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
 
-        // get full copy manager
-        BlockFullCopyManager fullCopyManager = getFullCopyManager();
-
         // validate the requested full copies
         List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), volumeGroupId);
 
@@ -849,11 +839,6 @@ public class VolumeGroupService extends TaskResourceService {
                     fullCopy.getLabel());
             fullCopyVolumesInRequest.clear();
             fullCopyVolumesInRequest.addAll(getClonesBySetName(fullCopy.getFullCopySetName(), volumeGroup.getId()));
-
-            // make sure we don't pick up full copies of volumes not belonging to this application
-            for (Volume fullCopyVolume : fullCopyVolumesInRequest) {
-                verifyReplicaForCopyRequest(fullCopyVolume, volumeGroupId);
-            }
         } else {
             log.info("Full Copy operation requested for subset of array replication groups in Application.");
         }
@@ -926,9 +911,6 @@ public class VolumeGroupService extends TaskResourceService {
         // validate that at least one full copy URI is provided
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
 
-        // get full copy manager
-        BlockFullCopyManager fullCopyManager = getFullCopyManager();
-
         // validate the requested full copies
         List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), volumeGroupId);
 
@@ -948,11 +930,6 @@ public class VolumeGroupService extends TaskResourceService {
                     fullCopy.getLabel());
             fullCopyVolumesInRequest.clear();
             fullCopyVolumesInRequest.addAll(getClonesBySetName(fullCopy.getFullCopySetName(), volumeGroup.getId()));
-
-            // make sure we don't pick up full copies of volumes not belonging to this application
-            for (Volume fullCopyVolume : fullCopyVolumesInRequest) {
-                verifyReplicaForCopyRequest(fullCopyVolume, volumeGroupId);
-            }
         } else {
             log.info("Full Copy operation requested for subset of array replication groups in Application.");
         }
@@ -1025,9 +1002,6 @@ public class VolumeGroupService extends TaskResourceService {
         // validate that at least one full copy URI is provided
         ArgValidator.checkFieldNotEmpty(param.getFullCopies(), "volumes");
 
-        // get full copy manager
-        BlockFullCopyManager fullCopyManager = getFullCopyManager();
-
         // validate the requested full copies
         List<Volume> fullCopyVolumesInRequest = validateFullCopiesInRequest(param.getFullCopies(), volumeGroupId);
 
@@ -1047,11 +1021,6 @@ public class VolumeGroupService extends TaskResourceService {
                     fullCopy.getLabel());
             fullCopyVolumesInRequest.clear();
             fullCopyVolumesInRequest.addAll(getClonesBySetName(fullCopy.getFullCopySetName(), volumeGroup.getId()));
-
-            // make sure we don't pick up full copies of volumes not belonging to this application
-            for (Volume fullCopyVolume : fullCopyVolumesInRequest) {
-                verifyReplicaForCopyRequest(fullCopyVolume, volumeGroupId);
-            }
         } else {
             log.info("Full Copy operation requested for subset of array replication groups in Application.");
         }

@@ -3614,6 +3614,7 @@ public class VolumeIngestionUtil {
                         _logger.info("Found a matching BlockConsistencyGroup {} "
                                 + "for volume {}.", cgName, umvLabel);
                         cg.addConsistencyGroupTypes(Types.LOCAL.name());
+                        dbClient.updateObject(cg);
                         return true;
                     }
                 }

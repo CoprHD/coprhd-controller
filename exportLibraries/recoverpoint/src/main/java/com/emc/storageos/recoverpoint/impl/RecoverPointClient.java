@@ -1011,7 +1011,7 @@ public class RecoverPointClient {
         globalCopyUID.setClusterUID(clusterUID);
         globalCopyUID.setCopyUID(copyType.getCopyNumber());
         cgCopyUID.setGlobalCopyUID(globalCopyUID);
-        cgCopyUID.setGroupUID(cgUID);
+        cgCopyUID.setGroupUID(new ConsistencyGroupUID());
         return cgCopyUID;
     }
 
@@ -1148,6 +1148,7 @@ public class RecoverPointClient {
         fullConsistencyGroupPolicy.setGroupName(request.getCgName());
         fullConsistencyGroupPolicy.setGroupPolicy(functionalAPI.getDefaultConsistencyGroupPolicy());
         fullConsistencyGroupPolicy.getGroupPolicy().setPrimaryRPANumber(preferredRPA.getRpaNumber());
+        fullConsistencyGroupPolicy.setGroupUID(new ConsistencyGroupUID());
 
         for (CreateCopyParams copyParam : request.getCopies()) {
 

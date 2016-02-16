@@ -158,7 +158,6 @@ public class ApplicationSupport {
      * API Call: GET /volume-groups/block/{id}/protection/snapshots/copy-sets
      * 
      * @param id application id to get copy sets of
-     * @param input input parameters for copy sets
      * @return list of tasks
      */
     public VolumeGroupCopySetList getSnapshotCopySets(URI id) {
@@ -170,7 +169,6 @@ public class ApplicationSupport {
      * API Call: GET /volume-groups/block/{id}/protection/snap-sessions/copy-sets
      * 
      * @param id application id to get copy sets of
-     * @param input input parameters for copy sets request
      * @return list of tasks
      */
     public VolumeGroupCopySetList getSnapshotSessionCopySets(URI id) {

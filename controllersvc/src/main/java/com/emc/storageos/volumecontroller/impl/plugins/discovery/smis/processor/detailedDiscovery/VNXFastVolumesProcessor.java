@@ -14,6 +14,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +57,7 @@ public class VNXFastVolumesProcessor extends StorageProcessor {
             throws BaseCollectionException {
         CloseableIterator<CIMObjectPath> volumeInstances = null;
         try {
-            WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
+            WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
             _unManagedVolumesUpdate = new ArrayList<UnManagedVolume>();
             @SuppressWarnings("unchecked")
             EnumerateResponse<CIMObjectPath> volumeInstanceChunks = (EnumerateResponse<CIMObjectPath>) resultObj;

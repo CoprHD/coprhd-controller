@@ -47,7 +47,8 @@ _get_controller_props() {
             controller_vnxblock_firmware_version \
             controller_vnxfile_firmware_version \
             controller_vplex_firmware_version \
-            controller_xtremio_firmware_version
+            controller_xtremio_firmware_version \
+            cim_connection_max_inactive_time
 }
 
 _controller_var_props() {

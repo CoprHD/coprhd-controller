@@ -2690,6 +2690,6 @@
         reconfigRequired : false,
         rebootRequired : true,
         controlNodeOnly : true,
-        value : "0",
+        value : "480",
     },
 ]

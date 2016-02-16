@@ -60,4 +60,4 @@ system_update_proxy=
 system_update_repo=https://colu.emc.com/soap/rpc
 system_update_username=
 vasa_base_url=
-cim_connection_max_inactive_time=0
+cim_connection_max_inactive_time=480

@@ -2649,7 +2649,7 @@
 		<property name="userConfigurable" value="false" />
 		<property name="reconfigRequired" value="false" />
 		<property name="rebootRequired" value="true" />
-		<property name="value" value="0" />
+		<property name="value" value="480" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
 	<bean id="metadata" class="com.emc.storageos.model.property.PropertiesMetadata">

@@ -17,10 +17,7 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.Project;
@@ -44,10 +41,6 @@ import com.emc.storageos.util.VPlexUtil;
  *
  */
 public class BlockFullCopyUtils {
-
-    public static final String REPLICA_TYPE_FULL_COPY = "Full copy";
-    public static final String REPLICA_TYPE_SNAPSHOT = "Snapshot";
-    public static final String REPLICA_TYPE_CONTINUOUS_COPY = "Continuous copy";
 
     /**
      * Returns the volume or block snapshot instance for the passed URI.
@@ -576,70 +569,5 @@ public class BlockFullCopyUtils {
         }
 
         return undetachedFullCopies;
-    }
-
-    /**
-     * Gets all clones for the given set name and volume group.
-     * 
-     * @param cloneSetName
-     * @param volumeGroupId
-     * @param dbClient
-     * @return
-     */
-    public static List<Volume> getClonesBySetName(String cloneSetName, URI volumeGroupId, DbClient dbClient) {
-        List<Volume> setClones = new ArrayList<Volume>();
-        if (cloneSetName != null) {
-            URIQueryResultList list = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFullCopiesBySetName(cloneSetName), list);
-            Iterator<Volume> iter = dbClient.queryIterativeObjects(Volume.class, list);
-            while (iter.hasNext()) {
-                Volume vol = iter.next();
-                URI sourceId = getSourceIdForFullCopy(vol);
-                if (sourceId != null) {
-                    Volume sourceVol = dbClient.queryObject(Volume.class, sourceId);
-                    if (sourceVol != null && !sourceVol.getInactive() && sourceVol.getVolumeGroupIds() != null
-                            && sourceVol.getVolumeGroupIds().contains(volumeGroupId.toString())) {
-                        setClones.add(vol);
-                    }
-                }
-            }
-        }
-        return setClones;
-    }
-
-    /**
-     * gets the source URI for a replica
-     * 
-     * @param replica
-     * @return
-     */
-    public static URI getSourceIdForFullCopy(BlockObject replica) {
-        URI sourceURI = null;
-        if (replica instanceof BlockSnapshot) {
-            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
-        } else if (replica instanceof BlockMirror) {
-            sourceURI = ((BlockMirror) replica).getSource().getURI();
-        } else if (replica instanceof Volume) {
-            sourceURI = ((Volume) replica).getAssociatedSourceVolume();
-        }
-        return sourceURI;
-    }
-
-    /**
-     * gets the replica type for a replica
-     * 
-     * @param replica
-     * @return
-     */
-    public static String getReplicaType(BlockObject replica) {
-        String replicaType = null;
-        if (replica instanceof BlockSnapshot) {
-            replicaType = REPLICA_TYPE_SNAPSHOT;
-        } else if (replica instanceof BlockMirror) {
-            replicaType = REPLICA_TYPE_CONTINUOUS_COPY;
-        } else if (replica instanceof Volume) {
-            replicaType = REPLICA_TYPE_FULL_COPY;
-        }
-        return replicaType;
     }
 }

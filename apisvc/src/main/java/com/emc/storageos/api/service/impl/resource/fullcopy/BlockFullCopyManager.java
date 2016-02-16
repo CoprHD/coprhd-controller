@@ -1019,60 +1019,6 @@ public class BlockFullCopyManager {
     }
 
     /**
-     * Gets the full copies belonging to same set. If set name is non-null, query and return all full copies belonging to same set. Else,
-     * group volumeGroup volumes by replication group (RG) and get one full copy having no set name for each RG - When volumes of multiple
-     * RGs with full copies are added to Application, there will be no set name. In such case, consider those without set names as one set.
-     *
-     * @param fullCopy
-     *            the full copy which has set name
-     * @param volumeGroup
-     *            the copy set belongs to this volume group
-     * @return the full copies for set
-     */
-    public List<Volume> getFullCopiesForSet(Volume fullCopy, VolumeGroup volumeGroup) {
-        String fullCopySetName = fullCopy.getFullCopySetName();
-        s_logger.info("Get Full copies belonging to the copy set {}", fullCopySetName);
-
-        if (NullColumnValueGetter.isNotNullValue(fullCopySetName)) {
-            return BlockFullCopyUtils.getClonesBySetName(fullCopySetName, volumeGroup.getId(), _dbClient);
-        }
-
-        // get all volumes for volume group
-        List<Volume> volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-
-        /** Volumes added to Application with Clones (setName not set) */
-        List<URI> fullCopyVolumes = new ArrayList<URI>();
-        // group volumes by Array Group
-        Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes, _dbClient);
-        for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
-            s_logger.debug("Replication Group {}", arrayGroupName);
-            List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
-            Volume fcSourceObject = volumeList.iterator().next();
-
-            // get full copy which does not have setName set on it
-            URI fullCopyURI = null;
-            if (fcSourceObject.getFullCopies() != null) {
-                for (String fc : fcSourceObject.getFullCopies()) {
-                    URI fcURI = URI.create(fc);
-                    Volume fcObject = _dbClient.queryObject(Volume.class, fcURI);
-                    if (!NullColumnValueGetter.isNotNullValue(fcObject.getFullCopySetName())) {
-                        fullCopyURI = fcURI;
-                        break;
-                    }
-                }
-            }
-
-            if (fullCopyURI == null) {
-                s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
-                        fcSourceObject.getLabel(), fullCopySetName);
-                continue;
-            }
-            fullCopyVolumes.add(fullCopyURI);
-        }
-        return _dbClient.queryObject(Volume.class, fullCopyVolumes);
-    }
-
-    /**
      * Record audit log for services.
      * 
      * @param opType audit event type (e.g. CREATE_VPOOL|TENANT etc.)

@@ -45,8 +45,11 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -121,6 +124,9 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.srdf.name()));
     private static final String BLOCK = "block";
     private static final String FULL_COPY = "Full copy";
+
+    public static final String REPLICA_TYPE_SNAPSHOT = "Snapshot";
+    public static final String REPLICA_TYPE_CONTINUOUS_COPY = "Continuous copy";
 
     static final Logger log = LoggerFactory.getLogger(VolumeGroupService.class);
 
@@ -487,7 +493,7 @@ public class VolumeGroupService extends TaskResourceService {
                 arrayGroupNames.add(arrayGroupName);
 
                 // validate that provided volumes are part of Volume Group
-                if (!volume.getVolumeGroupIds().contains(volumeGroupId)) {
+                if (!volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
                     throw APIException.badRequests
                             .replicaOperationNotAllowedVolumeNotInVolumeGroup(FULL_COPY, volume.getLabel());
                 }
@@ -647,7 +653,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         NamedVolumesList fullCopyList = new NamedVolumesList();
-        List<Volume> fullCopiesForSet = BlockFullCopyUtils.getClonesBySetName(fullCopySetName, volumeGroupId, _dbClient);
+        List<Volume> fullCopiesForSet = getClonesBySetName(fullCopySetName, volumeGroupId);
         for (Volume fullCopy : fullCopiesForSet) {
             fullCopyList.getVolumes().add(toNamedRelatedResource(fullCopy));
         }
@@ -744,7 +750,7 @@ public class VolumeGroupService extends TaskResourceService {
             log.info("Full Copy operation requested for entire Application, Considering full copy {} in request.",
                     fullCopy.getLabel());
             fullCopyVolumesInRequest.clear();
-            fullCopyVolumesInRequest.addAll(fullCopyManager.getFullCopiesForSet(fullCopy, volumeGroup));
+            fullCopyVolumesInRequest.addAll(getClonesBySetName(fullCopy.getFullCopySetName(), volumeGroup.getId()));
 
             // make sure we don't pick up full copies of volumes not belonging to this application
             for (Volume fullCopyVolume : fullCopyVolumesInRequest) {
@@ -842,7 +848,7 @@ public class VolumeGroupService extends TaskResourceService {
             log.info("Full Copy operation requested for entire Application, Considering full copy {} in request.",
                     fullCopy.getLabel());
             fullCopyVolumesInRequest.clear();
-            fullCopyVolumesInRequest.addAll(fullCopyManager.getFullCopiesForSet(fullCopy, volumeGroup));
+            fullCopyVolumesInRequest.addAll(getClonesBySetName(fullCopy.getFullCopySetName(), volumeGroup.getId()));
 
             // make sure we don't pick up full copies of volumes not belonging to this application
             for (Volume fullCopyVolume : fullCopyVolumesInRequest) {
@@ -941,7 +947,7 @@ public class VolumeGroupService extends TaskResourceService {
             log.info("Full Copy operation requested for entire Application, Considering full copy {} in request.",
                     fullCopy.getLabel());
             fullCopyVolumesInRequest.clear();
-            fullCopyVolumesInRequest.addAll(fullCopyManager.getFullCopiesForSet(fullCopy, volumeGroup));
+            fullCopyVolumesInRequest.addAll(getClonesBySetName(fullCopy.getFullCopySetName(), volumeGroup.getId()));
 
             // make sure we don't pick up full copies of volumes not belonging to this application
             for (Volume fullCopyVolume : fullCopyVolumesInRequest) {
@@ -1040,7 +1046,7 @@ public class VolumeGroupService extends TaskResourceService {
             log.info("Full Copy operation requested for entire Application, Considering full copy {} in request.",
                     fullCopy.getLabel());
             fullCopyVolumesInRequest.clear();
-            fullCopyVolumesInRequest.addAll(fullCopyManager.getFullCopiesForSet(fullCopy, volumeGroup));
+            fullCopyVolumesInRequest.addAll(getClonesBySetName(fullCopy.getFullCopySetName(), volumeGroup.getId()));
 
             // make sure we don't pick up full copies of volumes not belonging to this application
             for (Volume fullCopyVolume : fullCopyVolumesInRequest) {
@@ -1212,10 +1218,10 @@ public class VolumeGroupService extends TaskResourceService {
      * @return The URI of the replica's source.
      */
     private URI verifyReplicaForCopyRequest(BlockObject replica, URI volumeGroupUri) {
-        URI sourceURI = BlockFullCopyUtils.getSourceIdForFullCopy(replica);
+        URI sourceURI = getSourceIdForFullCopy(replica);
 
         if (NullColumnValueGetter.isNullURI(sourceURI)) {
-            throw APIException.badRequests.replicaOperationNotAllowedNotAReplica(BlockFullCopyUtils.getReplicaType(replica),
+            throw APIException.badRequests.replicaOperationNotAllowedNotAReplica(getReplicaType(replica),
                     replica.getLabel());
         }
 
@@ -1225,7 +1231,7 @@ public class VolumeGroupService extends TaskResourceService {
             return sourceURI;
         }
 
-        throw APIException.badRequests.replicaOperationNotAllowedSourceNotInVolumeGroup(BlockFullCopyUtils.getReplicaType(replica),
+        throw APIException.badRequests.replicaOperationNotAllowedSourceNotInVolumeGroup(getReplicaType(replica),
                 replica.getLabel());
     }
 
@@ -1921,5 +1927,70 @@ public class VolumeGroupService extends TaskResourceService {
             result = true;
         }
         return result;
+    }
+
+    /**
+     * Gets all clones for the given set name and volume group.
+     * 
+     * @param cloneSetName
+     * @param volumeGroupId
+     * @param dbClient
+     * @return
+     */
+    private List<Volume> getClonesBySetName(String cloneSetName, URI volumeGroupId) {
+        List<Volume> setClones = new ArrayList<Volume>();
+        if (cloneSetName != null) {
+            URIQueryResultList list = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFullCopiesBySetName(cloneSetName), list);
+            Iterator<Volume> iter = _dbClient.queryIterativeObjects(Volume.class, list);
+            while (iter.hasNext()) {
+                Volume vol = iter.next();
+                URI sourceId = getSourceIdForFullCopy(vol);
+                if (sourceId != null) {
+                    Volume sourceVol = _dbClient.queryObject(Volume.class, sourceId);
+                    if (sourceVol != null && !sourceVol.getInactive() && sourceVol.getVolumeGroupIds() != null
+                            && sourceVol.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+                        setClones.add(vol);
+                    }
+                }
+            }
+        }
+        return setClones;
+    }
+
+    /**
+     * gets the source URI for a replica
+     * 
+     * @param replica
+     * @return
+     */
+    private URI getSourceIdForFullCopy(BlockObject replica) {
+        URI sourceURI = null;
+        if (replica instanceof BlockSnapshot) {
+            sourceURI = ((BlockSnapshot) replica).getParent().getURI();
+        } else if (replica instanceof BlockMirror) {
+            sourceURI = ((BlockMirror) replica).getSource().getURI();
+        } else if (replica instanceof Volume) {
+            sourceURI = ((Volume) replica).getAssociatedSourceVolume();
+        }
+        return sourceURI;
+    }
+
+    /**
+     * gets the replica type for a replica
+     * 
+     * @param replica
+     * @return
+     */
+    private String getReplicaType(BlockObject replica) {
+        String replicaType = null;
+        if (replica instanceof BlockSnapshot) {
+            replicaType = REPLICA_TYPE_SNAPSHOT;
+        } else if (replica instanceof BlockMirror) {
+            replicaType = REPLICA_TYPE_CONTINUOUS_COPY;
+        } else if (replica instanceof Volume) {
+            replicaType = FULL_COPY;
+        }
+        return replicaType;
     }
 }

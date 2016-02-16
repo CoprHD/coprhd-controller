@@ -4,8 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.google.common.collect.Lists.newArrayList;
 
 import java.math.BigDecimal;
@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1505,7 +1504,7 @@ public class ControllerUtils {
             // check on other volumes part of the array group.
             List<Volume> volumes = new ArrayList<Volume>();
             String rgName = volume.getReplicationGroupInstance();
-            if (rgName == null && volume.isVPlexVolume(dbClient)) {
+            if (volume.isVPlexVolume(dbClient)) {
                 // get backend source volume
                 Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                 if (backedVol != null) {
@@ -1518,7 +1517,7 @@ public class ControllerUtils {
                         }
                     }
                 }
-            } else {
+            } else if (NullColumnValueGetter.isNotNullValue(rgName)) {
                 volumes = getVolumesPartOfRG(volume.getStorageController(), rgName, dbClient);
             }
             for (Volume vol : volumes) {
@@ -1573,12 +1572,16 @@ public class ControllerUtils {
         Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
         for (Volume volume : volumes) {
             String repGroupName = volume.getReplicationGroupInstance();
-            if (repGroupName == null && volume.isVPlexVolume(dbClient)) {
+            if (volume.isVPlexVolume(dbClient)) {
                 // get backend source volume
                 Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                 if (backedVol != null) {
                     repGroupName = backedVol.getReplicationGroupInstance();
                 }
+            }
+            if (NullColumnValueGetter.isNullValue(repGroupName)) {
+                s_logger.warn(String.format("skipping volume %s because replicationGroupInstance is null", volume.getLabel()));
+                continue;
             }
             String key = repGroupName + volume.getStorageController().toString();
             if (arrayGroupToVolumes.get(key) == null) {
@@ -1590,9 +1593,14 @@ public class ControllerUtils {
     }
 
     /**
-     * Gets all clones for the given set name.
+     * Gets all clones for the given set name and volume group.
+     * 
+     * @param cloneSetName
+     * @param volumeGroupId
+     * @param dbClient
+     * @return
      */
-    public static List<Volume> getClonesBySetName(String cloneSetName, DbClient dbClient) {
+    public static List<Volume> getClonesBySetName(String cloneSetName, URI volumeGroupId, DbClient dbClient) {
         List<Volume> setClones = new ArrayList<Volume>();
         if (cloneSetName != null) {
             URIQueryResultList list = new URIQueryResultList();
@@ -1600,7 +1608,10 @@ public class ControllerUtils {
                     getFullCopiesBySetName(cloneSetName), list);
             Iterator<Volume> iter = dbClient.queryIterativeObjects(Volume.class, list);
             while (iter.hasNext()) {
-                setClones.add(iter.next());
+                Volume vol = iter.next();
+                if (vol.getVolumeGroupIds() != null && vol.getVolumeGroupIds().contains(volumeGroupId)) {
+                    setClones.add(vol);
+                }
             }
         }
         return setClones;

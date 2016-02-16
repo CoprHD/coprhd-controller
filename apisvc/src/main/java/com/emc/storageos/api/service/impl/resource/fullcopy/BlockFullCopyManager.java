@@ -1019,23 +1019,26 @@ public class BlockFullCopyManager {
     }
 
     /**
-     * Gets the full copies belonging to same set.
-     * If set name is non-null, query and return all full copies belonging to same set.
-     * Else, group volumeGroup volumes by replication group (RG) and get one full copy having no set name for each RG
-     * - When volumes of multiple RGs with full copies are added to Application, there will be no set name. In such case,
-     * consider those without set names as one set.
+     * Gets the full copies belonging to same set. If set name is non-null, query and return all full copies belonging to same set. Else,
+     * group volumeGroup volumes by replication group (RG) and get one full copy having no set name for each RG - When volumes of multiple
+     * RGs with full copies are added to Application, there will be no set name. In such case, consider those without set names as one set.
      *
-     * @param fullCopy the full copy which has set name
-     * @param volumeGroupVolumes the volume group volumes
+     * @param fullCopy
+     *            the full copy which has set name
+     * @param volumeGroup
+     *            the copy set belongs to this volume group
      * @return the full copies for set
      */
-    public List<Volume> getFullCopiesForSet(Volume fullCopy, List<Volume> volumeGroupVolumes) {
+    public List<Volume> getFullCopiesForSet(Volume fullCopy, VolumeGroup volumeGroup) {
         String fullCopySetName = fullCopy.getFullCopySetName();
         s_logger.info("Get Full copies belonging to the copy set {}", fullCopySetName);
 
         if (NullColumnValueGetter.isNotNullValue(fullCopySetName)) {
-            return ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
+            return ControllerUtils.getClonesBySetName(fullCopySetName, volumeGroup.getId(), _dbClient);
         }
+
+        // get all volumes for volume group
+        List<Volume> volumeGroupVolumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
 
         /** Volumes added to Application with Clones (setName not set) */
         List<URI> fullCopyVolumes = new ArrayList<URI>();

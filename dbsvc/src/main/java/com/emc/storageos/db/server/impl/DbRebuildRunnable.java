@@ -54,7 +54,7 @@ public class DbRebuildRunnable implements Runnable {
 
         DrUtil drUtil = new DrUtil(coordinator);
         Site localSite = drUtil.getLocalSite();
-        if (! localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+        if (!localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
             log.info("db in sync, nothing to do");
             return;
         }
@@ -66,7 +66,7 @@ public class DbRebuildRunnable implements Runnable {
             return;
         }
         
-        Site primarySite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+        Site primarySite = drUtil.getActiveSite();
         String sourceDc = drUtil.getCassandraDcId(primarySite);
 
         log.info("starting db rebuild from source dc {}", sourceDc);
@@ -79,16 +79,21 @@ public class DbRebuildRunnable implements Runnable {
         coordinator.persistServiceConfiguration(coordinator.getSiteId(), dbconfig);
 
         if (dbRebuildComplete(Constants.DBSVC_NAME) && dbRebuildComplete(Constants.GEODBSVC_NAME)) {
-            log.info("all db rebuild finish, updating site state to STANDBY_SYNCED");
-            localSite.setState(SiteState.STANDBY_SYNCED);
-            coordinator.persistServiceConfiguration(localSite.toConfiguration());
+            localSite = drUtil.getLocalSite();
+            // update the site state only if it's still STANDBY_SYNCING
+            // do nothing if it gets set to STANDBY_ERROR earlier
+            if (localSite.getState().equals(SiteState.STANDBY_SYNCING)) {
+                log.info("all db rebuild finish, updating site state to STANDBY_SYNCED");
+                localSite.setState(SiteState.STANDBY_SYNCED);
+                coordinator.persistServiceConfiguration(localSite.toConfiguration());
+            }
         }
         isRunning = false;
     }
 
     private boolean dbRebuildComplete(String svcName) {
         List<Configuration> configs = coordinator.queryAllConfiguration(coordinator.getSiteId(),
-                coordinator.getVersionedDbConfigPath(svcName, coordinator.getCurrentDbSchemaVersion()));
+                coordinator.getVersionedDbConfigPath(svcName, service.getVersion()));
         int count = 0;
         for (Configuration config : configs) {
             if (isLastDataSyncCurrent(config)) {

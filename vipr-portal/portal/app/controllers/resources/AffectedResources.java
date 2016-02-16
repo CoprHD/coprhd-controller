@@ -25,6 +25,7 @@ import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
@@ -59,6 +60,8 @@ public class AffectedResources extends Controller {
                 return new FileSnapshotDetails(id);
             case BLOCK_SNAPSHOT:
                 return new BlockSnapshotDetails(id);
+            case BLOCK_SNAPSHOT_SESSION:
+                return new BlockSnapshotSessionDetails(id);
             case CONSISTENCY_GROUP:
                 return new BlockConsistencyGroupDetails(id);
             case HOST:
@@ -249,6 +252,17 @@ public class AffectedResources extends Controller {
         }
         return null;
     }
+    
+    private static BlockSnapshotSessionRestRep getBlockSnapshotSession(ViPRCoreClient client, URI id) {
+        try {
+            if (id != null) {
+                return client.blockSnapshotSessions().get(id);
+            }
+        } catch (Exception e) {
+            Logger.debug(e, "Failed to retrieve block snapshot session: %s", id);
+        }
+        return null;
+    }
 
     private static BlockMirrorRestRep getBlockContinuousCopy(ViPRCoreClient client, URI volumeId, URI mirrorId) {
         try {
@@ -275,6 +289,15 @@ public class AffectedResources extends Controller {
     private static VolumeRestRep getVolume(ViPRCoreClient client, BlockSnapshotRestRep blockSnapshot) {
         if (blockSnapshot != null) {
             return getVolume(client, id(blockSnapshot.getParent()));
+        }
+        else {
+            return null;
+        }
+    }
+    
+    private static VolumeRestRep getVolume(ViPRCoreClient client, BlockSnapshotSessionRestRep blockSnapshotSession) {
+        if (blockSnapshotSession != null) {
+            return getVolume(client, id(blockSnapshotSession.getParent()));
         }
         else {
             return null;
@@ -418,6 +441,14 @@ public class AffectedResources extends Controller {
             }
             return snapshots;
         }
+        
+        public List<BlockSnapshotSessionDetails> getSnapshotSessions() {
+            List<BlockSnapshotSessionDetails> snapshotSessions = Lists.newArrayList();
+            for (NamedRelatedResourceRep res : client.blockSnapshotSessions().listByVolume(volume.getId())) {
+                snapshotSessions.add(new BlockSnapshotSessionDetails(client, res.getId()));
+            }
+            return snapshotSessions;
+        }
 
         public Collection<BlockContinuousCopyDetails> getContinuousCopies() {
             List<BlockContinuousCopyDetails> copies = Lists.newArrayList();
@@ -530,11 +561,32 @@ public class AffectedResources extends Controller {
             return ResourceUtils.getHostExports(itls);
         }
     }
+    
+    public static class BlockSnapshotSessionDetails extends ResourceDetails {
+        public BlockSnapshotSessionRestRep blockSnapshotSession;
+        public VolumeRestRep volume;
+        public VirtualArrayRestRep neighborhood;
+
+        public BlockSnapshotSessionDetails(URI resourceId) {
+            super(resourceId, ResourceType.BLOCK_SNAPSHOT_SESSION);
+            blockSnapshotSession = getBlockSnapshotSession(client, resourceId);
+            volume = getVolume(client, blockSnapshotSession);
+            neighborhood = getVirtualArray(client, blockSnapshotSession);
+        }
+
+        public BlockSnapshotSessionDetails(ViPRCoreClient client, URI resourceId) {
+            super(client, resourceId);
+            blockSnapshotSession = getBlockSnapshotSession(client, resourceId);
+            volume = getVolume(client, blockSnapshotSession);
+            neighborhood = getVirtualArray(client, blockSnapshotSession);
+        }
+    }
 
     public static class BlockConsistencyGroupDetails extends ResourceDetails {
         public BlockConsistencyGroupRestRep blockConsistencyGroup;
         public List<VolumeRestRep> volumes;
         public List<BlockSnapshotDetails> snapshots;
+        public List<BlockSnapshotSessionDetails> snapshotSessionsCG;
 
         public BlockConsistencyGroupDetails(URI resourceId) {
             super(resourceId, ResourceType.CONSISTENCY_GROUP);
@@ -547,6 +599,7 @@ public class AffectedResources extends Controller {
             blockConsistencyGroup = getBlockConsistencyGroup(client, resourceId);
             volumes = getVolumes(client, blockConsistencyGroup);
             snapshots = getSnapshots();
+            snapshotSessionsCG = getSnapshotSessions();
         }
 
         public List<BlockSnapshotDetails> getSnapshots() {
@@ -555,6 +608,14 @@ public class AffectedResources extends Controller {
                 snapshots.add(new BlockSnapshotDetails(client, res.getId()));
             }
             return snapshots;
+        }
+        
+        public List<BlockSnapshotSessionDetails> getSnapshotSessions() {
+            List<BlockSnapshotSessionDetails> snapshotSessions = Lists.newArrayList();
+            for(NamedRelatedResourceRep res : client.blockSnapshotSessions().listByConsistencyGroup(blockConsistencyGroup.getId())) {
+                snapshotSessions.add(new BlockSnapshotSessionDetails(client, res.getId()));
+            }
+            return snapshotSessions;
         }
     }
 

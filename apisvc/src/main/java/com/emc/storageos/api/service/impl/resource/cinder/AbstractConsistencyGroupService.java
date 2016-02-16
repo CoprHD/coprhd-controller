@@ -57,8 +57,8 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
      */
     protected BlockConsistencyGroup findConsistencyGroup(
             String consistencyGroupId, String openstackTenantId) {
-        BlockConsistencyGroup blockConsistencyGroup = getCinderHelper().queryConsistencyGroupByTag(URI.create(consistencyGroupId),
-                getUserFromContext());
+        BlockConsistencyGroup blockConsistencyGroup =(BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencyGroupId),
+                getUserFromContext(),BlockConsistencyGroup.class);
         Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
         if (project == null) {
             CinderApiUtils.createErrorResponse(400, "Bad Request: Project not exist for the request");

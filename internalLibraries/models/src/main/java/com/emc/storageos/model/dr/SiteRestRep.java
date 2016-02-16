@@ -4,8 +4,6 @@
  */
 package com.emc.storageos.model.dr;
 
-import java.net.URI;
-
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -22,7 +20,18 @@ public class SiteRestRep extends DataObjectRestRep {
     private String description;
     private String vip;
     private String state;
-    
+    private String networkHealth;
+    private long createTime;
+
+    @XmlElement(name = "create_time")
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(long createTime) {
+        this.createTime = createTime;
+    }
+
     @XmlElement(name = "uuid")
     public String getUuid() {
         return uuid;
@@ -77,6 +86,14 @@ public class SiteRestRep extends DataObjectRestRep {
         this.description = description;
     }
 
+    @XmlElement(name = "network_health")
+    public String getNetworkHealth() {
+        return networkHealth;
+    }
+
+    public void setNetworkHealth(String networkHealth) {
+        this.networkHealth = networkHealth;
+    }
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -92,6 +109,8 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append(vip);
         builder.append(", state=");
         builder.append(state);
+        builder.append(", networkHealth=");
+        builder.append(networkHealth);
         builder.append("]");
         return builder.toString();
     }

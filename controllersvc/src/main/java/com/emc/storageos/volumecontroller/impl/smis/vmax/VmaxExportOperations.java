@@ -674,7 +674,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 }
                 ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                 mask.removeVolumes(volumeURIList);
-                _dbClient.updateAndReindexObject(mask);
+                _dbClient.updateObject(mask);
                 taskCompleter.error(_dbClient, DeviceControllerException.errors
                         .vmaxStorageGroupNameNotFound(maskingViewName));
                 return;
@@ -1056,7 +1056,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 if (null == parentGroupName) {
                     ExportMask mask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
                     mask.removeVolumes(volumeURIList);
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                     taskCompleter.error(_dbClient, DeviceControllerException.errors
                             .vmaxStorageGroupNameNotFound(maskingViewName));
                     return;
@@ -1348,7 +1348,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     _log.info(String.format("Target ports already added to port group %s, likely by a previous operation.", pgGroupName));
                 }
 
-                _dbClient.updateAndReindexObject(exportMask);
+                _dbClient.updateObject(exportMask);
             }
             _log.info(String.format("addInitiator succeeded - maskName: %s", exportMaskURI.toString()));
             taskCompleter.ready(_dbClient);
@@ -1620,8 +1620,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                 ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts);
                         exportMask.setStoragePorts(storagePortURIs);
                         // Add the mask name to the list for which volumes are already updated
-                        maskNames.add(name);
-                        maskMap.put(exportMask.getId(), exportMask);
+                        maskNames.add(name);                        
                     }
                     exportMask.addToExistingInitiatorsIfAbsent(initiatorName);
 
@@ -1632,10 +1631,14 @@ public class VmaxExportOperations implements ExportMaskOperations {
                                         initiatorName, name));
                         continue;
                     }
-                    exportMask.addInitiator(existingInitiator);
+                    exportMask.addInitiator(existingInitiator);    
+                    
+                    // Update the maskMap with the latest in-memory exportMask reference. 
+                    maskMap.put(exportMask.getId(), exportMask);
+                    
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
-                        _dbClient.updateAndReindexObject(exportMask);
+                        _dbClient.updateObject(exportMask);
                     } else {
                         _dbClient.createObject(exportMask);
                     }
@@ -1774,16 +1777,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 removeInitiators = !initiatorsToRemove.isEmpty() || !initiatorIdsToRemove.isEmpty();
 
                 // Check the volumes and update the lists as necessary
-                boolean addVolumes = false;
-                Map<String, Integer> volumesToAdd = new HashMap<String, Integer>();
-                for (Map.Entry<String, Integer> entry : discoveredVolumes.entrySet()) {
-                    String normalizedWWN = BlockObject.normalizeWWN(entry.getKey());
-                    if (!mask.hasExistingVolume(normalizedWWN) &&
-                            !mask.hasUserCreatedVolume(normalizedWWN)) {
-                        volumesToAdd.put(normalizedWWN, entry.getValue());
-                        addVolumes = true;
-                    }
-                }
+                Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
+                boolean addVolumes = !volumesToAdd.isEmpty();
 
                 boolean removeVolumes = false;
                 List<String> volumesToRemove = new ArrayList<String>();
@@ -1861,7 +1856,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                     mask.getStoragePorts().addAll(storagePortsToAdd);
                     mask.getStoragePorts().removeAll(storagePortsToRemove);
                     ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, mask);
-                    _dbClient.updateAndReindexObject(mask);
+                    _dbClient.updateObject(mask);
                 } else {
                     builder.append("XM refresh: There are no changes to the mask\n");
                 }

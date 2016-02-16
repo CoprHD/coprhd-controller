@@ -14,8 +14,6 @@ public class ObjectSettings {
     /**
      * if device is registered
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "device_registered")
     public Boolean getDeviceRegistered() {

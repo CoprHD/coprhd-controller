@@ -74,6 +74,9 @@ authenticator: AllowAllAuthenticator
 #   increase system_auth keyspace replication factor if you use this authorizer.
 authorizer: AllowAllAuthorizer
 
+# authorization backend, implementing IInternodeAuthenticatorAuthority; used to limit node ip access
+internode_authenticator: com.emc.storageos.db.server.impl.DrInternodeAuthenticator
+
 # Validity period for permissions cache (fetching permissions can be an
 # expensive operation depending on the authorizer, CassandraAuthorizer is
 # one example). Defaults to 2000, set to 0 to disable.
@@ -271,7 +274,7 @@ seed_provider:
           - coordinators: "<foreach iterator="iter" separator=", ">coordinator://${network_${iter}_ipaddr_service}:2181</foreach>"
             id: "db-${node_index}"
             seeds: "${standby_seeds_ipaddr}"
-            siteid: "${site_id}"
+            site_id_file: "/data/zk/siteid"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from

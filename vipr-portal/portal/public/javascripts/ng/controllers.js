@@ -419,12 +419,37 @@ angular.module("portalApp").controller({
             	 var projects = value.split(",");
             	 var myNewOptions = [];
             	 for (var j = 0; j < projects.length; j++) {
-                     var project = projects[j].split("~~~");
+                    var project = projects[j].split("~~~");
                     myNewOptions.push({ id: project[0], name: project[1] });
                  }
             	 $scope.projectOptions = myNewOptions;
             };
             
+    	    $scope.$apply();
+       }
+    },
+    DissociateProjectCtrl: function($scope, $http, $window, translate) {
+    	
+    	var resetModal = function() {
+    		$scope.dissociateForm = {};
+    		$scope.projectsToDissociate = {};
+    	}
+    	
+    	$scope.populateModal = function(ids, nasIdString) {
+    		
+    		resetModal();
+    		$scope.projectsToDissociateOptions = [];
+    		
+    		var myNewOptions = [];
+    		var projects = ids.split(",");
+    		
+    		for(var i = 0; i < projects.length; i++) {
+    			var projectInfo = projects[i].split("+");
+    			myNewOptions.push({ id: projectInfo[1], name: projectInfo[0] });
+    		}
+            	
+            $scope.projectsToDissociateOptions = myNewOptions;
+            $scope.nasIds = nasIdString;
     	    $scope.$apply();
        }
     },
@@ -474,6 +499,74 @@ angular.module("portalApp").controller({
     		
     		$scope.formAccessControlList = accessList.toString();
     	}, true);
+    },
+    BucketAclCtrl: function($scope, $http, $window, translate) {
+    	
+    	$scope.add = {type:'user', name:'', domain:'', permission:'read'};
+    	
+    	$scope.typeOpt = [{id:'user', name:translate('bucket.acl.user')},
+    	                 {id:'group', name:translate('bucket.acl.group')},
+    	                 {id:'customgroup', name:translate('bucket.acl.customgroup')}];
+    	
+    	
+    	$scope.permOpt = [{id:'read', name:translate('resources.bucket.acl.read')}, 
+    	                  {id:'write', name:translate('resources.bucket.acl.write')}, 
+    	                  {id:'execute', name:translate('resources.bucket.acl.execute')},
+    	                  {id:'full_control', name:translate('resources.bucket.acl.full_control')},
+						  {id:'delete', name:translate('resources.bucket.acl.delete')},
+						  {id:'none', name:translate('resources.bucket.acl.none')},
+						  {id:'privileged_write', name:translate('resources.bucket.acl.privileged_write')},
+						  {id:'read_acl', name:translate('resources.bucket.acl.read_acl')},
+						  {id:'write_acl', name:translate('resources.bucket.acl.write_acl')}];
+    	
+    	var setData = function(data) {
+    		$scope.acl = data;
+    	}
+    	
+    	var resetModal = function() {
+    		$scope.acl = {};
+    	}
+    	
+    	$scope.populateModal = function() {
+    		    resetModal();
+    			$scope.acl.accesscontrols = [];
+        		$scope.acl.accesscontrols.push(angular.copy($scope.add));
+        		$scope.$apply();
+
+    	}
+
+    	$scope.deleteACE = function(idx) { $scope.acl.accesscontrols.splice(idx, 1); }
+    	$scope.addACE = function() { $scope.acl.accesscontrols.push(angular.copy($scope.add)); }
+    	
+    	$scope.$watch('acl', function(newVal) {
+    		var accessList = [];
+    		angular.forEach($scope.acl.accesscontrols, function(obj) {
+    			if (obj.name != '') {
+    				var val = obj.type + "~~~"+obj.name+ "~~~"+obj.domain+"~~~"+obj.permission;
+    				val =val.split(",").join("|")
+    				accessList.push(val);
+    			}
+    		});
+    		
+    		$scope.formAccessControlList = accessList.toString();
+    	}, true);
+    },
+    AssignPolicyCtrl: function($scope, $http, $window, translate) {
+    	
+    	var resetModal = function() {
+    		$scope.policyOptions = [];
+    	}
+    	
+    	$scope.populateModal = function() {
+    		
+    		resetModal();
+    		
+    		$http.get(routes.FileSystems_getScheculePolicies()).success(function(data) {
+            	$scope.policyOptions = data;
+            });
+            
+    	    $scope.$apply();
+       }
     },
     FileQuotaCtrl: function($scope, $http, $filter, translate) {
         $scope.securityOptions = [{id:"unix", name:translate('resources.filesystem.quota.security.unix')}, 
@@ -880,6 +973,8 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     var LOGS_JSON = routes.SystemHealth_logsJson();
     var APPLY_FILTER = routes.SystemHealth_logs();
     var DOWNLOAD_LOGS = routes.SystemHealth_download();
+    var DEFAULT_DOWNLOAD_SEVERITY = '8';
+    var DEFAULT_DOWNLOAD_ORDER_TYPES = 'ALL';
     var SEVERITIES = {
         '4': 'ERROR',
         '5': 'WARN',
@@ -891,17 +986,17 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     angular.forEach($scope.orderTypes, function(value) {
         this.push({id:value, name:translate("systemLogs.orderType."+value)});
     }, $scope.orderTypeOptions);
-    
+
     $scope.nodeIdOptions = [{id:'', name:translate('system.logs.allnodes')}];
     angular.forEach($scope.controlNodes, function(value) {
         this.push({id:value.nodeId, name:value.nodeName + " (" + value.nodeId + ")"});
     }, $scope.nodeIdOptions);
-    
+
     $scope.serviceOptions = [];
     angular.forEach($scope.allServices, function(value) {
         this.push({id:value, name:value});
     }, $scope.serviceOptions);
-    
+
     $scope.severityOptions = [];
     angular.forEach(SEVERITIES, function(value, key) {
         this.push({id:key, name:value});
@@ -951,6 +1046,8 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
                 $scope.filterDialog.endTime = new Date().getTime();                
                 $scope.filterDialog.endTime_date = getDate($scope.filterDialog.endTime);
                 $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
+                $scope.filterDialog.severity = DEFAULT_DOWNLOAD_SEVERITY;
+                $scope.filterDialog.orderTypes = DEFAULT_DOWNLOAD_ORDER_TYPES;
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
             $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
@@ -1083,5 +1180,152 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     function fetchError(data, status, headers, config) {
         $scope.loading = false;
         $scope.error = data;
+    }
+});
+
+angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $sce, $cookies) {
+    var APPLY_FILTER = routes.AuditLog_list();
+    var DOWNLOAD_LOGS = routes.AuditLog_download();
+    var RESULT_STATUS = {
+        'S': 'SUCCESS',
+        'F': 'FAILURE'
+    };
+
+    $scope.resultStatusOptions = [];
+    angular.forEach(RESULT_STATUS, function(value, key) {
+        this.push({id:key, name:value});
+    }, $scope.resultStatusOptions);
+
+    $scope.descending = $cookies.sort === 'desc';
+    $scope.toggleSort = function() {
+        $scope.descending = !$scope.descending;
+        $cookies.sort = ($scope.descending ? 'desc' : 'asc');
+    };
+
+    $scope.filter = {
+        startTime: $scope.startTime,
+        resultStatus: $scope.resultStatus,
+        serviceType: $scope.serviceType,
+        user: $scope.user,
+        keyword: $scope.keyword
+    };
+    $scope.$watchCollection('filter', function() {
+        $scope.filterDialog = angular.extend({orderTypes: ''}, $scope.filter);
+    });
+
+    $scope.loading = false;
+    $scope.error = null;
+
+    // Hooks for the filter/download dialog
+    angular.element("#filter-dialog").on("show.bs.modal", function (event) {
+        $scope.$apply(function() {
+            var button = $(event.relatedTarget);
+            var type = button.data('type');
+
+            $scope.filterDialog.type = type;
+            if (type === 'download') {
+                $scope.filterDialog.endTime = new Date().getTime();
+                $scope.filterDialog.endTime_date = getDate($scope.filterDialog.endTime);
+                $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
+            }
+            $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
+            $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
+        });
+    });
+
+    // Applies the filter from the dialog
+    $scope.applyFilter = function() {
+        angular.element('#filter-dialog').modal('hide');
+        var args = {
+            startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
+            resultStatus: $scope.filterDialog.resultStatus,
+            serviceType: $scope.filterDialog.serviceType,
+            user: $scope.filterDialog.user,
+            keyword: $scope.filterDialog.keyword,
+            triggerByFilter: "true"
+        };
+        var url = APPLY_FILTER + "?" + encodeArgs(args);
+        window.location.href = url;
+    };
+
+    // Downloads the logs from the server
+    $scope.downloadLogs = function() {
+        angular.element('#filter-dialog').modal('hide');
+        var args = {
+            startTime: getDateTime($scope.filterDialog.startTime_date, $scope.filterDialog.startTime_time),
+            endTime: getDateTime($scope.filterDialog.endTime_date, $scope.filterDialog.endTime_time),
+            resultStatus: $scope.filterDialog.resultStatus,
+            serviceType: $scope.filterDialog.serviceType,
+            user: $scope.filterDialog.user,
+            keyword: $scope.filterDialog.keyword
+        };
+        if ($scope.filterDialog.endTimeCurrentTime) {
+            args.endTime = new Date().getTime();
+        }
+        var url = DOWNLOAD_LOGS + "?" + encodeArgs(args);
+        window.open(url, "_blank");
+    };
+
+    $scope.getLocalDateTime = function(o,datestring){
+        return render.localDate(o,datestring);
+    };
+
+    function getDate(millis) {
+        return millis ? formatDate(millis, "YYYY-MM-DD") : "";
+    }
+
+    function getTime(millis) {
+        return millis ? formatDate(millis, "HH:mm") : "";
+    }
+
+    function getDateTime(dateStr, timeStr) {
+        if (dateStr && timeStr) {
+            return moment(dateStr + " " + timeStr, "YYYY-MM-DD HH:mm").toDate().getTime();
+        }
+        return null;
+    }
+
+    function encodeArgs(args) {
+        var encoded = [];
+        angular.forEach(args, function(value, key) {
+            if (angular.isArray(value)) {
+                angular.forEach(value, function(value) {
+                    encoded.push(key+"="+encodeURIComponent(value));
+                });
+            }
+            else if (value) {
+                encoded.push(key+"="+encodeURIComponent(value));
+            }
+        });
+        return encoded.join("&");
+    }
+
+});
+
+angular.module("portalApp").controller("ConfigBackupCtrl", function($scope) {
+    angular.element("#backup-time").ready(function () {
+        $scope.$apply(function() {
+            $scope.backup_startTime = getLocalTimeFromOffset($schedulerTimeOffset);
+        });
+
+    });
+    $scope.$watch('backup_startTime', function() {
+        setOffsetFromLocalTime($scope.backup_startTime);
+    });
+
+    function getLocalTimeFromOffset(offset) {
+        var chosenHour = parseInt(offset/100);
+        var chosenMin = offset%100;
+        var utcMoment = moment.utc({hour:chosenHour, minute: chosenMin});
+        var localTime = utcMoment.local().format("HH:mm");
+        return localTime;
+    }
+
+    function setOffsetFromLocalTime(localTime) {
+        var localMoment = moment(localTime, "HH:mm");
+        var utcOffset = parseInt(moment.utc(localMoment.toDate()).format("HHmm"));
+        var $backup_time = $("#backup_scheduler_time");
+        $backup_time.val(utcOffset);
+        checkForm();
     }
 });

@@ -24,7 +24,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.volumecontroller.AttributeMatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,6 +61,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Function;
@@ -296,7 +296,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         }
         
         if (null != param.getSystemType()) {
-            if (cos.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
+            if (cos.getArrayInfo() != null && cos.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                 for (String systemType : cos.getArrayInfo().get(
                         VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                     cos.getArrayInfo().remove(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE,
@@ -305,11 +305,13 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
             }
 
             if (!(VirtualPool.SystemType.NONE.name().equalsIgnoreCase(param.getSystemType())
-            || VirtualPool.SystemType.isObjectTypeSystem(param.getSystemType()))) {
+                    || VirtualPool.SystemType.isObjectTypeSystem(param.getSystemType()))) {
                 throw APIException.badRequests.invalidSystemType("Object");
             }
-            cos.getArrayInfo()
-                    .put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
+            if (cos.getArrayInfo() == null) {
+                cos.setArrayInfo(new StringSetMap());
+            }
+            cos.getArrayInfo().put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
         }
 
         // invokes implicit pool matching algorithm.

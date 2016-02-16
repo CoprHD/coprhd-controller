@@ -23,10 +23,11 @@ import util.datatable.DataTablesSupport;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
-import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -109,7 +110,7 @@ public class BlockSnapshots extends ResourceController {
         if (StringUtils.isNotBlank(snapshotId)) {
             ViPRCoreClient client = BourneUtil.getViprClient();
 
-            Tasks<BlockSnapshotRestRep> task = client.blockSnapshots().deactivate(uri(snapshotId));
+            Tasks<BlockSnapshotRestRep> task = client.blockSnapshots().deactivate(uri(snapshotId), VolumeDeleteTypeEnum.FULL);
             flash.put("info", MessagesUtils.get("resources.snapshot.deactivate", snapshotId));
         }
         snapshotDetails(snapshotId);
@@ -124,7 +125,7 @@ public class BlockSnapshots extends ResourceController {
         if (ids != null) {
             ViPRCoreClient client = BourneUtil.getViprClient();
             for (URI id : ids) {
-                Tasks<BlockSnapshotRestRep> task = client.blockSnapshots().deactivate(id);
+                Tasks<BlockSnapshotRestRep> task = client.blockSnapshots().deactivate(id, VolumeDeleteTypeEnum.FULL);
             }
             flash.put("info", MessagesUtils.get("resources.snapshots.deactivate", ids.size()));
         }

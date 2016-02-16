@@ -43,6 +43,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.model.EncryptionProvider;
 import com.emc.storageos.management.backup.BackupOps;
 
@@ -83,6 +84,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     @Autowired
     private DrUtil drUtil;
 
+
     private SchedulerConfig cfg;
     private BackupExecutor backupExec;
     private UploadExecutor uploadExec;
@@ -91,6 +93,19 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     private ScheduledFuture<?> scheduledTask;
 
     public BackupScheduler() {
+    }
+
+    public SchedulerConfig getCfg() {
+        if (cfg.uploadUrl == null) {
+            try {
+                cfg.reload();
+            }catch(Exception e) {
+                log.error("Failed to reload cfg e=", e);
+                throw new RuntimeException(e);
+            }
+        }
+
+        return cfg;
     }
 
     public static BackupScheduler getSingletonInstance() {
@@ -117,6 +132,10 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     @Override
     public Object call() throws Exception {
         log.info("Starting to configure scheduler");
+        if (drUtil.isStandby()) {
+            log.info("Current site is standby, disable BackupScheduler");
+            return null;
+        }
 
         if (this.scheduledTask != null) {
             cancelScheduledTask();
@@ -166,8 +185,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             this.cfg.reload();
 
             // If we made any new backup, notify uploader thread to perform upload
-            this.backupExec.runOnce();
-            this.uploadExec.runOnce();
+            this.backupExec.create();
+            this.uploadExec.upload();
+            this.backupExec.reclaim();
 
         } catch (Exception e) {
             log.error("Exception occurred in scheduler", e);
@@ -264,11 +284,12 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        String drSiteName = drUtil.getLocalSite().getName();
+        String drSiteId = drUtil.getLocalSite().getUuid();
+
         // Remove all non alphanumeric characters
-        drSiteName = drSiteName.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
+        drSiteId = drSiteId.replaceAll("^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "");
         
-        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteName);
+        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount, drSiteId);
     }
 
     public List<String> getDescParams(final String tag) {
@@ -277,6 +298,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             {
                 add(tag);
                 add(nodeId);
+                add(drUtil.getLocalSite().getName());
             }
         };
     }
@@ -321,7 +343,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         singletonInstance = this;
         this.cfg = new SchedulerConfig(coordinator, this.encryptionProvider, this.dbClient);
 
-        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(BackupConstants.BACKUP_LEADER_PATH,
+        LeaderSelector leaderSelector = coordinator.getCoordinatorClient().getLeaderSelector(coordinator.getCoordinatorClient().getSiteId(), BackupConstants.BACKUP_LEADER_PATH,
                 new BackupLeaderSelectorListener());
         leaderSelector.autoRequeue();
         leaderSelector.start();

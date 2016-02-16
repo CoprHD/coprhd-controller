@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
 import com.emc.storageos.db.client.model.Snapshot;
@@ -677,8 +678,11 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public BiosCommandResult doModifyFS(StorageSystem storage,
             FileDeviceInputOutput fd) throws ControllerException {
-        // TODO Auto-generated method stub
-        return null;
+        BiosCommandResult result = new BiosCommandResult();
+        result.setCommandSuccess(false);
+        result.setCommandStatus(Operation.Status.error.name());
+        result.setMessage("Modify FS NOT supported for VNXe.");
+        return result;
     }
 
     @Override
@@ -1318,14 +1322,6 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
-    public void doCreateMirror(StorageSystem storage, URI mirror,
-            Boolean createInactive, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-
-    }
-
-    @Override
     public void doFractureMirror(StorageSystem storage, URI mirror,
             Boolean sync, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -1385,7 +1381,7 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public void doCreateConsistencyGroup(StorageSystem storage,
-            URI consistencyGroup, TaskCompleter taskCompleter)
+            URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("creating consistency group, array: {}", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroupObj = _dbClient.queryObject(BlockConsistencyGroup.class,
@@ -1432,7 +1428,7 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage,
-            URI consistencyGroupId, Boolean markInactive, TaskCompleter taskCompleter)
+            URI consistencyGroupId, String replicationGroupName, String newReplicationGroupName, Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         _logger.info("Deleting consistency group, array: {}", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
@@ -1540,7 +1536,7 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public void doAddToConsistencyGroup(StorageSystem storage,
-            URI consistencyGroupId, List<URI> blockObjects,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
@@ -2502,6 +2498,16 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doFractureListReplica(StorageSystem storage, List<URI> replicaList, Boolean sync, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDeleteListReplica(StorageSystem storage, List<URI> replicaList, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public BiosCommandResult updateNfsACLs(StorageSystem storage, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
@@ -2512,16 +2518,27 @@ public class VNXeStorageDevice extends VNXeOperations
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }
-    
+
     @Override
     public void doUntagVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         // If this operation is unsupported by default it's not necessarily an error
         return;
     }
+    
+    //file mirror related operations
+    public void doCreateMirror(StorageSystem storage, URI mirror, 
+    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
+    	throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+    
+    public void doDeleteMirror(StorageSystem storage, URI mirror, 
+    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
+    	throw DeviceControllerException.exceptions.operationNotSupported();
+    }
 
     @Override
-    public void doCreateSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void doCreateSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -2532,6 +2549,12 @@ public class VNXeStorageDevice extends VNXeOperations
     @Override
     public void doLinkBlockSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapShotURI,
             String copyMode, Boolean targetExists, TaskCompleter completer) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doLinkBlockSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
+            String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -2566,8 +2589,25 @@ public class VNXeStorageDevice extends VNXeOperations
      * {@inheritDoc}
      */
     @Override
-    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
     }
 }

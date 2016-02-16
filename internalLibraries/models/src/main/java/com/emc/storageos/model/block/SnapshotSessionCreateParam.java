@@ -40,8 +40,6 @@ public class SnapshotSessionCreateParam {
     /**
      * Get the snapshot session name.
      * 
-     * @valid none
-     * 
      * @return The snapshot session name.
      */
     @XmlElement
@@ -63,8 +61,6 @@ public class SnapshotSessionCreateParam {
      * to be created and linked to the newly created block snapshot session.
      * When not specified, no targets volumes will be created and linked to the
      * newly created snapshot session.
-     * 
-     * @valid none
      * 
      * @return The new targets parameter specifying info about new target volumes
      *         to be created and linked to the newly created block snapshot session.

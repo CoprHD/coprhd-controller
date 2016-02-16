@@ -32,6 +32,7 @@ public class RestoreHandler {
     private File viprDataDir;
     private List<String> extraCleanDirs = new ArrayList<>();
     private File backupArchive;
+    private boolean onlyRestoreSiteId;
 
     public RestoreHandler(String rootDir, String viprDataDir) {
         Preconditions.checkArgument(rootDir != null && viprDataDir != null,
@@ -41,6 +42,10 @@ public class RestoreHandler {
     }
 
     RestoreHandler() {
+    }
+
+    public void setOnlyRestoreSiteId(boolean onlyRestoreSiteId) {
+        this.onlyRestoreSiteId = onlyRestoreSiteId;
     }
 
     /**
@@ -123,6 +128,15 @@ public class RestoreHandler {
         log.debug("Temporary backup folder: {}", tmpDir.getAbsolutePath());
         try {
             ZipUtil.unpack(backupArchive, viprDataDir.getParentFile());
+            String backupType = backupName.split(BackupConstants.BACKUP_NAME_DELIMITER)[1];
+            if (BackupType.zk.name().equalsIgnoreCase(backupType)) {
+                replaceSiteIdFile(tmpDir);
+            }
+
+            if (onlyRestoreSiteId) {
+                return;
+            }
+
             tmpDir.renameTo(viprDataDir);
             chown(viprDataDir, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
         } finally {
@@ -130,6 +144,13 @@ public class RestoreHandler {
                 FileUtils.deleteQuietly(tmpDir);
             }
         }
+    }
+
+    private void replaceSiteIdFile(File siteIdFileDir) throws IOException {
+        log.info("Replacing site id file ...");
+        File unpackedSiteIdFile = new File(siteIdFileDir, BackupConstants.SITE_ID_FILE_NAME);
+        chown(unpackedSiteIdFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
+        FileUtils.moveFileToDirectory(unpackedSiteIdFile, rootDir, false);
     }
 
     /**

@@ -49,11 +49,14 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
@@ -68,13 +71,13 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
-import com.emc.storageos.db.client.model.VirtualNAS;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -85,6 +88,11 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.UnManagedVolumeList;
 import com.emc.storageos.model.block.tier.AutoTierPolicyList;
 import com.emc.storageos.model.file.UnManagedFileSystemList;
+import com.emc.storageos.model.object.ObjectNamespaceList;
+import com.emc.storageos.model.object.ObjectNamespaceRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
+import com.emc.storageos.model.object.ObjectUserSecretKeyRequestParam;
+import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
 import com.emc.storageos.model.pools.StoragePoolList;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
@@ -106,6 +114,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -116,6 +125,7 @@ import com.emc.storageos.volumecontroller.StorageController;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
+import com.emc.storageos.volumecontroller.impl.ecs.BucketOperationTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -257,10 +267,13 @@ public class StorageSystemService extends TaskResourceService {
     public TaskResourceRep createStorageSystem(StorageSystemRequestParam param) throws Exception {
 
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
-        ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type", EnumSet.of(
-                StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
-                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
-                StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
+        if (!StorageSystem.Type.isDriverManagedStorageSystem(param.getSystemType())) {
+
+            ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
+                    Arrays.asList(StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
+                            StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
+                            StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
+        }
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
             validateVNXFileSMISProviderMandatoryDetails(param);
@@ -1195,6 +1208,44 @@ public class StorageSystemService extends TaskResourceService {
     }
 
     /**
+     * Gets all object namespaces for the registered storage system with the passed id
+     * 
+     * @param id the URN of a ViPR storage system.
+     * 
+     * @brief List object storage namespaces
+     * @return A reference to a ObjectNamespaceList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-namespaces")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectNamespaceList getAllObjectNamespaces(@PathParam("id") URI id) {
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
+
+        ObjectNamespaceList objNamespaceList = new ObjectNamespaceList();
+        URIQueryResultList objNamespaceURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceObjectNamespaceConstraint(id),
+                objNamespaceURIs);
+        Iterator<URI> ecsNsIter = objNamespaceURIs.iterator();
+        while (ecsNsIter.hasNext()) {
+            URI nsURI = ecsNsIter.next();
+            ObjectNamespace namespace = _dbClient.queryObject(ObjectNamespace.class,
+                    nsURI);
+            if (namespace != null && !namespace.getInactive()) {
+                objNamespaceList.getNamespaces().add(toNamedRelatedResource(namespace, namespace.getNativeGuid()));
+            }
+        }
+        return objNamespaceList;
+    }
+    
+    /**
      * Get information about the storage pool with the passed id on the
      * registered storage system with the passed id.
      * 
@@ -1221,6 +1272,95 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkEntity(storagePool, poolId, isIdEmbeddedInURL(poolId));
 
         return StoragePoolService.toStoragePoolRep(storagePool, _dbClient, _coordinator);
+    }
+
+    /**
+     * Get details of the object namespace associated with a particular storage system
+     * 
+     * @param id storage system URN ID
+     * @param nsId namespace id 
+     * @return details of namespace
+     */
+    
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-namespaces/{nsId}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectNamespaceRestRep getObjectNamespace(@PathParam("id") URI id,
+            @PathParam("nsId") URI nsId) {
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
+
+        ArgValidator.checkFieldUriType(nsId, ObjectNamespace.class, "nativeId");
+        ObjectNamespace ecsNamespace = _dbClient.queryObject(ObjectNamespace.class, nsId);
+        ArgValidator.checkEntity(ecsNamespace, nsId, isIdEmbeddedInURL(nsId));
+        
+        return toObjectNamespaceRestRep(ecsNamespace, _dbClient, _coordinator);
+    }
+    
+    private ObjectNamespaceRestRep toObjectNamespaceRestRep(ObjectNamespace ecsNamespace, DbClient dbClient,
+            CoordinatorClient coordinator) {
+
+        return map(ecsNamespace);
+    }
+    
+    /**
+     * Get the existing secret keys(s) for the user specified
+     * 
+     * @param id storage system URN
+     * @param userId user for whom key is required
+     * @return secret key
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-user/{userId}/secret-keys")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectUserSecretKeysRestRep getUserSecretKeys(@PathParam("id") URI id,
+            @PathParam("userId") String userId) throws InternalException {
+        // Make sure storage system is registered and object storage
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
+
+        ObjectController controller = getController(ObjectController.class, system.getSystemType());
+        ObjectUserSecretKey secretKeys = controller.getUserSecretKeys(id, userId);
+        return map(secretKeys);
+    }
+
+    /**
+     * Create a secret key for an object storage array
+     * 
+     * @param param secret key
+     * @param id storage system URN
+     * @param userId user in array
+     * @return secret key details
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/object-user/{userId}/secret-keys")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ObjectUserSecretKeyAddRestRep addUserSecretKey(ObjectUserSecretKeyRequestParam param, @PathParam("id") URI id,
+            @PathParam("userId") String userId) throws InternalException{
+        // Make sure storage system is registered and object storage
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+        if (!StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
+            throw APIException.badRequests.invalidParameterURIInvalid("id", id);
+        }
+        
+        ObjectController controller = getController(ObjectController.class, system.getSystemType());
+        ObjectUserSecretKey secretKeyRes = controller.addUserSecretKey(id, userId, param.getSecretkey());
+        //Return key details as this is synchronous call
+        return map(secretKeyRes, true);
     }
 
     @GET
@@ -1613,6 +1753,13 @@ public class StorageSystemService extends TaskResourceService {
             UnManagedVolume umv = unmanagedVolumeItr.next();
             String umvExportStatus = umv.getVolumeCharacterstics().get(
                     SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString());
+            // In some cases, this flag isn't set at all, in which case we need to fall back to 
+            // checking the IS_VOLUME_EXPORTED flag instead.
+            if (umvExportStatus == null) {
+                umvExportStatus = umv.getVolumeCharacterstics().get(
+                        SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString());
+            }
+            
             if (umv.getStorageSystemUri().equals(id) && null != umvExportStatus
                     && umvExportStatus.equalsIgnoreCase(isExportedSelected)) {
                 String name = (null == umv.getLabel()) ? umv.getNativeGuid() : umv.getLabel();
@@ -1768,11 +1915,8 @@ public class StorageSystemService extends TaskResourceService {
 
     // Counts and returns the number of resources in a storage system
     public static Integer getNumResources(StorageSystem system, DbClient dbClient) {
-        StorageSystem.Type systemType = StorageSystem.Type.valueOf(system.getSystemType());
-        if (systemType == null) {
-            return 0;
-        }
-        if (StorageSystem.Type.isFileStorageSystem(systemType)) {
+
+        if (StorageSystem.Type.isFileStorageSystem(system.getSystemType())) {
             return dbClient.countObjects(FileShare.class, "storageDevice", system.getId());
         }
         else {

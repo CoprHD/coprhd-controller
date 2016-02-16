@@ -44,7 +44,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.VirtualDataCenter.ConnectionStatus;
@@ -106,6 +108,9 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Autowired
     private Service service;
 
+    @Autowired
+    private DrUtil drUtil;
+    
     private Map<String, StorageOSUser> _localUsers;
 
     public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
@@ -190,7 +195,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep addVirtualDataCenter(VirtualDataCenterAddParam param) {
         blockRoot();
         ArgValidator.checkFieldNotEmpty(param.getApiEndpoint(), "api_endpoint");
@@ -199,6 +204,11 @@ public class VirtualDataCenterService extends TaskResourceService {
         checkForDuplicateName(param.getName(), VirtualDataCenter.class);
         if (service.getId().endsWith("standalone")) {
             throw new IllegalStateException("standalone VDCs cannot be connected into a geo system");
+        }
+        
+        List<Site> drSitesInCurrentVdc = drUtil.listSites();
+        if (drSitesInCurrentVdc.size() > 1) {
+            throw APIException.badRequests.notAllowedToAddVdcInDRConfig();
         }
 
         ArgValidator.checkFieldNotEmpty(param.getCertificateChain(), "certificate_chain");
@@ -241,7 +251,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Path("/{id}")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep updateVirtualDataCenter(@PathParam("id") URI id, VirtualDataCenterModifyParam param) {
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
 
@@ -305,7 +315,7 @@ public class VirtualDataCenterService extends TaskResourceService {
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission(roles = { Role.SECURITY_ADMIN }, blockProxies = true)
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN }, blockProxies = true)
     public TaskResourceRep removeVirtualDataCenter(@PathParam("id") URI id) {
         blockRoot();
         ArgValidator.checkFieldUriType(id, VirtualDataCenter.class, "id");
@@ -520,11 +530,6 @@ public class VirtualDataCenterService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     public CertificateChain setKeyCertificatePair(RotateKeyAndCertParam rotateKeyAndCertParam) {
-
-        // Do Not support keystore rotation in multiple-vdcs env
-        if (!VdcUtil.isLocalVdcSingleSite()) {
-            throw APIException.methodNotAllowed.rotateKeyCertInMultiVdcsIsNotAllowed();
-        }
 
         if (!coordinator.isClusterUpgradable()) {
             throw SecurityException.retryables.updatingKeystoreWhileClusterIsUnstable();

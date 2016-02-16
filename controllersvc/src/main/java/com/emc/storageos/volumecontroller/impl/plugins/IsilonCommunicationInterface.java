@@ -241,12 +241,11 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if (!fileSystem.getInactive()) {
                             if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
                                 fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
-                                _dbClient.persistObject(fileSystem);
                             }
                             if (null != fileSystem.getSoftLimit()) {
                                 fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
-                                _dbClient.persistObject(fileSystem);
                             }
+                            _dbClient.persistObject(fileSystem);
                         }
                     }
                 }
@@ -267,8 +266,13 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         // Persists the file system, only if change in used capacity.
                         FileShare fileSystem = _dbClient.queryObject(FileShare.class, stat.getResourceId());
                         if (fileSystem != null) {
-                            if (!fileSystem.getInactive() && fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
-                                fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
+                            if (!fileSystem.getInactive()) {
+                                if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
+                                    fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
+                                }
+                                if (null != fileSystem.getSoftLimit()) {
+                                    fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
+                                }
                                 _dbClient.persistObject(fileSystem);
                             }
                         }
@@ -374,7 +378,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         } while (resumeToken != null);
 
-
         // create a list of access zone for which base dir is not same as system access zone.
         // we get all snapshot list at once. baseDirPaths list is used to
         // find snaphot belong to which access zone.
@@ -425,7 +428,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
                             totalFsCount++;
                             _log.info("Access zone base directory path: {}", accessZone.getPath());
-
 
                         }
                     }
@@ -1189,8 +1191,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     /**
      * Check license is valid or not
      * 
-     * @param licenseStatus Status of the license
-     * @param system Storage System
+     * @param licenseStatus
+     *            Status of the license
+     * @param system
+     *            Storage System
      * @return true/false
      * @throws IsilonException
      * @throws JSONException
@@ -2871,9 +2875,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     /**
      * Modify Virtual NAS for the specified Isilon cluster storage array
      * 
-     * @param system the StorageSystem object
-     * @param isiAccessZone accessZone object
-     * @param vNas the VirtualNAS object
+     * @param system
+     *            the StorageSystem object
+     * @param isiAccessZone
+     *            accessZone object
+     * @param vNas
+     *            the VirtualNAS object
      * @return VirtualNAS with updated attributes
      */
     private VirtualNAS copyUpdatedPropertiesInVNAS(final StorageSystem system,
@@ -2934,8 +2941,10 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
     /**
      * Set the cifs servers for accesszone
      * 
-     * @param isiAccessZone the Isilon access zone object
-     * @param nasServer the NAS server in which CIF server map will be set
+     * @param isiAccessZone
+     *            the Isilon access zone object
+     * @param nasServer
+     *            the NAS server in which CIF server map will be set
      */
     private void setCifsServerMapForNASServer(final IsilonAccessZone isiAccessZone, NASServer nasServer) {
 

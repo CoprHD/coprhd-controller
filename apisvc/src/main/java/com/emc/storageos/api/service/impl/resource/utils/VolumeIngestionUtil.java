@@ -29,6 +29,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -3330,7 +3331,6 @@ public class VolumeIngestionUtil {
                 if (pset.getProject() == null) {
                     pset.setProject(volume.getProject().getURI());
                 }
-
             }
         }
 
@@ -3379,23 +3379,6 @@ public class VolumeIngestionUtil {
             volume.setProtectionSet(new NamedURI(pset.getId(), pset.getLabel()));
             volume.clearInternalFlags(BlockRecoverPointIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
 
-            // For sources and targets, peg an RP journal volume to be associated with each.
-            // This is a bit arbitrary for ingested RP volues as they may have 5 journal volumes for one source volume.
-            // We just pick one since we only store one journal volume ID in a Volume object.
-            if (Volume.PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality()) ||
-                    Volume.PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())) {
-
-                // Find a journal for that rp copy
-                for (Volume journalVolume : rpVolumes) {
-                    if (Volume.PersonalityTypes.METADATA.toString().equalsIgnoreCase(journalVolume.getPersonality()) &&
-                            journalVolume.getRpCopyName() != null &&
-                            volume.getRpCopyName() != null &&
-                            journalVolume.getRpCopyName().equals(volume.getRpCopyName())) {
-                        volume.setRpJournalVolume(journalVolume.getId());
-                    }
-                }
-            }
-
             // Set the proper flags on the journal volumes.
             if (volume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString())) {
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE);
@@ -3405,30 +3388,24 @@ public class VolumeIngestionUtil {
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
             if (volume.checkForVplexVirtualVolume(dbClient)) {
-                // Find associated volumes
-                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
-                    // First look in created block objects for the associated volumes. This would be the latest version.
-                    BlockObject blockObject = requestContext.findCreatedBlockObject(associatedVolumeIdStr);
-                    if (blockObject == null) {
-                        // Next look in the updated objects.
-                        blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(associatedVolumeIdStr));
-                    }
-                    if (blockObject == null) {
-                        // Finally look in the DB itself. It may be from a previous ingestion operation.
-                        blockObject = dbClient.queryObject(Volume.class, URI.create(associatedVolumeIdStr));
-                        if (blockObject == null) {
-                            // This may not be a failure if we're not ingesting backing volumes. Put a warning to the log.
-                            _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
-                        } else {
-                            // Since I pulled this in from the database, we need to add it to the list of objects to update.
-                            ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
-                                    blockObject.getNativeGuid(), Arrays.asList(blockObject));
-                        }
-                    }
-                    if (blockObject != null) {
-                        blockObject.setConsistencyGroup(rpCG.getId());
-                        updatedObjects.add(blockObject);
-                    }
+                // We need the VPLEX ingest context to get the backend volume info
+                VplexVolumeIngestionContext vplexVolumeContext =
+                        ((RpVplexVolumeIngestionContext)
+                                requestContext.getVolumeContext()).getVplexVolumeIngestionContext();  
+                                                      
+                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
+                    // Find the associated volumes using the context maps or the db if they are already there               
+                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient, 
+                                                                                vplexVolumeContext.getObjectsToBeCreatedMap(),
+                                                                                vplexVolumeContext.getObjectsToBeUpdatedMap(), 
+                                                                                associatedVolumeIdStr);     
+                    if (associatedVolume != null) {
+                        associatedVolume.setConsistencyGroup(rpCG.getId());
+                        updatedObjects.add(associatedVolume);                    
+                    } else {
+                       // This may not be a failure if we're not ingesting backing volumes.  Put a warning to the log.
+                       _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
+                    }                        
                 }
             }
 
@@ -3711,8 +3688,66 @@ public class VolumeIngestionUtil {
 
         return blockObjects;
     }
-
+    
     /**
+     * Convenience method to find the a volume from the database or maps based
+     * on ingestion.
+     * 
+     * This is an alternative to using the context objects directly.
+     * 
+     * @param dbClient DbClient reference
+     * @param createdMap Map of created objects
+     * @param updatedMap Map of updated objects
+     * @param volumeId The id of the volume to find
+     * @return The volume, or null if nothing can be found.
+     */
+    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, List<DataObject>> updatedMap, String volumeId) {
+        if (volumeId == null) {
+            return null;
+        }
+        
+        BlockObject blockObject = null;
+        URI volumeURI = URI.create(volumeId);
+                
+        if (createdMap != null) {
+            // Check the created map
+            for (BlockObject bo : createdMap.values()) {
+                if (bo.getId() != null && volumeURI.toString().equals(bo.getId().toString())) {
+                    blockObject = bo;
+                    break;
+                }
+            }
+        }
+        
+        if (updatedMap != null) {
+            // Check the updated map
+            for (List<DataObject> objectsToBeUpdated : updatedMap.values()) {
+                for (DataObject o : objectsToBeUpdated) {
+                    if (o.getId().equals(volumeURI)) {                    
+                        blockObject = (BlockObject) o;
+                        break;
+                    }
+                }
+            }      
+        }
+        
+        if (dbClient != null) {
+            // Lastly, check the db
+            if (blockObject == null) {
+                blockObject = (BlockObject) dbClient.queryObject(volumeURI);
+            }
+        }
+                
+        Volume volume = null;
+        if (blockObject != null && blockObject instanceof Volume) {
+            _logger.info("\t Found volume object: " + blockObject.forDisplay());
+            volume = (Volume) blockObject;
+        }    
+        
+        return volume;
+    }
+
+   /**
      * Sets up the Recover Point CG by creating the protection set, block CG and associating the RP volumes
      * with the protection set and the block CG.
      * It also clears the RP volumes' replicas' flags.
@@ -3835,3 +3870,4 @@ public class VolumeIngestionUtil {
         }
     }
 }
+

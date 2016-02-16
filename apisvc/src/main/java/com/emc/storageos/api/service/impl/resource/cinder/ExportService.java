@@ -781,10 +781,12 @@ public class ExportService extends VolumeService {
             exportGroup.setVirtualArray(vol.getVirtualArray());
             // put volume map
             volumeMap.put(vol.getId(), ExportGroup.LUN_UNASSIGNED);
+            exportGroup.addVolume(vol.getId(), ExportGroup.LUN_UNASSIGNED);
             // put list of initiators
             for (Initiator initiator : newInitiators) {
                 initiatorURIs.add(initiator.getId());
             }
+            exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
             _dbClient.createObject(exportGroup);
             _log.info("createExportGroup request is submitted.");
             initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);

@@ -107,8 +107,9 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
                 CIMInstance replicaPairView = client.getInstance(replicaPairViewPath, false, false, PS_REPLICA_PAIR_VIEW);
 
                 // Verify that ReplicaPairView references our groups
-                String srcGrpInstance = replicaPairView.getPropertyValue(CP_EMC_RG_SOURCE_INSTANCE_ID).toString();
-                String tgtGrpInstance = replicaPairView.getPropertyValue(CP_EMC_RG_TARGET_INSTANCE_ID).toString();
+                String srcGrpInstance = getInstancePropertyValue(replicaPairView, CP_EMC_RG_SOURCE_INSTANCE_ID);
+                String tgtGrpInstance = getInstancePropertyValue(replicaPairView, CP_EMC_RG_TARGET_INSTANCE_ID);
+
                 // ReplicaPairView references src/tgt replication groups as <symm-id>+<group-name>, hence #contains
                 if (!srcGrpInstance.contains(sourceGroupName) || !tgtGrpInstance.contains(targetGroupName)) {
                     log.warn("ReplicaPairView did not match source/target groups: {}/{}",
@@ -224,5 +225,10 @@ public class SmisBlockSnapshotSessionLinkTargetGroupJob extends SmisSnapShotJob 
         }
         throw new IllegalStateException(
                 String.format("Expected an associated volume with nativeID %s but found none", targetDeviceId));
+    }
+
+    private String getInstancePropertyValue(CIMInstance instance, String propertyName) {
+        Object value = instance.getPropertyValue(propertyName);
+        return value == null ? "" : value.toString();
     }
 }

@@ -220,7 +220,7 @@ public class DisasterRecoveryService {
             log.info("Persist standby site to ZK {}", shortId);
             // coordinator.setTargetInfo(standbySite);
             coordinator.persistServiceConfiguration(standbySite.toConfiguration());
-            recordDrOperationStatus(standbySite);
+            drUtil.recordDrOperationStatus(standbySite);
 
             // wake up syssvc to regenerate configurations
             long vdcConfigVersion = DrUtil.newVdcConfigVersion();
@@ -531,7 +531,7 @@ public class DisasterRecoveryService {
             for (Site site : toBeRemovedSites) {
                 site.setState(SiteState.STANDBY_REMOVING);
                 coordinator.persistServiceConfiguration(site.toConfiguration());
-                recordDrOperationStatus(site);
+                drUtil.recordDrOperationStatus(site);
                 sitesString.add(site.toBriefString());
             }
             log.info("Notify all sites for reconfig");
@@ -706,7 +706,7 @@ public class DisasterRecoveryService {
                 site.setState(SiteState.STANDBY_PAUSING);
                 site.setLastStateUpdateTime(System.currentTimeMillis());
                 coordinator.persistServiceConfiguration(site.toConfiguration());
-                recordDrOperationStatus(site);
+                drUtil.recordDrOperationStatus(site);
                 sitesString.add(site.toBriefString());
                 // notify the to-be-paused sites before others.
                 drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_PAUSE_STANDBY, vdcTargetVersion);
@@ -797,7 +797,7 @@ public class DisasterRecoveryService {
                     // update the site state AFTER checking the last state update time
                     site.setState(SiteState.STANDBY_RESUMING);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
-                    recordDrOperationStatus(site);
+                    drUtil.recordDrOperationStatus(site);
                 }
 
                 if (dataRevision != 0) {
@@ -979,7 +979,7 @@ public class DisasterRecoveryService {
                     oldActiveSite.getUuid(), Constants.SWITCHOVER_BARRIER_RESTART));
             restartBarrier.setBarrier();
        
-            recordDrOperationStatus(oldActiveSite);
+            drUtil.recordDrOperationStatus(oldActiveSite);
 
             // trigger reconfig
             long vdcConfigVersion = System.currentTimeMillis(); // a version for all sites.
@@ -1124,7 +1124,7 @@ public class DisasterRecoveryService {
 
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
-            recordDrOperationStatus(currentSite);
+            drUtil.recordDrOperationStatus(currentSite);
 
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
             //reconfig other standby sites
@@ -1346,19 +1346,6 @@ public class DisasterRecoveryService {
     @Path("/internal/list")
     public SiteList getSitesInternally() {
         return this.getSites();
-    }
-
-    /**
-     * Record new DR operation
-     * 
-     * @param site
-     */
-    private void recordDrOperationStatus(Site site) {
-        DrOperationStatus operation = new DrOperationStatus();
-        operation.setSiteUuid(site.getUuid());
-        operation.setSiteState(site.getState());
-        coordinator.persistServiceConfiguration(operation.toConfiguration());
-        log.info("DR operation status has been recorded: {}", operation.toString());
     }
 
     /**

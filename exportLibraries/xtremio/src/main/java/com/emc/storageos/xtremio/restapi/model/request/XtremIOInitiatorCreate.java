@@ -23,11 +23,15 @@ public class XtremIOInitiatorCreate {
     @SerializedName("port-address")
     @JsonProperty(value = "port-address")
     private String portAddress;
-    
+
+    @SerializedName("operating-system")
+    @JsonProperty(value = "operating-system")
+    private String operatingSystem;
+
     @SerializedName("cluster-id")
     @JsonProperty(value = "cluster-id")
     private String clusterName;
-    
+
     public String getInitiatorGroup() {
         return initiatorGroup;
     }
@@ -52,6 +56,14 @@ public class XtremIOInitiatorCreate {
         this.name = name;
     }
 
+    public String getOperatingSystem() {
+        return operatingSystem;
+    }
+
+    public void setOperatingSystem(String operatingSystem) {
+        this.operatingSystem = operatingSystem;
+    }
+
     public String getClusterName() {
         return clusterName;
     }
@@ -63,7 +75,7 @@ public class XtremIOInitiatorCreate {
     @Override
     public String toString() {
         return "XtremIOInitiatorCreate [name=" + name + ", initiatorGroup=" + initiatorGroup + ", portAddress=" + portAddress
-                + ", clusterName=" + clusterName + "]";
+                + ", operating-system=" + operatingSystem + ", clusterName=" + clusterName + "]";
     }
 
 }

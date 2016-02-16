@@ -7,16 +7,14 @@ package com.emc.storageos.model.application;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-// TODO replace this with VolumeGroupCopySetParam after parent branch's next merge
-
 @XmlRootElement(name = "volume_group_copy_set")
-public class VolumeGroupCopySetParamTemp {
+public class VolumeGroupCopySetParam {
     private String copySetName;
 
-    public VolumeGroupCopySetParamTemp() {
+    public VolumeGroupCopySetParam() {
     }
 
-    public VolumeGroupCopySetParamTemp(String copySetName) {
+    public VolumeGroupCopySetParam(String copySetName) {
         this.copySetName = copySetName;
     }
 

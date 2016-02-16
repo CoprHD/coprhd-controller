@@ -98,6 +98,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         snapshotSession.setParent(snapshot.getParent());
         snapshotSession.setProject(snapshot.getProject());
         snapshotSession.setSessionInstance(snapshot.getSettingsInstance());
+        // TODO update for Application set name & RG name (only for CG)
         StringSet linkedTargets = new StringSet();
         linkedTargets.add(snapshot.getId().toString());
         snapshotSession.setLinkedTargets(linkedTargets);

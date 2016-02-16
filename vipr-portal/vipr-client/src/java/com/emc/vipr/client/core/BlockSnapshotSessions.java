@@ -169,8 +169,8 @@ public class BlockSnapshotSessions extends ProjectResources<BlockSnapshotSession
      *           The linked target information for the snapshots to unlink.
      * @return tasks for monitoring the progress of the operation.
      */
-    public Tasks<BlockSnapshotSessionRestRep> unlinkTargets(URI snapshotSessionId, SnapshotSessionUnlinkTargetsParam unlinkTargetsParam) {
-        return postTasks(unlinkTargetsParam, getIdUrl() + "/unlink-targets", snapshotSessionId);
+    public Task<BlockSnapshotSessionRestRep> unlinkTargets(URI snapshotSessionId, SnapshotSessionUnlinkTargetsParam unlinkTargetsParam) {
+        return postTask(unlinkTargetsParam, getIdUrl() + "/unlink-targets", snapshotSessionId);
     }
 
     /**

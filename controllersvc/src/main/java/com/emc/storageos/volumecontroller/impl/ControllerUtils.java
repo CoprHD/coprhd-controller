@@ -1504,7 +1504,7 @@ public class ControllerUtils {
      */
     public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
 
-        return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
+        return (volume != null && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance()));
     }
 
     /**
@@ -1581,7 +1581,7 @@ public class ControllerUtils {
     }
 
     /**
-     * Group volumes by array group. For VPLEX virtual volumes, group them by backend src volumes's array group.
+     * Group volumes by array group + storage system Id. For VPLEX virtual volumes, group them by backend src volumes's array group.
      *
      * @param volumes the volumes
      * @param dbClient dbClient instance
@@ -1598,10 +1598,12 @@ public class ControllerUtils {
                     repGroupName = backedVol.getReplicationGroupInstance();
                 }
             }
-            if (repGroupName != null && arrayGroupToVolumes.get(repGroupName) == null) {
-                arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
+
+            String key = repGroupName + volume.getStorageController().toString();
+            if (arrayGroupToVolumes.get(key) == null) {
+                arrayGroupToVolumes.put(key, new ArrayList<Volume>());
             }
-            arrayGroupToVolumes.get(repGroupName).add(volume);
+            arrayGroupToVolumes.get(key).add(volume);
         }
         return arrayGroupToVolumes;
     }
@@ -1649,6 +1651,29 @@ public class ControllerUtils {
         return snapshots;
     }
 
+    /**
+     * Gets all snapshot sessions for the given set name.
+     */
+    public static List<BlockSnapshotSession> getVolumeGroupSnapshotSessionsForSet(URI volumeGroupId,
+            String setName, DbClient dbClient) {
+        List<BlockSnapshotSession> sessions = new ArrayList<BlockSnapshotSession>();
+        if (setName != null) {
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                    getBlockSnapshotSessionsBySetName(setName), list);
+            Iterator<BlockSnapshotSession> iter = dbClient.
+                    queryIterativeObjects(BlockSnapshotSession.class, list);
+            while (iter.hasNext()) {
+                BlockSnapshotSession snapshot = iter.next();
+                // if (isSourceInVoumeGroup(snapshot, volumeGroupId, dbClient)) {
+                    sessions.add(iter.next());
+                // }
+            }
+        }
+
+        return sessions;
+    }
+
     /*
      * For each storage system and RG, get one snapshot
      *
@@ -1666,6 +1691,35 @@ public class ControllerUtils {
         }
 
         return storageRgToSnapshot;
+    }
+
+    /*
+     * For each storage system and RG, get one snapshot session
+     * 
+     * @param snapshot sessions List of snapshot sessions
+     * 
+     * @return table with storage URI, replication group name, and snapshot session
+     */
+    public static Table<URI, String, BlockSnapshotSession>
+            getSnapshotSessionForStorageReplicationGroup(List<BlockSnapshotSession> sessions, DbClient dbClient) {
+        Table<URI, String, BlockSnapshotSession> storageRgToSession = HashBasedTable.create();
+        for (BlockSnapshotSession session : sessions) {
+            URI storage = null;
+            URI cgURI = session.getConsistencyGroup();
+            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                storage = cg.getStorageController();
+            } else {// should not come here for sessions in Application
+                BlockObject parent = dbClient.queryObject(BlockObject.class, session.getParent());
+                storage = parent.getStorageController();
+            }
+            String rgName = session.getReplicationGroupInstance();
+            if (!storageRgToSession.contains(storage, rgName)) {
+                storageRgToSession.put(storage, rgName, session);
+            }
+        }
+
+        return storageRgToSession;
     }
 
     /**

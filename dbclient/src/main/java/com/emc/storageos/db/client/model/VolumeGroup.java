@@ -15,16 +15,50 @@ public class VolumeGroup extends DataObject {
     // Description of the volume group
     private String description;
 
-    // The role of the volume group, either COPY or DR
+    // The role of the volume group, either COPY, DR, or MOBILITY
     private StringSet roles;
-    
+
     // parent volume group
     private URI parent;
+
+    private String migrationType;
+
+    private String migrationGroupBy;
+
+    public static enum MigrationGroupBy {
+        VOLUMES,
+        HOSTS,
+        CLUSTERS
+    }
 
     public static enum VolumeGroupRole {
         COPY,
         DR,
         MOBILITY
+    }
+
+    public static enum MigrationType {
+        VPLEX
+    }
+
+    @Name("migrationGroupBy")
+    public String getMigrationGroupBy() {
+        return migrationGroupBy;
+    }
+
+    public void setMigrationGroupBy(String migrationGroupBy) {
+        this.migrationGroupBy = migrationGroupBy;
+        setChanged("migrationGroupBy");
+    }
+
+    @Name("migrationType")
+    public String getMigrationType() {
+        return migrationType;
+    }
+
+    public void setMigrationType(String migrationType) {
+        this.migrationType = migrationType;
+        setChanged("migrationType");
     }
 
     @Name("description")

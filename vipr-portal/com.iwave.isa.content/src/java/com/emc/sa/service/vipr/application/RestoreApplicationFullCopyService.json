@@ -7,9 +7,19 @@
       type:"assetType.vipr.application"
     },
     
+    applicationSite:{
+      type:"assetType.vipr.applicationVirtualArray",
+      required:"false"
+    },
+    
     copyName:{
-      type:"assetType.vipr.fullCopyName",
+      type:"assetType.vipr.siteFullCopyName",
       required:"true"
+    },
+    
+    applicationSubGroup:{
+      type:"assetType.vipr.copyReplicationGroup",
+      select: "many"
     }
   }
 }

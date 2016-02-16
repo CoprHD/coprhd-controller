@@ -13,18 +13,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * Response for getting a list of copy sets for a volume group
- * 
- * TODO replace this with VolumeGroupCopySetList after parent branch's next merge
  */
 @XmlRootElement(name = "copy_sets")
-public class VolumeGroupCopySetListTemp {
+public class VolumeGroupCopySetList {
 
     private Set<String> copySets;
 
-    public VolumeGroupCopySetListTemp() {
+    public VolumeGroupCopySetList() {
     }
 
-    public VolumeGroupCopySetListTemp(Set<String> copySets) {
+    public VolumeGroupCopySetList(Set<String> copySets) {
         this.copySets = copySets;
     }
 

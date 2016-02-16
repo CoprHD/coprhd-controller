@@ -121,10 +121,16 @@ public class BlockMapper {
         to.setLinkStatus(from.getLinkStatus());
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
+
         if (dbClient != null) {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
-            if (system != null && system.checkIfVmax3()) {                
-                to.setSupportsSnapshotSessions(Boolean.TRUE);                 
+            if (system != null){
+                if(system.checkIfVmax3()) { 
+                    to.setSupportsSnapshotSessions(Boolean.TRUE);  
+                    to.setSystemType("vmax3");  
+                } else {
+                    to.setSystemType(system.getSystemType());
+                }
             }
         }
         // Extra checks for VPLEX volumes

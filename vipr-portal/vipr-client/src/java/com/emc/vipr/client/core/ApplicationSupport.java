@@ -37,8 +37,12 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.application.VolumeGroupCopySetListTemp;
+import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
+import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionCreateParam;
@@ -49,10 +53,6 @@ import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRestorePara
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeGroupFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyDetachParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyRestoreParam;
-import com.emc.storageos.model.block.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.block.VolumeGroupSnapshotCreateParam;
 import com.emc.storageos.model.block.VolumeGroupSnapshotOperationParam;
 import com.emc.vipr.client.impl.RestClient;
@@ -131,15 +131,15 @@ public class ApplicationSupport {
     public NamedVolumesList getVolumeByApplication(URI id) {
         return client.get(NamedVolumesList.class, APP_SUPPORT_VOLUME_URL, id);
     }
-    
 
     /*
      * Get full copies for application
      * GET /volume-groups/block/{id}/protection/full-copies
      */
     public NamedVolumesList getClonesByApplication(URI id) {
-    	return client.get(NamedVolumesList.class, APP_SUPPORT_CLONE_URL, id);
+        return client.get(NamedVolumesList.class, APP_SUPPORT_CLONE_URL, id);
     }
+
     /**
      * Creates a full copy of an application.
      * API Call: POST /volume-groups/block/{id}/protection/full-copies
@@ -161,8 +161,8 @@ public class ApplicationSupport {
      * @param input input parameters for copy sets
      * @return list of tasks
      */
-    public Object getSnapshotCopySets(URI id) {
-        return client.get(Object.class, APP_SUPPORT_GET_SNAPSHOT_COPY_SETS_URL, id);
+    public VolumeGroupCopySetList getSnapshotCopySets(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_GET_SNAPSHOT_COPY_SETS_URL, id);
     }
 
     /**
@@ -173,8 +173,8 @@ public class ApplicationSupport {
      * @param input input parameters for copy sets request
      * @return list of tasks
      */
-    public VolumeGroupCopySetListTemp getSnapshotSessionCopySets(URI id) {
-        return client.get(VolumeGroupCopySetListTemp.class, APP_SUPPORT_GET_SNAPSHOT_SESSION_COPY_SETS_URL, id);
+    public VolumeGroupCopySetList getSnapshotSessionCopySets(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_GET_SNAPSHOT_SESSION_COPY_SETS_URL, id);
     }
 
     /**
@@ -210,7 +210,7 @@ public class ApplicationSupport {
     public NamedVolumesList getFullCopiesByApplication(URI id) {
         return client.get(NamedVolumesList.class, APP_SUPPORT_FULL_COPY_URL, id);
     }
-    
+
     /**
      * Detaches a full copy of an application.
      * API Call: POST /volume-groups/block/{id}/protection/full-copies/detach
@@ -368,7 +368,7 @@ public class ApplicationSupport {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESTORE_FULL_COPY_URL);
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
     }
-    
+
     /**
      * Resynchronizes a full copy of an application.
      * API Call: POST /volume-groups/block/{id}/protection/full-copies/resynchronize

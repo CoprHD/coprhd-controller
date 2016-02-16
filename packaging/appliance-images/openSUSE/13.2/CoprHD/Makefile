@@ -213,6 +213,8 @@ $(TGZ): | $(VMDK)
 	echo 'ROOTFS_FSCK="0"' > $(IMAGE_DIR)/etc/sysconfig/boot
 	echo 'ROOTFS_BLKDEV="/dev/null"' >> $(IMAGE_DIR)/etc/sysconfig/boot
 	echo 'console"' >> $(IMAGE_DIR)/etc/securetty
+	rm -fr $(IMAGE_DIR)/etc/init.d/boot.getOvfEnv
+	rm -fr $(IMAGE_DIR)/etc/init.d/boot.getCoprHDEnv
 	rm -fr $(IMAGE_DIR)/run/*
 	rm -fr $(IMAGE_DIR)/.kconfig
 	rm -fr $(IMAGE_DIR)/.profile

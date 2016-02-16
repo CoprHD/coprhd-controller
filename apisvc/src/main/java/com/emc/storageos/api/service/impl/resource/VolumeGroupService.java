@@ -1835,7 +1835,7 @@ public class VolumeGroupService extends TaskResourceService {
             if (Volume.checkForSRDF(dbClient, volume.getId())) {
                 return DiscoveredDataObject.Type.srdf.name();
             }
-            if (volume.checkForVplexVirtualVolume(dbClient)) {
+            if (volume.isVPlexVolume(dbClient)) {
                 return DiscoveredDataObject.Type.vplex.name();
             }
             

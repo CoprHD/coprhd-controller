@@ -7,7 +7,6 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -567,7 +566,7 @@ public class VolumeIngestionUtil {
                 for (DataObject dataObj : dataObjList) {
                     if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
                         Volume volume = (Volume) dataObj;
-                        if (volume.checkForVplexVirtualVolume(dbClient)) {
+                        if (volume.isVPlexVolume(dbClient)) {
                             isRPProtectingVplexVolumes = true;
                             break;
                         }
@@ -3387,7 +3386,7 @@ public class VolumeIngestionUtil {
             _logger.info("Updating volume " + volume.getLabel() + " flags/settings to " + volume.getInternalFlags());
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
-            if (volume.checkForVplexVirtualVolume(dbClient)) {
+            if (volume.isVPlexVolume(dbClient)) {
                 // We need the VPLEX ingest context to get the backend volume info
                 VplexVolumeIngestionContext vplexVolumeContext =
                         ((RpVplexVolumeIngestionContext)

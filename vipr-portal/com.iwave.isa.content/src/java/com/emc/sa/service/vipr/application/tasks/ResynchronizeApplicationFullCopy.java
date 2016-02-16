@@ -14,7 +14,6 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.vipr.client.Tasks;
 
-// TODO move to tasks package
 public class ResynchronizeApplicationFullCopy extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
     private final URI volumeId;

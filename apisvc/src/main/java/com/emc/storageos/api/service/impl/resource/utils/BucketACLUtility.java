@@ -168,7 +168,7 @@ public class BucketACLUtility {
                     }
 
                     case ACL_NOT_FOUND: {
-                        throw APIException.badRequests.bucketACLNotFoundFound(
+                        throw APIException.badRequests.bucketACLNotFound(
                                 opName, bucketACE.toString());
                     }
 
@@ -247,7 +247,7 @@ public class BucketACLUtility {
                     }
 
                     case ACL_NOT_FOUND: {
-                        throw APIException.badRequests.bucketACLNotFoundFound(
+                        throw APIException.badRequests.bucketACLNotFound(
                                 opName, bucketACE.toString());
                     }
 

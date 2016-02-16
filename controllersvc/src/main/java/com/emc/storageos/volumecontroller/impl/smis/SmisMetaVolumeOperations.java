@@ -419,7 +419,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
         if (metaHead != null) {
             // A volume is of type RP if the volume has an RP copy name or it's a VPlex backing volume associated to a
             // VPlex RP source volume.
-            isRPVolume = metaHead.checkForRp() || RPHelper.isAssociatedToAllRpVplexTypes(metaHead, _dbClient);
+            isRPVolume = metaHead.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(metaHead, _dbClient);
         }
 
         // initialize the retry/attempt variables

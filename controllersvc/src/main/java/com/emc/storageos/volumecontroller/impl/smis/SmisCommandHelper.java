@@ -2329,7 +2329,7 @@ public class SmisCommandHelper implements SmisConstants {
         boolean validRPVolume = false;
 
         // A valid RP volume for tagging is one that has a valid RP copy name and that isn't a VPlex backing volume
-        validRPVolume = volume.checkForRp() && !RPHelper.isAssociatedToAllRpVplexTypes(volume, _dbClient);
+        validRPVolume = volume.checkForRp() && !RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient);
 
         // Set/Unset the RP tag (if applicable)
         if (volume != null && storageSystem != null && validRPVolume && storageSystem.getSystemType() != null
@@ -4209,7 +4209,7 @@ public class SmisCommandHelper implements SmisConstants {
     /*
      * Giver 2 strings: str1 and str2, this method concatenates them by using the delimeter
      * and restricting the size of the resulting string to maxLength.
-     *
+     * 
      * Did not want to use NameGenerator._generate as that takes three inputs and if the third input
      * is null it appends a random UUID - which we do not want in the users of this method.
      */
@@ -6914,16 +6914,16 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Creates an explicitly sized array of generic type T, containing the given value for all its elements.
-     *
+     * 
      * Example:
      * toMultiElementArray(2, true); => boolean[] array = new boolean[2] { true, true};
-     *
+     * 
      * @param count size of the array
-     *
+     * 
      * @param value value for each element
-     *
+     * 
      * @param <T> type of array
-     *
+     * 
      * @return Array of T, containing the same value for each element.
      */
     public static <T> T[] toMultiElementArray(int count, T value) {
@@ -6943,11 +6943,11 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Get source object for a replica.
-     *
+     * 
      * @param dbClient
-     *
+     * 
      * @param replica
-     *
+     * 
      * @return source object
      */
     public BlockObject getSource(BlockObject replica) {
@@ -6984,13 +6984,13 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Get ReplicationSettingData instance.
-     *
+     * 
      * @param storageSystem A reference to the storage system
-     *
+     * 
      * @param elementName An optional name for the instance
-     *
+     * 
      * @param desiredValue DesiredCopyMethodology value
-     *
+     * 
      * @param steTargetSupplier Whether or not the TargetElementSupplier should also be specified.
      */
     @SuppressWarnings("rawtypes")

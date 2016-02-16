@@ -1137,11 +1137,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     *
+     * 
      * @param sourceSizeStr size of the source volume
-     *
+     * 
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     *
+     * 
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1229,7 +1229,7 @@ public class RPHelper {
      * @param types the personality types.
      * @return true if this volume is associated to an RP+VPlex journal, false otherwise.
      */
-    public static boolean isAssociatedToAllRpVplexTypes(Volume volume, DbClient dbClient) {
+    public static boolean isAssociatedToAnyRpVplexTypes(Volume volume, DbClient dbClient) {
         return isAssociatedToRpVplexType(volume, dbClient, PersonalityTypes.SOURCE, PersonalityTypes.TARGET, PersonalityTypes.METADATA);
     }
 

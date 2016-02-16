@@ -527,7 +527,7 @@ public class BlockMapper {
             for (URI volumeUri : volumes) {
                 Volume volume = dbClient.queryObject(Volume.class, volumeUri);
                 // Only display CG volumes that are non-RP or RP source volumes. Exclude RP+VPlex backing volumes.
-                if ((!volume.checkForRp() && !RPHelper.isAssociatedToAllRpVplexTypes(volume, dbClient))
+                if ((!volume.checkForRp() && !RPHelper.isAssociatedToAnyRpVplexTypes(volume, dbClient))
                         || (volume.checkForRp() && PersonalityTypes.SOURCE.name().equals(volume.getPersonality()))) {
                     volumesResourceRep.add(toRelatedResource(ResourceTypeEnum.VOLUME, volumeUri));
                 }

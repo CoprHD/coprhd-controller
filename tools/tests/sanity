@@ -2888,9 +2888,11 @@ recoverpoint_ingest_setup()
     fi
 
     if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
-        INGEST_NATIVEGUID2=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
+        INGEST_NATIVEGUID2=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
+        INGEST_NATIVEGUID3=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
         if [ "$RP_QUICK_PARAM" == "quick" ]; then
-            INGEST_NATIVEGUID2=$VMAX3_SIMULATOR_NATIVEGUID
+            INGEST_NATIVEGUID2=$VMAX2_SIMULATOR_NATIVEGUID
+            INGEST_NATIVEGUID3=$VMAX3_SIMULATOR_NATIVEGUID
         fi
     fi	
 
@@ -2899,6 +2901,7 @@ recoverpoint_ingest_setup()
 
     if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
         run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+        run storagedevice discover_namespace $INGEST_NATIVEGUID3 'UNMANAGED_VOLUMES'
     fi	
 
     if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -3026,6 +3029,7 @@ recoverpoint_ingest_test()
 
     if [ ${vpool} = "rp${rptypetag}_crr" -o ${vpool} = "rp${rptypetag}_clr" ]; then
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+        run storagedevice discover_namespace $INGEST_NATIVEGUID3 'UNMANAGED_VOLUMES'
     fi	
 
     if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then

@@ -216,6 +216,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String serialNumber = isilonCluster.getSerialNumber();
             String deviceType = isilonCluster.getSystemType();
             initializeKeyMap(accessProfile);
+            Boolean fsChanged = false;
             List<Stat> stats = new ArrayList<Stat>();
 
             ZeroRecordGenerator zeroRecordGenerator = new FileZeroRecordGenerator();
@@ -233,6 +234,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                 String fsNativeId = quota.getPath();
                 String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
                 Stat stat = recorder.addUsageStat(quota, _keyMap, fsNativeGuid, api);
+                fsChanged = false;
                 if (null != stat) {
                     stats.add(stat);
                     // Persists the file system, only if change in used capacity.
@@ -241,11 +243,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if (!fileSystem.getInactive()) {
                             if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
                                 fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
+                                fsChanged = true;
                             }
                             if (null != fileSystem.getSoftLimit()) {
                                 fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
+                                fsChanged = true;
                             }
-                            _dbClient.updateObject(fileSystem);
+                            if (fsChanged = true)
+                                _dbClient.updateObject(fileSystem);
                         }
                     }
                 }
@@ -261,6 +266,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     String fsNativeId = quota.getPath();
                     String fsNativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialNumber, fsNativeId);
                     Stat stat = recorder.addUsageStat(quota, _keyMap, fsNativeGuid, api);
+                    fsChanged = false;
                     if (null != stat) {
                         stats.add(stat);
                         // Persists the file system, only if change in used capacity.
@@ -269,11 +275,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             if (!fileSystem.getInactive()) {
                                 if (fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
                                     fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
+                                    fsChanged = true;
                                 }
                                 if (null != fileSystem.getSoftLimit()) {
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
+                                    fsChanged = true;
                                 }
-                                _dbClient.updateObject(fileSystem);
+                                if (fsChanged = true)
+                                    _dbClient.updateObject(fileSystem);
                             }
                         }
                     }

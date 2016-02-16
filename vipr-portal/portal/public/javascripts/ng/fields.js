@@ -364,8 +364,10 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
             },
             controller: function ($scope) {
             	$scope.$watch('field.value', function(newVal, oldVal) {
-            		var utcDate = moment.utc(newVal).toDate().getTime();
-            		$scope.field.hidden = formatDate(utcDate, "YYYY-MM-DD_HH:mm:ss");
+					// Gets the value of the date/time in UTC milliseconds
+            		var utcDateTimeInMillis = moment(newVal).toDate().getTime();
+					// Keeps the date/time in millseconds and formats it
+            		$scope.field.hidden = moment.utc(utcDateTimeInMillis).format("YYYY-MM-DD_HH:mm:ss");
                 })
             	$scope.field.value = new Date();
             }

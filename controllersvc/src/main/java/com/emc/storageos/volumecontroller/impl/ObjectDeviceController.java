@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -118,11 +119,11 @@ public class ObjectDeviceController implements ObjectController {
     }
 
     @Override
-    public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
+    public void deleteBucket(URI storage, URI bucket, String deleteType, String task) throws ControllerException {
         _log.info("ObjectDeviceController:deleteBucket Bucket URI : {} ", bucket);
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, task);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, deleteType, task);
 
         if (result.getCommandPending()) {
             return;
@@ -247,7 +248,17 @@ public class ObjectDeviceController implements ObjectController {
 
         return acls;
     }
+
+    @Override
+    public ObjectUserSecretKey getUserSecretKeys(URI storage,  String userId) throws InternalException {
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        return getDevice(storageObj.getSystemType()).doGetUserSecretKeys(storageObj, userId);
+    }
+
+    @Override
+    public ObjectUserSecretKey addUserSecretKey(URI storage, String userId, String secretKey) throws InternalException {
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        return getDevice(storageObj.getSystemType()).doAddUserSecretKey(storageObj, userId, secretKey);
+    }
     
-
-
 }

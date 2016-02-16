@@ -20,6 +20,7 @@ public class Cluster extends AbstractTenantResource {
     private URI _project;
     private String _externalId;
     private Boolean autoExportEnabled = true;
+    private StringSet volumeGroupIds;
 
     /**
      * Returns the data center in vcenter where this cluster resides
@@ -98,5 +99,27 @@ public class Cluster extends AbstractTenantResource {
     public void setAutoExportEnabled(Boolean autoExportEnabled) {
         this.autoExportEnabled = autoExportEnabled;
         setChanged("autoExportEnabled");
+    }
+
+    /**
+     * Getter for the ids of the volume groups
+     * 
+     * @return The set of application ids
+     */
+    @Name("volumeGroupIds")
+    @AlternateId("VolumeGroups")
+    public StringSet getVolumeGroupIds() {
+        if (volumeGroupIds == null) {
+            volumeGroupIds = new StringSet();
+        }
+        return volumeGroupIds;
+    }
+
+    /**
+     * Setter for the volume group ids
+     */
+    public void setVolumeGroupIds(StringSet applicationIds) {
+        this.volumeGroupIds = applicationIds;
+        setChanged("volumeGroupIds");
     }
 }

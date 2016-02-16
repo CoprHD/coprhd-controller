@@ -35,7 +35,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -784,18 +783,8 @@ public class XIVExportOperations implements ExportMaskOperations {
                 }
 
                 // Check the volumes and update the lists as necessary
-                boolean addVolumes = false;
-                Map<String, Integer> volumesToAdd = new HashMap<String, Integer>();
-                for (Map.Entry<String, Integer> entry : discoveredVolumes
-                        .entrySet()) {
-                    String normalizedWWN = BlockObject.normalizeWWN(entry
-                            .getKey());
-                    if (!mask.hasExistingVolume(normalizedWWN)
-                            && !mask.hasUserCreatedVolume(normalizedWWN)) {
-                        volumesToAdd.put(normalizedWWN, entry.getValue());
-                        addVolumes = true;
-                    }
-                }
+                Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
+                boolean addVolumes = !volumesToAdd.isEmpty();
 
                 boolean removeVolumes = false;
                 List<String> volumesToRemove = new ArrayList<String>();

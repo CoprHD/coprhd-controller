@@ -36,6 +36,6 @@ public interface XtremIOApiExceptions {
     XtremIOApiException operationNotSupportedForVersion(String operationName);
 
     @DeclareServiceCode(ServiceCode.XTREMIO_API_ERROR)
-    XtremIOApiException noConnectionFound(String operationName);
+    XtremIOApiException noMgmtConnectionFound(String serialNumber);
 
 }

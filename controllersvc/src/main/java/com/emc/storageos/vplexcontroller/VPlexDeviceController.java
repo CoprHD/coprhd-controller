@@ -379,7 +379,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void setReplicaDeviceController(ReplicaDeviceController replicaDeviceController) {
         _replicaDeviceController = replicaDeviceController;
     }
-    
+
     public void setConsistencyGroupManagers(Map<String, ConsistencyGroupManager> serviceInterfaces) {
         consistencyGroupManagers = serviceInterfaces;
     }
@@ -3187,7 +3187,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     for (String maskVolUri : exportMask.getVolumes().keySet()) {
                         for (String egVolUri : exportGroup.getVolumes().keySet()) {
                             BlockObject blockObject = Volume.fetchExportMaskBlockObject(_dbClient, URI.create(egVolUri));
-                            if (blockObject.getId().toString().equals(maskVolUri)) {
+                            if (blockObject.getId().toString().equals(maskVolUri) && !volumeURIs.contains(blockObject.getId())) {
                                 volumesFromThisMaskAreStillInExportGroup = true;
                                 break;
                             }
@@ -5659,7 +5659,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     @Override
     public void importVolume(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
-            URI vplexSystemProject, URI vplexSystemTenant, URI newCosURI, String newLabel, String setTransferSpeed, 
+            URI vplexSystemProject, URI vplexSystemTenant, URI newCosURI, String newLabel, String setTransferSpeed,
             String opId) throws ControllerException {
         // Figure out the various arguments.
         List<VolumeDescriptor> vplexDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -5758,27 +5758,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 createWorkflowStepsForBlockVolumeExport(workflow, vplexSystem, arrayMap,
                         volumeMap, projectURI, tenantURI, waitFor);
             }
-            String transferSize = null; 
-            // Get the configured migration speed. This value would be set in VPLEX through 
-            // "rebuild set-transfer-speed" command. 
+            String transferSize = null;
+            // Get the configured migration speed. This value would be set in VPLEX through
+            // "rebuild set-transfer-speed" command.
             if (setTransferSpeed != null) {
-            	transferSize = mgirationSpeedToTransferSizeMap.get(setTransferSpeed);
-            	if (transferSize == null){
-            		_log.info("Transfer speed parameter {} is invalid", setTransferSpeed);
-            	}
+                transferSize = mgirationSpeedToTransferSizeMap.get(setTransferSpeed);
+                if (transferSize == null) {
+                    _log.info("Transfer speed parameter {} is invalid", setTransferSpeed);
+                }
             }
             if (transferSize == null) {
                 String speed = customConfigHandler.getComputedCustomConfigValue(CustomConfigConstants.MIGRATION_SPEED,
                         vplexSystem.getSystemType(), null);
                 _log.info("Migration speed is {}", speed);
-                transferSize = mgirationSpeedToTransferSizeMap.get(speed);      	
+                transferSize = mgirationSpeedToTransferSizeMap.get(speed);
             }
             Workflow.Method vplexSetTransferSizeMethod = rebuildSetTransferSizeMethod(vplexVolume.getStorageController(), transferSize);
-            //Create a step for updating the transfer speed in VPLEX. 
+            // Create a step for updating the transfer speed in VPLEX.
             workflow.createStep(TRANSFER_SPEED_STEP, String.format("VPlex %s setting transfer size speed",
-                            vplexSystem.getId().toString()), EXPORT_STEP, vplexURI, vplexSystem.getSystemType(), this.getClass(), vplexSetTransferSizeMethod, 
-                            rollbackMethodNullMethod(), null);
-            
+                    vplexSystem.getId().toString()), EXPORT_STEP, vplexURI, vplexSystem.getSystemType(), this.getClass(),
+                    vplexSetTransferSizeMethod,
+                    rollbackMethodNullMethod(), null);
+
             // Now make a Step to create the VPlex Virtual volumes.
             // This will be done from this controller.
             String stepId = workflow.createStepId();
@@ -5806,7 +5807,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     VPLEX_STEP,
                     String.format("VPlex %s creating virtual volume",
                             vplexSystem.getId().toString()),
-                            TRANSFER_SPEED_STEP, vplexURI,
+                    TRANSFER_SPEED_STEP, vplexURI,
                     vplexSystem.getSystemType(), this.getClass(), vplexExecuteMethod,
                     vplexRollbackMethod, stepId);
 
@@ -5965,28 +5966,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vplexURI, vplexVolumeURI, existingVolumeURI, newVolumeURI,
                 vplexSystemProject, vplexSystemTenant, newCosURI, newLabel);
     }
-    
+
     private Workflow.Method rebuildSetTransferSizeMethod(URI vplexURI, String transferSize) {
-    	return new Workflow.Method(REBUILD_SET_TRANSFER_SIZE, vplexURI,  transferSize);
+        return new Workflow.Method(REBUILD_SET_TRANSFER_SIZE, vplexURI, transferSize);
     }
-    
-    public void rebuildSetTransferSize(URI vplexURI, String transferSize, String stepId) 
-    		throws WorkflowException {
-    	try {
+
+    public void rebuildSetTransferSize(URI vplexURI, String transferSize, String stepId)
+            throws WorkflowException {
+        try {
             WorkflowStepCompleter.stepExecuting(stepId);
             // Get the API client.
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-            
+
             client.setTransferSize(transferSize);
             WorkflowStepCompleter.stepSucceded(stepId);
-    	} catch(Exception ex){
-    		ServiceError serviceError; 
-    		 _log.error("Exception while setting transfer size");
-    		 String opName = ResourceOperationTypeEnum.REBUILD_SET_TRANSFER_SPEED.getName();
-    		 serviceError = VPlexApiException.errors.rebuildSetTransferSpeed(opName, ex);
-    		 WorkflowStepCompleter.stepFailed(stepId, serviceError);
-    	}
+        } catch (Exception ex) {
+            ServiceError serviceError;
+            _log.error("Exception while setting transfer size");
+            String opName = ResourceOperationTypeEnum.REBUILD_SET_TRANSFER_SPEED.getName();
+            serviceError = VPlexApiException.errors.rebuildSetTransferSpeed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+        }
     }
 
     /**
@@ -9705,13 +9706,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Varray matching the Varray of our ExportMask.
                 // This is done because the other ExportGroup might have volumes it isn't allowed to
                 // export to this Varray because autoCrossConnectExport == false for those volumes.
-                List<URI> otherGroupVolumes = StringSetUtil.stringSetToUriList(otherGroup.getVolumes().keySet());
-                Map<URI, Set<URI>> varrayToVolumesMap = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
-                        otherGroupVolumes, exportMask.getStorageDevice(), otherGroup);
-                for (URI varray : varrayToVolumesMap.keySet()) {
-                    if (ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
-                        _log.info("volume list from other group is " + varrayToVolumesMap.get(varray).toString());
-                        volumeURIList.removeAll(varrayToVolumesMap.get(varray));
+                if (null != otherGroup.getVolumes()) {
+                    List<URI> otherGroupVolumes = StringSetUtil.stringSetToUriList(otherGroup.getVolumes().keySet());
+                    Map<URI, Set<URI>> varrayToVolumesMap = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
+                            otherGroupVolumes, exportMask.getStorageDevice(), otherGroup);
+                    for (URI varray : varrayToVolumesMap.keySet()) {
+                        if (ExportMaskUtils.exportMaskInVarray(_dbClient, exportMask, varray)) {
+                            _log.info("volume list from other group is " + varrayToVolumesMap.get(varray).toString());
+                            volumeURIList.removeAll(varrayToVolumesMap.get(varray));
+                        }
                     }
                 }
                 // if (otherGroup.getVolumes() != null) {
@@ -11062,19 +11065,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // Remove the volumes from the replication group
                     workflow.createStep(REMOVE_VOLUMES_FROM_CG_STEP,
                             String.format("Remove volumes from replication group %s", vol.getReplicationGroupInstance()),
-                            null,storageUri, storageSystem.getSystemType(), BlockDeviceController.class, 
+                            null, storageUri, storageSystem.getSystemType(), BlockDeviceController.class,
                             removeVolumeFromCGMethod(storageUri, cguri, removeVols),
                             addVolumeToCGMethod(storageUri, cguri, vol.getReplicationGroupInstance(), removeVols), null);
                 }
             }
-            if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
+            if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
                 _log.info("Creating steps for adding volumes to the volume group");
                 addVols = addVolList.getVolumes();
                 URI firstVol = addVols.get(0);
                 Volume firstVolume = getDataObject(Volume.class, firstVol, _dbClient);
                 URI cguri = firstVolume.getConsistencyGroup();
                 String replicationGroupName = addVolList.getReplicationGroupName();
-                
+
                 // Sort the backend volumes by their storage systems. all volumes in the list should belong to the same VPLEX CG
                 Map<URI, List<URI>> addSrcVolsMap = new HashMap<URI, List<URI>>();
                 Map<URI, List<URI>> addHAVolsMap = new HashMap<URI, List<URI>>();
@@ -11082,20 +11085,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     Volume addVplexVol = getDataObject(Volume.class, addVol, _dbClient);
                     Volume backendSrcVol = VPlexUtil.getVPLEXBackendVolume(addVplexVol, true, _dbClient, false);
                     addVolumeToMap(backendSrcVol, addSrcVolsMap);
-                    
+
                     Volume backendHAVol = VPlexUtil.getVPLEXBackendVolume(addVplexVol, false, _dbClient, false);
                     if (backendHAVol != null) {
                         addVolumeToMap(backendHAVol, addHAVolsMap);
                     }
                 }
-                
+
                 waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addSrcVolsMap, replicationGroupName, cguri, opId);
                 if (!addHAVolsMap.isEmpty()) {
                     // Append ha to the replicationGroupName for HA part replication group name
                     String rpName = replicationGroupName + "_ha";
-                    waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addHAVolsMap, rpName, cguri, opId); 
+                    waitFor = addStepsToAddVolumesToReplicationGroup(workflow, waitFor, addHAVolsMap, rpName, cguri, opId);
                 }
-                
+
             }
             completer = new VolumeGroupUpdateTaskCompleter(volumeGroup, addVols, removeVolumeList, opId);
             // Finish up and execute the plan.
@@ -11106,17 +11109,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         } catch (Exception e) {
             _log.error("Exception while updating the volume group", e);
             if (completer != null) {
-                completer.error(_dbClient, DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(volumeGroup.toString(), e.getMessage()));
+                completer.error(_dbClient,
+                        DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(volumeGroup.toString(), e.getMessage()));
             }
         }
     }
-    
+
     /**
      * Add the volume to the map
+     * 
      * @param volume
      * @param map the volume's storage system URI is the key in the map
      */
-    private void addVolumeToMap(Volume volume, Map<URI, List<URI>>map) {
+    private void addVolumeToMap(Volume volume, Map<URI, List<URI>> map) {
         URI storageUri = volume.getStorageController();
         List<URI> addVols = map.get(storageUri);
         if (addVols == null) {
@@ -11125,9 +11130,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         addVols.add(volume.getId());
         map.put(storageUri, addVols);
     }
-    
+
     /**
      * Add steps to add backend volumes to replication group.
+     * 
      * @param workflow
      * @param waitFor
      * @param addVolumes
@@ -11136,16 +11142,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param opId
      * @return the last step Id
      */
-    private String addStepsToAddVolumesToReplicationGroup(Workflow workflow, String waitFor, Map<URI, List<URI>>addVolumes, 
+    private String addStepsToAddVolumesToReplicationGroup(Workflow workflow, String waitFor, Map<URI, List<URI>> addVolumes,
             String replicationGroupName, URI cguri, String opId) {
         for (Map.Entry<URI, List<URI>> entry : addVolumes.entrySet()) {
             URI storageUri = entry.getKey();
             StorageSystem storage = getDataObject(StorageSystem.class, storageUri, _dbClient);
-            
+
             String groupName = ControllerUtils.generateReplicationGroupName(storage, cguri, replicationGroupName, _dbClient);
-            
+
             // check if cg is created, if not create it
-            BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cguri,_dbClient);
+            BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cguri, _dbClient);
             if (!cg.created(groupName, storageUri)) {
                 _log.info("Consistency group not created. Creating it");
                 waitFor = workflow.createStep(CREATE_REPLICATION_GROUP_STEP,
@@ -11179,11 +11185,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private Workflow.Method deleteConsistencyGroupMethod(URI storage, URI consistencyGroup) {
         return new Workflow.Method("deleteConsistencyGroup", storage, consistencyGroup, false);
     }
-    
+
     private Workflow.Method removeVolumeFromCGMethod(URI storageUri, URI cguri, List<URI> removeVols) {
         return new Workflow.Method(REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME, storageUri, cguri, removeVols);
     }
-    
+
     private Workflow.Method addVolumeToCGMethod(URI storageUri, URI cguri, String replicationGroupName, List<URI> addVols) {
         return new Workflow.Method(ADD_TO_CONSISTENCY_GROUP_METHOD_NAME, storageUri, cguri, replicationGroupName, addVols);
     }

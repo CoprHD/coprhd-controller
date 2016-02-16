@@ -19,7 +19,7 @@ import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.vipr.client.Tasks;
 
-@Service("RestoreSnapshotOfApplication")
+@Service("DeleteSnapshotOfApplication")
 public class DeleteSnapshotOfApplicationService extends ViPRService {
 
     @Param(ServiceParams.APPLICATION)

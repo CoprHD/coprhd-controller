@@ -17,6 +17,7 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -204,5 +205,23 @@ public class BlockSnapshotSessionUtils {
         BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
         ArgValidator.checkEntity(snapshot, snapshotURI, BlockServiceUtils.isIdEmbeddedInURL(snapshotURI, uriInfo), true);
         return snapshot;
+    }
+
+    /**
+     * Return the BlockSnapshotSession associated with the given BlockSnapshot.
+     *
+     * @param snapshot  BlockSnapshot.
+     * @param dbClient  Database client.
+     * @return          BlockSnapshotSession, or null if snapshot is not a linked target.
+     */
+    public static BlockSnapshotSession getLinkedTargetSnapshotSession(BlockSnapshot snapshot, DbClient dbClient) {
+        List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class,
+                ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(snapshot.getId()));
+
+        if (!sessions.isEmpty()) {
+            return sessions.get(0);
+        }
+        return null;
     }
 }

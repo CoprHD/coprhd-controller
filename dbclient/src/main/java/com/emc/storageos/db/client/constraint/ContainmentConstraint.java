@@ -695,18 +695,6 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(fsIndex, FileExportRule.class, field);
         }
 
-        public static ContainmentConstraint getRpJournalVolumeParent(URI journalVolume) {
-            DataObjectType doType = TypeMap.getDoType(Volume.class);
-            ColumnField field = doType.getColumnField("rpJournalVolume");
-            return new ContainmentConstraintImpl(journalVolume, Volume.class, field);
-        }
-
-        public static ContainmentConstraint getSecondaryRpJournalVolumeParent(URI journalVolume) {
-            DataObjectType doType = TypeMap.getDoType(Volume.class);
-            ColumnField field = doType.getColumnField("secondaryRpJournalVolume");
-            return new ContainmentConstraintImpl(journalVolume, Volume.class, field);
-        }
-
         public static ContainmentConstraint getFileCifsShareAclsConstraint(URI fsURI) {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
             ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);

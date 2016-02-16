@@ -73,6 +73,7 @@ import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshot;
 import com.emc.sa.service.vipr.block.tasks.GetBlockSnapshots;
+import com.emc.sa.service.vipr.block.tasks.GetBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumeByWWN;
 import com.emc.sa.service.vipr.block.tasks.GetBlockVolumes;
 import com.emc.sa.service.vipr.block.tasks.GetExportsForBlockObject;
@@ -99,12 +100,14 @@ import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
+import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
@@ -1028,5 +1031,24 @@ public class BlockStorageUtils {
         map.putAll(table.getParams());
         map.putAll(params.getParams());
         return map;
+    }
+
+    /**
+     * Helper method to get map of system type -> volume
+     * 
+     * @param volList
+     * @param subGroups
+     * @return
+     */
+    public static Map<String, URI> getVolumeSystemTypes(NamedVolumesList volumeList, List<URI> subGroups) {
+        Map<String, URI> volumeTypes = Maps.newHashMap();
+        for (NamedRelatedResourceRep vol : volumeList.getVolumes()) {
+            VolumeRestRep volume = execute(new GetBlockVolume(vol.getId()));
+            if (subGroups != null && subGroups.contains(volume.getReplicationGroupInstance())) {
+                volumeTypes.put(volume.getSystemType(), volume.getId());
+            }
+        }
+        return volumeTypes;
+
     }
 }

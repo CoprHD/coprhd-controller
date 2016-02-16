@@ -232,7 +232,7 @@ public class MobilityGroups extends ViprResourceController {
             relatedReps = BourneUtil.getViprClient().application().getVolumes(this.id);
 
             for (NamedRelatedResourceRep resource : relatedReps) {
-                resources.add(new MobilityGroupResource(resource.getId(), resource.getName()));
+                resources.add(new Volume(resource.getId(), resource.getName()));
             }
             return resources;
         }

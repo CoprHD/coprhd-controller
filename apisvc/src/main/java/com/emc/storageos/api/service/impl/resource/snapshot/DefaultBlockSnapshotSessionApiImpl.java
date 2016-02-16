@@ -327,6 +327,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         if (sourceObj.hasConsistencyGroup()) {
             snapSession.setConsistencyGroup(sourceObj.getConsistencyGroup());
             snapSession.setReplicationGroupInstance(sourceObj.getReplicationGroupInstance());
+            snapSession.setSessionSetName(snapSessionLabel);
             // TODO update queries to get forCG() call to forRG()
         } else {
             snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));

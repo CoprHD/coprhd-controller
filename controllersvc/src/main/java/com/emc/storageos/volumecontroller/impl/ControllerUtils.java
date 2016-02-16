@@ -1649,6 +1649,29 @@ public class ControllerUtils {
         return snapshots;
     }
 
+    /**
+     * Gets all snapshot sessions for the given set name.
+     */
+    public static List<BlockSnapshotSession> getVolumeGroupSnapshotSessionsForSet(URI volumeGroupId,
+            String setName, DbClient dbClient) {
+        List<BlockSnapshotSession> sessions = new ArrayList<BlockSnapshotSession>();
+        if (setName != null) {
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                    getBlockSnapshotSessionsBySetName(setName), list);
+            Iterator<BlockSnapshotSession> iter = dbClient.
+                    queryIterativeObjects(BlockSnapshotSession.class, list);
+            while (iter.hasNext()) {
+                BlockSnapshotSession snapshot = iter.next();
+                // if (isSourceInVoumeGroup(snapshot, volumeGroupId, dbClient)) {
+                    sessions.add(iter.next());
+                // }
+            }
+        }
+
+        return sessions;
+    }
+
     /*
      * For each storage system and RG, get one snapshot
      *
@@ -1666,6 +1689,35 @@ public class ControllerUtils {
         }
 
         return storageRgToSnapshot;
+    }
+
+    /*
+     * For each storage system and RG, get one snapshot session
+     * 
+     * @param snapshot sessions List of snapshot sessions
+     * 
+     * @return table with storage URI, replication group name, and snapshot session
+     */
+    public static Table<URI, String, BlockSnapshotSession>
+            getSnapshotSessionForStorageReplicationGroup(List<BlockSnapshotSession> sessions, DbClient dbClient) {
+        Table<URI, String, BlockSnapshotSession> storageRgToSession = HashBasedTable.create();
+        for (BlockSnapshotSession session : sessions) {
+            URI storage = null;
+            URI cgURI = session.getConsistencyGroup();
+            if (!NullColumnValueGetter.isNullURI(cgURI)) {
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+                storage = cg.getStorageController();
+            } else {// should not come here for sessions in Application
+                BlockObject parent = dbClient.queryObject(BlockObject.class, session.getParent());
+                storage = parent.getStorageController();
+            }
+            String rgName = session.getReplicationGroupInstance();
+            if (!storageRgToSession.contains(storage, rgName)) {
+                storageRgToSession.put(storage, rgName, session);
+            }
+        }
+
+        return storageRgToSession;
     }
 
     /**

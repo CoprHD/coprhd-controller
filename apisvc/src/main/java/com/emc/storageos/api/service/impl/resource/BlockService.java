@@ -576,6 +576,14 @@ public class BlockService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList createFullCopy(@PathParam("id") URI id,
             VolumeFullCopyCreateParam param) throws InternalException {
+        // should not allow full copy creation for application volumes
+        // Application volume/s should use /volume-groups/block/{id}/protection/full-copies api
+        if (URIUtil.isValid(id) && URIUtil.isType(id, Volume.class)) {
+            Volume fcSourceObj = _dbClient.queryObject(Volume.class, id);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(Arrays.asList(fcSourceObj),
+                    BlockServiceUtils.FULL_COPY, _dbClient);
+        }
+
         return getFullCopyManager().createFullCopy(id, param);
     }
 

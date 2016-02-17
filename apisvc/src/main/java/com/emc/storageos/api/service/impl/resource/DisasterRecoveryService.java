@@ -1301,6 +1301,26 @@ public class DisasterRecoveryService {
         return false;
     }
 
+    private Date getLastSyncTime(Site site) {
+        if (site.getNetworkHealth() == NetworkHealth.BROKEN) {
+            long networkBrokenTime = site.getLastNetworkBrokenTime();
+            if (site.getState() == SiteState.STANDBY_PAUSED) {
+                long pauseTime = site.getLastStateUpdateTime();
+                return new Date(networkBrokenTime < pauseTime ? networkBrokenTime : pauseTime);
+            } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
+                long lostQuorumTime = site.getLastLostQuorumTime();
+                return new Date(networkBrokenTime < lostQuorumTime ? networkBrokenTime : lostQuorumTime);
+            }
+        } else {
+            if (site.getState() == SiteState.STANDBY_PAUSED) {
+                return new Date(site.getLastStateUpdateTime());
+            } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
+                return new Date(site.getLastLostQuorumTime());
+            }
+        }
+        return null;
+    }
+
     /**
      * Query the details, such as transition timings, for specific standby site
      * 
@@ -1321,17 +1341,10 @@ public class DisasterRecoveryService {
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
             standbyDetails.setNetworkLatencyInMs(standby.getNetworkLatencyInMs());
-
-            if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
-                standbyDetails.setLastSyncTime(new Date(standby.getLastStateUpdateTime()));
-            } else if (standby.getState().equals(SiteState.STANDBY_DEGRADED)) {
-                standbyDetails.setLastSyncTime(new Date(standby.getLastLostQuorumTime()));
+            Date lastSyncTime = getLastSyncTime(standby);
+            if (lastSyncTime != null) {
+                standbyDetails.setLastSyncTime(lastSyncTime);
             }
-
-            if(NetworkHealth.BROKEN.equals(standby.getNetworkHealth())) {
-                standbyDetails.setLastSyncTime(new Date(standby.getLastNetworkBrokenTime()));
-            }
-
             standbyDetails.setDataSynced(isDataSynced(standby));
 
             ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());

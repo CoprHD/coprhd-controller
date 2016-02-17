@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.Test;
@@ -60,6 +61,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexPerpe
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.iwave.ext.linux.LinuxSystemCLI;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
  * Tester class for VPlex metering related classes and functions
@@ -174,6 +176,8 @@ public class VPlexMeteringTest {
     public void testVPlexPerpetualCSVFileCollector() throws InstantiationException, IllegalAccessException {
         MockDbClient mockDbClient = new MockDbClient();
 
+        mockStorageDriverManager();
+
         StorageSystem storageSystem = mockStorageSystem("vplex-1", "000123ABC000XYZ");
         mockDbClient.MOCK_DB.put(storageSystem.getId(), storageSystem);
 
@@ -258,6 +262,11 @@ public class VPlexMeteringTest {
         port.setStorageHADomain(director.getId());
         port.setTransportType(StoragePort.TransportType.FC.name());
         return port;
+    }
+
+    private void mockStorageDriverManager() {
+        StorageDriverManager storageDriverManager = new StorageDriverManager();
+        storageDriverManager.setApplicationContext(new ClassPathXmlApplicationContext("driver-conf.xml"));
     }
 
     private <T extends DataObject> T mockObject(Class<T> clazz, String name) throws IllegalAccessException, InstantiationException {

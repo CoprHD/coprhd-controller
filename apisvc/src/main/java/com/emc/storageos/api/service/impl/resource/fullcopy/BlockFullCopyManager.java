@@ -272,12 +272,37 @@ public class BlockFullCopyManager {
             s_logger.info("Volume {} is part of Application, Creating full copy for all volumes in the Application.", sourceURI);
             // get all volumes
             List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            
+            // if RP get source or target volumes
+            if (volumes != null && !volumes.isEmpty() && Volume.checkForRP(_dbClient, volumes.iterator().next().getId())) {
+                List<Volume> rpVolumes = new ArrayList<Volume>();
+                for (Volume volume : volumes) {
+                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                        if (param.getVarrayId() != null) {
+                            if (param.getVpoolId() != null) {
+                                if (volume.getVirtualArray().equals(param.getVarrayId()) && volume.getVirtualPool().equals(param.getVpoolId())) {
+                                    rpVolumes.add(volume);
+                                }
+                            } else if (volume.getVirtualArray().equals(param.getVarrayId())) {
+                                rpVolumes.add(volume);
+                            }
+                        } else if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
+                            rpVolumes.add(volume);
+                        }
+                    }
+                }
+                volumes.clear();
+                volumes.addAll(rpVolumes);
+            }
+            
             // group volumes by Array Group
-            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumes);
+            Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumes, _dbClient);
             fcSourceObjList = new ArrayList<BlockObject>();
             for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
                 List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+                s_logger.debug("Processing Array Replication Group {}, volumes: {}", arrayGroupName, volumeList.size());
                 fcSourceObj = volumeList.iterator().next();
+                s_logger.debug("volume selected :{}", fcSourceObj.getNativeGuid());
                 // Get the project for the full copy source object.
                 Project project = BlockFullCopyUtils.queryFullCopySourceProject(fcSourceObj, _dbClient);
 
@@ -493,13 +518,6 @@ public class BlockFullCopyManager {
 
             TaskResourceRep task = TaskMapper.toTask(fullCopy, taskId, op);
             taskList.addTask(task);
-
-            // clear Flag set for Partial request
-            if (fullCopy.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
-                fullCopy.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
-                _dbClient.updateObject(fullCopy);
-            }
-
             return taskList;
         }
         // Verify passed URIs for the full copy request.
@@ -829,7 +847,7 @@ public class BlockFullCopyManager {
                     StringSet fullCopyIds = sourceVolume.getFullCopies();
                     if (fullCopyIds.contains(volumeURI.toString())) {
                         fullCopyIds.remove(volumeURI.toString());
-                        dbClient.persistObject(sourceVolume);
+                        dbClient.updateObject(sourceVolume);
                     }
                 }
             }
@@ -989,6 +1007,66 @@ public class BlockFullCopyManager {
         }
 
         return fullCopyApi;
+    }
+    
+    /**
+     * returns the vplex specific full copy implementation
+     * 
+     * @return vplex specific full copy implementation
+     */
+    public BlockFullCopyApi getVplexFullCopyImpl() {
+        return _fullCopyImpls.get(FullCopyImpl.vplex.name());
+    }
+
+    /**
+     * Gets the full copies belonging to same set.
+     * If set name is non-null, query and return all full copies belonging to same set.
+     * Else, group volumeGroup volumes by replication group (RG) and get one full copy having no set name for each RG
+     * - When volumes of multiple RGs with full copies are added to Application, there will be no set name. In such case,
+     * consider those without set names as one set.
+     *
+     * @param fullCopy the full copy which has set name
+     * @param volumeGroupVolumes the volume group volumes
+     * @return the full copies for set
+     */
+    public List<Volume> getFullCopiesForSet(Volume fullCopy, List<Volume> volumeGroupVolumes) {
+        String fullCopySetName = fullCopy.getFullCopySetName();
+        s_logger.info("Get Full copies belonging to the copy set {}", fullCopySetName);
+
+        if (NullColumnValueGetter.isNotNullValue(fullCopySetName)) {
+            return ControllerUtils.getClonesBySetName(fullCopySetName, _dbClient);
+        }
+
+        /** Volumes added to Application with Clones (setName not set) */
+        List<URI> fullCopyVolumes = new ArrayList<URI>();
+        // group volumes by Array Group
+        Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumeGroupVolumes, _dbClient);
+        for (String arrayGroupName : arrayGroupToVolumesMap.keySet()) {
+            s_logger.debug("Replication Group {}", arrayGroupName);
+            List<Volume> volumeList = arrayGroupToVolumesMap.get(arrayGroupName);
+            Volume fcSourceObject = volumeList.iterator().next();
+
+            // get full copy which does not have setName set on it
+            URI fullCopyURI = null;
+            if (fcSourceObject.getFullCopies() != null) {
+                for (String fc : fcSourceObject.getFullCopies()) {
+                    URI fcURI = URI.create(fc);
+                    Volume fcObject = _dbClient.queryObject(Volume.class, fcURI);
+                    if (!NullColumnValueGetter.isNotNullValue(fcObject.getFullCopySetName())) {
+                        fullCopyURI = fcURI;
+                        break;
+                    }
+                }
+            }
+
+            if (fullCopyURI == null) {
+                s_logger.info("Full Copy not found for Volume {} and Set {}, hence skipping the group.",
+                        fcSourceObject.getLabel(), fullCopySetName);
+                continue;
+            }
+            fullCopyVolumes.add(fullCopyURI);
+        }
+        return _dbClient.queryObject(Volume.class, fullCopyVolumes);
     }
 
     /**

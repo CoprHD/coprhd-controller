@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.file;
 
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResource;
+import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResources;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addRollback;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.logInfo;
@@ -22,6 +23,9 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.service.vipr.file.tasks.ChangeFileVirtualPool;
+import com.emc.sa.service.vipr.file.tasks.CreateFileContinuousCopy;
+import com.emc.sa.service.vipr.file.tasks.AssociateFilePolicyToFileSystem;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshotShare;
@@ -29,6 +33,7 @@ import com.emc.sa.service.vipr.file.tasks.CreateFileSystem;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSystemExport;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSystemQuotaDirectory;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSystemShare;
+import com.emc.sa.service.vipr.file.tasks.DeactivateFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSnapshotExportRule;
@@ -38,7 +43,9 @@ import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemExport;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemExportRule;
 import com.emc.sa.service.vipr.file.tasks.DeactivateFileSystemShare;
 import com.emc.sa.service.vipr.file.tasks.DeactivateQuotaDirectory;
+import com.emc.sa.service.vipr.file.tasks.DissociateFilePolicyFromFileSystem;
 import com.emc.sa.service.vipr.file.tasks.ExpandFileSystem;
+import com.emc.sa.service.vipr.file.tasks.FailoverFileSystem;
 import com.emc.sa.service.vipr.file.tasks.FindFileSnapshotExportRules;
 import com.emc.sa.service.vipr.file.tasks.FindFileSystemExportRules;
 import com.emc.sa.service.vipr.file.tasks.FindNfsExport;
@@ -52,9 +59,11 @@ import com.emc.sa.service.vipr.file.tasks.GetSharesForFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.RestoreFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.SetFileSnapshotShareACL;
 import com.emc.sa.service.vipr.file.tasks.SetFileSystemShareACL;
+import com.emc.sa.service.vipr.file.tasks.StopFileContinuousCopy;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
+import com.emc.storageos.api.service.impl.resource.FileService.FileTechnologyType;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -69,11 +78,14 @@ import com.emc.storageos.model.file.SnapshotExportUpdateParams;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.Task;
+import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class FileStorageUtils {
+    
+    public static final String COPY_NATIVE = "native";
 
     public static FileShareRestRep getFileSystem(URI fileSystemId) {
         return execute(new GetFileSystem(fileSystemId));
@@ -323,6 +335,35 @@ public class FileStorageUtils {
         }
         return null;
     }
+    
+    public static Task<FileShareRestRep> createFileContinuousCopy(URI fileId, String name) {
+        Task<FileShareRestRep> copy = execute(new CreateFileContinuousCopy(fileId, name, FileTechnologyType.LOCAL_MIRROR.name()));
+        addAffectedResource(copy);
+        return copy;
+    }
+    
+    public static void removeContinuousCopiesForFile(URI fileId, Collection<URI> continuousCopyIds) {
+        for (URI continuousCopyId : continuousCopyIds) {
+            removeFileContinuousCopy(fileId, continuousCopyId);
+        }
+    }
+    
+    private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
+        execute(new StopFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
+        Task<FileShareRestRep> task = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
+        addAffectedResource(task);
+    }
+    
+    
+    public static void failoverFileSystem(URI fileId, URI targetId) {
+        Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
+        addAffectedResources(tasks);
+    }
+    
+    public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool) {
+        Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool));
+        addAffectedResource(task);
+    }
 
     public static URI createFileSnapshot(URI fileSystemId, String name) {
         Task<FileSnapshotRestRep> task = execute(new CreateFileSnapshot(fileSystemId, name));
@@ -503,6 +544,14 @@ public class FileStorageUtils {
 
     public static List<ExportRule> getFileSnapshotExportRules(URI fileSnapshotId, Boolean allDir, String subDir) {
         return execute(new FindFileSnapshotExportRules(fileSnapshotId, allDir, subDir));
+    }
+    
+    public static Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
+        return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId));
+    }
+    
+    public static Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+        return execute(new DissociateFilePolicyFromFileSystem(fileSystemId, filePolicyId));
     }
     
     public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {

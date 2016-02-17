@@ -945,12 +945,11 @@ public class FileSnapshotService extends TaskResourceService {
         Operation op = null;
         if ((snap != null) && (!(snap.getInactive()))) {
             StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-            StorageSystem.Type storageSystemType = Enum.valueOf(StorageSystem.Type.class, device.getSystemType());
-            switch (storageSystemType) {
-                case isilon: {
+            StorageSystem.Type storageSystemType = StorageSystem.Type.valueOf(device.getSystemType());
+
+            if (storageSystemType.equals(DiscoveredDataObject.Type.isilon)) {
                     _log.error("Invalid Operation. Restore snapshot is not supported by ISILON");
                     throw APIException.badRequests.isilonSnapshotRestoreNotSupported();
-                }
             }
             FileController controller = getController(FileController.class,
                     device.getSystemType());

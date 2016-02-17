@@ -110,6 +110,10 @@ public class ExportService extends VolumeService {
     public void setNameGenerator(NameGenerator nameGenerator) {
         _nameGenerator = nameGenerator;
     }
+    
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
 
     /**
      * Action could be either export or unexport volume
@@ -336,10 +340,6 @@ public class ExportService extends VolumeService {
      */
     private VolumeAttachResponse populateIscsiConnectionInfo(Volume vol) throws InterruptedException{
 
-        // After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a
-        // small delay here.    	
-    	Thread.sleep(100000);
-    	
         ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
                 isIdEmbeddedInURL(vol.getId()));
         
@@ -576,8 +576,6 @@ public class ExportService extends VolumeService {
 
         // Step 3: Remove initiators from export group
         currentURIs.removeAll(detachURIs);
-        exportGroup.setInitiators(StringSetUtil.uriListToStringSet(currentURIs));
-        _dbClient.updateObject(exportGroup);
         _log.info("updateExportGroup request is submitted.");
         // get block controller
         BlockExportController exportController =
@@ -591,7 +589,7 @@ public class ExportService extends VolumeService {
 
         Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-        List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+        List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(StringSetUtil.uriListToStringSet(currentURIs));
         List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
         List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
 
@@ -744,7 +742,7 @@ public class ExportService extends VolumeService {
         List<URI> initiatorURIs = new ArrayList<URI>();
         String task = UUID.randomUUID().toString();
         // Step 1: get list of host initiators to be added
-        _log.info("THE ATTACH.CONNECTOR IS {}", attach.connector.toString());
+        _log.debug("THE ATTACH.CONNECTOR IS {}", attach.connector.toString());
         List<Initiator> newInitiators = getListOfInitiators(attach.connector, openstack_tenant_id, protocol, vol);
 
         ExportGroup exportGroup = findExportGroup(vol);
@@ -759,8 +757,6 @@ public class ExportService extends VolumeService {
                     initiatorURIs.add(uri);
                 }
             }
-            exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
-            _dbClient.updateObject(exportGroup);
             _log.info("updateExportGroup request is submitted.");
             // get block controller
             initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
@@ -770,9 +766,10 @@ public class ExportService extends VolumeService {
 
             Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+            List<URI> updatedInitiators = initiatorURIs;
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
+
 
             exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
                     updatedClusters, updatedHosts, updatedInitiators, task);
@@ -980,9 +977,9 @@ public class ExportService extends VolumeService {
         QuotaOfCinder objQuota = null;
 
         if (pool == null)
-            objQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+            objQuota = getQuotaHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
         else
-            objQuota = getCinderHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
+            objQuota = getQuotaHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
 
         if (objQuota == null) {
             _log.info("Unable to retrive the Quota information");
@@ -993,9 +990,9 @@ public class ExportService extends VolumeService {
         UsageStats stats = null;
 
         if (pool != null)
-            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
+            stats = getQuotaHelper().getStorageStats(pool.getId(), proj.getId());
         else
-            stats = getCinderHelper().getStorageStats(null, proj.getId());
+            stats = getQuotaHelper().getStorageStats(null, proj.getId());
 
         totalSizeUsed = stats.spaceUsed;
 

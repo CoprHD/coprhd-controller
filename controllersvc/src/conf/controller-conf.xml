@@ -145,6 +145,13 @@
         <property name="networkDeviceController" ref="networkDeviceController"/>
     </bean>
 
+    <bean id="externalDeviceMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+    </bean>
+
     <bean id="blockDeviceController" class="com.emc.storageos.volumecontroller.impl.block.BlockDeviceController">
         <property name="devices">
             <map>
@@ -156,6 +163,7 @@
                 <entry key="scaleio" value-ref="scaleioStorageDevice"/>
                 <entry key="vnxe" value-ref="vnxeDevice"/>
                 <entry key="xtremio" value-ref="xtremioStorageDevice"/>
+                <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
         </property>
         <property name="dbClient" ref="dbclient"/>
@@ -377,6 +385,34 @@
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
     </bean>
 
+    <bean id="externalBlockStorageDevice" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalBlockStorageDevice">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="locker" ref="locker"/>
+        <property name="exportMaskOperationsHelper" ref="externalDeviceExportMaskOperationsHelper"/>
+        <!-- Block storage drivers -->
+        <property name="drivers">
+            <map>
+                <!--
+                <entry key="scaleiosystem" value-ref="scaleioStorageDriver"/>
+                -->
+                <entry key="driversystem" value-ref="storageDriverSimulator"/>
+            </map>
+        </property>
+    </bean>
+    <!-- Driver class for scaleio block storage driver -->
+    <!--     <bean id="scaleioStorageDriver" class="com.emc.storageos.driver.scaleio.ScaleIOStorageDriver">
+        </bean>
+    -->
+    <bean id="storageDriverSimulator" class="com.emc.storageos.driver.driversimulator.StorageDriverSimulator">
+    </bean>
+
+    <bean id="externalDeviceExportMaskOperationsHelper" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceExportOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="externalDevice" ref="externalBlockStorageDevice" />
+        <property name="blockScheduler" ref="blockscheduler"/>
+    </bean>
+    <!-- Storage drivers End -->
+
     <bean id="vmaxFindProviderFactory" class="com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory">
         <constructor-arg ref="dbclient" />
         <constructor-arg ref="vmaxSmisCommandHelper" />
@@ -556,7 +592,11 @@
     </bean>
 
     <bean id="vplexapifactory" class="com.emc.storageos.vplex.api.VPlexApiFactory"
-          factory-method="getInstance"/>
+          factory-method="getInstance">
+    	<property name="connectionTimeoutMs" value="30000"/>
+    	<property name="connManagerTimeout" value="60000"/>
+        <property name="socketConnectionTimeoutMs" value="7200000" />
+    </bean>
 
     <bean id="blockExportController"
           class="com.emc.storageos.volumecontroller.impl.BlockExportControllerImpl">
@@ -583,7 +623,11 @@
 
 
     <bean id="isilonapifactory" class="com.emc.storageos.isilon.restapi.IsilonApiFactory"
-          init-method="init" destroy-method="shutdown"/>
+          init-method="init" destroy-method="shutdown">
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="connManagerTimeout" value="60000"/>
+        <property name="socketConnectionTimeoutMs" value="7200000" />
+    </bean>
           
     <bean id="isilonMirrorOperations" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonMirrorOperations">
         <property name="dbClient" ref="dbclient"/>
@@ -611,7 +655,11 @@
     
 
 	<bean id="ecsapifactory" class="com.emc.storageos.ecs.api.ECSApiFactory"
-		init-method="init" destroy-method="shutdown" />
+		init-method="init" destroy-method="shutdown">
+	   <property name="connectionTimeoutMs" value="30000"/>
+	   <property name="connManagerTimeout" value="60000"/>
+       <property name="socketConnectionTimeoutMs" value="7200000" />	
+	</bean>
 
 	<bean id="ecsDevice"
 		class="com.emc.storageos.volumecontroller.impl.ecs.ECSObjectStorageDevice">
@@ -623,6 +671,7 @@
     <bean id="datadomainfactory" class="com.emc.storageos.datadomain.restapi.DataDomainClientFactory"
           init-method="init" destroy-method="shutdown">
         <property name="connectionTimeoutMs" value="30000"/>
+        <property name="connManagerTimeout" value="60000"/>
         <property name="maxConnections" value="300"/>
         <property name="maxConnectionsPerHost" value="100"/>
         <property name="socketConnectionTimeoutMs" value="3600000" />
@@ -674,6 +723,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="blockDeviceController" ref="blockDeviceController" />
+        <property name="rpDeviceController" ref="rpProtection" />
         <property name="blockOrchestrationDeviceController" ref="blockOrchestrationDeviceController" />
         <property name="vplexApiFactory" ref="vplexapifactory" />
         <property name="networkDeviceController" ref="networkDeviceController" />
@@ -859,6 +909,7 @@
                 <entry key="vnxe" value-ref="vnxeDevice"/>
                 <entry key="xtremio" value-ref="xtremioStorageDevice"/>
                 <entry key="ibmxiv" value-ref="xivSmisDevice"/>
+                <entry key="externaldevice" value-ref="externalBlockStorageDevice"/>
             </map>
         </property>
     </bean>
@@ -891,6 +942,7 @@
                 <entry key="rp" value-ref="rpProtection"/>
                 <entry key="scaleio" value-ref="scaleioMaskingOrchestrator"/>
                 <entry key="xtremio" value-ref="xtremioMaskingOrchestrator"/>
+                <entry key="externaldevice" value-ref="externalDeviceMaskingOrchestrator"/>
             </map>
         </property>
     </bean>

@@ -4,10 +4,14 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnBlockObjectToNativeID;
+import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveResourcesByConstraint;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_MIXED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_INSTANCE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_STORAGE_EXTENT_INITIAL_USAGE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_SETTING;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
@@ -20,7 +24,10 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SE_REPL
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_SNAP_STORAGE_POOL;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_CAPABILITIES;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_SETTING;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
 import static java.text.MessageFormat.format;
 
 import java.net.URI;
@@ -46,6 +53,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -54,6 +62,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -76,15 +85,20 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJ
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResyncSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCGCreateJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCreateJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionLinkTargetGroupJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionLinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRelinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRestoreJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionUnlinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     private static final Logger _log = LoggerFactory.getLogger(VmaxSnapshotOperations.class);
@@ -173,7 +187,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     SYNC_TYPE.SNAPSHOT, taskCompleter, _dbClient, _helper, _cimPath);
             if (isSuccess) {
                 List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                        snapshotObj.getReplicationGroupInstance(), _dbClient);
+                        snapshotObj, _dbClient);
                 setIsSyncActive(snapshots, true);
                 for (BlockSnapshot it : snapshots) {
                     it.setRefreshRequired(true);
@@ -357,20 +371,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     snapshotList.get(0).toString(), '-', storage.getUsingSmis80() ? SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH
                             : SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
 
-            int snapshotsCount = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(first, _dbClient).size();
-
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, first, _dbClient, _helper, _cimPath);
-
-            if (snapshotsCount <= 0) {
-                final String errMsg = String.format(
-                        "The number of block snapshots with snapset label %s is %d; need to have more than 0 to CG snaps.",
-                        first.getSnapsetLabel(), snapshotsCount);
-                _log.error(errMsg);
-                ServiceError error = DeviceControllerErrors.smis.noBlockSnapshotsFound();
-                taskCompleter.error(_dbClient, error);
-            }
-
             final Map<String, List<Volume>> volumesBySizeMap = new HashMap<String, List<Volume>>();
 
             // Group volumes by pool and size
@@ -475,7 +477,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
             }
             List<BlockSnapshot> snapshotList = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                    snapshotObj.getReplicationGroupInstance(), _dbClient);
+                    snapshotObj, _dbClient);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
@@ -904,6 +906,35 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     }
 
     /**
+     * Method will invoke the SMI-S operation to delete the ReplicationGroup.
+     *
+     * @param system StorageSystem where the pool and volume exist
+     * @param replicationGroupInstance InstanceID of the SMI-S ReplicationGroup
+     * @throws Exception
+     */
+    private void deleteTargetGroup(StorageSystem system, String replicationGroupInstance) throws Exception {
+        /*
+         * FIXME Inconsistencies with BlockSnapshot#getReplicationGroupInstance format
+         *
+         * CoprHD-created linked targets will have this field value in the format "<system-serial>+<instance>".
+         *
+         * Ingested linked targets will have this field value in the more simple format, "<instance>"
+         */
+        if (system.getUsingSmis80()) {
+            if (!replicationGroupInstance.contains("+")) {
+                replicationGroupInstance = String.format("%s+%s", system.getSerialNumber(), replicationGroupInstance);
+            }
+        }
+
+        CIMObjectPath groupPath = _cimPath.getReplicationGroupObjectPath(system, replicationGroupInstance);
+        CIMArgument[] outArgs = new CIMArgument[5];
+
+        CIMArgument[] deleteGroupInArgs = _helper.getDeleteReplicationGroupInputArguments(system, groupPath, true);
+        _helper.invokeMethod(system, _cimPath.getControllerReplicationSvcPath(system),
+                DELETE_GROUP, deleteGroupInArgs, outArgs);
+    }
+
+    /**
      * Method will invoke the SMI-S operation to return the Volumes represented by the native ids to the storage pool
      * 
      * @param storageSystem - StorageSystem where the pool and volume exist
@@ -1181,9 +1212,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             TaskCompleter taskCompleter)
             throws Exception {
         BlockObject blockObject = BlockObject.fetch(_dbClient, volume);
-        Collection<CIMObjectPath> syncObjects = storage.checkIfVmax3() ? _helper.getSettingsDefineStatePaths(storage, blockObject,
-                (BlockSnapshot) from) :
-                getRestoredOrMixedStateSyncObjects(storage, blockObject);
+        Collection<CIMObjectPath> syncObjects = null;
+
+        if (storage.checkIfVmax3()) {
+            syncObjects = _helper.getSettingsDefineStatePaths(storage, blockObject, (BlockSnapshot) from);
+        } else {
+            syncObjects = getRestoredOrMixedStateSyncObjects(storage, blockObject);
+        }
 
         for (CIMObjectPath syncObject : syncObjects) {
             resumeSnapshot(storage, from, blockObject, syncObject, taskCompleter);
@@ -1316,12 +1351,23 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
             CIMObjectPath snapshotGroupPath = _cimPath.getReplicationGroupPath(storage, snapshotObj.getReplicationGroupInstance());
 
+            // Check if snapshot is referenced by a BlockSnapshotSession
+            // if so, we must pass in the RelationshipName with the value of the session name.
+            // NB. a SourceGroup aspect must exist
+            List<BlockSnapshotSession> snapshotSessions = queryActiveResourcesByConstraint(_dbClient,
+                    BlockSnapshotSession.class, getLinkedTargetSnapshotSessionConstraint(snapshot));
+            String relationshipName = null;
+            if (!snapshotSessions.isEmpty()) {
+                relationshipName = snapshotSessions.get(0).getSessionLabel();
+                _log.info("Found snapshot session relationship: {}", relationshipName);
+            }
+
             CIMObjectPath groupSynchronizedPath = _cimPath.getGroupSynchronized(volumeGroupPath, snapshotGroupPath);
             CIMInstance syncInstance = _helper.checkExists(storage, groupSynchronizedPath, false, false);
             if (syncInstance == null) {
                 // get all snapshots belonging to a Replication Group. There may be multiple snapshots available for a Volume
                 List<BlockSnapshot> snapshots = ControllerUtils.
-                        getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(), _dbClient);
+                        getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
 
                 List<CIMObjectPath> elementSynchronizations = new ArrayList<CIMObjectPath>();
                 for (BlockSnapshot snapshotObject : snapshots) {
@@ -1332,7 +1378,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
                 _log.info("Creating Group synchronization between volume group and snapshot group");
                 CIMArgument[] inArgs = _helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(volumeGroupPath,
-                        snapshotGroupPath, elementSynchronizations);
+                        snapshotGroupPath, elementSynchronizations, relationshipName);
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.invokeMethod(storage, srcRepSvcPath,
                         SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);
@@ -1403,11 +1449,39 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
-            ServiceCoded sc = DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-            completer.error(_dbClient, sc);
+            _log.info("Create snapshot session group operation START");
+
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+            BlockConsistencyGroup consistencyGroup =
+                    _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
+
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, consistencyGroup.getTenant().getURI());
+            String tenantName = tenant.getLabel();
+
+            final String label = _nameGenerator.generate(tenantName, snapSession.getLabel(),
+                    snapSessionURI.toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
+
+            CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(system, groupName);
+
+            try {
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                CIMArgument[] inArgs = _helper.getCreateSynchronizationAspectForGroupInput(groupPath, false, label,
+                        new Integer(SmisConstants.MODE_SYNCHRONOUS));
+                _helper.invokeMethod(system, replicationSvcPath, SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
+                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                ControllerServiceImpl.enqueueJob(new QueueJob(
+                        new SmisBlockSnapshotSessionCGCreateJob(jobPath, system.getId(), completer)));
+            } catch (Exception e) {
+                _log.info("Exception creating group snapshot session ", e);
+                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+                completer.error(_dbClient, error);
+            }
+
+            _log.info("Create snapshot session group operation FINISH");
         } else {
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         }
@@ -1482,7 +1556,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionLinkTargetJob(jobPath,
-                        system.getId(), snapSessionURI, copyMode, completer)));
+                        system.getId(), snapshotURI, copyMode, completer)));
             } catch (Exception e) {
                 _log.info("Exception creating and linking snapshot session target", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
@@ -1493,6 +1567,132 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         }
     }
 
+    @Override
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
+            String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+        _log.info("Link new target group to snapshot session group START");
+
+        CIMObjectPath targetGroupPath = null;
+        List<String> targetDeviceIds = new ArrayList<>();
+
+        // Gather all snapshots to be created
+        List<URI> snapshotUris = snapSessionSnapshotURIs;
+        List<BlockSnapshot> snapshots = newArrayList(_dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotUris));
+        final Map<URI, BlockSnapshot> uriToSnapshot = new HashMap<>();
+        BlockSnapshot sampleSnapshot = snapshots.get(0);
+        BlockObject sampleParent = BlockObject.fetch(_dbClient, sampleSnapshot.getParent().getURI());
+
+        try {
+            String sourceGroupName;
+            String targetGroupName;
+            if (!targetsExist) {
+                // This is the normal scenario for linking group targets to a group snapshot session.
+                sourceGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+                // Group snapshots parent volumes by their pool and size
+                Map<String, List<Volume>> volumesBySizeMap = new HashMap<>();
+                for (BlockSnapshot target : snapshots) {
+                    uriToSnapshot.put(target.getId(), target);
+                    Volume parent = _dbClient.queryObject(Volume.class, target.getParent().getURI());
+                    String key = parent.getPool() + "-" + parent.getCapacity();
+                    if (volumesBySizeMap.containsKey(key)) {
+                        volumesBySizeMap.get(key).add(parent);
+                    } else {
+                        volumesBySizeMap.put(key, newArrayList(parent));
+                    }
+                }
+
+                // Create snapshot target volumes
+
+                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, (Volume) sampleParent, null);
+                for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
+                    final List<Volume> volumes = entry.getValue();
+                    final Volume volume = volumes.get(0);
+                    final URI poolId = volume.getPool();
+
+                    // Create target devices based on the array model
+                    final List<String> newDeviceIds = kickOffTargetDevicesCreation(system, volumeGroupPath,
+                            sourceGroupName, null, false, true, volumes.size(), poolId,
+                            volume.getCapacity(), completer);
+
+                    targetDeviceIds.addAll(newDeviceIds);
+                }
+
+                // Create target device group
+                targetGroupPath = ReplicationUtils.createTargetDeviceGroup(system, sourceGroupName, targetDeviceIds, completer,
+                        _dbClient, _helper, _cimPath,
+                        SYNC_TYPE.SNAPSHOT);
+
+                _log.info("Created target device group: {}", targetGroupPath);
+                targetGroupName = (String) targetGroupPath.getKeyValue(CP_INSTANCE_ID);
+                // Update the snapshots with the ReplicationGroup InstanceID
+                for (BlockSnapshot snapshot : snapshots) {
+                    snapshot.setReplicationGroupInstance(targetGroupName);
+                }
+                _dbClient.updateObject(snapshots);
+            } else {
+                // If the targets exist, this is the restore linked target scenario where we create
+                // a temporary group snapshot session on the linked target group and then linked the
+                // source volume group to this temporary session. The source volumes and source group
+                // already exist. First we setup of the snapshot map.
+                for (BlockSnapshot target : snapshots) {
+                    uriToSnapshot.put(target.getId(), target);
+                }
+
+                // The parent in this case is a BlockSnapshot and the source group is the
+                // replication group for the snapshot. We eliminate the system prefix and
+                // serial number from the replication group, to get simply the group name
+                // as in the case above.
+                sourceGroupName = ((BlockSnapshot) sampleParent).getReplicationGroupInstance();
+                int groupNameStartIndex = sourceGroupName.indexOf("+") + 1;
+                sourceGroupName = sourceGroupName.substring(groupNameStartIndex);
+
+                // The target in this case is actually a source volume and the target group
+                // is the source volume group, which we can get from the consistency group.
+                // Note that we can use the sample parent because it references the same
+                // consistency group as the source volume.
+                targetGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+
+                // Get the CIM object path for the target group.
+                targetGroupPath = _cimPath.getReplicationGroupPath(system, targetGroupName);
+            }
+
+            // Now link the target group to the array snapshots represented by the session.
+            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapshotSessionURI);
+            String syncAspectPath = snapSession.getSessionInstance();
+            CIMObjectPath settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName,
+                    syncAspectPath);
+
+            CIMArgument[] inArgs = null;
+            CIMArgument[] outArgs = new CIMArgument[5];
+            inArgs = _helper.getModifySettingsDefinedStateForLinkTargetGroup(system, settingsStatePath, targetGroupPath, copyMode);
+            _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+            CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+
+            SmisBlockSnapshotSessionLinkTargetGroupJob job =
+                    new SmisBlockSnapshotSessionLinkTargetGroupJob(jobPath, system.getId(), completer);
+            job.setSourceGroupName(sourceGroupName);
+            job.setTargetGroupName(targetGroupName);
+            job.setSnapSessionInstance(snapSession.getSessionInstance());
+
+            Map<String, URI> srcNativeIdToSnapshot = Maps.uniqueIndex(snapshotUris, new Function<URI, String>() {
+                @Override
+                public String apply(URI input) {
+                    return uriToSnapshot.get(input).getSourceNativeId();
+                }
+            });
+            job.setSrcNativeIdToSnapshotMap(srcNativeIdToSnapshot);
+
+            ControllerServiceImpl.enqueueJob(new QueueJob(job));
+            _log.info("Link new target group to snapshot session group FINISH");
+        } catch (Exception e) {
+            _log.info("Exception creating and linking snapshot session targets", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -1500,33 +1700,82 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void relinkSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
             TaskCompleter completer) throws DeviceControllerException {
-        if (system.checkIfVmax3()) {
-            // Only supported for VMAX3 storage systems.
-            try {
-                _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
-                BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                URI sourceURI = tgtSnapSession.getParent().getURI();
-                BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
-                CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
-                String syncAspectPath = tgtSnapSession.getSessionInstance();
-                CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
-                CIMObjectPath targetDevicePath = _cimPath.getBlockObjectPath(system, snapshot);
-                CIMArgument[] inArgs = null;
-                CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(settingsStatePath, targetDevicePath);
-                _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
-                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
-                        system.getId(), completer)));
-            } catch (Exception e) {
-                _log.info("Exception restoring snapshot session", e);
-                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
-                completer.error(_dbClient, error);
-            }
-        } else {
+        // Only supported for VMAX3 storage systems.
+        if (!system.checkIfVmax3()) {
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
+
+        try {
+            _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
+            BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+            URI sourceURI = tgtSnapSession.getParent().getURI();
+            BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
+            CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
+            CIMObjectPath syncObjPath = getSyncObject(system, snapshot, sourceObj);
+            boolean targetLinkedInCopyMode = isTargetOrGroupCopyMode(system, syncObjPath);
+            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+            String syncAspectPath = tgtSnapSession.getSessionInstance();
+            CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+            CIMObjectPath targetDevicePath = _cimPath.getBlockObjectPath(system, snapshot);
+            CIMArgument[] inArgs = null;
+            CIMArgument[] outArgs = new CIMArgument[5];
+            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(system, settingsStatePath, targetDevicePath, targetLinkedInCopyMode);
+            _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+            CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
+                    system.getId(), completer)));
+        } catch (Exception e) {
+            _log.info("Exception restoring snapshot session", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+            completer.error(_dbClient, error);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void relinkSnapshotSessionTargetGroup(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
+                                            TaskCompleter completer) throws DeviceControllerException {
+        // Only supported for VMAX3 storage systems.
+        if (!system.checkIfVmax3()) {
+            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
+
+        try {
+            _log.info("Re-link target {} to snapshot session {} START", snapshotURI, tgtSnapSessionURI);
+            BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
+            String syncAspectPath = tgtSnapSession.getSessionInstance();
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+            String groupName = _helper.extractGroupName(snapshot.getReplicationGroupInstance());
+            CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(system, groupName);
+
+            // We need a single source volume for the session.
+            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, tgtSnapSession.getConsistencyGroup());
+            List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
+            BlockObject sourceObj = nativeVolumes.get(0);
+            String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
+            CIMObjectPath settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
+            
+            // We need to know if the group was linked in copy mode or nocopy mode.
+            CIMObjectPath groupSyncPath = _cimPath.getGroupSynchronizedPath(system, sourceGroupName, groupName);
+            boolean targetGroupLinkedInCopyMode = isTargetOrGroupCopyMode(system, groupSyncPath);
+            
+            CIMArgument[] inArgs = null;
+            CIMArgument[] outArgs = new CIMArgument[5];
+            inArgs = _helper.getModifySettingsDefinedStateForRelinkTargetGroups(system, settingsStatePath, replicationGroupPath,
+                    targetGroupLinkedInCopyMode);
+            CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+            _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
+            CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
+                    system.getId(), completer)));
+        } catch (Exception e) {
+            _log.info("Exception restoring snapshot session", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+            completer.error(_dbClient, error);
         }
     }
 
@@ -1537,81 +1786,109 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     @Override
     public void unlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
-        if (system.checkIfVmax3()) {
-            // Only supported for VMAX3 storage systems.
-            try {
-                _log.info("Unlink target {} from snapshot session {} START", snapshotURI, snapSessionURI);
-                BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                String targetDeviceId = snapshot.getNativeId();
-                if ((targetDeviceId == null) || (targetDeviceId.isEmpty())) {
-                    // The snapshot has no target device id. This means we must
-                    // have failed creating the target device for a link target
-                    // request and unlink target is being called in rollback.
-                    // Since the target was never created, we just return
-                    // success.
-                    _log.info("Snapshot target {} was never created.", snapshotURI);
-                    completer.ready(_dbClient);
-                    return;
-                }
+        // Only supported for VMAX3 storage systems.
+        if (!system.checkIfVmax3()) {
+            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
 
-                // If the snapshot has a native id, then we at least
-                // know the target device was created. Now we try and get
-                // the sync object path representing the linked target so
-                // that it can be detached.
-                boolean syncObjectFound = false;
-                CIMObjectPath syncObjectPath = getSyncObject(system, snapshot);
-                if (!SmisConstants.NULL_CIM_OBJECT_PATH.equals(syncObjectPath)) {
-                    syncObjectFound = true;
-                    CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
-                    CIMArgument[] outArgs = new CIMArgument[5];
-                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                    SmisBlockSnapshotSessionUnlinkTargetJob job = new SmisBlockSnapshotSessionUnlinkTargetJob(null,
-                            system.getId(), completer);
-                    _helper.invokeMethodSynchronously(system, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
-                            outArgs, job);
+        try {
+            _log.info("Unlink target {} from snapshot session {} START", snapshotURI, snapSessionURI);
+            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+            String targetDeviceId = snapshot.getNativeId();
+            if (isNullOrEmpty(targetDeviceId)) {
+                // The snapshot has no target device id. This means we must
+                // have failed creating the target device for a link target
+                // request and unlink target is being called in rollback.
+                // Since the target was never created, we just return
+                // success.
+                _log.info("Snapshot target {} was never created.", snapshotURI);
+                completer.ready(_dbClient);
+                return;
+            }
 
-                    // Succeeded in unlinking the target from the snapshot.
-                    snapshot.setSettingsInstance(NullColumnValueGetter.getNullStr());
-                    _dbClient.updateObject(snapshot);
-                } else {
-                    // For some reason we could not find the path for the
-                    // CIM_StorageSychronized instance for the linked target.
-                    // If the settingsInstance for the snapshot is not set,
-                    // this may mean we just failed a link target request
-                    // and unlink target is being called in rollback. In this
-                    // case we successfully created the target volume, but
-                    // failed to link the target to the snapshot, in which
-                    // case the settingsInstance would be null. Otherwise,
-                    // we could be retrying a failed unlink request. In this
-                    // case, we must have succeeded in unlinking the target
-                    // from the array snapshot, but failed attempting to
-                    // delete the target volume. If the unlink is successful,
-                    // the settingsInstance is reset to null. So, if the
-                    // settingsInstance is null, we move on without failing.
-                    // Otherwise, we should throw an exception.
-                    String settingsInstance = snapshot.getSettingsInstance();
-                    if (NullColumnValueGetter.isNotNullValue(settingsInstance)) {
-                        throw DeviceControllerException.exceptions.couldNotFindSyncObjectToUnlinkTarget(targetDeviceId);
+            // If the snapshot has a native id, then we at least
+            // know the target device was created. Now we try and get
+            // the sync object path representing the linked target so
+            // that it can be detached.
+            boolean syncObjectFound = false;
+            List<BlockSnapshot> snapshots = null;
+            CIMObjectPath syncObjectPath = SmisConstants.NULL_CIM_OBJECT_PATH;
+            if (snapshot.hasConsistencyGroup()) {
+                String replicationGroupName = snapshot.getReplicationGroupInstance();
+                List<CIMObjectPath> groupSyncs = getAllGroupSyncObjects(system, snapshot);
+                if (groupSyncs != null && !groupSyncs.isEmpty()) {
+                    // Find the right one. We want the one where the replication groups for
+                    // the passed snapshot is the sync'd element.
+                    for (CIMObjectPath groupSynchronized : groupSyncs) {
+                        String syncElementPath = groupSynchronized.getKeyValue(SmisConstants.CP_SYNCED_ELEMENT).toString();
+                        if (syncElementPath.contains(replicationGroupName)) {
+                            syncObjectPath = groupSynchronized;
+                            break;
+                        }
                     }
                 }
-
-                if (deleteTarget) {
-                    _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
-                    List<String> targetDeviceIds = new ArrayList<String>();
-                    targetDeviceIds.add(targetDeviceId);
-                    deleteTargetDevices(system, targetDeviceIds.toArray(new String[1]), completer);
-                    _log.info("Delete target device complete");
-                } else if (!syncObjectFound) {
-                    // Need to be sure the completer is called.
-                    completer.ready(_dbClient);
-                }
-            } catch (Exception e) {
-                _log.info("Exception unlinking snapshot session target", e);
-                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
-                completer.error(_dbClient, error);
+                snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
+                        snapshot, _dbClient);
+            } else {
+                BlockObject sourceObj = BlockObject.fetch(_dbClient, snapshot.getParent().getURI());
+                syncObjectPath = getSyncObject(system, snapshot, sourceObj);
+                snapshots = Lists.newArrayList(snapshot);
             }
-        } else {
-            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+
+            if (!SmisConstants.NULL_CIM_OBJECT_PATH.equals(syncObjectPath)) {
+                syncObjectFound = true;
+                CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                SmisBlockSnapshotSessionUnlinkTargetJob job = new SmisBlockSnapshotSessionUnlinkTargetJob(null,
+                        system.getId(), completer);
+                _helper.invokeMethodSynchronously(system, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
+                        outArgs, job);
+
+                // Succeeded in unlinking the target from the snapshot.
+                for (BlockSnapshot snapshotToUpdate : snapshots) {
+                    snapshotToUpdate.setSettingsInstance(NullColumnValueGetter.getNullStr());
+                }
+                _dbClient.updateObject(snapshots);
+            } else {
+                // For some reason we could not find the path for the
+                // CIM_StorageSychronized instance for the linked target.
+                // If the settingsInstance for the snapshot is not set,
+                // this may mean we just failed a link target request
+                // and unlink target is being called in rollback. In this
+                // case we successfully created the target volume, but
+                // failed to link the target to the snapshot, in which
+                // case the settingsInstance would be null. Otherwise,
+                // we could be retrying a failed unlink request. In this
+                // case, we must have succeeded in unlinking the target
+                // from the array snapshot, but failed attempting to
+                // delete the target volume. If the unlink is successful,
+                // the settingsInstance is reset to null. So, if the
+                // settingsInstance is null, we move on without failing.
+                // Otherwise, we should throw an exception.
+                String settingsInstance = snapshot.getSettingsInstance();
+                if (NullColumnValueGetter.isNotNullValue(settingsInstance)) {
+                    throw DeviceControllerException.exceptions.couldNotFindSyncObjectToUnlinkTarget(targetDeviceId);
+                }
+            }
+
+            if (deleteTarget) {
+                _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
+                Collection<String> nativeIds = transform(snapshots, fctnBlockObjectToNativeID());
+
+                if (snapshot.hasConsistencyGroup()) {
+                    deleteTargetGroup(system, snapshot.getReplicationGroupInstance());
+                }
+                deleteTargetDevices(system, nativeIds.toArray(new String[] {}), completer);
+                _log.info("Delete target device complete");
+            } else if (!syncObjectFound) {
+                // Need to be sure the completer is called.
+                completer.ready(_dbClient);
+            }
+        } catch (Exception e) {
+            _log.info("Exception unlinking snapshot session target", e);
+            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+            completer.error(_dbClient, error);
         }
     }
 
@@ -1621,10 +1898,11 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * 
      * @param system A reference to the system.
      * @param snapshot A reference to the snapshot.
+     * @param sourceObj The snapshot source.
      * 
      * @return The StorgeSynchronized path for the passed block snapshot.
      */
-    private CIMObjectPath getSyncObject(StorageSystem system, BlockSnapshot snapshot) {
+    private CIMObjectPath getSyncObject(StorageSystem system, BlockSnapshot snapshot, BlockObject sourceObj) {
         CIMObjectPath returnPath = SmisConstants.NULL_CIM_OBJECT_PATH;
         CloseableIterator<CIMObjectPath> syncObjIter = null;
         try {
@@ -1632,11 +1910,15 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             while (syncObjIter.hasNext()) {
                 CIMObjectPath syncObjPath = syncObjIter.next();
                 CIMObjectPath syncedElementPath = (CIMObjectPath) syncObjPath.getKey("SyncedElement").getValue();
-                String deviceId = syncedElementPath.getKey("DeviceID").getValue().toString();
-                if (snapshot.getNativeId().equals(deviceId)) {
-                    _log.info("Found synchronization {} for snapshot target {}", syncObjPath, snapshot.getNativeGuid());
-                    returnPath = syncObjPath;
-                    break;
+                String syncDeviceId = syncedElementPath.getKey("DeviceID").getValue().toString();
+                if (snapshot.getNativeId().equals(syncDeviceId)) {
+                    CIMObjectPath systemElementPath = (CIMObjectPath) syncObjPath.getKey("SystemElement").getValue();
+                    String sysDeviceId = systemElementPath.getKey("DeviceID").getValue().toString();
+                    if (sourceObj.getNativeId().equals(sysDeviceId)) {
+                        _log.info("Found synchronization {} for snapshot target {}", syncObjPath, snapshot.getNativeGuid());
+                        returnPath = syncObjPath;
+                        break;
+                    }
                 }
             }
         } finally {
@@ -1646,6 +1928,28 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
         }
 
         return returnPath;
+    }
+    
+    /**
+     * Determines if the target or target group represented by the passed synchronization object path
+     * is linked to the snapshot session in "copy" mode.
+     * 
+     * @param system A reference to the storage system.
+     * @param syncObjPath The synchronization object path.
+     * 
+     * @return true if the target is linked in "copy" mode, false otherwise.
+     * 
+     * @throws Exception When an exception occurs getting the CIM_StorageSynchronized instance representing the linked target
+     */
+    private boolean isTargetOrGroupCopyMode(StorageSystem system, CIMObjectPath syncObjPath) throws Exception {
+        boolean isCopyMode = false;
+        String[] props = new String[] { SmisConstants.CP_SYNC_TYPE };
+        CIMInstance syncObj = _helper.getInstance(system, syncObjPath, false, false, props);
+        String syncType = syncObj.getProperty(SmisConstants.CP_SYNC_TYPE).getValue().toString();
+        if (String.valueOf(SYNC_TYPE.CLONE.getValue()).equals(syncType)) {
+            isCopyMode = true;
+        }
+        return isCopyMode;
     }
 
     /**
@@ -1660,13 +1964,29 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             try {
                 _log.info("Restore snapshot session {} START", snapSessionURI);
                 BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-                terminateAnyRestoreSessions(system, null, snapSession.getParent().getURI(), completer);
-                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                URI sourceURI = snapSession.getParent().getURI();
-                BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
-                CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
                 String syncAspectPath = snapSession.getSessionInstance();
-                CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+                CIMObjectPath settingsStatePath = null;
+                BlockObject sourceObj = null;
+                if (snapSession.hasConsistencyGroup()) {
+                    _log.info("Restoring group snapshot session");
+                    // We need a single source volume for the session.
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
+                    List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
+                    sourceObj = nativeVolumes.get(0);
+                    String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
+                    settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
+                } else {
+                    _log.info("Restoring single volume snapshot session");
+                    sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
+                    CIMObjectPath sourcePath = _cimPath.getVolumePath(system, sourceObj.getNativeId());
+                    settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+                }
+
+                // Terminate restore sessions.
+                terminateAnyRestoreSessions(system, null, sourceObj.getId(), completer);
+
+                // Invoke SMI-S method to restore snapshot session.
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
                 inArgs = _helper.getRestoreFromSettingsStateInputArguments(settingsStatePath);
@@ -1689,7 +2009,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      */
     @SuppressWarnings("rawtypes")
     @Override
-    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
             // Only supported for VMAX3 storage systems.
@@ -1703,14 +2023,19 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     _log.info("No session instance specified for snapshot session {}", snapSessionURI);
                     completer.ready(_dbClient);
                 } else {
-                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
-                    URI sourceURI = snapSession.getParent().getURI();
-                    BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceURI);
-                    CIMObjectPath sourcePath = _cimPath.getBlockObjectPath(system, sourceObj);
-                    CIMObjectPath settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+                    CIMObjectPath settingsStatePath = null;
+                    if (snapSession.hasConsistencyGroup()) {
+                        settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, groupName, syncAspectPath);
+                    } else {
+                        BlockObject sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());
+                        CIMObjectPath sourcePath = _cimPath.getBlockObjectPath(system, sourceObj);
+                        settingsStatePath = _cimPath.getSyncSettingsPath(system, sourcePath, syncAspectPath);
+                    }
+
                     CIMArgument[] inArgs = null;
                     CIMArgument[] outArgs = new CIMArgument[5];
                     inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(settingsStatePath, false);
+                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                     _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                     CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionDeleteJob(jobPath,

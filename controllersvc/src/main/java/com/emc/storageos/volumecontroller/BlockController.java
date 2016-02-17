@@ -475,17 +475,17 @@ public interface BlockController extends BlockStorageManagementController {
     /**
      * Creates new array snapshot point in time copies on the array with the passed URI
      * and optionally links 1 or more targets volumes to each snapshots.
-     * 
+     *
      * @param systemURI The URI of the storage system.
-     * @param snapSessionURIs The URIs of the BlockSnapshotSession instances.
-     * @param sessionSnapshotURIMap Map of the BlockSnapshot instances for each session.
+     * @param snapSessionURI The URIs of the BlockSnapshotSession instances.
+     * @param sessionSnapshotURIs Map of the BlockSnapshot instances for each session.
      * @param copyMode The copy mode for linked targets.
      * @param opId The unique task identifier.
-     * 
+     *
      * @throws InternalException
      */
-    public void createSnapshotSession(URI systemURI, List<URI> snapSessionURIs,
-            Map<URI, List<URI>> sessionSnapshotURIMap, String copyMode, String opId)
+    public void createSnapshotSession(URI systemURI, URI snapSessionURI,
+            List<List<URI>> sessionSnapshotURIs, String copyMode, String opId)
             throws InternalException;
 
     /**
@@ -496,11 +496,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param snapshotURIs The URIs of the snapshots representing the linked targets
      * @param copyMode The copy mode for the linked targets.
      * @param opId The unique task identifier.
-     * 
+     *
      * @throws InternalException
      */
-    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
-            String copyMode, String opId) throws InternalException;
+    public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<List<URI>> snapshotURIs,
+                                                      String copyMode, String opId) throws InternalException;
 
     /**
      * Re-link the linked targets represented the BlockSnapshot instances with the

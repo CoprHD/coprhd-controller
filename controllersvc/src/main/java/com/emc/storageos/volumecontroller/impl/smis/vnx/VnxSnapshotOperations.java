@@ -143,7 +143,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                     _cimPath.getControllerReplicationSvcPath(storage);
             _helper.invokeMethod(storage, replicationSvcPath,
                     SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
-            snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(), _dbClient);
+            snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
             setIsSyncActive(snapshots, true);
             // Get the settings object and apply it to all the snap objects
             CIMObjectPath settingsPath = (CIMObjectPath) outArgs[0].getValue();
@@ -307,8 +307,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
 
             // Individually delete each snap in the snapshot group
             boolean hadDeleteFailure = false;
-            List<BlockSnapshot> snaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(),
-                    _dbClient);
+            List<BlockSnapshot> snaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
             if (snapshotGroupExists) {
                 for (BlockSnapshot snap : snaps) {
                     _log.info(String.format("vnxDeleteGroupSnapshots -- deleting snapshot %s", snap.getId().toString()));
@@ -332,7 +331,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                     String.format("Generic exception when trying to delete snapshots from consistency group on array %s",
                             storage.getSerialNumber());
             _log.error(message, e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("deleteGorupSnapshots", e.getMessage());
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("deleteGroupSnapshots", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
     }
@@ -426,8 +425,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             final String snapshotGroupName = snapshotObj.getReplicationGroupInstance();
             final CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             final CIMInstance groupSynchronizedInstance = _helper.checkExists(storage, groupSynchronized, false, false);
-            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(),
-                    _dbClient);
+            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
             if (groupSynchronizedInstance != null) {
                 // Check if the snapshot requires a copy-to-target. This is essentially
                 // the operation that would make the snapshot 'active', though it's
@@ -673,7 +671,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -688,12 +686,27 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
+    @Override
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
+            String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void relinkSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
             TaskCompleter completer) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void relinkSnapshotSessionTargetGroup(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
+                                            TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -719,7 +732,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

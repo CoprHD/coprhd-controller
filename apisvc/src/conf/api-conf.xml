@@ -266,11 +266,26 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    
+
+    <bean id="blockConsistencyGroupService" class="com.emc.storageos.api.service.impl.resource.BlockConsistencyGroupService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="placementManager" ref="placementManager"/>
+        <property name="blockService" ref="blockService"/>
+        <property name="blockServiceApis">
+        <map>
+            <entry key="group" value-ref="defaultBlockServiceApiImpl" />
+            <entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
+            <entry key="rp" value-ref="rpBlockServiceApiImpl" />
+        </map>
+        </property>
+    </bean>
+
     <bean id="volumeGroupService" class="com.emc.storageos.api.service.impl.resource.VolumeGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="placementManager" ref="placementManager"/>
+        <property name="blockConsistencyGroupService" ref="blockConsistencyGroupService"/>
         <property name="blockServiceApis">
         	<map>
             	<entry key="block" value-ref="defaultBlockServiceApiImpl" />
@@ -279,7 +294,7 @@
             </map>
         </property>
     </bean>
-    
+
     <bean id="defaultBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.DefaultBlockServiceApiImpl">
          <property name="dbClient" ref="dbclient"/>
          <property name="coordinator" ref="coordinator"/>
@@ -298,7 +313,7 @@
         <property name="unexportedVolumeIngestOrchestrator" ref="unexportedVolumeIngestOrchestrator"/>
         <property name="blockRecoverPointIngestOrchestrator" ref="blockRecoverPointIngestOrchestrator"/>
     </bean>
-    
+
     <bean id ="blockVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVolumeIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
         <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
@@ -311,14 +326,17 @@
     
     <bean id ="blockSnapshotIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockSnapIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
     </bean>
     
      <bean id ="blockMirrorIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockMirrorIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
     </bean>
     
     <bean id ="blockRemoteReplicationIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockRemoteReplicationIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
     </bean>
     
     <bean id ="blockVplexVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVplexVolumeIngestOrchestrator">
@@ -327,7 +345,7 @@
         <property name="tenantsService" ref="tenantsService"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-    
+
     <bean id ="maskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MaskPerHostIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
     </bean>
@@ -527,6 +545,9 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.QuotaService">
                     <property name="dbClient" ref="dbclient"/>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.cinder.QuotaClassService">
+                    <property name="dbClient" ref="dbclient"/>
+                </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.cinder.MiscService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -702,19 +723,7 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.CapacityService">
                      <property name="dbClient" ref="dbclient"/>
                 </bean>
-                <bean class="com.emc.storageos.api.service.impl.resource.BlockConsistencyGroupService">
-                    <property name="dbClient" ref="dbclient"/>
-                    <property name="coordinator" ref="coordinator"/>
-                    <property name="placementManager" ref="placementManager"/>
-                    <property name="blockService" ref="blockService"/>
-                    <property name="blockServiceApis">
-                    <map>
-                        <entry key="group" value-ref="defaultBlockServiceApiImpl" />
-                        <entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
-                        <entry key="rp" value-ref="rpBlockServiceApiImpl" />
-                    </map>
-                    </property>
-                </bean>
+                <ref bean="blockConsistencyGroupService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.VirtualDataCenterCapacityService">
                   <property name="dbClient" ref="dbclient"/>
                   <property name="matcherFramework" ref="matcherFramework"/>

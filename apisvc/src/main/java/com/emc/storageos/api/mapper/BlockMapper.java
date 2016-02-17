@@ -87,6 +87,7 @@ public class BlockMapper {
         to.setDeviceLabel(from.getDeviceLabel() != null ? from.getDeviceLabel() : "");
         to.setNativeId(from.getNativeId() != null ? from.getNativeId() : "");
         to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance() != null ? from.getReplicationGroupInstance() : "");
     }
 
     public static VolumeRestRep map(Volume from) {
@@ -250,11 +251,11 @@ public class BlockMapper {
             List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
             for (String backingVolume : from.getAssociatedVolumes()) {
                 backingVolumes.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(backingVolume)));
-                if (to.getReplicationGroupInstance() == null) {
-                    Volume backendVolume = dbClient.queryObject(Volume.class, URI.create(backingVolume));
-                    to.setReplicationGroupInstance(backendVolume.getReplicationGroupInstance());
-                }
-
+            }
+            // Get ReplicationGroupInstance from source back end volume
+            if (to.getReplicationGroupInstance() == null) {
+                Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
+                to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
             }
             to.setHaVolumes(backingVolumes);
         }
@@ -334,6 +335,7 @@ public class BlockMapper {
         to.setSyncActive(from.getIsSyncActive());
         to.setReplicaState(getReplicaState(from));
         to.setReadOnly(from.getIsReadOnly());
+        to.setSnapsetLabel(from.getSnapsetLabel() != null ? from.getSnapsetLabel() : "");
         return to;
     }
 
@@ -361,6 +363,12 @@ public class BlockMapper {
 
         // Map base class fields.
         mapDataObjectFields(from, to);
+
+        // Map snapshot session consistency group.
+        URI consistencyGroup = from.getConsistencyGroup();
+        if (consistencyGroup != null) {
+            to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, consistencyGroup));
+        }
 
         // Map snapshot session parent i.e., the snapshot session source.
         NamedURI parentNamedURI = from.getParent();
@@ -460,14 +468,41 @@ public class BlockMapper {
 
         BlockConsistencyGroupRestRep to = new BlockConsistencyGroupRestRep();
         mapDataObjectFields(from, to);
-
         to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
         to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
+        
+        // Default snapshot session support to false
+        to.setSupportsSnapshotSessions(Boolean.FALSE);
+        if (dbClient != null && from.getStorageController() != null) {
+            StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
+            if (system != null && system.checkIfVmax3()) {                
+                to.setSupportsSnapshotSessions(Boolean.TRUE);                 
+            }
+        }
 
         try {
             if (from.getSystemConsistencyGroups() != null) {
                 to.setSystemConsistencyGroups(new StringSetMapAdapter().marshal(from.getSystemConsistencyGroups()));
+                
+                if (!to.getSupportsSnapshotSessions()) {
+                    // If we haven't already determined that we can support snapshot sessions,
+                    // loop through all the system cg's to find any storage systems that this
+                    // cg resides on. If any of those entries supports snapshot sessions then
+                    // we can flag this as true.
+                    if (dbClient != null && to.getSystemConsistencyGroups() != null) {
+                        for (StringSetMapAdapter.Entry entry : to.getSystemConsistencyGroups()) {
+                            String storageSystemId = entry.getKey();
+                            if (storageSystemId != null) {
+                                StorageSystem system = dbClient.queryObject(StorageSystem.class, URI.create(storageSystemId));
+                                if (system != null && system.checkIfVmax3()) {                
+                                    to.setSupportsSnapshotSessions(Boolean.TRUE);     
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             // internally ignored

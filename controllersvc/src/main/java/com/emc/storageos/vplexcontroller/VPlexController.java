@@ -69,7 +69,7 @@ public interface VPlexController extends Controller {
      * @throws InternalException
      */
     public abstract void importVolume(URI vplexURI, List<VolumeDescriptor> descriptors,
-            URI vplexSystemProject, URI vplexSystemTenant, URI newCos, String newLabel,
+            URI vplexSystemProject, URI vplexSystemTenant, URI newCos, String newLabel, String setTransferSpeed, 
             String opId) throws InternalException;
 
     /**

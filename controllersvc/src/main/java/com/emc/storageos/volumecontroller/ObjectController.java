@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller;
 import java.net.URI;
 
 import com.emc.storageos.db.client.model.Bucket;
+import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -40,7 +41,7 @@ public interface ObjectController extends StorageController {
      * @param task Task ID
      * @throws InternalException if error occurs during Bucket delete
      */
-    public void deleteBucket(URI storage, URI bucket, String task) throws InternalException;
+    public void deleteBucket(URI storage, URI bucket, String deleteType, String task) throws InternalException;
 
     /**
      * Updates Bucket instance
@@ -72,4 +73,24 @@ public interface ObjectController extends StorageController {
      * @throws InternalException
      */
     public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException;
+    
+    /**
+     * Get all object user secret keys
+     * @param storage storage URN
+     * @param userId object storage user id
+     * @return details
+     * @throws InternalException
+     */
+    public ObjectUserSecretKey getUserSecretKeys(URI storage, String userId)  throws InternalException;
+
+    /**
+     * Create an object user secret key
+     * @param storage URN
+     * @param userId object storage user id
+     * @param secretKey key value
+     * @return success results
+     * @throws InternalException
+     */
+    public ObjectUserSecretKey addUserSecretKey(URI storage, String userId, String secretKey)  throws InternalException;
+
 }

@@ -1303,20 +1303,12 @@ public class DisasterRecoveryService {
 
     private Date getLastSyncTime(Site site) {
         if (site.getNetworkHealth() == NetworkHealth.BROKEN) {
-            long networkBrokenTime = site.getLastNetworkBrokenTime();
-            if (site.getState() == SiteState.STANDBY_PAUSED) {
-                long pauseTime = site.getLastStateUpdateTime();
-                return new Date(networkBrokenTime < pauseTime ? networkBrokenTime : pauseTime);
-            } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
-                long lostQuorumTime = site.getLastLostQuorumTime();
-                return new Date(networkBrokenTime < lostQuorumTime ? networkBrokenTime : lostQuorumTime);
-            }
-        } else {
-            if (site.getState() == SiteState.STANDBY_PAUSED) {
-                return new Date(site.getLastStateUpdateTime());
-            } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
-                return new Date(site.getLastLostQuorumTime());
-            }
+            return null;
+        }
+        if (site.getState() == SiteState.STANDBY_PAUSED) {
+            return new Date(site.getLastStateUpdateTime());
+        } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
+            return new Date(site.getLastLostQuorumTime());
         }
         return null;
     }

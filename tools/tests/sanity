@@ -629,7 +629,8 @@ source sanity_utils
 TAG=$(tr -dc A-Za-z0-9_ < /dev/urandom | head -c 4)
 SEARCH_PREFIX=$(echo $TAG|head -c 2)
 
-HIDE_OUTPUT=${HIDE_OUTPUT:=1}
+# Place to put command output in case of failure
+CMD_OUTPUT=/tmp/output.txt
 
 #
 # run commands and check for exit status
@@ -638,9 +639,9 @@ run()
 {
     cmd=$*
     echo === $cmd
-    rm -f /tmp/output.txt
+    rm -f ${CMD_OUTPUT}
     if [ "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> /tmp/output.txt
+	$cmd &> ${CMD_OUTPUT}
     else
 	$cmd 2>&1
     fi
@@ -2934,7 +2935,6 @@ recoverpoint_ingest_test()
         RECOVERPOINT_INGEST_VOLBASE=${RECOVERPOINT_INGEST_VOL1BASE}${RP_SANITY_RANDOM}
     fi
 
-    echo "*** RP sanity random is : ${RP_SANITY_RANDOM}"
     RECOVERPOINT_INGEST_VOL1_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}${RP_SANITY_RANDOM}_${vpool}
     RECOVERPOINT_INGEST_VOL1_SRC=${RECOVERPOINT_INGEST_VOLBASE}_${vpool}
     RECOVERPOINT_INGEST_VOL1_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-1
@@ -2965,6 +2965,7 @@ recoverpoint_ingest_test()
 
         # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+	exit;
 	run volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
         # Recreate unmanaged volumes/protection sets
 	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
@@ -8440,9 +8441,9 @@ save_token_file() {
 }
 
 _failure() {
-    if [ -f /tmp/output.txt ]; then
+    if [ -f ${CMD_OUTPUT} ]; then
 	echo "*******************************************************" >&2
-	/usr/bin/cat /tmp/output.txt                                   >&2
+	/usr/bin/cat ${CMD_OUTPUT}                                   >&2
 	echo "*******************************************************" >&2
     fi
     echo "***"                                                   >&2
@@ -8470,7 +8471,7 @@ fail(){
     echo === $cmd
     trap - ERR
     if [ "${HIDE_OUTPUT}" = "1" ]; then
-	$cmd &> /tmp/output.txt
+	$cmd &> ${CMD_OUTPUT}
     else
 	$cmd 2>&1
     fi
@@ -8479,13 +8480,13 @@ fail(){
     if [ $status -eq 0 ] ; then
         echo '**********************************************************************'
         echo $cmd succeeded, which should not have happened
-	cat /tmp/output.txt
+	cat ${CMD_OUTPUT}
         echo '**********************************************************************'
         trap _failure ERR
         set_undo $cmd
         exit 1
     fi
-    echo $cmd failed, which is the expected ouput
+    echo "*** $cmd failed, which is the expected ouput"
     trap _failure ERR
 }
 

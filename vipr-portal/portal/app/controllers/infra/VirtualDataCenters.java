@@ -192,11 +192,6 @@ public class VirtualDataCenters extends ViprResourceController {
                 VirtualDataCenterModifyParam vdcToUpdate = new VirtualDataCenterModifyParam();
                 vdcToUpdate.setName(vdc.name);
                 vdcToUpdate.setDescription(vdc.description);
-                // TODO: update this when supported.
-                vdcToUpdate.setRotateKeyCert(null);
-                // TODO: update this once API is updated to accept these
-                // vdcToUpdate.setApiEndpoint(vdc.apiEndpoint);
-                // vdcToUpdate.setSecretKey(vdc.secretKey);
 
                 Task<VirtualDataCenterRestRep> task =
                         VirtualDataCenterUtils.update(uri(vdc.id), vdcToUpdate);

@@ -1321,9 +1321,15 @@ public class DisasterRecoveryService {
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
             standbyDetails.setNetworkLatencyInMs(standby.getNetworkLatencyInMs());
-            if (standby.getState().equals(SiteState.STANDBY_PAUSED) ||
-                    standby.getState().equals(SiteState.STANDBY_DEGRADED)) {
-                standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
+
+            if (standby.getState().equals(SiteState.STANDBY_PAUSED)) {
+                standbyDetails.setLastSyncTime(new Date(standby.getLastStateUpdateTime()));
+            } else if (standby.getState().equals(SiteState.STANDBY_DEGRADED)) {
+                standbyDetails.setLastSyncTime(new Date(standby.getLastLostQuorumTime()));
+            }
+
+            if(NetworkHealth.BROKEN.equals(standby.getNetworkHealth())) {
+                standbyDetails.setLastSyncTime(new Date(standby.getLastNetworkBrokenTime()));
             }
 
             standbyDetails.setDataSynced(isDataSynced(standby));

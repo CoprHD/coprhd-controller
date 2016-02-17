@@ -53,6 +53,9 @@ public class Site {
     private String siteShortId;
     private long creationTime;
     private long lastStateUpdateTime;
+    private long lastLostQuorumTime;
+    private long lastNetworkBrokenTime;
+
     private double networkLatencyInMs;
     private NetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
@@ -170,6 +173,22 @@ public class Site {
 
     public void setNetworkLatencyInMs(double networkLatencyInMs) {
         this.networkLatencyInMs = networkLatencyInMs;
+    }
+
+    public long getLastLostQuorumTime() {
+        return lastLostQuorumTime;
+    }
+
+    public void setLastLostQuorumTime(long lastLostQuorumTime) {
+        this.lastLostQuorumTime = lastLostQuorumTime;
+    }
+
+    public long getLastNetworkBrokenTime() {
+        return lastNetworkBrokenTime;
+    }
+
+    public void setLastNetworkBrokenTime(long lastNetworkBrokenTime) {
+        this.lastNetworkBrokenTime = lastNetworkBrokenTime;
     }
 
     public NetworkHealth getNetworkHealth() {

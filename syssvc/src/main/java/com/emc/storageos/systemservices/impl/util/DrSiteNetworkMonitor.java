@@ -130,6 +130,7 @@ public class DrSiteNetworkMonitor implements Runnable{
             }
             else if (ping < 0) {
                 site.setNetworkHealth(Site.NetworkHealth.BROKEN);
+                site.setLastNetworkBrokenTime(System.currentTimeMillis());
                 _log.error("Network for standby {} is broken",site.getName());
                 AlertsLogger.getAlertsLogger().error(String.format("Network for standby {} is Broken:" +
                         "Latency was reported as {} ms",site.getName(),ping));

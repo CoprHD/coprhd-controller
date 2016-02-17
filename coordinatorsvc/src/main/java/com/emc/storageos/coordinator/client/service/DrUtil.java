@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
@@ -87,6 +88,19 @@ public class DrUtil {
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
+    }
+
+    /**
+     * Record new DR operation
+     * 
+     * @param site
+     */
+    public void recordDrOperationStatus(Site site) {
+        DrOperationStatus operation = new DrOperationStatus();
+        operation.setSiteUuid(site.getUuid());
+        operation.setSiteState(site.getState());
+        coordinator.persistServiceConfiguration(operation.toConfiguration());
+        log.info("DR operation status has been recorded: {}", operation.toString());
     }
 
     /**

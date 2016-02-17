@@ -23,6 +23,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +32,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -60,7 +60,7 @@ import com.google.common.collect.Sets.SetView;
 
 /**
  * Processor used in updating information on preExisting Volumes
- * 
+ *
  */
 public class StorageVolumeInfoProcessor extends StorageProcessor {
     private final Logger _logger = LoggerFactory
@@ -106,7 +106,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         WBEMClient client = null;
         try {
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            client = (WBEMClient) keyMap.get(Constants._cimClient);
+            client = SMICommunicationInterface.getCIMClient(keyMap);
             _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             Map<String, VolHostIOObject> exportedVolumes = (Map<String, VolHostIOObject>) keyMap
                     .get(Constants.EXPORTED_VOLUMES);
@@ -217,7 +217,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     /**
      * Process the volumes to find the unmanaged volumes and populate the volume
      * supported information.
-     * 
+     *
      * @param it
      * @param keyMap
      * @param operation
@@ -249,8 +249,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 // don't delete UnManaged volume object for volumes ingested with NO Public access.
                 // check for all 3 flags, just checking NO_PUBLIC_ACCESS/INTERNAL_OBJECT flag may
                 // create UnManaged Volume object for VPLEX VMAX backend volume.
-                if (null != volume && !volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
-                        && !volume.checkInternalFlags(Flag.INTERNAL_OBJECT) && !volume.checkInternalFlags(Flag.NO_METERING)) {
+                if (null != volume) {
                     _logger.debug("Skipping discovery, as this Volume {} is already being managed by ViPR.",
                             volumeNativeGuid);
                     continue;
@@ -259,15 +258,13 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 // The discovered volume could also be a BlockSnapshot or a BlockMirror so
                 // check for these as well.
                 BlockSnapshot snap = DiscoveryUtils.checkBlockSnapshotExistsInDB(_dbClient, volumeNativeGuid);
-                if (null != snap && !snap.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
-                        && !snap.checkInternalFlags(Flag.INTERNAL_OBJECT) && !snap.checkInternalFlags(Flag.NO_METERING)) {
+                if (null != snap) {
                     _logger.debug("Skipping discovery, as this discovered volume {} is already a managed BlockSnapshot in ViPR.",
                             volumeNativeGuid);
                     continue;
                 }
                 BlockMirror mirror = checkBlockMirrorExistsInDB(volumeNativeGuid, _dbClient);
-                if (null != mirror && !mirror.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
-                        && !mirror.checkInternalFlags(Flag.INTERNAL_OBJECT) && !mirror.checkInternalFlags(Flag.NO_METERING)) {
+                if (null != mirror) {
                     _logger.debug("Skipping discovery, as this discovered volume {} is already a managed BlockMirror in ViPR.",
                             volumeNativeGuid);
                     continue;
@@ -404,8 +401,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     if (keyMap.containsKey(Constants.IS_NEW_SMIS_PROVIDER)
                             && Boolean.valueOf(keyMap.get(Constants.IS_NEW_SMIS_PROVIDER).toString())) {
                         metaVolumes.add(volumeViewInstance.getObjectPath());
-                    }
-                    else {
+                    } else {
                         metaVolumeViews.add(volumeViewInstance.getObjectPath());
                     }
 
@@ -462,18 +458,18 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * path. Can be used as an alternative to smi-s call to get storage volume
      * path for volume view, in case there is feasible performance penalty for
      * using smi-s call for each meta volume view.
-     * 
+     *
      * Example: from: //10.247.99.71/root/emc:Symm_VolumeView.SPInstanceID=
      * "SYMMETRIX+000195701573+C+0005",SVCreationClassName="Symm_StorageVolume",
      * SVDeviceID
      * ="004A5",SVSystemCreationClassName="Symm_StorageSystem",SVSystemName
      * ="SYMMETRIX+000195701573"; };
-     * 
+     *
      * to: //10.247.99.71/root/emc:Symm_StorageVolume.CreationClassName=
      * "Symm_StorageVolume"
      * ,DeviceID="004A5",SystemCreationClassName="Symm_StorageSystem",
      * SystemName="SYMMETRIX+000195701573"
-     * 
+     *
      * @param volumeViewPath
      * @return storageVolume path
      */
@@ -508,16 +504,16 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * unManagedVolumesBookKeepingList. 3. If unmanaged volume is found only in
      * DB, but not in unManagedVolumesBookKeepingList, then set unmanaged volume
      * to inactive.
-     * 
+     *
      * DB | Provider
-     * 
+     *
      * x,y,z | y,z.a [a --> new entry has been added but indexes didn't get
      * added yet into DB]
-     * 
+     *
      * x--> will be set to inactive
-     * 
-     * 
-     * 
+     *
+     *
+     *
      * @param storagePoolUri
      * @throws IOException
      */
@@ -558,7 +554,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
     /**
      * create StorageVolume Info Object
-     * 
+     *
      * @param unManagedVolume
      * @param volumeInstance
      * @param unManagedVolumeNativeGuid
@@ -662,7 +658,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     } else {
                         unManagedVolumeInformation.get(
                                 SupportedVolumeInformation.EMC_MAXIMUM_IO_BANDWIDTH.toString()).replace(
-                                bwValues);
+                                        bwValues);
                     }
 
                     StringSet iopsVal = new StringSet();
@@ -817,7 +813,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         } else {
                             unManagedVolumeInformation.get(
                                     SupportedVolumeInformation.REMOTE_MIRRORS.toString()).replace(
-                                    rmObj.getTargetVolumenativeGuids());
+                                            rmObj.getTargetVolumenativeGuids());
                         }
                     }
                     volumeType = Types.SOURCE.toString();
@@ -911,7 +907,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     sourceVolume.add(lrObj.getSourceNativeGuid());
                     unManagedVolumeInformation.put(
                             SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME
-                                    .name(), sourceVolume);
+                                    .name(),
+                            sourceVolume);
 
                     StringSet isSyncActive = new StringSet();
                     isSyncActive.add(new Boolean(lrObj.isSyncActive())
@@ -924,7 +921,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                     replicaState.add(lrObj.getReplicaState());
                     unManagedVolumeInformation.put(
                             SupportedVolumeInformation.REPLICA_STATE
-                                    .name(), replicaState);
+                                    .name(),
+                            replicaState);
                 } else if (LocalReplicaObject.Types.BlockMirror.equals(lrObj
                         .getType())) {
                     _logger.info("Found Local Mirror {}",
@@ -955,7 +953,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         synchronizedInstance.add(syncedInst);
                         unManagedVolumeInformation.put(
                                 SupportedVolumeInformation.SYNCHRONIZED_INSTANCE
-                                        .name(), synchronizedInstance);
+                                        .name(),
+                                synchronizedInstance);
                     }
                 } else if (LocalReplicaObject.Types.BlockSnapshot.equals(lrObj
                         .getType())) {
@@ -981,13 +980,15 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                             .isNeedsCopyToTarget()).toString());
                     unManagedVolumeInformation.put(
                             SupportedVolumeInformation.NEEDS_COPY_TO_TARGET
-                                    .name(), needsCopyToTarget);
+                                    .name(),
+                            needsCopyToTarget);
 
                     StringSet technologyType = new StringSet();
                     technologyType.add(lrObj.getTechnologyType());
                     unManagedVolumeInformation.put(
                             SupportedVolumeInformation.TECHNOLOGY_TYPE
-                                    .name(), technologyType);
+                                    .name(),
+                            technologyType);
 
                     String settingsInst = lrObj.getSettingsInstance();
                     if (settingsInst != null) {
@@ -995,7 +996,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         settingsInstance.add(settingsInst);
                         unManagedVolumeInformation.put(
                                 SupportedVolumeInformation.SETTINGS_INSTANCE
-                                        .name(), settingsInstance);
+                                        .name(),
+                                settingsInstance);
                     }
                 }
             }
@@ -1034,7 +1036,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 }
                 StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool
                         .getId(), unManagedVolumeCharacteristics
-                        .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()), srdfEnabledTargetVPools, null, volumeType);
+                                .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()),
+                        srdfEnabledTargetVPools, null, volumeType);
                 _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
 
                 if (null == matchedVPools || matchedVPools.isEmpty()) {
@@ -1086,7 +1089,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
     /**
      * Update the SLO policy Name for VMAX3 volumes.
-     * 
+     *
      * @param poolSupportedSLONames
      *            - Pool Supported SLO Names
      * @param unManagedVolumeInformation
@@ -1133,7 +1136,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * Only Volumes with Usage 2 can be ingested, other volumes apart from
      * replicas have usage other than 2. Volumes which are set EMCSVIsBound as
      * false cannot be ingested
-     * 
+     *
      * @param volumeInstance
      * @return
      */

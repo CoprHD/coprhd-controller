@@ -52,6 +52,7 @@ import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorIntf;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
@@ -71,6 +72,7 @@ import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -1069,7 +1071,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Verify that new volumes can be created in the passed consistency group.
-     *
+     * 
      * @param consistencyGroup A reference to the consistency group.
      * @param cgVolumes The volumes in the consistency group.
      */
@@ -3765,18 +3767,15 @@ public class BlockService extends TaskResourceService {
     public MigrationList getVolumeMigrations(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         MigrationList volumeMigrations = new MigrationList();
-        List<URI> migrationURIs = _dbClient.queryByType(Migration.class, true);
-        Iterator<URI> uriIter = migrationURIs.iterator();
-        while (uriIter.hasNext()) {
-            URI migrationURI = uriIter.next();
+        URIQueryResultList migrationURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getMigrationVolumeConstraint(id), migrationURIs);
+        Iterator<URI> migrationURIsIter = migrationURIs.iterator();
+        while (migrationURIsIter.hasNext()) {
+            URI migrationURI = migrationURIsIter.next();
             Migration migration = _permissionsHelper.getObjectById(migrationURI,
                     Migration.class);
-            if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
-                    getUserFromContext(), _permissionsHelper)) {
-                URI volumeURI = migration.getVolume();
-                if (volumeURI.toString().equals(id.toString())) {
-                    volumeMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
-                }
+            if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration, getUserFromContext(), _permissionsHelper)) {
+                volumeMigrations.getMigrations().add(toNamedRelatedResource(migration, migration.getLabel()));
             }
         }
 
@@ -3999,13 +3998,9 @@ public class BlockService extends TaskResourceService {
                                             .volumeForVpoolChangeHasSnaps(volume.getId().toString());
                                 }
 
-                                // Also check for snapshot sessions.
-                                List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                                        BlockSnapshotSession.class,
-                                        ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
-                                if (!snapSessions.isEmpty()) {
-                                    throw APIException.badRequests
-                                            .volumeForVpoolChangeHasSnaps(volume.getId().toString());
+                                // Check for snapshot sessions for the volume.
+                                if (BlockSnapshotSessionUtils.volumeHasSnapshotSession(srcVolume, _dbClient)) {
+                                    throw APIException.badRequests.volumeForVpoolChangeHasSnaps(volume.getLabel());
                                 }
 
                                 // Can't migrate the source side backend volume if it is

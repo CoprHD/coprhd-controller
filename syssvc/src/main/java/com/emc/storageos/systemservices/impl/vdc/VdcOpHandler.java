@@ -191,22 +191,24 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             reconfigVdc();
-            changeSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
+            if (drUtil.isActiveSite()) {
+                changeSiteState(SiteState.STANDBY_ADDING, SiteState.STANDBY_SYNCING);
+            }
         }
     }
 
     /**
      * Process DR config change for add-standby on newly added site
-     *   flush vdc config to disk, increase data revision and reboot. After reboot, it sync db/zk data from active sites during db/zk startup
+     *   flush npt config to local properties, increase data revision and reboot. After reboot, it sync db/zk data from active sites during db/zk startup
+     *   We don't flush vdc properties to local until data revision is changed successfully. The reason is - we don't want to change anything at local
+     *   if data revision change fails. 
      */
     public static class DrChangeDataRevisionHandler extends VdcOpHandler {
         public DrChangeDataRevisionHandler() {
-            setConcurrentRebootNeeded(true);
         }
 
         @Override
         public void execute() throws Exception {
-            flushVdcConfigToLocal();
             flushNtpConfigToLocal();
             checkDataRevision();
         }
@@ -214,15 +216,15 @@ public abstract class VdcOpHandler {
         private void checkDataRevision() throws Exception {
             // Step4: change data revision
             String targetDataRevision = targetSiteInfo.getTargetDataRevision();
-            log.info("Step4: check if target data revision is changed - {}", targetDataRevision);
+            log.info("check if target data revision is changed - {}", targetDataRevision);
             try {
                 String localRevision = localRepository.getDataRevision();
-                log.info("Step4: local data revision is {}", localRevision);
+                log.info("local data revision is {}", localRevision);
                 if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
                     updateDataRevision();
                 }
             } catch (Exception e) {
-                log.error("Step4: Failed to update data revision. {}", e);
+                log.error("Failed to update data revision. {}", e);
                 throw e;
             }
         }
@@ -238,28 +240,33 @@ public abstract class VdcOpHandler {
         private void updateDataRevision() throws Exception {
             String localRevision = localRepository.getDataRevision();
             String targetDataRevision = targetSiteInfo.getTargetDataRevision();
-            log.info("Step3: Trying to reach agreement with timeout for data revision change");
+            log.info("Trying to reach agreement with timeout for data revision change");
             String barrierPath = String.format("%s/%s/DataRevisionBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
             DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, coordinator.getNodeCount());
             try {
                 boolean phase1Agreed = barrier.enter(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 if (phase1Agreed) {
                     // reach phase 1 agreement, we can start write to local property file
-                    log.info("Step3: Reach phase 1 agreement for data revision change");
+                    log.info("Reach phase 1 agreement for data revision change");
                     localRepository.setDataRevision(targetDataRevision, false);
                     boolean phase2Agreed = barrier.leave(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                     if (phase2Agreed) {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
-                        log.info("Step3: Reach phase 2 agreement for data revision change");
+                        log.info("Reach phase 2 agreement for data revision change");
                         localRepository.setDataRevision(targetDataRevision, true);
+                        setConcurrentRebootNeeded(true);
                     } else {
-                        log.info("Step3: Failed to reach phase 2 agreement. Rollback revision change");
+                        log.info("Failed to reach phase 2 agreement. Rollback revision change");
                         localRepository.setDataRevision(localRevision, true);
+                        throw new IllegalStateException("Failed to reach phase 2 agreement on data revision change");
                     }
-                } 
-                log.warn("Step3: Failed to reach agreement among all the nodes. Delay data revision change until next run");
+                } else {
+                    barrier.leave(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    log.warn("Failed to reach agreement among all the nodes. Delay data revision change until next run");
+                    throw new IllegalStateException("Failed to reach phase 1 agreement on data revision change");
+                }
             } catch (Exception ex) {
-                log.warn("Step3. Internal error happens when negotiating data revision change", ex);
+                log.warn("Internal error happens when negotiating data revision change", ex);
                 throw ex;
             }
         }
@@ -460,6 +467,17 @@ public abstract class VdcOpHandler {
                 localSite.setState(SiteState.STANDBY_PAUSED);
                 log.info("Updating local site state to STANDBY_PAUSED");
                 coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+
+                for (Site standby : drUtil.listStandbySites()) {
+                    if (SiteState.STANDBY_PAUSING.equals(standby.getState())) {
+                        // all the other pausing sites are sync'ed with the current site
+                        // since they have been paused at the same time
+                        // this will make it a lot easier if we later failover to any of the paused sites
+                        standby.setState(SiteState.STANDBY_SYNCED);
+                        log.info("Updating state of site {} to STANDBY_SYNCED", standby.getUuid());
+                        coordinator.getCoordinatorClient().persistServiceConfiguration(standby.toConfiguration());
+                    }
+                }
             }
         }
     }
@@ -640,9 +658,10 @@ public abstract class VdcOpHandler {
                 stopActiveSiteRelatedServices();
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, site.getNodeCount());
-                updateSwitchoverSiteState(drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()), SiteState.STANDBY_SWITCHING_OVER,
+                Site newActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID());
+                updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER,
                         Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, site.getNodeCount());
-                
+                drUtil.recordDrOperationStatus(newActiveSite);
                 waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");

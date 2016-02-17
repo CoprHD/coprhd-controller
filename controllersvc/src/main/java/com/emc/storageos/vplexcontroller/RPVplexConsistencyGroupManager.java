@@ -142,7 +142,6 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
             // For the following cases we need special steps for the CG to choose the HA side/leg on the VPLEX to be the winner:
             // 1. In an RP+VPLEX distributed setup, the user can choose to protect only the HA side.
             // 2. In a MetroPoint setup, the user can choose the HA side as the Active side.
-
             Volume firstVplexVolume = getDataObject(Volume.class, vplexVolumeURIs.iterator().next(), dbClient);
             if (firstVplexVolume != null && NullColumnValueGetter.isNotNullValue(firstVplexVolume.getPersonality()) &&
                     firstVplexVolume.getPersonality().equals(PersonalityTypes.SOURCE.toString())) {

@@ -2324,7 +2324,7 @@
 	</bean>
 	<bean id="backup_scheduler_interval" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Interval" />
-		<property name="description" value="The time interval between scheduled backups" />
+		<property name="description" value="The time interval in unit of Day(or Week/Month) between scheduled backups" />
 		<property name="type" value="string" />
 		<property name="maxLen" value="15" />
 		<property name="tag" value="Backup" />
@@ -2639,6 +2639,19 @@
 		<property name="controlNodeOnly" value="true" />
 		<property name="siteSpecific" value="true" />
 	</bean>
+	<bean id="cim_connection_max_inactive_time" class="com.emc.storageos.model.property.PropertyMetadata">
+		<property name="label" value="CIM Connection TTL" />
+		<property name="description" value="Maximum number of seconds before an inactive SMI-S is reaped. Should be less than the Discovery Scan interval. If set to 0, reaping is disabled." />
+		<property name="type" value="uint32" />
+		<property name="tag" value="Discovery" />
+		<property name="advanced" value="true" />
+		<property name="userMutable" value="true" />
+		<property name="userConfigurable" value="false" />
+		<property name="reconfigRequired" value="false" />
+		<property name="rebootRequired" value="true" />
+		<property name="value" value="480" />
+		<property name="controlNodeOnly" value="true" />
+	</bean>
 	<bean id="metadata" class="com.emc.storageos.model.property.PropertiesMetadata">
 		<property name="metadata">
 			<map>
@@ -2827,6 +2840,7 @@
 				<entry key="token_idle_time_in_minutes" value-ref="token_idle_time_in_minutes" />
 				<entry key="compute_vmware_esx_version" value-ref="compute_vmware_esx_version" />
 				<entry key="use_short_node_name" value-ref="use_short_node_name" />
+				<entry key="cim_connection_max_inactive_time" value-ref="cim_connection_max_inactive_time" />
 			</map>
 		</property>
 	</bean>

@@ -638,13 +638,13 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 							port.setNativeId(sdsId);
 							log.info("StorageDriver: Discovered port {}, storageSystem {}", port.getNativeId(), port.getStorageSystemId());
 							port.setDeviceLabel(String.format("%s-%s-StoragePort", sds.getName(), sdsId));
-							port.setPortName(sds.getName());
+							port.setPortName(sdsId);
 							port.setPortNetworkId(sdsId);
 							port.setStorageSystemId(storageSystem.getNativeId());
 							port.setTransportType(StoragePort.TransportType.ScaleIO);
 							port.setOperationalStatus(StoragePort.OperationalStatus.OK);
 							port.setIpAddress(sdsIP);
-							port.setPortGroup(sdsId);
+							port.setPortGroup(sds.getProtectionDomainId());
 							port.setPortType(StoragePort.PortType.frontend);
 							storagePorts.add(port);
 						}

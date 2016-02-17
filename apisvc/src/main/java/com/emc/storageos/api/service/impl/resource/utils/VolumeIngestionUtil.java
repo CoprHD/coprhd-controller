@@ -7,7 +7,6 @@ package com.emc.storageos.api.service.impl.resource.utils;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,6 +80,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedPro
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1245,7 +1245,13 @@ public class VolumeIngestionUtil {
 
         // Don't create CG if the vplex is behind RP. Add a check here.
         if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
-            blockObj.setReplicationGroupInstance(cgName);
+            StringSet clusterEntries = PropertySetterUtil.extractValuesFromStringSet(
+                    SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString(),
+                    unManagedVolume.getVolumeInformation());
+            for (String clusterEntry : clusterEntries) {
+                // It is assumed that distributed volumes contain both clusters and either is OK in the CG name key.
+                blockObj.setReplicationGroupInstance(BlockConsistencyGroupUtils.buildClusterCgName(clusterEntry, cgName));
+            }
             return null;
         }
 
@@ -3388,17 +3394,26 @@ public class VolumeIngestionUtil {
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
             if (volume.checkForVplexVirtualVolume(dbClient)) {
+
                 // We need the VPLEX ingest context to get the backend volume info
-                VplexVolumeIngestionContext vplexVolumeContext =
-                        ((RpVplexVolumeIngestionContext)
-                                requestContext.getVolumeContext()).getVplexVolumeIngestionContext();  
-                                                      
+                // This information is stored in the context if the vplex volume is the last volume
+                // in the ingestion.  Otherwise we'll fish it out of the database in the findVolume()
+                // method below.
+                Map<String, BlockObject> createdMap = null;
+                Map<String, List<DataObject>> updatedMap = null;
+                if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
+                    createdMap = ((RpVplexVolumeIngestionContext)
+                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getObjectsToBeCreatedMap();  
+                    updatedMap = ((RpVplexVolumeIngestionContext)
+                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getObjectsToBeUpdatedMap();  
+                }
+                
                 for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
                     // Find the associated volumes using the context maps or the db if they are already there               
                     Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient, 
-                                                                                vplexVolumeContext.getObjectsToBeCreatedMap(),
-                                                                                vplexVolumeContext.getObjectsToBeUpdatedMap(), 
-                                                                                associatedVolumeIdStr);     
+                                                                             createdMap,
+                                                                             updatedMap,
+                                                                             associatedVolumeIdStr);     
                     if (associatedVolume != null) {
                         associatedVolume.setConsistencyGroup(rpCG.getId());
                         updatedObjects.add(associatedVolume);                    

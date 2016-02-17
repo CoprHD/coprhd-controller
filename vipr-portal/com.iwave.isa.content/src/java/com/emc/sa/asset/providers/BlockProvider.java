@@ -2009,7 +2009,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         	}
             List<VirtualArrayRestRep> targetVarrays = client.varrays().getByIds(targetVarrayIds);
             for (VirtualArrayRestRep targetVarray : targetVarrays) {
-                targetOptions.add(newAssetOption(targetVarray.getId(), "protection.site.type.target", targetVarray.getName()));
+                targetOptions.add(newAssetOption(String.format("tgt:%s", targetVarray.getId().toString()),
+                            "protection.site.type.target", targetVarray.getName()));
         	}
 
             // sort the targets

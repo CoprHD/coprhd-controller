@@ -727,7 +727,10 @@ public class RecoverPointClient {
                     clusterIdCache,
                     productionCopiesUID, nonProductionCopiesUID, attachAsClean);
 
-            logger.info("Adding journals and rsets for CG " + request.getCgName());
+            logger.info("Validating add rsets and journals for CG: " + request.getCgName());
+            functionalAPI.validateSetConsistencyGroupSettings(cgSettingsParam);
+            
+            logger.info("Adding journals and rsets for CG " + request.getCgName());            
             functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
 
             // Sometimes the CG is still active when we start polling for link state and then
@@ -743,6 +746,9 @@ public class RecoverPointClient {
 
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
             return response;
+        } catch (FunctionalAPIValidationException_Exception ve) { 
+        	logger.info("Validation failed for setConsistencyGroupSettings for CG : " + request.getCgName());
+        	throw RecoverPointException.exceptions.failedToAddReplicationSetToConsistencyGroup(request.getCgName(), getCause(ve));
         } catch (Exception e) {
             for (CreateRSetParams rsetParam : request.getRsets()) {
                 for (CreateVolumeParams volumeParam : rsetParam.getVolumes()) {

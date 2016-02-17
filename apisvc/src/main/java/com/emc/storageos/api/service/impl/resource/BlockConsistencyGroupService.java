@@ -845,6 +845,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList deactivateConsistencyGroupSnapshotSession(
             @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapshotSessionId) {
+        BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, consistencyGroupId, true);
+
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotSessionRequest(cg);
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(consistencyGroupId)) {
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAP_SESSION, _dbClient);
+        }
         return getSnapshotSessionManager().deleteSnapshotSession(snapshotSessionId, VolumeDeleteTypeEnum.FULL.name());
     }
 
@@ -939,6 +948,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
         final BlockSnapshotSession snapSession = (BlockSnapshotSession) queryResource(snapSessionId);
         verifySnapshotSessionIsForConsistencyGroup(snapSession, consistencyGroup);
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotSessionRequest(consistencyGroup);
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(consistencyGroupId)) {
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAP_SESSION, _dbClient);
+        }
+
         return getSnapshotSessionManager().restoreSnapshotSession(snapSessionId);
     }
 
@@ -1532,11 +1549,19 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     public TaskList createConsistencyGroupSnapshotSession(@PathParam("id") URI consistencyGroupId,
             SnapshotSessionCreateParam param) {
 
+        BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, consistencyGroupId, true);
+
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotSessionRequest(cg);
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(consistencyGroupId)) {
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAP_SESSION, _dbClient);
+        }
         // Grab the first volume and call the block snapshot session
         // manager to create the snapshot sessions for the volumes
         // in the CG. Note that it will take into account the
         // fact that the volume is in a CG.
-        BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, consistencyGroupId, true);
         return getSnapshotSessionManager().createSnapshotSession(cg, param, getFullCopyManager());
     }
 
@@ -1565,6 +1590,17 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                                       @PathParam("sid") URI sessionId,
                                       SnapshotSessionLinkTargetsParam param) {
         validateSessionPartOfConsistencyGroup(id, sessionId);
+
+        BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, id, true);
+
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotSessionRequest(cg);
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(id)) {
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAP_SESSION, _dbClient);
+        }
+
         return getSnapshotSessionManager().linkTargetVolumesToSnapshotSession(sessionId, param);
     }
 
@@ -1591,6 +1627,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                                                          @PathParam("sid") URI sessionId,
                                                          SnapshotSessionUnlinkTargetsParam param) {
         validateSessionPartOfConsistencyGroup(id, sessionId);
+        BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, id, true);
+
+        // Verify the consistency group in the requests and get the
+        // volumes in the consistency group.
+        List<Volume> cgVolumes = verifyCGForSnapshotSessionRequest(cg);
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(id)) {
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAP_SESSION, _dbClient);
+        }
         return getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(sessionId, param);
     }
 
@@ -2411,6 +2456,32 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (cgVolumes.isEmpty()) {
             throw APIException.badRequests
                     .noVolumesToSnap();
+        }
+
+        return cgVolumes;
+    }
+
+    /**
+     * Verifies the CG passed in the request is valid and contains volumes.
+     * 
+     * @param cgURI The URI of a consistency group.
+     * @returnThe volumes in the consistency group.
+     */
+    private List<Volume> verifyCGForSnapshotSessionRequest(BlockConsistencyGroup consistencyGroup) {
+
+        // Ensure that the Consistency Group has been created on all of its
+        // defined system types.
+        if (!consistencyGroup.created()) {
+            throw APIException.badRequests.consistencyGroupNotCreated();
+        }
+
+        // Get the block service implementation.
+        BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
+
+        // Get the volumes in the consistency group.
+        List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
+        if (cgVolumes.isEmpty()) {
+            throw APIException.badRequests.noVolumesToSnapSessions();
         }
 
         return cgVolumes;

@@ -69,6 +69,7 @@ public class BlockServiceUtils {
 
     public static final String SNAPSHOT = "Snapshot";
     public static final String FULL_COPY = "Full copy";
+    public static final String SNAP_SESSION = "Snapshot session";
 
     /**
      * Validate that the passed block object is not an internal block object,

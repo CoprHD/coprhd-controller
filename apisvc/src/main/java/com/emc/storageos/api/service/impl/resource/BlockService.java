@@ -609,6 +609,14 @@ public class BlockService extends TaskResourceService {
     @Path("/{id}/protection/full-copies/{pid}/activate")
     public TaskResourceRep activateFullCopy(@PathParam("id") URI id,
             @PathParam("pid") URI fullCopyId) throws InternalException {
+        // should not allow full copy creation for application volumes
+        // Application volume/s should use /volume-groups/block/{id}/protection/full-copies api
+        if (URIUtil.isValid(id) && URIUtil.isType(id, Volume.class)) {
+            Volume fcSourceObj = _dbClient.queryObject(Volume.class, id);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(Arrays.asList(fcSourceObj),
+                    BlockServiceUtils.FULL_COPY, _dbClient);
+        }
+
         return getFullCopyManager().activateFullCopy(id, fullCopyId).getTaskList().get(0);
     }
 
@@ -660,6 +668,13 @@ public class BlockService extends TaskResourceService {
     @Path("/{id}/protection/full-copies/{pid}/detach")
     public TaskResourceRep detachFullCopy(@PathParam("id") URI id,
             @PathParam("pid") URI fullCopyId) throws InternalException {
+        // should not allow full copy creation for application volumes
+        // Application volume/s should use /volume-groups/block/{id}/protection/full-copies api
+        if (URIUtil.isValid(id) && URIUtil.isType(id, Volume.class)) {
+            Volume fcSourceObj = _dbClient.queryObject(Volume.class, id);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(Arrays.asList(fcSourceObj),
+                    BlockServiceUtils.FULL_COPY, _dbClient);
+        }
         return getFullCopyManager().detachFullCopy(id, fullCopyId).getTaskList().get(0);
     }
 

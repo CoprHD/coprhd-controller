@@ -2330,7 +2330,7 @@
 	</bean>
 	<bean id="backup_scheduler_interval" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Interval" />
-		<property name="description" value="The time interval between scheduled backups" />
+		<property name="description" value="The time interval in unit of Day(or Week/Month) between scheduled backups" />
 		<property name="type" value="string" />
 		<property name="maxLen" value="15" />
 		<property name="tag" value="Backup" />

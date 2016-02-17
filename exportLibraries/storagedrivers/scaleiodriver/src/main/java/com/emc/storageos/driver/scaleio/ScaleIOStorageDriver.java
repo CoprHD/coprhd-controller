@@ -36,7 +36,6 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
-
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
     private String fullyQualifiedXMLConfigName = "/scaleio-driver-prov.xml";
     private ApplicationContext context = new ClassPathXmlApplicationContext(fullyQualifiedXMLConfigName);
@@ -427,21 +426,34 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      * Export volumes to initiators through a given set of ports. If ports are not provided,
      * use port requirements from ExportPathsServiceOption storage capability
      *
-     * @param initiators Type: Input.
-     * @param volumes Type: Input.
-     * @param volumeToHLUMap map of volume nativeID to requested HLU. HLU value of -1 means that HLU is not defined and will be assigned by
-     *            array.
-     *            Type: Input/Output.
-     * @param recommendedPorts list of storage ports recommended for the export. Optional. Type: Input.
-     * @param availablePorts list of ports available for the export. Type: Input.
-     * @param capabilities storage capabilities. Type: Input.
+     * @param initiators           Type: Input.
+     * @param volumes              Type: Input.
+     * @param volumeToHLUMap       map of volume nativeID to requested HLU. HLU value of -1 means that HLU is not defined and will be assigned by array.
+     *                             Type: Input/Output.
+     * @param recommendedPorts     list of storage ports recommended for the export. Optional. Type: Input.
+     * @param availablePorts       list of ports available for the export. Type: Input.
+     * @param capabilities         storage capabilities. Type: Input.
      * @param usedRecommendedPorts true if driver used recommended and only recommended ports for the export, false otherwise. Type: Output.
-     * @param selectedPorts ports selected for the export (if recommended ports have not been used). Type: Output.
+     * @param selectedPorts        ports selected for the export (if recommended ports have not been used). Type: Output.
      * @return task
      */
-    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes,
-            Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts,
-            StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+    @Override
+    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts, StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
+        return null;
+    }
+
+    /**
+     * Export volumes to initiators through a given set of ports. If ports are not provided,
+     * use port requirements from ExportPathsServiceOption storage capability
+     *
+     * @param initiators Type: Input.
+     * @param volumes Type: Input.
+     * @param recommendedPorts list of storage ports recommended for the export. Optional. Type: Input.
+     * @param capabilities storage capabilities. Type: Input.
+     * @return task
+     */
+    public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, List<StoragePort> recommendedPorts,
+                                                StorageCapabilities capabilities){
         return null;
     }
 
@@ -618,186 +630,181 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return null;
     }
 
-    /**
-     * Discover storage systems and their capabilities
-     *
-     * @param storageSystems StorageSystems to discover. Type: Input/Output.
-     * @return
-     */
-    @Override
-    public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
+
+	/**
+	 * Discover storage systems and their capabilities
+	 *
+	 * @param storageSystems StorageSystems to discover. Type: Input/Output.
+	 * @return
+	 */
+	@Override
+	public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.DISCOVER_STORAGE_SYSTEM));
-        for (StorageSystem storageSystem : storageSystems) {
-            try {
-                log.info("StorageDriver: Discovery information for storage system {}, name {} - Start", storageSystem.getIpAddress(),
-                        storageSystem.getSystemName());
-                ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getSystemName(),
-                        storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(),
-                        storageSystem.getPassword());
-                if (scaleIOHandle != null) {
-                    ScaleIOSystem scaleIOSystem = scaleIOHandle.getSystem();
-                    List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
-                    for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
-                        String domainName = protectionDomain.getName();
-                        if (ScaleIOHelper.compare(domainName, storageSystem.getSystemName())) {
-                            storageSystem.setNativeId(protectionDomain.getId());
-                            storageSystem.setSystemName(domainName);
-                            storageSystem.setSerialNumber(protectionDomain.getSystemId());
-                            storageSystem.setSystemType(protectionDomain.getProtectionDomainState());
+		for (StorageSystem storageSystem : storageSystems) {
+			try {
+				log.info("StorageDriver: Discovery information for storage system {}, name {} - Start", storageSystem.getIpAddress(),
+						storageSystem.getSystemName());
+				ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getSystemName(),
+						storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(),
+						storageSystem.getPassword());
+				if (scaleIOHandle != null) {
+					ScaleIOSystem scaleIOSystem = scaleIOHandle.getSystem();
+					List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
+					for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
+						String domainName = protectionDomain.getName();
+						if (ScaleIOHelper.compare(domainName, storageSystem.getSystemName())) {
+							storageSystem.setNativeId(protectionDomain.getId());
+							storageSystem.setSystemName(domainName);
+							storageSystem.setSerialNumber(protectionDomain.getSystemId());
+							storageSystem.setSystemType(protectionDomain.getProtectionDomainState());
+							String version = scaleIOSystem.getVersion().replaceAll("_", ".")
+									.substring(ScaleIOConstants.START_POS, ScaleIOConstants.END_POS);
+							storageSystem.setFirmwareVersion(version);
+							if (Double.valueOf(version) < (ScaleIOConstants.MINIMUM_SUPPORTED_VERSION)) {
+								storageSystem.setIsSupportedVersion(ScaleIOConstants.INCOMPATIBLE);
+							} else {
+								storageSystem.setIsSupportedVersion(ScaleIOConstants.COMPATIBLE);
+							}
+							task.setStatus(DriverTask.TaskStatus.READY);
+							setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
+									storageSystem.getUsername(), storageSystem.getPassword());
+							log.info("StorageDriver: Discovery information for storage system {}, name {} - End",
+									storageSystem.getIpAddress(), storageSystem.getSystemName());
+						}
+					}
+				} else {
+					log.info("StorageDriver: Discovery failed to get an handle for the storage system {}, name {}",
+							storageSystem.getIpAddress(), storageSystem.getSystemName());
+					task.setStatus(DriverTask.TaskStatus.FAILED);
+				}
+			} catch (Exception e) {
+				log.error("StorageDriver: Discovery failed for the storage system {}, name {}", storageSystem.getIpAddress(),
+						storageSystem.getSystemName());
+				task.setStatus(DriverTask.TaskStatus.ABORTED);
+			}
+		}
+		return task;
+	}
 
-                            String version = scaleIOSystem.getVersion().replaceAll("_", ".")
-                                    .substring(ScaleIOConstants.START_POS, ScaleIOConstants.END_POS);
-                            storageSystem.setFirmwareVersion(version);
-                            if (Double.valueOf(version) < (ScaleIOConstants.MINIMUM_SUPPORTED_VERSION)) {
-                                storageSystem.setIsSupportedVersion(ScaleIOConstants.INCOMPATIBLE);
-                            } else {
-                                storageSystem.setIsSupportedVersion(ScaleIOConstants.COMPATIBLE);
-                            }
-                            task.setStatus(DriverTask.TaskStatus.READY);
-
-                            setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
-                                    storageSystem.getUsername(), storageSystem.getPassword());
-                            log.info("StorageDriver: Discovery information for storage system {}, name {} - End",
-                                    storageSystem.getIpAddress(), storageSystem.getSystemName());
-                        }
-                    }
-                } else {
-                    log.info("StorageDriver: Discovery failed to get an handle for the storage system {}, name {}",
-                            storageSystem.getIpAddress(), storageSystem.getSystemName());
-                    task.setStatus(DriverTask.TaskStatus.FAILED);
-                }
-            } catch (Exception e) {
-                log.error("StorageDriver: Discovery failed for the storage system {}, name {}", storageSystem.getIpAddress(),
-                        storageSystem.getSystemName());
-                task.setStatus(DriverTask.TaskStatus.ABORTED);
-            }
-        }
-        return task;
-    }
-
-    /**
-     * Discover storage pools and their capabilities.
-     *
-     * @param storageSystem Type: Input.
-     * @param storagePools Type: Output.
-     * @return
-     */
-    @Override
-    public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
+	/**
+	 * Discover storage pools and their capabilities.
+	 *
+	 * @param storageSystem Type: Input.
+	 * @param storagePools  Type: Output.
+	 * @return
+	 */
+	@Override
+	public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.DISCOVER_STORAGE_POOLS));
-        try {
-            log.info("StorageDriver: Discovery of storage pools for storage system {}, name {} - Start", storageSystem.getIpAddress(),
-                    storageSystem.getSystemName());
-            ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getNativeId(),
-                    storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
-            if (scaleIOHandle != null) {
-                List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
-                for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
-                    String domainID = protectionDomain.getSystemId();
-                    if (ScaleIOHelper.compare(domainID, storageSystem.getNativeId())) {
+		try {
+			log.info("StorageDriver: Discovery of storage pools for storage system {}, name {} - Start", storageSystem.getIpAddress(),
+					storageSystem.getSystemName());
+			ScaleIORestClient scaleIOHandle = getConnInfoFromRegistry(storageSystem);
+			if (scaleIOHandle != null) {
+				List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
+				for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
+					String domainID = protectionDomain.getId();
+					if (ScaleIOHelper.compare(domainID, storageSystem.getNativeId())) {
+						List<ScaleIOStoragePool> scaleIOStoragePoolList = scaleIOHandle.getProtectionDomainStoragePools(protectionDomain
+								.getId());
+						for (ScaleIOStoragePool storagePool : scaleIOStoragePoolList) {
+							StoragePool pool = new StoragePool();
+							pool.setNativeId(storagePool.getId());
+							log.info("StorageDriver: Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
+							pool.setStorageSystemId(protectionDomain.getId());
+							pool.setPoolName(storagePool.getName());
+							Set<StoragePool.Protocols> protocols = new HashSet<>();
+							protocols.add(StoragePool.Protocols.FC);
+							protocols.add(StoragePool.Protocols.iSCSI);
+							pool.setProtocols(protocols);
+							pool.setPoolServiceType(StoragePool.PoolServiceType.block);
+							pool.setTotalCapacity(Long.valueOf(storagePool.getMaxCapacityInKb()));
+							pool.setFreeCapacity(Long.valueOf(storagePool.getCapacityAvailableForVolumeAllocationInKb()));
+							pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_AND_THICK);
+							pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
+							Set<StoragePool.SupportedDriveTypes> supportedDriveTypes = new HashSet<>();
+							supportedDriveTypes.add(StoragePool.SupportedDriveTypes.FC);
+							supportedDriveTypes.add(StoragePool.SupportedDriveTypes.SATA);
+							pool.setSupportedDriveTypes(supportedDriveTypes);
+							storagePools.add(pool);
+						}
+					}
+				}
+				task.setStatus(DriverTask.TaskStatus.READY);
+				log.info("StorageDriver: Discovery of storage pools for storage system {}, name {} - End", storageSystem.getIpAddress(),
+						storageSystem.getSystemName());
+			} else {
+				log.info("StorageDriver: Failed to get an handle for the storage system {}, name {}", storageSystem.getIpAddress(),
+						storageSystem.getSystemName());
+				task.setStatus(DriverTask.TaskStatus.FAILED);
+			}
+		} catch (Exception e) {
+			log.error("StorageDriver: Discovery of storage pools failed for the storage system {}, name {}", storageSystem.getIpAddress(),
+					storageSystem.getSystemName());
+			task.setStatus(DriverTask.TaskStatus.ABORTED);
+		}
+		return task;
+	}
 
-                        List<ScaleIOStoragePool> scaleIOStoragePoolList = scaleIOHandle.getProtectionDomainStoragePools(protectionDomain
-                                .getId());
-                        for (ScaleIOStoragePool storagePool : scaleIOStoragePoolList) {
-                            StoragePool pool = new StoragePool();
-                            pool.setNativeId(storagePool.getId());
-                            log.info("StorageDriver: Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
-                            pool.setStorageSystemId(protectionDomain.getId());
-                            pool.setPoolName(storagePool.getName());
-                            Set<StoragePool.Protocols> protocols = new HashSet<>();
-                            protocols.add(StoragePool.Protocols.FC);
-                            protocols.add(StoragePool.Protocols.iSCSI);
-                            pool.setProtocols(protocols);
-                            pool.setPoolServiceType(StoragePool.PoolServiceType.block);
-                            pool.setTotalCapacity(Long.valueOf(storagePool.getMaxCapacityInKb()));
-                            pool.setFreeCapacity(Long.valueOf(storagePool.getCapacityAvailableForVolumeAllocationInKb()));
-                            pool.setSupportedResourceType(StoragePool.SupportedResourceType.THIN_AND_THICK);
-                            pool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY);
-                            Set<StoragePool.SupportedDriveTypes> supportedDriveTypes = new HashSet<>();
-                            supportedDriveTypes.add(StoragePool.SupportedDriveTypes.FC);
-                            supportedDriveTypes.add(StoragePool.SupportedDriveTypes.SATA);
-                            pool.setSupportedDriveTypes(supportedDriveTypes);
-                            storagePools.add(pool);
-                        }
-                    }
-                }
-                task.setStatus(DriverTask.TaskStatus.READY);
-                log.info("StorageDriver: Discovery of storage pools for storage system {}, name {} - End", storageSystem.getIpAddress(),
-                        storageSystem.getSystemName());
-            } else {
-                log.info("StorageDriver: Failed to get an handle for the storage system {}, name {}", storageSystem.getIpAddress(),
-                        storageSystem.getSystemName());
-                task.setStatus(DriverTask.TaskStatus.FAILED);
-            }
-        } catch (Exception e) {
-            log.error("StorageDriver: Discovery of storage pools failed for the storage system {}, name {}", storageSystem.getIpAddress(),
-                    storageSystem.getSystemName());
-            task.setStatus(DriverTask.TaskStatus.ABORTED);
-        }
-        return task;
-    }
-
-    /**
-     * Discover storage ports and their capabilities
-     *
-     * @param storageSystem Type: Input.
-     * @param storagePorts Type: Output.
-     * @return
-     */
-    @Override
-    public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
+	/**
+	 * Discover storage ports and their capabilities
+	 *
+	 * @param storageSystem Type: Input.
+	 * @param storagePorts  Type: Output.
+	 * @return
+	 */
+	@Override
+	public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.DISCOVER_STORAGE_PORTS));
-        try {
-            log.info("StorageDriver: Discovery of storage ports for storage system {}, name {} - Start", storageSystem.getNativeId(),
-                    storageSystem.getSystemName());
-            ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getNativeId(),
-                    storageSystem.getIpAddress(), storageSystem.getPortNumber(), storageSystem.getUsername(), storageSystem.getPassword());
+		try {
+			log.info("StorageDriver: Discovery of storage ports for storage system {}, name {} - Start", storageSystem.getNativeId(),
+					storageSystem.getSystemName());
+			ScaleIORestClient scaleIOHandle = getConnInfoFromRegistry(storageSystem);
+			if (scaleIOHandle != null) {
+				List<ScaleIOSDS> allSDSs = scaleIOHandle.queryAllSDS();
+				for (ScaleIOSDS sds : allSDSs) {
+					StoragePort port;
+					String pdId = sds.getProtectionDomainId();
+					if (ScaleIOHelper.compare(pdId, storageSystem.getNativeId())) {
+						String sdsId = sds.getId();
+						List<ScaleIOSDS.IP> ips = sds.getIpList();
+						String sdsIP = null;
+						if (ips != null && !ips.isEmpty()) {
+							sdsIP = ips.get(0).getIp();
+						}
 
-            if (scaleIOHandle != null) {
-                List<ScaleIOSDS> allSDSs = scaleIOHandle.queryAllSDS();
-                for (ScaleIOSDS sds : allSDSs) {
-                    StoragePort port;
-                    String pdId = sds.getProtectionDomainId();
-                    if (ScaleIOHelper.compare(pdId, storageSystem.getNativeId())) {
-                        String sdsId = sds.getId();
-                        List<ScaleIOSDS.IP> ips = sds.getIpList();
-                        String sdsIP = null;
-                        if (ips != null && !ips.isEmpty()) {
-                            sdsIP = ips.get(0).getIp();
-                        }
-
-                        if (sdsId != null && ScaleIOHelper.compare(sds.getSdsState(), ScaleIOConstants.OPERATIONAL_STATUS_CONNECTED)) {
-                            port = new StoragePort();
-                            port.setNativeId(sdsId);
-                            log.info("StorageDriver: Discovered port {}, storageSystem {}", port.getNativeId(), port.getStorageSystemId());
-                            port.setDeviceLabel(String.format("%s-%s-StoragePort", sds.getName(), sdsId));
-                            port.setPortName(sds.getName());
-                            port.setPortNetworkId(sdsId);
-                            port.setStorageSystemId(storageSystem.getNativeId());
-                            port.setTransportType(StoragePort.TransportType.ScaleIO);
-                            port.setOperationalStatus(StoragePort.OperationalStatus.OK);
-                            port.setIpAddress(sdsIP);
-                            port.setPortGroup(sdsId);
-                            port.setPortType(StoragePort.PortType.frontend);
-                            storagePorts.add(port);
-                        }
-                    }
-                }
-                task.setStatus(DriverTask.TaskStatus.READY);
-                log.info("StorageDriver: Discovery of storage ports for storage system {}, name {} - End", storageSystem.getIpAddress(),
-                        storageSystem.getSystemName());
-            } else {
-                log.info("StorageDriver: Failed to get an handle for the storage system {}, name {}", storageSystem.getIpAddress(),
-                        storageSystem.getSystemName());
-                task.setStatus(DriverTask.TaskStatus.FAILED);
-            }
-        } catch (Exception e) {
-            log.error("StorageDriver: Discovery of storage ports failed for the storage system {}, name {}", storageSystem.getIpAddress(),
-                    storageSystem.getSystemName());
-            task.setStatus(DriverTask.TaskStatus.ABORTED);
-        }
-        return task;
-    }
+						if (sdsId != null && ScaleIOHelper.compare(sds.getSdsState(), ScaleIOConstants.OPERATIONAL_STATUS_CONNECTED)) {
+							port = new StoragePort();
+							port.setNativeId(sdsId);
+							log.info("StorageDriver: Discovered port {}, storageSystem {}", port.getNativeId(), port.getStorageSystemId());
+							port.setDeviceLabel(String.format("%s-%s-StoragePort", sds.getName(), sdsId));
+							port.setPortName(sdsId);
+							port.setPortNetworkId(sdsId);
+							port.setStorageSystemId(storageSystem.getNativeId());
+							port.setTransportType(StoragePort.TransportType.ScaleIO);
+							port.setOperationalStatus(StoragePort.OperationalStatus.OK);
+							port.setIpAddress(sdsIP);
+							port.setPortGroup(sds.getProtectionDomainId());
+							port.setPortType(StoragePort.PortType.frontend);
+							storagePorts.add(port);
+						}
+					}
+				}
+				task.setStatus(DriverTask.TaskStatus.READY);
+				log.info("StorageDriver: Discovery of storage ports for storage system {}, name {} - End", storageSystem.getIpAddress(),
+						storageSystem.getSystemName());
+			} else {
+				log.info("StorageDriver: Failed to get an handle for the storage system {}, name {}", storageSystem.getIpAddress(),
+						storageSystem.getSystemName());
+				task.setStatus(DriverTask.TaskStatus.FAILED);
+			}
+		} catch (Exception e) {
+			log.error("StorageDriver: Discovery of storage ports failed for the storage system {}, name {}", storageSystem.getIpAddress(),
+					storageSystem.getSystemName());
+			task.setStatus(DriverTask.TaskStatus.ABORTED);
+		}
+		return task;
+	}
 
     /**
      * Discover storage volumes
@@ -954,4 +961,32 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return task;
     }
 
+
+	/**
+	 * Get connection info from registry
+	 *
+	 * @param storageSystem
+	 * @return ScaleIO rest client handle
+	 */
+	public ScaleIORestClient getConnInfoFromRegistry(StorageSystem storageSystem) {
+		Map<String, List<String>> attributes = this.driverRegistry.getDriverAttributesForKey(ScaleIOConstants.DRIVER_NAME, storageSystem.getNativeId());
+		String ipAddress, userName, password;
+		int portNumber;
+		ipAddress = getConnInfoFromRegistry(storageSystem.getNativeId(), ScaleIOConstants.IP_ADDRESS);
+		portNumber = Integer.valueOf(getConnInfoFromRegistry(storageSystem.getNativeId(), ScaleIOConstants.PORT_NUMBER));
+		userName = getConnInfoFromRegistry(storageSystem.getNativeId(), ScaleIOConstants.USER_NAME);
+		password = getConnInfoFromRegistry(storageSystem.getNativeId(), ScaleIOConstants.PASSWORD);
+		try {
+			if (attributes == null || ipAddress.isEmpty() || userName.isEmpty() || password.isEmpty()) {
+				log.info("StorageDriver: Connection info for " + storageSystem.getNativeId() + " is not set up in the registry");
+				return null;
+			} else {
+				ScaleIORestClient scaleIOHandle = scaleIORestHandleFactory.getClientHandle(storageSystem.getNativeId(), ipAddress, portNumber, userName, password);
+				return scaleIOHandle;
+			}
+		} catch (Exception e) {
+			log.error("StorageDriver: Failed to get client handle for the storage system {}, name {}", storageSystem.getIpAddress(), storageSystem.getSystemName());
+			return null;
+		}
+	}
 }

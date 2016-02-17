@@ -12,6 +12,7 @@ import org.jsoup.helper.StringUtil;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.model.property.PropertyConstants;
 
 /**
  * Representation for a ViPR site, both primary and standby
@@ -21,6 +22,7 @@ public class Site {
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
+    private static final String KEY_VIP6 = "vip6";
     private static final String KEY_SITE_SHORTID = "siteShortId";
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
@@ -47,6 +49,7 @@ public class Site {
     private String vdcShortId;
     private String name;
     private String vip;
+    private String vip6;
     private String description;
     private Map<String, String> hostIPv4AddressMap = new HashMap<>();
     private Map<String, String> hostIPv6AddressMap = new HashMap<>();
@@ -197,6 +200,14 @@ public class Site {
         setLastStateUpdateTime(System.currentTimeMillis());
     }
 
+    public String getVip6() {
+        return vip6;
+    }
+
+    public void setVip6(String vip6) {
+        this.vip6 = vip6;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -232,6 +243,9 @@ public class Site {
         }
         if (vip != null) {
             config.setConfig(KEY_VIP, vip);
+        }
+        if (vip6 != null) {
+            config.setConfig(KEY_VIP6, vip6);
         }
         if (siteShortId != null) {
             config.setConfig(KEY_SITE_SHORTID, this.siteShortId);
@@ -279,6 +293,7 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
+            this.vip6 = config.getConfig(KEY_VIP6);
             String networkHealthStr = config.getConfig(KEY_NETWORK_HEALTH);
             if (networkHealthStr != null && !networkHealthStr.isEmpty()) {
                 this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealthStr.toUpperCase());
@@ -376,7 +391,7 @@ public class Site {
     }
 
     public boolean isUsingIpv4() {
-        if (vip.contains(":")) {
+        if (StringUtil.isBlank(vip) || PropertyConstants.IPV4_ADDR_DEFAULT.equals(vip)) {
             return false;
         }
         return true;
@@ -386,7 +401,7 @@ public class Site {
         if (isUsingIpv4()) {
             return vip;
         } else {
-            return "[" + vip + "]";
+            return "[" + vip6 + "]";
         }
     }
     

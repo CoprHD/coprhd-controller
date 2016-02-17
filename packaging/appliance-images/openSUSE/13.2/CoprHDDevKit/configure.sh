@@ -68,7 +68,7 @@ function installPackages
   cp -f /etc/zypp/repos.d/suse-13.2-oss-update.repo /tmp/coprhd.d/
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks update lvm2 udev
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --oldpackage docker=1.8.3-43.1 lvm2=2.02.98-43.24.1 udev=210.1448627060.53ee915-25.27.1 libudev1=210.1448627060.53ee915-25.27.1
   rm -fr /tmp/coprhd.d
 
   zypper --non-interactive clean
@@ -105,6 +105,22 @@ function installStorageOS
   getent passwd storageos || useradd -r -d /opt/storageos -c "StorageOS" -g 444 -u 444 -s /bin/bash storageos
   [ ! -d /opt/storageos ] || chown -R storageos:storageos /opt/storageos
   [ ! -d /data ] || chown -R storageos:storageos /data
+}
+
+function installDockerStorage
+{
+  # switch to btrfs instead of device-mapper for docker
+  if [ ! -f /var/lib/docker-storage.btrfs ]; then
+    service docker stop
+    rm -fr /var/lib/docker
+    mkdir -p /var/lib/docker
+    qemu-img create /var/lib/docker-storage.btrfs 30g
+    mkfs.btrfs /var/lib/docker-storage.btrfs
+    mount /var/lib/docker-storage.btrfs /var/lib/docker
+    grep --quiet "^/var/lib/docker-storage.btrfs" /etc/fstab || echo "/var/lib/docker-storage.btrfs /var/lib/docker btrfs defaults 0 0" >> /etc/fstab
+    sed -i s/"DOCKER_OPTS=\"\""/"DOCKER_OPTS=\"-s btrfs\""/g /etc/sysconfig/docker
+    service docker start
+  fi
 }
 
 function installDockerEnv

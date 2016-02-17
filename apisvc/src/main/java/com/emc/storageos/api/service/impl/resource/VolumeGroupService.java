@@ -1291,15 +1291,14 @@ public class VolumeGroupService extends TaskResourceService {
      * @return
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
     public TaskList createVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
             VolumeGroupSnapshotCreateParam param) {
-        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // Query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
-        ArgValidator.checkEntityNotNull(volumeGroup, volumeGroupId, isIdEmbeddedInURL(volumeGroupId));
 
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
@@ -1339,7 +1338,7 @@ public class VolumeGroupService extends TaskResourceService {
                 ArgValidator.checkFieldUriType(volumeURI, Volume.class, VOLUME_FIELD);
                 // Get the volume
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                ArgValidator.checkEntityNotNull(volume, volumeURI, isIdEmbeddedInURL(volumeURI));
+                ArgValidator.checkEntity(volume, volumeURI, isIdEmbeddedInURL(volumeURI));
 
                 // validate that provided volume is part of Volume Group
                 if (volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
@@ -1402,7 +1401,6 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public SnapshotList getVolumeGroupSnapshots(@PathParam("id") final URI volumeGroupId) {
-        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
@@ -1448,7 +1446,6 @@ public class VolumeGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public BlockSnapshotRestRep getVolumeGroupSnapshot(@PathParam("id") final URI volumeGroupId,
             @PathParam("sid") URI snapshotId) {
-        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query Volume Group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
@@ -1485,7 +1482,6 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/protection/snapshots/copy-sets")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public VolumeGroupCopySetList getVolumeGroupSnapshotSets(@PathParam("id") final URI volumeGroupId) {
-        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
         return getVolumeGroupSnapshotSets(volumeGroup);
@@ -1505,7 +1501,6 @@ public class VolumeGroupService extends TaskResourceService {
     @Path("/{id}/protection/snapshots/copy-sets")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public SnapshotList getVolumeGroupSnapshotsForSet(@PathParam("id") final URI volumeGroupId, final VolumeGroupCopySetParam param) {
-        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, ID_FIELD);
         // query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
 
@@ -1553,10 +1548,8 @@ public class VolumeGroupService extends TaskResourceService {
      * @return map snapsetLabel to snapshots
      */
     private Map<String, List<BlockSnapshot>> getSnapshotsGroupedBySnapset(final URI volumeGroupId, VolumeGroupSnapshotOperationParam param) {
-        ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
         // Query volume group
         final VolumeGroup volumeGroup = (VolumeGroup) queryResource(volumeGroupId);
-        ArgValidator.checkEntityNotNull(volumeGroup, volumeGroupId, isIdEmbeddedInURL(volumeGroupId));
 
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
@@ -1669,6 +1662,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshots/activate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1694,6 +1688,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshots/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1719,6 +1714,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshots/restore")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1744,6 +1740,7 @@ public class VolumeGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshots/resynchronize")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })

@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
 
-import com.emc.storageos.services.util.FileUtils;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.service.StorageService;
 import org.apache.commons.io.FileUtils;
@@ -132,41 +131,22 @@ public abstract class StartupMode {
         }
 
         /**
-         * Remove all db/commitlog files - excluding system keyspace
+         * Remove all db/commitlog files - including system and GeoStorageOS keyspace
          */
         void onPreStart() {
-            cleanDbDataFiles();
-            cleanDbCommitLog();
-        }
-
-        private void cleanDbDataFiles() {
-            for (String dataFolder : StorageService.instance.getAllDataFileLocations()) {
-                log.info("Remove data files under {}", dataFolder);
-                File dir = new File(dataFolder);
-                try {
-                    for (File file : dir.listFiles()) {
-                        if (file.getAbsolutePath().endsWith("system")) {
-                            continue;
-                        }
-                        FileUtils.deleteDirectory(file);
-                        log.info("Delete directory({}) successful", file.getAbsolutePath());
-                    }
-                } catch (IOException ex) {
-                    log.warn("Failed to cleanup db data folder {}", dataFolder);
-                    throw new IllegalStateException("Failed to cleanup db db data folder", ex);
-                }
-            }
-        }
-
-        private void cleanDbCommitLog() {
-            String commitLogFolder = StorageService.instance.getCommitLogLocation();
-            log.info("Remove commit log files under {}", commitLogFolder);
+            log.info("Remove all dirs under {}", dbDir);
+            File dir = new File(dbDir);
             try {
-                FileUtils.deleteDirectory(new File(commitLogFolder));
-                log.info("Delete directory({}) successful", commitLogFolder);
+                for (File file : dir.listFiles()) {
+                    if (!file.isDirectory()) {
+                        continue;
+                    }
+                    FileUtils.deleteDirectory(file);
+                    log.info("Delete directory({}) successful", file.getAbsolutePath());
+                }
             } catch (IOException ex) {
-                log.warn("Failed to cleanup db commit log folder {}", commitLogFolder);
-                throw new IllegalStateException("Failed to cleanup db commit log folder", ex);
+                log.warn("Could not cleanup db directory {}", dbDir);
+                throw new IllegalStateException("Error when cleanup db dir", ex);
             }
         }
 
@@ -302,12 +282,47 @@ public abstract class StartupMode {
             type = StartupModeType.RESTORE_MODE;
         }
 
+        /**
+         * Remove all db/commitlog files - excluding system keyspace
+         */
         void onPreStart() {
             if (!Boolean.parseBoolean(config.getConfig(Constants.STARTUPMODE_RESTORE_REINIT))) {
                 config.setConfig(Constants.STARTUPMODE_RESTORE_REINIT, Boolean.TRUE.toString());
                 coordinator.persistServiceConfiguration(coordinator.getSiteId(), config);
             }
-            super.onPreStart();
+            cleanDbDataFiles();
+            cleanDbCommitLog();
+        }
+
+        private void cleanDbDataFiles() {
+            for (String dataFolder : StorageService.instance.getAllDataFileLocations()) {
+                log.info("Remove data files under {}", dataFolder);
+                File dir = new File(dataFolder);
+                try {
+                    for (File file : dir.listFiles()) {
+                        if (file.getAbsolutePath().endsWith("system")) {
+                            continue;
+                        }
+                        FileUtils.deleteDirectory(file);
+                        log.info("Delete directory({}) successful", file.getAbsolutePath());
+                    }
+                } catch (IOException ex) {
+                    log.warn("Failed to cleanup db data folder {}", dataFolder);
+                    throw new IllegalStateException("Failed to cleanup db db data folder", ex);
+                }
+            }
+        }
+
+        private void cleanDbCommitLog() {
+            String commitLogFolder = StorageService.instance.getCommitLogLocation();
+            log.info("Remove commit log files under {}", commitLogFolder);
+            try {
+                FileUtils.deleteDirectory(new File(commitLogFolder));
+                log.info("Delete directory({}) successful", commitLogFolder);
+            } catch (IOException ex) {
+                log.warn("Failed to cleanup db commit log folder {}", commitLogFolder);
+                throw new IllegalStateException("Failed to cleanup db commit log folder", ex);
+            }
         }
 
         void onPostStart() throws Exception {

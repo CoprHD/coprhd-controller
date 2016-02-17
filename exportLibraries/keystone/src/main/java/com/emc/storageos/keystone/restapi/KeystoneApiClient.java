@@ -23,6 +23,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.keystone.restapi.model.request.CreateEndpointRequest;
 import com.emc.storageos.keystone.restapi.model.response.*;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,7 +139,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
         if (endpointResponse == null) {
             log.error("Keystone endpoint response is null");
-            throw new NullPointerException("Keystone does not have any endpoints!");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone endpoint response");
         }
 
         log.debug("END - getKeystoneEndpoints");
@@ -178,7 +179,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
         if (serviceResponse == null) {
             log.error("Keystone service response is null");
-            throw new NullPointerException("Keystone does not have any services!");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone service response");
         }
 
         log.debug("END - getKeystoneServices");
@@ -196,7 +197,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
         if (endpointId == null) {
             log.error("endpointId is null");
-            throw new NullPointerException("Endpoint id cannot be null!");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Endpoint id");
         }
 
         // Authenticate user.
@@ -228,7 +229,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
         if (endpoint == null) {
             log.error("endpoint is null");
-            throw new NullPointerException("Endpoint cannot be null!");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Endpoint object");
         }
 
         // Authenticate user.

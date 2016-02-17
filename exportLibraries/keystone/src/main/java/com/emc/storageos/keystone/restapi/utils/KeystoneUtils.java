@@ -21,6 +21,7 @@ import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
 import com.emc.storageos.keystone.restapi.errorhandling.KeystoneApiException;
 import com.emc.storageos.keystone.restapi.model.response.*;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,7 +79,7 @@ public class KeystoneUtils {
 
         if (serviceId == null) {
             _log.error("serviceId is null");
-            throw new NullPointerException("Service id cannot be null!");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Service id");
         }
 
         for(EndpointV2 endpoint : response.getEndpoints()){
@@ -105,7 +106,7 @@ public class KeystoneUtils {
 
         if (tenantName == null) {
             _log.error("tenantName is null");
-            throw new NullPointerException("Tenant name cannot be null!");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant name");
         }
 
         for(TenantV2 tenant : response.getTenants()){
@@ -131,7 +132,7 @@ public class KeystoneUtils {
 
         if (serviceName == null) {
             _log.error("serviceName is null");
-            throw new NullPointerException("Service name cannot be null!");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Service name");
         }
 
         // Get Keystone services from Keystone API.

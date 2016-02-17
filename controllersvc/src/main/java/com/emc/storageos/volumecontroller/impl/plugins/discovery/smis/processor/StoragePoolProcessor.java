@@ -23,6 +23,7 @@ import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
@@ -84,7 +85,7 @@ public class StoragePoolProcessor extends PoolProcessor {
             _newPoolList = new ArrayList<StoragePool>();
             _updatePoolList = new ArrayList<StoragePool>();
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            _cimClient = (WBEMClient) keyMap.get(Constants._cimClient);
+            _cimClient = SMICommunicationInterface.getCIMClient(keyMap);
             _coordinator = (CoordinatorClient) keyMap.get(Constants.COORDINATOR_CLIENT);
             _eventManager = (RecordableEventManager) keyMap.get(Constants.EVENT_MANAGER);
             _logger.info("StoragePoolProcessor --- event manager: " + _eventManager);

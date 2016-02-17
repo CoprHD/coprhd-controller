@@ -431,6 +431,7 @@
     <bean id="CIMConnectionFactory" class="com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory">
         <property name="connectionManager" ref="ConnectionManager"/>
         <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 
     <!--

@@ -14,7 +14,6 @@ import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.vipr.client.Tasks;
 
-// TODO move tasks to task package
 public class AddVolumesToApplication extends WaitForTasks<TaskResourceRep> {
     private final List<URI> volumeIds;
     private final URI applicationId;

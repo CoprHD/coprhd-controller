@@ -278,7 +278,6 @@ public class BlockServiceUtils {
                     return true;
                 }
             }
-            // TODO check for RP and RP+VPLEX
         }
 
         return false;

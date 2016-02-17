@@ -20,7 +20,6 @@ import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.vipr.client.Tasks;
 
-// TODO move to tasks package
 public class RemoveApplicationFullCopy extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
     private final URI volumeId;

@@ -28,7 +28,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
     @Param(ServiceParams.COUNT)
     protected Integer count;
 
-    @Param(ServiceParams.VIRTUAL_ARRAY)
+    @Param(ServiceParams.APPLICATION_SITE)
     protected URI virtualArrayId;
 
     @Override

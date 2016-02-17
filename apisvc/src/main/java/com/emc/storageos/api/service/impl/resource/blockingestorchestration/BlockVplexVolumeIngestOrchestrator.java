@@ -175,8 +175,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     @Override
     protected void managedVolumeSetLabel(BlockObject blockObject, String deviceLabel) {
         if (deviceLabel.contains("(")) {
+            // We want the user-visible label to be friendly.  The deviceLabel needs to be the VPLEX label.
+            // DB1_vol1 (dd_v1234567890_vol)
+            // label:       DB1_vol1
+            // deviceLabel: dd_v1234567890_vol
             blockObject.setLabel(deviceLabel.substring(0, deviceLabel.indexOf('(') - 1));
-            blockObject.setDeviceLabel(deviceLabel.substring(0, deviceLabel.indexOf('(') - 1));
+            blockObject.setDeviceLabel(deviceLabel.substring(deviceLabel.indexOf('(')+1, deviceLabel.indexOf(')')));
         } else {
             super.managedVolumeSetLabel(blockObject, deviceLabel);
         }

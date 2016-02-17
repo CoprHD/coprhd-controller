@@ -11,6 +11,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ public class MetaVolumeMembersProcessor extends StorageProcessor {
         try {
 
             DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
+            WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
 
             CIMObjectPath[] metaMembersPaths = (CIMObjectPath[]) getFromOutputArgs((CIMArgument[]) resultObj, "OutElements");
             _logger.debug(String.format("Processing meta members: %s", Arrays.toString(metaMembersPaths)));

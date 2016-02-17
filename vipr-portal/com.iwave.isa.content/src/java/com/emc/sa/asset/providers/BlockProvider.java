@@ -1928,7 +1928,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             for (VolumeRestRep vol : fullCopies) {
                 if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null
                         && vol.getProtection().getFullCopyRep().getFullCopySetName() != null
-                        && vol.getVirtualArray().getId().equals(applicationVirtualArray)) {
+                        && (applicationVirtualArray == null || vol.getVirtualArray().getId().equals(applicationVirtualArray))) {
                     fullCopyNames.add(vol.getProtection().getFullCopyRep().getFullCopySetName());
                 }
             }
@@ -1984,6 +1984,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         	}
         } else {
             return options;
+        }
+
+        // if it's neither RP nor vplex, it's just a simple block volume application; site is not needed
+        if (!isVplex && !isRP) {
+            options.add(newAssetOption(URI.create("none"), "None"));
         }
 
         // if the volumes are vplex or RP display source as an option

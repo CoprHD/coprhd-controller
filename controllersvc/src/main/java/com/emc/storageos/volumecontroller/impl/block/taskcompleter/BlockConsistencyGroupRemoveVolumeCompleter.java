@@ -42,7 +42,6 @@ public class BlockConsistencyGroupRemoveVolumeCompleter extends BlockConsistency
             throws DeviceControllerException {
         log.info("Updating removed volume replicationGroupInstance");
         try {
-            super.complete(dbClient, status, coded);
             if (status == Status.ready && !keepRGReference) {
                 for (URI blockObjectURI : removedVolumeList) {
                     BlockObject blockObject = BlockObject.fetch(dbClient, blockObjectURI);
@@ -65,6 +64,7 @@ public class BlockConsistencyGroupRemoveVolumeCompleter extends BlockConsistency
                     dbClient.updateObject(blockObject);
                 }
             }
+            super.complete(dbClient, status, coded);
 
         } catch (Exception e) {
             log.error("Failed updating status. BlockConsistencyGroupRemoveVolume {}, for task "

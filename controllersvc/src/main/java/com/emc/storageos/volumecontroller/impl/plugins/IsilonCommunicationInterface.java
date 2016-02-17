@@ -245,12 +245,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                 fsChanged = true;
                             }
-                            if (null != fileSystem.getSoftLimit()) {
+                            if (null != fileSystem.getSoftLimit()) { // if softlimit is set then get the value for
+                                                                     // softLimitExceeded
                                 fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                 fsChanged = true;
                             }
-                            if (fsChanged == true)
+                            if (fsChanged == true) {
                                 _dbClient.updateObject(fileSystem);
+                            }
                         }
                     }
                 }
@@ -281,8 +283,9 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }
-                                if (fsChanged == true)
+                                if (fsChanged == true) {
                                     _dbClient.updateObject(fileSystem);
+                                }
                             }
                         }
                     }

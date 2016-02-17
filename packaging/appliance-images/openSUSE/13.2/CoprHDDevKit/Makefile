@@ -75,14 +75,18 @@ createREPO: | downloadRPM
 	$(call targetLog,-)
 
 clean:
-	$(call targetLog,+)
-	rm -fr $(WORKSPACE)/{build/$(NAME)-$(VERSION).$(JOB),image/$(JOB),output,zypper/repo,zypper/reposd}
-	$(call targetLog,-)
+	@rm -fr $(WORKSPACE)/build/$(NAME)-$(VERSION).$(JOB)
+	@rm -fr $(WORKSPACE)/image/$(JOB)
+	@rm -fr $(WORKSPACE)/output
+	@rm -fr $(WORKSPACE)/zypper/repo
+	@rm -fr $(WORKSPACE)/zypper/reposd
 
 destroy:
-	$(call targetLog,+)
-	rm -fr $(WORKSPACE)/{iso,build,image,output,zypper}
-	$(call targetLog,-)
+	@rm -fr $(WORKSPACE)/iso
+	@rm -fr $(WORKSPACE)/build
+	@rm -fr $(WORKSPACE)/image
+	@rm -fr $(WORKSPACE)/output
+	@rm -fr $(WORKSPACE)/zypper
 
 appliance: | ovf vmx box tbz
 

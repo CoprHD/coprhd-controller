@@ -361,4 +361,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_DR_UPGRADE_NOT_ALLOWED)
     public InternalServerErrorException upgradeNotAllowedWithoutPausedSite();
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_SITE_CONNECTION_BROKEN)
+    public InternalServerErrorException siteConnectionBroken(final String siteName, String errMsg);
 }

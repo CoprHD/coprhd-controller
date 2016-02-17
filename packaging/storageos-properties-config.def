@@ -2678,4 +2678,18 @@
      controlNodeOnly : true,
      siteSpecific : true,
     },
+    {
+        key : "cim_connection_max_inactive_time",
+        label : "CIM Connection TTL",
+        description : "Maximum number of seconds before an inactive SMI-S is reaped. Should be less than the Discovery Scan interval. If set to 0, reaping is disabled.",
+        type : "uint32",
+        userConfigurable : false,
+        userMutable : true,
+        advanced : true,
+        tag : "Discovery",
+        reconfigRequired : false,
+        rebootRequired : true,
+        controlNodeOnly : true,
+        value : "480",
+    },
 ]

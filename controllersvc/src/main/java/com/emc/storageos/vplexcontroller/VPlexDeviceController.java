@@ -5527,11 +5527,26 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // First update the virtual volume CoS, if necessary.
             Volume volume = _dbClient.queryObject(Volume.class, virtualVolumeURI);
             if (newVpoolURI != null) {
+                // Typically the source side backend volume has the same vpool as the
+                // VPLEX volume. If the source side is not being migrated when the VPLEX
+                // volume is migrated, then its vpool will reflect the old vpool. If the
+                // source side had the same as the VPLEX volume, then make sure it still
+                // does.
+                Volume backendSrcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                if (backendSrcVolume != null) {
+                   if (backendSrcVolume.getVirtualPool().toString().equals(volume.getVirtualPool().toString())) 
+                   {
+                       backendSrcVolume.setVirtualPool(newVpoolURI);
+                       _dbClient.updateObject(backendSrcVolume);
+                   }
+                }
+                
+                // Now update the vpool for the VPLEX volume.
                 volume.setVirtualPool(newVpoolURI);
-                _dbClient.persistObject(volume);
+               _dbClient.updateObject(volume);
             } else if (newVarrayURI != null) {
                 volume.setVirtualArray(newVarrayURI);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
             }
 
             if (!migrationSources.isEmpty()) {

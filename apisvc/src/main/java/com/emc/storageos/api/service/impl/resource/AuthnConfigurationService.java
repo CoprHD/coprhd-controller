@@ -48,6 +48,7 @@ import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.*;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -391,7 +392,7 @@ public class AuthnConfigurationService extends TaggedResource {
             }
         } catch (UnknownHostException | NullPointerException e) {
             _log.error("Unable to retrieve CoprHD IP - {}", e.getMessage());
-            throw new NullPointerException("Unable to retrieve CoprHD IP");
+            throw APIException.internalServerErrors.unableToRetrieveLocalIP();
         }
 
         EndpointV2 endpoint = new EndpointV2();

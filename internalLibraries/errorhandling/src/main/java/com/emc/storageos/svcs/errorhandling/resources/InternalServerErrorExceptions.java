@@ -191,6 +191,9 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
     public InternalServerErrorException noAssociatedQosForVirtualPool(final URI uri);
 
+    @DeclareServiceCode(ServiceCode.API_INTERNAL_SERVER_ERROR)
+    public InternalServerErrorException unableToRetrieveLocalIP();
+
     @DeclareServiceCode(ServiceCode.API_INGESTION_ERROR)
     public InternalServerErrorException noVolumesIngested();
 

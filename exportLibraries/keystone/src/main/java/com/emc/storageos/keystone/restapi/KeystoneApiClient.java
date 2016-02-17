@@ -111,7 +111,7 @@ public class KeystoneApiClient extends StandardRestClient {
      *
      * @return EndpointResponse object filled with Keystone endpoints data.
      */
-    public EndpointResponse getKeystoneEndpoints() throws KeystoneApiException{
+    public EndpointResponse getKeystoneEndpoints() throws KeystoneApiException {
 
         log.debug("START - getKeystoneEndpoints");
 
@@ -120,7 +120,8 @@ public class KeystoneApiClient extends StandardRestClient {
 
         // Send a request to Keystone API.
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_ENDPOINTS));
-        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON).header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
+        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON)
+                .header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
 
         // Throw an exception when response code is other than OK
         if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
@@ -146,7 +147,7 @@ public class KeystoneApiClient extends StandardRestClient {
      *
      * @return ServiceResponse object filled with Keystone services data.
      */
-    public ServiceResponse getKeystoneServices() throws KeystoneApiException{
+    public ServiceResponse getKeystoneServices() throws KeystoneApiException {
 
         log.debug("START - getKeystoneServices");
 
@@ -155,7 +156,8 @@ public class KeystoneApiClient extends StandardRestClient {
 
         // Send a request to Keystone API.
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_SERVICES));
-        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON).header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
+        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON)
+                .header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
 
         // Throw an exception when response code is other than OK.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
@@ -181,7 +183,7 @@ public class KeystoneApiClient extends StandardRestClient {
      *
      * @param endpointId Keystone endpoint ID to delete.
      */
-    public void deleteKeystoneEndpoint(String endpointId){
+    public void deleteKeystoneEndpoint(String endpointId) {
 
         log.debug("START - deleteKeystoneEndpoint");
 
@@ -197,7 +199,8 @@ public class KeystoneApiClient extends StandardRestClient {
         String uri = KeystoneConstants.URI_ENDPOINTS + "/" + endpointId;
         URI requestURI = _base.resolve(URI.create(uri));
         // Send a delete request to Keystone API.
-        ClientResponse response = _client.resource(requestURI).header(KeystoneConstants.AUTH_TOKEN, _authToken).delete(ClientResponse.class);
+        ClientResponse response = _client.resource(requestURI).header(KeystoneConstants.AUTH_TOKEN, _authToken)
+                .delete(ClientResponse.class);
 
         // Throw an exception when response code is other than NO_CONTENT.
         if (response.getClientResponseStatus() != ClientResponse.Status.NO_CONTENT) {
@@ -213,7 +216,7 @@ public class KeystoneApiClient extends StandardRestClient {
      * @param endpoint A new endpoint to create filled with information.
      * @return CreateResponse object with created Keystone endpoint.
      */
-    public CreateResponse createKeystoneEndpoint(EndpointV2 endpoint){
+    public CreateResponse createKeystoneEndpoint(EndpointV2 endpoint) {
 
         log.debug("START - createKeystoneEndpoint");
 
@@ -243,7 +246,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
         // Send a create request to Keystone API.
         ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-                                        .header(KeystoneConstants.AUTH_TOKEN, _authToken).post(ClientResponse.class, body);
+                .header(KeystoneConstants.AUTH_TOKEN, _authToken).post(ClientResponse.class, body);
 
         // Throw an exception when response code is other than OK or CREATED.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK
@@ -270,7 +273,7 @@ public class KeystoneApiClient extends StandardRestClient {
      *
      * @return TenantResponse object filled with Keystone tenants data.
      */
-    public TenantResponse getKeystoneTenants() throws KeystoneApiException{
+    public TenantResponse getKeystoneTenants() throws KeystoneApiException {
 
         log.debug("START - getKeystoneTenants");
 
@@ -279,7 +282,8 @@ public class KeystoneApiClient extends StandardRestClient {
 
         // Send a request to Keystone API.
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_TENANTS));
-        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON).header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
+        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON)
+                .header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
 
         // Throw an exception when response code is other than OK.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK) {

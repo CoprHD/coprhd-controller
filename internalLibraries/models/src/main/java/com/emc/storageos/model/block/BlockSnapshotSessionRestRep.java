@@ -36,6 +36,12 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     // The session label.
     private String sessionLabel;
 
+    // The replication group for which the session is created for.
+    private String replicationGroupInstance;
+
+    // The session set name to group all sessions created for replication groups in an Application.
+    private String sessionSetName;
+
     /**
      * URI and reference link to the snapshot session source.
      * 
@@ -91,5 +97,31 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
 
     public void setSessionLabel(String sessionLabel) {
         this.sessionLabel = sessionLabel;
+    }
+
+    /**
+     * Replication Group name for which this session is created for.
+     * 
+     */
+    @XmlElement(name = "replication_group_instance")
+    public String getReplicationGroupInstance() {
+        return replicationGroupInstance;
+    }
+
+    public void setReplicationGroupInstance(String replicationGroupInstance) {
+        this.replicationGroupInstance = replicationGroupInstance;
+    }
+
+    /**
+     * User specified name while creating sessions for Replication Groups.
+     * 
+     */
+    @XmlElement(name = "session_set_name")
+    public String getSessionSetName() {
+        return sessionSetName;
+    }
+
+    public void setSessionSetName(String sessionSetName) {
+        this.sessionSetName = sessionSetName;
     }
 }

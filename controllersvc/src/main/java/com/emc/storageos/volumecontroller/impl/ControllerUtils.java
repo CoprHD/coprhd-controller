@@ -1709,7 +1709,7 @@ public class ControllerUtils {
             if (!NullColumnValueGetter.isNullURI(cgURI)) {
                 BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
                 storage = cg.getStorageController();
-            } else {// should not come here for sessions in Application
+            } else { // should not come here for sessions in Application
                 BlockObject parent = dbClient.queryObject(BlockObject.class, session.getParent());
                 storage = parent.getStorageController();
             }

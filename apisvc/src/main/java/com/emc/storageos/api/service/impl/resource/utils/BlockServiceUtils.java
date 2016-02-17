@@ -567,6 +567,38 @@ public class BlockServiceUtils {
         return storageRgToVolumes;
     }
 
+    /**
+     * Group block objects by storage system and replication group for selected replication groups, if filter provided, or all
+     *
+     * @param blockObjects List of all block objects in a CG
+     * @param rgFilter Set of selected replication groups
+     * @return table with storage URI, replication group name, and block objects
+     */
+    public static Table<URI, String, List<BlockObject>>
+            getReplicationGroupBlockObjects(List<BlockObject> blockObjects, Set<String> rgFiler) {
+        // Group block objects by storage system and replication group
+        // Ignore replication groups that not in rgFiler if the filter is provided
+        Table<URI, String, List<BlockObject>> storageRgToVolumes = HashBasedTable.create();
+        for (BlockObject volume : blockObjects) {
+            String rgName = volume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNullValue(rgName)) {
+                throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
+            }
+
+            if (rgFiler == null || rgFiler.contains(rgName)) {
+                URI storage = volume.getStorageController();
+                List<BlockObject> volumes = storageRgToVolumes.get(storage, rgName);
+                if (volumes == null) {
+                    volumes = new ArrayList<BlockObject>();
+                    storageRgToVolumes.put(storage, rgName, volumes);
+                }
+                volumes.add(volume);
+            }
+        }
+
+        return storageRgToVolumes;
+    }
+
     public static BlockSnapshot querySnapshotResource(URI snapshotURI, UriInfo uriInfo, DbClient dbClient) {
         ArgValidator.checkFieldUriType(snapshotURI, BlockSnapshot.class, "snapshots");
         BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);

@@ -3426,6 +3426,11 @@ public class VolumeIngestionUtil {
 
             updatedObjects.add(volume);
         }
+        
+        boolean tickles = true;
+        if (tickles) {
+            throw IngestionException.exceptions.generalException("forced failure during decorateRPVolumesCGInfo!!!!!!!");
+        }
     }
 
     /**

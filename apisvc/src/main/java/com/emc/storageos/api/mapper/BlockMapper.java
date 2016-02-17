@@ -259,7 +259,7 @@ public class BlockMapper {
                 backingVolumes.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(backingVolume)));
             }
             // Get ReplicationGroupInstance from source back end volume
-            if (to.getReplicationGroupInstance() == null) {
+            if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
                 Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
                 to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
             }

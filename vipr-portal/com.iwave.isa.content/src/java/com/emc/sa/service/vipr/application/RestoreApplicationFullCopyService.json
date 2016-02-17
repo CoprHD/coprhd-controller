@@ -9,7 +9,7 @@
     
     applicationSite:{
       type:"assetType.vipr.applicationVirtualArray",
-      required:"false"
+      default: 0
     },
     
     copyName:{

@@ -54,6 +54,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashBasedTable;
@@ -278,7 +279,6 @@ public class BlockServiceUtils {
                     return true;
                 }
             }
-            // TODO check for RP and RP+VPLEX
         }
 
         return false;
@@ -525,7 +525,17 @@ public class BlockServiceUtils {
                 throw APIException.badRequests.invalidParameterSourceVolumeNotInGivenConsistencyGroup(volumeUri, cgUri);
             }
 
-            String rgName = volume.getReplicationGroupInstance();
+            String rgName = null;
+            if (volume.isVPlexVolume(dbClient)) {
+                // get backend source volume to get RG name
+                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (backedVol != null) {
+                    rgName = backedVol.getReplicationGroupInstance();
+                }
+            } else {
+                rgName = volume.getReplicationGroupInstance();
+            }
+
             if (NullColumnValueGetter.isNullValue(rgName)) {
                 throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
             }

@@ -420,20 +420,30 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
         snapshot.setSourceNativeId(volume.getNativeId());
         snapshot.setParent(new NamedURI(volume.getId(), volume.getLabel()));
-        snapshot.setLabel(volume.getLabel() + "_" + repGroupName);
         snapshot.setReplicationGroupInstance(repGroupName);
         snapshot.setStorageController(volume.getStorageController());
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
         snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
+
         String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
-        if (null != existingSnapSnapSetLabel) {
-            snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
-        } else {
+        if (null == existingSnapSnapSetLabel) {
             log.warn("Not able to find any snapshots with group {}", repGroupName);
-            snapshot.setSnapsetLabel(repGroupName);
+            existingSnapSnapSetLabel = repGroupName;
         }
+
+        snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
+
+        String label = null;
+        String srcRGName = volume.getReplicationGroupInstance();
+        if (NullColumnValueGetter.isNotNullValue(srcRGName)) {
+            label = String.format("%s-%s-%s", existingSnapSnapSetLabel, srcRGName, volume.getLabel());
+        } else {
+            label = String.format("%s-%s", existingSnapSnapSetLabel, volume.getLabel());
+        }
+
+        snapshot.setLabel(label);
 
         snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
         _dbClient.createObject(snapshot);
@@ -1268,6 +1278,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     }
                 }
                 // if snapshot group name was not found in replicationGroupInstance, check snapshotSetLabel
+                // ???
                 if (replicationGroupInstance == null) {
                     replicationGroupInstance = snapsetLabel;
                 }

@@ -2,13 +2,13 @@
 #{breadcrumb.container}
   #{breadcrumb.item @blockApplications()}&{'resources.applications'}#{/breadcrumb.item}
   #{breadcrumb.item @blockApplicationDetails(application.id)}${application?.name}#{/breadcrumb.item}
-  #{breadcrumb.item active:true}${copySet}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${snapSet}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
-#{DataTable.header titleKey:'application.copy.volumes' /}
-#{DataTable.table id:'volumes',
+#{DataTable.header titleKey:'resources.application.snapSet.snapShots' /}
+#{DataTable.table id:'snapshots',
                   dataTable:dataTable,
-                  source:@getAssociatedVolumesJSON(copyLabel),
+                  source:@getAssociatedSnapshotsJSON(snapLabel),
                   selectable:true/}
 
 <script type="text/javascript">

@@ -14,6 +14,7 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRON
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SNAPSHOT_SET_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -22,7 +23,10 @@ import java.util.List;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.application.VolumeGroupCopySetList;
+import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
@@ -175,5 +179,23 @@ public class ApplicationSupport {
     public TaskList resynchronizeApplicationFullCopy(URI id, VolumeGroupFullCopyResynchronizeParam input) {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL);
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * GET copy-sets for snapshots for particular application
+     * GET /volume-groups/block/{id}/protection/snapshots/copy-sets
+     *
+     */
+    public VolumeGroupCopySetList getVolumeGroupSnapshotSets(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_SNAPSHOT_SET_URL, id);
+    }
+
+    /**
+     * Get Snapshots for a particular copy-set
+     * POST /volume-groups/block/{id}/protection/snapshots/copy-sets
+     */
+    public SnapshotList getVolumeGroupSnapshotsForSet(URI id, VolumeGroupCopySetParam input) {
+        UriBuilder uribuilder = client.uriBuilder(APP_SUPPORT_SNAPSHOT_SET_URL);
+        return client.postURI(SnapshotList.class, input, uribuilder.build(id));
     }
 }

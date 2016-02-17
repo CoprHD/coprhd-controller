@@ -12,14 +12,17 @@ import java.util.Set;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 
 import models.datatable.ApplicationSupportDataTable;
+import models.datatable.BlockSnapshotsDataTable;
 import models.datatable.BlockVolumesDataTable.Volume;
 import models.datatable.BlockVolumesDataTable;
 import controllers.resources.BlockApplications.CloneApplicationDataTable.Clone;
+import models.datatable.BlockSnapshotsDataTable.BlockSnapshot;
 import play.mvc.With;
 import util.AppSupportUtil;
 import util.BourneUtil;
@@ -50,7 +53,8 @@ public class BlockApplications extends ResourceController {
         renderArgs.put("dataTable", new VolumeApplicationDataTable());
         renderArgs.put("cloneTable", new CloneApplicationDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
-        render(application);
+        Set<String> snapSets = AppSupportUtil.getVolumeGroupSnapshotSets(id);
+        render(application, snapSets);
     }
 
     public static void applicationVolumeJson(String id) {
@@ -91,6 +95,24 @@ public class BlockApplications extends ResourceController {
         List<Volume> volumeDetails = Lists.newArrayList();
         volumeDetails.add(new Volume(volumes, virtualArrays, virtualPools));
         renderJSON(DataTablesSupport.createJSON(volumeDetails, params));
+    }
+
+    public static void getAssociatedSnapshots(String id, String snapSet) {
+        renderArgs.put("dataTable", new BlockSnapshotsDataTable());
+        VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
+        String snapLabel = id + "~~~" + snapSet;
+        render(application,snapLabel,snapSet);
+    }
+
+    public static void getAssociatedSnapshotsJSON(String snapLabel) {
+        String[] snapSets = snapLabel.split("~~~");
+        List<BlockSnapshot> snapShotDetails = Lists.newArrayList();
+        List<NamedRelatedResourceRep> snapsetDetails = AppSupportUtil.getVolumeGroupSnapshotsForSet(snapSets[0], snapSets[1]);
+        for (NamedRelatedResourceRep snapShot : snapsetDetails) {
+            BlockSnapshotRestRep blockSnapshot = BourneUtil.getViprClient().blockSnapshots().get(snapShot.getId());
+            snapShotDetails.add(new BlockSnapshot(blockSnapshot));
+        }
+        renderJSON(DataTablesSupport.createJSON(snapShotDetails, params));
     }
 
     public static class VolumeApplicationDataTable extends BlockVolumesDataTable {

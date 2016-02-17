@@ -3833,9 +3833,9 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
      */
     public void rollbackMethodNull(String stepId) throws WorkflowException {
         WorkflowStepCompleter.stepSucceded(stepId);
-}
+    }
 
- /**
+    /**
      * Creates a rollback workflow method that does nothing, but allows rollback
      * to continue to prior steps back up the workflow chain.
      * 
@@ -3844,7 +3844,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
     public Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
     }
-
 
     @Override
     public void listSanpshotByPolicy(URI storage, URI fsURI, URI policy, String opId) throws InternalException {
@@ -3874,18 +3873,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         .listSanpshotByPolicy(storageObj, args);
 
                 if (result.isCommandSuccess()) {
-                    // Update FS database
-                    StringSet fpolicies = fs.getFilePolicies();
-                    if (fpolicies != null && fpolicies.contains(policy.toString())) {
-                        fpolicies.remove(policy.toString());
-                        fs.setFilePolicies(fpolicies);
-                    }
+                    // Update snaps database
+                    for (Snapshot snap : args.getSnapshots()) {
+                        _dbClient.createObject(snap);
 
-                    // Update SchedulePolicy database
-                    StringSet resources = fp.getAssignedResources();
-                    if (resources != null && resources.contains(fs.getId().toString())) {
-                        resources.remove(fs.getId().toString());
-                        fp.setAssignedResources(resources);
                     }
                 }
 
@@ -3909,8 +3900,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         args.getFileSystemPath(),
                         fs, storageObj);
 
-                _dbClient.updateObject(fs);
-                _dbClient.updateObject(fp);
             } else {
 
                 throw DeviceControllerException.exceptions.invalidObjectNull();

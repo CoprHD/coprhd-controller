@@ -81,9 +81,11 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -3431,11 +3433,11 @@ public class FileService extends TaskResourceService {
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/file-policies")
+    @Path("/{id}/file-policies/{filePolicyUri}/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public SnapshotList getFileSystemPolicy(@PathParam("id") URI id,
             @PathParam("filePolicyUri") URI filePolicyUri) {
-        SnapshotList snapList = new SnapshotList();
+        SnapshotList list = new SnapshotList();
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
 
@@ -3453,10 +3455,55 @@ public class FileService extends TaskResourceService {
         if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
-
+        String task = UUID.randomUUID().toString();
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileController controller = getController(FileController.class, device.getSystemType());
-        return snapList;
+
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE);
+        op.setDescription("Filesystem snaphot based based on policy");
+
+        try {
+
+            _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, fp });
+
+            controller.listSanpshotByPolicy(device.getId(), fs.getId(), fp.getId(), task);
+
+            Task t = op.getTask(fs.getId());
+            if (t == null) {
+                t = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
+            }
+            // Task t = _dbClient.queryObject(Task.class, URIUtil.uri(task));
+            auditOp(OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
+                    fs.getId().toString(), device.getId().toString(), fp.getId());
+            Thread.sleep(20000);
+
+            if (t.isReady()) {
+
+                List<URI> snapIDList = _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id));
+                _log.debug("getSnapshots: FS {}: {} ", id.toString(), snapIDList.toString());
+                List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapIDList);
+
+                for (Snapshot snap : snapList) {
+                    if (snap.getExtensions().containsKey("schedule")) {
+                        list.getSnapList().add(toNamedRelatedResource(snap));
+                        // snap.setInactive(true);
+                    }
+
+                }
+
+            }
+
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+        return list;
+
     }
 
     /**
@@ -3629,7 +3676,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3664,7 +3711,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 

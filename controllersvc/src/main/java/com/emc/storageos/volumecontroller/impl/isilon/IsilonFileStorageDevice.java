@@ -2544,6 +2544,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     @Override
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         SchedulePolicy fp = args.getFilePolicy();
+        FileShare fs = args.getFs();
         String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
         IsilonApi isi = getIsilonDevice(storageObj);
         String resumeToken = null;
@@ -2566,19 +2567,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 snap.setName(islon_snap.getName());
                 snap.setId(URIUtil.createId(Snapshot.class));
                 snap.setOpStatus(new OpStatusMap());
-                snap.setProject(new NamedURI(args.getProject().getId(), args.getProjectNameWithNoSpecialCharacters()));
-                snap.setParent(new NamedURI(args.getFsId(), args.getFsName()));
+                snap.setProject(new NamedURI(fs.getProject().getURI(), fs.getProject().getName()));
+                snap.setParent(new NamedURI(fs.getId(), fs.getName()));
                 StringMap map = new StringMap();
                 map.put("Schedule", fp.getPolicyName());
                 snap.setExtensions(map);
                 snaplist.add(snap);
 
-                _dbClient.updateObject(snap);
             }
         } catch (IsilonException e) {
             _log.error("listing snapshot by file policy failed.", e);
             return BiosCommandResult.createErrorResult(e);
         }
+        args.setSnapshots(snaplist);
         return BiosCommandResult.createSuccessfulResult();
     }
 

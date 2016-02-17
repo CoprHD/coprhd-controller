@@ -2343,7 +2343,7 @@
     {
         key : "backup_scheduler_interval",
         label : "Backup Interval",
-        description : "The time interval between scheduled backups",
+        description : "The time interval in unit of Day(or Week/Month) between scheduled backups",
         type : "string",
         maxLen : 15,
         tag : "Backup",

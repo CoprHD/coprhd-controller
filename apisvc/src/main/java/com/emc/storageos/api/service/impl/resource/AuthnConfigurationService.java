@@ -49,7 +49,6 @@ import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.*;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -243,6 +242,7 @@ public class AuthnConfigurationService extends TaggedResource {
             // If the checkbox is checked, then register CoprHD.
             if(provider.getAutoRegisterOpenStackProjects()){
                 registerCoprhdInKeystone(provider);
+                createTenantAndProjectForAutomaticKeystoneRegistration(provider);
             }
         }
 
@@ -280,14 +280,6 @@ public class AuthnConfigurationService extends TaggedResource {
         keystoneApi.createKeystoneEndpoint(newEndpointV2);
         // Create a new endpoint pointing to CoprHD for cinderv1 using Keystone API.
         keystoneApi.createKeystoneEndpoint(newEndpointV1);
-        // Get Tenant name.
-        StringMap map = getUsernameAndTenant(provider);
-        String tenantName = map.get(CinderConstants.TENANTNAME);
-        // Retrieve tenant from OpenStack via Keystone API.
-        TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
-        TenantV2 tenant = _keystoneUtils.retrieveTenant(tenantResponse, tenantName);
-
-        createTenantAndProjectForAutomaticKeystoneRegistration(tenant, provider);
 
         _log.debug("END - register CoprHD in Keystone");
     }
@@ -354,7 +346,7 @@ public class AuthnConfigurationService extends TaggedResource {
             }
         } catch (UnknownHostException | NullPointerException e) {
             _log.error("Unable to retrieve CoprHD IP - {}", e.getMessage());
-            throw APIException.internalServerErrors.unableToRetrieveLocalIP();
+            throw APIException.internalServerErrors.unableToRetrieveIP();
         }
 
         EndpointV2 endpoint = new EndpointV2();
@@ -399,8 +391,18 @@ public class AuthnConfigurationService extends TaggedResource {
         provider.setKeys(keystoneAuthKeys);
     }
 
-    private void createTenantAndProjectForAutomaticKeystoneRegistration(TenantV2 tenant, AuthnProvider provider) {
+    private void createTenantAndProjectForAutomaticKeystoneRegistration(AuthnProvider provider) {
         // TODO: check if tenant is admin (for now every tenant in OS is an admin)
+
+        // Create a new KeystoneAPI.
+        KeystoneApiClient keystoneApi = getKeystoneApi(provider);
+
+        // Get Tenant name.
+        StringMap map = getUsernameAndTenant(provider);
+        String tenantName = map.get(CinderConstants.TENANTNAME);
+        // Retrieve tenant from OpenStack via Keystone API.
+        TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
+        TenantV2 tenant = _keystoneUtils.retrieveTenant(tenantResponse, tenantName);
 
         // Create mapping rules
         List<UserMappingParam> userMappings = new ArrayList<>();
@@ -487,6 +489,7 @@ public class AuthnConfigurationService extends TaggedResource {
 
         if (provider.getAutoRegisterOpenStackProjects() && !isAutoRegistered) {
             registerCoprhdInKeystone(provider);
+            createTenantAndProjectForAutomaticKeystoneRegistration(provider);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
                 provider.getId().toString(), provider.toString());

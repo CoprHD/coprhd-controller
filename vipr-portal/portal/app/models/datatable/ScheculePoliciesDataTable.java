@@ -4,9 +4,12 @@
  */
 package models.datatable;
 
+import java.util.Map;
+
 import util.datatable.DataTable;
 
 import com.emc.storageos.model.schedulepolicy.SchedulePolicyRestRep;
+import com.google.common.collect.Maps;
 
 public class ScheculePoliciesDataTable extends DataTable{
     
@@ -21,11 +24,19 @@ public class ScheculePoliciesDataTable extends DataTable{
         public String id;
         public String policyName;
         public String policyType;
-
+        
+        
         public ScheculePolicy(SchedulePolicyRestRep policy) {
             id = policy.getPolicyId().toString();
             policyName = policy.getPolicyName();
-            policyType = policy.getPolicyType();
+            policyType = getTranslatedPolicyType(policy.getPolicyType());
+            
+        }
+        
+        private String getTranslatedPolicyType(String key){
+            Map<String,String> translatedProlicyType = Maps.newLinkedHashMap();
+            translatedProlicyType.put("file_snapshot", "File Snapshot");
+            return translatedProlicyType.get(key);
         }
     }
 

@@ -7258,7 +7258,7 @@ dr_basic_tests()
     echo "---VERIFY SITE $standby_site---"
     name=$(dr get $standby_site name|tail -1)
     description=$(dr get $standby_site description|tail -1)
-    vip=$(dr get $standby_site vip|tail -1)
+    vip=$(dr get $standby_site vip_endpoint|tail -1)
 
     if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP" ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
@@ -7432,7 +7432,7 @@ dr_multisite_tests()
     echo "---VERIFY SITE $standby_site_b---"
     name=$(dr get $standby_site_b name|tail -1)
     description=$(dr get $standby_site_b description|tail -1)
-    vip=$(dr get $standby_site_b vip|tail -1)
+    vip=$(dr get $standby_site_b vip_endpoint|tail -1)
 
     if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP"  ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
@@ -7507,7 +7507,7 @@ dr_multisite_tests()
     echo "---VERIFY SITE $standby_site_c---"
     name=$(dr get $standby_site_c name|tail -1)
     description=$(dr get $standby_site_c description|tail -1)
-    vip=$(dr get $standby_site_c vip|tail -1)
+    vip=$(dr get $standby_site_c vip_endpoint|tail -1)
 
     if [ "$vip" != "$DR_SITE_C_IP" -a "[$vip]" != "$DR_SITE_C_IP" ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_C_IP\""

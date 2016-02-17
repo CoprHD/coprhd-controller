@@ -23,9 +23,11 @@ public class SiteConfigRestRep extends SiteRestRep {
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
     private int nodeCount;
+    private String vip;
+    private String vip6;
     private Map<String, Object> extraProperties;
     
-    @XmlElement(name = "softwareVersion")
+    @XmlElement(name = "software_version")
     public String getSoftwareVersion() {
         return softwareVersion;
     }
@@ -34,7 +36,7 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.softwareVersion = softwareVersion;
     }
 
-    @XmlElement(name = "dbSchemaVersion")
+    @XmlElement(name = "db_schema_version")
     public String getDbSchemaVersion() {
         return dbSchemaVersion;
     }
@@ -43,7 +45,7 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.dbSchemaVersion = dbSchemaVersion;
     }
 
-    @XmlElement(name = "freshInstallation")
+    @XmlElement(name = "fresh_installation")
     public boolean isFreshInstallation() {
         return freshInstallation;
     }
@@ -52,7 +54,7 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.freshInstallation = freshInstallation;
     }
     
-    @XmlElement(name = "secretKey")
+    @XmlElement(name = "secret_key")
     public String getSecretKey() {
         return secretKey;
     }
@@ -61,7 +63,7 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.secretKey = secretKey;
     }
 
-    @XmlElement(name = "hostIPv4AddressMap")
+    @XmlElement(name = "ipv4_addressmap")
     public Map<String, String> getHostIPv4AddressMap() {
         return hostIPv4AddressMap;
     }    
@@ -70,7 +72,7 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.hostIPv4AddressMap = hostIPv4AddressMap;
     }
 
-    @XmlElement(name = "hostIPv6AddressMap")
+    @XmlElement(name = "ipv6_addressmap")
     public Map<String, String> getHostIPv6AddressMap() {
         return hostIPv6AddressMap;
     }
@@ -79,7 +81,7 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
     }
 
-    @XmlElement(name = "nodeCount")
+    @XmlElement(name = "node_count")
     public int getNodeCount() {
         return nodeCount;
     }
@@ -88,7 +90,7 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.nodeCount = nodeCount;
     }
 
-    @XmlElement(name = "isClusterStable")
+    @XmlElement(name = "is_cluster_stable")
     public boolean isClusterStable() {
         return isClusterStable;
     }
@@ -97,7 +99,7 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.isClusterStable = isClusterStable;
     }
 
-    @XmlElement(name = "extraProperties")
+    @XmlElement(name = "extra_properties")
     public Map<String, Object> getExtraProperties() {
         return extraProperties;
     }
@@ -106,7 +108,24 @@ public class SiteConfigRestRep extends SiteRestRep {
         this.extraProperties = extraProperties;
     }
 
-    
+    @XmlElement(name = "vip")
+    public String getVip() {
+        return vip;
+    }
+
+    public void setVip(String vip) {
+        this.vip = vip;
+    }
+
+    @XmlElement(name = "vip6")
+    public String getVip6() {
+        return vip6;
+    }
+
+    public void setVip6(String vip6) {
+        this.vip6 = vip6;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -115,7 +134,7 @@ public class SiteConfigRestRep extends SiteRestRep {
         builder.append(", name=");
         builder.append(this.getName());
         builder.append(", vip=");
-        builder.append(this.getVip());
+        builder.append(this.getVipEndpoint());
         builder.append(", hostIPv4AddressMap=");
         builder.append(this.getHostIPv4AddressMap());
         builder.append(", hostIPv6AddressMap=");

@@ -252,7 +252,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         if (StringUtils.isBlank(vip6)) {
             site.setVip6(PropertyConstants.IPV6_ADDR_DEFAULT);
         } else {
-            site.setVip6(vip6);
+            site.setVip6(DualInetAddress.normalizeInet6Address(vip6));
         }
         site.setNodeCount(getNodeCount());
 

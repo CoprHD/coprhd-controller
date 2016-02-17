@@ -21,12 +21,12 @@
     <timezone>US + Canada/Eastern Time</timezone>
     <hwclock>utc</hwclock>
     <type image="vmx" filesystem="ext3" boot="vmxboot/suse-SLES12" primary="true" format="vmdk" bootloader="grub2" kernelcmdline="splash fips=0 boot=/dev/sda1">
-      <machine memory="4096" guestOS="sles12-64" HWversion="7" arch="x86_64">
+      <machine memory="2048" guestOS="sles12-64" ncpus="2" HWversion="7" arch="x86_64">
         <vmdisk controller="lsilogic" id="0"/>
         <vmdvd  controller="ide" id="0"/>
         <vmnic driver="vmxnet3" interface="0" mode="bridged"/>
       </machine>
-      <size unit="G">10</size>
+      <size unit="G">20</size>
     </type>
     <type image="tbz" container="__NAME__" primary="false" />
     <type image="oem" filesystem="ext3" boot="oemboot/suse-SLES12" installiso="true" installboot="install" bootloader="grub2" boottimeout="0" installprovidefailsafe="false" primary="false">

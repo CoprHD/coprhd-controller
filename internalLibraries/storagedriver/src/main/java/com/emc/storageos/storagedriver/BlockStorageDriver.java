@@ -77,6 +77,10 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Restore volume to snapshot state.
+     * Implementation should check if the volume is part of consistency group and restore
+     * all volumes in the consistency group to the same consistency group snapshot (as defined
+     * by the snapshot parameter).
+     * If the volume is not part of consistency group, restore this volume to the snapshot.
      *
      * @param volume Type: Input/Output.
      * @param snapshot  Type: Input.

@@ -183,7 +183,7 @@ public class RegistryImpl implements Registry {
     @Override
     public void addDriverAttributeForKey(String driverName, String key, String attribute, List<String> value) {
         validateRegistryRequest(driverName, key);
-        
+
         DriverRegistryRecord registryEntryForKey = null;
         // find existing entry for a driver name and a given key
         boolean existingKey = false;

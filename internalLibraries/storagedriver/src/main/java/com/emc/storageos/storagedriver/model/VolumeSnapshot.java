@@ -7,10 +7,10 @@ package com.emc.storageos.storagedriver.model;
 
 public class VolumeSnapshot extends StorageBlockObject {
 
-    // volume Id this snapshot is associated with. Type: Input.
+    // volume native Id this snapshot is associated with. Type: Input.
     private String parentId;
 
-    // storage system of this volume. Type: Input.
+    // storage system native id of this snapshot. Type: Input.
     private String storageSystemId;
 
     // timestamp. Type: Input/Output.

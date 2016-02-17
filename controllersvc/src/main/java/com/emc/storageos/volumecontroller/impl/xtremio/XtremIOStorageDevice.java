@@ -641,7 +641,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doAddToConsistencyGroup START ...", storage.getSerialNumber());
         BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
         try {
-            // Check if the consistency group exists
+            // Check if the consistency group existscloneObject
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             if (!client.isVersion2()) {
                 _log.info("Nothing to add to consistency group {}", consistencyGroup.getLabel());

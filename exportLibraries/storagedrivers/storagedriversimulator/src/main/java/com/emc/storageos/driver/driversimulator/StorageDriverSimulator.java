@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.emc.storageos.storagedriver.BlockStorageDriver;
+import com.emc.storageos.storagedriver.model.HostComponent;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -197,8 +198,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             //port.setNetworkId("er-network77"+ storageSystem.getNativeId());
             port.setNetworkId("er-network77");
             port.setTransportType(StoragePort.TransportType.FC);
-            port.setPortNetworkId("6"+Integer.toHexString(index) +":FE:FE:FE:FE:FE:FE:1" + i);
+            port.setPortNetworkId("6" + Integer.toHexString(index) + ":FE:FE:FE:FE:FE:FE:1" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);
+            port.setPortHAZone("zone-"+i);
             storagePorts.add(port);
         }
 
@@ -213,8 +215,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             port.setPortName(port.getDeviceLabel());
             //port.setNetworkId("er-network77"+ storageSystem.getNativeId());
             port.setTransportType(StoragePort.TransportType.FC);
-            port.setPortNetworkId("6"+Integer.toHexString(index)+":FE:FE:FE:FE:FE:FE:1" + i);
+            port.setPortNetworkId("6" + Integer.toHexString(index) + ":FE:FE:FE:FE:FE:FE:1" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);
+            port.setPortHAZone("zone-with-many-ports");
             storagePorts.add(port);
         }
 
@@ -292,7 +295,16 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask restoreSnapshot(StorageVolume volume, VolumeSnapshot snapshot) {
-        return null;
+        String taskType = "restore-snapshot";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("StorageDriver: restoreSnapshot for storage system %s, " +
+                        "snapshots nativeId %s, group %s - end",
+                snapshot.getStorageSystemId(), snapshot.toString(), snapshot.getConsistencyGroup());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
@@ -463,6 +475,11 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask getStorageVolumes(StorageSystem storageSystem, List<StorageVolume> storageVolumes, MutableInt token) {
+        return null;
+    }
+
+    @Override
+    public DriverTask discoverHostComponents(StorageSystem storageSystem, List<HostComponent> embeddedHostComponents) {
         return null;
     }
 

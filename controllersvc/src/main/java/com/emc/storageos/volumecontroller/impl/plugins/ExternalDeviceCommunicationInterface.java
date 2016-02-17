@@ -10,6 +10,7 @@ import static com.emc.storageos.db.client.util.CustomQueryUtility.queryActiveRes
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.StorageHADomain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -363,7 +365,8 @@ public class ExternalDeviceCommunicationInterface extends
         URI storageSystemId = accessProfile.getSystemId();
         com.emc.storageos.db.client.model.StorageSystem storageSystem =
                 _dbClient.queryObject(com.emc.storageos.db.client.model.StorageSystem.class, storageSystemId);
-        HashMap<String, List<com.emc.storageos.db.client.model.StoragePort>> storagePorts = new HashMap<>();
+        Map<String, List<com.emc.storageos.db.client.model.StoragePort>> storagePorts = new HashMap<>();
+        Map<StoragePort, com.emc.storageos.db.client.model.StoragePort> driverPortsToDBPorts = new HashMap<>();
 
         List<com.emc.storageos.db.client.model.StoragePort> newStoragePorts = new ArrayList<>();
         List<com.emc.storageos.db.client.model.StoragePort> existingStoragePorts = new ArrayList<>();
@@ -379,7 +382,7 @@ public class ExternalDeviceCommunicationInterface extends
             DriverTask task = driver.discoverStoragePorts(driverStorageSystem, driverStoragePorts);
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
-                 for (StoragePort driverPort : driverStoragePorts) {
+                for (StoragePort driverPort : driverStoragePorts) {
                     com.emc.storageos.db.client.model.StoragePort storagePort = null;
                     String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                             storageSystem, driverPort.getNativeId(),
@@ -432,9 +435,13 @@ public class ExternalDeviceCommunicationInterface extends
                         MetricsKeys.putDouble(MetricsKeys.portMetric, driverPort.getUtilizationMetric(), usageMetrics);
                         storagePort.setMetrics(usageMetrics);
                     }
+                    driverPortsToDBPorts.put(driverPort, storagePort);
                 }
                 storagePorts.put(NEW, newStoragePorts);
                 storagePorts.put(EXISTING, existingStoragePorts);
+
+                // Create storage ha domains for ports
+                processStorageHADomains(storageSystem, driverPortsToDBPorts);
             } else {
                 String errorMsg = String.format("Failed to discover storage ports for system %s of type %s",
                         accessProfile.getSystemId(), accessProfile.getSystemType());
@@ -505,5 +512,55 @@ public class ExternalDeviceCommunicationInterface extends
             network = results.get(0);
         }
         return network;
+    }
+
+    private void processStorageHADomains(com.emc.storageos.db.client.model.StorageSystem storageSystem,
+                                         Map<StoragePort, com.emc.storageos.db.client.model.StoragePort> driverPortsToDBPorts) {
+
+        // Map ha zone names to driver ports
+        Map<String, Set<StoragePort>> haZoneNameToDriverPorts = new HashMap<>();
+        Set<StoragePort> driverPorts = driverPortsToDBPorts.keySet();
+        for (StoragePort driverPort : driverPorts) {
+            if (driverPort.getPortHAZone() != null && !driverPort.getPortHAZone().isEmpty()) {
+                Set<StoragePort> haZonePorts = haZoneNameToDriverPorts.get(driverPort.getPortHAZone());
+                if (haZonePorts == null) {
+                    haZonePorts = new HashSet<>();
+                    haZoneNameToDriverPorts.put(driverPort.getPortHAZone(), haZonePorts);
+                }
+                haZonePorts.add(driverPort);
+            }
+        }
+
+        for (Map.Entry<String, Set<StoragePort>> haZoneNameToDriverPort : haZoneNameToDriverPorts.entrySet()) {
+            String portHAZone = haZoneNameToDriverPort.getKey();
+            Set<StoragePort> haZoneDriverPorts = haZoneNameToDriverPort.getValue();
+            if (portHAZone != null) {
+                String haDomainNativeGUID = NativeGUIDGenerator.generateNativeGuid(storageSystem, portHAZone, NativeGUIDGenerator.ADAPTER);
+                _log.info("HA Domain Native Guid : {}", haDomainNativeGUID);
+                @SuppressWarnings("deprecation")
+                List<URI> uriHaList = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getStorageHADomainByNativeGuidConstraint(haDomainNativeGUID));
+                StorageHADomain haDomain;
+                if (uriHaList.isEmpty()) {
+                    haDomain = new StorageHADomain();
+                    haDomain.setId(URIUtil.createId(StorageHADomain.class));
+                    haDomain.setNativeGuid(haDomainNativeGUID);
+                    haDomain.setName(portHAZone);
+                    haDomain.setAdapterName(portHAZone);
+                    haDomain.setStorageDeviceURI(storageSystem.getId());
+                    haDomain.setNumberofPorts(String.valueOf(haZoneDriverPorts.size()));
+                    _dbClient.createObject(haDomain);
+                } else {
+                    haDomain = _dbClient.queryObject(StorageHADomain.class, uriHaList.get(0));
+                    haDomain.setNumberofPorts(String.valueOf(haZoneDriverPorts.size()));
+                    _dbClient.updateObject(haDomain);
+                }
+
+                for (StoragePort driverPort : haZoneDriverPorts) {
+                    com.emc.storageos.db.client.model.StoragePort port = driverPortsToDBPorts.get(driverPort);
+                    port.setStorageHADomain(haDomain.getId());
+                }
+            }
+        }
     }
 }

@@ -2156,6 +2156,9 @@ public class BlockService extends TaskResourceService {
 
         validateSourceVolumeHasExported(requestedVolume);
 
+        BlockServiceUtils.validateVolumeNotPartOfApplication(Arrays.asList(requestedVolume),
+                BlockServiceUtils.SNAPSHOT, _dbClient);
+
         // Make sure that we don't have some pending
         // operation against the volume
         checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));

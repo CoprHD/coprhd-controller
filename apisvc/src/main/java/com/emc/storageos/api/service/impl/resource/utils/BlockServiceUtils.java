@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -65,6 +66,9 @@ import com.google.common.collect.Table;
 public class BlockServiceUtils {
 
     private static Logger _log = LoggerFactory.getLogger(BlockServiceUtils.class);
+
+    public static final String SNAPSHOT = "Snapshot";
+    public static final String FULL_COPY = "Full copy";
 
     /**
      * Validate that the passed block object is not an internal block object,
@@ -574,4 +578,25 @@ public class BlockServiceUtils {
                 BlockServiceUtils.isIdEmbeddedInURL(snapshotURI, uriInfo), true);
         return snapshot;
     }
+
+    /**
+     * Check if any of the given CG volumes is part of an application.
+     * If so, throw an error indicating replica operation is not supported on CG
+     * and it should be performed at application level.
+     *
+     * @param volume the CG volume
+     * @param replicaType Replica Type
+     * @param dbClient {@link DbClient}
+     */
+    public static void validateVolumeNotPartOfApplication(List<Volume> volumes, String replicaType, DbClient dbClient) {
+        _log.info("validating application dependency check");
+        for (Volume volume : volumes) {
+            VolumeGroup volumeGroup = volume.getApplication(dbClient);
+            if (volumeGroup != null) {
+                throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
+                        replicaType);
+            }
+        }
+    }
+
 }

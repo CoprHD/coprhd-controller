@@ -77,7 +77,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -133,9 +132,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
     private static final int CG_MAX_LIMIT = 64;
-    private static final String FULL_COPY = "Full copy";
-    private static final String SNAPSHOT = "Snapshot";
-
     // A reference to the placement manager.
     private PlacementManager _placementManager;
 
@@ -471,7 +467,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(consistencyGroupId)) {
-            validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAPSHOT, _dbClient);
         }
 
         // Get the block service implementation
@@ -678,7 +674,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(consistencyGroupId)) {
-            validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAPSHOT, _dbClient);
         }
 
         // check for backend CG
@@ -768,7 +764,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(consistencyGroupId)) {
-            validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAPSHOT, _dbClient);
         }
 
         // check for backend CG
@@ -885,7 +881,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(consistencyGroupId)) {
-            validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAPSHOT, _dbClient);
         }
 
         // check for backend CG
@@ -979,7 +975,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(consistencyGroupId)) {
-            validateVolumeNotPartOfApplication(cgVolumes, SNAPSHOT);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.SNAPSHOT, _dbClient);
         }
 
         // check for backend CG
@@ -1509,7 +1505,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(cgURI)) {
-            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.FULL_COPY, _dbClient);
         }
 
         // Grab the first volume and call the block full copy
@@ -1637,7 +1633,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(cgURI)) {
-            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.FULL_COPY, _dbClient);
         }
 
         // Verify the full copy.
@@ -1672,7 +1668,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(cgURI)) {
-            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.FULL_COPY, _dbClient);
         }
 
         // Get the full copy source.
@@ -1711,7 +1707,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(cgURI)) {
-            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.FULL_COPY, _dbClient);
         }
 
         // Verify the full copy.
@@ -1746,7 +1742,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(cgURI)) {
-            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.FULL_COPY, _dbClient);
         }
 
         // Verify the full copy.
@@ -1782,7 +1778,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
         if (isIdEmbeddedInURL(cgURI)) {
-            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+            BlockServiceUtils.validateVolumeNotPartOfApplication(cgVolumes, BlockServiceUtils.FULL_COPY, _dbClient);
         }
 
         // Verify the full copy.
@@ -2346,24 +2342,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     .fullCopyOperationNotAllowedSourceNotInCG(fullCopyVolume.getLabel());
         }
         return fcSourceURI;
-    }
-
-    /**
-     * Check if any of the given CG volumes is part of an application.
-     * If so, throw an error indicating replica operation is not supported on CG
-     * and it should be performed at application level.
-     *
-     * @param volume the CG volume
-     */
-    private void validateVolumeNotPartOfApplication(List<Volume> volumes, String replicaType) {
-        _log.info("validating application dependency check");
-        for (Volume volume : volumes) {
-            VolumeGroup volumeGroup = volume.getApplication(_dbClient);
-            if (volumeGroup != null) {
-                throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
-                        replicaType);
-            }
-        }
     }
 
     private void validateSessionPartOfConsistencyGroup(URI cgId, URI sessionId) {

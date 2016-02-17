@@ -646,7 +646,7 @@ run()
     cmd=$*
     echo === $cmd
     rm -f ${CMD_OUTPUT}
-    if [ "${HIDE_OUTPUT}" = "1" ]; then
+    if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
     else
 	$cmd 2>&1
@@ -8463,7 +8463,7 @@ fail(){
     cmd=$*
     echo === $cmd
     trap - ERR
-    if [ "${HIDE_OUTPUT}" = "1" ]; then
+    if [ "${HIDE_OUTPUT}" = "" -o "${HIDE_OUTPUT}" = "1" ]; then
 	$cmd &> ${CMD_OUTPUT}
     else
 	$cmd 2>&1

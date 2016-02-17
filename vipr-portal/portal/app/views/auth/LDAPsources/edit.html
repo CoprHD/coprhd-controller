@@ -172,6 +172,9 @@
         %{
           field.cssClass = 'span0'
           field.required = false
+          if (readOnlyCheckboxForAutomaticRegistration) {
+            field.disabled = true
+          }
         }%
       #{Form.booleanCheckBoxControlGroup field:field/}
     #{/field}

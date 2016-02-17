@@ -37,6 +37,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.keystone.restapi.model.response.*;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
@@ -95,16 +96,6 @@ public class AuthnConfigurationService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(AuthnConfigurationService.class);
 
     private static String FEATURE_NAME_LDAP_GROUP_SUPPORT = "Group support for LDAP Authentication Provider";
-
-    private static final String COPRHD_URL_V2 = ":8776/v2/%(tenant_id)s";
-    private static final String COPRHD_URL_V1 = ":8776/v1/%(tenant_id)s";
-    private static final String HTTP = "http://";
-    private static final String PROJECT_NAME = "adminProject";
-    private static final String TENANT_NAME = "OpenStack admin";
-
-    private static final String USERNAME = "username";
-    private static final String TENANTNAME = "tenantname";
-
 
     @Autowired
     private TenantsService _tenantsService;
@@ -291,41 +282,12 @@ public class AuthnConfigurationService extends TaggedResource {
         keystoneApi.createKeystoneEndpoint(newEndpointV1);
         // Get Tenant name.
         StringMap map = getUsernameAndTenant(provider);
-        String tenantName = map.get(TENANTNAME);
+        String tenantName = map.get(CinderConstants.TENANTNAME);
         // Retrieve tenant from OpenStack via Keystone API.
         TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
         TenantV2 tenant = _keystoneUtils.retrieveTenant(tenantResponse, tenantName);
 
-        // TODO: check if tenant is admin (for now every tenant in OS is an admin)
-
-        // Create mapping rules
-        List<UserMappingParam> userMappings = new ArrayList<>();
-        List<String> values = new ArrayList<>();
-        values.add(tenant.getId());
-
-        List<UserMappingAttributeParam> attributes = new ArrayList<>();
-        attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));
-
-        // TODO: check how to get the first domain from StringSet
-        userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
-
-        TenantCreateParam param = new TenantCreateParam(TENANT_NAME, userMappings);
-        param.setDescription(TENANT_NAME);
-
-        // Create a tenant.
-        TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
-
-        // Create a project.
-        ProjectParam projectParam = new ProjectParam(PROJECT_NAME);
-        ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
-
-        // Tag project with OpenStack tenant_id
-        Project project = _dbClient.queryObject(Project.class, projectElement.getId());
-        ScopedLabelSet tagSet = new ScopedLabelSet();
-        ScopedLabel tagLabel = new ScopedLabel(tenantOrgRestRep.getId().toString(), tenant.getId());
-        tagSet.add(tagLabel);
-        project.setTag(tagSet);
-        _dbClient.updateObject(project);
+        createTenantAndProjectForAutomaticKeystoneRegistration(tenant, provider);
 
         _log.debug("END - register CoprHD in Keystone");
     }
@@ -342,8 +304,8 @@ public class AuthnConfigurationService extends TaggedResource {
         String username = managerDN.split(",")[0].split("=")[1];
         String tenantName = managerDN.split(",")[1].split("=")[1];
         StringMap map = new StringMap();
-        map.put(USERNAME, username);
-        map.put(TENANTNAME, tenantName);
+        map.put(CinderConstants.USERNAME, username);
+        map.put(CinderConstants.TENANTNAME, tenantName);
 
         return map;
     }
@@ -360,8 +322,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
         StringMap map = getUsernameAndTenant(provider);
 
-        String username = map.get(USERNAME);
-        String tenantName = map.get(TENANTNAME);
+        String username = map.get(CinderConstants.USERNAME);
+        String tenantName = map.get(CinderConstants.TENANTNAME);
 
         // Get Keystone API Client.
         return _keystoneUtils.getKeystoneApi(authUri, username, provider.getManagerPassword(), tenantName);
@@ -386,9 +348,9 @@ public class AuthnConfigurationService extends TaggedResource {
             localIP = localAddress.split("/")[1];
             // Checks whether url should point to cinderv2 or to cinder service.
             if(isCinderv2){
-                url = HTTP + localIP + COPRHD_URL_V2;
+                url = CinderConstants.HTTP_URL + localIP + CinderConstants.COPRHD_URL_V2;
             }else{
-                url = HTTP + localIP + COPRHD_URL_V1;
+                url = CinderConstants.HTTP_URL + localIP + CinderConstants.COPRHD_URL_V1;
             }
         } catch (UnknownHostException | NullPointerException e) {
             _log.error("Unable to retrieve CoprHD IP - {}", e.getMessage());
@@ -428,13 +390,46 @@ public class AuthnConfigurationService extends TaggedResource {
         }
         StringMap map = getUsernameAndTenant(provider);
 
-        String username = map.get(USERNAME);
-        String tenantName = map.get(TENANTNAME);
+        String username = map.get(CinderConstants.USERNAME);
+        String tenantName = map.get(CinderConstants.TENANTNAME);
         KeystoneApiClient keystoneApi = _keystoneUtils.getKeystoneApi(authUri, username, password, tenantName);
         keystoneApi.authenticate_keystone();
         StringMap keystoneAuthKeys = new StringMap();
         keystoneAuthKeys.put(KeystoneConstants.AUTH_TOKEN, keystoneApi.getAuthToken());
         provider.setKeys(keystoneAuthKeys);
+    }
+
+    private void createTenantAndProjectForAutomaticKeystoneRegistration(TenantV2 tenant, AuthnProvider provider) {
+        // TODO: check if tenant is admin (for now every tenant in OS is an admin)
+
+        // Create mapping rules
+        List<UserMappingParam> userMappings = new ArrayList<>();
+        List<String> values = new ArrayList<>();
+        values.add(tenant.getId());
+
+        List<UserMappingAttributeParam> attributes = new ArrayList<>();
+        attributes.add(new UserMappingAttributeParam(KeystoneUtils.OPENSTACK_TENANT_ID, values));
+
+        // TODO: check how to get the first domain from StringSet
+        userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
+
+        TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME, userMappings);
+        param.setDescription(CinderConstants.TENANT_NAME);
+
+        // Create a tenant.
+        TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
+
+        // Create a project.
+        ProjectParam projectParam = new ProjectParam(CinderConstants.PROJECT_NAME);
+        ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
+
+        // Tag project with OpenStack tenant_id
+        Project project = _dbClient.queryObject(Project.class, projectElement.getId());
+        ScopedLabelSet tagSet = new ScopedLabelSet();
+        ScopedLabel tagLabel = new ScopedLabel(tenantOrgRestRep.getId().toString(), tenant.getId());
+        tagSet.add(tagLabel);
+        project.setTag(tagSet);
+        _dbClient.updateObject(project);
     }
 
     /**
@@ -475,6 +470,7 @@ public class AuthnConfigurationService extends TaggedResource {
     private AuthnProviderRestRep updateKeystoneProvider(URI id, AuthnUpdateParam param,
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
+        boolean isAutoRegistered = provider.getAutoRegisterOpenStackProjects();
         overlayProvider(provider, param);
         if (!provider.getDisable()) {
             _log.debug("Validating provider before modification...");
@@ -489,7 +485,7 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
 
-        if (provider.getAutoRegisterOpenStackProjects()) {
+        if (provider.getAutoRegisterOpenStackProjects() && !isAutoRegistered) {
             registerCoprhdInKeystone(provider);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,

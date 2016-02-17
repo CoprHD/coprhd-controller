@@ -81,8 +81,6 @@ import com.google.common.collect.Table;
  */
 public class ControllerUtils {
 
-    private static final String SMI81_VERSION_STARTING_STR = "V8.1";
-
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(ControllerUtils.class);
 
@@ -1432,22 +1430,24 @@ public class ControllerUtils {
     }
 
     /**
-     * Check whether the given storage system is managed by SMI 8.1
+     * Check whether the given storage system is managed by SMI 8.1 or later
      * 
      * @param storage
      * @param dbClient
-     * @return status
+     * @return true if the version is at least 8.1
      */
     public static boolean isVmaxUsing81SMIS(StorageSystem storage, DbClient dbClient) {
-        boolean status = false;
-        if (storage != null) {
+        if (storage != null && !NullColumnValueGetter.isNullURI(storage.getActiveProviderURI())) {
             StorageProvider provider = dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
-            if (provider != null) {
-                String providerVersion = provider.getVersionString();
-                status = providerVersion != null && providerVersion.startsWith(SMI81_VERSION_STARTING_STR);
+
+            if (provider != null && provider.getVersionString() != null) {
+                String providerVersion = provider.getVersionString().replaceFirst("[^\\d]", "");
+                String provStr[] = providerVersion.split(Constants.SMIS_DOT_REGEX);
+                return Integer.parseInt(provStr[0]) >= 8 && Integer.parseInt(provStr[1]) >= 1;
             }
         }
-        return status;
+
+        return false;
     }
 
     /**

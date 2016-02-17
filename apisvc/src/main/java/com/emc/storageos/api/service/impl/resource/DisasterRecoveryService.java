@@ -33,6 +33,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
@@ -54,6 +55,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.model.Site.NetworkHealth;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -113,6 +115,9 @@ public class DisasterRecoveryService {
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     private static final String NTPSERVERS = "network_ntpservers";
     private static final int SITE_NAME_LENGTH_LIMIT = 64;
+    
+    private static final int SITE_CONNECT_TEST_TIMEOUT = 10 * 1000;
+    private static final int SITE_CONNECTION_TEST_PORT = 443;
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -1776,9 +1781,15 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not up");
         }
         
-        if (!isClusterStable()) {
-            throw new IllegalStateException("Cluster is not stable");
+        if (coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount()) != ClusterInfo.ClusterState.STABLE) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not stable");
         }
+        
+        if (!isClusterStable()) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Active site is not stable");
+        }
+        
+        checkSiteConnectivity(standby);
         
         List<Site> existingSites = drUtil.listStandbySites();
         for (Site site : existingSites) {
@@ -1803,6 +1814,16 @@ public class DisasterRecoveryService {
         Site currentSite = drUtil.getLocalSite();
         if (currentSite.getState() != SiteState.STANDBY_SYNCED && currentSite.getState() != SiteState.STANDBY_PAUSED) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(currentSite.getName(), "Standby site is not synced or paused state");
+        }
+    }
+    
+    private void checkSiteConnectivity(Site site) {
+        if (site.getNetworkHealth() == NetworkHealth.BROKEN) {
+            throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), "Network health state is broken.");
+        }
+        
+        if (drUtil.testPing(site.getVip(), SITE_CONNECTION_TEST_PORT, SITE_CONNECT_TEST_TIMEOUT) == -1) {
+            throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), String.format("Can't connect to site by virtual IP: %s", site.getVip()));
         }
     }
 

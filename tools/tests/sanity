@@ -7290,7 +7290,7 @@ dr_basic_tests()
     echo "---VERIFY SITE $standby_site---"
     name=$(dr get $standby_site name|tail -1)
     description=$(dr get $standby_site description|tail -1)
-    vip=$(dr get $standby_site vip|tail -1)
+    vip=$(dr get $standby_site vip_endpoint|tail -1)
 
     if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP" ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
@@ -7464,7 +7464,7 @@ dr_multisite_tests()
     echo "---VERIFY SITE $standby_site_b---"
     name=$(dr get $standby_site_b name|tail -1)
     description=$(dr get $standby_site_b description|tail -1)
-    vip=$(dr get $standby_site_b vip|tail -1)
+    vip=$(dr get $standby_site_b vip_endpoint|tail -1)
 
     if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP"  ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
@@ -7539,7 +7539,7 @@ dr_multisite_tests()
     echo "---VERIFY SITE $standby_site_c---"
     name=$(dr get $standby_site_c name|tail -1)
     description=$(dr get $standby_site_c description|tail -1)
-    vip=$(dr get $standby_site_c vip|tail -1)
+    vip=$(dr get $standby_site_c vip_endpoint|tail -1)
 
     if [ "$vip" != "$DR_SITE_C_IP" -a "[$vip]" != "$DR_SITE_C_IP" ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_C_IP\""
@@ -7886,7 +7886,7 @@ vdc_federation_setup()
     fi
     
     echo "Adding new vdc into current vipr system"
-    vdc add $VDC_ENDPOINT_B_NAME $VDC_ENDPOINT_B $VDC_ENDPOINT_B_SECRETKEY "$VDC_ENDPOINT_B_CERTCHAIN"
+    vdc add $VDC_ENDPOINT_B_NAME "$VDC_ENDPOINT_B" $VDC_ENDPOINT_B_SECRETKEY "$VDC_ENDPOINT_B_CERTCHAIN"
     if [ $? -ne 0 ]; then
         echo "Add vdc B failed."
         exit 1
@@ -7897,7 +7897,7 @@ vdc_federation_setup()
     
     if [ "$VDC_ENDPOINT_C" != "$VDC_DEFAULT_ENDPOINT" ] ; then
         echo "Adding the 3rd vdc into current vipr system"
-        vdc add $VDC_ENDPOINT_C_NAME $VDC_ENDPOINT_C $VDC_ENDPOINT_C_SECRETKEY "$VDC_ENDPOINT_C_CERTCHAIN"
+        vdc add $VDC_ENDPOINT_C_NAME "$VDC_ENDPOINT_C" $VDC_ENDPOINT_C_SECRETKEY "$VDC_ENDPOINT_C_CERTCHAIN"
         if [ $? -ne 0 ]; then
             echo "Add vdc C failed."
             exit 1
@@ -7946,7 +7946,7 @@ vdc_discon_reconn_test()
     echo "Disconnecting with $VDC_ENDPOINT_B"
 
     # Stop all the services on the vdc which we want to disconnect, make it to inaccessable.
-    stop_vdc_services $VDC_ENDPOINT_B 
+    stop_vdc_services "$VDC_ENDPOINT_B" 
     sleep 30
     vdc disconnect $VDC_ENDPOINT_B_ID
     if [ $? -ne 0 ]; then
@@ -7968,7 +7968,7 @@ vdc_discon_reconn_test()
     fi
 
     # Restart all the services on the vdc which we disconnected, make it back online to reconnect.
-    start_vdc_services $VDC_ENDPOINT_B
+    start_vdc_services "$VDC_ENDPOINT_B"
     sleep 60
     echo "Waiting for vdc stable $VDC_ENDPOINT_B"
     export BOURNE_IPADDR=$VDC_ENDPOINT_B

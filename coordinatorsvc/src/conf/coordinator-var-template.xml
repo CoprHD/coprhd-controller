@@ -45,7 +45,8 @@
         <property name="sysSvcVersion" value="${syssvc.version}"/>
         <property name="nodeCount" ref="nodeCount"/>
         <property name="vdcShortId" value="${vdc_myid}"/>
-        <property name="vdcEndpoint" value="${network_vip_effective}"/>
+        <property name="vip" value="${network_vip}"/>
+        <property name="vip6" value="${network_vip6}"/>
         <property name="inetAddessLookupMap" ref="inetAddessLookupMap"/>
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>

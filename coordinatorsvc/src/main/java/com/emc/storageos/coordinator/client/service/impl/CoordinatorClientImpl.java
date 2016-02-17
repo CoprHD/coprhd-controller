@@ -945,7 +945,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             List<String> servicePaths = lookupServicePath(siteId, serviceRoot);
 
             for (String spath : servicePaths) {
-                byte[] data = getServiceData(_zkConnection.getSiteId(), serviceRoot, spath);
+                byte[] data = getServiceData(siteId, serviceRoot, spath);
                 if (data == null) {
                     continue;
                 }

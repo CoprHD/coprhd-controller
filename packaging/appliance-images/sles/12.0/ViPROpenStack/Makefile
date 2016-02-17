@@ -14,7 +14,7 @@ appliance: prepare createAppliance
 prepare: clean 
 
 createAppliance:
-	cat ${RUN_DIR}/../configurations.sh > config.sh
+	cat ${RUN_DIR}/configurations.sh > config.sh
 	cat ViPROpenStack_config.sh >> config.sh
 	${CREATE_APPLIANCE_TOOL} -lc${DEBUG} ${CONF} ${JOB} -p appliance
 

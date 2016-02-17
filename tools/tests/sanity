@@ -2812,11 +2812,11 @@ recoverpoint_auto_snapshot_cleanup_test()
     # Create RP/Block snapshot
     secho 'Create snapshot'
     run blocksnapshot create ${PROJECT}/${src_volume} ${rpsnap} --type rp
-    run blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray} | grep inactive | grep false
+    blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray} | grep inactive | grep false
     run protectionsystem discover $RECOVERPOINT
 
     secho 'Unaffected RP bookmark is being checked after RP discovery to ensure it is still active'
-    run blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray} | grep inactive | grep false
+    blocksnapshot show ${PROJECT}/${src_volume}/${rpsnap}-${src_varray} | grep inactive | grep false
 
     secho 'Stopping protection for the copy and then re-enabling'
     run volume change_link ${PROJECT}/${src_volume} stop ${PROJECT}/${tgt_volume} rp

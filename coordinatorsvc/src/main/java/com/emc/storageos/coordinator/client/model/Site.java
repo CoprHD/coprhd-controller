@@ -24,8 +24,7 @@ public class Site {
     private static final String KEY_SITE_SHORTID = "siteShortId";
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
-    private static final String KEY_LAST_LOST_QUORUM_TIME = "lastStateUpdateTime";
-    private static final String KEY_LAST_NETWORK_BROKEN_TIME = "lastStateUpdateTime";
+    private static final String KEY_LAST_LOST_QUORUM_TIME = "lastLostQuorumTime";
     private static final String KEY_LASTSTATE = "lastState";
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_PING = "networkLatencyInMs";
@@ -56,7 +55,6 @@ public class Site {
     private long creationTime;
     private long lastStateUpdateTime;
     private long lastLostQuorumTime;
-    private long lastNetworkBrokenTime;
 
     private double networkLatencyInMs;
     private NetworkHealth networkHealth;
@@ -185,14 +183,6 @@ public class Site {
         this.lastLostQuorumTime = lastLostQuorumTime;
     }
 
-    public long getLastNetworkBrokenTime() {
-        return lastNetworkBrokenTime;
-    }
-
-    public void setLastNetworkBrokenTime(long lastNetworkBrokenTime) {
-        this.lastNetworkBrokenTime = lastNetworkBrokenTime;
-    }
-
     public NetworkHealth getNetworkHealth() {
         return networkHealth;
     }
@@ -264,9 +254,6 @@ public class Site {
         if (lastLostQuorumTime != 0L) {
             config.setConfig(KEY_LAST_LOST_QUORUM_TIME, String.valueOf(lastLostQuorumTime));
         }
-        if (lastNetworkBrokenTime != 0L) {
-            config.setConfig(KEY_LAST_NETWORK_BROKEN_TIME, String.valueOf(lastNetworkBrokenTime));
-        }
         if (networkLatencyInMs != 0D) {
             config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
         }
@@ -323,11 +310,6 @@ public class Site {
             s = config.getConfig(KEY_LAST_LOST_QUORUM_TIME);
             if (s != null) {
                 lastLostQuorumTime = Long.valueOf(s);
-            }
-
-            s = config.getConfig(KEY_LAST_NETWORK_BROKEN_TIME);
-            if (s != null) {
-                lastNetworkBrokenTime = Long.valueOf(s);
             }
 
             s = config.getConfig(KEY_LASTSTATE);

@@ -270,8 +270,11 @@ public class SchedulePolicyService extends TaggedResource {
 
     @Override
     public SchedulePolicyBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-        verifySystemAdmin();
-        return queryBulkResourceReps(ids);
+        Iterator<SchedulePolicy> _dbIterator = _dbClient.queryIterativeObjects(
+                getResourceClass(), ids);
+        BulkList.ResourceFilter filter = new BulkList.SchedulePolicyFilter(getUserFromContext(), _permissionsHelper);
+        return new SchedulePolicyBulkRep(BulkList.wrapping(_dbIterator,
+                MapSchedulePolicy.getInstance(_dbClient), filter));
     }
 
     /**

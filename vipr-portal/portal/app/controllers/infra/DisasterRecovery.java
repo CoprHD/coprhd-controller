@@ -159,7 +159,7 @@ public class DisasterRecovery extends ViprResourceController {
                 iamActiveSite = false;
             }
             standby_name = result.getName();
-            standby_vip = result.getVip();
+            standby_vip = result.getVipEndpoint();
         }
         String site_uuid = id;
         result = DisasterRecoveryUtils.getSite(id);
@@ -394,7 +394,7 @@ public class DisasterRecovery extends ViprResourceController {
             this.id = siteeditParam.getUuid();
             this.name = siteeditParam.getName();
             this.description = siteeditParam.getDescription();
-            this.VirtualIP = siteeditParam.getVip();
+            this.VirtualIP = siteeditParam.getVipEndpoint();
         }
 
         public boolean isNew() {

@@ -58,6 +58,7 @@ public class VdcConfigUtil {
     public static final String VDC_SITE_IPADDR6_PTN = "vdc_%s_%s_network_%d_ipaddr6";
     public static final String VDC_SITE_IPADDR_PTN = "vdc_%s_%s_network_%d_ipaddr";
     public static final String VDC_SITE_VIP_PTN = "vdc_%s_%s_network_vip";
+    public static final String VDC_SITE_VIP6_PTN = "vdc_%s_%s_network_vip6";
     public static final String SITE_IS_STANDBY="site_is_standby";
     public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
@@ -184,6 +185,7 @@ public class VdcConfigUtil {
                     String.valueOf(siteNodeCnt));
 
             vdcConfig.put(String.format(VDC_SITE_VIP_PTN, vdcShortId, siteShortId), site.getVip());
+            vdcConfig.put(String.format(VDC_SITE_VIP6_PTN, vdcShortId, siteShortId), site.getVip6());
 
             if (drUtil.isLocalSite(site)) {
                 vdcConfig.put(SITE_MYID, siteShortId);

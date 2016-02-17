@@ -8,10 +8,12 @@ package util;
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
@@ -62,5 +64,15 @@ public class AppSupportUtil {
     
     public static List<NamedRelatedResourceRep> getFullCopiesByApplication(String id) {
     	return BourneUtil.getViprClient().application().getClonesByApplication(uri(id)).getVolumes();
+    }
+
+    public static Set<String> getVolumeGroupSnapshotSets(String id) {
+        return BourneUtil.getViprClient().application().getVolumeGroupSnapshotSets(uri(id)).getCopySets();
+    }
+
+    public static List<NamedRelatedResourceRep> getVolumeGroupSnapshotsForSet(String id, String snapSet) {
+        VolumeGroupCopySetParam newParam = new VolumeGroupCopySetParam();
+        newParam.setCopySetName(snapSet);
+        return BourneUtil.getViprClient().application().getVolumeGroupSnapshotsForSet(uri(id), newParam).getSnapList();
     }
 }

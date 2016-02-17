@@ -137,11 +137,6 @@ public class KeystoneApiClient extends StandardRestClient {
             throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
         }
 
-        if (endpointResponse == null) {
-            log.error("Keystone endpoint response is null");
-            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone endpoint response");
-        }
-
         log.debug("END - getKeystoneEndpoints");
         return endpointResponse;
     }
@@ -175,11 +170,6 @@ public class KeystoneApiClient extends StandardRestClient {
         } catch (Exception e) {
             log.error("Failed to parse the service validation response");
             throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
-        }
-
-        if (serviceResponse == null) {
-            log.error("Keystone service response is null");
-            throw APIException.internalServerErrors.targetIsNullOrEmpty("Keystone service response");
         }
 
         log.debug("END - getKeystoneServices");

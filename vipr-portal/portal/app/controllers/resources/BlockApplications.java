@@ -100,12 +100,12 @@ public class BlockApplications extends ResourceController {
     public static void getAssociatedSnapshots(String id, String snapSet) {
         renderArgs.put("dataTable", new BlockSnapshotsDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
-        String snapLabel = id + "," + snapSet;
+        String snapLabel = id + "~~~" + snapSet;
         render(application,snapLabel,snapSet);
     }
 
     public static void getAssociatedSnapshotsJSON(String snapLabel) {
-        String[] snapSets = snapLabel.split(",");
+        String[] snapSets = snapLabel.split("~~~");
         List<BlockSnapshot> snapShotDetails = Lists.newArrayList();
         List<NamedRelatedResourceRep> snapsetDetails = AppSupportUtil.getVolumeGroupSnapshotsForSet(snapSets[0], snapSets[1]);
         for (NamedRelatedResourceRep snapShot : snapsetDetails) {

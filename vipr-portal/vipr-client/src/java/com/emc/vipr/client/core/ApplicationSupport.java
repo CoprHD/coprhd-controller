@@ -182,7 +182,7 @@ public class ApplicationSupport {
     }
 
     /**
-     *
+     * GET copy-sets for snapshots for particular application
      * GET /volume-groups/block/{id}/protection/snapshots/copy-sets
      *
      */
@@ -191,6 +191,7 @@ public class ApplicationSupport {
     }
 
     /**
+     * Get Snapshots for a particular copy-set
      * POST /volume-groups/block/{id}/protection/snapshots/copy-sets
      */
     public SnapshotList getVolumeGroupSnapshotsForSet(URI id, VolumeGroupCopySetParam input) {

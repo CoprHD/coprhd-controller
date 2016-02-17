@@ -79,8 +79,6 @@ import com.google.common.collect.ListMultimap;
  */
 public class ControllerUtils {
 
-    private static final String SMI81_VERSION_STARTING_STR = "V8.1";
-
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(ControllerUtils.class);
 
@@ -95,6 +93,9 @@ public class ControllerUtils {
     private static final VolumeURIHLU[] EMPTY_VOLUME_URI_HLU_ARRAY = new VolumeURIHLU[0];
 
     private static final String LABEL_DELIMITER = "-";
+
+    private static final int SMIS_MAJOR_VERSION = 8;
+    private static final int SMIS_MINOR_VERSION = 1;
 
     /**
      * Gets the URI of the tenant organization for the project with the passed
@@ -1414,22 +1415,26 @@ public class ControllerUtils {
     }
 
     /**
-     * Check whether the given storage system is managed by SMI 8.1
+     * Check whether the given storage system is managed by SMI 8.1 or later
      * 
      * @param storage
      * @param dbClient
-     * @return status
+     * @return true if the version is at least 8.1
      */
     public static boolean isVmaxUsing81SMIS(StorageSystem storage, DbClient dbClient) {
-        boolean status = false;
-        if (storage != null) {
+        if (storage != null && !NullColumnValueGetter.isNullURI(storage.getActiveProviderURI())) {
             StorageProvider provider = dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
-            if (provider != null) {
-                String providerVersion = provider.getVersionString();
-                status = providerVersion != null && providerVersion.startsWith(SMI81_VERSION_STARTING_STR);
+
+            if (provider != null && provider.getVersionString() != null) {
+                String providerVersion = provider.getVersionString().replaceFirst("[^\\d]", "");
+                String provStr[] = providerVersion.split(Constants.SMIS_DOT_REGEX);
+                int major = Integer.parseInt(provStr[0]);
+                int minor = Integer.parseInt(provStr[1]);
+                return major > SMIS_MAJOR_VERSION || major == SMIS_MAJOR_VERSION && minor >= SMIS_MINOR_VERSION;
             }
         }
-        return status;
+
+        return false;
     }
 
     /**

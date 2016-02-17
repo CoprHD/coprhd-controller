@@ -14,6 +14,7 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRON
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_SET_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -23,6 +24,8 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.application.VolumeGroupCopySetList;
+import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyDetachParam;
@@ -137,6 +140,25 @@ public class ApplicationSupport {
     public NamedVolumesList getFullCopiesByApplication(URI id) {
         return client.get(NamedVolumesList.class, APP_SUPPORT_FULL_COPY_URL, id);
     }
+    
+    /**
+     * Get full copy set for an application
+     * GET /volume-groups/block/{id}/protection/full-copies/copy-sets
+     */
+    
+    public VolumeGroupCopySetList getFullCopySetsByApplication(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_CLONE_SET_URL, id);
+    }
+    
+    /**
+     * POST /volume-groups/block/{id}/protection/full-copies/copy-sets/{id}
+     * 
+     */
+    public NamedVolumesList getVolumeGroupFullCopiesForSet(URI applicationId, VolumeGroupCopySetParam param) {
+        UriBuilder uribuilder = client.uriBuilder(APP_SUPPORT_CLONE_SET_URL);
+        return client.postURI(NamedVolumesList.class, param, uribuilder.build(applicationId));
+    }
+    
     
     /**
      * Detaches a full copy of an application.

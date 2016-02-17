@@ -257,7 +257,7 @@ public class DisasterRecoveryServiceTest {
         // verify the REST response
         assertEquals(name, rep.getName());
         assertEquals(desc, rep.getDescription());
-        assertEquals(vip, rep.getVip());
+        assertEquals(vip, rep.getVipEndpoint());
     }
 
     @Test
@@ -872,7 +872,7 @@ public class DisasterRecoveryServiceTest {
         assertNotNull(response);
         assertEquals(response.getUuid(), site.getUuid());
         assertEquals(response.getName(), site.getName());
-        assertEquals(response.getVip(), site.getVip());
+        assertEquals(response.getVipEndpoint(), site.getVipEndPoint());
     }
     
     protected void compareSiteResponse(SiteConfigRestRep response, Site site) {

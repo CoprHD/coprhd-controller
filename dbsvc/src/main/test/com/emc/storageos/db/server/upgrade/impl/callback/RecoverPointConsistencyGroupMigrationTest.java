@@ -109,7 +109,6 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
     protected void verifyResults() throws Exception {
         verifyBlockConsistencyGroupResults();
         verifyBlockSnapshotResults();
-        verifyRpVolumeResults();
     }
 
     /**
@@ -358,28 +357,6 @@ public class RecoverPointConsistencyGroupMigrationTest extends DbSimpleMigration
             URI rpCgUri = parentVolume.fetchConsistencyGroupUriByType(_dbClient, Types.RP);
             Assert.assertTrue("The block snapshot consistency group MUST match the parent volume's consistency group.",
                     snapshot.fetchConsistencyGroup().equals(rpCgUri));
-        }
-    }
-
-    /**
-     * Verifies the migration results for RP source/target volume journal references.
-     * 
-     * @throws Exception When an error occurs verifying the BlockSnapshot
-     *             migration results.
-     */
-    private void verifyRpVolumeResults() throws Exception {
-        log.info("Verifying updated RecoverPoint source/target Volume results for RecoverPointConsistencyGroupMigration.");
-        for (URI rpVolumeURI : rpTestVolumeURIs) {
-            Volume rpVolume = _dbClient.queryObject(Volume.class, rpVolumeURI);
-
-            // Ensure that the source and target volumes have been assigned journal volume reference
-            if (rpVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString()) ||
-                    rpVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString())) {
-                Assert.assertNotNull("RecoverPoint source/target volumes MUST have a journal volume reference.",
-                        rpVolume.getRpJournalVolume());
-            } else {
-                Assert.assertNull("RecoverPoint journal volumes should NOT have a journal volume reference.", rpVolume.getRpJournalVolume());
-            }
         }
     }
 }

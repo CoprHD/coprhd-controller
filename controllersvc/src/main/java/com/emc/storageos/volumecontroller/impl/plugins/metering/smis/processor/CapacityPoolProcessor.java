@@ -14,6 +14,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +53,7 @@ public class CapacityPoolProcessor extends Processor {
             Operation operation, Object resultObj, Map<String, Object> keyMap)
             throws BaseCollectionException {
         EnumerateResponse<CIMInstance> volumeInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
-        WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
+        WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
 
         CloseableIterator<CIMInstance> volumeInstances = volumeInstanceChunks.getResponses();
         try {

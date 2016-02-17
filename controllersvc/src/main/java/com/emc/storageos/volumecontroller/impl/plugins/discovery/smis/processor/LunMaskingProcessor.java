@@ -17,6 +17,7 @@ import javax.cim.CIMProperty;
 import javax.wbem.CloseableIterator;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,7 @@ public class LunMaskingProcessor extends StorageProcessor {
         Map<String, VolHostIOObject> volToIolimits = new HashMap<String, VolHostIOObject>();
         List<CIMObjectPath> processedSGCoPs = new ArrayList<CIMObjectPath>();
         Map<String, String> volToFastPolicy = new HashMap<String, String>();
-        WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
+        WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
         CIMObjectPath maskingViewPath = getObjectPathfromCIMArgument(_args);
         _dbClient = (DbClient) keyMap.get(Constants.dbClient);
         AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);

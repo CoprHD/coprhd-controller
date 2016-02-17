@@ -1506,7 +1506,7 @@ public class DisasterRecoveryService {
         // otherwise the standby site will automatically upgrade/downgrade to the same version with the active site
         if (!currentSoftwareVersion.equals(standbySoftwareVersion)) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format(
-                    "Standby site version %s is not equals to current version %s",
+                    "Standby site version %s does not equal to current version %s",
                     standbySoftwareVersion, currentSoftwareVersion));
         }
     }

@@ -1825,13 +1825,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             }
             /**
              * Needs to add all SRDF source volumes id to change the linkStatus and accessState
-             * for Sync/Async with CG
+             * for Sync/Async with CG. Take care not to add Vplex volume.
              */
             if (sourceVol != null && sourceVol.hasConsistencyGroup()) {
                 List<URI> srcVolumeUris = dbClient.queryByConstraint(
                         getVolumesByConsistencyGroup(sourceVol.getConsistencyGroup()));
                 for (URI uri : srcVolumeUris) {
-                    if (!combined.contains(uri)) {
+                    Volume cgVolume =  dbClient.queryObject(Volume.class, uri);
+                    if (volume != null && volume.checkForSRDF() &&  !combined.contains(uri)) {
                         combined.add(uri);
                     }
                 }

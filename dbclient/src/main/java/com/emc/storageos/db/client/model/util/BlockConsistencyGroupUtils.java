@@ -231,6 +231,39 @@ public class BlockConsistencyGroupUtils {
 
         return localSystemUris;
     }
+    
+    /**
+     * Gets all the active volumes in the passed CG.
+     * 
+     * @param cg A reference to a VPLEX CG
+     * @param dbClient A reference to a database client
+     * @param personalityType The RecoverPoint personality type. Used to isolate VPlex volumes
+     *            in the consistency group to those of that personality type. Optional field
+     *            left null if not desired.
+     * 
+     * @return A list of the active VPLEX volumes in the passed VPLEX CG.
+     */
+    static public List<Volume> getActiveVolumesInCG(BlockConsistencyGroup cg, DbClient dbClient,
+            PersonalityTypes personalityType) {
+        List<Volume> volumeList = new ArrayList<Volume>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
+                uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (!volume.getInactive()) {
+                // If the personalityType is specified, we want to ensure we only consider
+                // volumes with that personality type.
+                if (personalityType == null ||
+                        (volume.getPersonality() != null && volume.getPersonality().equals(personalityType.name()))) {
+                    volumeList.add(volume);
+                }
+            }
+        }
+        return volumeList;
+    }
 
     /**
      * Gets the active VPLEX volumes in the passed VPLEX CG.

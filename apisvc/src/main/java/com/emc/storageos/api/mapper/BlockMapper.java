@@ -467,8 +467,8 @@ public class BlockMapper {
         if (from.getTypes() != null) {
             to.setTypes(from.getTypes());
 
-            if (dbClient != null && volumes != null && volumes.iterator().hasNext()) {
-                // Get the first volume in the list. From this we are able to obtain the
+            while (dbClient != null && volumes != null && volumes.iterator().hasNext()) {
+                // Get the first RP or SRDF volume. From this we are able to obtain the
                 // link status and protection set (RP) information for all volumes in the
                 // CG.
                 Volume volume = dbClient.queryObject(Volume.class, volumes.iterator().next());
@@ -480,10 +480,12 @@ public class BlockMapper {
                     to.setRpConsistenyGroupId(protectionSet.getProtectionId());
                     to.setLinkStatus(protectionSet.getProtectionStatus());
                     to.setRpProtectionSystem(protectionSet.getProtectionSystem());
+                    break;
                 } else if (from.getTypes().contains(BlockConsistencyGroup.Types.SRDF.toString())) {
                     // Operations cannot be performed individually on volumes within an SRDF CG, hence
                     // we can take any one of the volume's link status and update the CG link status.
                     to.setLinkStatus(volume.getLinkStatus());
+                    break;
                 }
             }
         }

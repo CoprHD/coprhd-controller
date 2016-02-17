@@ -16,9 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.text.DecimalFormat;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -113,11 +110,12 @@ public class DrSiteNetworkMonitor implements Runnable{
             
             Site.NetworkHealth previousState = site.getNetworkHealth();
             String host = site.getVip();
-            double ping = testPing(host,SOCKET_TEST_PORT);
+            double ping = drUtil.testPing(host, SOCKET_TEST_PORT, NETWORK_TIMEOUT);
 
             //if ping successful get an average, format to 3 decimal places
             if( ping != -1){
-                ping = (ping + testPing(host,SOCKET_TEST_PORT) + testPing(host,SOCKET_TEST_PORT))/3;
+                ping = (ping + drUtil.testPing(host, SOCKET_TEST_PORT, NETWORK_TIMEOUT) + drUtil.testPing(host, SOCKET_TEST_PORT,
+                        NETWORK_TIMEOUT)) / 3;
                 DecimalFormat df = new DecimalFormat("#.###");
                 ping = Double.parseDouble(df.format(ping));
             }
@@ -148,44 +146,6 @@ public class DrSiteNetworkMonitor implements Runnable{
                 mailHandler.sendSiteNetworkBrokenMail(site);
             }
         }
-    }
-
-    /**
-     * Connect using sockets
-     *
-     * @return delay in ms if the specified host responded, -1 if failed
-     */
-    private double testPing(String hostAddress, int port) {
-        InetAddress inetAddress = null;
-        InetSocketAddress socketAddress = null;
-        Socket socket = new Socket();
-        long timeToRespond = -1;
-        long start, stop;
-
-        try {
-            inetAddress = InetAddress.getByName(hostAddress);
-
-            socketAddress = new InetSocketAddress(inetAddress, port);
-
-            start = System.nanoTime();
-            socket.connect(socketAddress,NETWORK_TIMEOUT);
-            stop = System.nanoTime();
-            timeToRespond = (stop - start);
-        } catch (Exception e) {
-            _log.error(String.format("Fail to check cross-site network latency to node {} with Exception: ",hostAddress),e);
-            return -1;
-        } finally {
-            try {
-                if (socket.isConnected()) {
-                    socket.close();
-                }
-            } catch (Exception e) {
-                _log.error(String.format("Fail to close connection to node {} with Exception: ",hostAddress),e);
-            }
-        }
-
-        //the ping suceeded, convert from ns to ms
-        return timeToRespond/1000000.0;
     }
 
 };

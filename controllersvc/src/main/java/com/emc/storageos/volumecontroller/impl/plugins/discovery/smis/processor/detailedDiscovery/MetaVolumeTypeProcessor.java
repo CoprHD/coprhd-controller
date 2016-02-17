@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
@@ -48,7 +49,7 @@ public class MetaVolumeTypeProcessor extends StorageProcessor {
         try {
 
             DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
+            WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
             CIMObjectPath metaVolumePath = getObjectPathfromCIMArgument(_args);
             _logger.info(String.format("Processing EMC_Meta for meta volume: %s", metaVolumePath));
 

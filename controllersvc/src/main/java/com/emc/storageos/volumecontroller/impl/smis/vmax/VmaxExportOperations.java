@@ -1777,16 +1777,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 removeInitiators = !initiatorsToRemove.isEmpty() || !initiatorIdsToRemove.isEmpty();
 
                 // Check the volumes and update the lists as necessary
-                boolean addVolumes = false;
-                Map<String, Integer> volumesToAdd = new HashMap<String, Integer>();
-                for (Map.Entry<String, Integer> entry : discoveredVolumes.entrySet()) {
-                    String normalizedWWN = BlockObject.normalizeWWN(entry.getKey());
-                    if (!mask.hasExistingVolume(normalizedWWN) &&
-                            !mask.hasUserCreatedVolume(normalizedWWN)) {
-                        volumesToAdd.put(normalizedWWN, entry.getValue());
-                        addVolumes = true;
-                    }
-                }
+                Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
+                boolean addVolumes = !volumesToAdd.isEmpty();
 
                 boolean removeVolumes = false;
                 List<String> volumesToRemove = new ArrayList<String>();

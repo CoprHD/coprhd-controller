@@ -629,6 +629,8 @@ source sanity_utils
 TAG=$(tr -dc A-Za-z0-9_ < /dev/urandom | head -c 4)
 SEARCH_PREFIX=$(echo $TAG|head -c 2)
 
+HIDE_OUTPUT=${HIDE_OUTPUT:=1}
+
 #
 # run commands and check for exit status
 #
@@ -636,16 +638,13 @@ run()
 {
     cmd=$*
     echo === $cmd
-    $cmd 2>&1
-    status=$?
-    set_undo $cmd
-
-    if [ $status -ne 0 ] ; then
-        echo '**********************************************************************'
-        echo $cmd failed
-        echo '**********************************************************************'
-        exit $status
+    rm -f /tmp/output.txt
+    if [ "${HIDE_OUTPUT}" = "1" ]; then
+	$cmd &> /tmp/output.txt
+    else
+	$cmd 2>&1
     fi
+    set_undo $cmd
 }
 
 balance()
@@ -889,13 +888,13 @@ project_setup()
 isilon_cos_setup()
 {
     echo "setting up isilon COS"
-    cos create file $COS_ISIFILE 				\
-            			    --description 'CoS for Isilon' true 	\
+    run cos create file $COS_ISIFILE 				\
+	--description 'Virtual-Pool-for-Isilon' true 	\
                             --protocols NFS CIFS --max_snapshots 10 \
                             --provisionType 'Thin' \
 			    --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
-    cos allow $COS_ISIFILE file $ROOT_TENANT
+    run cos allow $COS_ISIFILE file $ROOT_TENANT
     if [ "$EXTRA_PARAM" = "search" ] ; then
         cos search $(echo $COS_ISIFILE | head -c 2) --resource_type file_vpool
         cos tag "$COS_ISIFILE" "file" $TAG
@@ -906,54 +905,54 @@ isilon_cos_setup()
 ecs_cos_setup()
 {
     echo "setting up ECS cos-vpool"
-    cos create object $COS_ECS --description 'cos_vpool for ECS' true --protocols S3 --provisionType 'Thick' --neighborhoods $NH
+    run cos create object $COS_ECS --description 'cos_vpool-for-ECS' true --protocols S3 --provisionType 'Thick' --neighborhoods $NH
 }
 
 vnxfile_cos_setup()
 {
     echo "setting up VNX COS"
-    cos create file $COS_VNXFILE 				\
-			             --description 'CoS for VNX file' true \
+    run cos create file $COS_VNXFILE 				\
+	--description 'Virtual-Pool-for-VNX-file' true \
                          --protocols NFS CIFS --max_snapshots 10    \
                          --provisionType 'Thin' \
 		         --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
-    cos allow $COS_VNXFILE file $ROOT_TENANT
+    run cos allow $COS_VNXFILE file $ROOT_TENANT
 }
 
 netapp_cos_setup()
 {
-    cos create file $COS_NETAPP 				\
-			 --description 'CoS for NETAPP' false 	\
+    run cos create file $COS_NETAPP 				\
+	--description 'Virtual-Pool-for-NETAPP' false 	\
                          --protocols NFS CIFS --max_snapshots 10 --provisionType 'Thin' \
 			 --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
-    cos allow $COS_NETAPP file $ROOT_TENANT
+    run cos allow $COS_NETAPP file $ROOT_TENANT
 }
 
 netappc_cos_setup()
 {
-    cos create file $COS_NETAPPC                                \
-                         --description 'CoS for NETAPPC' false   \
+    run cos create file $COS_NETAPPC                                \
+	--description 'Virtual-Pool-for-NETAPPC' false   \
                          --protocols NFS CIFS --max_snapshots 10 --provisionType 'Thin' \
                          --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
-    cos allow $COS_NETAPPC file $ROOT_TENANT
+    run cos allow $COS_NETAPPC file $ROOT_TENANT
 }
 
 vnxe_cos_setup()
 {
     echo "setting up VNXe COS"
-    cos create file $COS_VNXE 				\
-			             --description 'CoS for VNXe file' true \
+    run cos create file $COS_VNXE 				\
+	--description 'Virtual-Pool-for-VNXe-file' true \
                          --protocols NFS CIFS --max_snapshots 10    \
                          --provisionType 'Thin' \
 		         --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
-    cos allow $COS_VNXE file $ROOT_TENANT
+    run cos allow $COS_VNXE file $ROOT_TENANT
     
-    cos create block $COS_VNXEBLOCK_CG                            \
-                         --description 'CoS for VNXe block cg' true         \
+    run cos create block $COS_VNXEBLOCK_CG                            \
+	--description 'Virtual-Pool-for-VNXe-block-cg' true         \
                          --protocols iSCSI                   \
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -962,8 +961,8 @@ vnxe_cos_setup()
                          --neighborhoods $NH \
                          --multiVolumeConsistency 
                          
-    cos create block $COS_VNXEBLOCK_FC 				\
-			 --description 'CoS for VNX block FC' true 	\
+    run cos create block $COS_VNXEBLOCK_FC 				\
+	--description 'Virtual-Pool-for-VNX-block-FC' true 	\
                          --protocols FC 			\
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -971,8 +970,8 @@ vnxe_cos_setup()
                          --provisionType 'Thin' \
                          --neighborhoods $NH
 
-    cos create block $COS_VNXEBLOCK_ISCSI 			\
-			 --description 'CoS for VNXe block iSCSI' true \
+    run cos create block $COS_VNXEBLOCK_ISCSI 			\
+	--description 'Virtual-Pool-for-VNXe-block-iSCSI' true \
                          --protocols iSCSI			\
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -986,22 +985,22 @@ vnxe_cos_setup()
 
 datadomainfile_cos_setup()
 {
-    cos create file $COS_DDFILE                \
-             --description 'CoS for DATADOMAIN file' true   \
+    run cos create file $COS_DDFILE                \
+	--description 'Virtual-Pool-for-DATADOMAIN-file' true   \
              --protocols NFS CIFS --max_snapshots 10 \
              --provisionType 'Thin' \
              --long_term_retention 'true' \
              --neighborhoods $NH
     ROOT_TENANT=`tenant root|tail -1`
-    cos allow $COS_DDFILE file $ROOT_TENANT
+    run cos allow $COS_DDFILE file $ROOT_TENANT
 }
 
 vnxblock_cos_setup()
 {
-    echo "begin: vnxblock_cos_setup"
+    echo "*** VNX Block Virtual Pool setup"
     if [ $QUICK -eq 0 ]; then
-      cos create block $COS_VNXBLOCK 				\
-			 --description 'CoS for VNX block' true 	\
+      run cos create block $COS_VNXBLOCK 				\
+	  --description 'Virtual-Pool-for-VNX-block' true 	\
                          --protocols FC iSCSI			\
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -1009,8 +1008,8 @@ vnxblock_cos_setup()
                          --provisionType 'Thin' \
                          --neighborhoods $NH
     else 
-      cos create block $COS_VNXBLOCK                            \
-                         --description 'CoS for VNX block' true         \
+      run cos create block $COS_VNXBLOCK                            \
+	  --description 'Virtual-Pool-for-VNX-block' true         \
                          --protocols FC                    \
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -1025,8 +1024,8 @@ vnxblock_cos_setup()
         cos search $SEARCH_PREFIX --tag true --resource_type block_vpool
     fi
 
-    cos create block $COS_VNXBLOCK_FC 				\
-			 --description 'CoS for VNX block FC' true 	\
+    run cos create block $COS_VNXBLOCK_FC 				\
+	--description 'Virtual-Pool-for-VNX-block-FC' true 	\
                          --protocols FC 			\
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -1034,8 +1033,8 @@ vnxblock_cos_setup()
                          --provisionType 'Thin' \
                          --neighborhoods $NH
 
-    cos create block $COS_VNXBLOCK_ISCSI 			\
-			 --description 'CoS for VNX block iSCSI' true \
+    run cos create block $COS_VNXBLOCK_ISCSI 			\
+	--description 'Virtual-Pool-for-VNX-block-iSCSI' true \
                          --protocols iSCSI			\
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -1044,8 +1043,8 @@ vnxblock_cos_setup()
 			 --neighborhoods $NH
 
 
-    cos create block $COS_VNXBLOCK_THIN 				\
-    			 --description 'VNX thin storage' true      \
+    run cos create block $COS_VNXBLOCK_THIN 				\
+	--description 'VNX-thin-storage' true      \
                              --protocols FC iSCSI	    \
                              --numpaths 2 \
                              --max_snapshots 10 \
@@ -1054,8 +1053,8 @@ vnxblock_cos_setup()
                              --expandable true \
                          --neighborhoods $NH
 
-    cos create block $COS_VNXBLOCK_THICK 				\
-    			 --description 'VNX thick storage' true      \
+    run cos create block $COS_VNXBLOCK_THICK 				\
+	--description 'VNX-thick-storage' true      \
                              --protocols FC iSCSI	    \
                              --numpaths 2 \
                              --max_snapshots 10 \
@@ -1069,15 +1068,15 @@ vnxblock_cos_setup()
 
 xtremio_cos_setup()
 {
-    cos create block $XTREMIO_COS_FC                          \
-                         --description 'CoS for XtremIO block FC' true      \
+    run cos create block $XTREMIO_COS_FC                          \
+	--description 'Virtual-Pool-for-XtremIO-block-FC' true      \
                          --protocols FC                         \
                          --numpaths 1 \
                          --max_snapshots 10 \
                          --system_type xtremio \
                          --provisionType 'Thin' \
                          --neighborhoods $NH
-    cos allow $XTREMIO_COS_FC block $TENANT  
+    run cos allow $XTREMIO_COS_FC block $TENANT  
     echo "end: xtremio_cos_setup"
 }
 
@@ -1277,8 +1276,8 @@ srdf_cos_setup()
 {
     # Create the target first so it exists when we create the source vpool
     cos show $COS_VMAXBLOCK_SRDF_TARGET block &> /dev/null && return $?
-    cos create block $COS_VMAXBLOCK_SRDF_TARGET		          \
-			 --description 'Target Virtual Pool for SRDF Protection' true \
+    run cos create block $COS_VMAXBLOCK_SRDF_TARGET		          \
+	--description 'Target-Virtual-Pool-for-SRDF-Protection' true \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
@@ -1287,13 +1286,13 @@ srdf_cos_setup()
                          --multiVolumeConsistency                  \
                          --system_type vmax			
 
-    cos update block $COS_VMAXBLOCK_SRDF_TARGET --storage ${SRDF_VMAXB_NATIVEGUID}
-    cos update block $COS_VMAXBLOCK_SRDF_TARGET --storage ${SRDF_VMAXA_NATIVEGUID}
-    cos allow $COS_VMAXBLOCK_SRDF_TARGET block $TENANT
+    run cos update block $COS_VMAXBLOCK_SRDF_TARGET --storage ${SRDF_VMAXB_NATIVEGUID}
+    run cos update block $COS_VMAXBLOCK_SRDF_TARGET --storage ${SRDF_VMAXA_NATIVEGUID}
+    run cos allow $COS_VMAXBLOCK_SRDF_TARGET block $TENANT
 
-    cos show ${COS_VMAXBLOCK_SRDF_SOURCE}_sync block &> /dev/null && return $?
-    cos create block ${COS_VMAXBLOCK_SRDF_SOURCE}_sync                 \
-			 --description 'Source Virtual Pool for Synchronous SRDF Protection' true \
+    run cos show ${COS_VMAXBLOCK_SRDF_SOURCE}_sync block &> /dev/null && return $?
+    run cos create block ${COS_VMAXBLOCK_SRDF_SOURCE}_sync                 \
+	--description 'Source-Virtual-Pool-for-Synchronous-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
@@ -1302,13 +1301,13 @@ srdf_cos_setup()
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:SYNCHRONOUS"
 
-    cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_sync --storage ${SRDF_VMAXA_NATIVEGUID}
-    cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_sync --storage ${SRDF_VMAXB_NATIVEGUID}
-    cos allow ${COS_VMAXBLOCK_SRDF_SOURCE}_sync block $TENANT
+    run cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_sync --storage ${SRDF_VMAXA_NATIVEGUID}
+    run cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_sync --storage ${SRDF_VMAXB_NATIVEGUID}
+    run cos allow ${COS_VMAXBLOCK_SRDF_SOURCE}_sync block $TENANT
 
-    cos show ${COS_VMAXBLOCK_SRDF_SOURCE}_async block &> /dev/null && return $?
-    cos create block ${COS_VMAXBLOCK_SRDF_SOURCE}_async                 \
-			 --description 'Source Virtual Pool for Asynchronous SRDF Protection' true \
+    run cos show ${COS_VMAXBLOCK_SRDF_SOURCE}_async block &> /dev/null && return $?
+    run cos create block ${COS_VMAXBLOCK_SRDF_SOURCE}_async                 \
+	--description 'Source-Virtual-Pool-for-Asynchronous-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
@@ -1318,9 +1317,9 @@ srdf_cos_setup()
                          --multiVolumeConsistency               \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:ASYNCHRONOUS"
 
-    cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_async --storage ${SRDF_VMAXA_NATIVEGUID}
-    cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_async --storage ${SRDF_VMAXB_NATIVEGUID}
-    cos allow ${COS_VMAXBLOCK_SRDF_SOURCE}_async block $TENANT
+    run cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_async --storage ${SRDF_VMAXA_NATIVEGUID}
+    run cos update block ${COS_VMAXBLOCK_SRDF_SOURCE}_async --storage ${SRDF_VMAXB_NATIVEGUID}
+    run cos allow ${COS_VMAXBLOCK_SRDF_SOURCE}_async block $TENANT
 }
 
 srdf_v3_varray_setup()
@@ -1345,8 +1344,8 @@ srdf_v3_cos_setup()
      echo "*** SRDF V3 Virtual Pool setup ***" 
     # Create the target first so it exists when we create the source vpool
     cos show $COS_VMAXBLOCK_V3_SRDF_TARGET block &> /dev/null && return $?
-    cos create block $COS_VMAXBLOCK_V3_SRDF_TARGET		          \
-			 --description 'Target Virtual Pool for V3 SRDF Protection' true \
+    run cos create block $COS_VMAXBLOCK_V3_SRDF_TARGET		          \
+	--description 'Target-Virtual-Pool-for-V3-SRDF-Protection' true \
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
@@ -1355,13 +1354,13 @@ srdf_v3_cos_setup()
                          --multiVolumeConsistency                  \
                          --system_type vmax			
     
-    cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
-    cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
-    cos allow $COS_VMAXBLOCK_V3_SRDF_TARGET block $TENANT
+    run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    run cos update block $COS_VMAXBLOCK_V3_SRDF_TARGET --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    run cos allow $COS_VMAXBLOCK_V3_SRDF_TARGET block $TENANT
     
     cos show ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block &> /dev/null && return $?
-    cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active                 \
-			 --description 'Source Virtual Pool for Active SRDF Protection' true \
+    run cos create block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active                 \
+	--description 'Source-Virtual-Pool-for-Active-SRDF-Protection' true \
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
@@ -1370,9 +1369,9 @@ srdf_v3_cos_setup()
 			 --neighborhoods $V3_SRDF_VARRAY                    \
 			 --srdf "${V3_SRDF_VARRAY}:${COS_VMAXBLOCK_V3_SRDF_TARGET}:ACTIVE"
 
-    cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
-    cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
-    cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT 
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXA_NATIVEGUID}
+    run cos update block ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active --storage ${SRDF_V3_VMAXB_NATIVEGUID}
+    run cos allow ${COS_VMAXBLOCK_V3_SRDF_SOURCE}_active block $TENANT 
 }
 
 srdf_cos_matcher_test()
@@ -1513,8 +1512,8 @@ srdf_tests()
 vmax_cos_setup()
 {
     if [ $QUICK -eq 0 ]; then
-       cos create block $COS_VMAXBLOCK				\
-			 --description 'CoS for VMAX block FC+iSCSI' true 	\
+       run cos create block $COS_VMAXBLOCK				\
+	   --description 'Virtual-Pool-for-VMAX-block-FC+iSCSI' true 	\
                          --protocols FC iSCSI 			\
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -1523,8 +1522,8 @@ vmax_cos_setup()
                          --expandable true \
                          --neighborhoods $NH
     else
-       cos create block $COS_VMAXBLOCK                          \
-                         --description 'CoS for VMAX block FC+iSCSI' true       \
+       run cos create block $COS_VMAXBLOCK                          \
+	   --description 'Virtual-Pool-for-VMAX-block-FC+iSCSI' true       \
                          --protocols FC                   \
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -1534,8 +1533,8 @@ vmax_cos_setup()
                          --neighborhoods $NH
     fi
 
-    cos create block $COS_VMAXBLOCK_FC				\
-			 --description 'CoS for VMAX block FC' true 	\
+    run cos create block $COS_VMAXBLOCK_FC				\
+	--description 'Virtual-Pool-for-VMAX-block-FC' true 	\
                          --protocols FC 			\
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -1543,8 +1542,8 @@ vmax_cos_setup()
                          --provisionType 'Thin' \
 			 --neighborhoods $NH
 
-    cos create block $COS_VMAXBLOCK_ISCSI			\
-			 --description 'CoS for VMAX block iSCSI' true \
+    run cos create block $COS_VMAXBLOCK_ISCSI			\
+	--description 'Virtual-Pool-for-VMAX-block-iSCSI' true \
                          --protocols iSCSI 			\
                          --numpaths 2 \
                          --max_snapshots 10 \
@@ -1552,8 +1551,8 @@ vmax_cos_setup()
                          --provisionType 'Thin' \
 			 --neighborhoods $NH
 
-    cos create block $COS_VMAXBLOCK_THIN 				\
-    			 --description 'VMAX thin storage' true      \
+    run cos create block $COS_VMAXBLOCK_THIN 				\
+	--description 'VMAX-thin-storage' true      \
                              --protocols FC iSCSI	    \
                              --numpaths 2 \
                              --max_snapshots 10 \
@@ -1562,8 +1561,8 @@ vmax_cos_setup()
                              --expandable true \
                          --neighborhoods $NH
 
-    cos create block $COS_VMAXBLOCK_THICK 				\
-    			 --description 'VMAX thick storage' true      \
+    run cos create block $COS_VMAXBLOCK_THICK 				\
+	--description 'VMAX-thick-storage' true      \
                              --protocols FC iSCSI	    \
                              --numpaths 2  \
                              --max_snapshots 10 \
@@ -1574,8 +1573,8 @@ vmax_cos_setup()
 
 mirrorblock_cos_setup()
 {
-    cos create block $COS_MIRROR                       \
-           --description 'VMAX Mirror block FC' true   \
+    run cos create block $COS_MIRROR                       \
+	--description 'VMAX-Mirror-block-FC' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -1585,8 +1584,8 @@ mirrorblock_cos_setup()
                             --expandable false \
 			    --neighborhoods $NH
 
-    cos create block $COS_MIRROR_WITH_OPTIONAL         \
-           --description 'VMAX Mirror block FC with optional CoS' true   \
+    run cos create block $COS_MIRROR_WITH_OPTIONAL         \
+	--description 'VMAX-Mirror-block-FC-with-optional-CoS' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -1597,8 +1596,8 @@ mirrorblock_cos_setup()
                             --expandable false \
 			    --neighborhoods $NH
 
-    cos create block $COS_MIRROR_WITH_2_MIRRORS        \
-           --description 'VMAX Mirror block FC with 2 mirrors maximum' true   \
+    run cos create block $COS_MIRROR_WITH_2_MIRRORS        \
+	--description 'VMAX-Mirror-block-FC-with-2-mirrors-maximum' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -1608,8 +1607,8 @@ mirrorblock_cos_setup()
                             --expandable false \
 			    --neighborhoods $NH
 
-    cos create block $COS_MIRROR_BEFORE_CHANGE         \
-           --description 'VMAX block FC with no mirrors explicitly' true   \
+    run cos create block $COS_MIRROR_BEFORE_CHANGE         \
+	--description 'VMAX-block-FC-with-no-mirrors-explicitly' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -1619,8 +1618,8 @@ mirrorblock_cos_setup()
                             --expandable false \
 			    --neighborhoods $NH
 
-    cos create block $COS_MIRROR_AFTER_CHANGE          \
-           --description 'VMAX block FC with 1 mirror explicitly' true   \
+    run cos create block $COS_MIRROR_AFTER_CHANGE          \
+	--description 'VMAX-block-FC-with-1-mirror-explicitly' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -1630,8 +1629,8 @@ mirrorblock_cos_setup()
                             --expandable false \
 			    --neighborhoods $NH
 
-    cos create block $COS_MIRROR_VNX                   \
-			    --description 'VNX block mirror' true 	\
+    run cos create block $COS_MIRROR_VNX                   \
+	--description 'VNX-block-mirror' true 	\
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -1641,8 +1640,8 @@ mirrorblock_cos_setup()
                             --expandable false \
 			    --neighborhoods $NH
 
-    cos create block $COS_VMAX_CG_MIRROR \
-                            --description 'CoS for VMAX block FC' true \
+    run cos create block $COS_VMAX_CG_MIRROR \
+	--description 'Virtual-Pool-for-VMAX-block-FC' true \
                             --protocols FC \
                             --numpaths 2 \
                             --max_snapshots 10 \
@@ -1657,8 +1656,8 @@ mirrorblock_cos_setup()
 consistencygroup_block_cos_setup()
 {
     # Create CoS for VNX
-    cos create block $VNX_COS_GROUP                       \
-           --description 'Consistency Group Block VNX CoS' true   \
+    run cos create block $VNX_COS_GROUP                       \
+	--description 'Consistency-Group-Block-VNX-CoS' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -1666,12 +1665,12 @@ consistencygroup_block_cos_setup()
 			    --neighborhoods $NH        \
                             --multiVolumeConsistency   
 
-    cos update block $VNX_COS_GROUP --storage $VNXB_NATIVEGUID
-    cos allow $VNX_COS_GROUP block $TENANT
+    run cos update block $VNX_COS_GROUP --storage $VNXB_NATIVEGUID
+    run cos allow $VNX_COS_GROUP block $TENANT
 
     # Create CoS for VMAX
-    cos create block $VMAX_COS_GROUP                       \
-           --description 'Consistency Group Block VMAX CoS' true   \
+    run cos create block $VMAX_COS_GROUP                       \
+	--description 'Consistency-Group-Block-VMAX-CoS' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -1679,13 +1678,13 @@ consistencygroup_block_cos_setup()
 			    --neighborhoods $NH                \
                             --multiVolumeConsistency
 
-    cos update block $VMAX_COS_GROUP --storage $VMAX_NATIVEGUID
-    cos allow $VMAX_COS_GROUP block $TENANT
+    run cos update block $VMAX_COS_GROUP --storage $VMAX_NATIVEGUID
+    run cos allow $VMAX_COS_GROUP block $TENANT
 
     # Create CoS without the MultiVolumeConsistency attribute
     COS_GROUP_INVALID=cos-group-no-multivolumeconsistency"$date"
-    cos create block $COS_GROUP_INVALID                       \
-           --description 'Consistency Group Block VirtualPool with no multiVolumeConsistency' true   \
+    run cos create block $COS_GROUP_INVALID                       \
+	--description 'Consistency-Group-Block-VirtualPool-with-no-multiVolumeConsistency' true   \
                             --protocols FC iSCSI       \
                             --numpaths 1               \
                             --max_snapshots 10         \
@@ -1695,8 +1694,8 @@ consistencygroup_block_cos_setup()
 
 vplex_cos_setup()
 {
-    cos create block cosvplexlocal                            \
-                     --description 'Local CoS for VPlex' false \
+    run cos create block cosvplexlocal                            \
+	--description 'Local-CoS-for-VPlex' false \
                      --protocols FC                           \
                      --numpaths 2                             \
                      --provisionType 'Thin'                   \
@@ -1706,21 +1705,21 @@ vplex_cos_setup()
                      --max_mirrors 1                          \
                      --expandable false 
 
-    cos allow cosvplexlocal block $TENANT
+    run cos allow cosvplexlocal block $TENANT
     if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
-	cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-	cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-	cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX2_NATIVEGUID
+	run cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX3_NATIVEGUID
     else
-	cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
+	run cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
 	if [ "$AUTH" != 'ipv6' ] ; then
-	    cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
+	    run cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
 	fi
-	cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
+	run cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
 
-    cos create block cosvplexdist                                   \
-                     --description 'Distributed CoS for VPlex' false \
+    run cos create block cosvplexdist                                   \
+	--description 'Distributed-CoS-for-VPlex' false \
                      --protocols FC                                 \
                      --numpaths 2                                   \
                      --provisionType 'Thin'                         \
@@ -1732,14 +1731,14 @@ vplex_cos_setup()
                      --mirror_cos cosvplexlocal                     \
                      --expandable false
 
-    cos allow cosvplexdist block $TENANT
+    run cos allow cosvplexdist block $TENANT
     if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
-	cos update block cosvplexdist --storage $VPLEX_SIM_VMAX1_NATIVEGUID
-	cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
-	cos update block cosvplexdist --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
+	run cos update block cosvplexdist --storage $VPLEX_SIM_VMAX3_NATIVEGUID
     else
-	cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
-	cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
+	run cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+	run cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
     fi
 }
 
@@ -2316,6 +2315,8 @@ rpvplex_clr()
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
+	--journalVpool rp_targets \
+	--journalVarray $RECOVERPOINT_VARRAY1 \
         --haCos rpvplex_ha
 
     run cos create block rpvplex_clr$1-sync $POOLS_AUTO_MATCH \
@@ -2331,6 +2332,8 @@ rpvplex_clr()
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
+	--journalVpool rp_targets \
+	--journalVarray $RECOVERPOINT_VARRAY1 \
         --haCos rpvplex_ha
 }
 
@@ -2451,8 +2454,8 @@ rpmp_clr()
 # RP - NO PROTECTION
 rp_noprotection()
 {
-    cos create block rp_noprotection$1 $POOLS_AUTO_MATCH \
-        --description 'RP - NO PROTECTION'  \
+    run cos create block rp_noprotection$1 $POOLS_AUTO_MATCH \
+        --description 'RP---NO-PROTECTION'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -2463,8 +2466,8 @@ rp_noprotection()
 # RP+VPLEX LOCAL - NO PROTECTION
 rpvplexlocal_noprotection()
 {
-    cos create block rpvplexlocal_noprotection$1 $POOLS_AUTO_MATCH \
-        --description 'RP+VPLEX LOCAL - NO PROTECTION'  \
+    run cos create block rpvplexlocal_noprotection$1 $POOLS_AUTO_MATCH \
+        --description 'RP+VPLEX-LOCAL---NO-PROTECTION'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -2476,8 +2479,8 @@ rpvplexlocal_noprotection()
 # RP+VPLEX DIST - NO PROTECTION
 rpvplexdist_noprotection()
 {
-    cos create block rpvplexdist_noprotection$1 $POOLS_AUTO_MATCH \
-        --description 'RP+VPLEX DIST - NO PROTECTION'  \
+    run cos create block rpvplexdist_noprotection$1 $POOLS_AUTO_MATCH \
+        --description 'RP+VPLEX-DIST---NO-PROTECTION'  \
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
@@ -2553,7 +2556,7 @@ rp_vpool_setup()
 
 rp_varray_setup()
 {
-    echo '*** Recoverpoint varray setup ***'
+    echo '*** RecoverPoint varray setup ***'
 
     # Create Virtual Array
     run neighborhood create $RECOVERPOINT_VARRAY1
@@ -2575,7 +2578,7 @@ rp_varray_setup()
 
 rp_network_setup()
 {
-    echo '*** Recoverpoint network setup ***'
+    echo '*** RecoverPoint network setup ***'
 
     networksystem create $RECOVERPOINT_BROCADE_NETWORK brocade --smisip $RECOVERPOINT_BROCADE_NETWORK_PROVIDER --smisport 5988 --smisuser $RECOVERPOINT_BROCADE_NETWORK_PROVIDER_USERNAME --smispw "$RECOVERPOINT_BROCADE_NETWORK_PROVIDER_PASSWORD" --smisssl false
     sleep 20
@@ -2584,7 +2587,7 @@ rp_network_setup()
 
 rp_storage_setup()
 {
-    echo '*** Recoverpoint storage setup ***'
+    echo '*** RecoverPoint storage setup ***'
 
     if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         for var in A B C D
@@ -2612,20 +2615,20 @@ rp_storage_setup()
         rp_xio_setup
     fi
 
-    echo '*** Recoverpoint discover storage systems ***'
+    echo '*** RecoverPoint discover storage systems ***'
     run storagedevice discover_all
     storagedevice list
 }
 
 rp_xio_setup()
 {
-    echo '*** Recoverpoint XIO setup ***'
+    echo '*** RecoverPoint XIO setup ***'
     run storageprovider create xtremeio1 $RECOVERPOINT_XTREMIO_IP 443 $RECOVERPOINT_XTREMIO_USER $RECOVERPOINT_XTREMIO_PASSWD xtremio
 }
 
 rp_vplex_setup()
 {
-    echo '*** Recoverpoint VPLEX setup ***'
+    echo '*** RecoverPoint VPLEX setup ***'
 
     # Create VPLEX
     if [ "$RECOVERPOINT_VPLEX_A" != "NONE" ]; then
@@ -2641,23 +2644,23 @@ rp_vplex_setup()
 
 rp_port_setup()
 {
-    echo '*** Recoverpoint port setup ***'
+    echo '*** RecoverPoint port setup ***'
 
     if [ "${RP_TESTS}" = "1" -o "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         if [ "$RECOVERPOINT_STORAGE_ARRAY_A_GUID" != "NONE" ]; then
-            storageport update $RECOVERPOINT_STORAGE_ARRAY_A_GUID FC --addvarrays $RECOVERPOINT_VARRAY1
+            run storageport update $RECOVERPOINT_STORAGE_ARRAY_A_GUID FC --addvarrays $RECOVERPOINT_VARRAY1
         fi
 
         if [ "$RECOVERPOINT_STORAGE_ARRAY_B_GUID" != "NONE" ]; then
-            storageport update $RECOVERPOINT_STORAGE_ARRAY_B_GUID FC --addvarrays $RECOVERPOINT_VARRAY2
+            run storageport update $RECOVERPOINT_STORAGE_ARRAY_B_GUID FC --addvarrays $RECOVERPOINT_VARRAY2
         fi
         
         if [ "$RECOVERPOINT_STORAGE_ARRAY_C_GUID" != "NONE" ]; then
-            storageport update $RECOVERPOINT_STORAGE_ARRAY_C_GUID FC --addvarrays $RECOVERPOINT_VARRAY3
+            run storageport update $RECOVERPOINT_STORAGE_ARRAY_C_GUID FC --addvarrays $RECOVERPOINT_VARRAY3
         fi
         
         if [ "$RECOVERPOINT_STORAGE_ARRAY_D_GUID" != "NONE" ]; then
-            storageport update $RECOVERPOINT_STORAGE_ARRAY_D_GUID FC --addvarrays $RECOVERPOINT_VARRAY4
+            run storageport update $RECOVERPOINT_STORAGE_ARRAY_D_GUID FC --addvarrays $RECOVERPOINT_VARRAY4
         fi
     fi
 
@@ -2667,40 +2670,40 @@ rp_port_setup()
     # Cluster 1
     if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         if [ "$RECOVERPOINT_VPLEX_A_GUID" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_A_GUID" != "NONE" ]; then
-            storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY1
-            storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY1
+            run storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY1
+            run storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY1
         fi
             # Cluster 2
         if [ "$RECOVERPOINT_VPLEX_A" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_B_GUID" != "NONE" ]; then
-            storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY2
-            storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY2
+            run storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY2
+            run storageport update $RECOVERPOINT_VPLEX_A_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY2
         fi
 
         if [ "${RP_CRR}" = "1" -o "${RP_CLR}" = "1" ]; then
-                # Target Site
-                # Cluster 1
+            # Target Site
+            # Cluster 1
             if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_C_GUID" != "NONE" ]; then
-                storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY3
-                storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY3
+                run storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-A --addvarrays $RECOVERPOINT_VARRAY3
+                run storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-1-1-B --addvarrays $RECOVERPOINT_VARRAY3
             fi
 
-                # Cluster 2
+            # Cluster 2
             if [ "$RECOVERPOINT_VPLEX_B" != "NONE" ] && [ "$RECOVERPOINT_STORAGE_ARRAY_D_GUID" != "NONE" ]; then
-                storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY4
-                storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY4
+                run storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-A --addvarrays $RECOVERPOINT_VARRAY4
+                run storageport update $RECOVERPOINT_VPLEX_B_GUID FC --group director-2-1-B --addvarrays $RECOVERPOINT_VARRAY4
             fi
         fi
     fi
 
     if [ "${RPXIO_TESTS}" = "1" ]; then
-        storageport update $RECOVERPOINT_XTREMIO_GUID FC --addvarrays $RECOVERPOINT_VARRAY4
+        run storageport update $RECOVERPOINT_XTREMIO_GUID FC --addvarrays $RECOVERPOINT_VARRAY4
     fi
 
 }
 
 rp_protection_system_setup()
 {
-    echo '*** Recoverpoint protection system setup ***'
+    echo '*** RecoverPoint protection system setup ***'
 
     protectionsystem show $RECOVERPOINT &> /dev/null && return $?
 
@@ -2715,7 +2718,7 @@ rp_protection_system_setup()
 
 rp_cg_setup()
 {
-    echo '*** Recoverpoint CG setup ***'
+    echo '*** RecoverPoint CG setup ***'
 
     if [ "${RP_TESTS}" = "1" ]; then
         run blockconsistencygroup create $PROJECT $RP_CONSISTENCY_GROUP
@@ -2737,7 +2740,7 @@ rp_cg_setup()
 rp_isolate_rpa_clusters()
 {
     if [ "$RP_USE_RPA_ISOLATION" = "1" ]; then
-        echo '*** Recoverpoint isolate RPA clusters ***'
+        echo '*** RecoverPoint isolate RPA clusters ***'
 
         run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
         run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY2
@@ -3095,7 +3098,7 @@ recoverpoint_ingest_primer()
     RECOVERPOINT_INGEST_VOL1_SRC=${RECOVERPOINT_INGEST_VOLBASE}_${vpool}
     run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_CG}
     run volume create ${RECOVERPOINT_INGEST_VOL1_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_CG}
-    volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
+    run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
 
     # Create a volume and mount it to the host
     #recoverpoint_ingest_host_setup ${vpool}
@@ -3403,7 +3406,7 @@ recoverpoint_simulator_setup()
         exit
     fi
 
-    echo 'Sim running'
+    echo '*** RecoverPoint Simulator running'
     project_setup
     rp_varray_setup
 
@@ -3597,7 +3600,7 @@ recoverpoint_tests()
         rp_type=''
 
         if [ "$RP_CDP" = "1" ]; then
-            echo 'RP CDP Tests'
+            echo '*** RP CDP Tests'
             rp_type='cdp'
 
             # RP
@@ -3620,7 +3623,7 @@ recoverpoint_tests()
         fi
 
         if [ "$RP_CRR" = "1" ]; then
-            echo 'RP CRR Tests'
+            echo '*** RP CRR Tests'
             rp_type='crr'
 
             # RP
@@ -3641,7 +3644,7 @@ recoverpoint_tests()
         fi
 
         if [ "$RP_CLR" = "1" ]; then
-            echo 'RP CLR Tests'
+            echo '*** RP CLR Tests'
             rp_type='clr'
 
             # RP
@@ -3823,7 +3826,7 @@ recoverpoint_tests()
           rpmp_tgt_volumes=("${rpmp_tgt_volumes[@]}" "${rpmpvolume}-target-${tgt}${volume_name_modifier}")
         done
 
-        ### Begin Recoverpoint test cases ###
+        ### Begin RecoverPoint test cases ###
 
         # RP test cases
         # Run these test cases unless specified to only run create/delete tests
@@ -3896,7 +3899,7 @@ recoverpoint_tests()
             fi
         fi
 
-        ### End Recoverpoint test cases ###
+        ### End RecoverPoint test cases ###
 
         echo '*** RP cleanup ***'
 
@@ -3929,13 +3932,13 @@ recoverpoint_tests()
 
 hds_cos_setup()
 {
-    cos create block $COS_HDS               \
-             --description 'CoS for HDS' true  \
+    run cos create block $COS_HDS               \
+	--description 'Virtual-Pool-for-HDS' true  \
                       --protocols FC \
                       --numpaths 1              \
                       --provisionType 'Thin'        \
 
-    cos allow $COS_HDS block $TENANT
+    run cos allow $COS_HDS block $TENANT
 }
 
 hds_setup()
@@ -3979,14 +3982,14 @@ isilon_setup_once()
     storagepool   update $ISI_NATIVEGUID --type file
     storageport   update $ISI_NATIVEGUID IP --tzone $NH/$IP_ZONE
 
-    cos update file $COS_ISIFILE --storage $ISI_NATIVEGUID
+    run cos update file $COS_ISIFILE --storage $ISI_NATIVEGUID
     #isilon_cos_setup
 }
 
 isilon_setup()
 {
     isilon_setup_once
-    cos allow $COS_ISIFILE file $TENANT
+    run cos allow $COS_ISIFILE file $TENANT
 }
 
 driversystem_setup()
@@ -4041,7 +4044,7 @@ netapp_setup_once()
     storagepool update $NETAPPF_NATIVEGUID --type file
     
     storageport update $NETAPPF_NATIVEGUID IP --tzone nh/iptz
-    cos update file $COS_NETAPP --storage $NETAPPF_NATIVEGUID
+    run cos update file $COS_NETAPP --storage $NETAPPF_NATIVEGUID
 
    # netapp_cos_setup
 }
@@ -4049,7 +4052,7 @@ netapp_setup_once()
 netapp_setup()
 {
     netapp_setup_once
-    cos allow $COS_NETAPP file $TENANT
+    run cos allow $COS_NETAPP file $TENANT
 }
 
 netappc_setup_once()
@@ -4063,7 +4066,7 @@ netappc_setup_once()
     storagepool update $NETAPPCF_NATIVEGUID --type file
 
     storageport update $NETAPPCF_NATIVEGUID IP --tzone nh/iptz
-    cos update file $COS_NETAPPC --storage $NETAPPCF_NATIVEGUID
+    run cos update file $COS_NETAPPC --storage $NETAPPCF_NATIVEGUID
 
    # netapp_cos_setup
 }
@@ -4071,7 +4074,7 @@ netappc_setup_once()
 netappc_setup()
 {
     netappc_setup_once
-    cos allow $COS_NETAPPC file $TENANT
+    run cos allow $COS_NETAPPC file $TENANT
 }
 
 #
@@ -4110,14 +4113,14 @@ datadomainfile_setup_once()
     storagepool update $DATADOMAINF_NATIVEGUID --type file
 
     storageport update $DATADOMAINF_NATIVEGUID IP --tzone nh/iptz
-    cos update file $COS_DDFILE --storage $DATADOMAINF_NATIVEGUID
+    run cos update file $COS_DDFILE --storage $DATADOMAINF_NATIVEGUID
 
 }
 
 datadomainfile_setup()
 {
     datadomainfile_setup_once
-    cos allow $COS_DDFILE file $TENANT
+    run cos allow $COS_DDFILE file $TENANT
 }
 
 #
@@ -4132,7 +4135,7 @@ vnxfile_setup_once()
     storagepool update $VNXF_NATIVEGUID --type file
 
     storageport update $VNXF_NATIVEGUID IP --tzone nh/iptz
-    cos update file $COS_VNXFILE --storage $VNXF_NATIVEGUID
+    run cos update file $COS_VNXFILE --storage $VNXF_NATIVEGUID
 
    # vnxfile_cos_setup
 }
@@ -4140,7 +4143,7 @@ vnxfile_setup_once()
 vnxfile_setup()
 {
     vnxfile_setup_once
-    cos allow $COS_VNXFILE file $TENANT
+    run cos allow $COS_VNXFILE file $TENANT
 }
 
 vnxfile_discovery()
@@ -4171,7 +4174,7 @@ vnxfile_flex_varray_setup_once()
 vnxfile_flex_varray_setup()
 {
     vnxfile_flex_varray_setup_once
-    cos allow $COS_VNXFILE file $TENANT
+    run cos allow $COS_VNXFILE file $TENANT
 }
 
 vnxe_setup_once()
@@ -4184,20 +4187,20 @@ vnxe_setup_once()
     storagepool update $VNXE_NATIVEGUID --type file
 
     storageport update $VNXE_NATIVEGUID IP --tzone nh/iptz
-    cos update file $COS_VNXE --storage $VNXE_NATIVEGUID
+    run cos update file $COS_VNXE --storage $VNXE_NATIVEGUID
     
     storagepool update $VNXE_NATIVEGUID --type block --volume_type THIN_AND_THICK
     echo "vnxe block cos update"
-    cos update block $COS_VNXEBLOCK_CG --storage $VNXE_NATIVEGUID
-   # cos update block $COS_VNXEBLOCK_FC --storage $VNXE_NATIVEGUID
-    cos update block $COS_VNXEBLOCK_ISCSI --storage $VNXE_NATIVEGUID
+    run cos update block $COS_VNXEBLOCK_CG --storage $VNXE_NATIVEGUID
+   # run cos update block $COS_VNXEBLOCK_FC --storage $VNXE_NATIVEGUID
+    run cos update block $COS_VNXEBLOCK_ISCSI --storage $VNXE_NATIVEGUID
    
 }
 
 vnxe_setup()
 {
     vnxe_setup_once
-    cos allow $COS_VNXE file $TENANT
+    run cos allow $COS_VNXE file $TENANT
 }
 
 vnxe_discovery()
@@ -4526,49 +4529,45 @@ vnxblock_setup_once()
     smisprovider show $VNX_SMIS_DEV &> /dev/null && return $?
 
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VNX_SMIS_DEV $VNX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     else
-       smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VNX_SMIS_DEV $SIMULATOR_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     fi
 
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 
-    sleep 60
+    sleep 15
     vnxblock_cos_setup
 
-
-    echo "vnxblock - storagepools update"
-    storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_AND_THICK
-    storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
+    echo "*** VNX Block storagepools update"
+    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THIN_AND_THICK
+    run storagepool update $VNXB_NATIVEGUID --type block --volume_type THICK_ONLY
 
     if [ $QUICK -eq 0 ]; then
-       echo "vnxblock - storageports update"
+       echo "*** VNX Block storageports update"
        if [ $DISCOVER_SAN -eq 0 ]; then
-           storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A --group SP_A
-           storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_B --group SP_B
+           run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_A --group SP_A
+           run storageport update $VNXB_NATIVEGUID FC --tzone $NH/$FC_ZONE_B --group SP_B
        fi
-       storageport update $VNXB_NATIVEGUID IP --tzone nh/iptz            
+       run storageport update $VNXB_NATIVEGUID IP --tzone nh/iptz            
     fi
 
-    echo "vnxblock - cos update"
-    cos update block $COS_VNXBLOCK --storage $VNXB_NATIVEGUID
-    cos update block $COS_VNXBLOCK_FC --storage $VNXB_NATIVEGUID
-    cos update block $COS_VNXBLOCK_ISCSI --storage $VNXB_NATIVEGUID
-    cos update block $COS_VNXBLOCK_THIN --storage $VNXB_NATIVEGUID
-    cos update block $COS_VNXBLOCK_THICK --storage $VNXB_NATIVEGUID    
-    sleep 30
+    run cos update block $COS_VNXBLOCK --storage $VNXB_NATIVEGUID
+    run cos update block $COS_VNXBLOCK_FC --storage $VNXB_NATIVEGUID
+    run cos update block $COS_VNXBLOCK_ISCSI --storage $VNXB_NATIVEGUID
+    run cos update block $COS_VNXBLOCK_THIN --storage $VNXB_NATIVEGUID
+    run cos update block $COS_VNXBLOCK_THICK --storage $VNXB_NATIVEGUID    
 }
 
 vnxblock_setup()
 {
-    echo "begin: vnxblock_setup"
+    echo "*** VNX Block Setup"
     vnxblock_setup_once
-    cos allow $COS_VNXBLOCK block $TENANT
-    cos allow $COS_VNXBLOCK_FC block $TENANT
-    cos allow $COS_VNXBLOCK_ISCSI block $TENANT
-    cos allow $COS_VNXBLOCK_THIN block $TENANT
-    cos allow $COS_VNXBLOCK_THICK block $TENANT
-    echo "end: vnxblock_setup"
+    run cos allow $COS_VNXBLOCK block $TENANT
+    run cos allow $COS_VNXBLOCK_FC block $TENANT
+    run cos allow $COS_VNXBLOCK_ISCSI block $TENANT
+    run cos allow $COS_VNXBLOCK_THIN block $TENANT
+    run cos allow $COS_VNXBLOCK_THICK block $TENANT
 }
 
 
@@ -4579,42 +4578,38 @@ vmaxblock_setup_once()
 
     # If this is using the simulator, the vnxblock already took care of the SMIS provider
     if [ $QUICK -eq 0 ]; then
-       smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
+       run smisprovider create $VMAX_SMIS_DEV $VMAX_SMIS_IP 5988 $SMIS_USER "$SMIS_PASSWD" false
     fi
 
-    storagedevice discover_all --ignore_error
+    run storagedevice discover_all --ignore_error
 
     vmax_cos_setup
     mirrorblock_cos_setup
 
-    storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
-#    storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
-    storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
-    storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THIN_ONLY
+    run storagepool update $VMAX_NATIVEGUID --type block --volume_type THICK_ONLY
+    run storagepool update $VMAX_NATIVEGUID --nhadd $NH --type block
     if [ $QUICK -eq 0 ]; then
       
-        echo "storageports update - vmaxblock"
+        echo "*** VMAX Block storageports update"
         if [ $DISCOVER_SAN -eq 0 ]; then
            for porta in ${VMAX_PORTS_A}
            do
-	      storageport update $VMAX_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
+	      run storageport update $VMAX_NATIVEGUID FC --tzone $FCTZ_A --group ${porta}
            done
 
 	   for portb in ${VMAX_PORTS_B}
            do
-              storageport update $VMAX_NATIVEGUID FC --tzone $FCTZ_B --group ${portb}
+              run storageport update $VMAX_NATIVEGUID FC --tzone $FCTZ_B --group ${portb}
            done
        fi
-       storageport update $VMAX_NATIVEGUID IP --tzone nh/iptz
- #   else
-        #storageport update $SIMULATOR_VMAX_NATIVEGUID FC --tzone $NH/$FC_ZONE_A
+       run storageport update $VMAX_NATIVEGUID IP --tzone nh/iptz
     fi
 
-    cos update block $COS_VMAXBLOCK --storage $VMAX_NATIVEGUID
-    cos update block $COS_VMAXBLOCK_FC --storage $VMAX_NATIVEGUID
-    cos update block $COS_VMAXBLOCK_ISCSI --storage $VMAX_NATIVEGUID
-    cos update block $COS_VMAXBLOCK_THIN --storage $VMAX_NATIVEGUID
-    #cos update block $COS_VMAXBLOCK_THICK $VMAX_NATIVEGUID
+    run cos update block $COS_VMAXBLOCK --storage $VMAX_NATIVEGUID
+    run cos update block $COS_VMAXBLOCK_FC --storage $VMAX_NATIVEGUID
+    run cos update block $COS_VMAXBLOCK_ISCSI --storage $VMAX_NATIVEGUID
+    run cos update block $COS_VMAXBLOCK_THIN --storage $VMAX_NATIVEGUID
 }
 
 vmaxblock_setup()
@@ -4622,11 +4617,10 @@ vmaxblock_setup()
     echo "begin: vmaxblock_setup"
 
     vmaxblock_setup_once
-    cos allow $COS_VMAXBLOCK block $TENANT
-    cos allow $COS_VMAXBLOCK_FC block $TENANT
-    cos allow $COS_VMAXBLOCK_ISCSI block $TENANT
-    cos allow $COS_VMAXBLOCK_THIN block $TENANT
-    #cos allow $COS_VMAXBLOCK_THICK block $TENANT
+    run cos allow $COS_VMAXBLOCK block $TENANT
+    run cos allow $COS_VMAXBLOCK_FC block $TENANT
+    run cos allow $COS_VMAXBLOCK_ISCSI block $TENANT
+    run cos allow $COS_VMAXBLOCK_THIN block $TENANT
 	
     echo "end: vmaxblock_setup"
 }
@@ -4681,26 +4675,26 @@ mirrorblock_setup()
     vmaxblock_setup
     #vnxblock_setup
 
-    cos allow $COS_MIRROR block $TENANT
-    cos update block $COS_MIRROR --storage $VMAX_NATIVEGUID
+    run cos allow $COS_MIRROR block $TENANT
+    run cos update block $COS_MIRROR --storage $VMAX_NATIVEGUID
 
-    cos allow $COS_MIRROR_WITH_OPTIONAL block $TENANT
-    cos update block $COS_MIRROR_WITH_OPTIONAL --storage $VMAX_NATIVEGUID
+    run cos allow $COS_MIRROR_WITH_OPTIONAL block $TENANT
+    run cos update block $COS_MIRROR_WITH_OPTIONAL --storage $VMAX_NATIVEGUID
 
-    cos allow $COS_MIRROR_WITH_2_MIRRORS block $TENANT
-    cos update block $COS_MIRROR_WITH_2_MIRRORS --storage $VMAX_NATIVEGUID
+    run cos allow $COS_MIRROR_WITH_2_MIRRORS block $TENANT
+    run cos update block $COS_MIRROR_WITH_2_MIRRORS --storage $VMAX_NATIVEGUID
 
-    cos allow $COS_MIRROR_BEFORE_CHANGE block $TENANT
-    cos update block $COS_MIRROR_BEFORE_CHANGE --storage $VMAX_NATIVEGUID
+    run cos allow $COS_MIRROR_BEFORE_CHANGE block $TENANT
+    run cos update block $COS_MIRROR_BEFORE_CHANGE --storage $VMAX_NATIVEGUID
 
-    cos allow $COS_MIRROR_AFTER_CHANGE block $TENANT
-    cos update block $COS_MIRROR_AFTER_CHANGE --storage $VMAX_NATIVEGUID
+    run cos allow $COS_MIRROR_AFTER_CHANGE block $TENANT
+    run cos update block $COS_MIRROR_AFTER_CHANGE --storage $VMAX_NATIVEGUID
 
-    #cos allow $COS_MIRROR_VNX block $TENANT
-    #cos update block $COS_MIRROR_VNX --storage $VNXB_NATIVEGUID    
+    #run cos allow $COS_MIRROR_VNX block $TENANT
+    #run cos update block $COS_MIRROR_VNX --storage $VNXB_NATIVEGUID    
 
-    cos allow $COS_VMAX_CG_MIRROR block $TENANT
-    cos update block $COS_VMAX_CG_MIRROR --storage $VMAX_NATIVEGUID
+    run cos allow $COS_VMAX_CG_MIRROR block $TENANT
+    run cos update block $COS_VMAX_CG_MIRROR --storage $VMAX_NATIVEGUID
 }
 
 #
@@ -6412,7 +6406,7 @@ vmax3_fc_setup_once()
 
     echo "vmax3 fc vpools"
     cos create block $COS_VMAX3BLOCK_FC false \
-			 --description 'CoS for VMAX3 block FC' \
+			 --description 'Virtual-Pool for VMAX3 block FC' \
                       --protocols FC 			\
                       --numpaths 2 \
                       --max_snapshots 10 \
@@ -6876,7 +6870,7 @@ errorhandling_tests()
 {
     ## CoS ErrorHandling tests
     cos errorhandling file $COS_VNXFILE 				\
-			 --description 'CoS for VNX file' false 	\
+	--description 'Virtual-Pool-for-VNX-file' false 	\
                          --protocols NFS CIFS --provisionType 'Thin'
 }
 
@@ -7150,7 +7144,7 @@ init_tests()
 
 quick_setup()
 {
-    echo "quick setup"
+    echo "*** quick setup"
 #    vnxfile_setup
     VNXB_NATIVEGUID=$SIMULATOR_VNX_NATIVEGUID
     VMAX_NATIVEGUID=$SIMULATOR_VMAX_NATIVEGUID
@@ -8477,8 +8471,13 @@ save_token_file() {
 }
 
 _failure() {
+    if [ -f /tmp/output.txt ]; then
+	echo "*******************************************************" >&2
+	/usr/bin/cat /tmp/output.txt                                   >&2
+	echo "*******************************************************" >&2
+    fi
     echo "***"                                                   >&2
-    echo "*** FAILED! $0:${LINENO}: `eval echo ${BASH_COMMAND}`" >&2
+    echo "*** FAILED! $0:$1: `eval echo ${BASH_COMMAND}`"        >&2
     echo "***"                                                   >&2
     date
     run_undo_commands
@@ -8501,11 +8500,17 @@ fail(){
     cmd=$*
     echo === $cmd
     trap - ERR
-    $cmd 2>&1
+    if [ "${HIDE_OUTPUT}" = "1" ]; then
+	$cmd &> /tmp/output.txt
+    else
+	$cmd 2>&1
+    fi
+
     status=$?
     if [ $status -eq 0 ] ; then
         echo '**********************************************************************'
         echo $cmd succeeded, which should not have happened
+	cat /tmp/output.txt
         echo '**********************************************************************'
         trap _failure ERR
         set_undo $cmd
@@ -8515,7 +8520,7 @@ fail(){
     trap _failure ERR
 }
 
-trap _failure ERR INT
+trap '_failure $LINENO' ERR INT
 set -E
 if [ "$3" != "vdc" ] && [ "$3" != "dr" ] && [ "$3" != "backuprestore" ]; then
     common_setup	
@@ -8753,7 +8758,7 @@ snapvx_vpool_setup()
 {
     echo "**** Creating snapvx virtual pools"
     cos create block $COS_VMAX3BLOCK_FC true \
-			 --description 'CoS for VMAX3 block FC' \
+	--description 'Virtual-Pool-for-VMAX3-block-FC' \
                       --protocols FC \
                       --numpaths 2 \
                       --max_snapshots 10 \

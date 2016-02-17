@@ -23,6 +23,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +106,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
         WBEMClient client = null;
         try {
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            client = (WBEMClient) keyMap.get(Constants._cimClient);
+            client = SMICommunicationInterface.getCIMClient(keyMap);
             _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             Map<String, VolHostIOObject> exportedVolumes = (Map<String, VolHostIOObject>) keyMap
                     .get(Constants.EXPORTED_VOLUMES);

@@ -17,6 +17,7 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -27,6 +28,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
@@ -223,5 +225,26 @@ public class BlockSnapshotSessionUtils {
             return sessions.get(0);
         }
         return null;
+    }
+    
+    /**
+     * Determines if the passed volume has a snapshot session.
+     * 
+     * @param volume A reference to the volume.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return true if the volume has an active session, false otherwise.
+     */
+    public static boolean volumeHasSnapshotSession(Volume volume, DbClient dbClient) {
+        Constraint constraint = null;
+        URI cgURI = volume.getConsistencyGroup();
+        if (NullColumnValueGetter.isNullURI(cgURI)) {
+            constraint = ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId());
+        } else {
+            constraint = ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(cgURI);
+         }
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class, constraint);
+        return !snapSessions.isEmpty();
     }
 }

@@ -172,6 +172,8 @@ public class PathConstants {
     public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}";
     public static final String APP_SUPPORT_VOLUME_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/volumes";
     public static final String APP_SUPPORT_CLONE_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/full-copies";
+    public static final String APP_SUPPORT_SESSION_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/snapshot-sessions";
+    public static final String APP_SUPPORT_SESSION_SET_URL = APP_SUPPORT_SESSION_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
 
 }

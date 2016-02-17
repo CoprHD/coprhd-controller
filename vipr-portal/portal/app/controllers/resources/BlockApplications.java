@@ -12,11 +12,14 @@ import java.util.Set;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 
 import models.datatable.ApplicationSupportDataTable;
+import models.datatable.BlockSnapshotSessionsDataTable;
+import models.datatable.BlockSnapshotSessionsDataTable.BlockSnapshotSession;
 import models.datatable.BlockVolumesDataTable.Volume;
 import models.datatable.BlockVolumesDataTable;
 import controllers.resources.BlockApplications.CloneApplicationDataTable.Clone;
@@ -50,7 +53,8 @@ public class BlockApplications extends ResourceController {
         renderArgs.put("dataTable", new VolumeApplicationDataTable());
         renderArgs.put("cloneTable", new CloneApplicationDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
-        render(application);
+        Set<String> sessionSet = AppSupportUtil.getVolumeGroupSnapsetSessionSets(id);
+        render(application, sessionSet);
     }
 
     public static void applicationVolumeJson(String id) {
@@ -93,6 +97,25 @@ public class BlockApplications extends ResourceController {
         renderJSON(DataTablesSupport.createJSON(volumeDetails, params));
     }
 
+    public static void getAssociatedSnapSession(String id, String sessionSet) {
+        renderArgs.put("dataTable", new BlockSnapshotSessionsDataTable());
+        VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
+        String sessionLabel = id + "," + sessionSet;
+        render(application, sessionLabel, sessionSet);
+    }
+    
+    public static void getAssociatedSnapSessionJSON(String sessionLabel) {
+        String[] sessionSet = sessionLabel.split(",");
+        List<BlockSnapshotSession> sessionDetails = Lists.newArrayList();
+        List<NamedRelatedResourceRep> sessionSetDetails = AppSupportUtil.getVolumeGroupSnapshotSessionsByCopySet(sessionSet[0],
+                sessionSet[1]);
+        for (NamedRelatedResourceRep snapSession : sessionSetDetails) {
+            BlockSnapshotSessionRestRep snapshotSession = BourneUtil.getViprClient().blockSnapshotSessions().get(snapSession.getId());
+            sessionDetails.add(new BlockSnapshotSession(snapshotSession));
+        }
+        renderJSON(DataTablesSupport.createJSON(sessionDetails, params));
+    }
+    
     public static class VolumeApplicationDataTable extends BlockVolumesDataTable {
         public VolumeApplicationDataTable() {
             alterColumn("protocols").hidden();

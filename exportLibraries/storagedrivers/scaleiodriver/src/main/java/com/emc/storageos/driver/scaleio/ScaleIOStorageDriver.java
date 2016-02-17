@@ -54,7 +54,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask createVolumes(List<StorageVolume> volumes, StorageCapabilities capabilities) {
-        DriverTask task = createDriverTask(ScaleIOConstants.TASK_TYPE_CREATE_VOLUMES);
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.VOLUME_CREATE));
 
         if (volumes != null && !volumes.isEmpty()) {
             int successful = 0;
@@ -117,10 +117,10 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
-        DriverTask task = createDriverTask(ScaleIOConstants.TASK_TYPE_EXPAND_VOLUME);
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.VOLUME_EXPAND));
 
         if (newCapacity > 0) {
-            ScaleIORestClient restClient= getClientBySystemId(volume.getStorageSystemId());
+            ScaleIORestClient restClient = getClientBySystemId(volume.getStorageSystemId());
 
             if (restClient != null) {
                 ScaleIOVolume result;
@@ -163,7 +163,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask deleteVolumes(List<StorageVolume> volumes) {
-        DriverTask task = createDriverTask(ScaleIOConstants.TASK_TYPE_DELETE_VOLUMES);
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.VOLUME_DELETE));
 
         if (!volumes.isEmpty()) {
             int successful = 0;
@@ -189,7 +189,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
             setTaskStatus(volumes.size(), successful, task);
             task.setMessage("Task succeeded for " + successful + " of " + volumes.size() + " volumes");
-
 
         } else {
             task.setStatus(DriverTask.TaskStatus.FAILED);
@@ -627,7 +626,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
-        DriverTask task = createDriverTask(ScaleIOConstants.TASK_TYPE_DISCOVER_STORAGE_SYSTEM);
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.DISCOVER_STORAGE_SYSTEM));
         for (StorageSystem storageSystem : storageSystems) {
             try {
                 log.info("StorageDriver: Discovery information for storage system {}, name {} - Start", storageSystem.getIpAddress(),
@@ -640,7 +639,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
                     for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
                         String domainName = protectionDomain.getName();
-                        if (compare(domainName, storageSystem.getSystemName())) {
+                        if (ScaleIOHelper.compare(domainName, storageSystem.getSystemName())) {
                             storageSystem.setNativeId(protectionDomain.getId());
                             storageSystem.setSystemName(domainName);
                             storageSystem.setSerialNumber(protectionDomain.getSystemId());
@@ -685,7 +684,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask discoverStoragePools(StorageSystem storageSystem, List<StoragePool> storagePools) {
-        DriverTask task = createDriverTask(ScaleIOConstants.TASK_TYPE_DISCOVER_STORAGE_POOLS);
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.DISCOVER_STORAGE_POOLS));
         try {
             log.info("StorageDriver: Discovery of storage pools for storage system {}, name {} - Start", storageSystem.getIpAddress(),
                     storageSystem.getSystemName());
@@ -695,7 +694,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 List<ScaleIOProtectionDomain> protectionDomains = scaleIOHandle.getProtectionDomains();
                 for (ScaleIOProtectionDomain protectionDomain : protectionDomains) {
                     String domainID = protectionDomain.getSystemId();
-                    if (compare(domainID, storageSystem.getNativeId())) {
+                    if (ScaleIOHelper.compare(domainID, storageSystem.getNativeId())) {
 
                         List<ScaleIOStoragePool> scaleIOStoragePoolList = scaleIOHandle.getProtectionDomainStoragePools(protectionDomain
                                 .getId());
@@ -747,7 +746,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask discoverStoragePorts(StorageSystem storageSystem, List<StoragePort> storagePorts) {
-        DriverTask task = createDriverTask(ScaleIOConstants.TASK_TYPE_DISCOVER_STORAGE_PORTS);
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.DISCOVER_STORAGE_PORTS));
         try {
             log.info("StorageDriver: Discovery of storage ports for storage system {}, name {} - Start", storageSystem.getNativeId(),
                     storageSystem.getSystemName());
@@ -759,7 +758,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                 for (ScaleIOSDS sds : allSDSs) {
                     StoragePort port;
                     String pdId = sds.getProtectionDomainId();
-                    if (compare(pdId, storageSystem.getNativeId())) {
+                    if (ScaleIOHelper.compare(pdId, storageSystem.getNativeId())) {
                         String sdsId = sds.getId();
                         List<ScaleIOSDS.IP> ips = sds.getIpList();
                         String sdsIP = null;
@@ -767,7 +766,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             sdsIP = ips.get(0).getIp();
                         }
 
-                        if (sdsId != null && compare(sds.getSdsState(), ScaleIOConstants.OPERATIONAL_STATUS_CONNECTED)) {
+                        if (sdsId != null && ScaleIOHelper.compare(sds.getSdsState(), ScaleIOConstants.OPERATIONAL_STATUS_CONNECTED)) {
                             port = new StoragePort();
                             port.setNativeId(sdsId);
                             log.info("StorageDriver: Discovered port {}, storageSystem {}", port.getNativeId(), port.getStorageSystemId());
@@ -955,24 +954,4 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return task;
     }
 
-    /**
-     * Create driver task for task type
-     *
-     * @param taskType
-     */
-    public DriverTask createDriverTask(String taskType) {
-        String taskID = String.format("%s+%s+%s", ScaleIOConstants.DRIVER_NAME, taskType, UUID.randomUUID());
-        DriverTask task = new DriverTaskImpl(taskID);
-        return task;
-    }
-
-    /**
-     * Compare domain name and system name
-     *
-     * @param domainName
-     * @param systemName
-     */
-    public Boolean compare(String domainName, String systemName) {
-        return domainName.equalsIgnoreCase(systemName);
-    }
 }

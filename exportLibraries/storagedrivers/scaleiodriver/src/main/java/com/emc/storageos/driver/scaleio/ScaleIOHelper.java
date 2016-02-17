@@ -94,4 +94,14 @@ public class ScaleIOHelper {
         return isSameCG;
     }
 
+    /**
+     * Compare domain name and system name
+     *
+     * @param domainName
+     * @param systemName
+     */
+    public static Boolean compare(String domainName, String systemName) {
+        return domainName.equalsIgnoreCase(systemName);
+    }
+
 }

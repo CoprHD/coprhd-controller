@@ -212,7 +212,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // For VPLEX, the linked target volume must be deleted when they are unlinked.
             // If we allow this, then you end up with a public Volume instance that is not
             // a VPLEX volume, but has a vpool that specifies VPLEX HA. This causes many
-            // problems, because we end up using the the VPlexBlockServiceApiImpl to perform
+            // problems, because we end up using the VPlexBlockServiceApiImpl to perform
             // block operations on a non-VPLEX volume.
             Iterator<Boolean> targetDeleteIter = targetMap.values().iterator();
             while (targetDeleteIter.hasNext()) {

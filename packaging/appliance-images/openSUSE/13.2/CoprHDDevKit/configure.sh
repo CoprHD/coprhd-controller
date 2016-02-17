@@ -18,14 +18,14 @@ function installRepositories
          --no-gpgcheck http://download.opensuse.org/repositories/home:/seife:/testing/openSUSE_13.2 suse-13.2-seife
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-python \
          --no-gpgcheck http://download.opensuse.org/repositories/devel:/languages:/python/openSUSE_13.2 suse-13.2-python
+  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-network \
+         --no-gpgcheck http://download.opensuse.org/repositories/network:/utilities/openSUSE_13.2 suse-13.2-network
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-building \
          --no-gpgcheck http://download.opensuse.org/repositories/devel:/tools:/building/openSUSE_13.2 suse-13.2-building
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-appliances \
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/Appliances/openSUSE_13.2 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-containers \
          --no-gpgcheck http://download.opensuse.org/repositories/Virtualization:/containers/openSUSE_13.2 suse-13.2-containers
-  zypper --non-interactive --no-gpg-checks addrepo --no-check --name suse-13.2-oss-update \
-         --no-gpgcheck http://download.opensuse.org/repositories/openSUSE:/13.2:/Update/standard suse-13.2-oss-update
 
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  3 suse-13.2-oss-update
@@ -33,6 +33,7 @@ function installRepositories
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-monitoring
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-seife
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  4 suse-13.2-python
+  zypper --non-interactive --no-gpg-checks modifyrepo --priority  4 suse-13.2-network
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  5 suse-13.2-building
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-appliances
   zypper --non-interactive --no-gpg-checks modifyrepo --priority  1 suse-13.2-containers
@@ -47,6 +48,7 @@ function installPackages
   cp -f /etc/zypp/repos.d/suse-13.2-oss.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-monitoring.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-python.repo /tmp/coprhd.d/
+  cp -f /etc/zypp/repos.d/suse-13.2-network.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-seife.repo /tmp/coprhd.d/
   cp -f /etc/zypp/repos.d/suse-13.2-containers.repo /tmp/coprhd.d/
 
@@ -58,7 +60,7 @@ function installPackages
   fi
 
   zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks refresh
-  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --details --no-recommends --force-resolution ant apache2-mod_perl apache2-prefork atop bind-libs bind-utils ca-certificates-cacert ca-certificates-mozilla curl createrepo dhcpcd docker docker-compose expect fontconfig fonts-config gcc-c++ GeoIP GeoIP-data git git-core glib2-devel gpgme grub2 ifplugd inst-source-utils iproute2 iputils java-1_7_0-openjdk java-1_7_0-openjdk-devel java-1_8_0-openjdk java-1_8_0-openjdk-devel keepalived kernel-default kernel-default-devel kernel-source kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates libaudiofile1 libesd0 libgcrypt-devel libGeoIP1 libgpg-error-devel libmng2 libopenssl-devel libpcrecpp0 libpcreposix0 libqt4 libqt4-sql libqt4-x11 libSDL-1_2-0 libserf-devel libtool libuuid-devel libvpx1 libxml2-devel libXmu6 lvm2 make mkfontdir mkfontscale mozilla-nss-certs netcfg net-tools nfs-client openssh openssh-fips p7zip pam-devel parted pcre-devel perl-Config-General perl-Error perl-Tk plymouth python-cjson python-devel python-gpgme python-iniparse python-libxml2 python-py python-requests python-setools qemu qemu-tools readline-devel regexp rpm-build setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 subversion sudo SuSEfirewall2 sysconfig sysconfig-netconfig syslinux sysstat systemd-logger tar telnet unixODBC vim virtualbox virtualbox-guest-kmp-default virtualbox-host-kmp-default wget xbitmaps xfsprogs xml-commons-jaxp-1.3-apis xmlstarlet xorg-x11-essentials xorg-x11-fonts xorg-x11-server xz-devel yum zlib-devel
+  zypper --reposd-dir=/tmp/coprhd.d --non-interactive --no-gpg-checks install --details --no-recommends --force-resolution ant apache2-mod_perl apache2-prefork atop bind-libs bind-utils ca-certificates-cacert ca-certificates-mozilla curl createrepo dhcpcd docker docker-compose expect fontconfig fonts-config gcc-c++ GeoIP GeoIP-data git git-core glib2-devel gpgme grub2 ifplugd inst-source-utils iproute2 iputils java-1_7_0-openjdk java-1_7_0-openjdk-devel java-1_8_0-openjdk java-1_8_0-openjdk-devel keepalived kernel-default kernel-default-devel kernel-source kiwi kiwi-desc-isoboot kiwi-desc-oemboot kiwi-desc-vmxboot kiwi-templates libaudiofile1 libesd0 libgcrypt-devel libGeoIP1 libgpg-error-devel libmng2 libopenssl-devel libpcrecpp0 libpcreposix0 libqt4 libqt4-sql libqt4-x11 libSDL-1_2-0 libserf-devel libtool libuuid-devel libvpx1 libxml2-devel libXmu6 lvm2 make mkfontdir mkfontscale mozilla-nss-certs netcfg net-tools ndisc6 nfs-client openssh openssh-fips p7zip pam-devel parted pcre-devel perl-Config-General perl-Error perl-Tk plymouth python-cjson python-devel python-gpgme python-iniparse python-libxml2 python-py python-requests python-setools qemu qemu-tools readline-devel regexp rpm-build setools-libs sipcalc sshpass strongswan strongswan-ipsec strongswan-libs0 subversion sudo SuSEfirewall2 sysconfig sysconfig-netconfig syslinux sysstat systemd-logger tar telnet unixODBC vim virtualbox virtualbox-guest-kmp-default virtualbox-host-kmp-default wget xbitmaps xfsprogs xml-commons-jaxp-1.3-apis xmlstarlet xorg-x11-essentials xorg-x11-fonts xorg-x11-server xz-devel yum zlib-devel
   rm -fr /tmp/coprhd.d
 
   # distribution updates and security fixes
@@ -103,6 +105,104 @@ function installStorageOS
   getent passwd storageos || useradd -r -d /opt/storageos -c "StorageOS" -g 444 -u 444 -s /bin/bash storageos
   [ ! -d /opt/storageos ] || chown -R storageos:storageos /opt/storageos
   [ ! -d /data ] || chown -R storageos:storageos /data
+}
+
+function installDockerEnv
+{
+  workspace=$2
+  node_count=$3
+  [ ! -z "${workspace}" ] || workspace="${PWD}"
+  [ ! -z "${node_count}" ] || node_count=1
+
+  cat > ${workspace}/docker-env.service <<EOF
+[Unit]
+Description=StorageOS docker-env service
+Wants=network.service ipchecktool.service ipsec.service
+After=network.service ipchecktool.service sshd.service ntpd.service ipsec.service
+
+[Service]
+Type=simple
+WorkingDirectory=/
+ExecStart=-/bin/bash -c "/opt/ADG/conf/configure.sh enableStorageOS"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+  for i in $(seq 1 ${node_count}); do
+    mkdir -p ${workspace}/data.$i
+    chmod 777 ${workspace}/data.$i
+  done
+
+  network_vip=(172.17.0.100)
+  network_vip6=(2001:0db8:0001:0000:0000:0242:ac11:0064)
+  vip=${network_vip[0]}
+  vip6=${network_vip6[0]}
+  for i in $(seq 1 ${node_count}); do
+    echo "Starting vipr$i..."
+    docker stop vipr$i &> /dev/null
+    docker rm vipr$i &> /dev/null
+    docker run --privileged -d -e "HOSTNAME=vipr$i" -v ${workspace}/data.$i:/data -v ${workspace}/docker-env.service:/etc/systemd/system/multi-user.target.wants/docker-env.service --name=vipr$i coprhd /sbin/init
+    docker exec vipr$i /bin/bash -c "sed /$(docker inspect -f {{.Config.Hostname}} vipr$i)/d /etc/hosts > /etc/hosts.new"
+    docker exec vipr$i /bin/bash -c "cat /etc/hosts.new > /etc/hosts"
+    docker exec vipr$i /bin/bash -c "rm /etc/hosts.new"
+    docker exec vipr$i /bin/bash -c "echo \"vipr$i\" > /etc/HOSTNAME"
+    docker exec vipr$i /bin/bash -c "echo \"${network_vip[0]}   coordinator\" >> /etc/hosts"
+    docker exec vipr$i /bin/bash -c "echo \"${network_vip[0]}   coordinator.bridge\" >> /etc/hosts"
+    docker exec vipr$i hostname vipr$i
+    network_vip+=($(docker inspect -f {{.NetworkSettings.IPAddress}} vipr$i))
+    network_vip6+=($(docker inspect -f {{.NetworkSettings.GlobalIPv6Address}} vipr$i))
+  done
+
+  for i in $(seq 1 ${node_count}); do
+    echo "#!/bin/bash" > ${workspace}/data.$i/dockerenv.sh
+    echo "network_prefix_length=$(docker inspect -f {{.NetworkSettings.IPPrefixLen}} vipr$i)" >> ${workspace}/data.$i/dockerenv.sh
+    echo "network_prefix_length6=$(docker inspect -f {{.NetworkSettings.GlobalIPv6PrefixLen}} vipr$i)" >> ${workspace}/data.$i/dockerenv.sh
+    for j in $(seq 1 ${node_count}); do
+      echo "network_${j}_ipaddr=${network_vip[$j]}" >> ${workspace}/data.$i/dockerenv.sh
+      echo "network_${j}_ipaddr6=${network_vip6[$j]}" >> ${workspace}/data.$i/dockerenv.sh
+    done
+    echo "network_gateway=$(docker inspect -f {{.NetworkSettings.Gateway}} vipr$i)" >> ${workspace}/data.$i/dockerenv.sh
+    echo "network_gateway6=$(docker inspect -f {{.NetworkSettings.IPv6Gateway}} vipr$i)" >> ${workspace}/data.$i/dockerenv.sh
+    echo "sed -i s/network_netmask=.*/network_netmask=255.255.0.0/g /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    echo "sed -i s/node_count=.*/node_count=$node_count/g /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    echo "sed -i s/node_id=.*/node_id=vipr$i/g /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    echo "sed -i s/network_1_ipaddr=.*/network_1_ipaddr=\${network_1_ipaddr}/g /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    echo "sed -i s/network_gateway=.*/network_gateway=\${network_gateway}/g /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    # echo "sed -i s/network_1_ipaddr6=.*/network_1_ipaddr6=\${network_1_ipaddr6}/g /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    # echo "sed -i s/network_gateway6=.*/network_gateway6=\${network_gateway6}/g /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    echo "sed -i s/network_prefix_length=.*/network_prefix_length=\${network_prefix_length}/g /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    echo "sed -i s/network_vip=.*/network_vip=${vip}/g /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    for j in $(seq 2 ${node_count}); do
+      echo "echo \"network_${j}_ipaddr=\${network_${j}_ipaddr}\" >> /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+      # echo "echo \"network_${j}_ipaddr6=\${network_${j}_ipaddr6}\" >> /etc/ovfenv.properties" >> ${workspace}/data.$i/dockerenv.sh
+    done
+    echo "exit 0" >> ${workspace}/data.$i/dockerenv.sh
+    chmod a+x ${workspace}/data.$i/dockerenv.sh
+    docker exec vipr$i chown -R storageos:storageos /data
+    docker exec vipr$i /opt/ADG/conf/configure.sh installNetworkConfigurationFile
+    docker exec vipr$i /data/dockerenv.sh
+  done
+  iptables -t nat -A DOCKER -p tcp --dport 443 -j DNAT --to-destination ${vip}:443
+  iptables -t nat -A DOCKER -p tcp --dport 4443 -j DNAT --to-destination ${vip}:4443
+  iptables -t nat -A DOCKER -p tcp --dport 8080 -j DNAT --to-destination ${vip}:8080
+  iptables -t nat -A DOCKER -p tcp --dport 8443 -j DNAT --to-destination ${vip}:8443
+}
+
+function uninstallDockerEnv
+{
+  workspace=$2
+  node_count=$3
+  [ ! -z "${workspace}" ] || workspace="${PWD}"
+  [ ! -z "${node_count}" ] || node_count=1
+  for i in $(seq 1 ${node_count}); do
+    echo "Stopping vipr$i..."
+    docker stop vipr$i &> /dev/null
+    docker rm vipr$i &> /dev/null
+    rm -fr ${workspace}/data.$i
+  done
+  rm -fr ${workspace}/docker-env.service
+  iptables -F DOCKER -t nat
 }
 
 function installVagrant

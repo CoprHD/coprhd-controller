@@ -469,6 +469,7 @@ public class AuthnConfigurationService extends TaggedResource {
     private AuthnProviderRestRep updateKeystoneProvider(URI id, AuthnUpdateParam param,
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
+        boolean isAutoRegistered = provider.getAutoRegisterOpenStackProjects();
         overlayProvider(provider, param);
         if (!provider.getDisable()) {
             _log.debug("Validating provider before modification...");
@@ -483,7 +484,7 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
 
-        if (provider.getAutoRegisterOpenStackProjects()) {
+        if (provider.getAutoRegisterOpenStackProjects() && !isAutoRegistered) {
             registerCoprhdInKeystone(provider);
         }
         auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,

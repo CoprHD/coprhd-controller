@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.ObjectBucketACL;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NFSShareACL;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -694,18 +695,6 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(fsIndex, FileExportRule.class, field);
         }
 
-        public static ContainmentConstraint getRpJournalVolumeParent(URI journalVolume) {
-            DataObjectType doType = TypeMap.getDoType(Volume.class);
-            ColumnField field = doType.getColumnField("rpJournalVolume");
-            return new ContainmentConstraintImpl(journalVolume, Volume.class, field);
-        }
-
-        public static ContainmentConstraint getSecondaryRpJournalVolumeParent(URI journalVolume) {
-            DataObjectType doType = TypeMap.getDoType(Volume.class);
-            ColumnField field = doType.getColumnField("secondaryRpJournalVolume");
-            return new ContainmentConstraintImpl(journalVolume, Volume.class, field);
-        }
-
         public static ContainmentConstraint getFileCifsShareAclsConstraint(URI fsURI) {
             DataObjectType doType = TypeMap.getDoType(CifsShareACL.class);
             ColumnField field = doType.getColumnField(FILE_SYSTEM_ID);
@@ -799,6 +788,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             ColumnField field = doType.getColumnField(STORAGE_DEVICE);
             return new ContainmentConstraintImpl(device, ObjectNamespace.class, field);
+        }
+        
+        public static ContainmentConstraint getMigrationVolumeConstraint(URI volumeURI) {
+            DataObjectType doType = TypeMap.getDoType(Migration.class);
+            ColumnField field = doType.getColumnField("volume");
+            return new ContainmentConstraintImpl(volumeURI, Migration.class, field);
         }
     }
 }

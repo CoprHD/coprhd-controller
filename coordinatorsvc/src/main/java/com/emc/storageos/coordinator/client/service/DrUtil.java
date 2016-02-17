@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -582,10 +583,10 @@ public class DrUtil {
         boolean bStable = true;
 
         for (Site site : listSites()) {
-            // skip checking node state for paused sites.
-            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
-                continue;
+            if (site.getState().isDROperationOngoing()) {
+                return false;
             }
+
             int nodeCount = site.getNodeCount();
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
             if (state != ClusterInfo.ClusterState.STABLE) {
@@ -594,5 +595,46 @@ public class DrUtil {
             }
         }
         return bStable;
+    }
+
+    /**
+     * ping target host with port to check connectivity
+     *
+     * @param hostAddress host address 
+     * @param port port number
+     * @param timeout timeout value as ms
+     * @return delay in ms if the specified host responded, -1 if failed
+     */
+    public double testPing(String hostAddress, int port, int timeout) {
+        InetAddress inetAddress = null;
+        InetSocketAddress socketAddress = null;
+        Socket socket = new Socket();
+        long timeToRespond = -1;
+        long start, stop;
+    
+        try {
+            inetAddress = InetAddress.getByName(hostAddress);
+    
+            socketAddress = new InetSocketAddress(inetAddress, port);
+    
+            start = System.nanoTime();
+            socket.connect(socketAddress, timeout);
+            stop = System.nanoTime();
+            timeToRespond = (stop - start);
+        } catch (Exception e) {
+            log.error(String.format("Fail to check cross-site network latency to node {} with Exception: ",hostAddress),e);
+            return -1;
+        } finally {
+            try {
+                if (socket.isConnected()) {
+                    socket.close();
+                }
+            } catch (Exception e) {
+                log.error(String.format("Fail to close connection to node {} with Exception: ",hostAddress),e);
+            }
+        }
+    
+        //the ping suceeded, convert from ns to ms
+        return timeToRespond/1000000.0;
     }
 }

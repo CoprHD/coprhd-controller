@@ -12,7 +12,6 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.application.tasks.LinkSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.LinkSnapshotSessionForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
@@ -43,7 +42,7 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
             if (type.equalsIgnoreCase("vmax3")) {
                 tasks = execute(new LinkSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId()));
             } else {
-                tasks = execute(new LinkSnapshotForApplication(applicationId, volumeTypes.get(type).getId()));
+                // TODO fail for snapshot
             }
             addAffectedResources(tasks);
         }

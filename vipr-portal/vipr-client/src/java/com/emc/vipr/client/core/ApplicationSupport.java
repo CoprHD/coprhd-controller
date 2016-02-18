@@ -18,7 +18,6 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_FULL_COPY_
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_SNAPSHOT_COPY_SETS_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_SNAPSHOT_SESSION_COPY_SETS_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_LINK_SNAPSHOT_SESSION_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_LINK_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_SNAPSHOT_URL;
@@ -27,7 +26,6 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRON
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SESSION_SET_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SNAPSHOT_SET_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UNLINK_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
@@ -323,20 +321,6 @@ public class ApplicationSupport {
     }
 
     /**
-     * Links a snapshot of an application.
-     * API Call: POST /volume-groups/block/{id}/protection/snapshots/link-targets
-     * 
-     * @param id application id with snapshot
-     * @param input input parameters for application snapshot request
-     * @return list of tasks
-     */
-    public TaskList linkApplicationSnapshot(URI id, VolumeGroupSnapshotSessionLinkTargetsParam input) {
-        // TODO change the input parameter
-        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_LINK_SNAPSHOT_URL);
-        return client.postURI(TaskList.class, input, uriBuilder.build(id));
-    }
-
-    /**
      * Unlinks a snapshot session of an application.
      * API Call: POST /volume-groups/block/{id}/protection/snap-sessions/unlink-targets
      * 
@@ -346,20 +330,6 @@ public class ApplicationSupport {
      */
     public TaskList unlinkApplicationSnapshotSession(URI id, VolumeGroupSnapshotSessionUnlinkTargetsParam input) {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL);
-        return client.postURI(TaskList.class, input, uriBuilder.build(id));
-    }
-
-    /**
-     * Unlinks a snapshot of an application.
-     * API Call: POST /volume-groups/block/{id}/protection/snapshots/unlink-targets
-     * 
-     * @param id application id with snapshot
-     * @param input input parameters for application snapshot session request
-     * @return list of tasks
-     */
-    public TaskList unlinkApplicationSnapshot(URI id, VolumeGroupSnapshotSessionUnlinkTargetsParam input) {
-        // TODO change the input parameter
-        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_UNLINK_SNAPSHOT_URL);
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
     }
 

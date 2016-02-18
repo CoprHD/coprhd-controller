@@ -11,22 +11,22 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionLinkTargetsParam;
 import com.emc.vipr.client.Tasks;
+import com.google.common.collect.Lists;
 
 public class LinkSnapshotSessionForApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
-    private final URI volume;
+    private final URI snapSession;
 
-    public LinkSnapshotSessionForApplication(URI applicationId, URI volume) {
+    public LinkSnapshotSessionForApplication(URI applicationId, URI snapSession) {
         this.applicationId = applicationId;
-        this.volume = volume;
+        this.snapSession = snapSession;
         provideDetailArgs(applicationId);
     }
 
     @Override
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupSnapshotSessionLinkTargetsParam input = new VolumeGroupSnapshotSessionLinkTargetsParam();
-        // input.setSnapshotSessions(snapshotSessions)
-        // TODO fix the inputs
+        input.setSnapshotSessions(Lists.newArrayList(snapSession));
         input.setPartial(true);
 
         TaskList taskList = getClient().application().linkApplicationSnapshotSession(applicationId, input);

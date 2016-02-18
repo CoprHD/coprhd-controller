@@ -12,10 +12,11 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.application.tasks.UnlinkSnapshotForApplication;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
 import com.emc.sa.service.vipr.application.tasks.UnlinkSnapshotSessionForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
@@ -25,6 +26,9 @@ public class UnlinkSnapshotOfApplicationService extends ViPRService {
 
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
+
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
+    protected String applicationCopySet;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
     protected List<URI> subGroups;
@@ -41,9 +45,12 @@ public class UnlinkSnapshotOfApplicationService extends ViPRService {
 
         for (String type : volumeTypes.keySet()) {
             if (type.equalsIgnoreCase("VMAX3")) {
-                tasks = execute(new UnlinkSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId()));
+                BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, applicationCopySet));
+                // TODO error if snapSessionList is empty
+                tasks = execute(new UnlinkSnapshotSessionForApplication(applicationId, snapSessionList.getSnapSessionRelatedResourceList()
+                        .get(0).getId()));
             } else {
-                tasks = execute(new UnlinkSnapshotForApplication(applicationId, volumeTypes.get(type).getId()));
+                // TODO fail since not supported for snapshot
             }
             addAffectedResources(tasks);
         }

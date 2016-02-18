@@ -842,6 +842,12 @@ public abstract class VdcOpHandler {
                 waitForAllNodesAndReboot(site);
             } else {
                 reconfigVdc();
+                // Flush vdc properties includes VDC_CONFIG_VERSION to disk here, since the next step restarts syssvc
+                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+                localRepository.setVdcPropertyInfo(vdcProperty);
+
+                localRepository.restartCoordinator("observer");
             }
         }
         

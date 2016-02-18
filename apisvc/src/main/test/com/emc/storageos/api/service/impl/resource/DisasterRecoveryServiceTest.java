@@ -257,7 +257,7 @@ public class DisasterRecoveryServiceTest {
         // verify the REST response
         assertEquals(name, rep.getName());
         assertEquals(desc, rep.getDescription());
-        assertEquals(vip, rep.getVip());
+        assertEquals(vip, rep.getVipEndpoint());
     }
 
     @Test
@@ -514,7 +514,7 @@ public class DisasterRecoveryServiceTest {
             drService.precheckForSwitchover(standbyUUID);
             fail("should throw exception when met invalid standby uuid");
         } catch (InternalServerErrorException e) {
-            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_SWITCHOVER_PRECHECK_FAILED);
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED);
         }
 
         Site site = new Site();
@@ -530,7 +530,7 @@ public class DisasterRecoveryServiceTest {
             drService.precheckForSwitchover(standbyUUID);
             fail("should throw exception when trying to failover to a primary site");
         } catch (InternalServerErrorException e) {
-            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_SWITCHOVER_PRECHECK_FAILED);
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED);
         }
 
         // test for primary unstable case
@@ -541,7 +541,7 @@ public class DisasterRecoveryServiceTest {
             drService.precheckForSwitchover(standbyUUID);
             fail("should throw exception when primary is not stable");
         } catch (InternalServerErrorException e) {
-            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_SWITCHOVER_PRECHECK_FAILED);
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED);
         }
 
         // test for standby unstable case
@@ -553,7 +553,7 @@ public class DisasterRecoveryServiceTest {
             drService.precheckForSwitchover(standbyUUID);
             fail("should throw exception when site to failover to is not stable");
         } catch (InternalServerErrorException e) {
-            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_SWITCHOVER_PRECHECK_FAILED);
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED);
         }
 
         // test for standby not STANDBY_CYNCED state
@@ -567,7 +567,7 @@ public class DisasterRecoveryServiceTest {
             drService.precheckForSwitchover(standbyUUID);
             fail("should throw exception when standby site is not fully synced");
         } catch (InternalServerErrorException e) {
-            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_SWITCHOVER_PRECHECK_FAILED);
+            assertEquals(e.getServiceCode(), ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED);
         }
     }
 
@@ -872,7 +872,7 @@ public class DisasterRecoveryServiceTest {
         assertNotNull(response);
         assertEquals(response.getUuid(), site.getUuid());
         assertEquals(response.getName(), site.getName());
-        assertEquals(response.getVip(), site.getVip());
+        assertEquals(response.getVipEndpoint(), site.getVipEndPoint());
     }
     
     protected void compareSiteResponse(SiteConfigRestRep response, Site site) {

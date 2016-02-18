@@ -147,7 +147,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
             }
             String path = request.getPath();
             if (isForbidden(request)) {
-                throw APIException.forbidden.disallowOperationOnDrStandby(drUtil.getActiveSite().getVip());
+                throw APIException.forbidden.disallowOperationOnDrStandby(drUtil.getActiveSite().getVipEndPoint());
             }
             return request;
         }

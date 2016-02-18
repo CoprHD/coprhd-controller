@@ -706,38 +706,30 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         MirrorFileRefreshTaskCompleter mirrorRefreshCompleter = (MirrorFileRefreshTaskCompleter) completer;
         String policyName = target.getLabel();
         IsilonSyncPolicy policy;
-        IsilonSyncTargetPolicy localTarget;
+        IsilonSyncTargetPolicy localTarget = null;
         StorageSystem systemTarget = _dbClient.queryObject(StorageSystem.class, target.getStorageDevice());
         IsilonApi isiPrimary = getIsilonDevice(system);
         IsilonApi isiSecondary = getIsilonDevice(systemTarget);
         try {
-            policy = isiPrimary.getReplicationPolicy(policyName);
 
-            if (policy.getLastStarted() == null && !policy.getEnabled()) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
-            }
-            if (policy.getLastStarted() != null && !policy.getEnabled()) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.DETACHED);
-            }
-            if (policy.getLastStarted() != null && policy.getLastJobState().equals(JobState.paused)) {
-                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SUSPENDED);
-            }
+            policy = isiPrimary.getReplicationPolicy(policyName);
             if (policy.getLastStarted() != null) {
                 localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
-                if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
-                    mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
-                }
             }
-            if (policy.getLastStarted() != null && policy.getLastJobState().equals(JobState.finished)) {
-                localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
-                if (localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled)) {
-                    mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCHRONIZED);
-                }
-            }
-            if (policy.getLastJobState().equals(JobState.running)) {
+            if (policy.getLastStarted() == null && !policy.getEnabled()) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
+            } else if (policy.getLastStarted() != null && !policy.getEnabled()) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.DETACHED);
+            } else if (policy.getLastJobState().equals(JobState.paused)) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SUSPENDED);
+            } else if (localTarget.getFoFbState().equals(FOFB_STATES.writes_enabled)) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.FAILED_OVER);
+            } else if (policy.getEnabled() && policy.getLastJobState().equals(JobState.finished) &&
+                    localTarget.getFoFbState().equals(FOFB_STATES.writes_disabled)) {
+                mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SYNCHRONIZED);
+            } else if (policy.getLastJobState().equals(JobState.running)) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.IN_SYNC);
-            }
-            if (policy.getLastJobState().equals(JobState.failed) || policy.getLastJobState().equals(JobState.needs_attention)) {
+            } else if (policy.getLastJobState().equals(JobState.failed) || policy.getLastJobState().equals(JobState.needs_attention)) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.ERROR);
             }
             completer.ready(_dbClient);
@@ -745,5 +737,4 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             completer.error(_dbClient, BiosCommandResult.createErrorResult(e).getServiceCoded());
         }
     }
-
 }

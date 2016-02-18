@@ -168,7 +168,7 @@ public class BucketACLUtility {
                     }
 
                     case ACL_NOT_FOUND: {
-                        throw APIException.badRequests.bucketACLNotFoundFound(
+                        throw APIException.badRequests.bucketACLNotFound(
                                 opName, bucketACE.toString());
                     }
 
@@ -247,7 +247,7 @@ public class BucketACLUtility {
                     }
 
                     case ACL_NOT_FOUND: {
-                        throw APIException.badRequests.bucketACLNotFoundFound(
+                        throw APIException.badRequests.bucketACLNotFound(
                                 opName, bucketACE.toString());
                     }
 
@@ -621,16 +621,21 @@ public class BucketACLUtility {
         }
 
         String permissionsValue = bucketACE.getPermissions();
-        String[] permissionsArray = permissionsValue.split("\\|");
-
-        for (String permission : permissionsArray) {
-            if (isValidEnum(permission, BucketPermissions.class)) {
-                bucketACE.proceedToNextStep();
-            } else {
-                _log.error("Invalid value for permission: {}", permissionsValue);
-                bucketACE.cancelNextStep(BucketACLOperationErrorType.INVALID_PERMISSIONS);
-                return;
+        if (permissionsValue != null) {
+            String[] permissionsArray = permissionsValue.split("\\|");
+            for (String permission : permissionsArray) {
+                if (isValidEnum(permission, BucketPermissions.class)) {
+                    bucketACE.proceedToNextStep();
+                } else {
+                    _log.error("Invalid value for permission: {}", permissionsValue);
+                    bucketACE.cancelNextStep(BucketACLOperationErrorType.INVALID_PERMISSIONS);
+                    return;
+                }
             }
+        } else {
+            _log.error("permissions are not provided: {}", permissionsValue);
+            bucketACE.cancelNextStep(BucketACLOperationErrorType.INVALID_PERMISSIONS);
+            return;
         }
 
     }

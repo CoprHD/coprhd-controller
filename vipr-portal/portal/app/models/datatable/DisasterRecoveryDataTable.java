@@ -25,7 +25,6 @@ public class DisasterRecoveryDataTable extends DataTable {
         public String description;
         public String VirtualIP;
         public String status;
-        public String siteId;
         public String id;
         public String networkHealth;
 
@@ -34,7 +33,7 @@ public class DisasterRecoveryDataTable extends DataTable {
 
         public StandByInfo(SiteRestRep standByInfo) {
             this.name = standByInfo.getName();
-            this.VirtualIP = standByInfo.getVip();
+            this.VirtualIP = standByInfo.getVipEndpoint();
             this.status = standByInfo.getState();
             this.id = standByInfo.getUuid();
             this.description = standByInfo.getDescription();

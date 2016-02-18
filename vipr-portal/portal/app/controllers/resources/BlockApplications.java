@@ -100,12 +100,12 @@ public class BlockApplications extends ResourceController {
     public static void getAssociatedSnapSession(String id, String sessionSet) {
         renderArgs.put("dataTable", new BlockSnapshotSessionsDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
-        String sessionLabel = id + "," + sessionSet;
+        String sessionLabel = id + "~~~" + sessionSet;
         render(application, sessionLabel, sessionSet);
     }
     
     public static void getAssociatedSnapSessionJSON(String sessionLabel) {
-        String[] sessionSet = sessionLabel.split(",");
+        String[] sessionSet = sessionLabel.split("~~~");
         List<BlockSnapshotSession> sessionDetails = Lists.newArrayList();
         List<NamedRelatedResourceRep> sessionSetDetails = AppSupportUtil.getVolumeGroupSnapshotSessionsByCopySet(sessionSet[0],
                 sessionSet[1]);

@@ -2,7 +2,7 @@
 #{breadcrumb.container}
   #{breadcrumb.item @blockApplications()}&{'resources.applications'}#{/breadcrumb.item}
   #{breadcrumb.item @blockApplicationDetails(application.id)}${application?.name}#{/breadcrumb.item}
-  #{breadcrumb.item active:true}${snapSet}#{/breadcrumb.item}
+  #{breadcrumb.item active:true}${sessionSet}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
 #{DataTable.header titleKey:'resources.applications.snapshots.session' /}

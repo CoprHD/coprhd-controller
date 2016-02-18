@@ -205,6 +205,7 @@ public class ApplicationSupport {
     }
     
     /**
+     * Get copy-sets for snapVx for particular application
      * GET: /volume-groups/block/{id}/protection/snapshot-sessions/copy-sets
      */
     public VolumeGroupCopySetList getVolumeGroupSnapsetSessionSets(URI id) {
@@ -212,6 +213,7 @@ public class ApplicationSupport {
     }
 
     /**
+     * Get copy-sets snapVx for copy-set for particular application
      * POST: /volume-groups/block/{id}/protection/snapshot-sessions/copy-sets
      */
     public BlockSnapshotSessionList getVolumeGroupSnapshotSessionsByCopySet(URI id, VolumeGroupCopySetParam input) {

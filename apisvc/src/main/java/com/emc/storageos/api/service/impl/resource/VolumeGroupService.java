@@ -104,6 +104,7 @@ import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeGroupSnapshotCreateParam;
@@ -825,7 +826,7 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error activating Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                TaskResourceRep task = createFailedTaskOnObject(fullCopy,
+                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
                         ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
@@ -915,7 +916,7 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error detaching Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                TaskResourceRep task = createFailedTaskOnObject(fullCopy,
+                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
                         ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
@@ -1006,7 +1007,7 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error restoring Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                TaskResourceRep task = createFailedTaskOnObject(fullCopy,
+                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
                         ResourceOperationTypeEnum.RESTORE_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
@@ -1097,7 +1098,7 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error resynchronizing Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                TaskResourceRep task = createFailedTaskOnObject(fullCopy,
+                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
                         ResourceOperationTypeEnum.RESYNCHRONIZE_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
@@ -1184,25 +1185,70 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Creates a Task on given data object with Error state
+     * Creates a Task on given Volume with Error state
      *
      * @param opr the opr
      * @param volume the volume
      * @param sc the sc
      * @return the failed task for volume
      */
-    private TaskResourceRep createFailedTaskOnObject(DataObject obj, ResourceOperationTypeEnum opr, ServiceCoded sc) {
+    private TaskResourceRep createFailedTaskOnVolume(Volume volume, ResourceOperationTypeEnum opr, ServiceCoded sc) {
         String taskId = UUID.randomUUID().toString();
         Operation op = new Operation();
         op.setResourceType(opr);
-        _dbClient.createTaskOpStatus(DataObject.class, obj.getId(), taskId, op);
+        _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
 
-        obj = _dbClient.queryObject(DataObject.class, obj.getId());
-        op = obj.getOpStatus().get(taskId);
+        volume = _dbClient.queryObject(Volume.class, volume.getId());
+        op = volume.getOpStatus().get(taskId);
         op.error(sc);
-        obj.getOpStatus().updateTaskStatus(taskId, op);
-        _dbClient.updateObject(obj);
-        return TaskMapper.toTask(obj, taskId, op);
+        volume.getOpStatus().updateTaskStatus(taskId, op);
+        _dbClient.updateObject(volume);
+        return TaskMapper.toTask(volume, taskId, op);
+    }
+
+    /**
+     * Creates a Task on given CG with Error state
+     *
+     * @param opr the opr
+     * @param cg the consistency group
+     * @param sc the sc
+     * @return the failed task for cg
+     */
+    private TaskResourceRep createFailedTaskOnCG(BlockConsistencyGroup cg, ResourceOperationTypeEnum opr, ServiceCoded sc) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opr);
+        _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId, op);
+
+        cg = _dbClient.queryObject(BlockConsistencyGroup.class, cg.getId());
+        op = cg.getOpStatus().get(taskId);
+        op.error(sc);
+        cg.getOpStatus().updateTaskStatus(taskId, op);
+        _dbClient.updateObject(cg);
+        return TaskMapper.toTask(cg, taskId, op);
+    }
+
+    /**
+     * Creates a Task on given snapshot session with Error state
+     *
+     * @param opr the opr
+     * @param session the snap session
+     * @param sc the sc
+     * @return the failed task for snap session
+     */
+    private TaskResourceRep createFailedTaskOnSnapshotSession(BlockSnapshotSession session,
+            ResourceOperationTypeEnum opr, ServiceCoded sc) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opr);
+        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, session.getId(), taskId, op);
+
+        session = _dbClient.queryObject(BlockSnapshotSession.class, session.getId());
+        op = session.getOpStatus().get(taskId);
+        op.error(sc);
+        session.getOpStatus().updateTaskStatus(taskId, op);
+        _dbClient.updateObject(session);
+        return TaskMapper.toTask(session, taskId, op);
     }
 
     /**
@@ -1924,7 +1970,7 @@ public class VolumeGroupService extends TaskResourceService {
             } catch (InternalException | APIException e) {
                 log.error("Exception while creating snapshot session for consistency group {}: {}", cgUri, e);
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
-                TaskResourceRep task = createFailedTaskOnObject(cg,
+                TaskResourceRep task = createFailedTaskOnCG(cg,
                         ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION, e);
                 taskList.addTask(task);
             }
@@ -2174,38 +2220,38 @@ public class VolumeGroupService extends TaskResourceService {
                     log.info("CG: {}, Session: {}", cgUri, session.getLabel());
                     switch (opType) {
                         case RESTORE_VOLUME_GROUP_SNAPSHOT_SESSION:
+                            oprEnum = ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION;
                             taskList.addTask(
                                     _blockConsistencyGroupService.restoreConsistencyGroupSnapshotSession(cgUri, sessionUri));
-                            oprEnum = ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION;
                             break;
                         case DELETE_VOLUME_GROUP_SNAPSHOT_SESSION:
+                            oprEnum = ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION;
                             taskList.getTaskList().addAll(
                                     _blockConsistencyGroupService.deactivateConsistencyGroupSnapshotSession(cgUri, sessionUri)
                                             .getTaskList());
-                            oprEnum = ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION;
                             break;
                         case LINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
+                            oprEnum = ResourceOperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGETS;
                             SnapshotSessionLinkTargetsParam linkParam = new SnapshotSessionLinkTargetsParam(
                                     ((VolumeGroupSnapshotSessionLinkTargetsParam) param).getNewLinkedTargets());
                             taskList.getTaskList().addAll(
                                     _blockConsistencyGroupService.linkTargetVolumes(cgUri, sessionUri, linkParam)
                                             .getTaskList());
-                            oprEnum = ResourceOperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGETS;
                             break;
                         case RELINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
+                            oprEnum = ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS;
                             SnapshotSessionRelinkTargetsParam relinkParam = new SnapshotSessionRelinkTargetsParam(
-                                    ((VolumeGroupSnapshotSessionRelinkTargetsParam) param).getLinkedTargetIds());
+                                    getRelinkTargetIdsForCG((VolumeGroupSnapshotSessionRelinkTargetsParam) param, cgUri, session));
                             taskList.getTaskList().addAll(
                                     _blockConsistencyGroupService.relinkTargetVolumes(cgUri, sessionUri, relinkParam)
                                             .getTaskList());
-                            oprEnum = ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS;
                             break;
                         case UNLINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
+                            oprEnum = ResourceOperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGETS;
                             SnapshotSessionUnlinkTargetsParam unlinkParam = new SnapshotSessionUnlinkTargetsParam(
-                                    ((VolumeGroupSnapshotSessionUnlinkTargetsParam) param).getLinkedTargets());
+                                    getUnlinkTargetIdsForCG((VolumeGroupSnapshotSessionUnlinkTargetsParam) param, cgUri, session));
                             taskList.addTask(
                                     _blockConsistencyGroupService.unlinkTargetVolumesForSession(cgUri, sessionUri, unlinkParam));
-                            oprEnum = ResourceOperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGETS;
                             break;
                         default:
                             log.error("Unsupported operation {}", opType.getDescription());
@@ -2215,7 +2261,7 @@ public class VolumeGroupService extends TaskResourceService {
                     String errMsg = String.format("Exception occurred while performing %s on Replication group %s",
                             opType.getDescription(), cell.getColumnKey());
                     log.error(errMsg, e);
-                    TaskResourceRep task = createFailedTaskOnObject(session, oprEnum, e);
+                    TaskResourceRep task = createFailedTaskOnSnapshotSession(session, oprEnum, e);
                     taskList.addTask(task);
                 }
             }
@@ -2223,6 +2269,68 @@ public class VolumeGroupService extends TaskResourceService {
 
         auditOp(opType, true, AuditLogManager.AUDITOP_END, volumeGroupId.toString(), param.getSnapshotSessions());
         return taskList;
+    }
+
+    /**
+     * Gets the relink target ids for the given CG and session.
+     *
+     * @param param the VolumeGroupSnapshotSessionRelinkTargetsParam
+     * @param cgURI the cg uri
+     * @param session the snap session
+     * @return the relink target ids for cg and session
+     */
+    private List<URI> getRelinkTargetIdsForCG(final VolumeGroupSnapshotSessionRelinkTargetsParam param, URI cgURI,
+            BlockSnapshotSession session) {
+        List<URI> targetIds = new ArrayList<URI>();
+        for (URI snapURI : param.getLinkedTargetIds()) {
+            ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
+            BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
+            ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
+            if (!NullColumnValueGetter.isNullURI(snap.getConsistencyGroup())
+                    && snap.getConsistencyGroup().toString().equals(cgURI.toString())) {
+                // TODO check this
+                if (session.getSessionInstance().equals(snap.getSettingsInstance())) {
+                    targetIds.add(snapURI);
+                }
+            }
+        }
+        // TODO throw error if no targets
+        log.info(String.format("Target ids for consistency group %s and session %s : %s",
+                cgURI, session.getLabel(), Joiner.on(',').join(targetIds)));
+        return targetIds;
+    }
+
+    /**
+     * Gets the unlink target ids for the given CG and session.
+     *
+     * @param param the VolumeGroupSnapshotSessionUnlinkTargetsParam
+     * @param cgURI the cg uri
+     * @param session the snap session
+     * @return the unlink target id params for cg and session
+     */
+    private List<SnapshotSessionUnlinkTargetParam> getUnlinkTargetIdsForCG(final VolumeGroupSnapshotSessionUnlinkTargetsParam param,
+            URI cgURI,
+            BlockSnapshotSession session) {
+        List<SnapshotSessionUnlinkTargetParam> targetIds = new ArrayList<SnapshotSessionUnlinkTargetParam>();
+        List<URI> selectedURIs = new ArrayList<URI>();
+        for (SnapshotSessionUnlinkTargetParam unlinkTarget : param.getLinkedTargets()) {
+            URI snapURI = unlinkTarget.getId();
+            ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
+            BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
+            ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
+            if (!NullColumnValueGetter.isNullURI(snap.getConsistencyGroup())
+                    && snap.getConsistencyGroup().toString().equals(cgURI.toString())) {
+                // TODO check this
+                if (session.getSessionInstance().equals(snap.getSettingsInstance())) {
+                    targetIds.add(unlinkTarget);
+                    selectedURIs.add(snapURI);
+                }
+            }
+        }
+        // TODO throw error if no targets
+        log.info(String.format("Target ids for consistency group %s and session %s : %s",
+                cgURI, session.getLabel(), Joiner.on(',').join(selectedURIs)));
+        return targetIds;
     }
 
     /**

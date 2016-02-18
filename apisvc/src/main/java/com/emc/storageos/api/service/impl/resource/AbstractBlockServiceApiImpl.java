@@ -1173,7 +1173,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             String label = snapshotName;
             String rgName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(rgName)) {
-                label = String.format("%s-%s-%s", snapshotName, rgName, count++);
+                // There can be multiple RGs in a CG, in such cases generate unique name
+                if (volumes.size() > 1) {
+                    label = String.format("%s-%s-%s", snapshotName, rgName, count++);
+                } else {
+                    label = String.format("%s-%s", snapshotName, rgName);
+                }
             } else if (volumes.size() > 1) {
                 label = String.format("%s-%s", snapshotName, count++);
             }

@@ -553,12 +553,17 @@ public class BlockServiceUtils {
      * @param rgFilter Set of selected replication groups
      * @return table with storage URI, replication group name, and volumes
      */
-    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<Volume> cgVolumes, Set<String> rgFiler) {
+    public static Table<URI, String, List<Volume>>
+            getReplicationGroupVolumes(List<Volume> cgVolumes, Set<String> rgFiler, DbClient dbClient) {
         // Group volumes by storage system and replication group
         // Ignore replication groups that not in rgFiler if the filter is provided
         Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
         for (Volume volume : cgVolumes) {
             String rgName = volume.getReplicationGroupInstance();
+            if (volume.isVPlexVolume(dbClient)) {
+                Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                rgName = srcBEVolume.getReplicationGroupInstance();
+            }
             if (NullColumnValueGetter.isNullValue(rgName)) {
                 throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
             }
@@ -585,24 +590,28 @@ public class BlockServiceUtils {
      * @return table with storage URI, replication group name, and block objects
      */
     public static Table<URI, String, List<BlockObject>>
-            getReplicationGroupBlockObjects(List<BlockObject> blockObjects, Set<String> rgFiler) {
+            getReplicationGroupBlockObjects(List<BlockObject> blockObjects, Set<String> rgFiler, DbClient dbClient) {
         // Group block objects by storage system and replication group
         // Ignore replication groups that not in rgFiler if the filter is provided
         Table<URI, String, List<BlockObject>> storageRgToVolumes = HashBasedTable.create();
-        for (BlockObject volume : blockObjects) {
-            String rgName = volume.getReplicationGroupInstance();
+        for (BlockObject bo : blockObjects) {
+            String rgName = bo.getReplicationGroupInstance();
+            if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(dbClient)) {
+                Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, dbClient);
+                rgName = srcBEVolume.getReplicationGroupInstance();
+            }
             if (NullColumnValueGetter.isNullValue(rgName)) {
-                throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
+                throw APIException.badRequests.noRepGroupInstance(bo.getLabel());
             }
 
             if (rgFiler == null || rgFiler.contains(rgName)) {
-                URI storage = volume.getStorageController();
+                URI storage = bo.getStorageController();
                 List<BlockObject> volumes = storageRgToVolumes.get(storage, rgName);
                 if (volumes == null) {
                     volumes = new ArrayList<BlockObject>();
                     storageRgToVolumes.put(storage, rgName, volumes);
                 }
-                volumes.add(volume);
+                volumes.add(bo);
             }
         }
 

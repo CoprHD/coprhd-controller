@@ -1669,7 +1669,7 @@ public class ControllerUtils {
             while (iter.hasNext()) {
                 BlockSnapshotSession snapshot = iter.next();
                 // if (isSourceInVoumeGroup(snapshot, volumeGroupId, dbClient)) {
-                    sessions.add(iter.next());
+                sessions.add(snapshot);
                 // }
             }
         }

@@ -461,7 +461,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Group volumes by storage system and replication group, ignore replication groups that not in selectedRGs if it is not null
         Table<URI, String, List<Volume>> storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
                 blockServiceApiImpl.getActiveCGVolumes(consistencyGroup),
-                selectedRGs);
+                selectedRGs, _dbClient);
         TaskList taskList = new TaskList();
         for (Cell<URI, String, List<Volume>> cell : storageRgToVolumes.cellSet()) {
             List<Volume> volumeList = cell.getValue();

@@ -74,6 +74,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
@@ -258,7 +259,7 @@ public class BlockSnapshotSessionManager {
         // ignore replication groups that not in selectedRGs if it is not null
         Table<URI, String, List<BlockObject>> storageRgToVolumes = BlockServiceUtils.getReplicationGroupBlockObjects(
                 BlockConsistencyGroupUtils.getAllSources(cg, _dbClient),
-                selectedRGs);
+                selectedRGs, _dbClient);
         TaskList taskList = new TaskList();
         for (Cell<URI, String, List<BlockObject>> cell : storageRgToVolumes.cellSet()) {
             String rgName = cell.getColumnKey();
@@ -297,6 +298,9 @@ public class BlockSnapshotSessionManager {
         Collection<URI> sourceURIs = transform(snapSessionSourceObjList, fctnDataObjectToID());
         s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(sourceURIs));
 
+        // Get the snapshot session label.
+        String snapSessionLabel = param.getName();
+
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
         String newTargetsName = null;
@@ -309,13 +313,6 @@ public class BlockSnapshotSessionManager {
         }
 
         BlockObject sourceObj = snapSessionSourceObjList.get(0);
-
-        // Get the snapshot session label.
-        String snapSessionLabel = param.getName();
-        // append RG name to user provided label to uniquely identify sessions when there are multiple RGs in CG
-        if (NullColumnValueGetter.isNotNullValue(sourceObj.getReplicationGroupInstance())) {
-            snapSessionLabel = snapSessionLabel + "-" + sourceObj.getReplicationGroupInstance();
-        }
 
         // Get the project for the snapshot session source object.
         Project project = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
@@ -963,7 +960,23 @@ public class BlockSnapshotSessionManager {
     private List<BlockObject> getAllSnapshotSessionSources(BlockSnapshotSession snapSession) {
         if (snapSession.hasConsistencyGroup()) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            return BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
+            // return only those volumes belonging to session's RG
+            List<BlockObject> cgSources = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
+            List<BlockObject> cgSourcesInRG = new ArrayList<BlockObject>();
+            String rgName = snapSession.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                for (BlockObject bo : cgSources) {
+                    String boRGName = bo.getReplicationGroupInstance();
+                    if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(_dbClient)) {
+                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, _dbClient);
+                        boRGName = srcBEVolume.getReplicationGroupInstance();
+                    }
+                    if (rgName.equals(boRGName)) {
+                        cgSourcesInRG.add(bo);
+                    }
+                }
+            }
+            return cgSourcesInRG;
         } else {
             BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
                     _uriInfo, true, _dbClient);

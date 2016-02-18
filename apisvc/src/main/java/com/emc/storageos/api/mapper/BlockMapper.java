@@ -469,6 +469,7 @@ public class BlockMapper {
         to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
         to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
+        to.setArrayConsistency(from.getArrayConsistency());
         
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);

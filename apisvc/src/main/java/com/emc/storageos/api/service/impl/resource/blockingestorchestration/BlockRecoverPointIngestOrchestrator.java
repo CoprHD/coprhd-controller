@@ -391,9 +391,6 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             } 
 
             _logger.info("\tadding RecoverPoint target volume {}", managedTargetVolume.forDisplay());
-            // TODO: we might move this lazy loading up to right before this for loop, to avoid
-            //       a potential NPE, but i don't want to change the behavior until we see what
-            //       happened with COP-20627 (no telling what might happen down the road with empty rpTargets)
             if (volume.getRpTargets() == null) {
                 volume.setRpTargets(new StringSet());
             }

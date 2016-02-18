@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -3436,7 +3437,11 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/file-policies/{filePolicyUri}/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public SnapshotList getFileSystemPolicy(@PathParam("id") URI id,
-            @PathParam("filePolicyUri") URI filePolicyUri) {
+            @PathParam("filePolicyUri") URI filePolicyUri, @QueryParam("timeout") int timeout) {
+        // valid value of timout is 10 sec to 10 min
+        if (timeout < 10 || timeout > 600) {
+            timeout = 30;// default timeout value.
+        }
         SnapshotList list = new SnapshotList();
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
@@ -3468,29 +3473,35 @@ public class FileService extends TaskResourceService {
             _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, fp });
 
             controller.listSanpshotByPolicy(device.getId(), fs.getId(), fp.getId(), task);
-
-            Task t = op.getTask(fs.getId());
-            if (t == null) {
-                t = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
-            }
-            // Task t = _dbClient.queryObject(Task.class, URIUtil.uri(task));
+            Task taskObject = null;
             auditOp(OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), fp.getId());
-            Thread.sleep(20000);
+            int waitCount = 0;
+            do {
 
-            if (t.isReady()) {
+                TimeUnit.SECONDS.sleep(1);
+                taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
+                _log.info("****************** list snapshot task id is  {}", taskObject.getId());
+                _log.info("****************** list snapshot task status is  {}", taskObject.getStatus());
+                waitCount++;
+            } while ((taskObject != null && !taskObject.isReady()) && waitCount < timeout);
+
+            if (taskObject.isReady()) {
 
                 List<URI> snapIDList = _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id));
                 _log.debug("getSnapshots: FS {}: {} ", id.toString(), snapIDList.toString());
                 List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapIDList);
 
                 for (Snapshot snap : snapList) {
-                    if (snap.getExtensions().containsKey("schedule")) {
+                    if (snap.getExtensions().containsKey("Schedule")) {
                         list.getSnapList().add(toNamedRelatedResource(snap));
-                        // snap.setInactive(true);
+                        snap.setInactive(true);
                     }
-
                 }
+
+            } else {
+                throw APIException.badRequests
+                        .unableToProcessRequest("Time out occurred, please increased timeout value, default is 30 sec");
 
             }
 

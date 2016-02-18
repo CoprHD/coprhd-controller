@@ -41,7 +41,9 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
@@ -2567,12 +2569,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                 snap.setName(islon_snap.getName());
                 snap.setId(URIUtil.createId(Snapshot.class));
                 snap.setOpStatus(new OpStatusMap());
-                snap.setProject(new NamedURI(fs.getProject().getURI(), fs.getProject().getName()));
-                snap.setParent(new NamedURI(fs.getId(), fs.getName()));
+                snap.setProject(new NamedURI(fs.getProject().getURI(), islon_snap.getName()));
+                snap.setParent(new NamedURI(fs.getId(), islon_snap.getName()));
                 StringMap map = new StringMap();
                 map.put("Schedule", fp.getPolicyName());
                 snap.setExtensions(map);
                 snaplist.add(snap);
+                _dbClient.updateObject(snap);
 
             }
         } catch (IsilonException e) {
@@ -2580,6 +2583,13 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(e);
         }
         args.setSnapshots(snaplist);
+        // fs.getOpStatus().updateTaskStatus(args.getOpId(),);
+        Task task = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), args.getOpId());
+        task.ready();
+        task.setProgress(100);
+        _dbClient.updateObject(task);
+        _log.info("****************** IsilonFileStorageDevice list snapshot task id is  {}", task.getId());
+        _log.info("****************** IsilonFileStorageDevice list snapshot task status is  {}", task.getStatus());
         return BiosCommandResult.createSuccessfulResult();
     }
 

@@ -48,9 +48,11 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -3872,33 +3874,23 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 BiosCommandResult result = getDevice(storageObj.getSystemType())
                         .listSanpshotByPolicy(storageObj, args);
 
-                if (result.isCommandSuccess()) {
-                    // Update snaps database
-                    for (Snapshot snap : args.getSnapshots()) {
-                        _dbClient.createObject(snap);
-
-                    }
-                }
-
-                if (result.getCommandPending()) {
-                    return;
-                }
-                // Audit & Update the task status
-                OperationTypeEnum auditType = null;
-                auditType = OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE;
-
+                // if (result.isCommandSuccess()) {
+                // // Update snaps database
+                // _dbClient.createObject(args.getSnapshots());
+                // // Task task = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), opId);
+                // // if (task != null) {
+                // // task.ready();
+                // // }
+                //
+                // }
+                //
+                // if (result.getCommandPending()) {
+                // return;
+                // }
                 fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
-
-                // Monitoring - Event Processing
-                String eventMsg = result.isCommandSuccess() ? "" : result
-                        .getMessage();
-
-                recordFileDeviceOperation(_dbClient,
-                        auditType,
-                        result.isCommandSuccess(),
-                        eventMsg,
-                        args.getFileSystemPath(),
-                        fs, storageObj);
+                Task task = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), opId);
+                _log.info("****************** list snapshot task id is  {}", task.getId());
+                _log.info("****************** list snapshot task status is  {}", task.getStatus());
 
             } else {
 

@@ -427,6 +427,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         // However, the project is from the VPLEX volume.
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
         snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        _dbClient.updateObject(snapshot);
 
         return snapshot;
     }

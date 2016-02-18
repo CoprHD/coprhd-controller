@@ -396,12 +396,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
                             args.addQuotaDirectory(null);
                             doFSDeleteQuotaDirsFromDB(args);
-                            doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                         }
                     }
 
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
+                    doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                     SMBShareMap cifsSharesMap = fsObj.getSMBFileShares();
                     if (cifsSharesMap != null && !cifsSharesMap.isEmpty()) {
                         cifsSharesMap.clear();
@@ -1545,6 +1545,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         snapshotObj.getId().toString(), ((StorageSystem) extParam[2]).getId().toString(), extensions);
                 break;
 
+            case ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE:
+            case UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE:
+                auditFile(dbClient, opType, opStatus, opStage,
+                        fs.getId().toString(), ((SchedulePolicy) extParam[1]).getId().toString(), extensions);
+                break;
+
             default:
                 _log.error("unrecognized fileshare operation type");
         }
@@ -2108,7 +2114,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
 
             StringSet fsURIs = fp.getAssignedResources();
-            fsURIs.remove(fs.getId());
+            fsURIs.remove(fs.getId().toString());
             fp.setAssignedResources(fsURIs);
             _dbClient.updateObject(fp);
 
@@ -3724,7 +3730,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         result.isCommandSuccess(),
                         eventMsg,
                         args.getFileSystemPath(),
-                        fs, storageObj);
+                        fs, fp);
 
                 _dbClient.updateObject(fs);
                 _dbClient.updateObject(fp);
@@ -3802,7 +3808,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         result.isCommandSuccess(),
                         eventMsg,
                         args.getFileSystemPath(),
-                        fs, storageObj);
+                        fs, fp);
 
                 _dbClient.updateObject(fs);
                 _dbClient.updateObject(fp);

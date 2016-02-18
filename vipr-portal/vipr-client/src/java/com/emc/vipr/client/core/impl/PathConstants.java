@@ -186,9 +186,9 @@ public class PathConstants {
     public static final String APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/resynchronize";
     public static final String APP_SUPPORT_DEACTIVATE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/deactivate";
 
-    public static final String APP_SUPPORT_GET_SNAPSHOT_COPY_SETS_URL = APP_SUPPORT_SNAPSHOT_URL + "/{id}/protection/snapshots/copy-sets";
-    public static final String APP_SUPPORT_GET_SNAPSHOT_SESSION_COPY_SETS_URL = APP_SUPPORT_SNAPSHOT_URL
-            + "/{id}/protection/snapshot-sessions/copy-sets";
+    public static final String APP_SUPPORT_GET_SNAPSHOT_COPY_SETS_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
+    public static final String APP_SUPPORT_GET_SNAPSHOT_SESSION_COPY_SETS_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL
+            + "/copy-sets";
 
     public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
     public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}";

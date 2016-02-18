@@ -834,7 +834,7 @@ public class UnManagedFilesystemService extends TaggedResource {
         if (commonPorts.contains(umfsStoragePort.getId())) {
             sp = umfsStoragePort;
         } else {
-            List<String> tempList = new ArrayList<String>(commonPorts);
+            List<String> tempList = new ArrayList<String>(storagePorts);
             Collections.shuffle(tempList);
             sp = dbClient.queryObject(StoragePort.class,
                     URI.create(tempList.get(0)));

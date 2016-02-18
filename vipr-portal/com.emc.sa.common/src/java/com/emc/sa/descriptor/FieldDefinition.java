@@ -21,7 +21,7 @@ public class FieldDefinition extends ItemDefinition {
 
     /** Whether the field can be 'locked' down (pre-defined) by an admin in the catalog. */
     public boolean lockable = false;
-    
+
     /** The initial field value. */
     public String initialValue;
 

@@ -177,7 +177,7 @@ public class PathConstants {
     public static final String APP_SUPPORT_UNLINK_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/unlink-targets";
 
     public static final String APP_SUPPORT_CREATE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL;
-    public static final String APP_SUPPORT_SNAPSHOT_SESSION_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/snap-sessions";
+    public static final String APP_SUPPORT_SNAPSHOT_SESSION_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/snapshot-sessions";
     public static final String APP_SUPPORT_CREATE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL;
     public static final String APP_SUPPORT_RESTORE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/restore";
     public static final String APP_SUPPORT_LINK_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/link-targets";
@@ -188,7 +188,7 @@ public class PathConstants {
 
     public static final String APP_SUPPORT_GET_SNAPSHOT_COPY_SETS_URL = APP_SUPPORT_SNAPSHOT_URL + "/{id}/protection/snapshots/copy-sets";
     public static final String APP_SUPPORT_GET_SNAPSHOT_SESSION_COPY_SETS_URL = APP_SUPPORT_SNAPSHOT_URL
-            + "/{id}/protection/snap-sessions/copy-sets";
+            + "/{id}/protection/snapshot-sessions/copy-sets";
 
     public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
     public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}";

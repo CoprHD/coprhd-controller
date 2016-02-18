@@ -133,9 +133,6 @@ public class UpgradeManager extends AbstractManager {
         // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
         // otherwise they might release locks acquired by others when they start
         final String svcId = String.format("%s,upgrade", coordinator.getMySvcId());
-        boolean dbEncrypted = false;
-        boolean dbCurrentVersionEncrypted = false;
-        boolean isDBMigrationDone = false;
         isValidRepo = localRepository.isValidRepository();
 
         addRepositoryInfoListener();
@@ -144,38 +141,6 @@ public class UpgradeManager extends AbstractManager {
             log.debug("Main loop: Start");
 
             shortSleep = false;
-
-            // Step0: check DB encryption status and change it if necessary
-            try {
-                dbEncrypted = isDbEncrypt();
-
-                dbCurrentVersionEncrypted = isDbCurrentVersionEncrypted();
-                isDBMigrationDone = coordinator.isDBMigrationDone();
-            } catch (Exception e) {
-                log.info("Step0: Exception when getting DB encryption status and will be retried: {}", e.getMessage());
-                retrySleep();
-                continue;
-            }
-
-            log.info("Step0: dbCurrentVersionEncrypted={} dbEncrypted={} migration done={}",
-                    new Object[] { dbCurrentVersionEncrypted, dbEncrypted, isDBMigrationDone });
-
-            if (isDBMigrationDone && !dbEncrypted) {
-                // we've finished the upgrade, so
-                // turn on db encrypt feature then reboot
-                enableDbEncrypt();
-                log.info("enable db encryption so re-configure then restart geodbsvc and dbsvc");
-                reconfigAndStartDBSerivces();
-
-            } else if (!isDBMigrationDone && !dbCurrentVersionEncrypted && dbEncrypted) {
-                disableDbEncrypt();
-                log.info("disable db encryption, so re-configure then restart geodbsvc and dbsvc");
-                shortSleep = true;
-            }
-
-            if (!isDBMigrationDone && !dbCurrentVersionEncrypted && !dbEncrypted) {
-                shortSleep = true;
-            }
 
             // Step1: check if we have the reboot lock
             boolean hasLock;
@@ -278,35 +243,6 @@ public class UpgradeManager extends AbstractManager {
                 }
             }
 
-            // Step5: adjust dbsvc num_tokens if necessary
-            log.info("Step5: Adjust dbsvc num_tokens if necessary");
-            if (!coordinator.isLocalNodeTokenAdjusted()) {
-                try {
-                    if (!getUpgradeLock(svcId)) {
-                        log.info("Step5: Get reboot lock for adjusting dbsvc num_tokens failed. Retry");
-                        retrySleep();
-                        continue;
-                    }
-
-                    if (!areAllDbsvcActive()) {
-                        releaseUpgradeLock(svcId);
-                        retrySleep();
-                        continue;
-                    }
-                    try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {
-                        if (dbOps.adjustNumTokens()) {
-                            log.info("Adjusted dbsvc num_tokens, restarting dbsvc...");
-                            localRepository.restart(Constants.DBSVC_NAME);
-                        }
-                    }
-                    continue;
-                } catch (Exception e) {
-                    log.error("Step5: Adjust dbsvc num_tokens failed", e);
-                    retrySleep();
-                    continue;
-                }
-            }
-
             // Step6: sleep
             log.info("Step6: sleep");
             longSleep();
@@ -343,36 +279,6 @@ public class UpgradeManager extends AbstractManager {
             return false;
         }
 
-        return true;
-    }
-
-    private boolean isDbEncrypt() {
-        File dbEncryptFlag = new File(dbNoEncryptFlagFile);
-        if (dbEncryptFlag.exists()) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean enableDbEncrypt() {
-        File dbEncryptFlag = new File(dbNoEncryptFlagFile);
-        try {
-            dbEncryptFlag.delete();
-        } catch (Exception e) {
-            log.error("Failed to delete file {} e", dbEncryptFlag.getName(), e);
-            return false;
-        }
-        return true;
-    }
-
-    private boolean disableDbEncrypt() {
-        File dbEncryptFlag = new File(dbNoEncryptFlagFile);
-        try {
-            new FileOutputStream(dbEncryptFlag).close();
-        } catch (Exception e) {
-            log.error("Failed to create file {} e", dbEncryptFlag.getName(), e);
-            return false;
-        }
         return true;
     }
 

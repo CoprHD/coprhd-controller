@@ -7,9 +7,9 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -215,28 +215,31 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // a VPLEX volume, but has a vpool that specifies VPLEX HA. This causes many
             // problems, because we end up using the VPlexBlockServiceApiImpl to perform
             // block operations on a non-VPLEX volume.
-            Iterator<Boolean> targetDeleteIter = targetMap.values().iterator();
-            while (targetDeleteIter.hasNext()) {
-                if (Boolean.FALSE == targetDeleteIter.next()) {
+            for (Entry<URI, Boolean> targetEntry : targetMap.entrySet()) {
+                URI snapshotURI = targetEntry.getKey();
+                Boolean deleteTarget = targetEntry.getValue();
+                if (Boolean.FALSE == deleteTarget) {
+                    // For VPLEX, the linked target volume must be deleted when they are unlinked.
+                    // If we allow this, then you end up with a public Volume instance that is not
+                    // a VPLEX volume, but has a vpool that specifies VPLEX HA. This causes many
+                    // problems, because we end up using the VPlexBlockServiceApiImpl to perform
+                    // block operations on a non-VPLEX volume.
                     throw APIException.badRequests.mustDeleteTargetsOnUnlinkForVPlex();
-                }
-            }
-            
-            // Don't allow if there is a VPLEX volume built on the linked target volume.
-            // The VPLEX volume must be deleted first.
-            Iterator<BlockSnapshot> snapshotIter = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs);
-            while (snapshotIter.hasNext()) {
-                BlockSnapshot snapshot = snapshotIter.next();
-                String snapshotNativeGuid = snapshot.getNativeGuid();
-                List<Volume> volumesWithSameNativeGuid = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid);
-                if (!volumesWithSameNativeGuid.isEmpty()) {
-                    // There should only be one and it should be a backend volume for
-                    // a VPLEX volume.
-                    List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
-                            _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
-                                    volumesWithSameNativeGuid.get(0).getId().toString()));
-                    throw APIException.badRequests
-                            .cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(), vplexVolumes.get(0).getLabel());
+                } else {
+                    // Don't allow if there is a VPLEX volume built on the linked target volume.
+                    // The VPLEX volume must be deleted first.
+                    BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                    String snapshotNativeGuid = snapshot.getNativeGuid();
+                    List<Volume> volumesWithSameNativeGuid = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid);
+                    if (!volumesWithSameNativeGuid.isEmpty()) {
+                        // There should only be one and it should be a backend volume for
+                        // a VPLEX volume.
+                        List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                                _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
+                                        volumesWithSameNativeGuid.get(0).getId().toString()));
+                        throw APIException.badRequests.cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(),
+                                vplexVolumes.get(0).getLabel());
+                    }
                 }
             }
         } else {

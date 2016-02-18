@@ -35,9 +35,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
-import com.emc.storageos.model.property.PropertyConstants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +55,6 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
-import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;

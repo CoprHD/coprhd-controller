@@ -520,7 +520,7 @@ public class BlockServiceUtils {
         for (URI volumeUri : volumes) {
             ArgValidator.checkFieldUriType(volumeUri, Volume.class, "volume");
             Volume volume = dbClient.queryObject(Volume.class, volumeUri);
-            ArgValidator.checkEntityNotNull(volume, volumeUri, isIdEmbeddedInURL(volumeUri, uriInfo));
+            ArgValidator.checkEntity(volume, volumeUri, isIdEmbeddedInURL(volumeUri, uriInfo));
             if (!volume.isInCG() || !volume.getConsistencyGroup().equals(cgUri)) {
                 throw APIException.badRequests.invalidParameterSourceVolumeNotInGivenConsistencyGroup(volumeUri, cgUri);
             }
@@ -551,14 +551,30 @@ public class BlockServiceUtils {
      *
      * @param cgVolumes List of all volumes in a CG
      * @param rgFilter Set of selected replication groups
+     * @param dbClient
      * @return table with storage URI, replication group name, and volumes
      */
-    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<Volume> cgVolumes, Set<String> rgFiler) {
+    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<Volume> cgVolumes, Set<String> rgFiler, URI volumeGroupUri, DbClient dbClient) {
         // Group volumes by storage system and replication group
         // Ignore replication groups that not in rgFiler if the filter is provided
         Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
         for (Volume volume : cgVolumes) {
-            String rgName = volume.getReplicationGroupInstance();
+            if (volumeGroupUri != null && !volume.getVolumeGroupIds().contains(volumeGroupUri.toString())) {
+                // volume is not belong to the volume group
+                continue;
+            }
+
+            String rgName = null;
+            if (volume.isVPlexVolume(dbClient)) {
+                // get backend source volume to get RG name
+                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (backedVol != null) {
+                    rgName = backedVol.getReplicationGroupInstance();
+                }
+            } else {
+                rgName = volume.getReplicationGroupInstance();
+            }
+
             if (NullColumnValueGetter.isNullValue(rgName)) {
                 throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
             }

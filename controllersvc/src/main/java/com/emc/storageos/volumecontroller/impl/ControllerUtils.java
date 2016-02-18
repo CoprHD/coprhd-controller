@@ -1646,7 +1646,7 @@ public class ControllerUtils {
             while (iter.hasNext()) {
                 BlockSnapshot snapshot = iter.next();
                 if (isSourceInVoumeGroup(snapshot, volumeGroupId, dbClient)) {
-                    snapshots.add(iter.next());
+                    snapshots.add(snapshot);
                 }
             }
         }

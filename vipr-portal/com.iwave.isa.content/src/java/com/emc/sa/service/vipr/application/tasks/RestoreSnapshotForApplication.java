@@ -15,18 +15,18 @@ import com.google.common.collect.Lists;
 
 public class RestoreSnapshotForApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
-    private final URI volume;
+    private final URI snapshot;
 
-    public RestoreSnapshotForApplication(URI applicationId, URI volume) {
+    public RestoreSnapshotForApplication(URI applicationId, URI snapshot) {
         this.applicationId = applicationId;
-        this.volume = volume;
+        this.snapshot = snapshot;
         provideDetailArgs(applicationId);
     }
 
     @Override
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupSnapshotOperationParam input = new VolumeGroupSnapshotOperationParam();
-        input.setSnapshots(Lists.newArrayList(volume));
+        input.setSnapshots(Lists.newArrayList(snapshot));
         input.setPartial(true);
 
         TaskList taskList = getClient().application().restoreApplicationSnapshot(applicationId, input);

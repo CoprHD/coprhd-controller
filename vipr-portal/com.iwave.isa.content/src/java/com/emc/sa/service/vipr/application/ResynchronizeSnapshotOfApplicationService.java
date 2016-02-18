@@ -12,9 +12,11 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.application.tasks.ResynchronizeSnapshotSessionForApplication;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
+import com.emc.sa.service.vipr.application.tasks.ResynchronizeSnapshotForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
@@ -27,6 +29,9 @@ public class ResynchronizeSnapshotOfApplicationService extends ViPRService {
 
     @Param(ServiceParams.APPLICATION_SNAPSHOT_TYPE)
     private String snapshotType;
+
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
+    private String applicationCopySet;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
     protected List<URI> subGroups;
@@ -43,9 +48,11 @@ public class ResynchronizeSnapshotOfApplicationService extends ViPRService {
 
         for (String type : volumeTypes.keySet()) {
             if (type.equalsIgnoreCase("vmax3")) {
-                tasks = execute(new ResynchronizeSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId()));
+                // TODO fail, resynchronize not supported for snapshot session
             } else {
-                tasks = execute(new ResynchronizeSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId()));
+                SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, applicationCopySet));
+                // TODO fail if empty
+                tasks = execute(new ResynchronizeSnapshotForApplication(applicationId, snapshotList.getSnapList().get(0).getId()));
             }
             addAffectedResources(tasks);
         }

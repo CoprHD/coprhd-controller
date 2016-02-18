@@ -183,7 +183,6 @@ public class PathConstants {
     public static final String APP_SUPPORT_LINK_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/link-targets";
     public static final String APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/unlink-targets";
 
-    public static final String APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/resynchronize";
     public static final String APP_SUPPORT_DEACTIVATE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/deactivate";
 
     public static final String APP_SUPPORT_GET_SNAPSHOT_COPY_SETS_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";

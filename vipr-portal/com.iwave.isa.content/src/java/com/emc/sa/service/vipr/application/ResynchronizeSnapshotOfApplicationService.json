@@ -1,6 +1,6 @@
 {
-  baseKey:"ResyncSnapshotOfApplication.Application",
-  serviceId:"ResyncSnapshotOfApplication",
+  baseKey:"ResynchronizeSnapshotOfApplication.Application",
+  serviceId:"ResynchronizeSnapshotOfApplication",
   fields:{
   
     application:{

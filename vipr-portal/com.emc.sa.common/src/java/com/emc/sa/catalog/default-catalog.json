@@ -602,7 +602,7 @@
         },
         {
           "image": "icon_application_create_full_copy.png",
-          "baseService": "ResyncSnapshotOfApplication"
+          "baseService": "ResynchronizeSnapshotOfApplication"
         },
         {
           "image": "icon_application_create_full_copy.png",

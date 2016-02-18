@@ -49,9 +49,9 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
 
         for (String type : volumeTypes.keySet()) {
             if (type.equalsIgnoreCase("vmax3")) {
-                tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId(), name, count));
+                tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId(), name));
             } else {
-                tasks = execute(new CreateSnapshotForApplication(applicationId, volumeTypes.get(type).getId(), name, readOnly, count));
+                tasks = execute(new CreateSnapshotForApplication(applicationId, volumeTypes.get(type).getId(), name, readOnly));
             }
             addAffectedResources(tasks);
         }

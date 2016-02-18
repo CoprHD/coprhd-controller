@@ -23,17 +23,13 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_FU
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SESSION_SET_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SNAPSHOT_SET_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UNLINK_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SESSION_SET_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SNAPSHOT_SET_URL;
-import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_SET_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -56,7 +52,6 @@ import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionCreateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionDeactivateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionLinkTargetsParam;
-import com.emc.storageos.model.application.VolumeGroupSnapshotSessionOperationParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
@@ -272,19 +267,6 @@ public class ApplicationSupport {
      */
     public TaskList restoreApplicationSnapshotSession(URI id, VolumeGroupSnapshotSessionRestoreParam input) {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESTORE_SNAPSHOT_SESSION_URL);
-        return client.postURI(TaskList.class, input, uriBuilder.build(id));
-    }
-
-    /**
-     * Resynchronizes a snapshot session of an application.
-     * API Call: POST /volume-groups/block/{id}/protection/snap-sessions/resynchronize
-     * 
-     * @param id application id with snapshot session
-     * @param input input parameters for application snapshot session request
-     * @return list of tasks
-     */
-    public TaskList resynchronizeApplicationSnapshotSession(URI id, VolumeGroupSnapshotSessionOperationParam input) {
-        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_SESSION_URL);
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
     }
 

@@ -12,10 +12,14 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.application.tasks.RestoreSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.RestoreSnapshotSessionForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.SnapshotList;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
@@ -28,6 +32,9 @@ public class RestoreSnapshotOfApplicationService extends ViPRService {
 
     @Param(ServiceParams.APPLICATION_SNAPSHOT_TYPE)
     private String snapshotType;
+
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
+    private String applicationCopySet;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
     protected List<URI> subGroups;
@@ -44,9 +51,14 @@ public class RestoreSnapshotOfApplicationService extends ViPRService {
 
         for (String type : volumeTypes.keySet()) {
             if (type.equalsIgnoreCase("vmax3")) {
-                tasks = execute(new RestoreSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId()));
+                BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, applicationCopySet));
+                // TODO fail if snapSessionList is empty
+                tasks = execute(new RestoreSnapshotSessionForApplication(applicationId, snapSessionList.getSnapSessionRelatedResourceList()
+                        .get(0).getId()));
             } else {
-                tasks = execute(new RestoreSnapshotForApplication(applicationId, volumeTypes.get(type).getId()));
+                SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, applicationCopySet));
+                // TODO fail if empty
+                tasks = execute(new RestoreSnapshotForApplication(applicationId, snapshotList.getSnapList().get(0).getId()));
             }
             addAffectedResources(tasks);
         }

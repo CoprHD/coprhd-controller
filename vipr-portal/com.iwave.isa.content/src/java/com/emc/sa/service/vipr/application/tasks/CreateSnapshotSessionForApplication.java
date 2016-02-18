@@ -16,13 +16,11 @@ import com.google.common.collect.Lists;
 public class CreateSnapshotSessionForApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
     private final String name;
-    private final Integer count;
     private final URI volume;
 
-    public CreateSnapshotSessionForApplication(URI applicationId, URI volume, String name, Integer count) {
+    public CreateSnapshotSessionForApplication(URI applicationId, URI volume, String name) {
         this.applicationId = applicationId;
         this.name = name;
-        this.count = count;
         this.volume = volume;
         provideDetailArgs(applicationId, name);
     }
@@ -33,7 +31,6 @@ public class CreateSnapshotSessionForApplication extends WaitForTasks<TaskResour
         input.setName(name);
         input.setVolumes(Lists.newArrayList(volume));
         input.setPartial(true);
-        // count?
 
         TaskList taskList = getClient().application().createSnapshotSessionOfApplication(applicationId, input);
 

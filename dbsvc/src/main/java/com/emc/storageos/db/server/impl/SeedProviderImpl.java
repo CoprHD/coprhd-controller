@@ -144,16 +144,7 @@ public class SeedProviderImpl implements SeedProvider {
                     if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
                         continue;
                     }
-                    String nodeIndex = config.getId().split("-")[1];
                     String nodeId = config.getConfig(DbConfigConstants.NODE_ID);
-                    if (nodeId == null) {
-                        // suppose that they are existing znodes from a previous version
-                        // set the NODE_ID config, id is like db-x
-                        nodeId = "vipr" + nodeIndex;
-                        config.setConfig(DbConfigConstants.NODE_ID, nodeId);
-                        config.removeConfig(DbConfigConstants.DB_IP);
-                        _client.persistServiceConfiguration(_client.getSiteId(), config);
-                    }
                     if (!Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT)) ||
                             (!config.getId().equals(_id) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED)))) {
                         // all non autobootstrap nodes + other nodes are used as seeds

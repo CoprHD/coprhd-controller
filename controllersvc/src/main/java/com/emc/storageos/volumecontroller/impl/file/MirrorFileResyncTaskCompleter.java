@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
@@ -46,6 +47,12 @@ public class MirrorFileResyncTaskCompleter extends MirrorFileTaskCompleter {
         } finally {
             super.complete(dbClient, status, coded);
         }
+    }
+
+    @Override
+    protected MirrorStatus getFileMirrorStatusForSuccess() {
+        setMirrorSyncStatus(MirrorStatus.SYNCHRONIZED);
+        return getMirrorSyncStatus();
     }
 
 }

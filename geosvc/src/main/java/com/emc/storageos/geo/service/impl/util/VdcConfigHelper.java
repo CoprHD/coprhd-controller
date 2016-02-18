@@ -735,8 +735,8 @@ public class VdcConfigHelper {
         if ((vdc.getDescription() != null) && (!vdc.getDescription().isEmpty())) {
             vdcConfig.setDescription(vdc.getDescription());
         }
-        if (activeSite.getVip() != null) {
-            vdcConfig.setApiEndpoint(activeSite.getVip());
+        if (activeSite.getVipEndPoint() != null) {
+            vdcConfig.setApiEndpoint(activeSite.getVipEndPoint());
         }
 
         vdcConfig.setHostCount(activeSite.getNodeCount());
@@ -1069,7 +1069,14 @@ public class VdcConfigHelper {
         site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
-        site.setVip(vdc.getApiEndpoint());
+        String vdcEndpoint = vdc.getApiEndpoint();
+        if (vdcEndpoint.contains(":")) {
+            site.setVip6(vdcEndpoint);
+            site.setVip(PropertyConstants.IPV4_ADDR_DEFAULT);
+        } else {
+            site.setVip(vdcEndpoint);
+            site.setVip6(PropertyConstants.IPV6_ADDR_DEFAULT);
+        }
         site.setNodeCount(vdc.getHostCount());
         
         coordinator.persistServiceConfiguration(site.toConfiguration());

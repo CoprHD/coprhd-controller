@@ -287,6 +287,8 @@ public class FileSystems extends ResourceController {
 
     @FlashException(referrer = { "fileSystem" })
     public static void saveNfsAce(NfsACLForm nfsACL) {
+        
+        
 
         String name = params.get("name");
         String type = params.get("type");
@@ -297,6 +299,12 @@ public class FileSystems extends ResourceController {
         Set<String> permissions = nfsACL.permissions;
         String permissionType = nfsACL.permissionType;
         String strPer = "";
+        nfsACL.validate("nfsACL");
+        if (Validation.hasErrors()) {
+            Common.handleError();
+        }
+        
+        
         for (String permission : permissions) {
             strPer = strPer + permission.toLowerCase() + ",";
         }
@@ -1084,9 +1092,7 @@ public class FileSystems extends ResourceController {
         private static final String ID_DELIMITER = "~~~~";
         public String domain;
         public String id;
-        @Required
         public String name;
-        @Required
         public String type;
         @Required
         public String permissionType;
@@ -1110,15 +1116,7 @@ public class FileSystems extends ResourceController {
         }
 
         public void validate(String formName) {
-            Validation.valid(formName, this);
-            Validation.required(formName + ".name", name);
-            Validation.required(formName + ".type", type);
-            Validation.required(formName + ".permissionType", permissionType);
             Validation.required(formName + ".permissions", permissions);
-            if (name == null || "".equals(name)) {
-                Validation.addError(formName + ".name",
-                        "resources.filesystem.share.acl.invalid.name");
-            }
         }
 
         public static String createId(String name, String type,

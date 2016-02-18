@@ -13,12 +13,10 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
-import com.emc.storageos.model.block.NamedVolumesList;
 
 
 /**
@@ -67,7 +65,18 @@ public class AppSupportUtil {
     public static List<NamedRelatedResourceRep> getFullCopiesByApplication(String id) {
     	return BourneUtil.getViprClient().application().getClonesByApplication(uri(id)).getVolumes();
     }
-
+    
+    public static Set<String> getVolumeGroupSnapsetSessionSets(String id) {
+        return BourneUtil.getViprClient().application().getVolumeGroupSnapsetSessionSets(uri(id)).getCopySets();
+    }
+    
+    public static List<NamedRelatedResourceRep> getVolumeGroupSnapshotSessionsByCopySet(String id, String sessionSet) {
+        VolumeGroupCopySetParam snapshotSessionSet = new VolumeGroupCopySetParam();
+        snapshotSessionSet.setCopySetName(sessionSet);
+        return BourneUtil.getViprClient().application().getVolumeGroupSnapshotSessionsByCopySet(uri(id), snapshotSessionSet)
+                .getSnapSessionRelatedResourceList();
+    }
+    
     public static Set<String> getVolumeGroupSnapshotSets(String id) {
         return BourneUtil.getViprClient().application().getVolumeGroupSnapshotSets(uri(id)).getCopySets();
     }

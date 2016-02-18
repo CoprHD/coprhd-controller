@@ -76,4 +76,24 @@ public class AppSupportUtil {
         return BourneUtil.getViprClient().application().getVolumeGroupSnapshotSessionsByCopySet(uri(id), snapshotSessionSet)
                 .getSnapSessionRelatedResourceList();
     }
+    
+    public static Set<String> getVolumeGroupSnapshotSets(String id) {
+        return BourneUtil.getViprClient().application().getVolumeGroupSnapshotSets(uri(id)).getCopySets();
+    }
+
+    public static List<NamedRelatedResourceRep> getVolumeGroupSnapshotsForSet(String id, String snapSet) {
+        VolumeGroupCopySetParam newParam = new VolumeGroupCopySetParam();
+        newParam.setCopySetName(snapSet);
+        return BourneUtil.getViprClient().application().getVolumeGroupSnapshotsForSet(uri(id), newParam).getSnapList();
+    }
+
+    public static Set<String> getFullCopySetsByApplication(String id) {
+        return BourneUtil.getViprClient().application().getFullCopySetsByApplication(uri(id)).getCopySets();
+    }
+    
+    public static List<NamedRelatedResourceRep> getVolumeGroupFullCopiesForSet(String id, String copySets) {
+        VolumeGroupCopySetParam getSetsForCopies = new VolumeGroupCopySetParam();
+        getSetsForCopies.setCopySetName(copySets);
+        return BourneUtil.getViprClient().application().getVolumeGroupFullCopiesForSet(uri(id), getSetsForCopies).getVolumes();
+    }
 }

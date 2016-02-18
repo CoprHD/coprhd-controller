@@ -37,6 +37,7 @@ import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.model.block.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -453,13 +454,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         Set<String> selectedRGs = null;
         if (!param.getVolumes().isEmpty()) {
-            selectedRGs = BlockServiceUtils.getReplicationGroupsFromVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
+            selectedRGs = BlockServiceUtils.
+                    getReplicationGroupsFromVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
         }
 
         // Group volumes by storage system and replication group, ignore replication groups that not in selectedRGs if it is not null
         Table<URI, String, List<Volume>> storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
                 blockServiceApiImpl.getActiveCGVolumes(consistencyGroup),
-                selectedRGs);
+                selectedRGs, _dbClient);
         TaskList taskList = new TaskList();
         for (Cell<URI, String, List<Volume>> cell : storageRgToVolumes.cellSet()) {
             List<Volume> volumeList = cell.getValue();
@@ -1502,6 +1504,34 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                                       SnapshotSessionLinkTargetsParam param) {
         validateSessionPartOfConsistencyGroup(id, sessionId);
         return getSnapshotSessionManager().linkTargetVolumesToSnapshotSession(sessionId, param);
+    }
+
+    /**
+     * This method implements the API to re-link a target to either it's current
+     * snapshot session or to a different snapshot session of the same source.
+     * 
+     * @brief Relink target volumes to snapshot sessions.
+     * 
+     * @prereq The target volumes are linked to a snapshot session of the same source object.
+     *
+     * @param id The URI of the BlockConsistencyGroup instance to which the
+     *            the session is created for.
+     * @param sessionId The URI of the BlockSnapshotSession instance to which the
+     *            the targets will be re-linked.
+     * @param param The linked target information.
+     * 
+     * @return A TaskList representing the snapshot session tasks.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions/{sid}/relink-targets")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList relinkTargetVolumes(@PathParam("id") URI id,
+            @PathParam("sid") URI sessionId,
+            SnapshotSessionRelinkTargetsParam param) {
+        validateSessionPartOfConsistencyGroup(id, sessionId);
+        return getSnapshotSessionManager().relinkTargetVolumesToSnapshotSession(sessionId, param);
     }
 
     /**

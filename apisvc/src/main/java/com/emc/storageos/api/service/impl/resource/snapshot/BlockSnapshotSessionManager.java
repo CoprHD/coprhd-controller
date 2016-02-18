@@ -31,6 +31,7 @@ import javax.ws.rs.core.UriInfo;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.google.common.base.Joiner;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,6 +55,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -72,8 +74,11 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 
 /**
  * Class that implements all block snapshot session requests.
@@ -245,8 +250,38 @@ public class BlockSnapshotSessionManager {
     }
 
     public TaskList createSnapshotSession(BlockConsistencyGroup cg, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
-        List<BlockObject> sources = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
-        return createSnapshotSession(sources, param, fcManager);
+        Set<String> selectedRGs = null;
+        if (!param.getVolumes().isEmpty()) {
+            selectedRGs = BlockServiceUtils.getReplicationGroupsFromVolumes(param.getVolumes(), cg.getId(), _dbClient, _uriInfo);
+        }
+
+        // Group volumes by storage system and replication group,
+        // ignore replication groups that not in selectedRGs if it is not null
+        Table<URI, String, List<BlockObject>> storageRgToVolumes = BlockServiceUtils.getReplicationGroupBlockObjects(
+                BlockConsistencyGroupUtils.getAllSources(cg, _dbClient),
+                selectedRGs, _dbClient);
+        TaskList taskList = new TaskList();
+        for (Cell<URI, String, List<BlockObject>> cell : storageRgToVolumes.cellSet()) {
+            String rgName = cell.getColumnKey();
+            List<BlockObject> volumeList = cell.getValue();
+            s_logger.info("Processing Replication Group {}, Volumes {}",
+                    rgName, Joiner.on(',').join(transform(volumeList, fctnDataObjectToID())));
+            if (volumeList == null || volumeList.isEmpty()) {
+                s_logger.warn(String.format("No volume in replication group %s", rgName));
+                continue;
+            }
+
+            try {
+                taskList.getTaskList().addAll(
+                        createSnapshotSession(volumeList, param, fcManager).getTaskList());
+            } catch (Exception e) {
+                s_logger.warn("Exception when creating snapshot session for replication group {}: {}",
+                        rgName, e.getMessage());
+                // TODO create Error Task
+            }
+        }
+
+        return taskList;
     }
 
     /**
@@ -925,7 +960,23 @@ public class BlockSnapshotSessionManager {
     private List<BlockObject> getAllSnapshotSessionSources(BlockSnapshotSession snapSession) {
         if (snapSession.hasConsistencyGroup()) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            return BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
+            // return only those volumes belonging to session's RG
+            List<BlockObject> cgSources = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
+            List<BlockObject> cgSourcesInRG = new ArrayList<BlockObject>();
+            String rgName = snapSession.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                for (BlockObject bo : cgSources) {
+                    String boRGName = bo.getReplicationGroupInstance();
+                    if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(_dbClient)) {
+                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, _dbClient);
+                        boRGName = srcBEVolume.getReplicationGroupInstance();
+                    }
+                    if (rgName.equals(boRGName)) {
+                        cgSourcesInRG.add(bo);
+                    }
+                }
+            }
+            return cgSourcesInRG;
         } else {
             BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
                     _uriInfo, true, _dbClient);

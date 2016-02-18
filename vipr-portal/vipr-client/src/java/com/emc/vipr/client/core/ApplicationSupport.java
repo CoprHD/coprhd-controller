@@ -15,6 +15,9 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SESSION_SET_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SNAPSHOT_SET_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_SET_URL;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -23,6 +26,7 @@ import java.util.List;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
@@ -143,6 +147,25 @@ public class ApplicationSupport {
     }
     
     /**
+     * Get full copy set for an application
+     * GET /volume-groups/block/{id}/protection/full-copies/copy-sets
+     */
+    
+    public VolumeGroupCopySetList getFullCopySetsByApplication(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_CLONE_SET_URL, id);
+    }
+    
+    /**
+     * POST /volume-groups/block/{id}/protection/full-copies/copy-sets/{id}
+     * 
+     */
+    public NamedVolumesList getVolumeGroupFullCopiesForSet(URI applicationId, VolumeGroupCopySetParam param) {
+        UriBuilder uribuilder = client.uriBuilder(APP_SUPPORT_CLONE_SET_URL);
+        return client.postURI(NamedVolumesList.class, param, uribuilder.build(applicationId));
+    }
+    
+    
+    /**
      * Detaches a full copy of an application.
      * API Call: POST /volume-groups/block/{id}/protection/full-copies/detach
      * 
@@ -194,5 +217,23 @@ public class ApplicationSupport {
     public BlockSnapshotSessionList getVolumeGroupSnapshotSessionsByCopySet(URI id, VolumeGroupCopySetParam input) {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_SESSION_SET_URL);
         return client.postURI(BlockSnapshotSessionList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * GET copy-sets for snapshots for particular application
+     * GET /volume-groups/block/{id}/protection/snapshots/copy-sets
+     *
+     */
+    public VolumeGroupCopySetList getVolumeGroupSnapshotSets(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_SNAPSHOT_SET_URL, id);
+    }
+
+    /**
+     * Get Snapshots for a particular copy-set
+     * POST /volume-groups/block/{id}/protection/snapshots/copy-sets
+     */
+    public SnapshotList getVolumeGroupSnapshotsForSet(URI id, VolumeGroupCopySetParam input) {
+        UriBuilder uribuilder = client.uriBuilder(APP_SUPPORT_SNAPSHOT_SET_URL);
+        return client.postURI(SnapshotList.class, input, uribuilder.build(id));
     }
 }

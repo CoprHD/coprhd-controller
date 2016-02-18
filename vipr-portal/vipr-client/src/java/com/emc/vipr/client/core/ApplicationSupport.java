@@ -30,6 +30,10 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UNLINK_SNA
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UNLINK_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SESSION_SET_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SNAPSHOT_SET_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_SET_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
@@ -56,6 +60,7 @@ import com.emc.storageos.model.application.VolumeGroupSnapshotSessionOperationPa
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeGroupSnapshotCreateParam;
 import com.emc.storageos.model.block.VolumeGroupSnapshotOperationParam;
@@ -400,6 +405,23 @@ public class ApplicationSupport {
     public TaskList resynchronizeApplicationFullCopy(URI id, VolumeGroupFullCopyResynchronizeParam input) {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL);
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+    
+    /**
+     * Get copy-sets for snapVx for particular application
+     * GET: /volume-groups/block/{id}/protection/snapshot-sessions/copy-sets
+     */
+    public VolumeGroupCopySetList getVolumeGroupSnapsetSessionSets(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_SESSION_SET_URL, id);
+    }
+
+    /**
+     * Get copy-sets snapVx for copy-set for particular application
+     * POST: /volume-groups/block/{id}/protection/snapshot-sessions/copy-sets
+     */
+    public BlockSnapshotSessionList getVolumeGroupSnapshotSessionsByCopySet(URI id, VolumeGroupCopySetParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_SESSION_SET_URL);
+        return client.postURI(BlockSnapshotSessionList.class, input, uriBuilder.build(id));
     }
 
     /**

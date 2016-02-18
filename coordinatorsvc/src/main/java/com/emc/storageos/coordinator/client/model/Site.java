@@ -26,6 +26,7 @@ public class Site {
     private static final String KEY_SITE_SHORTID = "siteShortId";
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
+    private static final String KEY_LAST_LOST_QUORUM_TIME = "lastLostQuorumTime";
     private static final String KEY_LASTSTATE = "lastState";
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_PING = "networkLatencyInMs";
@@ -56,6 +57,8 @@ public class Site {
     private String siteShortId;
     private long creationTime;
     private long lastStateUpdateTime;
+    private long lastLostQuorumTime;
+
     private double networkLatencyInMs;
     private NetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
@@ -175,6 +178,14 @@ public class Site {
         this.networkLatencyInMs = networkLatencyInMs;
     }
 
+    public long getLastLostQuorumTime() {
+        return lastLostQuorumTime;
+    }
+
+    public void setLastLostQuorumTime(long lastLostQuorumTime) {
+        this.lastLostQuorumTime = lastLostQuorumTime;
+    }
+
     public NetworkHealth getNetworkHealth() {
         return networkHealth;
     }
@@ -254,6 +265,9 @@ public class Site {
         if (lastStateUpdateTime != 0L) {
             config.setConfig(KEY_LASTSTATEUPDATETIME, String.valueOf(lastStateUpdateTime));
         }
+        if (lastLostQuorumTime != 0L) {
+            config.setConfig(KEY_LAST_LOST_QUORUM_TIME, String.valueOf(lastLostQuorumTime));
+        }
         if (networkLatencyInMs != 0D) {
             config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
         }
@@ -306,6 +320,11 @@ public class Site {
             s = config.getConfig(KEY_LASTSTATEUPDATETIME);
             if (s != null) {
                 this.lastStateUpdateTime = Long.valueOf(s);
+            }
+
+            s = config.getConfig(KEY_LAST_LOST_QUORUM_TIME);
+            if (s != null) {
+                lastLostQuorumTime = Long.valueOf(s);
             }
 
             s = config.getConfig(KEY_LASTSTATE);

@@ -1303,6 +1303,18 @@ public class DisasterRecoveryService {
         return false;
     }
 
+    private Date getLastSyncTime(Site site) {
+        if (site.getNetworkHealth() == NetworkHealth.BROKEN) {
+            return null;
+        }
+        if (site.getState() == SiteState.STANDBY_PAUSED) {
+            return new Date(site.getLastStateUpdateTime());
+        } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
+            return new Date(site.getLastLostQuorumTime());
+        }
+        return null;
+    }
+
     /**
      * Query the details, such as transition timings, for specific standby site
      * 
@@ -1323,11 +1335,10 @@ public class DisasterRecoveryService {
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
             standbyDetails.setNetworkLatencyInMs(standby.getNetworkLatencyInMs());
-            if (standby.getState().equals(SiteState.STANDBY_PAUSED) ||
-                    standby.getState().equals(SiteState.STANDBY_DEGRADED)) {
-                standbyDetails.setPausedTime(new Date(standby.getLastStateUpdateTime()));
+            Date lastSyncTime = getLastSyncTime(standby);
+            if (lastSyncTime != null) {
+                standbyDetails.setLastSyncTime(lastSyncTime);
             }
-
             standbyDetails.setDataSynced(isDataSynced(standby));
 
             ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());

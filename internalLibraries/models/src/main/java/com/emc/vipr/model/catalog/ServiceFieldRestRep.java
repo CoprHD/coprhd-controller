@@ -22,7 +22,6 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
     private String initialValue;
     private String select;
     private boolean lockable;
-    private boolean disableEmpty;
     private Integer min;
     private Integer max;
     private String regEx;
@@ -63,15 +62,6 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
 
     public void setLockable(boolean lockable) {
         this.lockable = lockable;
-    }
-    
-    @XmlElement(name = "disableEmpty")
-    public boolean isDisableEmpty() {
-        return disableEmpty;
-    }
-
-    public void setDisableEmpty(boolean disableEmpty) {
-        this.disableEmpty = disableEmpty;
     }
 
     @XmlElement(name = "min")

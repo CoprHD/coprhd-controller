@@ -20,8 +20,7 @@
     },
         
     targetVirtualPool:{
-      type:"assetType.vipr.targetVirtualPool",
-      disableEmpty: true
+      type:"assetType.vipr.targetVirtualPool"
     },
     
     consistencyGroup: {

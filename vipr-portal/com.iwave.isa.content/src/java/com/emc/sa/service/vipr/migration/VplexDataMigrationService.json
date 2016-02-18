@@ -20,8 +20,7 @@
     },
         
     targetVirtualPool:{
-      type:"assetType.vipr.migrationTargetVirtualPool",
-      disableEmpty: true
+      type:"assetType.vipr.migrationTargetVirtualPool"
     },
     
     volume:{

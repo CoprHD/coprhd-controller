@@ -123,8 +123,7 @@ angular.module("services", []).directive({
 	                        'value-property': "key",
 	                        'label-property': "value",
 	                        'ng-disabled': "item.disabled",
-	                        'auto-select-if-one': item.required,
-	                        'disable-empty': item.disableEmpty
+	                        'auto-select-if-one': item.required
 	                    };
 	                    if (item.select == 'many') {
 	                    	type = '<select-many>';

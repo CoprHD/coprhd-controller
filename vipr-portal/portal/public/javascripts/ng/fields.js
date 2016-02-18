@@ -89,7 +89,6 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
      * @param {string=name} valueProperty the property name of each option label
      * @param {boolean=} autoDefault automatically select the first option and update the model if the model value is null
      * @param {boolean=} autoSelectIfOne automatically select the option if the list of options only contains one item
-     * @param {boolean=} disableEmpty will disable any options that have an empty key value
      *
      * @restrict E
      *
@@ -169,14 +168,6 @@ angular.module('fields', ['vipr']).directive({  //NOSONAR ("Suppressing Sonar vi
                     if (attrs.autoSelectIfOne == "true" && newOptions && newOptions.length === 1) {
                     	var firstOptionValue = newOptions[0][attrs.valueProperty];
                     	scope.field.value = firstOptionValue;
-                    }
-                    
-                    if (attrs.disableEmpty != null && attrs.disableEmpty == "true") {
-	                    element.find("option").each(function(i) {
-		                    if (i > 0 && newOptions[i-1] != null) {
-		                    	$(this).prop('disabled', newOptions[i-1].key == '');
-		                    }
-	                    });
                     }
                     
                     if (discardedValue) {

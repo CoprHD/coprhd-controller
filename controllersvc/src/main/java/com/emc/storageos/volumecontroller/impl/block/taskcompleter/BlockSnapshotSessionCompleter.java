@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.google.common.collect.Lists;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,8 +25,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
@@ -169,7 +172,23 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
     protected List<BlockObject> getAllSources(BlockSnapshotSession snapSession, DbClient dbClient) {
         if (snapSession.hasConsistencyGroup()) {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            return BlockConsistencyGroupUtils.getAllSources(cg, dbClient);
+            // return only those volumes belonging to session's RG
+            List<BlockObject> cgSources = BlockConsistencyGroupUtils.getAllSources(cg, dbClient);
+            List<BlockObject> cgSourcesInRG = new ArrayList<BlockObject>();
+            String rgName = snapSession.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                for (BlockObject bo : cgSources) {
+                    String boRGName = bo.getReplicationGroupInstance();
+                    if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(dbClient)) {
+                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, dbClient);
+                        boRGName = srcBEVolume.getReplicationGroupInstance();
+                    }
+                    if (rgName.equals(boRGName)) {
+                        cgSourcesInRG.add(bo);
+                    }
+                }
+            }
+            return cgSourcesInRG;
         }
         return Lists.newArrayList(getSource(snapSession, dbClient));
     }

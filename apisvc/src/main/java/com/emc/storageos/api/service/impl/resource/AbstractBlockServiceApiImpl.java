@@ -1171,9 +1171,18 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         for (Volume volume : volumes) {
             // Attempt to create distinct labels here when creating >1 volumes (ScaleIO requirement)
             String label = snapshotName;
-            if (volumes.size() > 1) {
-                label = String.format("%s-%s-%s", volume.getReplicationGroupInstance(), snapshotName, count++);
+            String rgName = volume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                // There can be multiple RGs in a CG, in such cases generate unique name
+                if (volumes.size() > 1) {
+                    label = String.format("%s-%s-%s", snapshotName, rgName, count++);
+                } else {
+                    label = String.format("%s-%s", snapshotName, rgName);
+                }
+            } else if (volumes.size() > 1) {
+                label = String.format("%s-%s", snapshotName, count++);
             }
+
             BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, label);
             snapshot.setTechnologyType(snapshotType);
             snapshot.setOpStatus(new OpStatusMap());

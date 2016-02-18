@@ -288,7 +288,7 @@ public class VPlexScheduler implements Scheduler {
                     continue;
                 }
                 if (false == vplexStorageSystemURI.equals(vplexURI)) {
-                    vplexPoolMapForSrcVarray.remove(vplexKey);
+                    it.remove();
                 }
             }
         }

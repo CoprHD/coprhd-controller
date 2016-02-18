@@ -12,7 +12,6 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupFullCopyCreateParam;
 import com.emc.vipr.client.Tasks;
 
-// TODO move to tasks package
 public class CreateCloneOfApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
     private final String name;

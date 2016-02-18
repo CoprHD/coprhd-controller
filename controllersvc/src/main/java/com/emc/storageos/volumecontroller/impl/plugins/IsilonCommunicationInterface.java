@@ -3084,10 +3084,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         FileShare fileShare = null;
         FileShare targetFileShare = null;
+        IsilonSyncPolicyReport report = null;
+
         List<URI> fileSystemsURIS = _dbClient.queryByType(FileShare.class, true);
         for (URI fsUri : fileSystemsURIS) {
             fileShare = _dbClient.queryObject(FileShare.class, fsUri);
-            // FS without replication or Target FS or
+
             if (fileShare.getMirrorStatus() == null || fileShare.getPersonality().equals(PersonalityTypes.TARGET)
                     || fileShare.getMirrorStatus().equals(MirrorStatus.UNKNOWN)
                     || fileShare.getMirrorStatus().equals(MirrorStatus.FAILED_OVER) ||
@@ -3101,24 +3103,20 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
                     }
                     String policyName = targetFileShare.getLabel();
-                    IsilonSyncPolicy policy = api.getReplicationPolicy(policyName);
-                    if (policy.getLastJobState().equals(JobState.finished)) {
-                        String reportId = fileShare.getReplicationJobsId().toString() + "-" + policyName;
-                        try {
-                            IsilonSyncPolicyReport report = api.getReplicationPolicyReport(reportId);
-                        } catch (Exception e) {
-
+                    try {
+                        IsilonSyncPolicy policy = api.getReplicationPolicy(policyName);
+                        if (policy.getLastJobState().equals(JobState.finished)) {
+                            String reportId = fileShare.getlastReplicationJobId().toString() + "-" + policyName;
+                            report = api.getReplicationPolicyReport(reportId);
+                            fileShare.setAvgDuration((fileShare.getAvgDuration() + report.getDuration()) / 2);
+                            fileShare.setlastReplicationJobId(fileShare.getlastReplicationJobId() + 1);
+                            _dbClient.updateObject(fileShare);
                         }
-                    } else {
+                    } catch (Exception e) {
                         continue;
                     }
-                    // from reports fetch last report
-                    // from last report fetch last job time
-                    // add this last time in report pojo class
-
-                    // calculate the average
-                    // persist in DB
-                    // DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                } else {
+                    continue;
                 }
             }
         }

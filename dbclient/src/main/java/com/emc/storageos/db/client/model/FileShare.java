@@ -97,7 +97,10 @@ public class FileShare extends FileObject implements ProjectResource {
     private StringSet filePolicies;
 
     //job id to fetch report
-    private Long replicationJobsId=1L;
+    private Long lastReplicationJobId=1L;
+    
+    //Average duration of replication jobs in seconds..
+    private Integer avgDuration;
     
     public enum MirrorStatus {
         UNKNOWN("0"),
@@ -459,13 +462,23 @@ public class FileShare extends FileObject implements ProjectResource {
         this.notificationLimit = notificationLimit;
         setChanged("notificationLimit");
     }
-
-    public Long getReplicationJobsId() {
-        return replicationJobsId;
+    
+    @Name("lastReplicationJobId")
+    public Long getlastReplicationJobId() {
+        return lastReplicationJobId;
     }
 
-    public void setReplicationJobsId(Long replicationJobsId) {
-        this.replicationJobsId = replicationJobsId;
+    public void setlastReplicationJobId(Long lastReplicationJobId) {
+        this.lastReplicationJobId = lastReplicationJobId;
+    }
+    
+    @Name("avgDuration")
+    public Integer getAvgDuration() {
+        return avgDuration;
+    }
+
+    public void setAvgDuration(Integer avgDuration) {
+        this.avgDuration = avgDuration;
     }
 
 }

@@ -102,7 +102,8 @@ public class IsilonReplicationApiTest {
     }
 
     public static void testReplicationPolicyReport() throws Exception {
-        IsilonSyncPolicyReport policyReports = _client.getReplicationPolicyReport("8-R_N_M_A_FS_1-target-varray116");
+        IsilonSyncPolicyReport policyReports = _client.getReplicationPolicyReport("12-R_N_M_A_FS_1-target-varray116");
+        System.out.println(policyReports.toString());
     }
 
     public static void testTargetGetReplicationPolicyReport() throws Exception {
@@ -114,7 +115,7 @@ public class IsilonReplicationApiTest {
     }
 
     public static void main(String args[]) throws Exception {
-        System.out.println("hee");
+
         IsilonReplicationApiTest.setup();
 
         // IsilonReplicationApiTest.testlicenseInfo();
@@ -125,6 +126,6 @@ public class IsilonReplicationApiTest {
         // IsilonReplicationApiTest.testGetTargetPolicy();
         // IsilonReplicationApiTest.testGetReplicationPolicyReport();
         // IsilonReplicationApiTest.teststartReplicationJob();
-        IsilonReplicationApiTest.testGetReplicationPolicyReport();
+        IsilonReplicationApiTest.testReplicationPolicyReport();
     }
 }

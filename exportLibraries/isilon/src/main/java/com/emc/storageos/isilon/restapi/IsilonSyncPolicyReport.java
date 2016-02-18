@@ -46,7 +46,7 @@ public class IsilonSyncPolicyReport extends IsilonSyncPolicy {
     @Override
     public String toString() {
         return "IsilonSyncPolicyReport [error=" + error + ", errors=" + Arrays.toString(errors) + ", id=" + id + ", policy_name="
-                + policy_name + ", state=" + state + "]";
+                + policy_name + ", state=" + state + ", policy=" + policy + ", duration=" + duration + ", end_time=" + end_time + "]";
     }
 
     public Integer getDuration() {

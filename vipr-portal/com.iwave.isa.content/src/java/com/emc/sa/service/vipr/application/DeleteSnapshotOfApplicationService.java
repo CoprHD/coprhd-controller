@@ -33,6 +33,9 @@ public class DeleteSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.APPLICATION_SNAPSHOT_TYPE)
     private String snapshotType;
 
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
+    private String applicationCopySet;
+
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
     protected List<URI> subGroups;
 
@@ -48,14 +51,12 @@ public class DeleteSnapshotOfApplicationService extends ViPRService {
 
         for (String type : volumeTypes.keySet()) {
             if (type.equalsIgnoreCase("VMAX3")) {
-                BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, volumeTypes.get(type)
-                        .getReplicationGroupInstance()));
+                BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, applicationCopySet));
                 // TODO error if snapSessionList is empty
                 tasks = execute(new DeleteSnapshotSessionForApplication(applicationId, snapSessionList.getSnapSessionRelatedResourceList()
                         .get(0).getId()));
             } else {
-                SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, volumeTypes.get(type)
-                        .getReplicationGroupInstance()));
+                SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, applicationCopySet));
                 // TODO error if snapshotList is empty
                 tasks = execute(new DeleteSnapshotForApplication(applicationId, snapshotList.getSnapList().get(0).getId()));
             }

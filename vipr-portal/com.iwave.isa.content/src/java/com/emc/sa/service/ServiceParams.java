@@ -76,6 +76,7 @@ public interface ServiceParams {
     public String READ_ONLY = "readOnly";
     public String APPLICATION = "application";
     public String APPLICATION_SUB_GROUP = "applicationSubGroup";
+    public String APPLICATION_COPY_SETS = "applicationCopySets";
     public String NEW_APPLICATION_SUB_GROUP = "newApplicationSubGroup";
     public String APPLICATION_SITE = "applicationSite";
     public String FULL_COPY_NAME = "fullCopyName";

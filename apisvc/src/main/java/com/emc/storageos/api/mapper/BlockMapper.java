@@ -466,12 +466,15 @@ public class BlockMapper {
 
         if (from.getTypes() != null) {
             to.setTypes(from.getTypes());
+        }
 
-            while (dbClient != null && volumes != null && volumes.iterator().hasNext()) {
+        if (dbClient != null && volumes != null) {
+            Iterator<URI> volumeIterator = volumes.iterator();
+            while(volumeIterator.hasNext()) {
                 // Get the first RP or SRDF volume. From this we are able to obtain the
                 // link status and protection set (RP) information for all volumes in the
                 // CG.
-                Volume volume = dbClient.queryObject(Volume.class, volumes.iterator().next());
+                Volume volume = dbClient.queryObject(Volume.class, volumeIterator.next());
 
                 if (from.getTypes().contains(BlockConsistencyGroup.Types.RP.toString())
                         && !NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {

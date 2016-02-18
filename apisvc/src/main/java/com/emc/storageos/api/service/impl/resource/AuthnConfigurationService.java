@@ -39,6 +39,7 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.keystone.restapi.errorhandling.KeystoneApiException;
 import com.emc.storageos.keystone.restapi.model.response.*;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectElement;
@@ -268,6 +269,14 @@ public class AuthnConfigurationService extends TaggedResource {
         String cinderv2ServiceId = _keystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
         // Find Id of cinderv1 service.
         String cinderServiceId = _keystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+        
+        // Throw an exception if one of cinder services is missing.
+        if (cinderv2ServiceId == null) {
+            throw KeystoneApiException.exceptions.missingService(KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
+        } else if (cinderServiceId == null) {
+            throw KeystoneApiException.exceptions.missingService(KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+        }
+        
         // Delete old endpoint for cinderv2 service.
         _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderv2ServiceId);
         // Delete old endpoint for cinderv1 service.
@@ -403,6 +412,11 @@ public class AuthnConfigurationService extends TaggedResource {
         // Retrieve tenant from OpenStack via Keystone API.
         TenantResponse tenantResponse = keystoneApi.getKeystoneTenants();
         TenantV2 tenant = _keystoneUtils.retrieveTenant(tenantResponse, tenantName);
+
+        // Throw an exception if tenant is missing.
+        if (tenant == null) {
+            throw BadRequestException.badRequests.unableToFindTenant(URI.create("OpenStack tenant is missing - " + tenantName));
+        }
 
         // Create mapping rules
         List<UserMappingParam> userMappings = new ArrayList<>();
@@ -856,8 +870,16 @@ public class AuthnConfigurationService extends TaggedResource {
             KeystoneApiClient keystoneApi = getKeystoneApi(provider);
             // Get a cinderv2 service id.
             String serviceIdV2 = _keystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
-            // Get a cinder service id.
+            // Get a cinderv1 service id.
             String serviceIdV1 = _keystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+
+            // Throw an exception if one of cinder services is missing.
+            if (serviceIdV2 == null) {
+                throw KeystoneApiException.exceptions.missingService(KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
+            } else if (serviceIdV1 == null) {
+                throw KeystoneApiException.exceptions.missingService(KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+            }
+
             // Delete endpoint for cinderv2 service.
             _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, serviceIdV2);
             // Delete endpoint for cinder service.

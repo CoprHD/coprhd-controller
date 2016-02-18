@@ -54,6 +54,12 @@ public class KeystoneUtils {
      */
     public void deleteKeystoneEndpoint(KeystoneApiClient keystoneApi, String serviceId) {
         _log.debug("START - deleteKeystoneEndpoint");
+
+        if (serviceId == null) {
+            _log.error("serviceId is null");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Service id");
+        }
+
         // Get Keystone endpoints from Keystone API.
         EndpointResponse endpoints = keystoneApi.getKeystoneEndpoints();
         // Find endpoint to delete.
@@ -115,9 +121,9 @@ public class KeystoneUtils {
                 return tenant;
             }
         }
-        _log.error("Tenant {} does not exist in OpenStack", tenantName);
-        // Raise an exception if tenant is missing.
-        throw BadRequestException.badRequests.unableToFindTenant(URI.create("OpenStack tenant is missing - " + tenantName));
+        _log.warn("Tenant {} does not exist in OpenStack", tenantName);
+        // Return null if tenant is missing.
+        return null;
     }
 
     /**
@@ -145,8 +151,8 @@ public class KeystoneUtils {
             }
         }
         _log.error("Missing service {}", serviceName);
-        // Raise an exception if service is missing.
-        throw KeystoneApiException.exceptions.missingService(serviceName);
+        // Return null if service is missing.
+        return null;
     }
 
     /**

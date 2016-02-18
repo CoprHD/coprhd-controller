@@ -215,13 +215,13 @@ def cos_getpools(args):
     
 def cos_errorhandling(args):
     bourne.connect(args.ip)
-    print "create VirtualPool with invalid type"
+    print "*** Handling: create VirtualPool with invalid type"
     cos_create_invalid_type()
-    print "create VirtualPool with a neighborhood that does not exist"
+    print "*** Handling: create VirtualPool with a neighborhood that does not exist"
     cos_create_notfound_neighborhood()
-    print "get a VirtualPool that does not exist"
+    print "*** Handling: get a VirtualPool that does not exist"
     cos_show_notfound()
-    print "deactivate a VirtualPool that does not exist"
+    print "*** Handling: deactivate a VirtualPool that does not exist"
     cos_deactivate_notfound()
 
 def cos_show_notfound():

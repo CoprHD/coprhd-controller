@@ -324,9 +324,9 @@ public class DisasterRecovery extends ViprResourceController {
         Boolean isActive = isActiveSiteState(Enum.valueOf(SiteState.class, siteRest.getState()));
         renderArgs.put("isActive", isActive);
 
-        if (disasterSiteDetails.getPausedTime() != null) {
-            DateTime pausedTime = new DateTime(disasterSiteDetails.getPausedTime().getTime());
-            renderArgs.put("pausedTime", pausedTime);
+        if (disasterSiteDetails.getLastSyncTime() != null) {
+            DateTime lastSyncTime = new DateTime(disasterSiteDetails.getLastSyncTime().getTime());
+            renderArgs.put("lastSyncTime", lastSyncTime);
         }
 
         if (disasterSiteDetails.getCreationTime() != null) {

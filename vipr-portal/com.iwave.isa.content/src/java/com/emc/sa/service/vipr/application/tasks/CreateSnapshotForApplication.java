@@ -34,6 +34,8 @@ public class CreateSnapshotForApplication extends WaitForTasks<TaskResourceRep> 
         input.setVolumes(Lists.newArrayList(volume));
         input.setPartial(true);
         input.setReadOnly(readOnly);
+        // TODO
+        // input.setCopyOnHighAvailabilitySide(copyOnHighAvailabilitySide);
 
         TaskList taskList = getClient().application().createSnapshotOfApplication(applicationId, input);
 

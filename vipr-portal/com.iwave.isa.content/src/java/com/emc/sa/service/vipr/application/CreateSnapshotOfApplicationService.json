@@ -7,6 +7,11 @@
       type:"assetType.vipr.application"
     },
     
+    applicationSite:{
+      type:"assetType.vipr.applicationVirtualArray",
+      required:"false"
+    },
+    
     applicationSubGroup:{
       type:"assetType.vipr.replicationGroup"
     },

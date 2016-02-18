@@ -31,6 +31,8 @@ public class CreateSnapshotSessionForApplication extends WaitForTasks<TaskResour
         input.setName(name);
         input.setVolumes(Lists.newArrayList(volume));
         input.setPartial(true);
+        // TODO
+        // input.setCopyOnHighAvailabilitySide(copyOnHighAvailabilitySide);
 
         TaskList taskList = getClient().application().createSnapshotSessionOfApplication(applicationId, input);
 

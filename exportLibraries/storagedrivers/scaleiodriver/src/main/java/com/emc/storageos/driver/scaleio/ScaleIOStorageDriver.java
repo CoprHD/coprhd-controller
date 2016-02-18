@@ -26,7 +26,6 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -741,6 +740,8 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 					storageSystem.getSystemName());
 			ScaleIORestClient scaleIOHandle = getConnInfoFromRegistry(storageSystem);
 			if (scaleIOHandle != null) {
+                ScaleIOSystem sioSystem = scaleIOHandle.getSystem();
+                String installationID = sioSystem.getInstallId();
 				List<ScaleIOSDS> allSDSs = scaleIOHandle.queryAllSDS();
 				for (ScaleIOSDS sds : allSDSs) {
 					StoragePort port;
@@ -760,6 +761,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 							port.setDeviceLabel(String.format("%s-%s-StoragePort", sds.getName(), sdsId));
 							port.setPortName(sdsId);
 							port.setPortNetworkId(sdsId);
+                            port.setNetworkId(installationID);
 							port.setStorageSystemId(storageSystem.getNativeId());
 							port.setTransportType(StoragePort.TransportType.ScaleIO);
 							port.setOperationalStatus(StoragePort.OperationalStatus.OK);

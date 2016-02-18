@@ -3797,12 +3797,14 @@ public class VolumeIngestionUtil {
         }
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects, dbClient);
-        umpset.setInactive(true);
 
-        updatedObjects.add(umpset);
-        // TODO - persisting objects here. Need to relook on this
-        dbClient.createObject(pset);
-        dbClient.createObject(cg);
+        // the RP volume ingestion context will take care of persisting the 
+        // new objects and deleting the old UnManagedProtectionSet 
+        if (requestContext instanceof RecoverPointVolumeIngestionContext) {
+            _logger.info("setting the new CG and ProtectionSet in the ingestion request context");
+            ((RecoverPointVolumeIngestionContext)requestContext).setManagedBlockConsistencyGroup(cg);
+            ((RecoverPointVolumeIngestionContext)requestContext).setManagedProtectionSet(pset);
+        }
     }
 
     /**

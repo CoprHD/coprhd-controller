@@ -2707,6 +2707,15 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
+        if (param.getCopyName() != null && !param.getCopyName().isEmpty()) {
+            // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
+            // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
+            String convertedName = param.getCopyName().replaceAll("[^\\dA-Za-z\\_]", "");
+            _log.info("Original copy name {} and converted copy name {}", param.getCopyName(), convertedName);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_TARGET_COPY_NAME, convertedName);
+
+        }
+
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
 
         try {
@@ -3549,7 +3558,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3592,7 +3601,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3627,7 +3636,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 

@@ -23,9 +23,9 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.service.vipr.file.tasks.AssociateFilePolicyToFileSystem;
 import com.emc.sa.service.vipr.file.tasks.ChangeFileVirtualPool;
 import com.emc.sa.service.vipr.file.tasks.CreateFileContinuousCopy;
-import com.emc.sa.service.vipr.file.tasks.AssociateFilePolicyToFileSystem;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshot;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.CreateFileSnapshotShare;
@@ -64,6 +64,7 @@ import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.api.service.impl.resource.FileService.FileTechnologyType;
+import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -84,7 +85,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class FileStorageUtils {
-    
+
     public static final String COPY_NATIVE = "native";
 
     public static FileShareRestRep getFileSystem(URI fileSystemId) {
@@ -120,15 +121,17 @@ public class FileStorageUtils {
         return aclsToAdd;
     }
 
-    public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb,int advisoryLimit, int softLimit, int gracePeriod) {
-        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb,advisoryLimit, softLimit, gracePeriod, virtualPool, virtualArray, project));
+    public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb, int advisoryLimit,
+            int softLimit, int gracePeriod) {
+        Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, advisoryLimit, softLimit, gracePeriod, virtualPool,
+                virtualArray, project));
         addAffectedResource(task);
         URI fileSystemId = task.getResourceId();
         addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));
         logInfo("file.storage.filesystem.task", fileSystemId, task.getOpId());
         return fileSystemId;
     }
-    
+
     public static URI createFileSystem(URI project, URI virtualArray, URI virtualPool, String label, double sizeInGb) {
         Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, virtualPool, virtualArray, project));
         addAffectedResource(task);
@@ -149,18 +152,18 @@ public class FileStorageUtils {
             for (SmbShareResponse share : getCifsShares(fileSystemId)) {
                 deactivateCifsShare(fileSystemId, share.getShareName());
             }
-    
+
             // Delete all export rules for filesystem and all sub-directories
             if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
                 deactivateFileSystemExport(fileSystemId, true, null);
             }
-    
+
             // Deactivate NFS Exports
             for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
                 deactivateExport(fileSystemId, export);
             }
         }
-        
+
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }
@@ -335,31 +338,44 @@ public class FileStorageUtils {
         }
         return null;
     }
-    
+
     public static Task<FileShareRestRep> createFileContinuousCopy(URI fileId, String name) {
         Task<FileShareRestRep> copy = execute(new CreateFileContinuousCopy(fileId, name, FileTechnologyType.LOCAL_MIRROR.name()));
         addAffectedResource(copy);
         return copy;
     }
-    
+
     public static void removeContinuousCopiesForFile(URI fileId, Collection<URI> continuousCopyIds) {
         for (URI continuousCopyId : continuousCopyIds) {
             removeFileContinuousCopy(fileId, continuousCopyId);
         }
     }
-    
+
+    private static boolean isFileSystemWithActiveReplication(URI fileId) {
+        FileShareRestRep fs = getFileSystem(fileId);
+        if (fs.getProtection().getMirrorStatus() != null && !fs.getProtection().getMirrorStatus().isEmpty()) {
+            String currentMirrorStatus = fs.getProtection().getMirrorStatus();
+            if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
+                    || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
+                return true;
+        }
+        return false;
+    }
+
     private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
-        execute(new StopFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
-        Task<FileShareRestRep> task = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
+        if (isFileSystemWithActiveReplication(fileId)) {
+            execute(new StopFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
+        }
+        Task<FileShareRestRep> task = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId,
+                FileTechnologyType.LOCAL_MIRROR.name()));
         addAffectedResource(task);
     }
-    
-    
+
     public static void failoverFileSystem(URI fileId, URI targetId) {
         Tasks<FileShareRestRep> tasks = execute(new FailoverFileSystem(fileId, targetId, FileTechnologyType.REMOTE_MIRROR.name()));
         addAffectedResources(tasks);
     }
-    
+
     public static void changeFileVirtualPool(URI fileId, URI targetVirtualPool) {
         Task<FileShareRestRep> task = execute(new ChangeFileVirtualPool(fileId, targetVirtualPool));
         addAffectedResource(task);
@@ -371,8 +387,10 @@ public class FileStorageUtils {
         return task.getResourceId();
     }
 
-    public static URI createFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size, int softLimit , int advisoryLimit, int gracePeriod) {
-        Task<QuotaDirectoryRestRep> task = execute(new CreateFileSystemQuotaDirectory(fileSystemId, name, oplock, securityStyle, size,softLimit, advisoryLimit, gracePeriod));
+    public static URI createFileSystemQuotaDirectory(URI fileSystemId, String name, Boolean oplock, String securityStyle, String size,
+            int softLimit, int advisoryLimit, int gracePeriod) {
+        Task<QuotaDirectoryRestRep> task = execute(new CreateFileSystemQuotaDirectory(fileSystemId, name, oplock, securityStyle, size,
+                softLimit, advisoryLimit, gracePeriod));
         addAffectedResource(task);
         return task.getResourceId();
     }
@@ -545,15 +563,15 @@ public class FileStorageUtils {
     public static List<ExportRule> getFileSnapshotExportRules(URI fileSnapshotId, Boolean allDir, String subDir) {
         return execute(new FindFileSnapshotExportRules(fileSnapshotId, allDir, subDir));
     }
-    
+
     public static Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
         return execute(new AssociateFilePolicyToFileSystem(fileSystemId, filePolicyId));
     }
-    
+
     public static Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
         return execute(new DissociateFilePolicyFromFileSystem(fileSystemId, filePolicyId));
     }
-    
+
     public static List<String> getInvalidFileACLs(FileSystemACLs[] fileACLs) {
         List<String> names = new ArrayList<String>();
         for (FileStorageUtils.FileSystemACLs acl : fileACLs) {
@@ -561,7 +579,7 @@ public class FileStorageUtils {
                 names.add(acl.aclName);
             }
         }
-        
+
         return names;
     }
 
@@ -574,7 +592,7 @@ public class FileStorageUtils {
         }
 
         for (FileStorageUtils.FileSystemACLs element : toRemove) {
-            fileACLs = (FileStorageUtils.FileSystemACLs[]) ArrayUtils.removeElement(fileACLs, element);
+            fileACLs = ArrayUtils.removeElement(fileACLs, element);
         }
 
         return fileACLs;
@@ -586,7 +604,7 @@ public class FileStorageUtils {
 
         @Param
         public String aclName;
-        
+
         @Param
         public String aclDomain;
 

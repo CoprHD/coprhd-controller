@@ -80,6 +80,7 @@ public class IsilonApi {
     private static final URI URI_TARGET_REPLICATION_POLICY_REPORTS = URI.create("/platform/1/sync/target/reports?policy_name=");
     private static final URI URI_SNAPSHOTIQ_LICENSE_INFO = URI.create("/platform/1/snapshot/license");
     private static final URI URI_SNAPSHOT_SCHEDULES = URI.create("/platform/1/snapshot/schedules");
+    private static final URI URI_REPLICATION_POLICY_REPORT = URI.create("/platform/1/sync/reports/");
 
     private static Logger sLogger = LoggerFactory.getLogger(IsilonApi.class);
 
@@ -1985,6 +1986,17 @@ public class IsilonApi {
     }
 
     /**
+     * Get Replication Report information from the Isilon array
+     * 
+     * @param report ID for the replication policy
+     * @throws IsilonException
+     */
+
+    public IsilonSyncPolicyReport getReplicationPolicyReport(String reportId) throws IsilonException {
+        return get(_baseUrl.resolve(URI_REPLICATION_POLICY_REPORT), reportId, "reports", IsilonSyncPolicyReport.class);
+    }
+
+    /**
      * Get Target Replication Reports information from the Isilon array
      * 
      * @param Name for the replication policy
@@ -2035,7 +2047,7 @@ public class IsilonApi {
         }
         return licenseStatus;
     }
-    
+
     /**
      * Checks to see if the SnapshotIQ service is enabled on the isilon device
      * 

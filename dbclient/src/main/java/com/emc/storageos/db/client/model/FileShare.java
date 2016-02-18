@@ -96,6 +96,9 @@ public class FileShare extends FileObject implements ProjectResource {
     // policy associated with the file.
     private StringSet filePolicies;
 
+    //job id to fetch report
+    private Long replicationJobsId=1L;
+    
     public enum MirrorStatus {
         UNKNOWN("0"),
         FAILED_OVER("1"),
@@ -455,6 +458,14 @@ public class FileShare extends FileObject implements ProjectResource {
     public void setNotificationLimit(Long notificationLimit) {
         this.notificationLimit = notificationLimit;
         setChanged("notificationLimit");
+    }
+
+    public Long getReplicationJobsId() {
+        return replicationJobsId;
+    }
+
+    public void setReplicationJobsId(Long replicationJobsId) {
+        this.replicationJobsId = replicationJobsId;
     }
 
 }

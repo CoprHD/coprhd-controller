@@ -31,6 +31,8 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
+import com.emc.storageos.db.client.model.FileShare.PersonalityTypes;
 import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
@@ -72,6 +74,9 @@ import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
 import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.isilon.restapi.IsilonStoragePort;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
+import com.emc.storageos.isilon.restapi.IsilonSyncPolicyReport;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -374,7 +379,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         } while (resumeToken != null);
 
-
         // create a list of access zone for which base dir is not same as system access zone.
         // we get all snapshot list at once. baseDirPaths list is used to
         // find snaphot belong to which access zone.
@@ -425,7 +429,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
                             totalFsCount++;
                             _log.info("Access zone base directory path: {}", accessZone.getPath());
-
 
                         }
                     }
@@ -554,7 +557,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             // try to connect to the Isilon cluster first to check if cluster is available
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             isilonApi.getClusterInfo();
-
+            // for Hackathon
+            Hackathon(storageSystem, isilonApi);
             discoverCluster(storageSystem);
             _dbClient.persistObject(storageSystem);
             if (!storageSystem.getReachableStatus()) {
@@ -3074,5 +3078,49 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             }
         }
         return storagePort;
+    }
+
+    private void Hackathon(StorageSystem system, IsilonApi api) throws BaseCollectionException {
+
+        FileShare fileShare = null;
+        FileShare targetFileShare = null;
+        List<URI> fileSystemsURIS = _dbClient.queryByType(FileShare.class, true);
+        for (URI fsUri : fileSystemsURIS) {
+            fileShare = _dbClient.queryObject(FileShare.class, fsUri);
+            // FS without replication or Target FS or
+            if (fileShare.getMirrorStatus() == null || fileShare.getPersonality().equals(PersonalityTypes.TARGET)
+                    || fileShare.getMirrorStatus().equals(MirrorStatus.UNKNOWN)
+                    || fileShare.getMirrorStatus().equals(MirrorStatus.FAILED_OVER) ||
+                    fileShare.getMirrorStatus().equals(MirrorStatus.DETACHED)) {
+                continue;
+            } else {
+                List<String> targetfileUris = new ArrayList<String>();
+                if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(fileShare.getPersonality())) {
+                    targetfileUris.addAll(fileShare.getMirrorfsTargets());
+                    for (String target : targetfileUris) { // only one target share , so only one time loop
+                        targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
+                    }
+                    String policyName = targetFileShare.getLabel();
+                    IsilonSyncPolicy policy = api.getReplicationPolicy(policyName);
+                    if (policy.getLastJobState().equals(JobState.finished)) {
+                        String reportId = fileShare.getReplicationJobsId().toString() + "-" + policyName;
+                        try {
+                            IsilonSyncPolicyReport report = api.getReplicationPolicyReport(reportId);
+                        } catch (Exception e) {
+
+                        }
+                    } else {
+                        continue;
+                    }
+                    // from reports fetch last report
+                    // from last report fetch last job time
+                    // add this last time in report pojo class
+
+                    // calculate the average
+                    // persist in DB
+                    // DONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                }
+            }
+        }
     }
 }

@@ -17,8 +17,7 @@ import com.emc.storageos.services.util.EnvConfig;
  */
 public class IsilonReplicationApiTest {
 
-    // private static final Logger _log =
-    // LoggerFactory.getLogger(IsilonReplicationApiTest.class);
+    // private static final Logger _log = LoggerFactory.getLogger(IsilonReplicationApiTest.class);
     private static volatile IsilonApi _client;
     private static volatile IsilonApiFactory _factory = new IsilonApiFactory();
     private static String ip = EnvConfig.get("sanity", "isilon.ip");
@@ -102,6 +101,10 @@ public class IsilonReplicationApiTest {
 
     }
 
+    public static void testReplicationPolicyReport() throws Exception {
+        IsilonSyncPolicyReport policyReports = _client.getReplicationPolicyReport("8-R_N_M_A_FS_1-target-varray116");
+    }
+
     public static void testTargetGetReplicationPolicyReport() throws Exception {
         // System.out.println(" Replication Policy : " + _client.getReplicationPolicyTargetReport("vasutestrepl").toString());
         IsilonList<IsilonSyncPolicyReport> reports = _client.getTargetReplicationPolicyReports("mudit_policy");
@@ -111,6 +114,7 @@ public class IsilonReplicationApiTest {
     }
 
     public static void main(String args[]) throws Exception {
+        System.out.println("hee");
         IsilonReplicationApiTest.setup();
 
         // IsilonReplicationApiTest.testlicenseInfo();
@@ -121,5 +125,6 @@ public class IsilonReplicationApiTest {
         // IsilonReplicationApiTest.testGetTargetPolicy();
         // IsilonReplicationApiTest.testGetReplicationPolicyReport();
         // IsilonReplicationApiTest.teststartReplicationJob();
+        IsilonReplicationApiTest.testGetReplicationPolicyReport();
     }
 }

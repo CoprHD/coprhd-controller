@@ -2241,7 +2241,7 @@ public class VolumeGroupService extends TaskResourceService {
                         case RELINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
                             oprEnum = ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS;
                             SnapshotSessionRelinkTargetsParam relinkParam = new SnapshotSessionRelinkTargetsParam(
-                                    getRelinkTargetIdsForCG((VolumeGroupSnapshotSessionRelinkTargetsParam) param, cgUri, session));
+                                    getRelinkTargetIdsForSession((VolumeGroupSnapshotSessionRelinkTargetsParam) param, session));
                             taskList.getTaskList().addAll(
                                     _blockConsistencyGroupService.relinkTargetVolumes(cgUri, sessionUri, relinkParam)
                                             .getTaskList());
@@ -2249,7 +2249,7 @@ public class VolumeGroupService extends TaskResourceService {
                         case UNLINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
                             oprEnum = ResourceOperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGETS;
                             SnapshotSessionUnlinkTargetsParam unlinkParam = new SnapshotSessionUnlinkTargetsParam(
-                                    getUnlinkTargetIdsForCG((VolumeGroupSnapshotSessionUnlinkTargetsParam) param, cgUri, session));
+                                    getUnlinkTargetIdsForSession((VolumeGroupSnapshotSessionUnlinkTargetsParam) param, session));
                             taskList.addTask(
                                     _blockConsistencyGroupService.unlinkTargetVolumesForSession(cgUri, sessionUri, unlinkParam));
                             break;
@@ -2272,64 +2272,63 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Gets the relink target ids for the given CG and session.
+     * Gets the relink target ids for the given session.
      *
      * @param param the VolumeGroupSnapshotSessionRelinkTargetsParam
-     * @param cgURI the cg uri
      * @param session the snap session
-     * @return the relink target ids for cg and session
+     * @return the relink target ids for session
      */
-    private List<URI> getRelinkTargetIdsForCG(final VolumeGroupSnapshotSessionRelinkTargetsParam param, URI cgURI,
+    private List<URI> getRelinkTargetIdsForSession(final VolumeGroupSnapshotSessionRelinkTargetsParam param,
             BlockSnapshotSession session) {
         List<URI> targetIds = new ArrayList<URI>();
+        StringSet sessionTargets = session.getLinkedTargets();
         for (URI snapURI : param.getLinkedTargetIds()) {
+            // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
             ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
             BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
             ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
-            if (!NullColumnValueGetter.isNullURI(snap.getConsistencyGroup())
-                    && snap.getConsistencyGroup().toString().equals(cgURI.toString())) {
-                // TODO check this
-                if (session.getSessionInstance().equals(snap.getSettingsInstance())) {
-                    targetIds.add(snapURI);
-                }
+            if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
+                targetIds.add(snapURI);
             }
         }
-        // TODO throw error if no targets
-        log.info(String.format("Target ids for consistency group %s and session %s : %s",
-                cgURI, session.getLabel(), Joiner.on(',').join(targetIds)));
+        log.info(String.format("Target ids for snapshot session %s : %s",
+                session.getLabel(), Joiner.on(',').join(targetIds)));
+        if (targetIds.isEmpty()) {
+            // None of the provided target belong to this snapshot session.
+            throw APIException.badRequests.snapshotSessionDoesNotHaveAnyTargets(session.getId().toString());
+        }
         return targetIds;
     }
 
     /**
-     * Gets the unlink target ids for the given CG and session.
+     * Gets the unlink target ids for the given session.
      *
      * @param param the VolumeGroupSnapshotSessionUnlinkTargetsParam
-     * @param cgURI the cg uri
      * @param session the snap session
-     * @return the unlink target id params for cg and session
+     * @return the unlink target id params for session
      */
-    private List<SnapshotSessionUnlinkTargetParam> getUnlinkTargetIdsForCG(final VolumeGroupSnapshotSessionUnlinkTargetsParam param,
-            URI cgURI,
+    private List<SnapshotSessionUnlinkTargetParam> getUnlinkTargetIdsForSession(final VolumeGroupSnapshotSessionUnlinkTargetsParam param,
             BlockSnapshotSession session) {
         List<SnapshotSessionUnlinkTargetParam> targetIds = new ArrayList<SnapshotSessionUnlinkTargetParam>();
         List<URI> selectedURIs = new ArrayList<URI>();
+        StringSet sessionTargets = session.getLinkedTargets();
         for (SnapshotSessionUnlinkTargetParam unlinkTarget : param.getLinkedTargets()) {
             URI snapURI = unlinkTarget.getId();
+            // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
             ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
             BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
             ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
-            if (!NullColumnValueGetter.isNullURI(snap.getConsistencyGroup())
-                    && snap.getConsistencyGroup().toString().equals(cgURI.toString())) {
-                // TODO check this
-                if (session.getSessionInstance().equals(snap.getSettingsInstance())) {
-                    targetIds.add(unlinkTarget);
-                    selectedURIs.add(snapURI);
-                }
+            if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
+                targetIds.add(unlinkTarget);
+                selectedURIs.add(snapURI);
             }
         }
-        // TODO throw error if no targets
-        log.info(String.format("Target ids for consistency group %s and session %s : %s",
-                cgURI, session.getLabel(), Joiner.on(',').join(selectedURIs)));
+        log.info(String.format("Target ids for snapshot session %s : %s",
+                session.getLabel(), Joiner.on(',').join(selectedURIs)));
+        if (targetIds.isEmpty()) {
+            // None of the provided target belong to this snapshot session.
+            throw APIException.badRequests.snapshotSessionDoesNotHaveAnyTargets(session.getId().toString());
+        }
         return targetIds;
     }
 

@@ -40,6 +40,8 @@ public class BlockConsistencyGroupUpdate {
     private BlockConsistencyGroupVolumeList addVolumesList;
     private BlockConsistencyGroupVolumeList removeVolumesList;
 
+    // TODO provide array consistency flag
+
     /**
      * List of volumes to add to the block consistency group
      * 

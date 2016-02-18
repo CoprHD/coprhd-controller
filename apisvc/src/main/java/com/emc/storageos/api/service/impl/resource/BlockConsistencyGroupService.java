@@ -250,6 +250,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         consistencyGroup.setLabel(param.getName());
         consistencyGroup.setProject(new NamedURI(project.getId(), param.getName()));
         consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), param.getName()));
+        // disable array consistency if user has selected not to create backend replication group
+        consistencyGroup.setArrayConsistency(param.getArrayConsistency());
 
         _dbClient.createObject(consistencyGroup);
 
@@ -1161,6 +1163,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 }
             }
         }
+
+        // TODO verify resource and update array consistency flag
+        // TODO write migration script for upgrade
 
         List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
         // check if add volume list is same as existing volumes in CG

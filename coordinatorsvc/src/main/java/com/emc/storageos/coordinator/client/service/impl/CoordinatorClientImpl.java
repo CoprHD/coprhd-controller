@@ -74,7 +74,6 @@ import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
-import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DistributedQueue;

@@ -3356,7 +3356,7 @@ volumeApplication.vpool=Virtual Pool
 volumeApplication.protocols=Protocols
 volumeApplication.wwn=WWN
 volumeApplication.consistencyGroup=Consistency Group
-volumeApplication.replicationGroup=Replication Group
+volumeApplication.associatedVolumeRG=Replication Group
 
 cloneApplication.name=Copy Name
 cloneApplication.size=Size
@@ -3690,6 +3690,7 @@ volumes.protocols=Protocols
 volumes.consistencygroup=Consistency Group
 volumes.wwn=WWN
 volumes.replicationGroup=Replication Group
+volumes.associatedVolumeRG=Source Replication Group
 
 fileSystems.name=File System Name
 fileSystems.capacity=Size

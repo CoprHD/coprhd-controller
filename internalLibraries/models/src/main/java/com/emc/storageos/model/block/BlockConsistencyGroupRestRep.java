@@ -187,7 +187,7 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
      *
      */
     @XmlElement(name = "array_consistency")
-    public Boolean isArrayConsistency() {
+    public Boolean getArrayConsistency() {
         return arrayConsistency;
     }
 

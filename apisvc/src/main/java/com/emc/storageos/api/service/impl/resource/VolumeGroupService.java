@@ -1420,7 +1420,7 @@ public class VolumeGroupService extends TaskResourceService {
                 ArgValidator.checkEntity(volume, volumeURI, isIdEmbeddedInURL(volumeURI));
 
                 // validate that provided volume is part of Volume Group
-                if (volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+                if (!volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
                     throw APIException.badRequests
                             .replicaOperationNotAllowedVolumeNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(), volume.getLabel());
                 }
@@ -1932,7 +1932,7 @@ public class VolumeGroupService extends TaskResourceService {
 
                 // validate that provided volume is part of Volume Group
                 if (volume.getVolumeGroupIds() == null ||
-                        volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+                        !volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
                     throw APIException.badRequests
                             .replicaOperationNotAllowedVolumeNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT_SESSION.toString(),
                                     volume.getLabel());

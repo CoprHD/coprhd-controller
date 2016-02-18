@@ -593,11 +593,11 @@
           "baseService": "ResynchronizeApplicationFullCopy"
         },
         {
-          "image": "icon_application_create_full_copy.png",
+          "image": "icon_application_create_snapshot.png",
           "baseService": "CreateSnapshotOfApplication"
         },
         {
-          "image": "icon_application_create_full_copy.png",
+          "image": "icon_application_restore_snapshot.png",
           "baseService": "RestoreSnapshotOfApplication"
         },
         {
@@ -605,7 +605,7 @@
           "baseService": "ResynchronizeSnapshotOfApplication"
         },
         {
-          "image": "icon_application_create_full_copy.png",
+          "image": "icon_application_remove_snapshot.png",
           "baseService": "DeleteSnapshotOfApplication"
         },
         {

@@ -45,134 +45,138 @@ import controllers.util.Models;
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN"), @Restrict("PROJECT_ADMIN") })
 public class ConsistencyGroups extends Controller {
-    private static final String ACTIVE_PROJECT_ID = "activeProjectId";
+	private static final String ACTIVE_PROJECT_ID = "activeProjectId";
 
-    public static void list() {
-        BlockConsistencyGroupDataTable dataTable = new BlockConsistencyGroupDataTable();
+	public static void list() {
+		BlockConsistencyGroupDataTable dataTable = new BlockConsistencyGroupDataTable();
 
-        List<ProjectRestRep> projects = ProjectUtils.getProjects(Models.currentAdminTenant());
-        Collections.sort(projects, new Comparator<ProjectRestRep>() {
-            public int compare(ProjectRestRep proj1, ProjectRestRep proj2)
-            {
-                return proj1.getName().compareTo(proj2.getName());
-            }
-        });
-        String activeProjectId = flash.get(ACTIVE_PROJECT_ID);
-        if (activeProjectId == null && !projects.isEmpty()) {
-            activeProjectId = projects.get(0).getId().toString();
-        }
+		List<ProjectRestRep> projects = ProjectUtils.getProjects(Models.currentAdminTenant());
+		Collections.sort(projects, new Comparator<ProjectRestRep>() {
+			public int compare(ProjectRestRep proj1, ProjectRestRep proj2) {
+				return proj1.getName().compareTo(proj2.getName());
+			}
+		});
+		String activeProjectId = flash.get(ACTIVE_PROJECT_ID);
+		if (activeProjectId == null && !projects.isEmpty()) {
+			activeProjectId = projects.get(0).getId().toString();
+		}
 
-        TenantSelector.addRenderArgs();
+		TenantSelector.addRenderArgs();
 
-        render(dataTable, projects, activeProjectId);
-    }
+		render(dataTable, projects, activeProjectId);
+	}
 
-    public static void listJson(String projectId) {
-        List<BlockConsistencyGroup> items = Lists.newArrayList();
+	public static void listJson(String projectId) {
+		List<BlockConsistencyGroup> items = Lists.newArrayList();
 
-        if (StringUtils.isNotBlank(projectId)) {
-            for (BlockConsistencyGroupRestRep cg : BlockConsistencyGroupUtils.getBlockConsistencyGroups(projectId)) {
-                items.add(new BlockConsistencyGroup(cg));
-            }
-        }
-        renderJSON(DataTablesSupport.createJSON(items, params));
-    }
+		if (StringUtils.isNotBlank(projectId)) {
+			for (BlockConsistencyGroupRestRep cg : BlockConsistencyGroupUtils.getBlockConsistencyGroups(projectId)) {
+				items.add(new BlockConsistencyGroup(cg));
+			}
+		}
+		renderJSON(DataTablesSupport.createJSON(items, params));
+	}
 
-    /**
-     * NOTE: This isn't used at the moment as your not able to update a consistency group name
-     */
-    public static void edit(String id) {
-        list();
-    }
+	/**
+	 * NOTE: This isn't used at the moment as your not able to update a
+	 * consistency group name
+	 */
+	public static void edit(String id) {
+		list();
+	}
 
-    @FlashException(referrer = { "create", "edit" })
-    public static void save(ConsistencyGroupForm consistencyGroup) {
+	@FlashException(referrer = { "create", "edit" })
+	public static void save(ConsistencyGroupForm consistencyGroup) {
 
-        flash.put(ACTIVE_PROJECT_ID, consistencyGroup.projectId);
+		flash.put(ACTIVE_PROJECT_ID, consistencyGroup.projectId);
 
-        consistencyGroup.validate("consistencyGroup");
-        if (Validation.hasErrors()) {
-            Common.handleError();
-        }
+		consistencyGroup.validate("consistencyGroup");
+		if (Validation.hasErrors()) {
+			Common.handleError();
+		}
 
-        // NOTE : Only Create is supported at this time
-        if (consistencyGroup.isNew()) {
-            BlockConsistencyGroupCreate createParam = new BlockConsistencyGroupCreate();
-            createParam.setName(consistencyGroup.name);
-            createParam.setProject(uri(consistencyGroup.projectId));
-            BlockConsistencyGroupUtils.create(createParam);
-        }
+		// NOTE : Only Create is supported at this time
+		if (consistencyGroup.isNew()) {
+			BlockConsistencyGroupCreate createParam = new BlockConsistencyGroupCreate();
+			createParam.setName(consistencyGroup.name);
+			createParam.setProject(uri(consistencyGroup.projectId));
+			createParam.setArrayConsistency(consistencyGroup.arrayConsistency);
 
-        flash.success(MessagesUtils.get("consistencyGroups.saved", consistencyGroup.name));
-        if (StringUtils.isNotBlank(consistencyGroup.referrerUrl)) {
-            redirect(consistencyGroup.referrerUrl);
-        }
-        else {
-            list();
-        }
-    }
+			BlockConsistencyGroupUtils.create(createParam);
+		}
 
-    public static void create(String projectId) {
-        ConsistencyGroupForm consistencyGroup = new ConsistencyGroupForm(projectId);
-        render("@edit", consistencyGroup);
-    }
+		flash.success(MessagesUtils.get("consistencyGroups.saved", consistencyGroup.name));
+		if (StringUtils.isNotBlank(consistencyGroup.referrerUrl)) {
+			redirect(consistencyGroup.referrerUrl);
+		} else {
+			list();
+		}
+	}
 
-    @FlashException("list")
-    public static void delete(@As(",") String[] ids) {
-        delete(uris(ids));
-    }
+	public static void create(String projectId) {
+		ConsistencyGroupForm consistencyGroup = new ConsistencyGroupForm(projectId);
+		consistencyGroup.arrayConsistency = true;
+		render("@edit", consistencyGroup);
+	}
 
-    private static void delete(List<URI> ids) {
-        if (!ids.isEmpty()) {
-            BlockConsistencyGroupRestRep cg = BlockConsistencyGroupUtils.getBlockConsistencyGroup(ids.get(0));
-            if (cg != null) {
-                flash.put(ACTIVE_PROJECT_ID, cg.getProject().getId().toString());
-            }
-        }
-        for (URI id : ids) {
-            BlockConsistencyGroupUtils.deactivate(id);
-        }
-        flash.success(MessagesUtils.get("consistencyGroups.deleted"));
-        list();
-    }
+	@FlashException("list")
+	public static void delete(@As(",") String[] ids) {
+		delete(uris(ids));
+	}
 
-    public static class ConsistencyGroupForm {
-        public String id;
+	private static void delete(List<URI> ids) {
+		if (!ids.isEmpty()) {
+			BlockConsistencyGroupRestRep cg = BlockConsistencyGroupUtils.getBlockConsistencyGroup(ids.get(0));
+			if (cg != null) {
+				flash.put(ACTIVE_PROJECT_ID, cg.getProject().getId().toString());
+			}
+		}
+		for (URI id : ids) {
+			BlockConsistencyGroupUtils.deactivate(id);
+		}
+		flash.success(MessagesUtils.get("consistencyGroups.deleted"));
+		list();
+	}
 
-        @Required
-        @MaxSize(64)
-        @MinSize(2)
-        public String name;
+	public static class ConsistencyGroupForm {
+		public String id;
 
-        @Required
-        public String projectId;
+		@Required
+		@MaxSize(64)
+		@MinSize(2)
+		public String name;
 
-        public String referrerUrl;
+		@Required
+		public String projectId;
 
-        public ConsistencyGroupForm(String projectId) {
-            this.projectId = projectId;
-        }
+		public String referrerUrl;
 
-        public ConsistencyGroupForm from(BlockConsistencyGroupRestRep from) {
-            this.id = from.getId().toString();
-            this.name = from.getName();
+		public boolean arrayConsistency;
 
-            return this;
-        }
+		public ConsistencyGroupForm(String projectId) {
+			this.projectId = projectId;
+		}
 
-        public boolean isNew() {
-            return StringUtils.isBlank(id);
-        }
+		public ConsistencyGroupForm from(BlockConsistencyGroupRestRep from) {
+			this.id = from.getId().toString();
+			this.name = from.getName();
+			this.arrayConsistency = from.getArrayConsistency();
+			return this;
+		}
 
-        public void validate(String formName) {
-            Validation.valid(formName, this);
-            if (!validateCGName(this.name)) {
-                Validation.addError(formName + ".name", "consistencyGroups.invalid.name.error");
-            }
-        }
+		public boolean isNew() {
+			return StringUtils.isBlank(id);
+		}
 
-        private static boolean validateCGName(String cgName) {
-            return CommonFormValidator.isAlphaNumericOrUnderscoreUnordered(cgName);
-        }
-    }
+		public void validate(String formName) {
+			Validation.valid(formName, this);
+			if (!validateCGName(this.name)) {
+				Validation.addError(formName + ".name", "consistencyGroups.invalid.name.error");
+			}
+		}
+
+		private static boolean validateCGName(String cgName) {
+			return CommonFormValidator.isAlphaNumericOrUnderscoreUnordered(cgName);
+		}
+	}
 }

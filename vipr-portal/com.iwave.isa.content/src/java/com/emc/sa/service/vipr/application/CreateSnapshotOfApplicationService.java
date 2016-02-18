@@ -17,6 +17,7 @@ import com.emc.sa.service.vipr.application.tasks.CreateSnapshotSessionForApplica
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateSnapshotOfApplication")
@@ -42,15 +43,15 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
 
         NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
 
-        Map<String, URI> volumeTypes = BlockStorageUtils.getVolumeSystemTypes(volList, subGroups);
+        Map<String, VolumeRestRep> volumeTypes = BlockStorageUtils.getVolumeSystemTypes(volList, subGroups);
 
         Tasks<? extends DataObjectRestRep> tasks = null;
 
         for (String type : volumeTypes.keySet()) {
             if (type.equalsIgnoreCase("vmax3")) {
-                tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeTypes.get(type), name, count));
+                tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId(), name, count));
             } else {
-                tasks = execute(new CreateSnapshotForApplication(applicationId, volumeTypes.get(type), name, readOnly, count));
+                tasks = execute(new CreateSnapshotForApplication(applicationId, volumeTypes.get(type).getId(), name, readOnly, count));
             }
             addAffectedResources(tasks);
         }

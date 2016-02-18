@@ -15,11 +15,11 @@ import com.google.common.collect.Lists;
 
 public class DeleteSnapshotForApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
-    private final URI volume;
+    private final URI snapshot;
 
-    public DeleteSnapshotForApplication(URI applicationId, URI volume) {
+    public DeleteSnapshotForApplication(URI applicationId, URI snapshot) {
         this.applicationId = applicationId;
-        this.volume = volume;
+        this.snapshot = snapshot;
         provideDetailArgs(applicationId);
     }
 
@@ -27,7 +27,7 @@ public class DeleteSnapshotForApplication extends WaitForTasks<TaskResourceRep> 
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupSnapshotOperationParam input = new VolumeGroupSnapshotOperationParam();
         input.setPartial(true);
-        input.setSnapshots(Lists.newArrayList(volume));
+        input.setSnapshots(Lists.newArrayList(snapshot));
 
         TaskList taskList = getClient().application().deactivateApplicationSnapshot(applicationId, input);
 

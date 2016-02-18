@@ -15,11 +15,11 @@ import com.google.common.collect.Lists;
 
 public class DeleteSnapshotSessionForApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
-    private final URI volume;
+    private final URI snapshotSession;
 
-    public DeleteSnapshotSessionForApplication(URI applicationId, URI volume) {
+    public DeleteSnapshotSessionForApplication(URI applicationId, URI snapshotSession) {
         this.applicationId = applicationId;
-        this.volume = volume;
+        this.snapshotSession = snapshotSession;
         provideDetailArgs(applicationId);
     }
 
@@ -27,7 +27,7 @@ public class DeleteSnapshotSessionForApplication extends WaitForTasks<TaskResour
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupSnapshotSessionDeactivateParam input = new VolumeGroupSnapshotSessionDeactivateParam();
         input.setPartial(true);
-        input.setSnapshotSessions(Lists.newArrayList(volume));
+        input.setSnapshotSessions(Lists.newArrayList(snapshotSession));
 
         TaskList taskList = getClient().application().deactivateApplicationSnapshotSession(applicationId, input);
 

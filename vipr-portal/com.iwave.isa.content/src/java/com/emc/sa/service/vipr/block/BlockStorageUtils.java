@@ -1040,12 +1040,12 @@ public class BlockStorageUtils {
      * @param subGroups
      * @return
      */
-    public static Map<String, URI> getVolumeSystemTypes(NamedVolumesList volumeList, List<URI> subGroups) {
-        Map<String, URI> volumeTypes = Maps.newHashMap();
+    public static Map<String, VolumeRestRep> getVolumeSystemTypes(NamedVolumesList volumeList, List<URI> subGroups) {
+        Map<String, VolumeRestRep> volumeTypes = Maps.newHashMap();
         for (NamedRelatedResourceRep vol : volumeList.getVolumes()) {
             VolumeRestRep volume = execute(new GetBlockVolume(vol.getId()));
             if (subGroups != null && subGroups.contains(volume.getReplicationGroupInstance())) {
-                volumeTypes.put(volume.getSystemType(), volume.getId());
+                volumeTypes.put(volume.getSystemType(), volume);
             }
         }
         return volumeTypes;

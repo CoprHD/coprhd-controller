@@ -90,17 +90,16 @@ _isIPConsistent() {
       ovfenv_ipaddr6=$(_get_ipv6_compressed "${ovfenvpropMap[$ovfenv_ipv6key]}")
       [ "${vdc_ipaddr6}" != "${ovfenv_ipaddr6}" ] && echo "false" && return
     done 
-   
+
+    ovfenv_vipkey="network_vip"
     vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip";
-    if [[ ${vdcpropMap[$vdc_vipkey]} == *":"* ]]; then
-        ovfenv_vip6key="network_vip6"
-        ovfenv_vip6=$(_get_ipv6_compressed "${ovfenvpropMap[$ovfenv_vip6key]}")
-        [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenv_vip6}" ] && echo "false" && return
-    else
-        ovfenv_vipkey="network_vip"
-        [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vipkey]}" ] && echo "false" && return
-    fi 
-    
+    [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vipkey]}" ] && echo "false" && return
+
+    ovfenv_vip6key="network_vip6"
+    ovfenv_vip6=$(_get_ipv6_compressed "${ovfenvpropMap[$ovfenv_vip6key]}")
+    vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip6";
+    [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenv_vip6}" ] && echo "false" && return
+
     echo "true" && return
 }
 

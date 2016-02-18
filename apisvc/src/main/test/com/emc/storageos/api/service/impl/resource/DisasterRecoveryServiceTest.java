@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
+import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,6 +42,7 @@ import org.junit.Test;
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
@@ -92,6 +94,7 @@ public class DisasterRecoveryServiceTest {
     private DRNatCheckParam natCheckParam;
     private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
     private DrUtil drUtil;
+    private SecretKey secretKey;
     
     @Before
     public void setUp() throws Exception {
@@ -163,6 +166,14 @@ public class DisasterRecoveryServiceTest {
         natCheckParam = new DRNatCheckParam();
 
         apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
+        
+        try {
+            KeyGenerator keyGenerator = null;
+            keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+            secretKey = keyGenerator.generateKey();
+        } catch (NoSuchAlgorithmException e) {
+            fail("generate key fail");
+        }
 
         drService = spy(new DisasterRecoveryService());
         drService.setDbClient(dbClientMock);
@@ -209,14 +220,28 @@ public class DisasterRecoveryServiceTest {
         // prepare parameters for adding standby
         String name = "new-added-standby";
         String desc = "standby-site-1-description";
-        String vip = "0.0.0.0";
+        String vip = "10.247.101.112";
         String username = "root";
         String password = "password";
         String uuid = "new-added-standby-site-1";
         String version = "vipr-2.4.0.0.100";
+        
+        HashMap<String, String> hostIPv4AddressMap = new HashMap<String, String>();
+        hostIPv4AddressMap.put("vipr1", "10.247.101.111");
+        
+        SiteConfigRestRep config = new SiteConfigRestRep();
+        config.setUuid(uuid);
+        config.setVip(vip);
+        config.setHostIPv4AddressMap(hostIPv4AddressMap);
+        config.setHostIPv6AddressMap(new HashMap<String, String>());
 
+        com.emc.vipr.client.core.Site site = mock(com.emc.vipr.client.core.Site.class);
+        doReturn(config).when(site).getStandbyConfig();
+        
         // mock a ViPRCoreClient with specific UUID
-        doReturn(mockViPRCoreClient(uuid)).when(drService).createViPRCoreClient(vip, username, password);
+        ViPRCoreClient mockViPRCoreClient = mock(ViPRCoreClient.class);
+        doReturn(mockViPRCoreClient).when(drService).createViPRCoreClient(vip, username, password);
+        doReturn(site).when(mockViPRCoreClient).site();
 
         // mock a ViPRSystemClient with specific UUID
         doReturn(mockViPRSystemClient(version)).when(drService).createViPRSystemClient(vip, username, password);
@@ -240,10 +265,13 @@ public class DisasterRecoveryServiceTest {
         newAdded.setState(SiteState.ACTIVE);
         doReturn(newAdded.toConfiguration()).when(coordinator)
                 .queryConfiguration(String.format("%s/vdc1", Site.CONFIG_KIND), newAdded.getUuid());
+        doReturn(new PropertyInfoExt()).when(coordinator).getTargetInfo(PropertyInfoExt.class);
 
         // mock checking and validating methods
         doNothing().when(drService).precheckForStandbyAdd(any(SiteConfigRestRep.class));
         doNothing().when(drService).validateAddParam(any(SiteAddParam.class), any(List.class));
+        doReturn(standbySite1).when(drUtil).getActiveSite();
+        doReturn(secretKey).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
 
         // assemble parameters, add standby
         SiteAddParam params = new SiteAddParam();
@@ -358,7 +386,7 @@ public class DisasterRecoveryServiceTest {
 
         try {
             SiteRestRep response = drService.resumeStandby(standbySite1.getUuid());
-            assertEquals(response.getState(), SiteState.STANDBY_RESUMING.toString());
+            assertEquals(SiteState.STANDBY_PAUSED.toString(), response.getState());
         } catch (Exception e) {
             fail();
         }
@@ -369,6 +397,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         doReturn(primarySite).when(drUtil).getLocalSite();
+        doReturn(primarySite).when(drUtil).getActiveSite();
         
         drService.precheckForStandbyAdd(standby);
     }
@@ -594,16 +623,7 @@ public class DisasterRecoveryServiceTest {
     }    
     
     public void testGetStandbyConfig() {
-        SecretKey key = null;
-        try {
-            KeyGenerator keyGenerator = null;
-            keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-            key = keyGenerator.generateKey();
-        } catch (NoSuchAlgorithmException e) {
-            fail("generate key fail");
-        }
-        
-        doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
+        doReturn(secretKey).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         Site site = new Site();
         site.setState(SiteState.ACTIVE);
         doReturn(standbySite1.toConfiguration()).when(coordinator)
@@ -644,6 +664,7 @@ public class DisasterRecoveryServiceTest {
         Configuration config = new ConfigurationImpl();
         doReturn(config).when(coordinator).queryConfiguration(Constants.CONFIG_DR_ACTIVE_KIND, Constants.CONFIG_DR_ACTIVE_ID);
         doReturn(primarySite).when(drUtil).getLocalSite();
+        doReturn(primarySite).when(drUtil).getActiveSite();
         
         drService.precheckForStandbyAdd(standby);
     }
@@ -653,6 +674,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
         doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
         doReturn(primarySite).when(drUtil).getLocalSite();
+        doReturn(primarySite).when(drUtil).getActiveSite();
         
         drService.precheckForStandbyAdd(standby);
     }
@@ -709,7 +731,7 @@ public class DisasterRecoveryServiceTest {
         
         assertEquals(new Date(error.getCreationTime()), siteError.getCreationTime());
         assertEquals(error.getErrorMessage(), siteError.getErrorMessage());
-        assertEquals(error.getOperation(), siteError.getErrorMessage());
+        assertEquals(error.getOperation(), siteError.getOperation());
         
         try {
             drService.getSiteError(NONEXISTENT_ID);
@@ -731,12 +753,16 @@ public class DisasterRecoveryServiceTest {
         doReturn("SecreteKey".getBytes()).when(keyMock).getEncoded();
         doReturn(keyMock).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         doReturn(sites).when(drUtil).listSites();
+        doReturn(primarySite).when(drUtil).getActiveSite();
+        doReturn(true).when(drUtil).isSiteUp(standbySite2.getUuid());
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState(standbySite2.getUuid(), standbySite2.getNodeCount());
+        doReturn(mock(DistributedBarrier.class)).when(coordinator).getDistributedBarrier(any(String.class));
         doNothing().when(drService).precheckForSwitchover(standbySite2.getUuid());
         
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         drService.doSwitchover(standbySite2.getUuid());
         
-        verify(coordinator, times(2)).persistServiceConfiguration(any(Configuration.class));
+        verify(coordinator, times(1)).persistServiceConfiguration(any(Configuration.class));
     }
     
     @Test

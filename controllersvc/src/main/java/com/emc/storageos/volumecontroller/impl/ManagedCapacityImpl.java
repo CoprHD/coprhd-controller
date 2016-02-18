@@ -12,6 +12,7 @@ import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.PropertyListDataObject;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.vpool.ManagedResourcesCapacity;
@@ -24,7 +25,10 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.Calendar;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class ManagedCapacityImpl implements Runnable {
 
@@ -140,9 +144,28 @@ public class ManagedCapacityImpl implements Runnable {
 
         manCap = new ManagedResourcesCapacity.ManagedResourceCapacity();
         manCap.setType(ManagedResourcesCapacity.CapacityResourceType.POOL);
-        aggr = CustomQueryUtility.aggregatedPrimitiveField(dbClient, StoragePool.class, "freeCapacity");
-        manCap.setNumResources(aggr.getCount());
-        manCap.setResourceCapacity(aggr.getValue() * KB);
+        List<URI> uris = dbClient.queryByType(StoragePool.class, false);
+        Iterator<StoragePool> pools = dbClient.queryIterativeObjects(StoragePool.class, uris);
+        Map<String, Boolean> storageSharedFlags = new HashMap<String, Boolean>();
+        StoragePool pool;
+        long poolCount = 0;
+        double capacity = 0;
+        while (pools.hasNext()) {
+            pool = pools.next();
+            if (pool != null) {
+                poolCount += 1;
+                String storageDeviceId = pool.getStorageDevice().toString();
+                if (!storageSharedFlags.containsKey(storageDeviceId)) {
+                    StorageSystem system = dbClient.queryObject(StorageSystem.class, pool.getStorageDevice());
+                    storageSharedFlags.put(storageDeviceId, system.getSharedStorageCapacity());
+                    capacity += pool.getFreeCapacity() * KB;
+                }
+                else if (!storageSharedFlags.get(storageDeviceId).booleanValue())
+                    capacity += pool.getFreeCapacity() * KB;
+            }
+        }
+        manCap.setNumResources(poolCount);
+        manCap.setResourceCapacity(capacity);
         resourcesCapacity.getResourceCapacityList().add(manCap);
         if (Thread.currentThread().interrupted()) {
             throw new InterruptedException();

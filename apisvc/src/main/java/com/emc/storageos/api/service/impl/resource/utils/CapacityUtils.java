@@ -166,6 +166,8 @@ public class CapacityUtils {
             return capacityMetrics;
         }
 
+        Map<String, Boolean> storageSharedFlags = new HashMap<String, Boolean>();
+
         for (StoragePool storagePool : storagePools) {
             if (storagePool.getTotalCapacity() == 0) {
                 _log.error(
@@ -173,6 +175,13 @@ public class CapacityUtils {
                         storagePool.getId().toString());
                 continue;
             }
+            String storageDeviceId = storagePool.getStorageDevice().toString();
+            if (!storageSharedFlags.containsKey(storageDeviceId)) {
+                StorageSystem system = dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
+                storageSharedFlags.put(storageDeviceId, system.getSharedStorageCapacity());
+            }
+            else if (storageSharedFlags.get(storageDeviceId).booleanValue())
+                continue;
 
             totalCapacity = totalCapacity.add(BigInteger.valueOf(storagePool.getTotalCapacity()));
             freeCapacity = freeCapacity.add(BigInteger.valueOf(storagePool.getFreeCapacity()));

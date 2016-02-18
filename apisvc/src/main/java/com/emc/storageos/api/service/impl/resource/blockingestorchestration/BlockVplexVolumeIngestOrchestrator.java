@@ -135,7 +135,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             //
             _discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
                     _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
-            if (VplexBackendIngestionContext.DISCOVERY_MODE_DISCOVERY_ONLY.equals(_discoveryMode)) {
+            if (VplexBackendIngestionContext.DISCOVERY_MODE_DISCOVERY_ONLY.equals(_discoveryMode) 
+                    || VplexBackendIngestionContext.DISCOVERY_MODE_DB_ONLY.equals(_discoveryMode)) {
                 volumeContext.setInDiscoveryOnlyMode(true);
             }
 

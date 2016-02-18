@@ -129,7 +129,7 @@ public class ExportMaskPlacementDescriptor {
      *            [IN] - Mapping of Volume URI to Volume object
      */
     public void placeVolumes(URI exportMaskURI, Map<URI, Volume> volumes) {
-        maskToVolumes.put(exportMaskURI, volumes);
+        maskToVolumes.put(exportMaskURI, new HashMap<>(volumes));
         // Once a volume placement has taken place, we should remove it from the unplacedVolumes list
         for (URI volumeId : volumes.keySet()) {
             unplacedVolumes.remove(volumeId);

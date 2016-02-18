@@ -2068,7 +2068,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             for (VolumeRestRep vol : fullCopies) {
                 if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null
                         && vol.getProtection().getFullCopyRep().getFullCopySetName() != null
-                        && vol.getVirtualArray().getId().equals(applicationVirtualArray)) {
+                        && (applicationVirtualArray == null || vol.getVirtualArray().getId().equals(applicationVirtualArray))) {
                     fullCopyNames.add(vol.getProtection().getFullCopyRep().getFullCopySetName());
                 }
             }
@@ -2126,6 +2126,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return options;
         }
 
+        // if it's neither RP nor vplex, it's just a simple block volume application; site is not needed
+        if (!isVplex && !isRP) {
+            options.add(newAssetOption(URI.create("none"), "None"));
+        }
+
         // if the volumes are vplex or RP display source as an option
         if (isVplex || isRP) {
             options.add(newAssetOption(sourceVarrayId, "protection.site.type.source"));
@@ -2144,7 +2149,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
             List<VirtualArrayRestRep> targetVarrays = client.varrays().getByIds(targetVarrayIds);
             for (VirtualArrayRestRep targetVarray : targetVarrays) {
-                targetOptions.add(newAssetOption(targetVarray.getId(), "protection.site.type.target", targetVarray.getName()));
+                targetOptions.add(newAssetOption(String.format("tgt:%s", targetVarray.getId().toString()),
+                        "protection.site.type.target", targetVarray.getName()));
             }
 
             // sort the targets

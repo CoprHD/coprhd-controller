@@ -2888,9 +2888,11 @@ recoverpoint_ingest_setup()
     fi
 
     if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
-        INGEST_NATIVEGUID2=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
+        INGEST_NATIVEGUID2=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
+        INGEST_NATIVEGUID3=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
         if [ "$RP_QUICK_PARAM" == "quick" ]; then
-            INGEST_NATIVEGUID2=$VMAX3_SIMULATOR_NATIVEGUID
+            INGEST_NATIVEGUID2=$VMAX2_SIMULATOR_NATIVEGUID
+            INGEST_NATIVEGUID3=$VMAX3_SIMULATOR_NATIVEGUID
         fi
     fi	
 
@@ -2899,6 +2901,7 @@ recoverpoint_ingest_setup()
 
     if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
         run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+        run storagedevice discover_namespace $INGEST_NATIVEGUID3 'UNMANAGED_VOLUMES'
     fi	
 
     if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -2978,7 +2981,9 @@ recoverpoint_ingest_test()
 	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
 	if [ ${RPVPLEX_TESTS} = "1" ]; then
 	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+		run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	    fi
 	fi
 	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 
@@ -3024,6 +3029,7 @@ recoverpoint_ingest_test()
 
     if [ ${vpool} = "rp${rptypetag}_crr" -o ${vpool} = "rp${rptypetag}_clr" ]; then
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+        run storagedevice discover_namespace $INGEST_NATIVEGUID3 'UNMANAGED_VOLUMES'
     fi	
 
     if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
@@ -3046,7 +3052,9 @@ recoverpoint_ingest_test()
 	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
 	if [ ${RPVPLEX_TESTS} = "1" ]; then
 	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
-	    run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+		run storagedevice discover_namespace $VPLEX2_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
+	    fi
 	fi
 	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
 	/opt/storageos/bin/dbutils list Volume > /tmp/vol3.txt
@@ -3414,8 +3422,6 @@ recoverpoint_simulator_setup()
         rp_port_setup
     fi
 
-    date
-    storagedevice list
     run storagedevice discover_all
     run transportzone assign VSAN_11 ${RECOVERPOINT_VARRAY1}
     run transportzone assign VSAN_13 ${RECOVERPOINT_VARRAY3}
@@ -3781,13 +3787,13 @@ recoverpoint_tests()
             fi
 
             if [ "$RPVPLEX_TESTS" = "1" ]; then
-                echo 'RP+VPLEX change vpool'
-                recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                echo 'RP+VPLEX change vpool...NOT SUPPORTED YET!!'
+                #recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
             fi
 
             if [ "$RPMP_TESTS" = "1" ]; then
-                echo 'MP change vpool'
-                recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
+                echo 'MP change vpool...NOT SUPPORTED YET!!'
+                #recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
             fi
 
             if [ "$RPXIO_TESTS" = "1" ]; then
@@ -3863,9 +3869,9 @@ recoverpoint_tests()
                 recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
 
                 # Change Replication Mode Test
-                echo 'RP change vpool - replication mode'
-                recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool_sync}
-                recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool}
+                echo 'RP change vpool - replication mode, not supported on RP/VPLEX yet'
+                # recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool_sync}
+                # recoverpoint_vpool_change_replication_mode_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_vpool}
             fi
 
             # MP test cases
@@ -3884,9 +3890,9 @@ recoverpoint_tests()
                 recoverpoint_cg_failover_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${rpmpvolume}${volume_name_modifier} ${rpmp_src_varray} ${rpmp_tgt_volumes} ${rpmp_tgt_varrays}
 
                 # Change Replication Mode Test
-                echo 'RP change vpool - replication mode'
-                recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool_sync}
-                recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool}
+                echo 'RP change vpool - replication mode, not supported on RP/MP yet'
+                # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool_sync}
+                # recoverpoint_vpool_change_replication_mode_test ${rpmpvolume}${volume_name_modifier} ${rpmp_src_vpool}
             fi
         fi
 
@@ -7284,7 +7290,7 @@ dr_basic_tests()
     echo "---VERIFY SITE $standby_site---"
     name=$(dr get $standby_site name|tail -1)
     description=$(dr get $standby_site description|tail -1)
-    vip=$(dr get $standby_site vip|tail -1)
+    vip=$(dr get $standby_site vip_endpoint|tail -1)
 
     if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP" ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
@@ -7458,7 +7464,7 @@ dr_multisite_tests()
     echo "---VERIFY SITE $standby_site_b---"
     name=$(dr get $standby_site_b name|tail -1)
     description=$(dr get $standby_site_b description|tail -1)
-    vip=$(dr get $standby_site_b vip|tail -1)
+    vip=$(dr get $standby_site_b vip_endpoint|tail -1)
 
     if [ "$vip" != "$DR_SITE_B_IP" -a "[$vip]" != "$DR_SITE_B_IP"  ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_B_IP\""
@@ -7533,7 +7539,7 @@ dr_multisite_tests()
     echo "---VERIFY SITE $standby_site_c---"
     name=$(dr get $standby_site_c name|tail -1)
     description=$(dr get $standby_site_c description|tail -1)
-    vip=$(dr get $standby_site_c vip|tail -1)
+    vip=$(dr get $standby_site_c vip_endpoint|tail -1)
 
     if [ "$vip" != "$DR_SITE_C_IP" -a "[$vip]" != "$DR_SITE_C_IP" ] ; then
         echo -e "Fail: site vip \"$vip\" isn't equal to \"$DR_SITE_C_IP\""
@@ -7880,7 +7886,7 @@ vdc_federation_setup()
     fi
     
     echo "Adding new vdc into current vipr system"
-    vdc add $VDC_ENDPOINT_B_NAME $VDC_ENDPOINT_B $VDC_ENDPOINT_B_SECRETKEY "$VDC_ENDPOINT_B_CERTCHAIN"
+    vdc add $VDC_ENDPOINT_B_NAME "$VDC_ENDPOINT_B" $VDC_ENDPOINT_B_SECRETKEY "$VDC_ENDPOINT_B_CERTCHAIN"
     if [ $? -ne 0 ]; then
         echo "Add vdc B failed."
         exit 1
@@ -7891,7 +7897,7 @@ vdc_federation_setup()
     
     if [ "$VDC_ENDPOINT_C" != "$VDC_DEFAULT_ENDPOINT" ] ; then
         echo "Adding the 3rd vdc into current vipr system"
-        vdc add $VDC_ENDPOINT_C_NAME $VDC_ENDPOINT_C $VDC_ENDPOINT_C_SECRETKEY "$VDC_ENDPOINT_C_CERTCHAIN"
+        vdc add $VDC_ENDPOINT_C_NAME "$VDC_ENDPOINT_C" $VDC_ENDPOINT_C_SECRETKEY "$VDC_ENDPOINT_C_CERTCHAIN"
         if [ $? -ne 0 ]; then
             echo "Add vdc C failed."
             exit 1
@@ -7940,7 +7946,7 @@ vdc_discon_reconn_test()
     echo "Disconnecting with $VDC_ENDPOINT_B"
 
     # Stop all the services on the vdc which we want to disconnect, make it to inaccessable.
-    stop_vdc_services $VDC_ENDPOINT_B 
+    stop_vdc_services "$VDC_ENDPOINT_B" 
     sleep 30
     vdc disconnect $VDC_ENDPOINT_B_ID
     if [ $? -ne 0 ]; then
@@ -7962,7 +7968,7 @@ vdc_discon_reconn_test()
     fi
 
     # Restart all the services on the vdc which we disconnected, make it back online to reconnect.
-    start_vdc_services $VDC_ENDPOINT_B
+    start_vdc_services "$VDC_ENDPOINT_B"
     sleep 60
     echo "Waiting for vdc stable $VDC_ENDPOINT_B"
     export BOURNE_IPADDR=$VDC_ENDPOINT_B

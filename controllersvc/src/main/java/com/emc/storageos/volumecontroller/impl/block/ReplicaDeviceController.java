@@ -1202,77 +1202,79 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             if (checkIfCGHasCloneReplica(volumes)) {
                 log.info("Adding steps to process clones for removing volumes");
                 // get clone volumes
-                String cloneGroupName = null;
-                List<URI> cloneUris = new ArrayList<URI>();
+                Map<String, List<URI>> cloneGroupCloneURIMap = new HashMap<String, List<URI>>();
                 for (Volume volume : volumes) {
                     if (volume.getFullCopies() != null && !volume.getFullCopies().isEmpty()) {
                         for (String cloneUri : volume.getFullCopies()) {
                             Volume clone = _dbClient.queryObject(Volume.class, URI.create(cloneUri));
                             if (clone != null && !clone.getInactive() && NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
-                                cloneUris.add(clone.getId());
-                                if (cloneGroupName == null) {
-                                    cloneGroupName = clone.getReplicationGroupInstance();
+                                if (cloneGroupCloneURIMap.get(clone.getReplicationGroupInstance()) == null) {
+                                    cloneGroupCloneURIMap.put(clone.getReplicationGroupInstance(), new ArrayList<URI>());
                                 }
+                                cloneGroupCloneURIMap.get(clone.getReplicationGroupInstance()).add(clone.getId());
                             }
                         }
                     }
                 }
                 // add steps to remove clones from the replication group
-                waitFor = removeClonesFromReplicationGroupStep(workflow, waitFor, system, cgURI, cloneUris, cloneGroupName);
+                for (Entry<String, List<URI>> entry : cloneGroupCloneURIMap.entrySet()) {
+                    waitFor = removeClonesFromReplicationGroupStep(workflow, waitFor, system, cgURI, entry.getValue(), entry.getKey());
+                }
             }
 
             if (checkIfCGHasMirrorReplica(volumes)) {
                 log.info("Adding steps to process mirrors for removing volumes");
-                List<URI> mirrorUris = new ArrayList<URI>();
-                String mirrorGroupName = null;
+                Map<String, List<URI>> mirrorGroupCloneURIMap = new HashMap<String, List<URI>>();
                 for (Volume volume : volumes) {
                     StringSet mirrors = volume.getMirrors();
                     if (mirrors != null && !mirrors.isEmpty()) {
                         for (String mirrorUri : mirrors) {
                             BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorUri));
                             if (mirror != null && !mirror.getInactive() && NullColumnValueGetter.isNotNullValue(mirror.getReplicationGroupInstance())) {
-                                mirrorUris.add(mirror.getId());
-                                if (mirrorGroupName == null) {
-                                    mirrorGroupName = mirror.getReplicationGroupInstance();
+                                if (mirrorGroupCloneURIMap.get(mirror.getReplicationGroupInstance()) == null) {
+                                    mirrorGroupCloneURIMap.put(mirror.getReplicationGroupInstance(), new ArrayList<URI>());
                                 }
+                                mirrorGroupCloneURIMap.get(mirror.getReplicationGroupInstance()).add(mirror.getId());
                             }
                         }
                     }
                 }
                 // add steps to remove mirrors from replication group
-                waitFor = removeMirrorsFromReplicationGroupStep(workflow, waitFor, system, cgURI, mirrorUris, mirrorGroupName);
+                for (Entry<String, List<URI>> entry : mirrorGroupCloneURIMap.entrySet()) {
+                    waitFor = removeMirrorsFromReplicationGroupStep(workflow, waitFor, system, cgURI, entry.getValue(), entry.getKey());
+                }
             }
 
             if (checkIfCGHasSnapshotReplica(volumes)) {
                 log.info("Adding steps to process snapshots for removing volumes");
-                List<URI> snapshots = new ArrayList<URI>();
-                String replicationGroupInstance = null;
-                String snapsetLabel = null;
+                Map<String, List<URI>> snapGroupCloneURIMap = new HashMap<String, List<URI>>();
                 for (Volume volume : volumes) {
                     URIQueryResultList list = new URIQueryResultList();
                     _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
                             list);
                     Iterator<URI> it = list.iterator();
                     while (it.hasNext()) {
-                        URI snapshotUri = it.next();
-                        snapshots.add(snapshotUri);
-                        if (replicationGroupInstance == null) {
-                            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotUri);
-                            if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
-                                replicationGroupInstance = snapshot.getReplicationGroupInstance();
+                        BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, it.next());
+                        String snapGroupName = null;
+                        if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                            snapGroupName = snapshot.getReplicationGroupInstance();
+                        } else if (NullColumnValueGetter.isNotNullValue(snapshot.getSnapsetLabel())) {
+                            snapGroupName = snapshot.getSnapsetLabel();
+                        }
+
+                        if (snapGroupName != null) {
+                            if (snapGroupCloneURIMap.get(snapGroupName) == null) {
+                                snapGroupCloneURIMap.put(snapGroupName, new ArrayList<URI>());
                             }
-                            if (NullColumnValueGetter.isNotNullValue(snapshot.getSnapsetLabel())) {
-                                snapsetLabel = snapshot.getSnapsetLabel();
-                            }
+                            snapGroupCloneURIMap.get(snapGroupName).add(snapshot.getId());
                         }
                     }
                 }
-                // if snapshot group name was not found in replicationGroupInstance, check snapshotSetLabel
-                if (replicationGroupInstance == null) {
-                    replicationGroupInstance = snapsetLabel;
-                }
+
                 // add steps to removed snapshots from the replication group
-                waitFor = removeSnapshotsFromReplicationGroupStep(workflow, waitFor, system, cgURI, snapshots, replicationGroupInstance);
+                for (Entry<String, List<URI>> entry : snapGroupCloneURIMap.entrySet()) {
+                    waitFor = removeSnapshotsFromReplicationGroupStep(workflow, waitFor, system, cgURI, entry.getValue(), entry.getKey());
+                }
             }
         }
 

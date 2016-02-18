@@ -1026,6 +1026,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("applicationSnapshotTargetType")
+    public List<AssetOption> getApplicationSnapshotTargetType(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        options.add(SNAPSHOT_TARGET_TYPE_OPTION);
+        return options;
+    }
+
     @Asset("applicationCopySets")
     @AssetDependencies({ "application" })
     public List<AssetOption> getApplicationCopySets(AssetOptionsContext ctx, URI application) {

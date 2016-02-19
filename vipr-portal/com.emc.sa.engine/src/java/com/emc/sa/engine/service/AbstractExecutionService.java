@@ -7,16 +7,27 @@ package com.emc.sa.engine.service;
 import java.util.Collection;
 
 import com.emc.storageos.db.client.model.uimodels.OrderStatus;
+
 import org.apache.log4j.Logger;
 
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.bind.Param;
 
 public abstract class AbstractExecutionService implements ExecutionService {
     private Logger log;
     private OrderStatus completedOrderStatus = OrderStatus.SUCCESS;
+    
+	//@Param("externalParam")
+	protected String externalParam;
+	
+	//@Param("extendClass")
+	protected String extendClass;	
 
-    @Override
+	//@Param("extendMethods")
+	protected String extendMethods;	
+
+	@Override
     public void init() throws Exception {
     }
 

@@ -18,7 +18,7 @@ public class ServiceDescriptorBuilder {
     public static final String LABEL_SUFFIX = ".label";
     public static final String DESCRIPTION_SUFFIX = ".description";
     public static final String ERROR_SUFFIX = ".validation.error";
-
+    public static final String EXT_SUFFIX = "(Extn)";
     private List<ResourceBundle> bundles;
 
     public ServiceDescriptorBuilder(String... bundleNames) {
@@ -33,14 +33,28 @@ public class ServiceDescriptorBuilder {
     }
 
     public ServiceDescriptor build(ServiceDefinition definition) {
-        String baseKey = StringUtils.defaultIfBlank(definition.baseKey, definition.serviceId);
+        Boolean isExtended=false;
+    	String baseKey = StringUtils.defaultIfBlank(definition.baseKey, definition.serviceId);
+        
+        if (baseKey.endsWith(".Extension" ) ){
+        	baseKey=baseKey.substring(0, baseKey.length()-".Extension".length());
+        	isExtended=true;
+        }
 
         ServiceDescriptor service = new ServiceDescriptor();
         service.setServiceId(definition.serviceId);
-        service.setCategory(getMessage(definition.categoryKey, baseKey + CATEGORY_SUFFIX));
-        service.setTitle(getMessage(definition.titleKey, baseKey + TITLE_SUFFIX));
-        service.setDescription(getMessage(definition.descriptionKey, baseKey + DESCRIPTION_SUFFIX));
-        service.addRoles(definition.roles);
+        if(isExtended){
+            service.setCategory(getMessage(definition.categoryKey, baseKey + CATEGORY_SUFFIX) + EXT_SUFFIX);
+            service.setTitle(getMessage(definition.titleKey, baseKey + TITLE_SUFFIX) + EXT_SUFFIX);
+            service.setDescription(getMessage(definition.descriptionKey, baseKey + DESCRIPTION_SUFFIX) + EXT_SUFFIX);
+            service.addRoles(definition.roles);
+        }else {
+            service.setCategory(getMessage(definition.categoryKey, baseKey + CATEGORY_SUFFIX));
+            service.setTitle(getMessage(definition.titleKey, baseKey + TITLE_SUFFIX));
+            service.setDescription(getMessage(definition.descriptionKey, baseKey + DESCRIPTION_SUFFIX));
+            service.addRoles(definition.roles);
+        }
+
 
         // Ensure that a missing resource keys don't cause the service to be hidden in the catalog
         if (StringUtils.isBlank(service.getTitle())) {

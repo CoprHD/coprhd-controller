@@ -64,12 +64,12 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
         
     	if(serviceName.endsWith("@Extension")){
     		serviceName=serviceName.substring(0, serviceName.length()-"@Extension".length());
-    		//serviceClass = services.get(serviceName);com.emc.sa.service.vipr.plugins.tasks.CustomSample.class
-    		//serviceClass = (Class<? extends ExecutionService>) ExtentionClassLoader.getProxyObject("com.emc.sa.service.vipr.plugins.tasks."+serviceName);
     		serviceClass = services.get("GenericPlugin");
     		isExtended=true;
     		return newInstance(serviceClass, serviceName,isExtended);
 
+    	} else if (serviceName.endsWith("Extension")){
+    		serviceName=serviceName.substring(0, serviceName.length()-"Extension".length());
     	}
 
     	serviceClass = services.get(serviceName);

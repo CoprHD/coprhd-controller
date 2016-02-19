@@ -3090,16 +3090,16 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         for (URI fsUri : fileSystemsURIS) {
             fileShare = _dbClient.queryObject(FileShare.class, fsUri);
 
-            if (fileShare.getMirrorStatus() == null || fileShare.getPersonality().equals(PersonalityTypes.TARGET)
-                    || fileShare.getMirrorStatus().equals(MirrorStatus.UNKNOWN)
-                    || fileShare.getMirrorStatus().equals(MirrorStatus.FAILED_OVER) ||
-                    fileShare.getMirrorStatus().equals(MirrorStatus.DETACHED)) {
+            if (fileShare.getMirrorStatus() == null || fileShare.getPersonality().equals(PersonalityTypes.TARGET.toString())
+                    || fileShare.getMirrorStatus().equals(MirrorStatus.UNKNOWN.toString())
+                    || fileShare.getMirrorStatus().equals(MirrorStatus.FAILED_OVER.toString()) ||
+                    fileShare.getMirrorStatus().equals(MirrorStatus.DETACHED.toString())) {
                 continue;
             } else {
                 List<String> targetfileUris = new ArrayList<String>();
                 if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(fileShare.getPersonality())) {
                     targetfileUris.addAll(fileShare.getMirrorfsTargets());
-                    for (String target : targetfileUris) { // only one target share , so only one time loop
+                    for (String target : targetfileUris) {
                         targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
                     }
                     String policyName = targetFileShare.getLabel();
@@ -3108,6 +3108,12 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         if (policy.getLastJobState().equals(JobState.finished)) {
                             String reportId = fileShare.getlastReplicationJobId().toString() + "-" + policyName;
                             report = api.getReplicationPolicyReport(reportId);
+                            if (fileShare.getAvgDuration() == null) { // for first time
+                                fileShare.setAvgDuration(0);
+                            }
+                            if (fileShare.getlastReplicationJobId() == null) { // for first time
+                                fileShare.setlastReplicationJobId(1L);
+                            }
                             fileShare.setAvgDuration((fileShare.getAvgDuration() + report.getDuration()) / 2);
                             fileShare.setlastReplicationJobId(fileShare.getlastReplicationJobId() + 1);
                             _dbClient.updateObject(fileShare);

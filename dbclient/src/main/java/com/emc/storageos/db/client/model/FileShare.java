@@ -97,7 +97,7 @@ public class FileShare extends FileObject implements ProjectResource {
     private StringSet filePolicies;
 
     //job id to fetch report
-    private Long lastReplicationJobId=1L;
+    private Long lastReplicationJobId;
     
     //Average duration of replication jobs in seconds..
     private Integer avgDuration;

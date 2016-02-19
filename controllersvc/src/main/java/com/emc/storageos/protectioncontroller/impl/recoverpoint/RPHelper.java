@@ -1016,12 +1016,60 @@ public class RPHelper {
     }
 
     /**
-     * Gets all the volumes of the specified personality type in RecoverPoint
-     * consistency group.
+     * filters the list of volumes by source or target site; site is defined by a varray
+     *
+     * @param varrayId
+     * @param vpoolId
+     * @param volumes
+     * @return
+     */
+    public static List<Volume> getVolumesForSite(URI varrayId, URI vpoolId, Collection<Volume> volumes) {
+
+        List<Volume> volumesForSite = new ArrayList<Volume>();
+
+        String personality = null;
+        for (Volume volume : volumes) {
+            if (varrayId != null) {
+                if (vpoolId != null) {
+                    // for CDP volumes we need both varray and vpool to identify source or target
+                    if (volume.getVirtualArray().equals(varrayId) && volume.getVirtualPool().equals(vpoolId)) {
+                        volumesForSite.add(volume);
+                        personality = volume.getPersonality();
+                    }
+                } else if (volume.getVirtualArray().equals(varrayId)) {
+                    // check the first volume and include all source volumes
+                    volumesForSite.add(volume);
+                    personality = volume.getPersonality();
+                }
+            } else if (NullColumnValueGetter.isNotNullValue(volume.getPersonality())
+                    && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
+                volumesForSite.add(volume);
+                personality = volume.getPersonality();
+            }
+        }
+
+        // if the personality is source, include all source volumes including those not matching the passed in varray
+        if (Volume.PersonalityTypes.SOURCE.toString().equals(personality)) {
+            for (Volume volume : volumes) {
+                if (Volume.PersonalityTypes.SOURCE.toString().equals(volume.getPersonality())
+                        && !volume.getVirtualArray().equals(varrayId)) {
+                    volumesForSite.add(volume);
+                }
+            }
+        }
+
+        return volumesForSite;
+    }
+
+    /**
+     * Gets all the volumes of the specified personality type in RecoverPoint consistency group.
      * 
-     * @param dbClient The dbClient instance
-     * @param blockConsistencyGroupUri The CG to check
-     * @param personality The personality of the volumes to filter with
+     * @param dbClient
+     *            The dbClient instance
+     * @param blockConsistencyGroupUri
+     *            The CG to check
+     * @param personality
+     *            The personality of the volumes to filter with
      * @return All Source volumes in the CG
      */
     public static List<Volume> getCgVolumes(DbClient dbClient, URI blockConsistencyGroupUri, String personality) {

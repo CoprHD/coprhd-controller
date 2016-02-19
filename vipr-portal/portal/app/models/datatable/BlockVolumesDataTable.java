@@ -17,6 +17,7 @@ import util.BourneUtil;
 import util.datatable.DataTable;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -80,7 +81,6 @@ public class BlockVolumesDataTable extends DataTable {
         public Set<String> protocols;
         public boolean srdfTarget;
         public String wwn = "";
-        public String replicationGroup;
 
         public Volume(VolumeRestRep volume, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
             id = volume.getId();
@@ -96,7 +96,6 @@ public class BlockVolumesDataTable extends DataTable {
                 vpool = vpoolMap.get(volume.getVirtualPool().getId());
             }
             protocols = volume.getProtocols();
-            replicationGroup = volume.getReplicationGroupInstance();
         }
     }
 }

@@ -4,8 +4,8 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 import static com.google.common.collect.Lists.newArrayList;
 
 import java.math.BigDecimal;
@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,8 +78,6 @@ import com.google.common.collect.ListMultimap;
  * Utilities class encapsulates controller utility methods.
  */
 public class ControllerUtils {
-
-    private static final String SMI81_VERSION_STARTING_STR = "V8.1";
 
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(ControllerUtils.class);
@@ -1415,22 +1412,24 @@ public class ControllerUtils {
     }
 
     /**
-     * Check whether the given storage system is managed by SMI 8.1
+     * Check whether the given storage system is managed by SMI 8.1 or later
      * 
      * @param storage
      * @param dbClient
-     * @return status
+     * @return true if the version is at least 8.1
      */
     public static boolean isVmaxUsing81SMIS(StorageSystem storage, DbClient dbClient) {
-        boolean status = false;
-        if (storage != null) {
+        if (storage != null && !NullColumnValueGetter.isNullURI(storage.getActiveProviderURI())) {
             StorageProvider provider = dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
-            if (provider != null) {
-                String providerVersion = provider.getVersionString();
-                status = providerVersion != null && providerVersion.startsWith(SMI81_VERSION_STARTING_STR);
+
+            if (provider != null && provider.getVersionString() != null) {
+                String providerVersion = provider.getVersionString().replaceFirst("[^\\d]", "");
+                String provStr[] = providerVersion.split(Constants.SMIS_DOT_REGEX);
+                return Integer.parseInt(provStr[0]) >= 8 && Integer.parseInt(provStr[1]) >= 1;
             }
         }
-        return status;
+
+        return false;
     }
 
     /**
@@ -1505,7 +1504,7 @@ public class ControllerUtils {
             // check on other volumes part of the array group.
             List<Volume> volumes = new ArrayList<Volume>();
             String rgName = volume.getReplicationGroupInstance();
-            if (rgName == null && volume.isVPlexVolume(dbClient)) {
+            if (volume.isVPlexVolume(dbClient)) {
                 // get backend source volume
                 Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                 if (backedVol != null) {
@@ -1518,7 +1517,7 @@ public class ControllerUtils {
                         }
                     }
                 }
-            } else {
+            } else if (NullColumnValueGetter.isNotNullValue(rgName)) {
                 volumes = getVolumesPartOfRG(volume.getStorageController(), rgName, dbClient);
             }
             for (Volume vol : volumes) {
@@ -1574,13 +1573,16 @@ public class ControllerUtils {
         for (Volume volume : volumes) {
             String storage = volume.getStorageController().toString();
             String repGroupName = volume.getReplicationGroupInstance();
-            if (repGroupName == null && volume.isVPlexVolume(dbClient)) {
+            if (volume.isVPlexVolume(dbClient)) {
                 // get backend source volume
                 Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                 if (backedVol != null) {
                     repGroupName = backedVol.getReplicationGroupInstance();
                     storage = backedVol.getStorageController().toString();
                 }
+            }
+            if (NullColumnValueGetter.isNullValue(repGroupName)) {
+                repGroupName = "";
             }
             String key = repGroupName + storage;
             if (arrayGroupToVolumes.get(key) == null) {
@@ -1589,23 +1591,6 @@ public class ControllerUtils {
             arrayGroupToVolumes.get(key).add(volume);
         }
         return arrayGroupToVolumes;
-    }
-
-    /**
-     * Gets all clones for the given set name.
-     */
-    public static List<Volume> getClonesBySetName(String cloneSetName, DbClient dbClient) {
-        List<Volume> setClones = new ArrayList<Volume>();
-        if (cloneSetName != null) {
-            URIQueryResultList list = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                    getFullCopiesBySetName(cloneSetName), list);
-            Iterator<Volume> iter = dbClient.queryIterativeObjects(Volume.class, list);
-            while (iter.hasNext()) {
-                setClones.add(iter.next());
-            }
-        }
-        return setClones;
     }
 
     /*

@@ -77,6 +77,7 @@ public interface ServiceParams {
     public String APPLICATION = "application";
     public String APPLICATION_SUB_GROUP = "applicationSubGroup";
     public String NEW_APPLICATION_SUB_GROUP = "newApplicationSubGroup";
+    public String APPLICATION_SITE = "applicationSite";
     public String FULL_COPY_NAME = "fullCopyName";
 
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";

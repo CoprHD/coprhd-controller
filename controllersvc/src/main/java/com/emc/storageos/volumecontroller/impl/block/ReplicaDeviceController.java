@@ -1095,6 +1095,65 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
     
     /**
+     * Add steps to create clones/snapshots when add volumes to a replication group. this is mainly used for VPLEX/VPLEX+RG
+     * @param workflow
+     * @param waitFor
+     * @param cgURI
+     * @param volumeList The volumes to be added.
+     * @param replicationGroup replication group name
+     * @param taskId
+     * @return
+     * @throws InternalException
+     */
+    public String addStepsForAddingVolumesToRG(Workflow workflow, String waitFor, URI cgURI, List<URI> volumeList,
+            String replicationGroup, String taskId) throws InternalException {
+        log.info(String.format("addStepsForAddingVolumesToRG %s", replicationGroup));
+        List<Volume> volumes = new ArrayList<Volume>();
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumes.add(volume);
+            }
+        }
+
+        if (!volumes.isEmpty()) {
+            Volume firstVolume = volumes.get(0);
+            if (!ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient) &&
+                    !ControllerUtils.isVnxVolume(firstVolume, _dbClient)) {
+                return waitFor;
+            }
+
+            URI storage = firstVolume.getStorageController();
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            // find member volumes in the group
+            List<Volume> rgVolumes = ControllerUtils.getVolumesPartOfRG(storage, replicationGroup, _dbClient);
+            if (checkIfCGHasCloneReplica(rgVolumes)) {
+                log.info("Adding clone steps for adding volumes");
+                // create new clones for the newly added volumes
+                // add the created clones to clone groups
+                waitFor = addClonesToReplicationGroupStep(workflow, waitFor, storageSystem, volumes, replicationGroup, cgURI);
+            }
+
+            if (checkIfCGHasSnapshotReplica(rgVolumes)) {
+                log.info("Adding snapshot steps for adding volumes");
+                // create new snapshots for the newly added volumes
+                // add the created snapshots to snapshot groups
+                waitFor = addSnapshotsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes,
+                            replicationGroup, cgURI);
+            }
+
+            if (checkIfCGHasSnapshotSessions(volumes)) {
+                log.info("Adding snapshot session steps for adding volumes");
+                // Consolidate multiple snapshot sessions into one CG-based snapshot session
+                waitFor = addSnapshotSessionsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes, cgURI);
+            }
+        }
+
+        return waitFor;
+    }
+    
+    /**
      * Adds the steps necessary for removing one or more volumes from replication groups to the given Workflow.
      * volume list could contain volumes from different storage systems and different replication groups
      *

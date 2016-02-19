@@ -9,10 +9,18 @@
       <th style="text-align:right;">&{'resources.actions'}</th>
     </tr>
   </thead>
+  <script type="text/javascript"> 
+
+	$('.expandable').click(function() { 
+		$(this).next(".quotadesc").toggle();
+			return false; 
+		}); 
+
+  </script>
   <tbody>  
     #{list items:quotas, as:'quota'}
-      <tr>
-        <td><img src="/public/img/assets/QuotaDirectory.png" style="width: 32px;"/> ${quota.name}</td>
+      <tr class = "expandable">
+        <td><img src="/public/img/assets/QuotaDirectory.png" style="width: 32px;"/><a cursor: pointer>${quota.name}</a></td>
         <td>${quota.securityStyle}</td>  
         <td>${quota.oplock}</td>
         <td>${quota.quotaSize}</td>
@@ -23,6 +31,18 @@
             onclick="return confirm('&{'resources.filesystem.quota.delete.confirm'}')"
           >&{'button.delete'}</a>
         </td>
+      </tr>
+      <tr class="quotadesc" style="display:none;">
+      	<td colspan="8" >
+			<dl class="dl-horizontal ng-scope">
+				<dt>Advisory Limit (%):</dt>
+				<dd>${quota.notificationLimit == 0 ? null : quota.notificationLimit}</dd>
+				<dt>Soft Limit (%):</dt>
+				<dd>${quota.softLimit == 0 ? null : quota.softLimit}</dd>
+				<dt>Grace Period (Days):</dt>
+				<dd>${quota.softGrace == 0 ? null : quota.softGrace}</dd>
+			</dl>
+		</td>
       </tr>
     #{/list}
   </tbody>

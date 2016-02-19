@@ -250,6 +250,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         consistencyGroup.setLabel(param.getName());
         consistencyGroup.setProject(new NamedURI(project.getId(), param.getName()));
         consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), param.getName()));
+        // disable array consistency if user has selected not to create backend replication group
+        consistencyGroup.setArrayConsistency(param.getArrayConsistency());
 
         _dbClient.createObject(consistencyGroup);
 
@@ -452,16 +454,24 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
+        URI volumeGroupId = null;
         Set<String> selectedRGs = null;
         if (!param.getVolumes().isEmpty()) {
             selectedRGs = BlockServiceUtils.
                     getReplicationGroupsFromVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
+            Volume volume = _dbClient.queryObject(Volume.class, param.getVolumes().get(0));
+            if (volume != null && !volume.getInactive()) {
+                VolumeGroup volumeGroup = volume.getApplication(_dbClient);
+                if (volumeGroup != null && !volumeGroup.getInactive()) {
+                    volumeGroupId = volumeGroup.getId();
+                }
+            }
         }
 
         // Group volumes by storage system and replication group, ignore replication groups that not in selectedRGs if it is not null
         Table<URI, String, List<Volume>> storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
                 blockServiceApiImpl.getActiveCGVolumes(consistencyGroup),
-                selectedRGs);
+                selectedRGs, volumeGroupId, _dbClient);
         TaskList taskList = new TaskList();
         for (Cell<URI, String, List<Volume>> cell : storageRgToVolumes.cellSet()) {
             List<Volume> volumeList = cell.getValue();

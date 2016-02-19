@@ -81,6 +81,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -1170,8 +1171,15 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         int count = 1;
         for (Volume volume : volumes) {
             // Attempt to create distinct labels here when creating >1 volumes (ScaleIO requirement)
-            String label = snapshotName;
             String rgName = volume.getReplicationGroupInstance();
+            if (volume.isVPlexVolume(_dbClient)) {
+                Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), true, _dbClient);
+                if (backendVol != null && !backendVol.getInactive()) {
+                    rgName = backendVol.getReplicationGroupInstance();
+                }
+            }
+
+            String label = snapshotName;
             if (NullColumnValueGetter.isNotNullValue(rgName)) {
                 // There can be multiple RGs in a CG, in such cases generate unique name
                 if (volumes.size() > 1) {

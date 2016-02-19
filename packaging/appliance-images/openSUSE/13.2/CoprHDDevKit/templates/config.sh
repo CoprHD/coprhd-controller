@@ -91,15 +91,7 @@ rm -fr /run/initramfs
 rm -fr /Swap
 
 # switch to btrfs instead of device-mapper for docker
-service docker stop
-rm -fr /var/lib/docker
-mkdir -p /var/lib/docker
-qemu-img create /var/lib/docker-storage.btrfs 30g
-mkfs.btrfs /var/lib/docker-storage.btrfs
-mount /var/lib/docker-storage.btrfs /var/lib/docker
-grep --quiet "^/var/lib/docker-storage.btrfs" /etc/fstab || echo "/var/lib/docker-storage.btrfs /var/lib/docker btrfs defaults 0 0" >> /etc/fstab
-sed -i s/"DOCKER_OPTS=\"\""/"DOCKER_OPTS=\"-s btrfs\""/g /etc/sysconfig/docker
-service docker start
+bash /opt/ADG/conf/configure.sh installDockerStorage
 
 mkswap /dev/system*/LVSwap
 echo "\$( ls /dev/system*/LVSwap ) swap swap defaults 0 0" >> /etc/fstab

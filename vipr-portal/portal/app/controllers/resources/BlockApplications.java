@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
@@ -31,6 +32,7 @@ import util.AppSupportUtil;
 import util.BourneUtil;
 import util.datatable.DataTablesSupport;
 import controllers.Common;
+import controllers.resources.BlockApplications.VolumeApplicationDataTable.VolumeApplication;
 
 @With(Common.class)
 public class BlockApplications extends ResourceController {
@@ -60,11 +62,11 @@ public class BlockApplications extends ResourceController {
     }
 
     public static void applicationVolumeJson(String id) {
-        List<Volume> volumeDetails = Lists.newArrayList();
+        List<VolumeApplication> volumeDetails = Lists.newArrayList();
         List<NamedRelatedResourceRep> volumes = AppSupportUtil.getVolumesByApplication(id);
         for (NamedRelatedResourceRep volume : volumes) {
             VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get((volume.getId()));
-            volumeDetails.add(new Volume(blockVolume, virtualArrays, virtualPools));
+            volumeDetails.add(new VolumeApplication(blockVolume));
         }
         renderJSON(DataTablesSupport.createJSON(volumeDetails, params));
     }
@@ -77,12 +79,12 @@ public class BlockApplications extends ResourceController {
     }
 
     public static void getAssociatedVolumesJSON(String copyLabel) {
-        List<Volume> volumeDetails = Lists.newArrayList();
+        List<VolumeApplication> volumeDetails = Lists.newArrayList();
         String[] copySets = copyLabel.split("~~~");
         List<NamedRelatedResourceRep> volumeDetailClone = AppSupportUtil.getVolumeGroupFullCopiesForSet(copySets[0], copySets[1]);
         for (NamedRelatedResourceRep volume : volumeDetailClone) {
             VolumeRestRep blockVolume = BourneUtil.getViprClient().blockVolumes().get(volume.getId());
-            volumeDetails.add(new Volume(blockVolume, virtualArrays, virtualPools));
+            volumeDetails.add(new VolumeApplication(blockVolume));
         }
         renderJSON(DataTablesSupport.createJSON(volumeDetails, params));
     }
@@ -128,8 +130,25 @@ public class BlockApplications extends ResourceController {
         public VolumeApplicationDataTable() {
             alterColumn("protocols").hidden();
             alterColumn("wwn").hidden();
-            addColumn("replicationGroup");
+            addColumn("associatedVolumeRG");
             sortAll();
+        }
+
+        public static class VolumeApplication extends Volume {
+            public RelatedResourceRep associatedSourceVolume;
+            public VolumeRestRep associatedVolume;
+            public String associatedVolumeRG;
+
+            public VolumeApplication(VolumeRestRep volume) {
+                super(volume, virtualArrays, virtualArrays);
+                associatedSourceVolume = volume.getProtection().getFullCopyRep().getAssociatedSourceVolume();
+                if (associatedSourceVolume != null) {
+                    associatedVolume = BourneUtil.getViprClient().blockVolumes().get(associatedSourceVolume.getId());
+                    associatedVolumeRG = associatedVolume.getReplicationGroupInstance();
+                } else {
+                    associatedVolumeRG = volume.getReplicationGroupInstance();
+                }
+            }
         }
     }
 }

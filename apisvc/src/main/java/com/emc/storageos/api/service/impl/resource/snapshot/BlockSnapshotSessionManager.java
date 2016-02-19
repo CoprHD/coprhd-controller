@@ -29,9 +29,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
-import com.google.common.base.Joiner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +41,7 @@ import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -57,6 +55,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -77,6 +76,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -222,22 +222,21 @@ public class BlockSnapshotSessionManager {
     }
 
     /**
-     * Creates a snapshot session based on the given resource URI.  This method handles the following cases where
+     * Creates a snapshot session based on the given resource URI. This method handles the following cases where
      * resourceURI is...
      *
      * 1) a non-CG Volume/BlockSnapshot
      * 2) a BlockConsistencyGroup
      * 3) a CG Volume/BlockSnapshot (recursively calls this method, passing in its BlockConsistencyGroup URI)
      *
-     * @param resourceURI   Resource to create a snapshot session from
-     * @param param         Snapshot session parameters
-     * @param fcManager     Full copy manager
-     * @return              TaskList
+     * @param resourceURI Resource to create a snapshot session from
+     * @param param Snapshot session parameters
+     * @param fcManager Full copy manager
+     * @return TaskList
      */
     public TaskList createSnapshotSession(URI resourceURI, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
         if (URIUtil.isType(resourceURI, Volume.class) || URIUtil.isType(resourceURI, BlockSnapshot.class)) {
-            BlockObject blockObject =
-                    BlockSnapshotSessionUtils.querySnapshotSessionSource(resourceURI, _uriInfo, false, _dbClient);
+            BlockObject blockObject = BlockSnapshotSessionUtils.querySnapshotSessionSource(resourceURI, _uriInfo, false, _dbClient);
             if (blockObject.hasConsistencyGroup()) {
                 return createSnapshotSession(blockObject.getConsistencyGroup(), param, fcManager);
             } else {
@@ -295,7 +294,7 @@ public class BlockSnapshotSessionManager {
      * @return TaskList A TaskList
      */
     public TaskList createSnapshotSession(List<BlockObject> snapSessionSourceObjList,
-                                          SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
+            SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
         Collection<URI> sourceURIs = transform(snapSessionSourceObjList, fctnDataObjectToID());
         s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(sourceURIs));
 
@@ -348,6 +347,7 @@ public class BlockSnapshotSessionManager {
         } else {
             response.getTaskList().add(toTask(snapSession, taskId, snapSessionOp));
             for (BlockObject sourceForTask : snapSessionSourceObjList) {
+                @SuppressWarnings("unchecked")
                 Operation op = _dbClient.createTaskOpStatus(URIUtil.getModelClass(sourceForTask.getId()),
                         sourceForTask.getId(), taskId, ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION);
                 response.getTaskList().add(toTask(sourceForTask, taskId, op));
@@ -426,7 +426,8 @@ public class BlockSnapshotSessionManager {
                 newTargetsCopyMode);
 
         // Prepare the BlockSnapshot instances to represent the new linked targets.
-        List<Map<URI, BlockSnapshot>> snapshots = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObjs, 0, newLinkedTargetsCount,
+        List<Map<URI, BlockSnapshot>> snapshots = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObjs, 0,
+                newLinkedTargetsCount,
                 newTargetsName);
 
         // Create a unique task identifier.
@@ -441,7 +442,6 @@ public class BlockSnapshotSessionManager {
         _dbClient.createTaskOpStatus(BlockSnapshotSession.class, snapSessionURI, taskId, op);
         snapSession.getOpStatus().put(taskId, op);
         response.getTaskList().add(toTask(snapSession, taskId));
-
 
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
         for (Map<URI, BlockSnapshot> snapshotMap : snapshots) {
@@ -576,7 +576,7 @@ public class BlockSnapshotSessionManager {
         }
 
         // Validate that the requested targets can be unlinked from the snapshot session.
-        snapSessionApiImpl.validateUnlinkSnapshotSessionTargets(snapSession, snapSessionSourceObj, project, targetMap.keySet(), _uriInfo);
+        snapSessionApiImpl.validateUnlinkSnapshotSessionTargets(snapSession, snapSessionSourceObj, project, targetMap, _uriInfo);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
@@ -876,7 +876,8 @@ public class BlockSnapshotSessionManager {
         _auditLogManager.recordAuditLog(tenantId, username,
                 BlockService.EVENT_SERVICE_TYPE, opType, System.currentTimeMillis(),
                 operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS
-                        : AuditLogManager.AUDITLOG_FAILURE, operationStage, descparams);
+                        : AuditLogManager.AUDITLOG_FAILURE,
+                operationStage, descparams);
     }
 
     /**
@@ -940,21 +941,18 @@ public class BlockSnapshotSessionManager {
     }
 
     private ResourceOperationTypeEnum getCreateResourceOperationTypeEnum(BlockSnapshotSession session) {
-        return session.hasConsistencyGroup() ?
-                ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION :
-                ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION;
+        return session.hasConsistencyGroup() ? ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION
+                : ResourceOperationTypeEnum.CREATE_SNAPSHOT_SESSION;
     }
 
     private ResourceOperationTypeEnum getDeleteResourceOperationTypeEnum(BlockSnapshotSession session) {
-        return session.hasConsistencyGroup() ?
-                ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION :
-                ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION;
+        return session.hasConsistencyGroup() ? ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION
+                : ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION;
     }
 
     private ResourceOperationTypeEnum getRelinkResourceOperationTypeEnum(BlockSnapshotSession session) {
-        return session.hasConsistencyGroup() ?
-                ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS :
-                ResourceOperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGETS;
+        return session.hasConsistencyGroup() ? ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS
+                : ResourceOperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGETS;
     }
 
     private List<BlockObject> getAllSnapshotSessionSources(BlockSnapshotSession snapSession) {

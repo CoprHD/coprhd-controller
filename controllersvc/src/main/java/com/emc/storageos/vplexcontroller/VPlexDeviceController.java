@@ -11327,7 +11327,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     String name = backCopy.getLabel();
                     _log.info(String.format("Creating steps for import clone %s.", name));
                     VolumeDescriptor vplexCopyVolume = prepareVolumeDescriptor(vplexSrcVolume, name, 
-                            VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, size);
+                            VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, size, false);
                     Volume vplexCopy = getDataObject(Volume.class, vplexCopyVolume.getVolumeURI(), _dbClient);
                     vplexCopy.setAssociatedVolumes(new StringSet());
                     StringSet assVol = vplexCopy.getAssociatedVolumes();
@@ -11341,7 +11341,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         //distributed volume
                         name = name + "-ha";
                         VolumeDescriptor haDesc = prepareVolumeDescriptor(backendHASrc, name, 
-                                VolumeDescriptor.Type.BLOCK_DATA, size);
+                                VolumeDescriptor.Type.BLOCK_DATA, size, true);
                         blockDescriptors.add(haDesc);
                         assVol.add(haDesc.getVolumeURI().toString());
                     }
@@ -11353,6 +11353,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                     srcClones.add(vplexCopy.getId().toString());
                     backCopy.setFullCopySetName(NullColumnValueGetter.getNullStr());
+                    backCopy.addInternalFlags(Flag.INTERNAL_OBJECT);
                     _dbClient.updateObject(backCopy);
                     _dbClient.updateObject(vplexCopy);
                     _dbClient.updateObject(vplexSrcVolume);
@@ -11371,9 +11372,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param name - The new volume label
      * @param type - VolumeDescriptor type
      * @param size - The volume size
+     * @param isInternal -If the volume is internal
      * @return - The newly created VolumeDescriptor
      */
-    private VolumeDescriptor prepareVolumeDescriptor(Volume source, String name, VolumeDescriptor.Type type, long size) {
+    private VolumeDescriptor prepareVolumeDescriptor(Volume source, String name, VolumeDescriptor.Type type, long size,
+            boolean isInternal) {
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
         volume.setLabel(name);
@@ -11392,7 +11395,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         volume.setProtocol(source.getProtocol());
         volume.setStorageController(source.getStorageController());
-
+        if (isInternal) {
+            volume.addInternalFlags(Flag.INTERNAL_OBJECT);
+        }
         _dbClient.createObject(volume);
         
         VirtualPoolCapabilityValuesWrapper capabilities = getCapabilities(source, size);
@@ -11404,7 +11409,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Create a VirtualPoolCapabilityValuesWrapper based on the passed in volume
      * @param volume - The volume used to create the VirtualPoolCapabilityValuesWrapper.
-     * @param size - 
+     * @param size 
      * @return
      */
     private VirtualPoolCapabilityValuesWrapper getCapabilities(Volume volume, long size) {

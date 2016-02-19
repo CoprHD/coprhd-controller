@@ -14,11 +14,10 @@ import org.apache.commons.httpclient.methods.InputStreamRequestEntity;
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.methods.RequestEntity;
 import org.apache.commons.httpclient.protocol.Protocol;
+import org.apache.log4j.Level;
+import org.apache.log4j.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Level;
 
 /**
  * This class is responsible for actually querying the JServer using httpclient
@@ -197,6 +196,7 @@ public class DataRetriever {
                         session);
                 postMethod.setRequestHeader("CelerraConnector-Ctl",
                         "DISCONNECT");
+                postMethod.setRequestHeader("Content-Length", "0");
             }
             setTimeoutValues();
             final int response = _client.executeMethod(postMethod);

@@ -64,7 +64,6 @@ import com.emc.sa.service.vipr.file.tasks.UpdateFileSnapshotExport;
 import com.emc.sa.service.vipr.file.tasks.UpdateFileSystemExport;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.api.service.impl.resource.FileService.FileTechnologyType;
-import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -351,21 +350,8 @@ public class FileStorageUtils {
         }
     }
 
-    private static boolean isFileSystemWithActiveReplication(URI fileId) {
-        FileShareRestRep fs = getFileSystem(fileId);
-        if (fs.getProtection().getMirrorStatus() != null && !fs.getProtection().getMirrorStatus().isEmpty()) {
-            String currentMirrorStatus = fs.getProtection().getMirrorStatus();
-            if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
-                    || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
-                return true;
-        }
-        return false;
-    }
-
     private static void removeFileContinuousCopy(URI fileId, URI continuousCopyId) {
-        if (isFileSystemWithActiveReplication(fileId)) {
-            execute(new StopFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
-        }
+        execute(new StopFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
         Task<FileShareRestRep> task = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId,
                 FileControllerConstants.DeleteTypeEnum.FULL.toString()));
         addAffectedResource(task);

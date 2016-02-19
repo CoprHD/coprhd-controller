@@ -159,7 +159,7 @@ public class DisasterRecovery extends ViprResourceController {
                 iamActiveSite = false;
             }
             standby_name = result.getName();
-            standby_vip = result.getVip();
+            standby_vip = result.getVipEndpoint();
         }
         String site_uuid = id;
         result = DisasterRecoveryUtils.getSite(id);
@@ -324,9 +324,9 @@ public class DisasterRecovery extends ViprResourceController {
         Boolean isActive = isActiveSiteState(Enum.valueOf(SiteState.class, siteRest.getState()));
         renderArgs.put("isActive", isActive);
 
-        if (disasterSiteDetails.getPausedTime() != null) {
-            DateTime pausedTime = new DateTime(disasterSiteDetails.getPausedTime().getTime());
-            renderArgs.put("pausedTime", pausedTime);
+        if (disasterSiteDetails.getLastSyncTime() != null) {
+            DateTime lastSyncTime = new DateTime(disasterSiteDetails.getLastSyncTime().getTime());
+            renderArgs.put("lastSyncTime", lastSyncTime);
         }
 
         if (disasterSiteDetails.getCreationTime() != null) {
@@ -394,7 +394,7 @@ public class DisasterRecovery extends ViprResourceController {
             this.id = siteeditParam.getUuid();
             this.name = siteeditParam.getName();
             this.description = siteeditParam.getDescription();
-            this.VirtualIP = siteeditParam.getVip();
+            this.VirtualIP = siteeditParam.getVipEndpoint();
         }
 
         public boolean isNew() {

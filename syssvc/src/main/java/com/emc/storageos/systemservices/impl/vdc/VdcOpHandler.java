@@ -658,9 +658,10 @@ public abstract class VdcOpHandler {
                 stopActiveSiteRelatedServices();
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, site.getNodeCount());
-                updateSwitchoverSiteState(drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()), SiteState.STANDBY_SWITCHING_OVER,
+                Site newActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID());
+                updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER,
                         Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, site.getNodeCount());
-                
+                drUtil.recordDrOperationStatus(newActiveSite);
                 waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
@@ -843,6 +844,12 @@ public abstract class VdcOpHandler {
                 waitForAllNodesAndReboot(site);
             } else {
                 reconfigVdc();
+                // Flush vdc properties includes VDC_CONFIG_VERSION to disk here, since the next step restarts syssvc
+                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
+                localRepository.setVdcPropertyInfo(vdcProperty);
+
+                localRepository.restartCoordinator("observer");
             }
         }
         

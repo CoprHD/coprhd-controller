@@ -2,7 +2,7 @@
  * Copyright (c) 2015 EMC
  * All Rights Reserved
  */
-package com.emc.sa.service.vipr.application;
+package com.emc.sa.service.vipr.application.tasks;
 
 import java.net.URI;
 import java.util.List;
@@ -14,23 +14,27 @@ import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.vipr.client.Tasks;
 
-// TODO move to tasks package
-public class RemoveVolumesFromApplication extends WaitForTasks<TaskResourceRep> {
+public class AddVolumesToApplication extends WaitForTasks<TaskResourceRep> {
     private final List<URI> volumeIds;
     private final URI applicationId;
+    private final String replicationGroup;
 
-    public RemoveVolumesFromApplication(URI applicationId, List<URI> volumeIds) {
+    public AddVolumesToApplication(URI applicationId, List<URI> volumeIds, String replicationGroup) {
         this.volumeIds = volumeIds;
         this.applicationId = applicationId;
-        provideDetailArgs(applicationId, volumeIds);
+        this.replicationGroup = replicationGroup;
+        provideDetailArgs(applicationId, volumeIds, replicationGroup);
     }
 
     @Override
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupUpdateParam input = new VolumeGroupUpdateParam();
-        VolumeGroupVolumeList removeVolumesList = new VolumeGroupVolumeList();
-        removeVolumesList.setVolumes(volumeIds);
-        input.setRemoveVolumesList(removeVolumesList);
+        VolumeGroupVolumeList addVolumesList = new VolumeGroupVolumeList();
+        addVolumesList.setVolumes(volumeIds);
+        if (replicationGroup != null && !replicationGroup.isEmpty()) {
+            addVolumesList.setReplicationGroupName(replicationGroup);
+        }
+        input.setAddVolumesList(addVolumesList);
 
         TaskList taskList = getClient().application().updateApplication(applicationId, input);
 

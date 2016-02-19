@@ -7,7 +7,6 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.ws.rs.core.UriInfo;
 
@@ -84,7 +83,7 @@ public interface BlockSnapshotSessionApi {
      * @return A map containing the prepared BlockSnapshot instances, keyed by the snapshot URI.
      */
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
-                                                                    String newTargetsName);
+            String newTargetsName);
 
     /**
      * Prepare a ViPR BlockSnapshot instance for a new target to be created and
@@ -124,14 +123,15 @@ public interface BlockSnapshotSessionApi {
 
     /**
      * Creates a new block snapshot session.
-     *  @param snapSessionSourceObj A reference to the source object.
+     * 
+     * @param snapSessionSourceObj A reference to the source object.
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapshotURIs The URIs of the BlockSnapshot instances representing the linked targets.
      * @param copyMode The copy mode for linked targets.
      * @param taskId A unique task identifier.
      */
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId);
+            List<List<URI>> snapshotURIs, String copyMode, String taskId);
 
     /**
      * Validates a re-link targets to block snapshot session request.
@@ -168,11 +168,12 @@ public interface BlockSnapshotSessionApi {
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapSessionSourceObj A reference to the snapshot session source.
      * @param project A reference to the source project.
-     * @param snapshotURIs The URI of the BlockSnapshot instances representing the linked targets.
+     * @param targetMap A map of the URIs of the BlockSnapshot instances representing the linked targets
+     *            and whether or not they should be deleted.
      * @param uriInfo A reference to the URI information.
      */
     public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
-            Set<URI> snapshotURIs, UriInfo uriInfo);
+            Map<URI, Boolean> targetMap, UriInfo uriInfo);
 
     /**
      * Unlinks the targets represented by the BlockSnapshot instances with the passed

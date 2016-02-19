@@ -1,0 +1,14 @@
+{
+  baseKey:"ResynchronizeApplicationFullCopy.Application",
+  serviceId:"ResynchronizeApplicationFullCopy",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+    copyName:{
+      type:"assetType.vipr.fullCopyName"
+    }
+  }
+}

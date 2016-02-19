@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
@@ -291,6 +292,11 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                     String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
                     String label = snapsetLabel;
                     String rgName = sourceObj.getReplicationGroupInstance();
+                    if (sourceObj instanceof Volume && ((Volume) sourceObj).isVPlexVolume(_dbClient)) {
+                        // get RG name from back end volume
+                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) sourceObj, true, _dbClient);
+                        rgName = srcBEVolume.getReplicationGroupInstance();
+                    }
                     if (NullColumnValueGetter.isNotNullValue(rgName)) {
                         // There can be multiple RGs in a CG, in such cases generate unique name
                         if (sourceObjList.size() > 1) {

@@ -966,6 +966,7 @@ public class BlockSnapshotSessionManager {
                 for (BlockObject bo : cgSources) {
                     String boRGName = bo.getReplicationGroupInstance();
                     if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(_dbClient)) {
+                        // get RG name from back end volume
                         Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, _dbClient);
                         boRGName = srcBEVolume.getReplicationGroupInstance();
                     }

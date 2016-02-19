@@ -1452,7 +1452,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, consistencyGroup.getTenant().getURI());
             String tenantName = tenant.getLabel();
 
-            final String label = _nameGenerator.generate(tenantName, snapSession.getLabel(),
+            final String label = _nameGenerator.generate(tenantName, snapSession.getSessionLabel(),
                     snapSessionURI.toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
 
             CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(system, groupName);
@@ -1959,9 +1959,18 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockObject sourceObj = null;
                 if (snapSession.hasConsistencyGroup()) {
                     _log.info("Restoring group snapshot session");
+                    // We need a single source volume for the session.
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
+                    List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
                     // get source group name from the session.
                     String sourceGroupName = snapSession.getReplicationGroupInstance();
                     settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
+                    for (Volume volume : nativeVolumes) {
+                        if (sourceGroupName.equals(volume.getReplicationGroupInstance())) {
+                            sourceObj = volume;
+                            break;  // get source volume which matches session's RG name
+                        }
+                    }
                 } else {
                     _log.info("Restoring single volume snapshot session");
                     sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());

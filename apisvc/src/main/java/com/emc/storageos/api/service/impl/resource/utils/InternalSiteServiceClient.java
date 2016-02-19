@@ -11,10 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
-import com.emc.storageos.model.dr.ResumePrecheckResponse;
 import com.emc.storageos.model.dr.SiteConfigParam;
+import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
-import com.emc.storageos.model.dr.SwitchoverPrecheckResponse;
 import com.emc.storageos.security.helpers.BaseServiceClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.sun.jersey.api.client.ClientResponse;
@@ -138,9 +137,9 @@ public class InternalSiteServiceClient extends BaseServiceClient {
     public void resumePrecheck() {
         WebResource rRoot = createRequest(SITE_INTERNAL_RESUMEPRECHECK);
 
-        ResumePrecheckResponse response;
+        SiteErrorResponse response;
         try {
-            response = addSignature(rRoot).post(ResumePrecheckResponse.class);
+            response = addSignature(rRoot).post(SiteErrorResponse.class);
         } catch (Exception e) {
             throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(site.getName(), e.getMessage());
         }
@@ -153,9 +152,9 @@ public class InternalSiteServiceClient extends BaseServiceClient {
     public void switchoverPrecheck() {
         WebResource rRoot = createRequest(SITE_INTERNAL_SWITCHOVERPRECHECK);
 
-        SwitchoverPrecheckResponse response;
+        SiteErrorResponse response;
         try {
-            response = addSignature(rRoot).post(SwitchoverPrecheckResponse.class);
+            response = addSignature(rRoot).post(SiteErrorResponse.class);
         } catch (Exception e) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(), e.getMessage());
         }

@@ -72,7 +72,6 @@ import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
-import com.emc.storageos.model.dr.ResumePrecheckResponse;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
@@ -84,7 +83,6 @@ import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
-import com.emc.storageos.model.dr.SwitchoverPrecheckResponse;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -849,10 +847,10 @@ public class DisasterRecoveryService {
     @POST
     @Path("/internal/resumeprecheck")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ResumePrecheckResponse resumePrecheck() {
+    public SiteErrorResponse resumePrecheck() {
         log.info("Precheck for resume internally");
 
-        ResumePrecheckResponse response = new ResumePrecheckResponse();
+        SiteErrorResponse response = new SiteErrorResponse();
         try {
             precheckForResumeLocalStandby();
         } catch (APIException e) {
@@ -1075,10 +1073,10 @@ public class DisasterRecoveryService {
     @POST
     @Path("/internal/switchoverprecheck")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public SwitchoverPrecheckResponse switchoverPrecheck() {
+    public SiteErrorResponse switchoverPrecheck() {
         log.info("Precheck for switchover internally");
 
-        SwitchoverPrecheckResponse response = new SwitchoverPrecheckResponse();
+        SiteErrorResponse response = new SiteErrorResponse();
         try {
             precheckForSwitchoverForLocalStandby();
         } catch (InternalServerErrorException e) {

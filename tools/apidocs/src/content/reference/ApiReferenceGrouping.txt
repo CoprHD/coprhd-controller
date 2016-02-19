@@ -126,6 +126,7 @@ MeteringService
 WorkflowService
 TaskService
 DisasterRecoveryService
+SamlAuthenticationResource
 
 =API Differences
 Block Services

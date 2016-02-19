@@ -3020,6 +3020,8 @@ recoverpoint_ingest_test()
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
     fi
 
+    exit;
+
     # now perform failover tests
     recoverpoint_failover_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}"
     # Add a volume to the protection
@@ -3100,22 +3102,22 @@ recoverpoint_ingest_primer()
 
     # In order to be able to ingest RP CGs, you need RP CGs to exist out there already.
     # This method will create those CGs.
-    RECOVERPOINT_INGEST_VOL1_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}${RP_SANITY_RANDOM}_${vpool}
-    RECOVERPOINT_INGEST_VOLBASE=${RECOVERPOINT_INGEST_VOL1BASE}${RP_SANITY_RANDOM}
-    RECOVERPOINT_INGEST_VOL1_SRC=${RECOVERPOINT_INGEST_VOLBASE}_${vpool}
-    run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_CG}
-    run volume create ${RECOVERPOINT_INGEST_VOL1_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_CG}
-    volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
+    #RECOVERPOINT_INGEST_VOL1_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}${RP_SANITY_RANDOM}_${vpool}
+    #RECOVERPOINT_INGEST_VOLBASE=${RECOVERPOINT_INGEST_VOL1BASE}${RP_SANITY_RANDOM}
+    #RECOVERPOINT_INGEST_VOL1_SRC=${RECOVERPOINT_INGEST_VOLBASE}_${vpool}
+    #run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_CG}
+    #run volume create ${RECOVERPOINT_INGEST_VOL1_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_CG}
+    #volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
 
     # Create a volume and mount it to the host
     #recoverpoint_ingest_host_setup ${vpool}
-    #RECOVERPOINT_INGEST_VOL1_HOST_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}_${vpool}
-    #RECOVERPOINT_INGEST_VOL1_HOST_SRC=${RECOVERPOINT_INGEST_VOL1BASE}_${vpool}
-    #run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_HOST_CG}
-    #run volume create ${RECOVERPOINT_INGEST_VOL1_HOST_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_HOST_CG} --count 2
-    #run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC}-1 --hosts ${RP_HOSTNAME}
-    #run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC}-2 --hosts ${RP_HOSTNAME}
-    #volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC} --vipronly
+    RECOVERPOINT_INGEST_VOL1_HOST_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}_${vpool}
+    RECOVERPOINT_INGEST_VOL1_HOST_SRC=${RECOVERPOINT_INGEST_VOL1BASE}_${vpool}
+    run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_HOST_CG}
+    run volume create ${RECOVERPOINT_INGEST_VOL1_HOST_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_HOST_CG} --count 2
+    run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC}-1 --hosts ${RP_HOSTNAME}
+    run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC}-2 --hosts ${RP_HOSTNAME}
+    volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC} --vipronly
 }
 
 recoverpoint_failover_test()
@@ -3582,9 +3584,7 @@ recoverpoint_tests()
         secho 'Run RP tests'
 
         # Setup CGs
-	if [ "$RP_SHORTCIRCUIT_TESTS" = "0" ]; then
-	    rp_cg_setup
-	fi
+	rp_cg_setup
 
         rp_src_varray=$RECOVERPOINT_VARRAY1
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
@@ -3717,7 +3717,6 @@ recoverpoint_tests()
                 rptypetag="xio"
             fi
 
-	    if [ "$RP_SHORTCIRCUIT_TESTS" = "0" ]; then
             if [ "$RP_INGESTPRIME" = "1" ]; then
                 secho 'RP ingest volumes priming only'
                 if [ "$RP_CDP" = "1" ] ; then
@@ -3730,14 +3729,11 @@ recoverpoint_tests()
                     recoverpoint_ingest_primer rp${rptypetag}_clr
                 fi
             fi
-	    fi
 
             if [ "$RP_INGESTTESTS" = "1" ]; then
                 secho 'RP ingest volumes'
 		recoverpoint_ingest_setup_vars
-		if [ "$RP_SHORTCIRCUIT_TESTS" = "0" ]; then
-		    recoverpoint_ingest_setup
-		fi
+		recoverpoint_ingest_setup
 
                 if [ "$RP_CDP" = "1" ] ; then
                     recoverpoint_ingest_test rp${rptypetag}_cdp

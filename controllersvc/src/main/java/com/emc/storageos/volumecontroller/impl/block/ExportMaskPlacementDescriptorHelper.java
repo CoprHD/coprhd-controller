@@ -28,6 +28,13 @@ public final class ExportMaskPlacementDescriptorHelper {
     private static final Logger log = LoggerFactory.getLogger(ExportMaskPlacementDescriptorHelper.class);
 
     /**
+     * This is intended to be a utility class, so make the constructor private
+     */
+    private ExportMaskPlacementDescriptorHelper() {
+
+    }
+
+    /**
      * If there are any invalidMasks, try to determine if we can use alternative and equivalent ExportMasks.
      * If so, we will use them for placement.
      *

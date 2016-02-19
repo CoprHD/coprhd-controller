@@ -1115,14 +1115,28 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
 
-        // TODO
-        if (isTarget) {
-
-        } else {
-
+        // get target virtual array id
+        if (StringUtils.split(virtualArray.toString(), ':')[0].equals("tgt")) {
+            virtualArray = URI.create(StringUtils.substringAfter(virtualArray.toString(), ":"));
         }
 
-        return createStringOptions(getApplicationReplicationGroupNames(ctx, applicationId));
+        Set<String> subGroups = Sets.newHashSet();
+        NamedVolumesList applicationVolumes = client.application().getVolumeByApplication(applicationId);
+        for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
+            VolumeRestRep volume = client.blockVolumes().get(volumeId);
+            if (isTarget) {
+                if (virtualArray.equals(uri("none")) || volume.getVirtualArray().getId().equals(virtualArray)) {
+                    subGroups.add(volume.getReplicationGroupInstance());
+                }
+            } else {
+                if (volume.getProtection() == null || volume.getProtection().getRpRep() == null
+                        || volume.getProtection().getRpRep().getPersonality() == null) {
+                    subGroups.add(volume.getReplicationGroupInstance());
+                }
+            }
+        }
+
+        return createStringOptions(subGroups);
     }
 
     @Asset("replicationGroup")

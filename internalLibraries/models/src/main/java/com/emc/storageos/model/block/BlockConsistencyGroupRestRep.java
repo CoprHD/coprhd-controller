@@ -33,7 +33,6 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     private Set<String> types;
     private String linkStatus;
     private Boolean supportsSnapshotSessions;
-    private Boolean arrayConsistency;
 
     // RecoverPoint fields
     private URI rpProtectionSystem;
@@ -180,18 +179,5 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
 
     public void setSupportsSnapshotSessions(Boolean supportsSnapshotSessions) {
         this.supportsSnapshotSessions = supportsSnapshotSessions;
-    }
-
-    /**
-     * Flag which says if backend Replication Group needs to be created or not.
-     *
-     */
-    @XmlElement(name = "array_consistency")
-    public Boolean getArrayConsistency() {
-        return arrayConsistency;
-    }
-
-    public void setArrayConsistency(Boolean arrayConsistency) {
-        this.arrayConsistency = arrayConsistency;
     }
 }

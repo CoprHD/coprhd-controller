@@ -2765,6 +2765,9 @@ public interface BadRequestExceptions {
     public BadRequestException setNameDoesNotBelongToVolumeGroup(final String setType, final String setName, final String volumeGroupName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException multipleSetNamesProvided(final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidIpsecStatus();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

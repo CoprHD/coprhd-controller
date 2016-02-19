@@ -554,16 +554,12 @@ public class BlockServiceUtils {
      * @return table with storage URI, replication group name, and volumes
      */
     public static Table<URI, String, List<Volume>>
-            getReplicationGroupVolumes(List<Volume> cgVolumes, Set<String> rgFiler, DbClient dbClient) {
+            getReplicationGroupVolumes(List<Volume> cgVolumes, Set<String> rgFiler) {
         // Group volumes by storage system and replication group
         // Ignore replication groups that not in rgFiler if the filter is provided
         Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
         for (Volume volume : cgVolumes) {
             String rgName = volume.getReplicationGroupInstance();
-            if (volume.isVPlexVolume(dbClient)) {
-                Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-                rgName = srcBEVolume.getReplicationGroupInstance();
-            }
             if (NullColumnValueGetter.isNullValue(rgName)) {
                 throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
             }
@@ -597,6 +593,7 @@ public class BlockServiceUtils {
         for (BlockObject bo : blockObjects) {
             String rgName = bo.getReplicationGroupInstance();
             if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(dbClient)) {
+                // get backend source volume to get RG name
                 Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, dbClient);
                 rgName = srcBEVolume.getReplicationGroupInstance();
             }

@@ -16,6 +16,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -275,8 +276,8 @@ public class BlockSnapshotSessionManager {
                 taskList.getTaskList().addAll(
                         createSnapshotSession(volumeList, param, fcManager).getTaskList());
             } catch (Exception e) {
-                s_logger.warn("Exception when creating snapshot session for replication group {}: {}",
-                        rgName, e.getMessage());
+                s_logger.error("Exception when creating snapshot session for replication group {}: {}",
+                        rgName, e);
                 // TODO create Error Task
             }
         }
@@ -743,8 +744,7 @@ public class BlockSnapshotSessionManager {
         List<Volume> volumes = ControllerUtils.getVolumesPartOfCG(group.getId(), _dbClient);
 
         if (volumes.isEmpty()) {
-            // TODO create empty list
-            return new ArrayList<BlockSnapshotSession>();
+            return Collections.<BlockSnapshotSession> emptyList();
         }
 
         Volume sourceVolume = volumes.get(0);

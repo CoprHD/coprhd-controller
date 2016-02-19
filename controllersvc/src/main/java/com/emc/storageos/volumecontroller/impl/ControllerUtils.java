@@ -1654,29 +1654,6 @@ public class ControllerUtils {
         return snapshots;
     }
 
-    /**
-     * Gets all snapshot sessions for the given set name.
-     */
-    public static List<BlockSnapshotSession> getVolumeGroupSnapshotSessionsForSet(URI volumeGroupId,
-            String setName, DbClient dbClient) {
-        List<BlockSnapshotSession> sessions = new ArrayList<BlockSnapshotSession>();
-        if (setName != null) {
-            URIQueryResultList list = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                    getBlockSnapshotSessionsBySetName(setName), list);
-            Iterator<BlockSnapshotSession> iter = dbClient.
-                    queryIterativeObjects(BlockSnapshotSession.class, list);
-            while (iter.hasNext()) {
-                BlockSnapshotSession snapshot = iter.next();
-                // if (isSourceInVoumeGroup(snapshot, volumeGroupId, dbClient)) {
-                sessions.add(snapshot);
-                // }
-            }
-        }
-
-        return sessions;
-    }
-
     /*
      * For each storage system and RG, get one snapshot
      *

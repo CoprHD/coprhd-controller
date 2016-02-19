@@ -339,9 +339,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 // append RG name to user given label to uniquely identify sessions
                 // when there are multiple RGs in a CG
                 instanceLabel = String.format("%s-%s", instanceLabel, rgName);
-                snapSessionLabel = String.format("%s-%s", snapSessionLabel, rgName);
             }
-            // TODO update queries to get forCG() call to forRG()
         } else {
             snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
         }

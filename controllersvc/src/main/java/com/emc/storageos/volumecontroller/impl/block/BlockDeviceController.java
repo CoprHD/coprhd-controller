@@ -2307,6 +2307,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
                 } else {
                     snapSession.setConsistencyGroup(cgURI);
+                    snapSession.setReplicationGroupInstance(replicationGroupName);
+                    snapSession.setSessionSetName(replicationGroupName);
                 }
                 snapSession.setLinkedTargets(linkedTargets);
                 _dbClient.createObject(snapSession);
@@ -5444,8 +5446,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String groupName = null;
             boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
             if (isCG) {
-                BlockConsistencyGroup cg = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
-                groupName = cg.getCgNameOnStorageSystem(systemURI);
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                groupName = snapSession.getReplicationGroupInstance();
             }
 
             // Create a step to create the session.
@@ -6012,8 +6014,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String groupName = null;
             boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
             if (isCG) {
-                BlockConsistencyGroup cg = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
-                groupName = cg.getCgNameOnStorageSystem(systemURI);
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                groupName = snapSession.getReplicationGroupInstance();
             }
 
             // Create the workflow step to delete the snapshot session.

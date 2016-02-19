@@ -65,7 +65,6 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     // Snapshot Session set name which user provided while creating sessions for volumes/CGs in an Application.
     // There can be multiple array replication groups within an Application.
     private String _sessionSetName;
-    // TODO populate this field while volumes with Session are added to Application
 
     @RelationIndex(cf = "RelationIndex", type = BlockConsistencyGroup.class)
     @Name("consistencyGroup")

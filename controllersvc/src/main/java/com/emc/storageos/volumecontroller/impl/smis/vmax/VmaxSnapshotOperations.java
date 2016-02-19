@@ -1752,11 +1752,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String groupName = _helper.extractGroupName(snapshot.getReplicationGroupInstance());
             CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(system, groupName);
 
-            // We need a single source volume for the session.
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, tgtSnapSession.getConsistencyGroup());
-            List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
-            BlockObject sourceObj = nativeVolumes.get(0);
-            String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
+            // get source group name from the session.
+            String sourceGroupName = tgtSnapSession.getReplicationGroupInstance();
             CIMObjectPath settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
             
             // We need to know if the group was linked in copy mode or nocopy mode.
@@ -1969,11 +1966,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockObject sourceObj = null;
                 if (snapSession.hasConsistencyGroup()) {
                     _log.info("Restoring group snapshot session");
-                    // We need a single source volume for the session.
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-                    List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
-                    sourceObj = nativeVolumes.get(0);
-                    String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
+                    // get source group name from the session.
+                    String sourceGroupName = snapSession.getReplicationGroupInstance();
                     settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
                 } else {
                     _log.info("Restoring single volume snapshot session");

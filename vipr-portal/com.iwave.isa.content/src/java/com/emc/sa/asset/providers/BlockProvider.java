@@ -1045,8 +1045,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         if (snapshotType.equalsIgnoreCase(SNAPSHOT_SESSION_TYPE_VALUE)) {
             return createOptions(api(ctx).application().getSnapshotSessionCopySets(application).getCopySets().toArray());
         } else if (snapshotType.equalsIgnoreCase(SNAPSHOT_TARGET_TYPE_VALUE)) {
-            // TODO wait for API to be implemented
-            // this.createOptions(api(ctx).application().getSnapshotCopySets(application));
+            return createOptions(api(ctx).application().getSnapshotCopySets(application).getCopySets().toArray());
         }
         return Lists.newArrayList();
     }

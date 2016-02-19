@@ -33,7 +33,7 @@ public class DisasterRecoveryDataTable extends DataTable {
 
         public StandByInfo(SiteRestRep standByInfo) {
             this.name = standByInfo.getName();
-            this.VirtualIP = standByInfo.getVip();
+            this.VirtualIP = standByInfo.getVipEndpoint();
             this.status = standByInfo.getState();
             this.id = standByInfo.getUuid();
             this.description = standByInfo.getDescription();

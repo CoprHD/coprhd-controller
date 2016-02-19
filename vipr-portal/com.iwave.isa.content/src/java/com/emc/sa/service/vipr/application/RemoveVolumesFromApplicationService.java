@@ -11,6 +11,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.application.tasks.RemoveVolumesFromApplication;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.vipr.client.Tasks;
 

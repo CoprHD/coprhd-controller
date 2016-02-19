@@ -505,6 +505,7 @@ public class RecoverPointClient {
                 }
 
                 Map<String, String> copyUIDToNameMap = new HashMap<String, String>();
+                Map<String, String> copyNameToRoleMap = new HashMap<String, String>();
                 // used to set the copy uid on the rset volume when adding rsets
                 Set<String> productionCopiesUID = new HashSet<String>();
 
@@ -525,20 +526,35 @@ public class RecoverPointClient {
                         copy.setAccessState(copyState.getStorageAccessState().toString());
                         copy.setAccessedImage(copyState.getAccessedImage() != null ? copyState.getAccessedImage().getDescription() : null);
                         copy.setEnabled(copyState.isEnabled());
+                        copy.setActive(copyState.isActive());                        
                     }
 
                     // Set ID fields (these are immutable no matter if things are renamed)
                     copy.setCgId(copySettings.getCopyUID().getGroupUID().getId());
                     copy.setClusterId(copySettings.getCopyUID().getGlobalCopyUID().getClusterUID().getId());
                     copy.setCopyId(copySettings.getCopyUID().getGlobalCopyUID().getCopyUID());
-
-                    if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole()) ||
-                            ConsistencyGroupCopyRole.TEMPORARY_ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
+                   
+                    if (ConsistencyGroupCopyRole.ACTIVE.equals(copySettings.getRoleInfo().getRole())
+                            || ConsistencyGroupCopyRole.TEMPORARY_ACTIVE.equals(copySettings.getRoleInfo().getRole())) {
                         productionCopiesUID.add(copyID);
                         copy.setProduction(true);
+                        // Active Production role is defined as: copy is production and copy is active. 
+                        // Standby Production role is defined as: copy is production and copy is NOT active.
+                        if (copy.isActive()) {
+                            copy.setRole(GetCopyResponse.GetCopyRole.ACTIVE_PRODUCTION);
+                        } else {
+                            copy.setRole(GetCopyResponse.GetCopyRole.STANDBY_PRODUCTION);
+                        }
+                    } else if (ConsistencyGroupCopyRole.REPLICA.equals(copySettings.getRoleInfo().getRole())) {
+                        copy.setProduction(false);
+                        copy.setRole(GetCopyResponse.GetCopyRole.TARGET);                        
                     } else {
                         copy.setProduction(false);
+                        copy.setRole(GetCopyResponse.GetCopyRole.UNKNOWN);
                     }
+                    
+                    // Add an entry for this copy name and its defined role
+                    copyNameToRoleMap.put(copy.getName(), copy.getRole().toString());                   
 
                     if (copySettings.getJournal() == null || copySettings.getJournal().getJournalVolumes() == null) {
                         continue;
@@ -571,22 +587,28 @@ public class RecoverPointClient {
                 for (ReplicationSetSettings rsetSettings : settings.getReplicationSetsSettings()) {
                     GetRSetResponse rset = new GetRSetResponse();
                     rset.setName(rsetSettings.getReplicationSetName());
-
+                    
                     if (rsetSettings.getVolumes() == null) {
                         continue;
                     }
 
                     for (UserVolumeSettings volume : rsetSettings.getVolumes()) {
                         GetVolumeResponse volResp = new GetVolumeResponse();
-
+                        
                         // Get the RP copy name, needed to match up sources to targets
                         String copyID = volume.getGroupCopyUID().getGlobalCopyUID().getClusterUID().getId() + "-" +
                                 volume.getGroupCopyUID().getGlobalCopyUID().getCopyUID();
-                        volResp.setRpCopyName(copyUIDToNameMap.get(copyID));
+                        volResp.setRpCopyName(copyUIDToNameMap.get(copyID));                                                
                         volResp.setInternalSiteName(clusterIdToInternalSiteNameMap.get(volume.getClusterUID().getId()));
 
                         if (productionCopiesUID.contains(copyID)) {
                             volResp.setProduction(true);
+                            // Check to see if this a MetroPoint standby volume entry by checking the 
+                            // volumes copy name to role mapping that was populated earlier.
+                            if (GetCopyResponse.GetCopyRole.STANDBY_PRODUCTION.toString().equalsIgnoreCase(
+                                    copyNameToRoleMap.get(volResp.getRpCopyName()))) {
+                                volResp.setProductionStandby(true);
+                            }
                         } else {
                             volResp.setProduction(false);
                         }
@@ -598,18 +620,7 @@ public class RecoverPointClient {
                         if (rset.getVolumes() == null) {
                             rset.setVolumes(new ArrayList<GetVolumeResponse>());
                         }
-
-                        // added this check because the simulator was returning the same volume over and over.
-                        boolean found = false;
-                        for (GetVolumeResponse vol : rset.getVolumes()) {
-                            if (vol.getWwn().equalsIgnoreCase(volResp.getWwn())) {
-                                found = true;
-                            }
-                        }
-
-                        if (!found) {
-                            rset.getVolumes().add(volResp);
-                        }
+                        rset.getVolumes().add(volResp);                        
                     }
 
                     if (cgResp.getRsets() == null) {
@@ -2431,9 +2442,15 @@ public class RecoverPointClient {
             logger.error(e.getMessage(), e);
         }
 
-        logger.info("Waiting for links to become active for CG " + (cgName == null ? "unknown CG name" : cgName));
-        RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
-        rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
+        boolean waitForLinkStates = false;
+        //Be default, per JIRA 17082 (CoprHD), we will not wait for links to be active.
+        //In a true DR scenario, we cant expect links to become active and that should not fail the swap/failover operation.
+        if (waitForLinkStates) {
+	        logger.info("Waiting for links to become active for CG " + (cgName==null?"unknown CG name":cgName));
+	        (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
+        } else {
+        	logger.info("Not waiting for links to become active for CG" + (cgName==null?"unknown CG name":cgName));
+        }
         logger.info(String.format("Replication sets have been added to consistency group %s.",
                 (cgName == null ? "unknown CG name" : cgName)));
     }

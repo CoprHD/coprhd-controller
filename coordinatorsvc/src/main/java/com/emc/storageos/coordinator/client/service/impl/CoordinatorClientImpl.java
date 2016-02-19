@@ -30,6 +30,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.api.DeleteBuilder;
 import org.apache.curator.framework.api.transaction.CuratorTransaction;
@@ -118,7 +119,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private int nodeCount = 0;
     private String vdcShortId;
-    private String vdcEndpoint;
+    private String vip;
+    private String vip6;
 
     private String sysSvcName;
     private String sysSvcVersion;
@@ -164,8 +166,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return nodeCount;
     }
 
-    public void setVdcEndpoint(String vdcEndpoint) {
-        this.vdcEndpoint = vdcEndpoint;
+    public void setVip(String vip) {
+        this.vip = vip;
+    }
+    
+    public void setVip6(String vip) {
+        this.vip6 = vip;
     }
 
     public void setSysSvcName(String name) {
@@ -238,11 +244,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
-        String vip = vdcEndpoint;
-        if (vdcEndpoint.contains(":")) {
-            vip = DualInetAddress.normalizeInet6Address(vdcEndpoint);
+        if (StringUtils.isBlank(vip)) {
+            site.setVip(PropertyConstants.IPV4_ADDR_DEFAULT);
+        } else {
+            site.setVip(vip);
         }
-        site.setVip(vip);
+        if (StringUtils.isBlank(vip6)) {
+            site.setVip6(PropertyConstants.IPV6_ADDR_DEFAULT);
+        } else {
+            site.setVip6(DualInetAddress.normalizeInet6Address(vip6));
+        }
         site.setNodeCount(getNodeCount());
 
         Map<String, DualInetAddress> controlNodes = getInetAddessLookupMap().getControllerNodeIPLookupMap();
@@ -945,7 +956,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             List<String> servicePaths = lookupServicePath(siteId, serviceRoot);
 
             for (String spath : servicePaths) {
-                byte[] data = getServiceData(_zkConnection.getSiteId(), serviceRoot, spath);
+                byte[] data = getServiceData(siteId, serviceRoot, spath);
                 if (data == null) {
                     continue;
                 }

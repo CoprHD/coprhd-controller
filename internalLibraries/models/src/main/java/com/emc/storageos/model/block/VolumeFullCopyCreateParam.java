@@ -4,8 +4,11 @@
  */
 package com.emc.storageos.model.block;
 
+import java.net.URI;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
 import com.emc.storageos.model.vpool.ProtectionType;
 
 @XmlRootElement(name = "volume_full_copy_create")
@@ -16,6 +19,10 @@ public class VolumeFullCopyCreateParam {
     private String name;
     private Integer count;
     private Boolean createInactive;
+    
+    // varray tells us source or target for RP or source or HA for vplex
+    private URI varrayId;
+    private URI vpoolId;
 
     public VolumeFullCopyCreateParam() {
     }
@@ -86,6 +93,36 @@ public class VolumeFullCopyCreateParam {
 
     public void setCreateInactive(Boolean createInactive) {
         this.createInactive = createInactive;
+    }
+
+    /**
+     * @return the varrayId
+     */
+    @XmlElement(required = false)
+    public URI getVarrayId() {
+        return varrayId;
+    }
+
+    /**
+     * @param varrayId the varrayId to set
+     */
+    public void setVarrayId(URI varrayId) {
+        this.varrayId = varrayId;
+    }
+
+    /**
+     * @return the vpoolId
+     */
+    @XmlElement(required = false)
+    public URI getVpoolId() {
+        return vpoolId;
+    }
+
+    /**
+     * @param vpoolId the vpoolId to set
+     */
+    public void setVpoolId(URI vpoolId) {
+        this.vpoolId = vpoolId;
     }
 
 }

@@ -4,6 +4,8 @@
  */
 package com.emc.sa.service.vipr.application;
 
+import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT;
+
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,9 @@ public class UnlinkSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
     protected List<URI> subGroups;
 
+    @Param(value = LINKED_SNAPSHOT, required = false)
+    protected List<URI> existingLinkedSnapshotIds;
+
     @Override
     public void execute() throws Exception {
 
@@ -48,7 +53,7 @@ public class UnlinkSnapshotOfApplicationService extends ViPRService {
                 BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, applicationCopySet));
                 // TODO error if snapSessionList is empty
                 tasks = execute(new UnlinkSnapshotSessionForApplication(applicationId, snapSessionList.getSnapSessionRelatedResourceList()
-                        .get(0).getId()));
+                        .get(0).getId(), existingLinkedSnapshotIds));
             } else {
                 // TODO fail since not supported for snapshot
             }

@@ -5,6 +5,9 @@
 package com.emc.sa.service.vipr.application;
 
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT;
+import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COPYMODE;
+import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_COUNT;
+import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_NAME;
 
 import java.net.URI;
 import java.util.List;
@@ -33,6 +36,15 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
     @Param(value = LINKED_SNAPSHOT, required = false)
     protected List<URI> existingLinkedSnapshotIds;
 
+    @Param(value = LINKED_SNAPSHOT_NAME, required = false)
+    protected String linkedSnapshotName;
+
+    @Param(value = LINKED_SNAPSHOT_COUNT, required = false)
+    protected Integer linkedSnapshotCount;
+
+    @Param(value = LINKED_SNAPSHOT_COPYMODE, required = false)
+    protected String linkedSnapshotCopyMode;
+
     @Override
     public void execute() throws Exception {
 
@@ -46,8 +58,7 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
         for (String type : volumeTypes.keySet()) {
             if (type.equalsIgnoreCase("vmax3")) {
                 tasks = execute(new LinkSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId(),
-                        existingLinkedSnapshotIds));
-                // tasks = execute(new LinkSnapshotSessionForApplication(applicationId, ));
+                        existingLinkedSnapshotIds, linkedSnapshotCopyMode, linkedSnapshotCount, linkedSnapshotName));
             } else {
                 // TODO fail for snapshot
             }

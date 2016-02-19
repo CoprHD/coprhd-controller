@@ -12,6 +12,7 @@ import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRelinkTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
 import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
 
@@ -19,11 +20,18 @@ public class LinkSnapshotSessionForApplication extends WaitForTasks<TaskResource
     private final URI applicationId;
     private final URI snapSession;
     private final List<URI> linkedTargets;
+    private final String copyMode;
+    private final Integer count;
+    private final String targetName;
 
-    public LinkSnapshotSessionForApplication(URI applicationId, URI snapSession, List<URI> linkedTargets) {
+    public LinkSnapshotSessionForApplication(URI applicationId, URI snapSession, List<URI> linkedTargets, String copyMode, Integer count,
+            String targetName) {
         this.applicationId = applicationId;
         this.snapSession = snapSession;
         this.linkedTargets = linkedTargets;
+        this.targetName = targetName;
+        this.count = count;
+        this.copyMode = copyMode;
         provideDetailArgs(applicationId, snapSession);
     }
 
@@ -41,6 +49,11 @@ public class LinkSnapshotSessionForApplication extends WaitForTasks<TaskResource
             VolumeGroupSnapshotSessionLinkTargetsParam input = new VolumeGroupSnapshotSessionLinkTargetsParam();
             input.setSnapshotSessions(Lists.newArrayList(snapSession));
             input.setPartial(true);
+            SnapshotSessionNewTargetsParam newLinkedTargets = new SnapshotSessionNewTargetsParam();
+            newLinkedTargets.setCopyMode(copyMode);
+            newLinkedTargets.setCount(count);
+            newLinkedTargets.setTargetName(targetName);
+            input.setNewLinkedTargets(newLinkedTargets);
             taskList = getClient().application().linkApplicationSnapshotSession(applicationId, input);
         }
 

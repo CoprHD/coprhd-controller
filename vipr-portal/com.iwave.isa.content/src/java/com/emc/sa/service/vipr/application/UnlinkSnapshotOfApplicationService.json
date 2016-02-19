@@ -13,6 +13,12 @@
     
     applicationSubGroup:{
       type:"assetType.vipr.replicationGroup"
+    },
+    
+    linkedSnapshot:{
+      type:"assetType.vipr.linkedSnapshotsForVolume",
+      select: "many",
+      required: "false"
     }
   }
 }

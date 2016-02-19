@@ -66,17 +66,23 @@ public class IsilonSyncJobFailover extends Job implements Serializable {
             } else {
                 _pollResult.setJobName(_jobName);
                 _pollResult.setJobId(_taskCompleter.getOpId());
-
-                IsilonSyncPolicy policy = isiApiClient.getTargetReplicationPolicy(currentJob);
-                IsilonSyncPolicy.JobState policyState = policy.getLastJobState();
-                if (policyState.equals(JobState.running)) {
+                IsilonSyncPolicy policy = null;
+                IsilonSyncPolicy.JobState policyState = null;
+                try {
+                    policy = isiApiClient.getTargetReplicationPolicy(currentJob);
+                    policyState = policy.getLastJobState();
+                } catch (IsilonException ex) {
+                    policy = isiApiClient.getReplicationPolicy(currentJob);
+                    policyState = policy.getLastJobState();
+                }
+                if (policyState != null && policyState.equals(JobState.running)) {
                     _status = JobStatus.IN_PROGRESS;
-                } else if (policyState.equals(JobState.finished)) {
+                } else if (policyState != null && policyState.equals(JobState.finished)) {
                     _status = JobStatus.SUCCESS;
                     _pollResult.setJobPercentComplete(100);
                     _logger.info("IsilonSyncIQJob: {} succeeded", currentJob);
 
-                } else {
+                } else if (policyState != null && policyState.equals(JobState.failed)) {
                     _errorDescription = isiGetReportErrMsg(isiApiClient.getTargetReplicationPolicyReports(currentJob).getList());
                     _pollResult.setJobPercentComplete(100);
                     _pollResult.setErrorDescription(_errorDescription);

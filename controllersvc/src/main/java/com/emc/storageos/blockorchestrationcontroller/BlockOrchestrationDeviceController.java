@@ -165,6 +165,10 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _blockDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
 
+            // Next, call the BlockDeviceController to add post deletion methods.
+            waitFor = _blockDeviceController.addStepsForPostDeleteVolumes(
+                    workflow, waitFor, volumes, taskId, completer);
+
             // Call the VPlexDeviceController to add its post-delete methods.
             waitFor = _vplexDeviceController.addStepsForPostDeleteVolumes(
                     workflow, waitFor, volumes, taskId, completer);

@@ -571,6 +571,26 @@
         {
           "image": "icon_application_remove_volumes.png",
           "baseService": "RemoveVolumesFromApplication"
+        },
+        {
+          "image": "icon_application_create_full_copy.png",
+          "baseService": "CreateCloneOfApplication"
+        },
+        {
+          "image": "icon_application_remove_full_copy.png",
+          "baseService": "RemoveApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_detach_full_copy.png",
+          "baseService": "DetachApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_restore_full_copy.png",
+          "baseService": "RestoreApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_resych_full_copy.png",
+          "baseService": "ResynchronizeApplicationFullCopy"
         }
       ]
     }

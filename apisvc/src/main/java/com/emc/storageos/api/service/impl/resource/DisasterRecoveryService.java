@@ -1144,6 +1144,9 @@ public class DisasterRecoveryService {
                     } catch (Exception e){
                         log.error("Failed to do failover for site {}, ignore it for failover", site.toBriefString());
                     }
+                    // update the vdc config version on the new active site.
+                    drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_FAILOVER, vdcTargetVersion,
+                            oldActiveSite.getUuid(), currentSite.getUuid());
                 }
             }
 

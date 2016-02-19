@@ -11,6 +11,7 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
+import com.emc.sa.service.vipr.application.tasks.AddVolumesToApplication;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -23,33 +24,22 @@ public class AddVolumesToApplicationService extends ViPRService {
     @Param(ServiceParams.VOLUME)
     private List<String> volumeIds;
 
-    @Param(value = ServiceParams.REPLICATION_GROUP, required = false)
-    private String existingReplicationGroup;
+    @Param(value = ServiceParams.APPLICATION_SUB_GROUP, required = false)
+    private String existingApplicationSubGroup;
 
-    @Param(value = ServiceParams.NEW_REPLICATION_GROUP, required = false)
-    private String newReplicationGroup;
-
-    @Param(value = ServiceParams.NEW_CONSISTENCY_GROUP, required = false)
-    private URI newConsistencyGroupId;
+    @Param(value = ServiceParams.NEW_APPLICATION_SUB_GROUP, required = false)
+    private String newApplicationSubGroup;
 
     private String replicationGroup;
 
     @Override
     public void precheck() throws Exception {
-//        if (fieldIsPopulated(existingReplicationGroup) || fieldIsPopulated(newReplicationGroup)) {
-            // if both fields are populated, we'll take the new replication group because they would have
-            // to have actually typed that in, so they probably want it
-            // we could throw an exception if they choose both to make it clear
-            replicationGroup = fieldIsPopulated(newReplicationGroup) ?
-                    newReplicationGroup : existingReplicationGroup;
-//        } else {
-//            ExecutionUtils.fail("failTask.AddVolumesToApplicationService.replicationGroup.precheck", new Object[] {});
-//        }
+        replicationGroup = fieldIsPopulated(newApplicationSubGroup) ? newApplicationSubGroup : existingApplicationSubGroup;
     }
 
     @Override
     public void execute() throws Exception {
-        Tasks<? extends DataObjectRestRep> tasks = execute(new AddVolumesToApplication(applicationId, uris(volumeIds), replicationGroup, newConsistencyGroupId));
+        Tasks<? extends DataObjectRestRep> tasks = execute(new AddVolumesToApplication(applicationId, uris(volumeIds), replicationGroup));
         addAffectedResources(tasks);
     }
     

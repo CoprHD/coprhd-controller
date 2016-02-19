@@ -202,7 +202,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CLONE_CREATE));
         countSucc = 0;
         if (clones != null && clones.size() > 0)
-
         {
             for (VolumeClone clone : clones) {
                 client = this.getClientBySystemId(clone.getStorageSystemId());
@@ -242,7 +241,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         task.setEndTime(Calendar.getInstance());
         log.info("Request to clone -- End ");
         return task;
-
     }
 
     /**
@@ -268,7 +266,6 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                         } catch (Exception e) {
                             log.error("Exception while detaching clone {}", clone.getNativeId(), e);
                         }
-
             }
             setTaskStatus(clones.size(), countSucc, task);
         } else {
@@ -603,6 +600,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         return task;
     }
 
+    /**
+     * Detach clone of consistency group.
+     * @param clones           Input/Output
+     * @return task
+     */
 
     public DriverTask detachConsistencyGroupClone(List<VolumeClone> clones) {
         log.info("Request to detach consistency group clone -- Start :");
@@ -614,7 +616,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
                     countSucc++;
                     task.setStatus(DriverTask.TaskStatus.READY);
-                    log.info("Successfully detach consistency group clone - End:");
+                    log.info("Successfully detached consistency group clone - End:");
                 } catch (Exception e) {
                     log.error("Exception while detaching consistency group clone", e);
                     task.setStatus(DriverTask.TaskStatus.FAILED);

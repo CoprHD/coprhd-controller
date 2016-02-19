@@ -62,11 +62,8 @@ public class ScaleIOStorageDriverTest {
     public void setUp() throws Exception {
         Registry registry = new InMemoryRegistryImpl();
         driver = new ScaleIOStorageDriver();
-
         // driver.setHandleFactory(handleFactory);
-
         // driver.setScaleIORestHandleFactory(scaleIORestHandleFactory);
-
         driver.setDriverRegistry(registry);
         // testDiscoverStorageSystem();
     }
@@ -148,6 +145,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals(task.getStatus().toString(), "FAILED");
 
         /* Expand storage volume w/o connectivity? */
+
     }
 
     @Test
@@ -597,6 +595,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNotNull(task);
         Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
         this.checkResultCloneList(clone);
+
     }
 
 
@@ -656,7 +655,6 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals("FAILED", task.getStatus().toString());
         Assert.assertNull(cg.getNativeId());
 
-
     }
 
     @Test
@@ -676,6 +674,15 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals("READY", task.getStatus().toString());
 
     }
+
+    /**
+     * Initialize one clone
+     *
+     * @param nativeId
+     * @param parentId
+     * @param storageSystemId
+     * @return
+     */
     private VolumeClone initializeClone(String nativeId, String parentId, String storageSystemId) {
         VolumeClone clone = new VolumeClone();
         clone.setStorageSystemId(storageSystemId);
@@ -684,6 +691,13 @@ public class ScaleIOStorageDriverTest {
         return clone;
 
     }
+
+    /**
+     * Initialized a list of clone whose parent volumes are from same storage system
+     *
+     * @param withInvalid
+     * @return
+     */
     private List<VolumeClone> createCloneListSameSys(boolean withInvalid) {
         List<VolumeClone> clones = new LinkedList<>();
         clones.add(initializeClone(null, VOLUME_ID_1A, SYS_NATIVE_ID_A));
@@ -694,6 +708,13 @@ public class ScaleIOStorageDriverTest {
         }
         return clones;
     }
+
+    /**
+     * Initialized a list of clones whose parent volumes are from different storage systems
+     *
+     * @param withInvalid
+     * @return
+     */
     private List<VolumeClone> createCloneListDiffSys(boolean withInvalid) {
         List<VolumeClone> clones = new LinkedList<>();
         clones.add(initializeClone(null, VOLUME_ID_1A, SYS_NATIVE_ID_A));
@@ -720,6 +741,13 @@ public class ScaleIOStorageDriverTest {
             }
         }
     }
+
+    /**
+     * initialize a list of clones that in the same consistency group
+     *
+     * @param withInvalid
+     * @return
+     */
     private List<VolumeClone> createCloneListSameCG(boolean withInvalid) {
         List<VolumeClone> clones = this.createCloneListSameSys(withInvalid);
         VolumeConsistencyGroup cg = new VolumeConsistencyGroup();

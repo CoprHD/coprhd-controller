@@ -95,13 +95,19 @@ public class ScaleIOHelper {
         return isSameCG;
     }
 
+    /**
+     * Check if all clones are from same consistency group
+     *
+     * @param clones
+     * @return true if all volumes are from same consistency group, false otherwise
+     */
     public static boolean isFromSameStorageSystemClone(List<VolumeClone> clones) {
         boolean isSameCG = false;
         if (clones != null && clones.size() > 0) {
-            String groupId = clones.get(0).getConsistencyGroup();
+            String storageSystemId = clones.get(0).getStorageSystemId();
             isSameCG = true;
             for (VolumeClone clone  : clones) {
-                if (clone.getConsistencyGroup() != groupId) {
+                if (clone.getConsistencyGroup() != storageSystemId) {
                     isSameCG = false;
                     break;
                 }
@@ -109,6 +115,13 @@ public class ScaleIOHelper {
         }
         return isSameCG;
     }
+
+    /**
+     * Check if all clones are from same consistency group
+     *
+     * @param clones
+     * @return true if all volumes are from same consistency group, false otherwise
+     */
     public static boolean isFromSameCGgroupClone(List<VolumeClone> clones) {
         boolean isSameCG = false;
         if (clones != null && clones.size() > 0) {

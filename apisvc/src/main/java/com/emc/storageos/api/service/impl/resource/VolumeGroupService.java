@@ -1121,7 +1121,7 @@ public class VolumeGroupService extends TaskResourceService {
     private List<Volume> validateFullCopiesInRequest(final List<URI> fullCopyURIsInRequest, URI volumeGroupUri) {
         List<String> arrayGroupNames = new ArrayList<String>();
         List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();
-        List<String> setNames = new ArrayList<String>();
+        Set<String> setNames = new HashSet<String>();
         for (URI fullCopyURI : fullCopyURIsInRequest) {
             ArgValidator.checkFieldUriType(fullCopyURI, Volume.class, "volume");
             // Get the full copy.
@@ -2182,7 +2182,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getSnapshotSessions(), SNAPSHOT_SESSIONS_FIELD);
 
         List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
-        List<String> setNames = new ArrayList<String>();
+        Set<String> setNames = new HashSet<String>();
         for (URI sessionURI : param.getSnapshotSessions()) {
             ArgValidator.checkFieldUriType(sessionURI, BlockSnapshotSession.class, SNAPSHOT_SESSION_FIELD);
             // Get the snapshot session

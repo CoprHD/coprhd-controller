@@ -1063,13 +1063,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<String> options = Lists.newArrayList();
         VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
         input.setCopySetName(copySet);
-        BlockSnapshotSessionList sessions = client.application().getVolumeGroupSnapshotSessionsByCopySet(applicationId, input);
-        for (NamedRelatedResourceRep session : sessions.getSnapSessionRelatedResourceList()) {
-            BlockSnapshotSessionRestRep sessionRep = client.blockSnapshotSessions().get(session);
-            if (sessionRep != null && sessionRep.getReplicationGroupInstance() != null) {
-                options.add(sessionRep.getReplicationGroupInstance());
-            }
+
+        for (String replicationGroup : client.application().getApplication(applicationId).getReplicationGroupNames()) {
+            options.add(replicationGroup);
         }
+
+        // BlockSnapshotSessionList sessions = client.application().getVolumeGroupSnapshotSessionsByCopySet(applicationId, input);
+        // for (NamedRelatedResourceRep session : sessions.getSnapSessionRelatedResourceList()) {
+        // BlockSnapshotSessionRestRep sessionRep = client.blockSnapshotSessions().get(session);
+        // if (sessionRep != null && sessionRep.getReplicationGroupInstance() != null) {
+        // options.add(sessionRep.getReplicationGroupInstance());
+        // }
+        // }
         return options;
     }
 

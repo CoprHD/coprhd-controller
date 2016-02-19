@@ -779,26 +779,24 @@ public class IpReconfigManager implements Runnable {
             log.info("Got lock for updating local site IPs into ZK ...");
 
             Site site = drUtil.getLocalSite();
-            if (localIpinfo.weakEqual(site.getVip(), site.getHostIPv4AddressMap(), site.getHostIPv6AddressMap())) {
+            if (localIpinfo.weakEqual(site.getVip(), site.getVip6(), site.getHostIPv4AddressMap(), site.getHostIPv6AddressMap())) {
                 log.info("local site IPs are consistent with ZK, no need to update.");
                 return;
             } else {
                 log.info("local site IPs are not consistent with ZK, updating.");
                 log.info("    local ipinfo:{}", localIpinfo.toString());
                 log.info("    zk ipinfo: vip={}", site.getVip());
+                log.info("    zk ipinfo: vip6={}", site.getVip6());
                 SortedSet<String> nodeIds = new TreeSet<String>(site.getHostIPv4AddressMap().keySet());
                 for (String nodeId : nodeIds) {
                     log.info("    {}: ipv4={}", nodeId, site.getHostIPv4AddressMap().get(nodeId));
                     log.info("    {}: ipv6={}", nodeId, site.getHostIPv6AddressMap().get(nodeId));
                 }
             }
-
-            if (site.getVip().contains(":")) {
-                site.setVip(localIpinfo.getIpv6Setting().getNetworkVip6());
-            } else {
-                site.setVip(localIpinfo.getIpv4Setting().getNetworkVip());
-            }
-
+            
+            site.setVip6(localIpinfo.getIpv6Setting().getNetworkVip6());
+            site.setVip(localIpinfo.getIpv4Setting().getNetworkVip());
+            
             Map<String, String> ipv4Addresses = new HashMap<>();
             Map<String, String> ipv6Addresses = new HashMap<>();
             int nodeIndex = 1;

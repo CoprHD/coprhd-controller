@@ -2151,11 +2151,17 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             String sessionLabel = entry.getKey();
             List<BlockSnapshotSession> oldSessions = entry.getValue();
             BlockSnapshotSession templateSession = oldSessions.get(0);
+            // get RG name from source (parent) volume
+            String groupName = null;
+            if (!NullColumnValueGetter.isNullNamedURI(templateSession.getParent())) {
+                BlockObject source = BlockObject.fetch(_dbClient, templateSession.getParent().getURI());
+                groupName = (source != null) ? source.getReplicationGroupInstance() : null;
+            }
 
             // 1) Run Harsha's method to fab SourceGroup aspect
             _log.info("Fabricating synchronization aspect for SourceGroup {}", cg.getLabel());
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            CIMArgument[] iArgs = _helper.fabricateSourceGroupSynchronizationAspectInputArguments(storage, cg, sessionLabel);
+            CIMArgument[] iArgs = _helper.fabricateSourceGroupSynchronizationAspectInputArguments(storage, groupName, sessionLabel);
             CIMArgument[] oArgs = new CIMArgument[5];
             _helper.invokeMethod(storage, replicationSvc, "EMCRemoveSFSEntries", iArgs, oArgs);
 
@@ -2177,11 +2183,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             newSession.setProject(new NamedURI(templateSession.getProject().getURI(), templateSession.getProject().getName()));
             newSession.setLabel(templateSession.getSessionLabel());
             newSession.setSessionLabel(templateSession.getSessionLabel());
+            newSession.setReplicationGroupInstance(groupName);
+            newSession.setSessionSetName(groupName);
             newSession.setLinkedTargets(consolidatedLinkedTargets);
             _dbClient.createObject(newSession);
 
             // Determine the session instance and update the BlockSnapshotSession
-            String groupName = _helper.getConsistencyGroupName(cg, storage);
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CloseableIterator<CIMObjectPath> associatorNames = null;
 

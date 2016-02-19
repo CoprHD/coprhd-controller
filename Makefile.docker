@@ -19,7 +19,7 @@ else
     DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.5.0.0.$(DEVKIT_BUILD)
 endif
 
-DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/workspace" -v "$(CURDIR)/.gradle:/root/.gradle" $(DEVKIT_IMAGE)
+DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/workspace" -v "/disks:/disks" -v "$(CURDIR)/.gradle:/root/.gradle" $(DEVKIT_IMAGE)
 
 %::
 	( ! ( [ "$(BUILD_TYPE)" = "oss" ] && ! docker history "$(DEVKIT_IMAGE)" &> /dev/null ) ) || wget --continue "$(DEVKIT_ADDRS)"

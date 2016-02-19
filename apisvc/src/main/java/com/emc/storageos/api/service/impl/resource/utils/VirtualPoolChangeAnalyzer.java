@@ -84,6 +84,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     private static final String FILE_REPLICATION_RPO_VALUE = "frRpoValue";
     private static final String FILE_REPLICATION_RPO_TYPE = "frRpoType";
     private static final String FILE_REPLICATION_COPY_MODE = "replicationCopyMode";
+    private static final String STANDBY_JOURNAL_VARRAY = "standbyJournalVarray";
+    private static final String STANDBY_JOURNAL_VPOOL = "standbyJournalVpool";
 
     private static final String[] INCLUDED_AUTO_TIERING_POLICY_LIMITS_CHANGE = new String[] { AUTO_TIER_POLICY_NAME,
             HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS };
@@ -1468,7 +1470,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             List<String> excluded = new ArrayList<String>();
             String[] exclude = new String[] { PROTECTION_VARRAY_SETTINGS, RP_RPO_VALUE, RP_RPO_TYPE,
                     RP_COPY_MODE, ARRAY_INFO, DRIVE_TYPE, JOURNAL_SIZE, JOURNAL_VARRAY, JOURNAL_VPOOL,
-                    MULTI_VOLUME_CONSISTENCY, METROPOINT };
+                    MULTI_VOLUME_CONSISTENCY, METROPOINT, STANDBY_JOURNAL_VARRAY, STANDBY_JOURNAL_VPOOL };
             excluded.addAll(Arrays.asList(exclude));
             excluded.addAll(Arrays.asList(generallyExcluded));
             Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);

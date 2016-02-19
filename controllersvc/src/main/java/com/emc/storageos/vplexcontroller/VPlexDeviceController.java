@@ -8484,7 +8484,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         URI parentSystemURI = parentSystem.getId();
         Workflow.Method restoreVolumeMethod = new Workflow.Method(
                 RESTORE_VOLUME_METHOD_NAME, parentSystemURI, parentPoolURI,
-                parentVolumeURI, snapshotURI, Boolean.FALSE);
+                parentVolumeURI, snapshotURI, Boolean.FALSE, null);
         workflow.createStep(RESTORE_VOLUME_STEP, String.format(
                 "Restore VPLEX backend volume %s from snapshot %s",
                 parentVolumeURI, snapshotURI), waitFor,

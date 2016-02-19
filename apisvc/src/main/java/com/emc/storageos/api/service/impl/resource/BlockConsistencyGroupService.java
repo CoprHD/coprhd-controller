@@ -454,16 +454,24 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
+        URI volumeGroupId = null;
         Set<String> selectedRGs = null;
         if (!param.getVolumes().isEmpty()) {
             selectedRGs = BlockServiceUtils.
                     getReplicationGroupsFromVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
+            Volume volume = _dbClient.queryObject(Volume.class, param.getVolumes().get(0));
+            if (volume != null && !volume.getInactive()) {
+                VolumeGroup volumeGroup = volume.getApplication(_dbClient);
+                if (volumeGroup != null && !volumeGroup.getInactive()) {
+                    volumeGroupId = volumeGroup.getId();
+                }
+            }
         }
 
         // Group volumes by storage system and replication group, ignore replication groups that not in selectedRGs if it is not null
         Table<URI, String, List<Volume>> storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
                 blockServiceApiImpl.getActiveCGVolumes(consistencyGroup),
-                selectedRGs, _dbClient);
+                selectedRGs, volumeGroupId, _dbClient);
         TaskList taskList = new TaskList();
         for (Cell<URI, String, List<Volume>> cell : storageRgToVolumes.cellSet()) {
             List<Volume> volumeList = cell.getValue();
@@ -1163,9 +1171,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 }
             }
         }
-
-        // TODO verify resource and update array consistency flag
-        // TODO write migration script for upgrade
 
         List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
         // check if add volume list is same as existing volumes in CG

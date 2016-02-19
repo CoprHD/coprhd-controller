@@ -5,6 +5,7 @@
 
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.BlockMapper.map;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
@@ -87,6 +88,9 @@ import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.application.VolumeGroupSnapshotCreateParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotOperationParam;
+import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionCreateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionOperationParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionDeactivateParam;
@@ -101,14 +105,13 @@ import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.storageos.model.block.VolumeGroupSnapshotCreateParam;
-import com.emc.storageos.model.block.VolumeGroupSnapshotOperationParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
@@ -146,13 +149,7 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.rp.name(),
             DiscoveredDataObject.Type.srdf.name(),
             DiscoveredDataObject.Type.ibmxiv.name()));
-    private static final Set<String> BLOCK_TYPES = new HashSet<String>(Arrays.asList(
-            DiscoveredDataObject.Type.vnxblock.name(),
-            DiscoveredDataObject.Type.vmax.name(),
-            DiscoveredDataObject.Type.xtremio.name(),
-            DiscoveredDataObject.Type.scaleio.name(),
-            DiscoveredDataObject.Type.ibmxiv.name(),
-            DiscoveredDataObject.Type.srdf.name()));
+
     private static final String BLOCK = "block";
     private static final String ID_FIELD = "id";
     private static final String NAME_FIELD = "name";
@@ -697,7 +694,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         // validate that full copy set name is provided
         String fullCopySetName = param.getCopySetName();
-        ArgValidator.checkFieldNotEmpty(fullCopySetName, "copy_set_name");
+        ArgValidator.checkFieldNotEmpty(fullCopySetName, COPY_SET_NAME_FIELD);
 
         // validate that the provided set name actually belongs to this Application
         VolumeGroupCopySetList fullCopySetNames = getVolumeGroupFullCopySets(volumeGroupId);
@@ -1124,6 +1121,7 @@ public class VolumeGroupService extends TaskResourceService {
     private List<Volume> validateFullCopiesInRequest(final List<URI> fullCopyURIsInRequest, URI volumeGroupUri) {
         List<String> arrayGroupNames = new ArrayList<String>();
         List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();
+        List<String> setNames = new ArrayList<String>();
         for (URI fullCopyURI : fullCopyURIsInRequest) {
             ArgValidator.checkFieldUriType(fullCopyURI, Volume.class, "volume");
             // Get the full copy.
@@ -1141,6 +1139,10 @@ public class VolumeGroupService extends TaskResourceService {
             verifyReplicaForCopyRequest(fullCopyVolume, volumeGroupUri);
 
             fullCopyVolumesInRequest.add(fullCopyVolume);
+            setNames.add(fullCopyVolume.getFullCopySetName());
+        }
+        if (setNames.size() > 1) {
+            throw APIException.badRequests.multipleSetNamesProvided(ReplicaTypeEnum.FULL_COPY.toString());
         }
         return fullCopyVolumesInRequest;
     }
@@ -1327,6 +1329,14 @@ public class VolumeGroupService extends TaskResourceService {
 
         // get snapshots for each volume in the group
         for (Volume volume : volumes) {
+            if (volume.isVPlexVolume(_dbClient)) {
+                volume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                if (volume == null || volume.getInactive()) {
+                    log.warn("Cannot find backend volume for VPLEX volume {}", volume.getLabel());
+                    continue;
+                }
+            }
+
             URIQueryResultList snapshotURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
                     volume.getId()), snapshotURIs);
@@ -1350,8 +1360,8 @@ public class VolumeGroupService extends TaskResourceService {
 
     /**
      * Creates a volume group snapshot
-     * - Creates snapshot for all the array replication groups within this Application.
-     * - If partial flag is specified, it creates snapshot only for set of array replication groups.
+     * Creates snapshot for all the array replication groups within this Application.
+     * If partial flag is specified, it creates snapshot only for set of array replication groups.
      * A Volume from each array replication group can be provided to indicate which array replication
      * groups are required to take snapshot.
      *
@@ -1363,11 +1373,6 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @brief Create volume group snapshot
      * @return TaskList
-     */
-    /**
-     * @param volumeGroupId
-     * @param param
-     * @return
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1492,6 +1497,13 @@ public class VolumeGroupService extends TaskResourceService {
         // get the snapshots for each volume in the group
         SnapshotList snapshotList = new SnapshotList();
         for (Volume volume : volumes) {
+            if (volume.isVPlexVolume(_dbClient)) {
+                volume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                if (volume == null || volume.getInactive()) {
+                    log.warn("Cannot find backend volume for VPLEX volume {}", volume.getLabel());
+                }
+            }
+
             URIQueryResultList snapshotURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
                     volume.getId()), snapshotURIs);
@@ -1511,13 +1523,13 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
    /**
-     * Get the specified volume group snapshot.
+     * Get the specified volume group snapshot
      *
      * @prereq none
-     * @param volumeGroupId The URI of the volume group.
-     * @param snapshotId The URI of the snapshot.
-     * @brief Get the specified volume group snapshot.
-     * @return BlockSnapshotRestRep.
+     * @param volumeGroupId The URI of the volume group
+     * @param snapshotId The URI of the snapshot
+     * @brief Get the specified volume group snapshot
+     * @return BlockSnapshotRestRep
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1542,7 +1554,8 @@ public class VolumeGroupService extends TaskResourceService {
         Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
         if (volume == null || volume.getInactive() || !volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
             throw APIException.badRequests
-                    .replicaOperationNotAllowedVolumeNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(), volume.getLabel());
+                    .replicaOperationNotAllowedSourceNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(),
+                            snapshot.getLabel());
         }
 
         return BlockMapper.map(_dbClient, snapshot);
@@ -1596,6 +1609,13 @@ public class VolumeGroupService extends TaskResourceService {
         // get the snapshots for each volume in the group
         SnapshotList snapshotList = new SnapshotList();
         for (Volume volume : volumes) {
+            if (volume.isVPlexVolume(_dbClient)) {
+                volume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                if (volume == null || volume.getInactive()) {
+                    log.warn("Cannot find backend volume for VPLEX volume {}", volume.getLabel());
+                }
+            }
+
             URIQueryResultList snapshotURIs = new URIQueryResultList();
             _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
                     volume.getId()), snapshotURIs);
@@ -1636,17 +1656,25 @@ public class VolumeGroupService extends TaskResourceService {
         // validate that at least one snapshot URI is provided
         ArgValidator.checkFieldNotEmpty(param.getSnapshots(), SNAPSHOTS_FIELD);
 
+        // validate only one snapshot URI is provided for full request
+        if (!param.getPartial() && param.getSnapshots().size() > 1) {
+            throw APIException.badRequests.invalidNumberOfReplicas();
+        }
+
         Map<String, List<BlockSnapshot>> snapsetToSnapshots = new HashMap<String, List<BlockSnapshot>>();
         for (URI snapshotURI : param.getSnapshots()) {
             ArgValidator.checkFieldUriType(snapshotURI, BlockSnapshot.class, SNAPSHOT_FIELD);
+
             // Get the snapshot
             BlockSnapshot snapshot = BlockServiceUtils.querySnapshotResource(snapshotURI, uriInfo, _dbClient);
+            if (NullColumnValueGetter.isNullValue(snapshot.getReplicationGroupInstance())) {
+                throw APIException.badRequests.noReplicationGroupForReplica(snapshot.getLabel());
+            }
 
             // validate that source of the provided snapshot is part of the volume group
-            Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
-            if (volume == null || volume.getInactive() || !volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
-                throw APIException.badRequests
-                        .replicaOperationNotAllowedVolumeNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(), volume.getLabel());
+            if (!ControllerUtils.isSourceInVoumeGroup(snapshot, volumeGroupId, _dbClient)) {
+                throw APIException.badRequests.replicaOperationNotAllowedSourceNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(),
+                        snapshot.getLabel());
             }
 
             String snapsetLabel = snapshot.getSnapsetLabel();
@@ -1725,18 +1753,18 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Activate the specified Volume group snapshot.
-     * - Activates snapshot for all the array replication groups within this Application.
-     * - If partial flag is specified, it activates snapshot only for set of array replication groups.
+     * Activate the specified Volume group snapshot
+     * Activates snapshot for all the array replication groups within this Application.
+     * If partial flag is specified, it activates snapshot only for set of array replication groups.
      * A snapshot from each array replication group can be provided to indicate which array replication
      * groups's snapshots needs to be activated.
      *
-     * @prereq Create volume group snapshot.
+     * @prereq Create volume group snapshot
      *
-     * @param volumeGroupId The URI of the volume group.
-     * @param param VolumeGroupSnapshotOperationParam.
+     * @param volumeGroupId The URI of the volume group
+     * @param param VolumeGroupSnapshotOperationParam
      *
-     * @brief Activate volume group snapshot.
+     * @brief Activate volume group snapshot
      *
      * @return TaskList
      */
@@ -1751,18 +1779,18 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Deactivate the specified Volume group snapshot.
-     * - Deactivates snapshot for all the array replication groups within this Application.
-     * - If partial flag is specified, it deactivates snapshot only for set of array replication groups.
+     * Deactivate the specified Volume group snapshot
+     * Deactivates snapshot for all the array replication groups within this Application.
+     * If partial flag is specified, it deactivates snapshot only for set of array replication groups.
      * A snapshot from each array replication group can be provided to indicate which array replication
      * groups's snapshots needs to be deactivated.
      *
-     * @prereq Create volume group snapshot.
+     * @prereq Create volume group snapshot
      *
-     * @param volumeGroupId The URI of the volume group.
-     * @param param VolumeGroupSnapshotOperationParam.
+     * @param volumeGroupId The URI of the volume group
+     * @param param VolumeGroupSnapshotOperationParam
      *
-     * @brief Deactivate volume group snapshot.
+     * @brief Deactivate volume group snapshot
      *
      * @return TaskList
      */
@@ -1777,18 +1805,18 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Restore the specified Volume group snapshot.
-     * - Restores snapshot for all the array replication groups within this Application.
-     * - If partial flag is specified, it restores snapshot only for set of array replication groups.
+     * Restore the specified Volume group snapshot
+     * Restores snapshot for all the array replication groups within this Application.
+     * If partial flag is specified, it restores snapshot only for set of array replication groups.
      * A snapshot from each array replication group can be provided to indicate which array replication
      * groups's snapshots needs to be restored.
      *
-     * @prereq Create volume group snapshot.
+     * @prereq Create volume group snapshot
      *
-     * @param volumeGroupId The URI of the volume group.
-     * @param param VolumeGroupSnapshotOperationParam.
+     * @param volumeGroupId The URI of the volume group
+     * @param param VolumeGroupSnapshotOperationParam
      *
-     * @brief Restore volume group snapshot.
+     * @brief Restore volume group snapshot
      *
      * @return TaskList
      */
@@ -1803,18 +1831,18 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Resynchronize the specified Volume group snapshot.
-     * - Resynchronizes snapshot for all the array replication groups within this Application.
-     * - If partial flag is specified, it resynchronizes snapshot only for set of array replication groups.
+     * Resynchronize the specified Volume group snapshot
+     * Resynchronizes snapshot for all the array replication groups within this Application.
+     * If partial flag is specified, it resynchronizes snapshot only for set of array replication groups.
      * A snapshot from each array replication group can be provided to indicate which array replication
      * groups's snapshots needs to be resynchronized.
      *
-     * @prereq Create volume group snapshot.
+     * @prereq Create volume group snapshot
      *
-     * @param volumeGroupId The URI of the volume group.
-     * @param param VolumeGroupSnapshotOperationParam.
+     * @param volumeGroupId The URI of the volume group
+     * @param param VolumeGroupSnapshotOperationParam
      *
-     * @brief Resynchronize volume group snapshot.
+     * @brief Resynchronize volume group snapshot
      *
      * @return TaskList
      */
@@ -1832,32 +1860,16 @@ public class VolumeGroupService extends TaskResourceService {
      * get all snapshot session set names associated with the volume group
      */
     private VolumeGroupCopySetList getVolumeGroupSnapsetSessionSets(VolumeGroup volumeGroup) {
-        // get all volumes
-        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-
-        // get the snapshots for each volume in the group
         VolumeGroupCopySetList copySetList = new VolumeGroupCopySetList();
         Set<String> copySets = copySetList.getCopySets();
 
-        // get the snapshot sessions for each CG in the volume group
-        List<BlockSnapshotSession> snapshotSessions = new ArrayList<BlockSnapshotSession>();
+        // get all snapshot sessions for the volume group
+        List<BlockSnapshotSession> volumeGroupSessions = getVolumeGroupSnapshotSessions(volumeGroup);
 
-        Set<URI> cgIds = ControllerUtils.groupVolumeURIsByCG(volumes).keySet();
-        for (URI cgId : cgIds) {
-            BlockConsistencyGroup consistencyGroup = _permissionsHelper.getObjectById(cgId,
-                    BlockConsistencyGroup.class);
-            List<BlockSnapshotSession> sessions = getSnapshotSessionManager().
-                    getSnapshotSessionsForCG(consistencyGroup);
-            // TODO filter Sessions for RG not part of this application
-            snapshotSessions.addAll(sessions);
-        }
-
-        for (BlockSnapshotSession session : snapshotSessions) {
-            if (session != null && !session.getInactive()) {
-                String sessionsetLabel = session.getSessionSetName();
-                if (NullColumnValueGetter.isNotNullValue(sessionsetLabel)) {
-                    copySets.add(sessionsetLabel);
-                }
+        for (BlockSnapshotSession session : volumeGroupSessions) {
+            String sessionsetLabel = session.getSessionSetName();
+            if (NullColumnValueGetter.isNotNullValue(sessionsetLabel)) {
+                copySets.add(sessionsetLabel);
             }
         }
 
@@ -1931,8 +1943,7 @@ public class VolumeGroupService extends TaskResourceService {
                 ArgValidator.checkEntity(volume, volumeURI, isIdEmbeddedInURL(volumeURI));
 
                 // validate that provided volume is part of Volume Group
-                if (volume.getVolumeGroupIds() == null ||
-                        !volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+                if (!volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
                     throw APIException.badRequests
                             .replicaOperationNotAllowedVolumeNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT_SESSION.toString(),
                                     volume.getLabel());
@@ -1973,6 +1984,9 @@ public class VolumeGroupService extends TaskResourceService {
                 TaskResourceRep task = createFailedTaskOnCG(cg,
                         ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION, e);
                 taskList.addTask(task);
+            } catch (Exception ex) {
+                log.error("Unexpected Exception occurred while creating snapshot session for consistency group {}: {}",
+                        cgUri, ex);
             }
         }
 
@@ -2001,22 +2015,52 @@ public class VolumeGroupService extends TaskResourceService {
         // get the snapshot sessions for each CG in the volume group
         BlockSnapshotSessionList snapshotSessionList = new BlockSnapshotSessionList();
 
-        // get all volumes
-        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+        // get all snapshot sessions for the volume group
+        List<BlockSnapshotSession> volumeGroupSessions = getVolumeGroupSnapshotSessions(volumeGroup);
 
-        Set<URI> cgIds = ControllerUtils.groupVolumeURIsByCG(volumes).keySet();
-        for (URI cgId : cgIds) {
-            BlockConsistencyGroup consistencyGroup = _permissionsHelper.getObjectById(cgId,
-                    BlockConsistencyGroup.class);
-            BlockSnapshotSessionList result = getSnapshotSessionManager().
-                    getSnapshotSessionsForConsistencyGroup(consistencyGroup);
-
-            // TODO filter Sessions for RG not part of this application
+        for (BlockSnapshotSession session : volumeGroupSessions) {
             snapshotSessionList.getSnapSessionRelatedResourceList().
-                    addAll(result.getSnapSessionRelatedResourceList());
+                    add(toNamedRelatedResource(session));
         }
 
         return snapshotSessionList;
+    }
+
+    /**
+     * Gets the volume group snapshot sessions.
+     *
+     * @param volumeGroup the volume group
+     * @return the volume group snapshot sessions
+     */
+    private List<BlockSnapshotSession> getVolumeGroupSnapshotSessions(final VolumeGroup volumeGroup) {
+        // get all volumes
+        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+        
+        // get all RG names
+        Set<String> rgNames = CopyVolumeGroupUtils.getReplicationGroupNames(volumeGroup, _dbClient);
+
+        /**
+         * Get all CGs involved
+         * Query all snap sessions for CGs
+         * Filter Sessions whose RG name does not match with volumes' RG names in VolumeGroup
+         */
+        Set<URI> cgIds = ControllerUtils.groupVolumeURIsByCG(volumes).keySet();
+        List<BlockSnapshotSession> volumeGroupSessions = new ArrayList<BlockSnapshotSession>();
+        for (URI cgId : cgIds) {
+            BlockConsistencyGroup consistencyGroup = _permissionsHelper.getObjectById(cgId,
+                    BlockConsistencyGroup.class);
+            List<BlockSnapshotSession> cgSessions = getSnapshotSessionManager().
+                    getSnapshotSessionsForCG(consistencyGroup);
+
+            // filter Sessions for RGs which are not part of this application
+            for (BlockSnapshotSession session : cgSessions) {
+                if (!session.getInactive() &&
+                        rgNames.contains(session.getReplicationGroupInstance())) {
+                    volumeGroupSessions.add(session);
+                }
+            }
+        }
+        return volumeGroupSessions;
     }
 
     /**
@@ -2040,19 +2084,13 @@ public class VolumeGroupService extends TaskResourceService {
         // validate replica operation for volume group
         validateCopyOperationForVolumeGroup(volumeGroup, ReplicaTypeEnum.SNAPSHOT);
 
-        // validate that source of the provided snapshot session is part of the volume group
-        BlockSnapshotSessionList snapshotSessionList = getVolumeGroupSnapshotSessions(volumeGroupId);
-        Set<URI> sessionURIs = new HashSet<URI>();
-        for (NamedRelatedResourceRep snapshotSession : snapshotSessionList.getSnapSessionRelatedResourceList()) {
-            sessionURIs.add(snapshotSession.getId());
-        }
-        if (!sessionURIs.contains(snapshotSessionId)) {
-            // TODO update
-            throw APIException.badRequests
-                    .replicaOperationNotAllowedVolumeNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(), "");
-        }
+        // get snapshot session
+        BlockSnapshotSession snapSession = BlockSnapshotSessionUtils.querySnapshotSession(snapshotSessionId, uriInfo, _dbClient, true);
 
-        return getSnapshotSessionManager().getSnapshotSession(snapshotSessionId);
+        // validate that the provided snapshot session is part of the volume group
+        validateSnapSessionBelongsToApplication(snapSession, volumeGroup);
+
+        return map(_dbClient, snapSession);
     }
 
     /**
@@ -2096,7 +2134,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         // validate snap session set name
         String sessionsetName = param.getCopySetName();
-        ArgValidator.checkFieldNotNull(sessionsetName, "copy_set_name");
+        ArgValidator.checkFieldNotNull(sessionsetName, COPY_SET_NAME_FIELD);
 
         // get the snapshot sessions for the given set name in the volume group
         BlockSnapshotSessionList snapshotSessionList = new BlockSnapshotSessionList();
@@ -2104,31 +2142,17 @@ public class VolumeGroupService extends TaskResourceService {
         // validate that the provided set name actually belongs to this Application
         VolumeGroupCopySetList copySetList = getVolumeGroupSnapsetSessionSets(volumeGroup);
         if (!copySetList.getCopySets().contains(sessionsetName)) {
-            // throw APIException.badRequests.
-            // setNameDoesNotBelongToVolumeGroup("Snapshot Session Set name", sessionsetName, volumeGroup.getLabel());
-        }
-        // get all volumes
-        List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-
-        // get the snapshot sessions for each CG in the volume group
-        List<BlockSnapshotSession> snapshotSessions = new ArrayList<BlockSnapshotSession>();
-
-        Set<URI> cgIds = ControllerUtils.groupVolumeURIsByCG(volumes).keySet();
-        for (URI cgId : cgIds) {
-            BlockConsistencyGroup consistencyGroup = _permissionsHelper.getObjectById(cgId,
-                    BlockConsistencyGroup.class);
-            List<BlockSnapshotSession> sessions = getSnapshotSessionManager().
-                    getSnapshotSessionsForCG(consistencyGroup);
-            // TODO filter Sessions for RG not part of this application
-            snapshotSessions.addAll(sessions);
+            throw APIException.badRequests.
+                    setNameDoesNotBelongToVolumeGroup("Snapshot Session Set name", sessionsetName, volumeGroup.getLabel());
         }
 
-        for (BlockSnapshotSession session : snapshotSessions) {
-            if (session != null && !session.getInactive()) {
-                if (sessionsetName.equals(session.getSessionSetName())) {
-                    snapshotSessionList.getSnapSessionRelatedResourceList().
-                            add(toNamedRelatedResource(session));
-                }
+        // get the snapshot sessions for the volume group
+        List<BlockSnapshotSession> volumeGroupSessions = getVolumeGroupSnapshotSessions(volumeGroup);
+
+        for (BlockSnapshotSession session : volumeGroupSessions) {
+            if (sessionsetName.equals(session.getSessionSetName())) {
+                snapshotSessionList.getSnapSessionRelatedResourceList().
+                        add(toNamedRelatedResource(session));
             }
         }
 
@@ -2136,16 +2160,16 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * Validate resources and group snapshot sessions by set name
+     * Validate resources and return a list of snapshot sessions for set name
      *
-     * If partial, group snapshot sessions in VolumeGroupSnapshotOperationParam by set name
-     * If full, find all the snapshot sessions for each set name that the snapshot sessions in the param belong to
+     * If partial, validate snapshot sessions in VolumeGroupSnapshotOperationParam belonging to multiple sets
+     * If full, find all snapshot sessions for the set name in the provided snapshot session
      *
      * @param volumeGroupId
-     * @param param
-     * @return map set name to snapshot sessions
+     * @param param VolumeGroupSnapshotSessionOperationParam
+     * @return list of snapshot sessions
      */
-    private Map<String, List<BlockSnapshotSession>> getSnapshotSessionsGroupedBySnapSessionset(final URI volumeGroupId,
+    private List<BlockSnapshotSession> getSnapshotSessionsGroupedBySnapSessionset(final URI volumeGroupId,
             VolumeGroupSnapshotSessionOperationParam param) {
         ArgValidator.checkFieldUriType(volumeGroupId, VolumeGroup.class, "id");
         // Query volume group
@@ -2157,7 +2181,8 @@ public class VolumeGroupService extends TaskResourceService {
         // validate that at least one snapshot URI is provided
         ArgValidator.checkFieldNotEmpty(param.getSnapshotSessions(), SNAPSHOT_SESSIONS_FIELD);
 
-        Map<String, List<BlockSnapshotSession>> setNameToSessions = new HashMap<String, List<BlockSnapshotSession>>();
+        List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
+        List<String> setNames = new ArrayList<String>();
         for (URI sessionURI : param.getSnapshotSessions()) {
             ArgValidator.checkFieldUriType(sessionURI, BlockSnapshotSession.class, SNAPSHOT_SESSION_FIELD);
             // Get the snapshot session
@@ -2167,23 +2192,27 @@ public class VolumeGroupService extends TaskResourceService {
             validateSnapSessionBelongsToApplication(session, volumeGroup);
 
             String setName = session.getSessionSetName();
-            List<BlockSnapshotSession> snapshots = setNameToSessions.get(setName);
-            if (snapshots == null) {
-                if (param.getPartial()) {
-                    snapshots = new ArrayList<BlockSnapshotSession>();
-                    snapshots.add(session);
-                } else {
-                    snapshots = ControllerUtils.getVolumeGroupSnapshotSessionsForSet(volumeGroup.getId(), setName, _dbClient);
-                }
+            setNames.add(setName);
 
-                setNameToSessions.put(setName, snapshots);
-            } else if (param.getPartial()) {
-                snapshots.add(session);
+            if (param.getPartial()) {
+                snapSessions.add(session);
+            } else {
+                log.info("Snapshot Session operation requested for entire Application, Considering session {} in request.",
+                        session.getLabel());
+                // get the snapshot sessions for the volume group
+                List<BlockSnapshotSession> volumeGroupSessions = getVolumeGroupSnapshotSessions(volumeGroup);
+                for (BlockSnapshotSession vgSession : volumeGroupSessions) {
+                    if (setName.equals(vgSession.getSessionSetName())) {
+                        snapSessions.add(vgSession);
+                    }
+                }
             }
         }
 
-        // TODO block if given list of sessions belong to different sets?
-        return setNameToSessions;
+        if (setNames.size() > 1) {
+            throw APIException.badRequests.multipleSetNamesProvided(ReplicaTypeEnum.SNAPSHOT_SESSION.toString());
+        }
+        return snapSessions;
     }
 
     /*
@@ -2199,71 +2228,71 @@ public class VolumeGroupService extends TaskResourceService {
             final VolumeGroupSnapshotSessionOperationParam param,
             OperationTypeEnum opType) {
 
-        Map<String, List<BlockSnapshotSession>> snapsetToSnapshots =
-                getSnapshotSessionsGroupedBySnapSessionset(volumeGroupId, param);
+        List<BlockSnapshotSession> snapSessions = getSnapshotSessionsGroupedBySnapSessionset(volumeGroupId, param);
 
         auditOp(opType, true, AuditLogManager.AUDITOP_BEGIN,
                 volumeGroupId.toString(), param.getSnapshotSessions());
         TaskList taskList = new TaskList();
 
-        Set<Entry<String, List<BlockSnapshotSession>>> entrySet = snapsetToSnapshots.entrySet();
-        for (Entry<String, List<BlockSnapshotSession>> entry : entrySet) {
-            Table<URI, String, BlockSnapshotSession> storageRgToSnapshot = ControllerUtils.
-                    getSnapshotSessionForStorageReplicationGroup(entry.getValue(), _dbClient);
-            for (Cell<URI, String, BlockSnapshotSession> cell : storageRgToSnapshot.cellSet()) {
-                BlockSnapshotSession session = cell.getValue();
-                log.info("{} for replication group {}", opType.getDescription(), cell.getColumnKey());
-                ResourceOperationTypeEnum oprEnum = null;
-                try {
-                    URI cgUri = session.getConsistencyGroup();  // should not be null
-                    URI sessionUri = session.getId();
-                    log.info("CG: {}, Session: {}", cgUri, session.getLabel());
-                    switch (opType) {
-                        case RESTORE_VOLUME_GROUP_SNAPSHOT_SESSION:
-                            oprEnum = ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION;
-                            taskList.addTask(
-                                    _blockConsistencyGroupService.restoreConsistencyGroupSnapshotSession(cgUri, sessionUri));
-                            break;
-                        case DELETE_VOLUME_GROUP_SNAPSHOT_SESSION:
-                            oprEnum = ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION;
-                            taskList.getTaskList().addAll(
-                                    _blockConsistencyGroupService.deactivateConsistencyGroupSnapshotSession(cgUri, sessionUri)
-                                            .getTaskList());
-                            break;
-                        case LINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
-                            oprEnum = ResourceOperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGETS;
-                            SnapshotSessionLinkTargetsParam linkParam = new SnapshotSessionLinkTargetsParam(
-                                    ((VolumeGroupSnapshotSessionLinkTargetsParam) param).getNewLinkedTargets());
-                            taskList.getTaskList().addAll(
-                                    _blockConsistencyGroupService.linkTargetVolumes(cgUri, sessionUri, linkParam)
-                                            .getTaskList());
-                            break;
-                        case RELINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
-                            oprEnum = ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS;
-                            SnapshotSessionRelinkTargetsParam relinkParam = new SnapshotSessionRelinkTargetsParam(
-                                    getRelinkTargetIdsForSession((VolumeGroupSnapshotSessionRelinkTargetsParam) param, session));
-                            taskList.getTaskList().addAll(
-                                    _blockConsistencyGroupService.relinkTargetVolumes(cgUri, sessionUri, relinkParam)
-                                            .getTaskList());
-                            break;
-                        case UNLINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
-                            oprEnum = ResourceOperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGETS;
-                            SnapshotSessionUnlinkTargetsParam unlinkParam = new SnapshotSessionUnlinkTargetsParam(
-                                    getUnlinkTargetIdsForSession((VolumeGroupSnapshotSessionUnlinkTargetsParam) param, session));
-                            taskList.addTask(
-                                    _blockConsistencyGroupService.unlinkTargetVolumesForSession(cgUri, sessionUri, unlinkParam));
-                            break;
-                        default:
-                            log.error("Unsupported operation {}", opType.getDescription());
-                            break;
-                    }
-                } catch (InternalException | APIException e) {
-                    String errMsg = String.format("Exception occurred while performing %s on Replication group %s",
-                            opType.getDescription(), cell.getColumnKey());
-                    log.error(errMsg, e);
-                    TaskResourceRep task = createFailedTaskOnSnapshotSession(session, oprEnum, e);
-                    taskList.addTask(task);
+        Table<URI, String, BlockSnapshotSession> storageRgToSnapshot = ControllerUtils.
+                getSnapshotSessionForStorageReplicationGroup(snapSessions, _dbClient);
+        for (Cell<URI, String, BlockSnapshotSession> cell : storageRgToSnapshot.cellSet()) {
+            BlockSnapshotSession session = cell.getValue();
+            log.info("{} for replication group {}", opType.getDescription(), cell.getColumnKey());
+            ResourceOperationTypeEnum oprEnum = null;
+            try {
+                URI cgUri = session.getConsistencyGroup();  // should not be null
+                URI sessionUri = session.getId();
+                log.info("CG: {}, Session: {}", cgUri, session.getLabel());
+                switch (opType) {
+                    case RESTORE_VOLUME_GROUP_SNAPSHOT_SESSION:
+                        oprEnum = ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION;
+                        taskList.addTask(
+                                _blockConsistencyGroupService.restoreConsistencyGroupSnapshotSession(cgUri, sessionUri));
+                        break;
+                    case DELETE_VOLUME_GROUP_SNAPSHOT_SESSION:
+                        oprEnum = ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION;
+                        taskList.getTaskList().addAll(
+                                _blockConsistencyGroupService.deactivateConsistencyGroupSnapshotSession(cgUri, sessionUri)
+                                        .getTaskList());
+                        break;
+                    case LINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
+                        oprEnum = ResourceOperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGETS;
+                        SnapshotSessionLinkTargetsParam linkParam = new SnapshotSessionLinkTargetsParam(
+                                ((VolumeGroupSnapshotSessionLinkTargetsParam) param).getNewLinkedTargets());
+                        taskList.getTaskList().addAll(
+                                _blockConsistencyGroupService.linkTargetVolumes(cgUri, sessionUri, linkParam)
+                                        .getTaskList());
+                        break;
+                    case RELINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
+                        oprEnum = ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS;
+                        SnapshotSessionRelinkTargetsParam relinkParam = new SnapshotSessionRelinkTargetsParam(
+                                getRelinkTargetIdsForSession((VolumeGroupSnapshotSessionRelinkTargetsParam) param, session));
+                        taskList.getTaskList().addAll(
+                                _blockConsistencyGroupService.relinkTargetVolumes(cgUri, sessionUri, relinkParam)
+                                        .getTaskList());
+                        break;
+                    case UNLINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
+                        oprEnum = ResourceOperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGETS;
+                        SnapshotSessionUnlinkTargetsParam unlinkParam = new SnapshotSessionUnlinkTargetsParam(
+                                getUnlinkTargetIdsForSession((VolumeGroupSnapshotSessionUnlinkTargetsParam) param, session));
+                        taskList.addTask(
+                                _blockConsistencyGroupService.unlinkTargetVolumesForSession(cgUri, sessionUri, unlinkParam));
+                        break;
+                    default:
+                        log.error("Unsupported operation {}", opType.getDescription());
+                        break;
                 }
+            } catch (InternalException | APIException e) {
+                String errMsg = String.format("Exception occurred while performing %s on Replication group %s",
+                        opType.getDescription(), cell.getColumnKey());
+                log.error(errMsg, e);
+                TaskResourceRep task = createFailedTaskOnSnapshotSession(session, oprEnum, e);
+                taskList.addTask(task);
+            } catch (Exception ex) {
+                String errMsg = String.format("Unexpected Exception occurred while performing %s on Replication group %s",
+                        opType.getDescription(), cell.getColumnKey());
+                log.error(errMsg, ex);
             }
         }
 
@@ -2479,13 +2508,16 @@ public class VolumeGroupService extends TaskResourceService {
      * @param volumeGroup the volume group
      */
     private void validateSnapSessionBelongsToApplication(BlockSnapshotSession session, VolumeGroup volumeGroup) {
-        /*
-         * Volume volume = _dbClient.queryObject(Volume.class, session.getParent());
-         * if (volume == null || volume.getInactive() || !volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
-         * throw APIException.badRequests
-         * .replicaOperationNotAllowedVolumeNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(), volume.getLabel());
-         * }
-         */
+        List<BlockSnapshotSession> volumeGroupSessions = getVolumeGroupSnapshotSessions(volumeGroup);
+        Set<URI> sessionURIs = new HashSet<URI>();
+        for (BlockSnapshotSession snapSession : volumeGroupSessions) {
+            sessionURIs.add(snapSession.getId());
+        }
+        if (!sessionURIs.contains(session.getId())) {
+            throw APIException.badRequests
+                    .replicaOperationNotAllowedSourceNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT_SESSION.toString(),
+                            session.getLabel());
+        }
     }
 
     private List<VolumeGroupUtils> getVolumeGroupUtils(VolumeGroup volumeGroup) {
@@ -3044,7 +3076,7 @@ public class VolumeGroupService extends TaskResourceService {
                     continue;
                 }
 
-                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup()) && !isVPlexVolume(vol, dbClient)) {
+                if (vol.isInCG() && !vol.isVPlexVolume(dbClient)) {
                     removeVolumeCGs.add(vol.getConsistencyGroup());
                 }
 
@@ -3164,22 +3196,6 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
         return errorMsg;
-    }
-
-    /**
-     * Check if the volume is a vplex volume
-     * @param volume The volume to be checked
-     * @return true or false
-     */
-    static private boolean isVPlexVolume(Volume volume, DbClient dbClient) {
-        boolean result = false;
-        URI storageUri = volume.getStorageController();
-        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageUri);
-        String systemType = storage.getSystemType();
-        if (systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
-            result = true;
-        }
-        return result;
     }
 
     /**

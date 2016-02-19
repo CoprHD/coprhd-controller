@@ -96,6 +96,9 @@ public class ControllerUtils {
 
     private static final String LABEL_DELIMITER = "-";
 
+    private static final int SMIS_MAJOR_VERSION = 8;
+    private static final int SMIS_MINOR_VERSION = 1;
+
     /**
      * Gets the URI of the tenant organization for the project with the passed
      * URI.
@@ -1443,7 +1446,9 @@ public class ControllerUtils {
             if (provider != null && provider.getVersionString() != null) {
                 String providerVersion = provider.getVersionString().replaceFirst("[^\\d]", "");
                 String provStr[] = providerVersion.split(Constants.SMIS_DOT_REGEX);
-                return Integer.parseInt(provStr[0]) >= 8 && Integer.parseInt(provStr[1]) >= 1;
+                int major = Integer.parseInt(provStr[0]);
+                int minor = Integer.parseInt(provStr[1]);
+                return major > SMIS_MAJOR_VERSION || major == SMIS_MAJOR_VERSION && minor >= SMIS_MINOR_VERSION;
             }
         }
 
@@ -1646,35 +1651,12 @@ public class ControllerUtils {
             while (iter.hasNext()) {
                 BlockSnapshot snapshot = iter.next();
                 if (isSourceInVoumeGroup(snapshot, volumeGroupId, dbClient)) {
-                    snapshots.add(iter.next());
+                    snapshots.add(snapshot);
                 }
             }
         }
 
         return snapshots;
-    }
-
-    /**
-     * Gets all snapshot sessions for the given set name.
-     */
-    public static List<BlockSnapshotSession> getVolumeGroupSnapshotSessionsForSet(URI volumeGroupId,
-            String setName, DbClient dbClient) {
-        List<BlockSnapshotSession> sessions = new ArrayList<BlockSnapshotSession>();
-        if (setName != null) {
-            URIQueryResultList list = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                    getBlockSnapshotSessionsBySetName(setName), list);
-            Iterator<BlockSnapshotSession> iter = dbClient.
-                    queryIterativeObjects(BlockSnapshotSession.class, list);
-            while (iter.hasNext()) {
-                BlockSnapshotSession snapshot = iter.next();
-                // if (isSourceInVoumeGroup(snapshot, volumeGroupId, dbClient)) {
-                sessions.add(snapshot);
-                // }
-            }
-        }
-
-        return sessions;
     }
 
     /*
@@ -1736,6 +1718,11 @@ public class ControllerUtils {
         Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
         if (volume != null && !volume.getInactive()) {
             if (volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+                return true;
+            }
+
+            Volume vplexVolume = Volume.fetchVplexVolume(dbClient, volume);
+            if (vplexVolume != null && !vplexVolume.getInactive() && vplexVolume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
                 return true;
             }
         }

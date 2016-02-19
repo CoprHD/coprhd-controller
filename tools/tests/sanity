@@ -2872,9 +2872,8 @@ recoverpoint_ingest_host_setup()
     run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN2}
 }
 
-recoverpoint_ingest_setup()
+recoverpoint_ingest_setup_vars()
 {
-    secho 'RP ingest setup'
     INGEST_NATIVEGUID=$VMAX1_SIMULATOR_NATIVEGUID
     RP_NATIVEGUID=$RECOVERPOINT_RP_SIM_NATIVEGUID
 
@@ -2883,7 +2882,7 @@ recoverpoint_ingest_setup()
         RP_NATIVEGUID=$RECOVERPOINT_RP_NATIVEGUID
     fi
 
-    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" -o "${RPMP_TESTS}" = "1" ]; then
         INGEST_NATIVEGUID2=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
         INGEST_NATIVEGUID3=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
         if [ "$RP_QUICK_PARAM" == "quick" ]; then
@@ -2891,12 +2890,20 @@ recoverpoint_ingest_setup()
             INGEST_NATIVEGUID3=$VMAX3_SIMULATOR_NATIVEGUID
         fi
     fi	
+}
+
+recoverpoint_ingest_setup()
+{
+    secho 'RP ingest setup'
 
     # Discover unmanaged volumes on the array
     run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
 
-    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" -o "${RPMP_TESTS}" = "1" ]; then
         run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+    fi
+
+    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
         run storagedevice discover_namespace $INGEST_NATIVEGUID3 'UNMANAGED_VOLUMES'
     fi	
 
@@ -2919,6 +2926,7 @@ recoverpoint_ingest_setup()
     sleep 10
 
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
+    exit
 }
 
 recoverpoint_ingest_test()
@@ -2974,6 +2982,10 @@ recoverpoint_ingest_test()
 	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
         # Recreate unmanaged volumes/protection sets
 	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	if [ ${RPMP_TESTS} = "1" ]; then
+	    run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+	fi
+
 	if [ ${RPVPLEX_TESTS} = "1" ]; then
 	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
 	    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
@@ -3022,14 +3034,17 @@ recoverpoint_ingest_test()
     # Recreate unmanaged volumes/protection sets
     run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
 
-    if [ ${vpool} = "rp${rptypetag}_crr" -o ${vpool} = "rp${rptypetag}_clr" ]; then
+    if [ ${vpool} = "rp${rptypetag}_crr" -o ${vpool} = "rp${rptypetag}_clr" -o "${RPMP_TESTS}" = "1" ]; then
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+    fi	
+
+    if [ ${vpool} = "rp${rptypetag}_crr" -o ${vpool} = "rp${rptypetag}_clr" ]; then
         run storagedevice discover_namespace $INGEST_NATIVEGUID3 'UNMANAGED_VOLUMES'
     fi	
 
-    if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         run storagedevice discover_namespace $RECOVERPOINT_VPLEX_A_GUID 'UNMANAGED_VOLUMES'
-        if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+        if [ "${RP_CRR}" = "1" -o "${RP_CLR}" = "1" ]; then
             run storagedevice discover_namespace $RECOVERPOINT_VPLEX_B_GUID 'UNMANAGED_VOLUMES'
         fi
     fi
@@ -3097,10 +3112,10 @@ recoverpoint_ingest_primer()
     #RECOVERPOINT_INGEST_VOL1_HOST_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}_${vpool}
     #RECOVERPOINT_INGEST_VOL1_HOST_SRC=${RECOVERPOINT_INGEST_VOL1BASE}_${vpool}
     #run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_HOST_CG}
-    #run volume create ${RECOVERPOINT_INGEST_VOL1_HOST_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_HOST_CG}
-    #run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC} --hosts ${RP_HOSTNAME}
+    #run volume create ${RECOVERPOINT_INGEST_VOL1_HOST_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_HOST_CG} --count 2
+    #run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC}-1 --hosts ${RP_HOSTNAME}
+    #run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC}-2 --hosts ${RP_HOSTNAME}
     #volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC} --vipronly
-    #exit;
 }
 
 recoverpoint_failover_test()
@@ -3567,7 +3582,9 @@ recoverpoint_tests()
         secho 'Run RP tests'
 
         # Setup CGs
-        rp_cg_setup
+	if [ "$RP_SHORTCIRCUIT_TESTS" = "0" ]; then
+	    rp_cg_setup
+	fi
 
         rp_src_varray=$RECOVERPOINT_VARRAY1
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
@@ -3700,6 +3717,7 @@ recoverpoint_tests()
                 rptypetag="xio"
             fi
 
+	    if [ "$RP_SHORTCIRCUIT_TESTS" = "0" ]; then
             if [ "$RP_INGESTPRIME" = "1" ]; then
                 secho 'RP ingest volumes priming only'
                 if [ "$RP_CDP" = "1" ] ; then
@@ -3712,10 +3730,14 @@ recoverpoint_tests()
                     recoverpoint_ingest_primer rp${rptypetag}_clr
                 fi
             fi
+	    fi
 
             if [ "$RP_INGESTTESTS" = "1" ]; then
                 secho 'RP ingest volumes'
-                recoverpoint_ingest_setup
+		recoverpoint_ingest_setup_vars
+		if [ "$RP_SHORTCIRCUIT_TESTS" = "0" ]; then
+		    recoverpoint_ingest_setup
+		fi
 
                 if [ "$RP_CDP" = "1" ] ; then
                     recoverpoint_ingest_test rp${rptypetag}_cdp

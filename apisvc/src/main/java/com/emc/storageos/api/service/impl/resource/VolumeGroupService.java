@@ -84,13 +84,13 @@ import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.application.VolumeGroupSnapshotCreateParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotOperationParam;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeGroupSnapshotCreateParam;
-import com.emc.storageos.model.block.VolumeGroupSnapshotOperationParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
@@ -127,13 +127,7 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.rp.name(),
             DiscoveredDataObject.Type.srdf.name(),
             DiscoveredDataObject.Type.ibmxiv.name()));
-    private static final Set<String> BLOCK_TYPES = new HashSet<String>(Arrays.asList(
-            DiscoveredDataObject.Type.vnxblock.name(),
-            DiscoveredDataObject.Type.vmax.name(),
-            DiscoveredDataObject.Type.xtremio.name(),
-            DiscoveredDataObject.Type.scaleio.name(),
-            DiscoveredDataObject.Type.ibmxiv.name(),
-            DiscoveredDataObject.Type.srdf.name()));
+
     private static final String BLOCK = "block";
     private static final String ID_FIELD = "id";
     private static final String NAME_FIELD = "name";
@@ -2330,7 +2324,7 @@ public class VolumeGroupService extends TaskResourceService {
                     continue;
                 }
 
-                if (!NullColumnValueGetter.isNullURI(vol.getConsistencyGroup()) && !isVPlexVolume(vol, dbClient)) {
+                if (vol.isInCG() && !vol.isVPlexVolume(dbClient)) {
                     removeVolumeCGs.add(vol.getConsistencyGroup());
                 }
 
@@ -2450,22 +2444,6 @@ public class VolumeGroupService extends TaskResourceService {
             }
         }
         return errorMsg;
-    }
-
-    /**
-     * Check if the volume is a vplex volume
-     * @param volume The volume to be checked
-     * @return true or false
-     */
-    static private boolean isVPlexVolume(Volume volume, DbClient dbClient) {
-        boolean result = false;
-        URI storageUri = volume.getStorageController();
-        StorageSystem storage = dbClient.queryObject(StorageSystem.class, storageUri);
-        String systemType = storage.getSystemType();
-        if (systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
-            result = true;
-        }
-        return result;
     }
 
     /**

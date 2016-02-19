@@ -19,6 +19,7 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +61,7 @@ public class VolumeAccessStateProcessor extends StorageProcessor {
         CloseableIterator<CIMInstance> volumeInstances = null;
         try {
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
+            WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
             _unManagedVolumesUpdate = new ArrayList<UnManagedVolume>();
             CIMObjectPath storagePoolPath = getObjectPathfromCIMArgument(_args);
             String poolNativeGuid = NativeGUIDGenerator

@@ -128,6 +128,7 @@ public enum OperationTypeEnum {
     DELETE_EXPORT_VOLUME("ExportVolumeRemoved", "ExportVolumeRemoveFailed", "ExportVolume Remove"),
 
     CREATE_FILE_SYSTEM("FileSystemCreated", "FileSystemCreateFailed", "FileSystem created"),
+    INGEST_FILE_SYSTEM("FileSystemIngested", "FileSystemIngestFailed", "FileSystem Ingested"),
     UPDATE_FILE_SYSTEM("FileSystemUpdated", "FileSystemUpdateFailed", "FileSystem updated"),
     DELETE_FILE_SYSTEM("FileSystemDeleted", "FileSystemDeleteFailed", "FileSystem deleted"),
     EXPORT_FILE_SYSTEM("FileSystemExported", "FileSystemExportFailed", "FileSystem exported"),
@@ -448,7 +449,11 @@ public enum OperationTypeEnum {
     UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
 
     CREATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyCreated", "VolumeGroupFullCopyCreateFailed", "VolumeGroupFullCopy Created"),
+    ACTIVATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyActivated", "VolumeGroupFullCopyActivateFailed", "VolumeGroupFullCopy Activated"),
     DETACH_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyDetached", "VolumeGroupFullCopyDetachFailed", "VolumeGroupFullCopy Detached"),
+    RESTORE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyRestored", "VolumeGroupFullCopyRestoreFailed", "VolumeGroupFullCopy Restored"),
+    RESYNCHRONIZE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyResynchronized", "VolumeGroupFullCopyResynchronizeFailed",
+            "VolumeGroupFullCopy Resynchronized"),
 
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),

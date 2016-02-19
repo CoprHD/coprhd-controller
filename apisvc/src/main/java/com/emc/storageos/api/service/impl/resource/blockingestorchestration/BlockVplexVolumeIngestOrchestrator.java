@@ -64,6 +64,9 @@ import com.google.common.base.Joiner;
 public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchestrator {
     private static final Logger _logger = LoggerFactory.getLogger(BlockVplexVolumeIngestOrchestrator.class);
 
+    // last known discovery mode, defaults to discovery mode only
+    private String _discoveryMode = VplexBackendIngestionContext.DISCOVERY_MODE_DISCOVERY_ONLY;
+    
     // best practice two paths from each VPLEX director for paths in a backend export group
     private static final int DEFAULT_BACKEND_NUMPATHS = 4;
 
@@ -130,9 +133,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             // The default mode is "Only During Discovery", so the user needs to remember
             // to run discovery first on all backend storage arrays before running on the VPLEX.
             //
-            String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+            _discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
                     _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
-            if (VplexBackendIngestionContext.DISCOVERY_MODE_DISCOVERY_ONLY.equals(discoveryMode)) {
+            if (VplexBackendIngestionContext.DISCOVERY_MODE_DISCOVERY_ONLY.equals(_discoveryMode) 
+                    || VplexBackendIngestionContext.DISCOVERY_MODE_DB_ONLY.equals(_discoveryMode)) {
                 volumeContext.setInDiscoveryOnlyMode(true);
             }
 
@@ -175,8 +179,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     @Override
     protected void managedVolumeSetLabel(BlockObject blockObject, String deviceLabel) {
         if (deviceLabel.contains("(")) {
+            // We want the user-visible label to be friendly.  The deviceLabel needs to be the VPLEX label.
+            // DB1_vol1 (dd_v1234567890_vol)
+            // label:       DB1_vol1
+            // deviceLabel: dd_v1234567890_vol
             blockObject.setLabel(deviceLabel.substring(0, deviceLabel.indexOf('(') - 1));
-            blockObject.setDeviceLabel(deviceLabel.substring(0, deviceLabel.indexOf('(') - 1));
+            blockObject.setDeviceLabel(deviceLabel.substring(deviceLabel.indexOf('(')+1, deviceLabel.indexOf(')')));
         } else {
             super.managedVolumeSetLabel(blockObject, deviceLabel);
         }
@@ -222,9 +230,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
 
-        // validate the supporting device structure is compatible with vipr
-        // TODO temporarily disabled until simulator can support this
-        // context.validateSupportingDeviceStructure();
+        if (!VplexBackendIngestionContext.DISCOVERY_MODE_DB_ONLY.equals(_discoveryMode)) {
+            // validate the supporting device structure is compatible with vipr
+            // will contact the VPLEX API to check the current device structure
+            context.validateSupportingDeviceStructure();
+        }
 
         // validate that there are not too many replicas on a distributed volume
         // as we can only support ingesting snaps or clones on one leg

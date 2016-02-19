@@ -11365,6 +11365,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         _log.info("Created workflow steps to import the primary copies");
     }
     
+    /**
+     * Create a volume instance and VolumeDescriptor using the characteristics of the passed in source volume. 
+     * @param source - The volume will be used to create the volume instance
+     * @param name - The new volume label
+     * @param type - VolumeDescriptor type
+     * @param size - The volume size
+     * @return - The newly created VolumeDescriptor
+     */
     private VolumeDescriptor prepareVolumeDescriptor(Volume source, String name, VolumeDescriptor.Type type, long size) {
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
@@ -11393,6 +11401,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 volume.getId(), volume.getPool(), capabilities);
     }
     
+    /**
+     * Create a VirtualPoolCapabilityValuesWrapper based on the passed in volume
+     * @param volume - The volume used to create the VirtualPoolCapabilityValuesWrapper.
+     * @param size - 
+     * @return
+     */
     private VirtualPoolCapabilityValuesWrapper getCapabilities(Volume volume, long size) {
         URI vpoolUri = volume.getVirtualPool();
         VirtualPool vpool = getDataObject(VirtualPool.class, vpoolUri, _dbClient);

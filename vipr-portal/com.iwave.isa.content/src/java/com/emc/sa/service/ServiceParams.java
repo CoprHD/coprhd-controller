@@ -80,6 +80,7 @@ public interface ServiceParams {
     public String NEW_APPLICATION_SUB_GROUP = "newApplicationSubGroup";
     public String APPLICATION_SITE = "applicationSite";
     public String FULL_COPY_NAME = "fullCopyName";
+    public String HIGH_AVAILABILITY = "highAvailability";
 
     public String APPLICATION_SNAPSHOT_TYPE = "applicationSnapshotType";
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";

@@ -29,8 +29,11 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.NAME)
     protected String name;
 
-    // @Param(ServiceParams.APPLICATION_SITE)
-    // protected URI virtualArrayId;
+    @Param(ServiceParams.APPLICATION_SITE)
+    protected URI virtualArrayId;
+
+    @Param(ServiceParams.HIGH_AVAILABILITY)
+    protected Boolean highAvailability;
 
     @Param(ServiceParams.COUNT)
     protected Integer count;
@@ -52,9 +55,11 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
 
         for (String type : volumeTypes.keySet()) {
             if (type.equalsIgnoreCase("vmax3")) {
-                tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId(), name));
+                tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId(), name,
+                        highAvailability));
             } else {
-                tasks = execute(new CreateSnapshotForApplication(applicationId, volumeTypes.get(type).getId(), name, readOnly));
+                tasks = execute(new CreateSnapshotForApplication(applicationId, volumeTypes.get(type).getId(), name, readOnly,
+                        highAvailability));
             }
             addAffectedResources(tasks);
         }

@@ -1088,6 +1088,39 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("replicationGroup")
+    @AssetDependencies({ "application", "applicationSnapshotVirtualArray" })
+    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId, URI virtualArray) {
+        ViPRCoreClient client = api(ctx);
+        boolean isTarget = false;
+
+        if (virtualArray.equals("none")) {
+            // NONE
+            isTarget = false;
+        } else {
+            List<BlockVirtualPoolRestRep> vpools = client.blockVpools().getByVirtualArray(virtualArray);
+            for (BlockVirtualPoolRestRep vpool : vpools) {
+                if (vpool.getProtection() != null
+                        && (vpool.getProtection().getRecoverPoint() != null || vpool.getHighAvailability() != null)) {
+                    // SOURCE
+                    isTarget = false;
+                } else {
+                    // TARGET
+                    isTarget = true;
+                }
+            }
+        }
+
+        // TODO
+        if (isTarget) {
+
+        } else {
+
+        }
+
+        return createStringOptions(getApplicationReplicationGroupNames(ctx, applicationId));
+    }
+
+    @Asset("replicationGroup")
     @AssetDependencies({ "application", "applicationSnapshotSessionCopySets" })
     public List<AssetOption> getApplicationReplicationGroupsForSnapshotSession(AssetOptionsContext ctx, URI applicationId,
             String copySet) {
@@ -2059,6 +2092,20 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return true;
         }
         return false;
+    }
+
+    @Asset("applicationSnapshotVirtualArray")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplicationSnapshotVirtualArrays(AssetOptionsContext ctx, URI applicationId) {
+        List<AssetOption> options = getApplicationVirtualArrays(ctx, applicationId);
+        Iterator<AssetOption> iterator = options.iterator();
+        while (iterator.hasNext()) {
+            AssetOption option = iterator.next();
+            if (option.value.equalsIgnoreCase("protection.site.type.ha")) {
+                iterator.remove();
+            }
+        }
+        return options;
     }
 
     @Asset("applicationVirtualArray")

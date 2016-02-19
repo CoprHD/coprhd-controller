@@ -7,6 +7,18 @@
       type:"assetType.vipr.application"
     },
     
+    applicationSite:{
+      type:"assetType.vipr.applicationSnapshotVirtualArray",
+      required:"false"
+    },
+    
+    highAvailability:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    },
+    
     applicationSubGroup:{
       type:"assetType.vipr.replicationGroup"
     },

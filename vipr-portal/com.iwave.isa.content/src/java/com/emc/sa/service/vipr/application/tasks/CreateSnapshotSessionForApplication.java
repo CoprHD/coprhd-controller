@@ -17,11 +17,13 @@ public class CreateSnapshotSessionForApplication extends WaitForTasks<TaskResour
     private final URI applicationId;
     private final String name;
     private final URI volume;
+    private final Boolean copyOnHighAvailabilitySide;
 
-    public CreateSnapshotSessionForApplication(URI applicationId, URI volume, String name) {
+    public CreateSnapshotSessionForApplication(URI applicationId, URI volume, String name, Boolean copyOnHighAvailabilitySide) {
         this.applicationId = applicationId;
         this.name = name;
         this.volume = volume;
+        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
         provideDetailArgs(applicationId, name);
     }
 
@@ -31,8 +33,7 @@ public class CreateSnapshotSessionForApplication extends WaitForTasks<TaskResour
         input.setName(name);
         input.setVolumes(Lists.newArrayList(volume));
         input.setPartial(true);
-        // TODO
-        // input.setCopyOnHighAvailabilitySide(copyOnHighAvailabilitySide);
+        input.setCopyOnHighAvailabilitySide(copyOnHighAvailabilitySide);
 
         TaskList taskList = getClient().application().createSnapshotSessionOfApplication(applicationId, input);
 

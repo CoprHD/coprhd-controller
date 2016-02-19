@@ -9,7 +9,7 @@ import java.net.URI;
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.VolumeGroupSnapshotCreateParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotCreateParam;
 import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
 
@@ -18,12 +18,14 @@ public class CreateSnapshotForApplication extends WaitForTasks<TaskResourceRep> 
     private final String name;
     private final Boolean readOnly;
     private final URI volume;
+    private final Boolean copyOnHighAvailabilitySide;
 
-    public CreateSnapshotForApplication(URI applicationId, URI volume, String name, Boolean readOnly) {
+    public CreateSnapshotForApplication(URI applicationId, URI volume, String name, Boolean readOnly, Boolean copyOnHighAvailabilitySide) {
         this.applicationId = applicationId;
         this.name = name;
         this.readOnly = readOnly;
         this.volume = volume;
+        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
         provideDetailArgs(applicationId, name);
     }
 
@@ -34,8 +36,7 @@ public class CreateSnapshotForApplication extends WaitForTasks<TaskResourceRep> 
         input.setVolumes(Lists.newArrayList(volume));
         input.setPartial(true);
         input.setReadOnly(readOnly);
-        // TODO
-        // input.setCopyOnHighAvailabilitySide(copyOnHighAvailabilitySide);
+        input.setCopyOnHighAvailabilitySide(copyOnHighAvailabilitySide);
 
         TaskList taskList = getClient().application().createSnapshotOfApplication(applicationId, input);
 

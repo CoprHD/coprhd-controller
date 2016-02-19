@@ -11271,6 +11271,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
             }
+
             addBEVolList.setVolumes(allAddBEVolumes);
             addBEVolList.setReplicationGroupName(addVolList.getReplicationGroupName());
             addBEVolList.setConsistencyGroup(addVolList.getConsistencyGroup());
@@ -11363,7 +11364,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
             }
         }
-        _log.info("Created workflow steps to import the primary copies");
+        _log.info("Created workflow steps to import the backend full copies");
     }
     
     /**

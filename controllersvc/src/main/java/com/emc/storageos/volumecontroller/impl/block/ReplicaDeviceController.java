@@ -1033,15 +1033,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
     
     /**
-     * Add steps to create clones/snapshots when add volumes to a replication group. this is mainly used for VPLEX/VPLEX+RG
-     * @param workflow
+     * Add steps to create clones/snapshots when add volumes to a replication group.
+     * @param workflow - The workflow that the steps would be added to
      * @param waitFor -  a waitFor key that can be used by subsequent controllers to wait on
      *         the Steps created by this controller.
-     * @param cgURI
-     * @param volumeList The volumes to be added.
-     * @param replicationGroup replication group name
-     * @param taskId
-     * @return a waitFor key that can be used by subsequent controllers to wait on
+     * @param cgURI - CG URI
+     * @param volumeList -  The volumes to be added.
+     * @param replicationGroup - replication group name
+     * @param taskId - top level operation's taskId
+     * @return - a waitFor key that can be used by subsequent controllers to wait on
      *         the Steps created by this controller.
      * @throws InternalException
      */

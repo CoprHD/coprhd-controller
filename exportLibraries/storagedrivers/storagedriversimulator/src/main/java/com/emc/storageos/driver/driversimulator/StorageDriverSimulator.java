@@ -323,7 +323,22 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask createVolumeClone(List<VolumeClone> clones, StorageCapabilities capabilities) {
-        return null;
+        for (VolumeClone clone : clones) {
+            clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
+            clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
+            clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
+            clone.setDeviceLabel(clone.getNativeId());
+        }
+        String taskType = "create-volume-clone";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        String msg = String.format("StorageDriver: createVolumeClone information for storage system %s, clone nativeIds %s - end",
+                clones.get(0).getStorageSystemId(), clones.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
@@ -338,7 +353,16 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
-        return null;
+        String taskType = "delete-volume-clone";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("StorageDriver: deleteVolumeClone for storage system %s, " +
+                        "clones nativeId %s - end",
+                clones.get(0).getStorageSystemId(), clones.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override

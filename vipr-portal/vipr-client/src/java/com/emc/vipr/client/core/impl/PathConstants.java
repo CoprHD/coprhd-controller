@@ -163,9 +163,16 @@ public class PathConstants {
     public static final String UNASSIGN_POLICY_URL = "/file/filesystems/{fs_id}/unassign-file-policy/{policy_id}";
     public static final String FILE_POLICIES_BY_FILESYSTEM_URL = FILESYSTEM_URL + "/{fileSystemId}/file-policies";
     public static final String APP_SUPPORT_CREATE_APP_URL = "/volume-groups/block";
+    public static final String APP_SUPPORT_FULL_COPY_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/full-copies";
+    public static final String APP_SUPPORT_CREATE_FULL_COPY_URL = APP_SUPPORT_FULL_COPY_URL;
+    public static final String APP_SUPPORT_DETACH_FULL_COPY_URL = APP_SUPPORT_FULL_COPY_URL + "/detach";
+    public static final String APP_SUPPORT_RESTORE_FULL_COPY_URL = APP_SUPPORT_FULL_COPY_URL + "/restore";
+    public static final String APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL = APP_SUPPORT_FULL_COPY_URL + "/resynchronize";
     public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
     public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}";
     public static final String APP_SUPPORT_VOLUME_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/volumes";
+    public static final String APP_SUPPORT_CLONE_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/full-copies";
+    public static final String APP_SUPPORT_CLONE_SET_URL = APP_SUPPORT_CLONE_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";
 
 }

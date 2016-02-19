@@ -50,17 +50,17 @@
     <dd>${disasterSiteDetails.networkLatencyInMs}</dd>
     #{/else}
   #{if isActive == false}
-      <dt>&{'disasterRecovery.paused.time'}</dt>
-      <dd id="pausedTime-${uuid}">&{'disasterRecovery.paused.time.notAvailable'}</dd>
+      <dt>&{'disasterRecovery.sync.status'}</dt>
+      <dd id="syncStatus-${uuid}">&{'disasterRecovery.sync.status.notAvailable'}</dd>
       #{if disasterSiteDetails.dataSynced}
       <script>
-          $('#pausedTime-' + '${uuid}').text("&{'disasterRecovery.paused.time.notPaused'}");
+          $('#syncStatus-' + '${uuid}').text("&{'disasterRecovery.sync.status.synced'}");
       </script>
       #{/if}
-      #{elseif pausedTime}
+      #{elseif lastSyncTime}
       <script>
-          var epocPauseTime = '${disasterSiteDetails.pausedTime}';
-          $('#pausedTime-' + '${uuid}').text(formatLocalDateTime(new Date(epocPauseTime)));
+          var epocPauseTime = '${disasterSiteDetails.lastSyncTime}';
+          $('#syncStatus-' + '${uuid}').text("&{'disasterRecovery.sync.status.lastSyncTime'}" + " " + formatLocalDateTime(new Date(epocPauseTime)));
       </script>
       #{/elseif}
   #{/if}

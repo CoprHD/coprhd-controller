@@ -254,7 +254,7 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_PRECHECK_FAILED)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
     public InternalServerErrorException addStandbyPrecheckFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_NAT_CHECK_FAILED)
@@ -266,19 +266,19 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_FAILED)
     public InternalServerErrorException addStandbyFailed(String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_TIMEOUT)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_TIMEOUT)
     public InternalServerErrorException addStandbyFailedTimeout(final long timeoutValue);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_CONFIG_STANDBY_FAILED)
     public InternalServerErrorException configStandbyFailed(String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_PRECHECK_FAILED)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
     public InternalServerErrorException removeStandbyPrecheckFailed(String siteNames, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
     public InternalServerErrorException removeStandbyFailed(final String siteNames, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_RECONFIG_FAILED)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_RECONFIG_FAILED)
     public InternalServerErrorException removeStandbyReconfigFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_REMOVE_STANDBY_FAILED)
@@ -287,19 +287,19 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_FAILED)
     public InternalServerErrorException pauseStandbyFailed(final String siteName, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_TIMEOUT)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_TIMEOUT)
     InternalServerErrorException pauseStandbyFailedTimeout(final long timeoutValue);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_PRECHECK_FAILED)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
     InternalServerErrorException pauseStandbyPrecheckFailed(String siteId, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_PAUSE_STANDBY_RECONFIG_FAILED)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_RECONFIG_FAILED)
     InternalServerErrorException pauseStandbyReconfigFailed(String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_PRECHECK_FAILED)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
     InternalServerErrorException resumeStandbyPrecheckFailed(String siteId, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_RECONFIG_FAILED)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_RECONFIG_FAILED)
     InternalServerErrorException resumeStandbyReconfigFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
@@ -308,25 +308,22 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_RETRY_STANDBY_OP_FAILED)
     public InternalServerErrorException retryStandbyOpFailed(final String siteName, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_TIMEOUT)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_TIMEOUT)
     public InternalServerErrorException resumeStandbyFailedTimeout(final long timeoutValue);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_DATA_SYNC_TIMEOUT)
-    public InternalServerErrorException dataSyncFailedTimeout(final long timeoutValue);
-
-    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_PRECHECK_FAILED)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
     public InternalServerErrorException switchoverPrecheckFailed(final String siteName, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_FAILED)
     public InternalServerErrorException switchoverFailed(String primaryName, String standbyName, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_ACTIVE_FAILED_TIMEOUT)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_TIMEOUT)
     public InternalServerErrorException switchoverActiveFailedTimeout(String siteName, int timeoutValue);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_SWITCHOVER_STANDBY_FAILED_TIMEOUT)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_TIMEOUT)
     public InternalServerErrorException switchoverStandbyFailedTimeout(String siteName, int timeoutValue);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED_TIMEOUT)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_TIMEOUT)
     public InternalServerErrorException failoverFailedTimeout(String siteName, int timeoutValue);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_ACQUIRE_OPERATION_LOCK_FAILED)
@@ -347,10 +344,10 @@ public interface InternalServerErrorExceptions {
     @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_FAILED)
     public InternalServerErrorException failoverFailed(String siteName, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_PRECHECK_FAILED)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
     public InternalServerErrorException failoverPrecheckFailed(final String siteName, String errMsg);
 
-    @DeclareServiceCode(ServiceCode.SYS_DR_FAILOVER_RECONFIG_FAIL)
+    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_RECONFIG_FAILED)
     public InternalServerErrorException failoverReconfigFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_UPDATE_SITE_FAILED)

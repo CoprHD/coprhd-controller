@@ -567,7 +567,7 @@ public class VolumeIngestionUtil {
                 for (DataObject dataObj : dataObjList) {
                     if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
                         Volume volume = (Volume) dataObj;
-                        if (volume.checkForVplexVirtualVolume(dbClient)) {
+                        if (volume.isVPlexVolume(dbClient)) {
                             isRPProtectingVplexVolumes = true;
                             break;
                         }
@@ -3397,7 +3397,7 @@ public class VolumeIngestionUtil {
             _logger.info("Updating volume " + volume.getLabel() + " flags/settings to " + volume.getInternalFlags());
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
-            if (volume.checkForVplexVirtualVolume(dbClient)) {
+            if (volume.isVPlexVolume(dbClient)) {
 
                 // We need the VPLEX ingest context to get the backend volume info
                 // This information is stored in the context if the vplex volume is the last volume
@@ -3802,12 +3802,14 @@ public class VolumeIngestionUtil {
         }
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects, dbClient);
-        umpset.setInactive(true);
 
-        updatedObjects.add(umpset);
-        // TODO - persisting objects here. Need to relook on this
-        dbClient.createObject(pset);
-        dbClient.createObject(cg);
+        // the RP volume ingestion context will take care of persisting the 
+        // new objects and deleting the old UnManagedProtectionSet 
+        if (requestContext instanceof RecoverPointVolumeIngestionContext) {
+            _logger.info("setting the new CG and ProtectionSet in the ingestion request context");
+            ((RecoverPointVolumeIngestionContext)requestContext).setManagedBlockConsistencyGroup(cg);
+            ((RecoverPointVolumeIngestionContext)requestContext).setManagedProtectionSet(pset);
+        }
     }
 
     /**

@@ -1033,10 +1033,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    @Asset("applicationCopySets")
+    @Asset("applicationSnapshotSessionCopySets")
     @AssetDependencies({ "application" })
-    public List<AssetOption> getApplicationCopySets(AssetOptionsContext ctx, URI application) {
+    public List<AssetOption> getApplicationSnapshotSessionCopySets(AssetOptionsContext ctx, URI application) {
         return createOptions(api(ctx).application().getSnapshotSessionCopySets(application).getCopySets().toArray());
+    }
+
+    @Asset("applicationSnapshotCopySets")
+    @AssetDependencies({ "application" })
+    public List<AssetOption> getApplicationSnapshotCopySets(AssetOptionsContext ctx, URI application) {
+        return createOptions(api(ctx).application().getSnapshotCopySets(application).getCopySets().toArray());
     }
 
     @Asset("applicationCopySets")

@@ -27,9 +27,6 @@ public class ResynchronizeSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
 
-    @Param(ServiceParams.APPLICATION_SNAPSHOT_TYPE)
-    private String snapshotType;
-
     @Param(ServiceParams.APPLICATION_COPY_SETS)
     private String applicationCopySet;
 

@@ -36,6 +36,10 @@ public class ServiceDefinition implements Serializable {
 
     /** The key of the service description. */
     public String descriptionKey;
+    
+    public boolean isExtended=false;
+    
+    public String  extendedServiceId;
 
     /** The key of a warning message to display in the service catalog. */
     public String warningMessageKey;

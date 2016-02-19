@@ -1,9 +1,11 @@
 {
     baseKey:"CreateVolume.Block",
-    serviceId:"CustomSample",
+    serviceId:"CreateVolume",
     fields:{
         externalParam:{
-            type:"text"
+            type:"text",
+            required: false,
+            initialValue: "ExtendedParams"           
          },
         virtualArray:{
             type:"assetType.vipr.virtualArray",

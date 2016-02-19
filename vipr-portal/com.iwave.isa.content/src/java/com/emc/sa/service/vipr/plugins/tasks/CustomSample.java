@@ -55,12 +55,12 @@ public class CustomSample implements ExternalTaskApdapterInterface {
 		
 	}
 	@Override
-	public void preLuanch() throws Exception {
+	public void preLaunch() throws Exception {
 		System.out.println("Custom Task preLuanch");
 		
 	}
 	@Override
-	public TaskInfo execute() throws Exception {
+	public TaskInfo executeExternal() throws Exception {
 		TaskInfo taskInfo= new TaskInfo();
 		System.out.println("Custom Task execute" + name+size +vpoolId+ varrayId +count+consistencyGroupId+projectId);
 		taskInfo.setProgress(100);
@@ -77,7 +77,7 @@ public class CustomSample implements ExternalTaskApdapterInterface {
 		
 	}
 	@Override
-	public void postLuanch() throws Exception {
+	public void postLaunch() throws Exception {
 		System.out.println("Custom Task postLuanch");
 		
 	}

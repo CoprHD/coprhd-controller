@@ -11,7 +11,7 @@ import com.emc.sa.service.vipr.ViPRService;
 public class GenericPluginService extends ViPRService implements ExternalTaskExecutor {
 
 	
-	@Param("externalParam")
+	//@Param("externalParam")
 	protected String externalParam;
 	
 	

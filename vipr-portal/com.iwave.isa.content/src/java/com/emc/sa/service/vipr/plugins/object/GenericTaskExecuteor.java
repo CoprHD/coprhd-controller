@@ -31,7 +31,7 @@ public class GenericTaskExecuteor extends WaitForTask<GenericRestRep>  {
     	ExternalTaskParams taskParams = new ExternalTaskParams();
     	//GenericPluginServiceHelper genericPluginServiceHelper = new GenericPluginServiceHelper();
     	//BindingUtils.bind(genericPluginServiceHelper, GenericPluginUtils.createParam(taskParams));
-    	TaskInfo taskInfo = genericExtensionTask.execute();
+    	TaskInfo taskInfo = genericExtensionTask.executeExternal();
     	System.out.println(taskInfo.toDisplayString());
     	
     	genericExtensionTask.getStatus();

@@ -1,7 +1,6 @@
 package com.emc.sa.service.vipr.plugins.object;
 
 import com.emc.sa.engine.service.ExternalTaskApdapterInterface;
-import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.vasa.async.TaskInfo;
 
 public class ExternalTaskApdapterImpl implements ExternalTaskApdapterInterface {
@@ -19,13 +18,13 @@ public class ExternalTaskApdapterImpl implements ExternalTaskApdapterInterface {
 	}
 
 	@Override
-	public void preLuanch() throws Exception {
+	public void preLaunch() throws Exception {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public TaskInfo execute() throws Exception {
+	public TaskInfo executeExternal() throws Exception {
 		return null;
 		// TODO Auto-generated method stub
 		
@@ -38,7 +37,7 @@ public class ExternalTaskApdapterImpl implements ExternalTaskApdapterInterface {
 	}
 
 	@Override
-	public void postLuanch() throws Exception {
+	public void postLaunch() throws Exception {
 		// TODO Auto-generated method stub
 		
 	}

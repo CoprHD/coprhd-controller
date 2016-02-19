@@ -10,13 +10,13 @@ public interface ExternalTaskApdapterInterface {
 	public void precheck() throws Exception ;
 
 
-	public void preLuanch() throws Exception ;
+	public void preLaunch() throws Exception ;
 
-	public TaskInfo execute() throws Exception ;
+	public TaskInfo executeExternal() throws Exception ;
 
 	public void postcheck() throws Exception ;
 
-	public void postLuanch() throws Exception;
+	public void postLaunch() throws Exception;
 
 	public void getStatus() throws Exception ;
 

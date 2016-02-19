@@ -9,7 +9,7 @@ import java.net.URI;
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.VolumeGroupSnapshotOperationParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotOperationParam;
 import com.emc.vipr.client.Tasks;
 import com.google.common.collect.Lists;
 

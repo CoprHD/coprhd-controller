@@ -335,7 +335,7 @@ public class FileVirtualPoolService extends VirtualPoolService {
             }
 
             if (!(VirtualPool.SystemType.NONE.name().equalsIgnoreCase(param.getSystemType())
-                    || VirtualPool.SystemType.isFileTypeSystem(param.getSystemType()))) {
+            || VirtualPool.SystemType.isFileTypeSystem(param.getSystemType()))) {
                 throw APIException.badRequests.invalidSystemType("File");
             }
             if (cos.getArrayInfo() == null) {
@@ -572,11 +572,11 @@ public class FileVirtualPoolService extends VirtualPoolService {
                     && (param.getProtection().getSnapshots().getMaxSnapshots() != null)) {
                 vPool.setMaxNativeSnapshots(param.getProtection().getSnapshots().getMaxSnapshots());
 
-                if (param.getProtection().getScheduleSnapshots() != null) {
-                    vPool.setScheduleSnapshots(param.getProtection().getScheduleSnapshots());
-                } else {
-                    vPool.setScheduleSnapshots(false);
-                }
+            }
+            if (param.getProtection().getScheduleSnapshots() != null) {
+                vPool.setScheduleSnapshots(param.getProtection().getScheduleSnapshots());
+            } else {
+                vPool.setScheduleSnapshots(false);
             }
             if (param.getProtection().getReplicationParam() != null) {
                 String copyMode = CopyModes.ASYNCHRONOUS.name();
@@ -742,6 +742,15 @@ public class FileVirtualPoolService extends VirtualPoolService {
                 return true;
             }
         }
+
+        // Check for Snapshot schedule protection
+        if (to.getScheduleSnapshots() != from.getScheduleSnapshots()) {
+            // Any changes to schedule snapshot is not permitted on
+            // virtual pools with provisioned file systems.
+            _log.info("Schedule snapshot cannot be modified to a vpool with provisioned filessystems ",
+                    from.getId());
+            return true;
+        }
         _log.info("No protection changes");
         return false;
     }
@@ -848,6 +857,9 @@ public class FileVirtualPoolService extends VirtualPoolService {
                         throw APIException.badRequests.invalidReplicationRPOValueForType(
                                 sourcePolicy.getRpoValue().toString(), sourcePolicy.getRpoType());
                     }
+                    break;
+                case "DAYS":
+                    // No validation required for Days.
                     break;
                 default:
                     throw APIException.badRequests.invalidReplicationRPOType(sourcePolicy.getRpoType());

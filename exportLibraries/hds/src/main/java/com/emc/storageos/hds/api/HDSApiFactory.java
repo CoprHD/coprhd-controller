@@ -50,6 +50,9 @@ public class HDSApiFactory {
     // Timeout to retrieve the connection from connectionManager.
     private int connManagerTimeout = DEFAULT_CONN_MGR_TIMEOUT;
 
+    // Socket connection timeout in milliseconds.
+    private int socketConnectionTimeoutMs = DEFAULT_CONN_TIMEOUT;
+
     // A map of client connections to VPlex Management Stations keyed
     // by the URI of the Management Station.
     private ConcurrentMap<String, HDSApiClient> _clientMap;
@@ -89,6 +92,13 @@ public class HDSApiFactory {
      */
     public void setConnManagerTimeout(int connManagerTimeout) {
         this.connManagerTimeout = connManagerTimeout;
+    }
+    
+    /**
+     * @param socketConnectionTimeoutMs the socket connection timeout ms to set
+     */
+    public void setSocketConnectionTimeoutMs(int socketConnectionTimeoutMs) {
+        this.socketConnectionTimeoutMs = socketConnectionTimeoutMs;
     }
 
     /**

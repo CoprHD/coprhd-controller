@@ -394,7 +394,23 @@ public class SchemaUtil {
         }
     }
 
-
+    public void checkSiteAddingOnStandby() {
+        Site currentSite = drUtil.getLocalSite();
+        int count = 0;
+        while (currentSite.getState().equals(SiteState.STANDBY_ADDING)) {
+            try {
+                _log.info("Current site state is {}. Wait for its state changed by active site", currentSite.getState());
+                Thread.sleep(DBINIT_RETRY_INTERVAL * 1000);
+            } catch (InterruptedException ex) {
+                _log.warn("Thread is interrupted during wait for retry", ex);
+            }
+            
+            if (++count > DBINIT_RETRY_MAX) {
+                throw new IllegalStateException("Unable to wait for readiness for standby initialization");
+            }
+            currentSite = drUtil.getLocalSite();
+        }
+    }
     
     /**
      * Remove paused sites from db/geodb strategy options on the active site.

@@ -29,6 +29,9 @@ import java.util.Set;
  */
 public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFactory {
     private static final List<String> FORBIDDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery");
+    private static final List<String> READ_ONLY_PATHS = Arrays.asList("ipsec");
+    private static final List<String> WRITE_METHODS = Arrays.asList("PUT", "POST");
+
     private BasePermissionsHelper _permissionsHelper;
 
     @Autowired(required = false)
@@ -143,10 +146,40 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
                 return request;
             }
             String path = request.getPath();
-            if (isPathForbidden(path)) {
-                throw APIException.forbidden.disallowOperationOnDrStandby(drUtil.getActiveSite().getVip());
+            if (isForbidden(request)) {
+                throw APIException.forbidden.disallowOperationOnDrStandby(drUtil.getActiveSite().getVipEndPoint());
             }
             return request;
+        }
+
+        private boolean isForbidden(ContainerRequest request) {
+            if (isPathForbidden(request.getPath())) {
+                return true;
+            }
+
+            if (isPathInReadOnly(request.getPath()) && isWrite(request.getMethod())) {
+                return true;
+            }
+
+            return false;
+        }
+
+        private boolean isWrite(String method) {
+            for (String m : WRITE_METHODS) {
+                if (m.equalsIgnoreCase(method)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isPathInReadOnly(String path) {
+            for (String forbid : READ_ONLY_PATHS) {
+                if (path.startsWith(forbid)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private boolean isPathForbidden(String path) {

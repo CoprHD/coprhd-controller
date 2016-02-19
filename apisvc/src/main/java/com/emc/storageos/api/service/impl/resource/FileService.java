@@ -98,7 +98,6 @@ import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
@@ -146,6 +145,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileController;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
@@ -450,7 +450,7 @@ public class FileService extends TaskResourceService {
         return fs;
     }
 
-    void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
+    private void setProtectionCapWrapper(final VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
         if (vPool.getFileReplicationType() != null) { // file replication tyep either LOCAL OR REMOTE
             if (vPool.getRpRpoType() != null) { // rpo type can be DAYS or HOURS
                 capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_RP_RPO_TYPE, vPool.getRpRpoType());
@@ -486,7 +486,7 @@ public class FileService extends TaskResourceService {
      * @param task
      * @return
      */
-    TaskList createFileTaskList(FileSystemParam param, Project project, TenantOrg tenantOrg,
+    private TaskList createFileTaskList(FileSystemParam param, Project project, TenantOrg tenantOrg,
             VirtualArray varray, VirtualPool vpool, DataObject.Flag[] flags, String task) {
         TaskList taskList = new TaskList();
         FileShare fs = prepareEmptyFileSystem(param, project, tenantOrg, varray, vpool, flags, task);
@@ -1220,7 +1220,6 @@ public class FileService extends TaskResourceService {
         return toTask(fs, task, op);
     }
 
-    
     /**
      * Expand file system.
      * <p>
@@ -1240,23 +1239,24 @@ public class FileService extends TaskResourceService {
     public TaskResourceRep update(@PathParam("id") URI id, FileSystemUpdateParam param)
             throws InternalException {
 
-        _log.info(String.format("FileShareUpdate --- FileShare id: %1$s",id));
+        _log.info(String.format("FileShareUpdate --- FileShare id: %1$s", id));
         // check file System
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
-        
+
         Boolean deviceSupportsSoftLimit = device.getSupportSoftLimit() != null ? device.getSupportSoftLimit() : false;
-        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit() : false;
-        
+        Boolean deviceSupportsNotificationLimit = device.getSupportNotificationLimit() != null ? device.getSupportNotificationLimit()
+                : false;
+
         if (param.getSoftLimit() != 0 && !deviceSupportsSoftLimit) {
             throw APIException.badRequests.unsupportedParameterForStorageSystem("soft_limit");
         }
-        
+
         if (param.getNotificationLimit() != 0 && !deviceSupportsNotificationLimit) {
             throw APIException.badRequests.unsupportedParameterForStorageSystem("notification_limit");
         }
-        
+
         ArgValidator.checkFieldMaximum(param.getSoftLimit(), 100, "soft_limit");
         ArgValidator.checkFieldMaximum(param.getNotificationLimit(), 100, "notification_limit");
 
@@ -1267,9 +1267,9 @@ public class FileService extends TaskResourceService {
         fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
         fs.setSoftGracePeriod(param.getSoftGrace());
         fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
-        
+
         _dbClient.updateObject(fs);
-        
+
         FileController controller = getController(FileController.class,
                 device.getSystemType());
 
@@ -1279,7 +1279,7 @@ public class FileService extends TaskResourceService {
         controller.modifyFS(fs.getStorageDevice(), fs.getPool(), id, task);
         op.setDescription("Filesystem update");
         auditOp(OperationTypeEnum.UPDATE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
-                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(), 
+                fs.getId().toString(), fs.getCapacity(), param.getNotificationLimit(),
                 param.getSoftLimit(), param.getSoftGrace());
 
         return toTask(fs, task, op);
@@ -1603,10 +1603,15 @@ public class FileService extends TaskResourceService {
         if (!param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
             if (!fs.getFilePolicies().isEmpty()) {
-
                 throw APIException.badRequests
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
+        }
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        // Verify the file system is having any active replication targets!!
+        if (filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(), param.getForceDelete())) {
+            throw APIException.badRequests
+                    .resourceCannotBeDeleted(notSuppReasonBuff.toString());
         }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
@@ -3065,13 +3070,6 @@ public class FileService extends TaskResourceService {
         return list;
     }
 
-    void ValidateCopiesParam(URI uriFS, CopiesParam param) {
-        // Validate the source file share URI
-        ArgValidator.checkFieldUriType(uriFS, FileShare.class, "id");
-        // Validate the list of copies
-        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
-    }
-
     private TaskResourceRep performProtectionAction(URI id, String op) throws InternalException {
         String task = UUID.randomUUID().toString();
 
@@ -3094,9 +3092,10 @@ public class FileService extends TaskResourceService {
 
         // Verify the file system and its vPool are capable of doing replication!!!
         if (!validateMirrorOperationSupported(sourceFileShare, currentVpool, notSuppReasonBuff, op)) {
-            _log.error("Mirror Operation {}  is not supported for file system {} due to {}", op.toUpperCase(),
-                    sourceFileShare.getId().toString(), notSuppReasonBuff.toString());
-            throw APIException.badRequests.unableToPerformMirrorOperation(op, sourceFileShare.getId(), notSuppReasonBuff.toString());
+            _log.error("Mirror Operation {} is not supported for the file system {} as : {}", op.toUpperCase(),
+                    sourceFileShare.getLabel(), notSuppReasonBuff.toString());
+            throw APIException.badRequests.unableToPerformMirrorOperation(op.toUpperCase(), sourceFileShare.getId(),
+                    notSuppReasonBuff.toString());
 
         }
         Operation status = new Operation();
@@ -3556,7 +3555,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3581,37 +3580,71 @@ public class FileService extends TaskResourceService {
     /**
      * Checks to see if the file replication operation is supported.
      * 
-     * @param fs File share
-     * @param currentVpool
-     *            the source virtual pool
-     * @param notSuppReasonBuff
-     *            the not supported reason string buffer
-     * @return
+     * @param fs file share object
+     * @param currentVpool source virtual pool
+     * @param notSuppReasonBuff the not supported reason string buffer
+     * @param operation mirror operation to be checked
      */
     private boolean validateMirrorOperationSupported(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff,
             String operation) {
 
-        _log.info(String.format("Checking if mirror operation is supported for file system [%s] ", fs.getLabel()));
+        _log.info("Checking if mirror operation {} is supported for file system {} ", operation, fs.getLabel());
 
         if (!doBasicMirrorValidation(fs, currentVpool, notSuppReasonBuff)) {
             return false;
         }
         String currentMirrorStatus = fs.getMirrorStatus();
+        boolean isSupported = false;
 
-        if (operation.equalsIgnoreCase(ProtectionOp.REFRESH.toString())) {
-            return true;
+        switch (operation) {
+
+            // Refresh operation can be performed without any check.
+            case "refresh":
+                isSupported = true;
+                break;
+
+            // START operation can be performed only if Mirror status is UNKNOWN or DETACHED
+            case "start":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.DETACHED.toString()))
+                    isSupported = true;
+                break;
+
+            // STOP operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+            case "stop":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
+                    isSupported = true;
+                break;
+
+            // PAUSE operation can be performed only if Mirror status is SYNCHRONIZED or IN_SYNC
+            case "pause":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SYNCHRONIZED.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.IN_SYNC.toString()))
+                    isSupported = true;
+                break;
+
+            // RESUME operation can be performed only if Mirror status is SUSPENDED.
+            case "resume":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SUSPENDED.toString()))
+                    isSupported = true;
+                break;
+
+            // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
+            case "failover":
+                if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                    isSupported = true;
+                break;
+
+            // Fail back can be performed only if Mirror status is FAILED_OVER.
+            case "failback":
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))
+                    isSupported = true;
+                break;
         }
-        if (operation.equalsIgnoreCase(ProtectionOp.FAILBACK.toString())
-                && currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
-            return true;
-        }
-        if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())) {
-            notSuppReasonBuff.append(String.format("Mirror Operation %s can't be performed on the requested File System  %s"
-                    + " as the file system is in FAILED OVER mode.", operation.toUpperCase(), fs.getLabel()));
-            _log.info(notSuppReasonBuff.toString());
-            return false;
-        }
-        return true;
+        notSuppReasonBuff.append(String.format(" : file system %s is in %s state", fs.getLabel(), currentMirrorStatus.toUpperCase()));
+        return isSupported;
     }
 
     /**
@@ -3642,5 +3675,44 @@ public class FileService extends TaskResourceService {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Checks to see if the file replication change is supported.
+     * 
+     * @param fs
+     * @param notSuppReasonBuff
+     *            the not supported reason string buffer
+     * @return
+     */
+    private boolean filesystemHasActiveReplication(FileShare fs, StringBuffer notSuppReasonBuff,
+            String deleteType, boolean forceDelete) {
+
+        // File system should not be the target file system..
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return true;
+        }
+
+        // File system should not have active replication targets!!
+        // For resource delete (forceDelete=false)
+        // For VIPR_ONLY type, till we support ingestion of replication file systems
+        // avoid deleting file systems if it has active mirrors!!
+        if (forceDelete == false || FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)) {
+            if (fs.getMirrorfsTargets() != null
+                    && !fs.getMirrorfsTargets().isEmpty()) {
+                notSuppReasonBuff
+                        .append(String
+                                .format("File system %s given in request has active target file systems.",
+                                        fs.getLabel()));
+                _log.info(notSuppReasonBuff.toString());
+                return true;
+
+            }
+        }
+
+        return false;
     }
 }

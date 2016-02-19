@@ -17,20 +17,18 @@ public class FailoverBlockVolume extends WaitForTasks<VolumeRestRep> {
     private final URI volumeId;
     private final URI failoverTarget;
     private final String type;
-    private String copyName;
     private String pointInTime;
 
     public FailoverBlockVolume(URI volumeId, URI failoverTarget) {
         this(volumeId, failoverTarget, "rp");
     }
 
-    public FailoverBlockVolume(URI volumeId, URI failoverTarget, String type, String copyName, String pointInTime) {
+    public FailoverBlockVolume(URI volumeId, URI failoverTarget, String type, String pointInTime) {
         this.volumeId = volumeId;
         this.failoverTarget = failoverTarget;
         this.type = type;
-        this.copyName = copyName;
         this.pointInTime = pointInTime;
-        provideDetailArgs(volumeId, failoverTarget, type, copyName, pointInTime);
+        provideDetailArgs(volumeId, failoverTarget, type, pointInTime);
     }
 
     public FailoverBlockVolume(URI volumeId, URI failoverTarget, String type) {
@@ -45,9 +43,7 @@ public class FailoverBlockVolume extends WaitForTasks<VolumeRestRep> {
         Copy copy = new Copy();
         copy.setType(type);
         copy.setCopyID(failoverTarget);
-        if (copyName != null) {
-            copy.setName(copyName);
-        }
+
         if (pointInTime != null) {
             copy.setPointInTime(pointInTime);
         }

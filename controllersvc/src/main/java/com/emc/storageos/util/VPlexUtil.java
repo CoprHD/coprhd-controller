@@ -1455,5 +1455,36 @@ public class VPlexUtil {
         }
         return result;
     }
+    
+    /**
+     * Given a list of Vplex Volume URIs, will filter out any that front SRDF targets.
+     * @param dbClient -- database client
+     * @param vplexVolumeUris  -- list of URIS for Vplex volumes
+     * @return -- filtered list of Vplex volume URIs, or empty list if all filtered away
+     */
+    public static List<URI> filterOutVplexSrdfTargets(DbClient dbClient, List<URI> vplexVolumeUris) {
+        List<URI> filteredVolumes = new ArrayList<URI>();
+        for (URI vplexUri : vplexVolumeUris) {
+            boolean isSrdfTarget = false;
+            Volume vplexVolume = dbClient.queryObject(Volume.class, vplexUri);
+            if (vplexVolume == null) {
+                continue;
+            }
+            for (String assocVolume : vplexVolume.getAssociatedVolumes()) {
+                // Look at each component of the Vplex volume. It is a target if it has an srdfParent.
+                Volume componentVolume = dbClient.queryObject(Volume.class, URI.create(assocVolume));
+                if (componentVolume == null) {
+                    continue;
+                }
+                if (componentVolume.getSrdfParent() != null) {
+                    isSrdfTarget = true;
+                }
+            }
+            if (!isSrdfTarget) {
+                filteredVolumes.add(vplexVolume.getId());
+            }
+        }
+        return filteredVolumes;
+    }
 
 }

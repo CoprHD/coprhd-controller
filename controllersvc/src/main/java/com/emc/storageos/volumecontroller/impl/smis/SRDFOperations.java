@@ -1103,7 +1103,6 @@ public class SRDFOperations implements SmisConstants {
         cgObj.addSystemConsistencyGroup(system.getId().toString(), cgName);
 
         // Update CG requested types
-        cgObj.getRequestedTypes().clear();
         cgObj.getRequestedTypes().add(Types.SRDF.toString());
 
         // Update CG types

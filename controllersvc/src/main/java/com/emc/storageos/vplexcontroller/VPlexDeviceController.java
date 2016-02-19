@@ -578,8 +578,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(vol);
 
                 // Deal with CGs.
+                // Filter out any VPlex Volumes that front the SRDF targets for now.
+                List<URI> volsForCG = VPlexUtil.filterOutVplexSrdfTargets(_dbClient, vplexVolumeURIs);
                 lastStep = consistencyGroupManager.addStepsForCreateConsistencyGroup(workflow, stepId,
-                        vplexSystem, vplexVolumeURIs, false);
+                        vplexSystem, volsForCG, false);
                 _log.info("Added steps for creating consistency group");
             }
             return lastStep;

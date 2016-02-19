@@ -1240,7 +1240,11 @@ public class VPlexScheduler implements Scheduler {
 
         _log.info("VirtualPool has high availability {}", vPool.getHighAvailability());
 
-        Set<URI> vplexSystemsForPlacement = getVPlexSystemsForPlacement(vArray, vPool, capabilities);
+        Set<URI> vplexSystemsForPlacement = new HashSet<URI>();
+        if (vPoolUse == VpoolUse.ROOT) {
+            // For now only validate that we're using the same vplex systems on the ROOT request
+            vplexSystemsForPlacement = getVPlexSystemsForPlacement(vArray, vPool, capabilities);
+        }
 
         // Determine if the volume creation request is for HA volumes.
         boolean isHAVolumeRequest = VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(vPool);

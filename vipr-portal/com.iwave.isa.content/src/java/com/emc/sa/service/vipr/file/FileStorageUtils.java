@@ -367,7 +367,7 @@ public class FileStorageUtils {
             execute(new StopFileContinuousCopy(fileId, continuousCopyId, FileTechnologyType.LOCAL_MIRROR.name()));
         }
         Task<FileShareRestRep> task = execute(new DeactivateFileContinuousCopy(fileId, continuousCopyId,
-                FileTechnologyType.LOCAL_MIRROR.name()));
+                FileControllerConstants.DeleteTypeEnum.FULL.toString()));
         addAffectedResource(task);
     }
 

@@ -359,30 +359,28 @@ class Fileshare(object):
                              fileshare_uri, add, remove)
         )
 
-    # Update a fileshare information
-    def update(self, name, label, vpool):
+    #Update a fileshare information
+    def update(self, name, advlim, softlim, grace):
         '''
         Makes REST API call to update a fileshare information
         Parameters:
             name: name of the fileshare to be updated
-            label: new name of the fileshare
-            vpool: name of vpool
         Returns
             Created task details in JSON response payload
         '''
+        
         fileshare_uri = self.fileshare_query(name)
 
-        from virtualpool import VirtualPool
+        parms = dict()
 
-        vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-        vpool_uri = vpool_obj.vpool_query(vpool, "file")
-
-        body = json.dumps({'share':
-                           {
-                               'label': label,
-                               'vpool': {"id": vpool_uri}
-                           }
-                           })
+        if advlim is not None :
+            parms['notification_limit'] = advlim
+        if softlim is not None :
+            parms['soft_limit'] = softlim
+        if grace is not None :
+            parms['soft_grace'] = grace
+            
+        body = json.dumps(parms)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "PUT",
@@ -1245,7 +1243,7 @@ def fileshare_create(args):
 # fileshare Update routines
 
 
-def update_parser(subcommand_parsers, common_parser):
+'''def update_parser(subcommand_parsers, common_parser):
     update_parser = subcommand_parsers.add_parser(
         'update',
         description='ViPR Filesystem Update CLI usage.',
@@ -1294,7 +1292,64 @@ def fileshare_update(args):
         if (e.err_code == SOSError.NOT_FOUND_ERR):
             raise SOSError(e.err_code, "Update failed: " + e.err_text)
         else:
-            raise e
+            raise e'''
+       
+       
+
+def update_parser(subcommand_parsers, common_parser):
+    update_parser = subcommand_parsers.add_parser(
+        'update',
+        description='ViPR Filesystem Update CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Update a filesystem')
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    update_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    update_parser.add_argument('-advisorylimit', '-advlmt',
+                               dest='advlim',
+                               help='Advisory limit in percentage for the filesystem',
+                               metavar='<advisorylimit>')
+    update_parser.add_argument('-softlimit', '-softlmt',
+                               dest='softlim',
+                               help='Soft limit in percentage for the filesystem',
+                               metavar='<softlimit>')
+    update_parser.add_argument('-graceperiod', '-grace',
+                               dest='grace',
+                               help='Grace period in days for soft limit',
+                               metavar='<graceperiod>')
+    
+    update_parser.set_defaults(func=fileshare_update)
+
+
+def fileshare_update(args):
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        obj = Fileshare(args.ip, args.port)
+        res = obj.update(args.tenant + "/" + args.project + "/" + args.name,
+                         args.advlim,
+                         args.softlim,
+                         args.grace)
+    except SOSError as e:
+        if (e.err_code == SOSError.NOT_FOUND_ERR):
+            raise SOSError(e.err_code, "Update failed: " + e.err_text)
+        else:
+            raise e       
+
 
 
 # Fileshare Delete routines
@@ -3043,7 +3098,7 @@ def fileshare_parser(parent_subparser, common_parser):
     create_parser(subcommand_parsers, common_parser)
 
     # update command parser
-    # update_parser(subcommand_parsers, common_parser)
+    update_parser(subcommand_parsers, common_parser)
 
     # delete command parser
     delete_parser(subcommand_parsers, common_parser)

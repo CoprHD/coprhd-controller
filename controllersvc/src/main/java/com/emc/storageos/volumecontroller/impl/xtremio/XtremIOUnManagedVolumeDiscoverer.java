@@ -416,6 +416,16 @@ public class XtremIOUnManagedVolumeDiscoverer {
         techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.TECHNOLOGY_TYPE.toString(), techType);
 
+        if (xioSnap.getSnapSetList() != null && !xioSnap.getSnapSetList().isEmpty()) {
+            StringSet snapsetName = new StringSet();
+            for (List<Object> snapSet : xioSnap.getSnapSetList()) {
+                snapsetName.add(snapSet.get(1).toString());
+                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
+                        snapsetName);
+                break;
+            }
+        }
+
         log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));
         if (null == parentMatchedVPools || parentMatchedVPools.isEmpty()) {
             // Clearn all vpools as no matching vpools found.

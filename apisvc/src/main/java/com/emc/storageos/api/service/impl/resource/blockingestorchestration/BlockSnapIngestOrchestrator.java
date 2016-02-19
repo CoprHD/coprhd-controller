@@ -127,7 +127,15 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         if (null == deviceLabel || deviceLabel.trim().isEmpty()) {
             deviceLabel = nativeGuid;
         }
-        snapShot.setSnapsetLabel(deviceLabel);// TODO: shld revisit this
+        // In case of XIO snaps, the snapshots belong to a snapset which represents the snapshot CG. This will be
+        // populated in SNAPSHOT_CONSISTENCY_GROUP_NAME
+        String snapsetName = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(), unManagedVolumeInformation);
+        if (null == snapsetName || snapsetName.trim().isEmpty()) {
+            snapsetName = deviceLabel;
+        }
+        snapShot.setSnapsetLabel(snapsetName);// TODO: shld revisit this
+
         snapShot.setStorageController(requestContext.getStorageSystem().getId());
         snapShot.setVirtualArray(requestContext.getVarray(unManagedVolume).getId());
         snapShot.setProject(new NamedURI(requestContext.getProject().getId(), snapShot.getLabel()));
@@ -180,7 +188,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
      * 3. When ingesting last regular volume in unmanaged CG, we will check whether CG already exists in DB for the same project & tenant.
      * If yes, we will reuse it.
      * Otherwise, we will create new BlockConsistencyGroup for the unmanaged consistencyGroup.
-     * 
+     *
      */
     @Override
     protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,

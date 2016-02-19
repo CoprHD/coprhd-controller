@@ -41,4 +41,39 @@ public class VolumeSnapshot extends StorageBlockObject {
     public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
     }
+
+    @Override
+    public boolean equals(Object snapshot) {
+        if (snapshot != null && (snapshot instanceof VolumeSnapshot) && storageSystemId.equals(((VolumeSnapshot) snapshot).getStorageSystemId())) {
+            if (getNativeId() != null && ((VolumeSnapshot) snapshot).getNativeId() != null ) {
+                // nativeId is not set before snapshot is created by driver. Need to account for this.
+                if (getNativeId().equals(((VolumeSnapshot) snapshot).getNativeId())) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                // if nativeId is not set we will compare parent source volumes for snaps
+                if (getParentId() != null && ((VolumeSnapshot) snapshot).getParentId() != null &&
+                        getParentId().equals(((VolumeSnapshot) snapshot).getParentId())) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        // We put snaps for the same parent in the same bucket
+        return ("VolumeSnapshot-"+storageSystemId+"-"+getParentId()).hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "VolumeSnapshot-"+storageSystemId+"-" + getParentId()+"-"+getNativeId();
+    }
 }

@@ -54,4 +54,6 @@ public interface ExternalDeviceErrors {
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_VOLUME_CLONE_ERROR)
     public ServiceError createVolumeCloneFailed(String method, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_GROUP_CLONE_ERROR)
+    public ServiceError createGroupCloneFailed(String method, String errorMsg);
 }

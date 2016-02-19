@@ -52,6 +52,11 @@ public class Initiator extends StorageObject {
      */
     private String clusterName;
 
+    /**
+     * Initiator network native id. Should be set by driver.
+     */
+    private String networkId;
+
     public String getPort() {
         return port;
     }
@@ -108,8 +113,11 @@ public class Initiator extends StorageObject {
         this.clusterName = clusterName;
     }
 
+    public String getNetworkId() {
+        return networkId;
+    }
 
-
-
-
+    public void setNetworkId(String networkId) {
+        this.networkId = networkId;
+    }
 }

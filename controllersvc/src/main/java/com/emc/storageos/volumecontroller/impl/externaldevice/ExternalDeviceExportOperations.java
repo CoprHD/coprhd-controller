@@ -604,7 +604,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         driverInitiator.setClusterName(initiator.getClusterName());
         driverInitiator.setNode(initiator.getInitiatorNode());
         driverInitiator.setProtocol(Initiator.Protocol.valueOf(initiator.getProtocol()));
-        driverInitiator.setLabel(initiator.getLabel());
+        driverInitiator.setDisplayName(initiator.getLabel());
 
         return driverInitiator;
     }

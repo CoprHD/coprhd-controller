@@ -470,6 +470,7 @@ public class FileShare extends FileObject implements ProjectResource {
 
     public void setlastReplicationJobId(Long lastReplicationJobId) {
         this.lastReplicationJobId = lastReplicationJobId;
+        setChanged("lastReplicationJobId");
     }
     
     @Name("avgDuration")
@@ -479,6 +480,7 @@ public class FileShare extends FileObject implements ProjectResource {
 
     public void setAvgDuration(Integer avgDuration) {
         this.avgDuration = avgDuration;
+        setChanged("avgDuration");
     }
 
 }

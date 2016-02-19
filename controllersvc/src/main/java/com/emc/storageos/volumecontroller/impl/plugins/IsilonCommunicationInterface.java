@@ -558,7 +558,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
             isilonApi.getClusterInfo();
             // for Hackathon
-            Hackathon(storageSystem, isilonApi);
+            replicationJobStatus(storageSystem, isilonApi);
             discoverCluster(storageSystem);
             _dbClient.persistObject(storageSystem);
             if (!storageSystem.getReachableStatus()) {
@@ -3080,7 +3080,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         return storagePort;
     }
 
-    private void Hackathon(StorageSystem system, IsilonApi api) throws BaseCollectionException {
+    private void replicationJobStatus(StorageSystem system, IsilonApi api) throws BaseCollectionException {
 
         FileShare fileShare = null;
         FileShare targetFileShare = null;
@@ -3106,16 +3106,19 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     try {
                         IsilonSyncPolicy policy = api.getReplicationPolicy(policyName);
                         if (policy.getLastJobState().equals(JobState.finished)) {
-                            String reportId = fileShare.getlastReplicationJobId().toString() + "-" + policyName;
-                            report = api.getReplicationPolicyReport(reportId);
-                            if (fileShare.getAvgDuration() == null) { // for first time
-                                fileShare.setAvgDuration(0);
-                            }
+
                             if (fileShare.getlastReplicationJobId() == null) { // for first time
                                 fileShare.setlastReplicationJobId(1L);
                             }
-                            fileShare.setAvgDuration((fileShare.getAvgDuration() + report.getDuration()) / 2);
+                            String reportId = fileShare.getlastReplicationJobId().toString() + "-" + policyName;
+                            report = api.getReplicationPolicyReport(reportId);
+                            if (fileShare.getAvgDuration() == null) { // for first time
+                                fileShare.setAvgDuration(report.getDuration());
+                            } else { // other times..
+                                fileShare.setAvgDuration((fileShare.getAvgDuration() + report.getDuration()) / 2);
+                            }
                             fileShare.setlastReplicationJobId(fileShare.getlastReplicationJobId() + 1);
+
                             _dbClient.updateObject(fileShare);
                         }
                     } catch (Exception e) {

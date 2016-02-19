@@ -1686,6 +1686,11 @@ public class ControllerUtils {
             if (volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
                 return true;
             }
+
+            Volume vplexVolume = Volume.fetchVplexVolume(dbClient, volume);
+            if (vplexVolume != null && !vplexVolume.getInactive() && vplexVolume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+                return true;
+            }
         }
 
         return false;

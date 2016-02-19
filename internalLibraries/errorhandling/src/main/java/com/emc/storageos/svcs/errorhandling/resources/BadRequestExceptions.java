@@ -2445,6 +2445,9 @@ public interface BadRequestExceptions {
     public BadRequestException replicaOperationNotAllowedVolumeNotInVolumeGroup(final String replicaType, final String volumeName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noReplicationGroupForReplica(final String replicaLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notSupportedSnapshotWithMixedArrays(URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2744,6 +2747,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException duplicateCopySetName(String copySetName, String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNumberOfReplicas();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotNotAllowedWhenBackendVolumeDoestHavingCG();

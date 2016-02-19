@@ -4,6 +4,8 @@
  */
 package com.emc.sa.service.vipr.application;
 
+import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT;
+
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,9 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
     protected List<URI> subGroups;
 
+    @Param(value = LINKED_SNAPSHOT, required = false)
+    protected List<URI> existingLinkedSnapshotIds;
+
     @Override
     public void execute() throws Exception {
 
@@ -40,7 +45,9 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
 
         for (String type : volumeTypes.keySet()) {
             if (type.equalsIgnoreCase("vmax3")) {
-                tasks = execute(new LinkSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId()));
+                tasks = execute(new LinkSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId(),
+                        existingLinkedSnapshotIds));
+                // tasks = execute(new LinkSnapshotSessionForApplication(applicationId, ));
             } else {
                 // TODO fail for snapshot
             }

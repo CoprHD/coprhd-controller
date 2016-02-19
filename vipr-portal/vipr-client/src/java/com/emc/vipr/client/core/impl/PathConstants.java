@@ -175,17 +175,6 @@ public class PathConstants {
     public static final String APP_SUPPORT_DEACTIVATE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL + "/deactivate";
 
     public static final String APP_SUPPORT_CREATE_SNAPSHOT_URL = APP_SUPPORT_SNAPSHOT_URL;
-    public static final String APP_SUPPORT_SNAPSHOT_SESSION_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/snapshot-sessions";
-    public static final String APP_SUPPORT_CREATE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL;
-    public static final String APP_SUPPORT_RESTORE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/restore";
-    public static final String APP_SUPPORT_LINK_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/link-targets";
-    public static final String APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/unlink-targets";
-
-    public static final String APP_SUPPORT_DEACTIVATE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL + "/deactivate";
-
-    public static final String APP_SUPPORT_GET_SNAPSHOT_COPY_SETS_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
-    public static final String APP_SUPPORT_GET_SNAPSHOT_SESSION_COPY_SETS_URL = APP_SUPPORT_SNAPSHOT_SESSION_URL
-            + "/copy-sets";
 
     public static final String APP_SUPPORT_DELETE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/deactivate";
     public static final String APP_SUPPORT_UPDATE_APP_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}";
@@ -193,6 +182,15 @@ public class PathConstants {
     public static final String APP_SUPPORT_CLONE_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/full-copies";
     public static final String APP_SUPPORT_SESSION_URL = APP_SUPPORT_CREATE_APP_URL + "/{id}/protection/snapshot-sessions";
     public static final String APP_SUPPORT_SESSION_SET_URL = APP_SUPPORT_SESSION_URL + "/copy-sets";
+
+    public static final String APP_SUPPORT_CREATE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SESSION_URL;
+    public static final String APP_SUPPORT_RESTORE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SESSION_URL + "/restore";
+    public static final String APP_SUPPORT_LINK_SNAPSHOT_SESSION_URL = APP_SUPPORT_SESSION_URL + "/link-targets";
+    public static final String APP_SUPPORT_RELINK_SNAPSHOT_SESSION_URL = APP_SUPPORT_SESSION_URL + "/relink-targets";
+    public static final String APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL = APP_SUPPORT_SESSION_URL + "/unlink-targets";
+
+    public static final String APP_SUPPORT_DEACTIVATE_SNAPSHOT_SESSION_URL = APP_SUPPORT_SESSION_URL + "/deactivate";
+
     public static final String APP_SUPPORT_CLONE_SET_URL = APP_SUPPORT_CLONE_URL + "/copy-sets";
     public static final String APP_SUPPORT_SNAPSHOT_SET_URL = APP_SUPPORT_SNAPSHOT_URL + "/copy-sets";
     public static final String OBJECT_NAMESPACE_URL = "/vdc/object-namespaces";

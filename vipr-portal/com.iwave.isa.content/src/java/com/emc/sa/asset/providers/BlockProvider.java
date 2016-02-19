@@ -49,13 +49,16 @@ import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -1036,24 +1039,68 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("applicationSnapshotSessionCopySets")
     @AssetDependencies({ "application" })
     public List<AssetOption> getApplicationSnapshotSessionCopySets(AssetOptionsContext ctx, URI application) {
-        return createOptions(api(ctx).application().getSnapshotSessionCopySets(application).getCopySets().toArray());
+        return createOptions(api(ctx).application().getVolumeGroupSnapsetSessionSets(application).getCopySets().toArray());
     }
 
     @Asset("applicationSnapshotCopySets")
     @AssetDependencies({ "application" })
     public List<AssetOption> getApplicationSnapshotCopySets(AssetOptionsContext ctx, URI application) {
-        return createOptions(api(ctx).application().getSnapshotCopySets(application).getCopySets().toArray());
+        return createOptions(api(ctx).application().getVolumeGroupSnapshotSets(application).getCopySets().toArray());
     }
 
     @Asset("applicationCopySets")
     @AssetDependencies({ "application", "applicationSnapshotType" })
     public List<AssetOption> getApplicationCopySets(AssetOptionsContext ctx, URI application, String snapshotType) {
         if (snapshotType.equalsIgnoreCase(SNAPSHOT_SESSION_TYPE_VALUE)) {
-            return createOptions(api(ctx).application().getSnapshotSessionCopySets(application).getCopySets().toArray());
+            return createOptions(api(ctx).application().getVolumeGroupSnapsetSessionSets(application).getCopySets().toArray());
         } else if (snapshotType.equalsIgnoreCase(SNAPSHOT_TARGET_TYPE_VALUE)) {
-            return createOptions(api(ctx).application().getSnapshotCopySets(application).getCopySets().toArray());
+            return createOptions(api(ctx).application().getVolumeGroupSnapshotSets(application).getCopySets().toArray());
         }
         return Lists.newArrayList();
+    }
+
+    protected List<String> getReplicationGroupsForApplicationSnapshotSession(ViPRCoreClient client, URI applicationId, String copySet) {
+        List<String> options = Lists.newArrayList();
+        VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
+        input.setCopySetName(copySet);
+        BlockSnapshotSessionList sessions = client.application().getVolumeGroupSnapshotSessionsByCopySet(applicationId, input);
+        for (NamedRelatedResourceRep session : sessions.getSnapSessionRelatedResourceList()) {
+            BlockSnapshotSessionRestRep sessionRep = client.blockSnapshotSessions().get(session);
+            if (sessionRep != null && sessionRep.getReplicationGroupInstance() != null) {
+                options.add(sessionRep.getReplicationGroupInstance());
+            }
+        }
+        return options;
+    }
+
+    protected List<String> getReplicationGroupsForApplicationSnapshot(ViPRCoreClient client, URI applicationId, String copySet) {
+        List<String> options = Lists.newArrayList();
+        VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
+        input.setCopySetName(copySet);
+        SnapshotList sessions = client.application().getVolumeGroupSnapshotsForSet(applicationId, input);
+        for (NamedRelatedResourceRep snap : sessions.getSnapList()) {
+            BlockSnapshotRestRep snapRep = client.blockSnapshots().get(snap);
+            if (snapRep != null && snapRep.getReplicationGroupInstance() != null) {
+                options.add(snapRep.getReplicationGroupInstance());
+            }
+        }
+        return options;
+    }
+
+    @Asset("replicationGroup")
+    @AssetDependencies({ "application", "applicationSnapshotSessionCopySets" })
+    public List<AssetOption> getApplicationReplicationGroupsForSnapshotSession(AssetOptionsContext ctx, URI applicationId,
+            String copySet) {
+        final ViPRCoreClient client = api(ctx);
+        return createStringOptions(getReplicationGroupsForApplicationSnapshotSession(client, applicationId, copySet));
+    }
+
+    @Asset("replicationGroup")
+    @AssetDependencies({ "application", "applicationSnapshotCopySets" })
+    public List<AssetOption> getApplicationReplicationGroupsForSnapshot(AssetOptionsContext ctx, URI applicationId,
+            String copySet) {
+        final ViPRCoreClient client = api(ctx);
+        return createStringOptions(getReplicationGroupsForApplicationSnapshot(client, applicationId, copySet));
     }
 
     @Asset("replicationGroup")
@@ -1061,9 +1108,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId, String snapshotType,
             String copySet) {
         final ViPRCoreClient client = api(ctx);
-        VolumeGroupRestRep application = client.application().getApplication(applicationId);
-        // TODO based on snapshotType, use correct API call
-        return createStringOptions(application.getReplicationGroupNames());
+        if (snapshotType.equalsIgnoreCase(SNAPSHOT_SESSION_TYPE_VALUE)) {
+            return createStringOptions(getReplicationGroupsForApplicationSnapshotSession(client, applicationId, copySet));
+        } else if (snapshotType.equalsIgnoreCase(SNAPSHOT_TARGET_TYPE_VALUE)) {
+            return createStringOptions(getReplicationGroupsForApplicationSnapshot(client, applicationId, copySet));
+        }
+        return Lists.newArrayList();
     }
 
     @Asset("blockSnapshotType")
@@ -1114,6 +1164,22 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             options.add(SNAPSHOT_SESSION_TYPE_OPTION);
         }
         return options;
+    }
+
+    @Asset("linkedSnapshotsForVolume")
+    @AssetDependencies({ "application", "applicationSnapshotSessionCopySets" })
+    public List<AssetOption> getLinkedSnapshotsForApplicationSnapshotSessionVolume(AssetOptionsContext ctx, URI application,
+            String copySet) {
+        List<BlockSnapshotRestRep> snapshots = new ArrayList<BlockSnapshotRestRep>();
+
+        VolumeGroupCopySetParam param = new VolumeGroupCopySetParam();
+        param.setCopySetName(copySet);
+
+        BlockSnapshotSessionList snapshotSessionList = api(ctx).application().getVolumeGroupSnapshotSessionsByCopySet(application, param);
+        List<BlockSnapshotSessionRestRep> snapshotSessions = api(ctx).blockSnapshotSessions().getByRefs(
+                snapshotSessionList.getSnapSessionRelatedResourceList());
+
+        return constructSnapshotWithSnapshotSessionOptions(snapshots, snapshotSessions);
     }
 
     @Asset("linkedSnapshotsForVolume")

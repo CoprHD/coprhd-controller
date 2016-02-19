@@ -112,8 +112,6 @@ import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.storageos.model.block.VolumeGroupSnapshotCreateParam;
-import com.emc.storageos.model.block.VolumeGroupSnapshotOperationParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;

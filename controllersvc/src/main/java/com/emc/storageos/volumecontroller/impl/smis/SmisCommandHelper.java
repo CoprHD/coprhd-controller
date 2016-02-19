@@ -7189,7 +7189,7 @@ public class SmisCommandHelper implements SmisConstants {
     // TODO Constantize these strings
 
     public CIMArgument[] fabricateSourceGroupSynchronizationAspectInputArguments(StorageSystem system,
-                                                                                 String repGrpName,
+            String repGrpName, String sessionLabel) {
         List<String> addSFSEntries = new ArrayList<>();
         addSFSEntries.add("AddSFSEntries");
         addSFSEntries.add(formatSessionLabelForFabrication(system.getSerialNumber(), repGrpName, sessionLabel));

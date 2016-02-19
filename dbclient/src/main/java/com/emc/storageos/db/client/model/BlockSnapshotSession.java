@@ -62,8 +62,8 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     // this property shows the replication group for which this session was created within a CG.
     private String _replicationGroupInstance;
 
-    // Snapshot Session set name which user provided while creating sessions for volumes/CGs in an Application.
-    // There can be multiple array replication groups within an Application.
+    // Snapshot Session set name which user provided while creating sessions for replication groups in a CG.
+    // There can be multiple array replication groups within a CG.
     private String _sessionSetName;
 
     @RelationIndex(cf = "RelationIndex", type = BlockConsistencyGroup.class)

@@ -11,6 +11,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 
 import org.slf4j.Logger;
@@ -33,7 +34,7 @@ public class SRDFStorageSyncProcessor extends StorageProcessor {
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap) throws BaseCollectionException {
         CloseableIterator<CIMObjectPath> synchronizedInstancePaths = null;
         EnumerateResponse<CIMObjectPath> synchronizedInstancePathChunks = null;
-        WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
+        WBEMClient client = SMICommunicationInterface.getCIMClient(keyMap);
 
         try {
             synchronizedInstancePathChunks = (EnumerateResponse<CIMObjectPath>) resultObj;

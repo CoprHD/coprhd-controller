@@ -72,6 +72,7 @@ import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
+import com.emc.storageos.model.dr.ResumePrecheckResponse;
 import com.emc.storageos.model.dr.SiteActive;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigParam;
@@ -83,6 +84,7 @@ import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.storageos.model.dr.SwitchoverPrecheckResponse;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -846,9 +848,29 @@ public class DisasterRecoveryService {
      */
     @POST
     @Path("/internal/resumeprecheck")
-    public void resumePrecheck() {
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public ResumePrecheckResponse resumePrecheck() {
         log.info("Precheck for resume internally");
 
+        ResumePrecheckResponse response = new ResumePrecheckResponse();
+        try {
+            precheckForResumeLocalStandby();
+        } catch (APIException e) {
+            log.warn("Failed to precheck switchover", e);
+            response.setErrorMessage(e.getMessage());
+            response.setServiceCode(e.getServiceCode().ordinal());
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to precheck switchover", e);
+            response.setErrorMessage(e.getMessage());
+            return response;
+        }
+
+        return response;
+    }
+
+
+    private void precheckForResumeLocalStandby() {
         Site localSite = drUtil.getLocalSite();
         if (!isClusterStable()) {
             throw APIException.serviceUnavailable.siteClusterStateNotStable(localSite.getName(),
@@ -1053,10 +1075,24 @@ public class DisasterRecoveryService {
     @POST
     @Path("/internal/switchoverprecheck")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public void switchoverPrecheck() {
+    public SwitchoverPrecheckResponse switchoverPrecheck() {
         log.info("Precheck for switchover internally");
 
-        precheckForSwitchoverForLocalStandby();
+        SwitchoverPrecheckResponse response = new SwitchoverPrecheckResponse();
+        try {
+            precheckForSwitchoverForLocalStandby();
+        } catch (InternalServerErrorException e) {
+            log.warn("Failed to precheck switchover", e);
+            response.setErrorMessage(e.getMessage());
+            response.setServiceCode(e.getServiceCode().ordinal());
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to precheck switchover", e);
+            response.setErrorMessage(e.getMessage());
+            return response;
+        }
+
+        return response;
     }
     
     /**
@@ -1832,12 +1868,12 @@ public class DisasterRecoveryService {
             }
         }
     }
-    
+
     private void precheckForSwitchoverForLocalStandby() {
         if (!isClusterStable()) {
             throw new IllegalStateException("Cluster is not stable");
         }
-        
+
         Site currentSite = drUtil.getLocalSite();
         if (currentSite.getState() != SiteState.STANDBY_SYNCED && currentSite.getState() != SiteState.STANDBY_PAUSED) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(currentSite.getName(), "Standby site is not synced or paused state");

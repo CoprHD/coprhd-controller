@@ -2550,47 +2550,41 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         String snapshotScheduleName = fp.getPolicyName() + "_" + args.getFsName();
         IsilonApi isi = getIsilonDevice(storageObj);
         String resumeToken = null;
-        IsilonList<IsilonSnapshot> Allsnapshots = new IsilonList<IsilonSnapshot>();
-        List<Snapshot> snaplist = new ArrayList<Snapshot>();
+
         try {
             do {
                 IsilonList<IsilonSnapshot> snapshots = isi.listSnapshotsCreatedByPolicy(resumeToken, snapshotScheduleName);
                 if (snapshots != null) {
-                    Allsnapshots.addList(snapshots.getList());
+
+                    for (IsilonSnapshot islon_snap : snapshots.getList()) {
+                        _log.info("file policy snapshot is  : " + islon_snap.getName());
+                        Snapshot snap = new Snapshot();
+                        snap.setLabel(islon_snap.getName());
+                        snap.setMountPath(islon_snap.getPath());
+                        snap.setName(islon_snap.getName());
+                        snap.setId(URIUtil.createId(Snapshot.class));
+                        snap.setOpStatus(new OpStatusMap());
+                        snap.setProject(new NamedURI(fs.getProject().getURI(), islon_snap.getName()));
+                        snap.setParent(new NamedURI(fs.getId(), islon_snap.getName()));
+                        StringMap map = new StringMap();
+                        map.put("Schedule", fp.getPolicyName());
+                        snap.setExtensions(map);
+                        _dbClient.updateObject(snap);
+
+                    }
                     resumeToken = snapshots.getToken();
                 }
-            } while (resumeToken != null);
+            } while (resumeToken != null && !resumeToken.equalsIgnoreCase("null"));
 
-            for (IsilonSnapshot islon_snap : Allsnapshots.getList()) {
-                _log.info("file policy snapshot is  : " + islon_snap.getName());
-                Snapshot snap = new Snapshot();
-                snap.setLabel(islon_snap.getName());
-                snap.setMountPath(islon_snap.getPath());
-                snap.setName(islon_snap.getName());
-                snap.setId(URIUtil.createId(Snapshot.class));
-                snap.setOpStatus(new OpStatusMap());
-                snap.setProject(new NamedURI(fs.getProject().getURI(), islon_snap.getName()));
-                snap.setParent(new NamedURI(fs.getId(), islon_snap.getName()));
-                StringMap map = new StringMap();
-                map.put("Schedule", fp.getPolicyName());
-                snap.setExtensions(map);
-                snaplist.add(snap);
-                _dbClient.updateObject(snap);
-
-            }
         } catch (IsilonException e) {
             _log.error("listing snapshot by file policy failed.", e);
             return BiosCommandResult.createErrorResult(e);
         }
-        args.setSnapshots(snaplist);
-        // fs.getOpStatus().updateTaskStatus(args.getOpId(),);
         Task task = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), args.getOpId());
+        // set task to completed and progress to 100 and stored in DB, so waiting thread in apisvc can read it.
         task.ready();
         task.setProgress(100);
         _dbClient.updateObject(task);
-        _log.info("****************** IsilonFileStorageDevice list snapshot task id is  {}", task.getId());
-        _log.info("****************** IsilonFileStorageDevice list snapshot task status is  {}", task.getStatus());
         return BiosCommandResult.createSuccessfulResult();
     }
-
 }

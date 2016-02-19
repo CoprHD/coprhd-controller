@@ -3476,26 +3476,27 @@ public class FileService extends TaskResourceService {
             Task taskObject = null;
             auditOp(OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), fp.getId());
-            int waitCount = 0;
+            int timeoutCounter = 0;
             do {
 
                 TimeUnit.SECONDS.sleep(1);
                 taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
-                _log.info("****************** list snapshot task id is  {}", taskObject.getId());
-                _log.info("****************** list snapshot task status is  {}", taskObject.getStatus());
-                waitCount++;
-            } while ((taskObject != null && !taskObject.isReady()) && waitCount < timeout);
+                timeoutCounter++;
+            } while ((taskObject != null && !taskObject.isReady()) && timeoutCounter < timeout);
 
             if (taskObject.isReady()) {
-
-                List<URI> snapIDList = _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id));
-                _log.debug("getSnapshots: FS {}: {} ", id.toString(), snapIDList.toString());
-                List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapIDList);
+                URIQueryResultList snapshotsURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id),
+                        snapshotsURIs);
+                List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapshotsURIs);
 
                 for (Snapshot snap : snapList) {
-                    if (snap.getExtensions().containsKey("Schedule")) {
+
+                    if (!snap.getInactive() && snap.getExtensions().containsKey("Schedule")) {
+
                         list.getSnapList().add(toNamedRelatedResource(snap));
                         snap.setInactive(true);
+                        _dbClient.updateObject(snap);
                     }
                 }
 

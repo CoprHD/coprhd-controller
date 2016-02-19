@@ -86,8 +86,6 @@ public class FileDeviceInputOutput {
     private List<NfsACE> nfsAclsToModify = new ArrayList<>();
     private List<NfsACE> nfsAclsToDelete = new ArrayList<>();
 
-    private List<Snapshot> snapshots = new ArrayList<>();
-
     public String getFileSystemPath() {
         return fileSystemPath;
     }
@@ -998,14 +996,6 @@ public class FileDeviceInputOutput {
 
     public void setvNAS(VirtualNAS vNAS) {
         this.vNAS = vNAS;
-    }
-
-    public List<Snapshot> getSnapshots() {
-        return snapshots;
-    }
-
-    public void setSnapshots(List<Snapshot> snapshots) {
-        this.snapshots = snapshots;
     }
 
 }

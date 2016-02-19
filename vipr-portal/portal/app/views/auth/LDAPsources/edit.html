@@ -41,18 +41,38 @@
     	        $('#ldapSources_groupMemberAttributes').closest($ctrlElements).show();
     	        $('#ldapSources_groupAttribute').closest($ctrlElements).show();
     	        $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
+    	        $('#ldapSources_managerDn').closest($ctrlElements).show();
+    	        $('#ldapSources_managerPassword').closest($ctrlElements).show();
+    	        $('#ldapSources_idpMetadataUrl').closest($ctrlElements).hide();
     	    } else {
     	        $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
     	        $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
     	        $('#ldapSources_groupAttribute').closest($ctrlElements).hide();
     	        $('#ldapSources_groupWhiteListValues').closest($ctrlElements).hide();
+    	        $('#ldapSources_managerDn').closest($ctrlElements).show();
+    	        $('#ldapSources_managerPassword').closest($ctrlElements).show();
+    	        $('#ldapSources_idpMetadataUrl').closest($ctrlElements).hide();
     	    }
-        }else if (authType == 'keystone'){
+        } else if (authType == 'keystone'){
             $('#ldapSources_groupAttribute').closest($ctrlElements).show();
             $('#ldapSources_groupWhiteListValues').closest($ctrlElements).show();
     	    $('#ldapSources_searchScopeControlGroup').closest($ctrlElements).hide();
     	    $('#ldapSources_searchBaseControlGroup').closest($ctrlElements).hide();
     	    $('#ldapSources_searchFilterControlGroup').closest($ctrlElements).hide();
+    	    $('#ldapSources_managerDn').closest($ctrlElements).show();
+    	    $('#ldapSources_managerPassword').closest($ctrlElements).show();
+    	    $('#ldapSources_idpMetadataUrl').closest($ctrlElements).hide();
+        } else if (authType == 'samlidp') {
+            $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
+            $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
+            $('#ldapSources_groupAttribute').closest($ctrlElements).hide();
+            $('#ldapSources_groupWhiteListValues').closest($ctrlElements).hide();
+    	    $('#ldapSources_searchScopeControlGroup').closest($ctrlElements).hide();
+    	    $('#ldapSources_searchBaseControlGroup').closest($ctrlElements).hide();
+    	    $('#ldapSources_searchFilterControlGroup').closest($ctrlElements).hide();
+    	    $('#ldapSources_managerDn').closest($ctrlElements).hide();
+    	    $('#ldapSources_managerPassword').closest($ctrlElements).hide();
+    	    $('#ldapSources_idpMetadataUrl').closest($ctrlElements).show();
         } else {
             $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
             $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
@@ -61,6 +81,9 @@
     	    $('#ldapSources_searchScopeControlGroup').closest($ctrlElements).show();
     	    $('#ldapSources_searchBaseControlGroup').closest($ctrlElements).show();
     	    $('#ldapSources_searchFilterControlGroup').closest($ctrlElements).show();
+    	    $('#ldapSources_managerDn').closest($ctrlElements).show();
+    	    $('#ldapSources_managerPassword').closest($ctrlElements).show();
+    	    $('#ldapSources_idpMetadataUrl').closest($ctrlElements).hide();
         }
     }
     
@@ -120,40 +143,6 @@
       #{Form.inputTextControlGroup field:field /}
     #{/field}
     
-    
-    #{field 'ldapSources.domains'}
-     %{
-        field.required = true
-        field.value = domainString
-        field.helpTextKey = field.name + '.description'
-      }%
-      #{Form.textAreaControlGroup field:field /}
-    #{/field}
-    
-    #{field 'ldapSources.serverUrls'}
-     %{
-        field.required = true
-        field.value = serverUrlsString
-        field.helpTextKey = field.name + '.description'
-      }%
-      #{Form.textAreaControlGroup field:field /}
-    #{/field}
-    
-    #{field 'ldapSources.managerDn'}
-     %{
-        field.required = true
-        field.cssClass = 'span8'
-      }%
-      #{Form.inputTextControlGroup field:field /}
-    #{/field}
-    
-    #{field 'ldapSources.managerPassword'}
-     %{
-        field.required =!editMode
-      }%
-      #{Form.inputPasswordControlGroup field:field /}
-    #{/field}
-    
     #{field 'ldapSources.disable'}
         %{
           field.cssClass = 'span0'
@@ -161,8 +150,43 @@
         }%
       #{Form.booleanCheckBoxControlGroup field:field/}
     #{/field} 
-
     </fieldset>
+
+    <fieldset>
+        #{field 'ldapSources.domains'}
+        %{
+        field.required = true
+        field.value = domainString
+        field.helpTextKey = field.name + '.description'
+        }%
+        #{Form.textAreaControlGroup field:field /}
+        #{/field}
+
+        #{field 'ldapSources.serverUrls'}
+        %{
+        field.required = true
+        field.value = serverUrlsString
+        field.helpTextKey = field.name + '.description'
+        }%
+        #{Form.textAreaControlGroup field:field /}
+        #{/field}
+
+        #{field 'ldapSources.managerDn'}
+        %{
+        field.required = true
+        field.cssClass = 'span8'
+        }%
+        #{Form.inputTextControlGroup field:field /}
+        #{/field}
+
+        #{field 'ldapSources.managerPassword'}
+        %{
+        field.required =!editMode
+        }%
+        #{Form.inputPasswordControlGroup field:field /}
+        #{/field}
+    </fieldset>
+
     <fieldset>
     <legend>Group</legend>
     #{field 'ldapSources.groupAttribute'}
@@ -234,15 +258,21 @@
     #{/field}
     </fieldset>
 
+    <fieldset>
+        #{field 'ldapSources.idpMetadataUrl'}
+         %{
+            field.required = true
+         }%
+         #{Form.inputTextControlGroup field:field /}
+        #{/field}
+    </fieldset>
+
     #{if ldapSources?.id}
 	    #{field 'ldapSources.id'}
 	      <input type="hidden" name="${field.name}" value="${field.value}">
 	    #{/field}
     
 	  #{/if}    
-
-
-  </fieldset>
   #{Form.saveCancel  /}
 #{/form}
 </div>

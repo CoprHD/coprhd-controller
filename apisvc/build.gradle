@@ -19,6 +19,8 @@ dependencies {
             library(jetty),
             library(protobuf),
             library(perf4j),
+            library(spring_saml),
+            library(open_saml),
             project(":controllersvc"),
             project(":security"),
             project(":processmonitor"),

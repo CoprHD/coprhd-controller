@@ -34,10 +34,11 @@ public class AuthnProvider extends DataObject {
     private StringMap keys;
     private StringSet _groupObjectClassNames;
     private StringSet _groupMemberAttributeTypeNames;
+    private String _idpMetadataUrl;
 
     // names to be used in the 'mode' element of the Provider
     public static enum ProvidersType {
-        ldap, ad, keystone
+        ldap, ad, keystone, samlidp
     }
 
     // values to be used for the searchScope element
@@ -293,6 +294,16 @@ public class AuthnProvider extends DataObject {
     public void setGroupMemberAttributeTypeNames(StringSet groupMemberAttributeTypeNames) {
         this._groupMemberAttributeTypeNames = groupMemberAttributeTypeNames;
         setChanged("groupMemberAttributeTypeNames");
+    }
+
+    @Name("idpMetadataUrl")
+    public String getSamlIdpMetadataUrl() {
+        return _idpMetadataUrl;
+    }
+
+    public void setSamlIdpMetadataUrl(String idpMetadataUrl) {
+        this._idpMetadataUrl = idpMetadataUrl;
+        setChanged("idpMetadataUrl");
     }
 
     @Override

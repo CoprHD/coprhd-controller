@@ -589,9 +589,10 @@ public class DbServiceImpl implements DbService {
         // start() method will be only called one time when startup dbsvc, so it's safe to ignore sonar violation
         instance = this; // NOSONAR ("squid:S2444")
 
+        initKeystoreAndTruststore();
+
         if (backCompatPreYoda) {
             _log.info("Pre-yoda back compatible flag detected. Initialize local keystore/truststore for Cassandra native encryption");
-            initKeystoreAndTruststore();
             _schemaUtil.setBackCompatPreYoda(true);
         }
         System.setProperty("cassandra.config", _config);

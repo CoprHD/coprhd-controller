@@ -22,6 +22,8 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.model.auth.SamlMetadata;
 import com.emc.storageos.model.auth.SamlMetadataResponse;
+import com.emc.storageos.security.authorization.CheckPermission;
+import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.keystore.impl.KeystoreEngine;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import org.opensaml.common.xml.SAMLConstants;
@@ -163,6 +165,7 @@ public class SamlAuthenticationResource {
     @POST
     @Path("/metadata")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public SamlMetadata generateSAMLServiceProviderMetadata(SamlMetadata samlMetadata) throws Exception{
 
         MetadataValidator metadataValidator = new MetadataValidator();
@@ -191,6 +194,7 @@ public class SamlAuthenticationResource {
      */
     @POST
     @Path("/metadata/delete")
+    @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public Response deleteSAMLServiceProviderMetadata() throws Exception{
         String metadataPath = getSamlSPMetadataConfigPath();
         SamlMetadata existingMetadata = (SamlMetadata)_distDataManager.getData(metadataPath, false);

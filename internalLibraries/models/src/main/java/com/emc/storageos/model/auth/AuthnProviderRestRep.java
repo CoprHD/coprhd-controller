@@ -6,6 +6,7 @@
 package com.emc.storageos.model.auth;
 
 import com.emc.storageos.model.DataObjectRestRep;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 import javax.xml.bind.annotation.*;
 import java.util.LinkedHashSet;
@@ -35,6 +36,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
     private Integer maxPageSize;
     private Set<String> groupObjectClasses;
     private Set<String> groupMemberAttributes;
+    private String idpMetadataUrl;
 
     /**
      * Description of the provider
@@ -269,5 +271,15 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     public void setGroupMemberAttributes(Set<String> groupMemberAttributes) {
         this.groupMemberAttributes = groupMemberAttributes;
+    }
+
+    @XmlElement(name = "idp_metadata_url")
+    @JsonProperty("idp_metadata_url")
+    public String getSamlIdpMetadataUrl() {
+        return idpMetadataUrl;
+    }
+
+    public void setSamlIdpMetadataUrl(String idpMetadataUrl) {
+        this.idpMetadataUrl = idpMetadataUrl;
     }
 }

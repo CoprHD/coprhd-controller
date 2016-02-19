@@ -11,6 +11,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,10 +29,15 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.security.helpers.MetadataManagerInitializer;
 import org.apache.commons.lang.StringUtils;
+import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
+import org.opensaml.saml2.metadata.provider.MetadataProvider;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.saml.metadata.CachingMetadataManager;
 import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.AuthMapper;
@@ -93,6 +99,13 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private static final String EVENT_SERVICE_TYPE = "authconfig";
 
+    @Autowired
+    private MetadataManagerInitializer metadataManagerInitializer;
+
+    public void setMetadataManagerInitializer(MetadataManagerInitializer metadataManagerInitializer) {
+        this.metadataManagerInitializer = metadataManagerInitializer;
+    }
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -132,9 +145,9 @@ public class AuthnConfigurationService extends TaggedResource {
      */
     @GET
     // no id, just "/"
-            @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-            public
-            AuthnProviderList listProviders() {
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public
+    AuthnProviderList listProviders() {
         // TODO: if you need to copy/paste this code, please modify the AbstractPermissionFilter class instead and
         // related CheckPermission annotation code to support "TENANT_ADMIN_IN_ANY_TENANT" permission.
         StorageOSUser user = getUserFromContext();
@@ -186,14 +199,15 @@ public class AuthnConfigurationService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
-    public AuthnProviderRestRep createProvider(AuthnCreateParam param) {
+    public AuthnProviderRestRep createProvider(AuthnCreateParam param) throws MetadataProviderException {
         validateAuthnCreateParam(param);
         if (param.getDisable() == null || !param.getDisable()) {
             _log.debug("Validating manager dn credentials before provider creation...");
             AuthnProviderParamsToValidate validateP = AuthMapper.mapToValidateCreate(param, null);
             validateP.setUrls(new ArrayList<String>(param.getServerUrls()));
             StringBuilder errorString = new StringBuilder();
-            if (!Validator.isUsableAuthenticationProvider(validateP, errorString)) {
+            if (!ProvidersType.samlidp.toString().equalsIgnoreCase(param.getMode()) &&
+                    !Validator.isUsableAuthenticationProvider(validateP, errorString)) {
                 throw BadRequestException.badRequests.
                         authnProviderCouldNotBeValidated(errorString.toString());
             }
@@ -205,13 +219,19 @@ public class AuthnConfigurationService extends TaggedResource {
         String mode = provider.getMode();
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
             populateKeystoneToken(provider, null);
-        } else {
+        } else if (!ProvidersType.samlidp.toString().equalsIgnoreCase(mode)){
             // Now validate the authn provider to make sure
             // either both group object classes and
             // member attributes present or
             // both of them empty. Throw bad request exception
             // if only one of them presents.
             validateLDAPGroupProperties(provider);
+        } else {
+            HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(provider.getSamlIdpMetadataUrl(), 5000);
+            List<MetadataProvider> providers = new ArrayList<>();
+            providers.add(httpMetadataProvider);
+            CachingMetadataManager cachingMetadataManager = new CachingMetadataManager(providers);
+            metadataManagerInitializer.setCachingMetadataManager(cachingMetadataManager);
         }
 
         _log.debug("Saving the provider: {}: {}", provider.getId(), provider.toString());
@@ -280,7 +300,7 @@ public class AuthnConfigurationService extends TaggedResource {
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public AuthnProviderRestRep updateProvider(@PathParam("id") URI id,
             @DefaultValue("false") @QueryParam("allow_group_attr_change") boolean allow,
-            AuthnUpdateParam param) {
+            AuthnUpdateParam param) throws MetadataProviderException {
         AuthnProvider provider = getProviderById(id, false);
         ArgValidator.checkEntityNotNull(provider, id, isIdEmbeddedInURL(id));
         validateAuthnUpdateParam(param, provider);
@@ -292,6 +312,8 @@ public class AuthnConfigurationService extends TaggedResource {
         String mode = provider.getMode();
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
             return updateKeystoneProvider(id, param, provider, validateP);
+        } else if (null != mode && ProvidersType.samlidp.toString().equalsIgnoreCase(mode)) {
+            return updateSamlIdpProvider(id, param, provider, validateP);
         } else {
             return updateAdOrLDAPProvider(id, allow, param, provider, validateP, wasAlreadyDisabled);
         }
@@ -515,6 +537,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
             authn.setGroupMemberAttributeTypeNames(ssOld);
         }
+
+        authn.setSamlIdpMetadataUrl(param.getSamlIdpMetadataUrl());
     }
 
     /**
@@ -827,6 +851,11 @@ public class AuthnConfigurationService extends TaggedResource {
 
         _log.debug("Zone authentication create param: {}", param);
 
+        if (param.getMode().equalsIgnoreCase(ProvidersType.samlidp.toString())) {
+            ArgValidator.checkFieldNotEmpty(param.getSamlIdpMetadataUrl(), "idp_metadata_url");
+            return;
+        }
+
         ArgValidator.checkFieldNotNull(param.getMode(), "mode");
         ArgValidator.checkFieldNotNull(param.getManagerDn(), "manager_dn");
         ArgValidator.checkFieldNotNull(param.getManagerPassword(), "manager_password");
@@ -876,6 +905,11 @@ public class AuthnConfigurationService extends TaggedResource {
             throw APIException.badRequests.resourceEmptyConfiguration("authn provider");
         }
         _log.debug("Vdc authentication update param: {}", param);
+
+        if (param.getMode().equalsIgnoreCase(ProvidersType.samlidp.toString())) {
+            ArgValidator.checkFieldNotEmpty(param.getSamlIdpMetadataUrl(), "idp_metadata_url");
+            return;
+        }
 
         Set<String> server_urls = null;
         Set<String> domains = null;
@@ -1075,5 +1109,35 @@ public class AuthnConfigurationService extends TaggedResource {
             throw APIException.badRequests.cannotDeleteAuthnProviderWithUserGroup(matchingUserGroupsURI.size(),
                     matchingUserGroupsURI);
         }
+    }
+
+    private AuthnProviderRestRep updateSamlIdpProvider(URI id, AuthnUpdateParam param,
+                                                        AuthnProvider provider, AuthnProviderParamsToValidate validateP) throws MetadataProviderException{
+        if (metadataManagerInitializer.getCachingMetadataManager() == null) {
+            HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(param.getSamlIdpMetadataUrl(), 5000);
+            List<MetadataProvider> providers = new ArrayList<>();
+            providers.add(httpMetadataProvider);
+            CachingMetadataManager cachingMetadataManager = new CachingMetadataManager(providers);
+            metadataManagerInitializer.setCachingMetadataManager(cachingMetadataManager);
+        } else {
+            List<MetadataProvider> metadataProviders = metadataManagerInitializer.getCachingMetadataManager().getProviders();
+            for (Iterator<MetadataProvider> metadataProviderIterator = metadataProviders.iterator(); metadataProviderIterator.hasNext(); ) {
+                MetadataProvider metadataProvider = metadataProviderIterator.next();
+                if (((HTTPMetadataProvider) metadataProvider).getMetadataURI().equalsIgnoreCase(provider.getSamlIdpMetadataUrl())) {
+                    metadataProviderIterator.remove();
+                    break;
+                }
+            }
+            HTTPMetadataProvider httpMetadataProvider = new HTTPMetadataProvider(param.getSamlIdpMetadataUrl(), 5000);
+            metadataManagerInitializer.getCachingMetadataManager().getProviders().add(httpMetadataProvider);
+        }
+
+        provider.setSamlIdpMetadataUrl(param.getSamlIdpMetadataUrl());
+
+        persistProfileAndNotifyChange(provider, false);
+        auditOp(OperationTypeEnum.UPDATE_AUTHPROVIDER, true, null,
+                provider.getId().toString(), provider.toString());
+
+        return map(getProviderById(id, false));
     }
 }

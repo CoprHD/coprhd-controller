@@ -315,6 +315,7 @@ AutoManualType.manual=Manual
 AuthSourceType.ad=Active Directory
 AuthSourceType.ldap=LDAP
 AuthSourceType.keystone=Keystone
+AuthSourceType.samlidp=SAML-IDP
 
 SearchScope.ONELEVEL=One Level
 SearchScope.SUBTREE=Subtree
@@ -1662,6 +1663,7 @@ ldapSources.groupObjectClasses.variableRequired = At least one group object clas
 ldapSources.groupMemberAttributes.variableRequired = At least one group member attribute is required. To use groups ldap in mode, please enter both object classes and member attributes.\
                                                         Leaving empty in both object classes and member attributes is allowed but groups cannot be used in ldap mode.
 
+ldapSources.idpMetadataUrl = IDP Metadata Url
 
 #Data Protection Systems
 DataProtectionSystems.list.title=Data Protection Systems

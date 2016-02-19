@@ -1098,7 +1098,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         boolean isTarget = false;
 
-        if (virtualArray.equals("none")) {
+        if (virtualArray == null || virtualArray.equals("none")) {
             // NONE
             isTarget = false;
         } else {
@@ -1116,7 +1116,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
 
         // get target virtual array id
-        if (StringUtils.split(virtualArray.toString(), ':')[0].equals("tgt")) {
+        if (virtualArray != null && StringUtils.split(virtualArray.toString(), ':')[0].equals("tgt")) {
             virtualArray = URI.create(StringUtils.substringAfter(virtualArray.toString(), ":"));
         }
 
@@ -1125,7 +1125,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
             VolumeRestRep volume = client.blockVolumes().get(volumeId);
             if (isTarget) {
-                if (virtualArray.equals(uri("none")) || volume.getVirtualArray().getId().equals(virtualArray)) {
+                if (virtualArray == null || virtualArray.equals(uri("none")) || volume.getVirtualArray().getId().equals(virtualArray)) {
                     subGroups.add(volume.getReplicationGroupInstance());
                 }
             } else {

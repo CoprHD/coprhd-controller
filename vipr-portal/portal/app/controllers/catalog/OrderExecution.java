@@ -5,6 +5,7 @@
 package controllers.catalog;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringUtils;
+import org.codehaus.jettison.json.JSONObject;
 
 import play.data.validation.Validation;
 import play.mvc.Controller;
@@ -68,6 +70,7 @@ public class OrderExecution extends Controller {
      */
     private static void addFieldValues(CatalogServiceRestRep service, Collection<? extends ServiceItemRestRep> items,
             Map<String, String> values, Map<String, String> locked) {
+    	String externalParam = "externalParam";
         for (ServiceItemRestRep item : items) {
             if (item instanceof ServiceFieldTableRestRep) {
                 addColumnValues(service, (ServiceFieldTableRestRep) item, values, locked);
@@ -78,13 +81,20 @@ public class OrderExecution extends Controller {
             else if (item instanceof ServiceFieldRestRep) {
                 ServiceFieldRestRep field = (ServiceFieldRestRep) item;
                 String value = getFieldValue(field);
+                if(field.getName().equals(externalParam)){
+                	field.setRequired(false);
+                	if (value != null) {
+                        values.put(field.getName(), value);
+                    }else{
+                    	values.put(field.getName(), externalParam);
+                    }
+                }
                 if (locked.containsKey(field.getName())) {
                     value = locked.get(field.getName());
                 }
                 if (value != null) {
                     values.put(field.getName(), value);
                 }
-
                 List<String> fieldValues = TextUtils.parseCSV(value);
                 if (fieldValues.isEmpty() && field.isRequired()) {
                     Validation.required(field.getName(), null);
@@ -93,7 +103,12 @@ public class OrderExecution extends Controller {
                     ServiceFieldValidator.validateField(service, field, fieldValue);
                 }
             }
+           
         }
+        if(values.containsKey(externalParam)){
+        	values.put(externalParam, new JSONObject(values).toString());
+        }
+
     }
 
     /**

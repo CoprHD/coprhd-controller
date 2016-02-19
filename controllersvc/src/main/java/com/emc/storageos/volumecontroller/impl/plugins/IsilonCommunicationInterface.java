@@ -216,7 +216,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             String serialNumber = isilonCluster.getSerialNumber();
             String deviceType = isilonCluster.getSystemType();
             initializeKeyMap(accessProfile);
-            Boolean fsChanged = false;
+            boolean fsChanged = false;
             List<Stat> stats = new ArrayList<Stat>();
 
             ZeroRecordGenerator zeroRecordGenerator = new FileZeroRecordGenerator();
@@ -250,7 +250,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                 fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                 fsChanged = true;
                             }
-                            if (fsChanged == true) {
+                            if (fsChanged) {
                                 _dbClient.updateObject(fileSystem);
                             }
                         }
@@ -283,7 +283,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                                     fileSystem.setSoftLimitExceeded(quota.getThresholds().getsoftExceeded());
                                     fsChanged = true;
                                 }
-                                if (fsChanged == true) {
+                                if (fsChanged) {
                                     _dbClient.updateObject(fileSystem);
                                 }
                             }

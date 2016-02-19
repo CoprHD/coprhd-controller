@@ -46,6 +46,8 @@ import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.application.VolumeGroupSnapshotCreateParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotOperationParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionCreateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionDeactivateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionLinkTargetsParam;
@@ -55,8 +57,6 @@ import com.emc.storageos.model.application.VolumeGroupSnapshotSessionUnlinkTarge
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeGroupSnapshotCreateParam;
-import com.emc.storageos.model.block.VolumeGroupSnapshotOperationParam;
 import com.emc.vipr.client.impl.RestClient;
 
 public class ApplicationSupport {

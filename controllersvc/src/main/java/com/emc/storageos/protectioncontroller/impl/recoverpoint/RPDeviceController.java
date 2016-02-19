@@ -110,10 +110,12 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -149,6 +151,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
+import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.emc.storageos.vplexcontroller.completers.VolumeGroupUpdateTaskCompleter;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
@@ -273,6 +276,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     
     @Autowired
     private BlockDeviceController _blockDeviceController;
+    
+    @Autowired
+    private VPlexDeviceController _vplexDeviceController;
 
     @Autowired
     private AuditLogManager _auditMgr;
@@ -5979,6 +5985,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Set<URI> impactedCGs = new HashSet<URI>();
             List<URI> allRemoveVolumes = new ArrayList<URI>();
             HashSet<URI> removeVolumeSet = new HashSet<URI>();
+            List<URI> vplexVolumes = new ArrayList<URI>();
             if (removeVolumesURI != null && !removeVolumesURI.isEmpty()) {
                 // get source and target volumes to be removed from the application
                 List<URI> allVolumes = RPHelper.getReplicationSetVolumes(removeVolumesURI, _dbClient);
@@ -5987,7 +5994,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     Volume removeVol = _dbClient.queryObject(Volume.class, removeUri);
                     URI cguri = removeVol.getConsistencyGroup();
                     impactedCGs.add(cguri);
-                    addBackendVolumes(allRemoveVolumes, removeVol, null, false, applicationId);
+                    addBackendVolumes(allRemoveVolumes, removeVol, null, false, applicationId, null);
                 }
             }
             
@@ -6011,9 +6018,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                     impactedCGs.add(cguri);
                     if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                        addBackendVolumes(allAddSourceVolumes, vol, vnxVolumes, true, applicationId);
+                        addBackendVolumes(allAddSourceVolumes, vol, vnxVolumes, true, applicationId, vplexVolumes);
                     } else if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
-                        addBackendVolumes(allAddTargetVolumes, vol, vnxVolumes, true, applicationId);
+                        addBackendVolumes(allAddTargetVolumes, vol, vnxVolumes, true, applicationId, vplexVolumes);
                     }
                 }
                 
@@ -6045,7 +6052,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addSourceVols, allRemoveVolumes, waitFor, taskId);
             
             // add steps for add target vols
-            _blockDeviceController.addStepsForUpdateApplication(workflow, addTargetVols, null, waitFor, taskId);
+            waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addTargetVols, null, waitFor, taskId);
+            
+            if (!vplexVolumes.isEmpty()) {
+                _vplexDeviceController.addStepsForImportClonesOfApplicationVolumes(workflow, waitFor, vplexVolumes, taskId);                
+            }
             
             _log.info("Executing workflow plan {}", BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
             String successMessage = String.format("Update application successful for %s", application.getLabel());
@@ -6067,10 +6078,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param vnxVolumes output VNX backend volumes
      * @param isAdd if the volume is for add or remove
      * @param application the application the volume will be add/remove
+     * @param vplexVolumes output all vplex volumes
      */
-    private void addBackendVolumes(List<URI>allVolumes, Volume volume, List<Volume> vnxVolumes, boolean isAdd, URI application) {
+    private void addBackendVolumes(List<URI>allVolumes, Volume volume, List<Volume> vnxVolumes, boolean isAdd, URI application, 
+            List<URI>vplexVolumes) {
         if (RPHelper.isVPlexVolume(volume)) {
             StringSet backends = volume.getAssociatedVolumes();
+            boolean notInRG = true;
             for (String backendId : backends) {
                 if (!isAdd) {
                     allVolumes.add(URI.create(backendId));
@@ -6089,12 +6103,33 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         applications.add(application.toString());
                         volume.setVolumeGroupIds(applications);
                         _dbClient.updateObject(volume);
+                        // handle full copy. If the volume is in RG, set fullCopySetName in the full copy
+                        StringSet fullcopies = volume.getFullCopies();
+                        if (fullcopies != null && !fullcopies.isEmpty()) {
+                            List<Volume> fullCopiesToUpdate = new ArrayList<Volume>();
+                            for (String fullCopyId : fullcopies) {
+                                Volume fullCopy = _dbClient.queryObject(Volume.class, URI.create(fullCopyId));
+                                if (fullCopy != null && !fullCopy.getInactive()) {
+                                    Volume fullCopyBack = VPlexUtil.getVPLEXBackendVolume(fullCopy, true, _dbClient);
+                                    String groupName = fullCopyBack.getReplicationGroupInstance();
+                                    fullCopy.setFullCopySetName(groupName);
+                                    fullCopiesToUpdate.add(fullCopy);
+                                }
+                            }
+                            if (!fullCopiesToUpdate.isEmpty()) {
+                                _dbClient.updateObject(fullCopiesToUpdate);
+                            }
+                        }
+                        notInRG = false;
                         break;
                     } else {
                         allVolumes.add(backVol.getId());
                     }
                 }
-            }  
+            }
+            if (isAdd && notInRG) {
+                vplexVolumes.add(volume.getId());
+            }
         } else {
             allVolumes.add(volume.getId());
         }

@@ -11232,21 +11232,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             List<URI> allAddBEVolumes = new ArrayList<URI>();
             ApplicationAddVolumeList addBEVolList = new ApplicationAddVolumeList();
-            boolean appHasClone = false;
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
                 _log.info("Creating steps for adding volumes to the volume group");
-                // Check if the application has any clones
-                
-                List<Volume> vgVols = CustomQueryUtility
-                        .queryActiveResourcesByConstraint(_dbClient, Volume.class,
-                                AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.toString()));
-                if (vgVols != null && !vgVols.isEmpty()) {
-                    Volume vgVolume = vgVols.get(0);
-                    StringSet fullCopies = vgVolume.getFullCopies();
-                    if (fullCopies != null && !fullCopies.isEmpty()) {
-                        appHasClone = true;
-                    }
-                }
+
                 addVols = addVolList.getVolumes();
                 
                 for (URI addVol : addVols) {
@@ -11283,9 +11271,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             // add steps for add source and remove vols
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addBEVolList, allRemoveBEVolumes, waitFor, opId);
-            if (appHasClone) {
-                addStepsForImportClonesOfApplicationVolumes(workflow, waitFor, addVolList.getVolumes(), opId);
-            }
+
+            addStepsForImportClonesOfApplicationVolumes(workflow, waitFor, addVolList.getVolumes(), opId);
+            
             completer = new VolumeGroupUpdateTaskCompleter(volumeGroup, addVols, removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMEGROUP_WF_NAME);
@@ -11312,7 +11300,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param opId
      * @return
      */
-    private void addStepsForImportClonesOfApplicationVolumes(Workflow workflow, String waitFor, List<URI>sourceVolumes, String opId) {
+    public void addStepsForImportClonesOfApplicationVolumes(Workflow workflow, String waitFor, List<URI>sourceVolumes, String opId) {
         _log.info("Creating steps for importing clones");
         for (URI vplexSrcUri : sourceVolumes) {
             Volume vplexSrcVolume = getDataObject(Volume.class, vplexSrcUri, _dbClient);

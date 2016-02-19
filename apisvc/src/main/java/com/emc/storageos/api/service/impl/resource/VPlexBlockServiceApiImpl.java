@@ -3599,7 +3599,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     addVolsCg = vol.getConsistencyGroup();
                 }
             }
-
+            validateAddVolumesToApplication(volsToValidate, volumeGroup);
+            
             List<URI> allVolumes = new ArrayList<URI>();
             addVols.setConsistencyGroup(addVolsCg);
             addVols.setReplicationGroupName(addVolsGroupName);
@@ -3694,13 +3695,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private void updateVolumesInCgInApplication(List<URI> volumesInCG, VolumeGroup application, String taskId) {
         // For volumes with backing volumes aready in a CG, we just need to update the db if it is not VN
-        // if the volume has clone, and the application has no volume yet. we would add the volume to the application, and
+        // if the volume has clone, we would add the volume to the application, and
         // set the fullCopySetName for the clone, so that it becomes part of the application clone.
     	URI cguri = null;
-    	List<Volume> vgVols = CustomQueryUtility
-                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(application.getId().toString()));
-        boolean canCGHaveReplica = vgVols.isEmpty() ? true : false;
+
         Iterator<Volume> volumeIt = _dbClient.queryIterativeObjects(Volume.class, volumesInCG);
         List<Volume> volumes = new ArrayList<Volume>();
         while (volumeIt.hasNext()) {
@@ -3708,18 +3706,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
         Map<String, List<Volume>> volumeMap = ControllerUtils.groupVolumesByArrayGroup(volumes, _dbClient);
         for (List<Volume> volumesInRG : volumeMap.values()) {
-            Volume firstVolume = volumesInRG.get(0);
-            StringSet fullCopies = firstVolume.getFullCopies();
-            Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(firstVolume, true, _dbClient);
-            if ((fullCopies != null && !fullCopies.isEmpty()) || ControllerUtils.checkIfVolumeHasSnapshot(backendVolume, _dbClient)) {
-                if (canCGHaveReplica) {
-                    canCGHaveReplica = false; // only one CG can have replica
-                } else {
-                    // adding volumes with existing clones/snapshots is not supported when application is not empty, or two or more RGs in the order have replicas
-                    throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
-                            "Volume with replicas cannot be added if volume group is not empty, or volumes being added in other replication group have replicas");
-                }
-            }
             for (Volume volume : volumesInRG) {
                 StringSet applications = volume.getVolumeGroupIds();
                 if (applications == null) {
@@ -3727,22 +3713,28 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
                 applications.add(application.getId().toString());
                 volume.setVolumeGroupIds(applications);
-                // handle clones
-                StringSet clones = volume.getFullCopies();
-                List<Volume> fullCopiesToUpdate = new ArrayList<Volume>();
-                if (clones != null && !clones.isEmpty()) {
-                    for (String fullCopyId : clones) {
+                // handle fullcopy. If the volume is in RG, set fullCopySetName in the full copy
+                StringSet fullcopies = volume.getFullCopies();
+                if (fullcopies != null && !fullcopies.isEmpty()) {
+                    List<Volume> fullCopiesToUpdate = new ArrayList<Volume>();
+                    for (String fullCopyId : fullcopies) {
                         Volume fullCopy = _dbClient.queryObject(Volume.class, URI.create(fullCopyId));
                         if (fullCopy != null && !fullCopy.getInactive()) {
-                            fullCopy.setFullCopySetName(fullCopy.getReplicationGroupInstance());
+                            Volume fullCopyBack = VPlexUtil.getVPLEXBackendVolume(fullCopy, true, _dbClient);
+                            String groupName = fullCopyBack.getReplicationGroupInstance();
+                            if (NullColumnValueGetter.isNullValue(groupName)) {
+                                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                                        "the volume has full copy, and the full copy is not in a replication group");
+                            }
+                            fullCopy.setFullCopySetName(groupName);
                             fullCopiesToUpdate.add(fullCopy);
                         }
                     }
+                    if (!fullCopiesToUpdate.isEmpty()) {
+                        _dbClient.updateObject(fullCopiesToUpdate);
+                    }
                 }
-
-                if (!fullCopiesToUpdate.isEmpty()) {
-                    _dbClient.updateObject(fullCopiesToUpdate);
-                }
+                
                 Operation op = volume.getOpStatus().get(taskId);
                 op.ready();
                 volume.getOpStatus().updateTaskStatus(taskId, op);
@@ -3765,6 +3757,26 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
     }
 
+    /**
+     * validate volumes can be added to an application
+     * 
+     * @param volumes
+     * @param application
+     */
+    private void validateAddVolumesToApplication(List<Volume> volumes, VolumeGroup application) {
+        for (Volume volume : volumes) {
+            // Check if the volume has any replica
+            List<BlockSnapshot> snapshots = getSnapshots(volume);
+            StringSet mirrors = volume.getMirrors();
+            StringSet fullCopyIds = volume.getFullCopies();
+            if ((snapshots != null && !snapshots.isEmpty()) || (mirrors != null && !mirrors.isEmpty())
+                    || (fullCopyIds != null && !fullCopyIds.isEmpty())) {
+                throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
+                        String.format("the volumes %s has replica. please remove all replicas from the volume", volume.getLabel()));
+            }
+        }
+
+    }
 
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.BlockServiceApi#getReplicationGroupNames(com.emc.storageos.db.client.model.VolumeGroup)

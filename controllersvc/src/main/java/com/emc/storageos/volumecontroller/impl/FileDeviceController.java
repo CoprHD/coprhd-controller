@@ -292,8 +292,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (result.isCommandSuccess()) {
                 fsObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, fsObj));
                 fsObj.setInactive(false);
+                WorkflowStepCompleter.stepSucceded(opId);
             } else if (!result.getCommandPending()) {
                 fsObj.setInactive(true);
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
 
             _dbClient.persistObject(fsObj);
@@ -301,8 +303,6 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             if (!result.getCommandPending()) {
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj);
             }
-            // work flow
-            WorkflowStepCompleter.stepSucceded(opId);
         } catch (Exception e) {
             String[] params = { storage.toString(), pool.toString(), fs.toString(), e.getMessage() };
             _log.error("Unable to create file system: storage {}, pool {}, FS {}: {}", params);
@@ -354,12 +354,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         result = BiosCommandResult.createSuccessfulResult();
                     }
                 }
+                // In case of VNXe
                 if (result.getCommandPending()) {
                     return;
                 }
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
-                // work flow service
-                WorkflowStepCompleter.stepSucceded(opId);
+
                 if (result.isCommandSuccess() && (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType))) {
                     fsObj.setInactive(true);
                     if (forceDelete) {
@@ -371,6 +371,10 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         doDeletePolicyReferenceFromDB(fsObj);              // Remove FileShare Reference from Schedule Policy
                     }
                     generateZeroStatisticsRecord(fsObj);
+                    WorkflowStepCompleter.stepSucceded(opId);
+                } else if (!result.getCommandPending()
+                        && FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType)) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
                 }
                 if (result.isCommandSuccess()
                         && (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType))) {
@@ -396,18 +400,23 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                             doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
                             args.addQuotaDirectory(null);
                             doFSDeleteQuotaDirsFromDB(args);
-                            doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                         }
                     }
 
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
+                    doDeletePolicyReferenceFromDB(fsObj); // Remove FileShare Reference from Schedule Policy
                     SMBShareMap cifsSharesMap = fsObj.getSMBFileShares();
                     if (cifsSharesMap != null && !cifsSharesMap.isEmpty()) {
                         cifsSharesMap.clear();
                     }
                     fsObj.setInactive(true);
                     generateZeroStatisticsRecord(fsObj);
+
+                    WorkflowStepCompleter.stepSucceded(opId);
+                } else if (!result.getCommandPending()
+                        && FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)) {
+                    WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
                 }
                 _dbClient.persistObject(fsObj);
                 recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj,
@@ -858,13 +867,14 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 _log.info("FileSystem old capacity :" + args.getFsCapacity() + ":Expanded Size:" + args.getNewFSCapacity());
                 args.setFsCapacity(args.getNewFSCapacity());
                 _log.info("FileSystem new capacity :" + args.getFsCapacity());
+                WorkflowStepCompleter.stepSucceded(opId);
+            } else if (!result.getCommandPending()) {
+                WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());
             }
             // Set status
             fs.getOpStatus().updateTaskStatus(opId, result.toOperation());
             _dbClient.persistObject(fs);
 
-            // work flow and we need to add TaskCompleter(TBD for vnxfile)
-            WorkflowStepCompleter.stepSucceded(opId);
             String eventMsg = result.isCommandSuccess() ? "" : result.getMessage();
             recordFileDeviceOperation(_dbClient, OperationTypeEnum.EXPAND_FILE_SYSTEM,
                     result.isCommandSuccess(), eventMsg, "", fs, String.valueOf(newFSsize));
@@ -1545,6 +1555,12 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         snapshotObj.getId().toString(), ((StorageSystem) extParam[2]).getId().toString(), extensions);
                 break;
 
+            case ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE:
+            case UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE:
+                auditFile(dbClient, opType, opStatus, opStage,
+                        fs.getId().toString(), ((SchedulePolicy) extParam[1]).getId().toString(), extensions);
+                break;
+
             default:
                 _log.error("unrecognized fileshare operation type");
         }
@@ -2108,7 +2124,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
             SchedulePolicy fp = _dbClient.queryObject(SchedulePolicy.class, URI.create(policy));
 
             StringSet fsURIs = fp.getAssignedResources();
-            fsURIs.remove(fs.getId());
+            fsURIs.remove(fs.getId().toString());
             fp.setAssignedResources(fsURIs);
             _dbClient.updateObject(fp);
 
@@ -3724,7 +3740,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         result.isCommandSuccess(),
                         eventMsg,
                         args.getFileSystemPath(),
-                        fs, storageObj);
+                        fs, fp);
 
                 _dbClient.updateObject(fs);
                 _dbClient.updateObject(fp);
@@ -3802,7 +3818,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                         result.isCommandSuccess(),
                         eventMsg,
                         args.getFileSystemPath(),
-                        fs, storageObj);
+                        fs, fp);
 
                 _dbClient.updateObject(fs);
                 _dbClient.updateObject(fp);

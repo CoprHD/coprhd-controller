@@ -314,7 +314,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storageSystem,
                                          URI consistencyGroupId, String replicationGroupName,
-                                         String newReplicationGroupName,  Boolean markInactive, TaskCompleter taskCompleter)
+                                         Boolean keepRGName,  Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
     _log.info("Deleting consistency group: storage system {}, group {}", storageSystem.getNativeId(), consistencyGroupId );
 

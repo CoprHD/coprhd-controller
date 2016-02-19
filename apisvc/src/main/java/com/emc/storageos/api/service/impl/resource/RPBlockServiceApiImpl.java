@@ -79,6 +79,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -95,6 +96,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.RPRecommendation;
@@ -3546,6 +3548,144 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.deleteVolumes(volumeDescriptors, taskId);
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateVolumesInVolumeGroup(VolumeGroupVolumeList addVolumes, List<Volume> removeVolumes, 
+            URI applicationId, String taskId) {
+        
+        VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, applicationId);
+        ApplicationAddVolumeList addVolumesNotInCG = null;
+        List<URI> removeVolumesURI = null;
+        RPController controller = null;
+        URI protSystemUri = null;
+        Volume firstVolume = null;
+        if (addVolumes != null && addVolumes.getVolumes() != null && !addVolumes.getVolumes().isEmpty()) {
+            addVolumesNotInCG = addVolumesToApplication(addVolumes, volumeGroup, taskId);
+            List<URI> vols = addVolumesNotInCG.getVolumes();
+            if (vols != null && !vols.isEmpty()) {
+                firstVolume = _dbClient.queryObject(Volume.class, vols.get(0));
+            }
+        }
+
+        if (removeVolumes != null && !removeVolumes.isEmpty()) {
+            removeVolumesURI = new ArrayList<URI> ();
+            for (Volume vol : removeVolumes) {
+                removeVolumesURI.add(vol.getId());
+            }
+            if (firstVolume == null) {
+                firstVolume = removeVolumes.get(0);
+            }
+               
+        } 
+        if ((addVolumesNotInCG != null && !addVolumesNotInCG.getVolumes().isEmpty()) ||
+                (removeVolumesURI != null && !removeVolumesURI.isEmpty())){
+            protSystemUri = firstVolume.getProtectionController();
+            ProtectionSystem system = _dbClient.queryObject(ProtectionSystem.class, protSystemUri);
+            controller = getController(RPController.class, system.getSystemType());
+            controller.updateApplication(protSystemUri, addVolumesNotInCG, removeVolumesURI, volumeGroup.getId(), taskId);
+        } else {
+            // No need to call to controller. update the application task
+            Operation op = volumeGroup.getOpStatus().get(taskId);
+            op.ready();
+            volumeGroup.getOpStatus().updateTaskStatus(taskId, op);
+            _dbClient.updateObject(volumeGroup);
+        }
+    }
+
+    /**
+     * Update volumes with volumeGroup Id, if the volumes are in the CG
+     * @param volumesList The add volume list
+     * @param application The application that the volumes are added to
+     * @return ApplicationVolumeList The volumes that are in the add volume list, but not in any consistency group yet.
+     */
+    private ApplicationAddVolumeList addVolumesToApplication(VolumeGroupVolumeList volumeList, VolumeGroup application, String taskId) {
+        String firstVolLabel = null;
+        List<URI> addVolumeURIs = volumeList.getVolumes();
+        int volumesNotInCGCount = 0;
+        String inputRGName = volumeList.getReplicationGroupName();
+        ApplicationAddVolumeList outVolumesList = new ApplicationAddVolumeList();
+        outVolumesList.setReplicationGroupName(inputRGName);
+        URI cgUri = null;
+        for (URI voluri : addVolumeURIs) {
+            Volume volume = _dbClient.queryObject(Volume.class, voluri);
+            if (firstVolLabel == null) {
+                firstVolLabel = volume.getLabel();
+            }
+            if (volume == null || volume.getInactive()) {
+                _log.info(String.format("The volume %s does not exist or has been deleted", voluri));
+                continue;
+            }
+            if (cgUri == null) {    
+                cgUri = volume.getConsistencyGroup();
+            } else {
+                if (!cgUri.toString().equals(volume.getConsistencyGroup().toString())) {
+                    throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(), 
+                            "the RecoverPoint volumes being added are from different consistency groups");
+                }
+            }
+            
+            if (cgUri == null) {
+                // something is wrong; rp volumes should always be part of a consistency group
+                throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(), 
+                        "the RecoverPoint volumes being added are not associated with a consistency group");
+            }
+            
+            if (firstVolLabel == null) {
+                firstVolLabel = volume.getLabel();
+            }
+           
+        }
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+        if (cg == null || cg.getInactive()) {
+            throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(), 
+                    String.format("the consistency group associated with RecoverPoint volumes being added does not exist", cgUri));
+        }
+        
+        List<URI> allVolumes = RPHelper.getReplicationSetVolumes(addVolumeURIs, _dbClient);
+        Set<String> checkedRG = new HashSet<String>();
+        outVolumesList.setConsistencyGroup(cgUri);
+        for (URI volumeUri : allVolumes) {
+            Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
+            boolean vplex = RPHelper.isVPlexVolume(volume);
+            if (vplex) {
+                // get the backend volume
+                Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                String rgName = backendVol.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                    // the backend volume is in a replication group. make sure all source volumes in the same replication group is in the add list
+                    URI storageSystemUri = backendVol.getStorageController();
+                    String key = storageSystemUri.toString() + rgName;
+                    if (!checkedRG.contains(key)) {
+                        checkedRG.add(key);
+                        List<URI> rgVolumes = vplexBlockServiceApiImpl.getVolumesInSameReplicationGroup(rgName, storageSystemUri);
+                        for (URI rgVolume : rgVolumes) {
+                            Volume vol = _dbClient.queryObject(Volume.class, rgVolume);
+                            if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                                if (!allVolumes.contains(rgVolume)) {
+                                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                                            "not all volumes in the same replication group are in the add volume list");
+                                }
+                            }
+                        }
+                    }
+                    
+                } else {
+                    volumesNotInCGCount++;
+                }
+            } else {
+                volumesNotInCGCount++;
+            }
+        }
+        outVolumesList.setVolumes(addVolumeURIs);
+        if (volumesNotInCGCount > 0 && (inputRGName == null || inputRGName.isEmpty())) {
+            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
+                    "replication group name is not provided");
+        }
+        return outVolumesList;
+    }
 
     /*
      * (non-Javadoc)
@@ -3555,7 +3695,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public Collection<? extends String> getReplicationGroupNames(VolumeGroup group) {
-        List<String> groupNames = new ArrayList<String>();
+        Set<String> groupNames = new HashSet<String>();
         final List<Volume> volumes = CustomQueryUtility
                 .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
@@ -3564,7 +3704,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 groupNames.add(volume.getReplicationGroupInstance());
             }
         }
-        // TODO : add target volumes if necessary
         return groupNames;
     }
 }

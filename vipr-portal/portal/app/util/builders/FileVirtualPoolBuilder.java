@@ -4,6 +4,10 @@
  */
 package util.builders;
 
+import models.FileProtectionSystemTypes;
+
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.storageos.model.vpool.FileVirtualPoolParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolReplicationParam;
@@ -55,7 +59,7 @@ public class FileVirtualPoolBuilder extends VirtualPoolBuilder {
         virtualPool.setLongTermRetention(longTermRetention);
         return this;
     }
-    
+
     protected FileVirtualPoolReplicationParam getReplicationParam() {
         if (getProtection().getReplicationParam() == null) {
             getProtection().setReplicationParam(new FileVirtualPoolReplicationParam());
@@ -69,15 +73,17 @@ public class FileVirtualPoolBuilder extends VirtualPoolBuilder {
     }
 
     public FileVirtualPoolBuilder setReplicationParam(FileVirtualPoolReplicationParam replicationParam) {
+        String replicationType = replicationParam.getSourcePolicy().getReplicationType();
+        replicationParam.getSourcePolicy().setReplicationType(StringUtils.defaultIfEmpty(replicationType, FileProtectionSystemTypes.NONE));
         getProtection().setReplicationParam(replicationParam);
         return this;
     }
-    
+
     public FileVirtualPoolBuilder setScheduleSnapshots(Boolean scheduleSnapshots) {
         getProtection().setScheduleSnapshots(scheduleSnapshots);
         return this;
     }
-    
+
     public static Boolean getScheduleSnapshots(FileVirtualPoolProtectionParam protection) {
         return protection != null ? protection.getScheduleSnapshots() : null;
     }

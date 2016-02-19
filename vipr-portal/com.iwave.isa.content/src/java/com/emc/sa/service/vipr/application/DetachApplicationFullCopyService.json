@@ -1,0 +1,14 @@
+{
+  baseKey:"DetachApplicationFullCopy.Application",
+  serviceId:"DetachApplicationFullCopy",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+    copyName:{
+      type:"assetType.vipr.fullCopyName"
+    }
+  }
+}

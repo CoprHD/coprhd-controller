@@ -114,6 +114,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
     private static final int CG_MAX_LIMIT = 64;
+    private static final String FULL_COPY = "Full copy";
 
     // A reference to the placement manager.
     private PlacementManager _placementManager;
@@ -247,6 +248,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         consistencyGroup.setLabel(param.getName());
         consistencyGroup.setProject(new NamedURI(project.getId(), param.getName()));
         consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), param.getName()));
+        // disable array consistency if user has selected not to create backend replication group
+        consistencyGroup.setArrayConsistency(param.getArrayConsistency());
 
         _dbClient.createObject(consistencyGroup);
 
@@ -424,6 +427,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -1168,7 +1172,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
         }
 
-        if (cgStorageSystem.deviceIsType(Type.xtremio) || (cgStorageSystem.getUsingSmis80() && cgStorageSystem.deviceIsType(Type.vmax))) {
+        if (cgStorageSystem.getUsingSmis80() && cgStorageSystem.deviceIsType(Type.vmax)) {
             // CG can have replicas
             if (_log.isDebugEnabled()) {
                 _log.debug("CG can have replicas for VMAX with SMI-S 8.x");
@@ -1229,11 +1233,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     }
                     if (!BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) {
                         blockServiceApiImpl.verifyRemoveVolumeFromCG(volume, cgVolumes);
-                    }
-                    // Check if the volume is assigned to an application
-                    VolumeGroup application = volume.getCopyTypeVolumeGroup(_dbClient);
-                    if (application != null) {
-                        throw APIException.badRequests.removeVolumeFromCGNotAllowed(volume.getLabel(), application.getLabel());
                     }
                 }
                 removeVolumesList.add(volumeURI);
@@ -1421,6 +1420,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -1431,7 +1431,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
         // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
-        validateVolumeNotPartOfApplication(cgVolumes.get(0), "full copy");
+        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
 
         // Grab the first volume and call the block full copy
         // manager to create the full copies for the volumes
@@ -1450,6 +1450,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -1481,6 +1482,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return A TaskList representing the snapshot session task.
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions/{sid}/link-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1506,6 +1508,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return A TaskResourceRep representing the snapshot session task.
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshot-sessions/{sid}/unlink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
@@ -1553,6 +1556,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
+
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
 
@@ -1582,6 +1590,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Get the full copy source.
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
@@ -1617,6 +1630,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
+
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
 
@@ -1646,6 +1664,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1677,6 +1700,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Verify the full copy.
         verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -2242,16 +2270,19 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * Check if the given CG volume is part of an application.
-     * If so, throw an error indicating replica operation is supported on CG.
+     * Check if any of the given CG volumes is part of an application.
+     * If so, throw an error indicating replica operation is not supported on CG
+     * and it should be performed at application level.
      *
      * @param volume the CG volume
      */
-    private void validateVolumeNotPartOfApplication(Volume volume, String replicaType) {
-        VolumeGroup volumeGroup = volume.getCopyTypeVolumeGroup(_dbClient);
-        if (volumeGroup != null) {
-            throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
-                    replicaType);
+    private void validateVolumeNotPartOfApplication(List<Volume> volumes, String replicaType) {
+        for (Volume volume : volumes) {
+            VolumeGroup volumeGroup = volume.getApplication(_dbClient);
+            if (volumeGroup != null) {
+                throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
+                        replicaType);
+            }
         }
     }
 

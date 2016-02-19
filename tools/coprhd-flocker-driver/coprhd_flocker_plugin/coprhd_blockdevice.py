@@ -47,7 +47,7 @@ class CoprHDCLIDriver(object):
     AUTHENTICATED = False
     def __init__(self, coprhdhost, 
                  port, username, password, tenant, 
-                 project, varray, cookiedir, vpool, hostexportgroup):
+                 project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup):
         self.coprhdhost = coprhdhost
         self.port =  port
         self.username = username
@@ -57,6 +57,10 @@ class CoprHDCLIDriver(object):
         self.varray = varray
         self.cookiedir = cookiedir
         self.vpool = vpool
+        self.vpool_platinum=vpool_platinum
+        self.vpool_gold=vpool_gold
+        self.vpool_silver=vpool_silver
+        self.vpool_bronze=vpool_bronze
         self.hostexportgroup = hostexportgroup
         self.host = unicode(socket.gethostname())
         self.stats = {'driver_version': '1.0',
@@ -86,7 +90,6 @@ class CoprHDCLIDriver(object):
             obj = auth.Authentication(
                 self.coprhdhost,
                 self.port)
-
             cookiedir = self.cookiedir
             obj.authenticate_user(self.username,
                                   self.password,
@@ -157,7 +160,7 @@ class CoprHDCLIDriver(object):
              attach_to=None
              for e_uri in export_uris:
               groupdetails = self.exportgroup_obj.exportgroup_show(e_uri, self.project, self.tenant)
-              exportedvolumes =  groupdetails['volumes'] 
+              exportedvolumes =  groupdetails['volumes']
               for evolumes in exportedvolumes:
                   Message.new(Debug="coprhd list_volume for loop" + evolumes['id'] + v_uri).write(_logger)           
                   if evolumes['id'] == v_uri:
@@ -174,13 +177,23 @@ class CoprHDCLIDriver(object):
               volume = volumestatus(name=showvolume['name'],size=showvolume['allocated_capacity_gb'],attached_to=None)
               volumes.append(volume)
         except utils.SOSError:
-                    Message.new(Debug="coprhd list volumes failed").write(_logger)
+            Message.new(Debug="coprhd list volumes failed").write(_logger)
         return volumes
         
     #@retry_wrapper
-    def create_volume(self, vol, size):
+    def create_volume(self, vol, size,profile_name=None):
         self.authenticate_user()
         Message.new(Debug="coprhd create_volume").write(_logger)
+        if str(profile_name).lower() == 'platinum':
+           self.vpool=self.vpool_platinum
+        elif str(profile_name).lower() == 'gold':
+           self.vpool=self.vpool_gold
+        elif str(profile_name).lower() == 'silver':
+           self.vpool=self.vpool_silver
+        elif str(profile_name).lower() == 'bronze':
+           self.vpool=self.vpool_bronze
+        else:
+           self.vpool=self.vpool
         try:
                 self.volume_obj.create(
                 self.tenant + "/" +
@@ -253,7 +266,7 @@ class volumestatus(object):
         self.size = size
         self.attached_to = attached_to
         #Message.new(Debug="coprhd list volumestatus attached_to" + self.attached_to).write(_logger)
-        
+@implementer(IProfiledBlockDeviceAPI)        
 @implementer(IBlockDeviceAPI)
 class CoprHDBlockDeviceAPI(object):
     """
@@ -297,6 +310,26 @@ class CoprHDBlockDeviceAPI(object):
         return BlockDeviceVolume(
           size=size, attached_to=None, dataset_id=dataset_id, blockdevice_id=u"block-{0}".format(dataset_id)
         )
+    def create_volume_with_profile(self,dataset_id, size, profile_name):
+        """
+        Create a volume of specified size and profile on the COPRHD.
+        The size shall be rounded off to 1BM, as COPRHD
+        volumes of these sizes.
+        
+        profile can either 'PLATINUM' or 'GOLD' or 'SILVER' or 'BRONZE'
+        
+        See `IProfiledBlockDeviceAPI.create_volume_with_profile` for parameter and return type
+        documentation.
+        """
+
+        Message.new(Info="coprhd create_volume size is " + str(size)).write(_logger)
+        Message.new(Info="coprhd create_volume profile is " + str(profile_name)).write(_logger)
+       
+        volumesdetails = self.coprhdcli.get_volume_details("flocker-{}".format(dataset_id))
+        if not volumesdetails:
+           self.coprhdcli.create_volume("flocker-{}".format(dataset_id),size,profile_name=profile_name)
+           Message.new(Debug="coprhd create_volume_with_profile done").write(_logger)
+        return BlockDeviceVolume(size=size, attached_to=None, dataset_id=dataset_id, blockdevice_id=u"block-{0}".format(dataset_id))
 
     def destroy_volume(self, blockdevice_id):
         """
@@ -471,12 +504,12 @@ class CoprHDBlockDeviceAPI(object):
         return volumes
 
 def configuration(coprhdhost, port, username, password, tenant,
-                           project, varray, cookiedir, vpool, hostexportgroup):
+                           project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup):
     """
     :return:CoprHDBlockDeviceAPI object
     """
     return CoprHDBlockDeviceAPI(
         coprhdcliconfig=CoprHDCLIDriver(coprhdhost, 
         port, username, password, tenant, 
-        project, varray, cookiedir, vpool, hostexportgroup),allocation_unit=1
+        project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup),allocation_unit=1
     )

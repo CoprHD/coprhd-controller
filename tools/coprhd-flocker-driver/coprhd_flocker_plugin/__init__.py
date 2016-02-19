@@ -11,7 +11,9 @@ def api_factory(cluster_id, **kwargs):
                                   username=kwargs[u'username'],password=kwargs[u'password'],
                                   tenant=kwargs[u'tenant'],project=kwargs[u'project'],
                                   varray=kwargs[u'varray'],cookiedir=kwargs[u'cookiedir'],
-                                  vpool=kwargs[u'vpool'],hostexportgroup=kwargs[u'hostexportgroup'])
+                                  vpool=kwargs[u'vpool'],vpool_platinum=kwargs[u'vpool_platinum'],vpool_gold=kwargs[u'vpool_gold'],
+                                  vpool_silver=kwargs[u'vpool_silver'],vpool_bronze=kwargs[u'vpool_bronze'],
+                                  hostexportgroup=kwargs[u'hostexportgroup'])
 
 
 FLOCKER_BACKEND = BackendDescription(

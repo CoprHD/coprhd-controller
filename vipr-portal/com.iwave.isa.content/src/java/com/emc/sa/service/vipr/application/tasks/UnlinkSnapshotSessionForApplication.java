@@ -20,7 +20,7 @@ public class UnlinkSnapshotSessionForApplication extends WaitForTasks<TaskResour
     public UnlinkSnapshotSessionForApplication(URI applicationId, URI snapshotSession) {
         this.applicationId = applicationId;
         this.snapshotSession = snapshotSession;
-        provideDetailArgs(applicationId);
+        provideDetailArgs(applicationId, snapshotSession);
     }
 
     @Override

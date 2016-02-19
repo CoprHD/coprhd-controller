@@ -29,8 +29,8 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.NAME)
     protected String name;
 
-    @Param(ServiceParams.APPLICATION_SITE)
-    protected URI virtualArrayId;
+    // @Param(ServiceParams.APPLICATION_SITE)
+    // protected URI virtualArrayId;
 
     @Param(ServiceParams.COUNT)
     protected Integer count;

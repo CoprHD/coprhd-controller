@@ -20,7 +20,7 @@ public class LinkSnapshotSessionForApplication extends WaitForTasks<TaskResource
     public LinkSnapshotSessionForApplication(URI applicationId, URI snapSession) {
         this.applicationId = applicationId;
         this.snapSession = snapSession;
-        provideDetailArgs(applicationId);
+        provideDetailArgs(applicationId, snapSession);
     }
 
     @Override

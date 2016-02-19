@@ -20,7 +20,7 @@ public class RestoreSnapshotSessionForApplication extends WaitForTasks<TaskResou
     public RestoreSnapshotSessionForApplication(URI applicationId, URI snapSession) {
         this.applicationId = applicationId;
         this.snapSession = snapSession;
-        provideDetailArgs(applicationId);
+        provideDetailArgs(applicationId, snapSession);
     }
 
     @Override

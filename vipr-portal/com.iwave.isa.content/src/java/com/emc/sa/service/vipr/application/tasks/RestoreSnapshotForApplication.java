@@ -20,7 +20,7 @@ public class RestoreSnapshotForApplication extends WaitForTasks<TaskResourceRep>
     public RestoreSnapshotForApplication(URI applicationId, URI snapshot) {
         this.applicationId = applicationId;
         this.snapshot = snapshot;
-        provideDetailArgs(applicationId);
+        provideDetailArgs(applicationId, snapshot);
     }
 
     @Override

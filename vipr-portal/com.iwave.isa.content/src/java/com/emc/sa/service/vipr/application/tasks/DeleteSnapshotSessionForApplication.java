@@ -20,7 +20,7 @@ public class DeleteSnapshotSessionForApplication extends WaitForTasks<TaskResour
     public DeleteSnapshotSessionForApplication(URI applicationId, URI snapshotSession) {
         this.applicationId = applicationId;
         this.snapshotSession = snapshotSession;
-        provideDetailArgs(applicationId);
+        provideDetailArgs(applicationId, snapshotSession);
     }
 
     @Override

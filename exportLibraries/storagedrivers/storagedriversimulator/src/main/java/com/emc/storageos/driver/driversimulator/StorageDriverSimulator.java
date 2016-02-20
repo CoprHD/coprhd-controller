@@ -489,7 +489,23 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask createConsistencyGroupClone(VolumeConsistencyGroup consistencyGroup, List<VolumeClone> clones, List<CapabilityInstance> capabilities) {
-        return null;
+        String cloneTimestamp = Long.toString(System.currentTimeMillis());
+        for (VolumeClone clone : clones) {
+            clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
+            clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
+            clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
+            clone.setDeviceLabel(clone.getNativeId());
+            clone.setConsistencyGroup(consistencyGroup.getNativeId()+"_clone-"+cloneTimestamp);
+        }
+        String taskType = "create-group-clone";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        task.setMessage("Created clones for consistency group " + clones.get(0).getConsistencyGroup());
+
+        _log.info("StorageDriver: createGroupClone information for storage system {}, clones nativeIds {} - end",
+                clones.get(0).getStorageSystemId(), clones.toString());
+        return task;
     }
 
     @Override

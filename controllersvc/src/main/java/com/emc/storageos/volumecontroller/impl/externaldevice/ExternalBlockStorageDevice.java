@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -195,7 +196,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         for (Volume volume : volumes) {
             DriverTask task = null;
             // Check if this is regular volume or this is volume clone
-            if (volume.getAssociatedSourceVolume() != null) {
+            if (!NullColumnValueGetter.isNullURI(volume.getAssociatedSourceVolume())) {
                 // this is clone
                 _log.info("Deleting volume clone on storage system {}, clone: {} .",
                         storageSystem.getNativeId(), volume.toString());
@@ -453,12 +454,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         List<Volume> clones = null;
         try {
             clones = dbClient.queryObject(Volume.class, cloneURIs);
-            // We assume here that all clones belong to the same consistency group
+            // We assume here that all volumes belong to the same consistency group
+            URI parentUri = clones.get(0).getAssociatedSourceVolume();
+            Volume parentVolume = dbClient.queryObject(Volume.class, parentUri);
             BlockConsistencyGroup cg = null;
-            if (!NullColumnValueGetter.isNullURI(clones.get(0).getConsistencyGroup())) {
-                cg = dbClient.queryObject(BlockConsistencyGroup.class, clones.get(0).getConsistencyGroup());
+            if (!NullColumnValueGetter.isNullURI(parentVolume.getConsistencyGroup())) {
+                cg = dbClient.queryObject(BlockConsistencyGroup.class, parentVolume.getConsistencyGroup());
             } else {
-                String errorMsg = String.format("doCreateGroupClone -- Failed to create group clone, clones do not have consistency group set. Clones: %s .", cloneURIs);
+                String errorMsg = String.format("doCreateGroupClone -- Failed to create group clone, parent volumes do not belong to consistency group." +
+                        " Clones: %s .", cloneURIs);
                 _log.error(errorMsg);
                 ServiceError serviceError = ExternalDeviceException.errors.createGroupCloneFailed("doCreateGroupClone",errorMsg);
                 taskCompleter.error(dbClient, serviceError);
@@ -475,7 +479,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 URI sourceVolumeUri = clone.getAssociatedSourceVolume();
                 Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeUri);
                 VolumeClone driverClone = new VolumeClone();
-                driverClone.setConsistencyGroup(cg.getLabel());
+                //driverClone.setConsistencyGroup(cg.getLabel());
                 driverClone.setParentId(sourceVolume.getNativeId());
                 driverClone.setStorageSystemId(storageSystem.getNativeId());
                 driverClone.setDisplayName(clone.getLabel());
@@ -495,6 +499,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                     cloneObject.setDeviceLabel(driverCloneResult.getDeviceLabel());
                     cloneObject.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, cloneObject));
                     cloneObject.setReplicaState(driverCloneResult.getReplicationState().name());
+                    cloneObject.setReplicationGroupInstance(driverCloneResult.getConsistencyGroup());
                     cloneObject.setInactive(false);
                     cloneObjects.add(cloneObject);
                 }
@@ -527,6 +532,18 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         }
     }
 
+
+    @Override
+    public void doDetachClone(StorageSystem storage, URI cloneVolume,
+                              TaskCompleter taskCompleter) {
+        // todo: complete ... do as cinder ....
+        Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
+        clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+        clone.setReplicaState(Volume.ReplicationState.DETACHED.name());
+        dbClient.updateObject(clone);
+        taskCompleter.ready(dbClient);
+    }
 
 
     @Override
@@ -917,6 +934,20 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
                                                  List<String> initiatorNames, boolean mustHaveAllPorts) {
         return exportMaskOperationsHelper.findExportMasks(storage, initiatorNames, mustHaveAllPorts);
+    }
+
+    @Override
+    public void doWaitForSynchronized(Class<? extends BlockObject> clazz, StorageSystem storageObj, URI target, TaskCompleter completer) {
+        _log.info("No support for wait for synchronization for external devices.");
+        completer.ready(dbClient);
+    }
+
+    @Override
+    public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer)
+    {
+        _log.info("No support for wait for synchronization for external devices.");
+        completer.ready(dbClient);
+
     }
 
 }

@@ -8,8 +8,7 @@
     },
     
     applicationSite:{
-      type:"assetType.vipr.applicationSnapshotVirtualArray",
-      required:"false"
+      type:"assetType.vipr.applicationSnapshotVirtualArray"
     },
     
     highAvailability:{

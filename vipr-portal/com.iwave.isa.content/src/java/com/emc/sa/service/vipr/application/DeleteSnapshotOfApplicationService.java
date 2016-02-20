@@ -6,7 +6,6 @@ package com.emc.sa.service.vipr.application;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -17,7 +16,6 @@ import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotSessionForApplica
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
 @Service("DeleteSnapshotOfApplication")
@@ -39,17 +37,16 @@ public class DeleteSnapshotOfApplicationService extends ViPRService {
     public void execute() throws Exception {
 
         // get list of volumes in application
-        NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
-        Map<String, VolumeRestRep> volumeTypes = BlockStorageUtils.getVolumeSystemTypes(volList, subGroups);
-
+        NamedVolumesList applicationVolumes = getClient().application().getVolumeByApplication(applicationId);
         Tasks<? extends DataObjectRestRep> tasks = null;
 
-        if (BlockStorageUtils.isVmax3(volumeTypes)) {
+        if (BlockStorageUtils.containsVmax3Volume(applicationVolumes)) {
             List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, applicationCopySet,
-                    volList, subGroups);
+                    applicationVolumes, subGroups);
             tasks = execute(new DeleteSnapshotSessionForApplication(applicationId, snapshotSessionIds));
         } else {
-            List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, volList, subGroups);
+            List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, applicationVolumes,
+                    subGroups);
             tasks = execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
         }
         addAffectedResources(tasks);

@@ -1038,23 +1038,14 @@ public class BlockStorageUtils {
         return map;
     }
 
-    /**
-     * Helper method to get map of system type -> volume
-     * 
-     * @param volList
-     * @param subGroups
-     * @return
-     */
-    public static Map<String, VolumeRestRep> getVolumeSystemTypes(NamedVolumesList volumeList, List<String> subGroups) {
-        Map<String, VolumeRestRep> volumeTypes = Maps.newHashMap();
-        for (NamedRelatedResourceRep vol : volumeList.getVolumes()) {
-            VolumeRestRep volume = execute(new GetBlockVolume(vol.getId()));
-            if (subGroups != null && subGroups.contains(volume.getReplicationGroupInstance())) {
-                volumeTypes.put(volume.getSystemType(), volume);
+    public static boolean containsVmax3Volume(NamedVolumesList volList) {
+        for (NamedRelatedResourceRep volumeRep : volList.getVolumes()) {
+            VolumeRestRep volume = execute(new GetBlockVolume(volumeRep.getId()));
+            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equalsIgnoreCase("vmax3")) {
+                return true;
             }
         }
-        return volumeTypes;
-
+        return false;
     }
 
     public static List<URI> getSingleVolumePerSubGroup(NamedVolumesList volList, List<String> subGroups) {
@@ -1071,28 +1062,20 @@ public class BlockStorageUtils {
         return volumeIds;
     }
 
-    public static boolean isVmax3(Map<String, VolumeRestRep> volumeTypes) {
-        for (String type : volumeTypes.keySet()) {
-            if (type.equalsIgnoreCase("vmax3")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public static List<URI> getSingleSnapshotPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
             List<String> subGroups) {
-        List<URI> snapshotSessionIds = Lists.newArrayList();
+        List<URI> snapshotIds = Lists.newArrayList();
         SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, copySet));
         for (String subGroup : subGroups) {
-            for (NamedRelatedResourceRep snap : snapshotList.getSnapList()) {
-                BlockSnapshotSessionRestRep session = execute(new GetBlockSnapshotSession(snap.getId()));
-                if (session.getReplicationGroupInstance() != null && session.getReplicationGroupInstance().equals(subGroup)) {
-                    snapshotSessionIds.add(session.getId());
+            for (NamedRelatedResourceRep snapshotRep : snapshotList.getSnapList()) {
+                BlockSnapshotSessionRestRep snapshot = execute(new GetBlockSnapshotSession(snapshotRep.getId()));
+                if (snapshot.getReplicationGroupInstance() != null && snapshot.getReplicationGroupInstance().equals(subGroup)) {
+                    snapshotIds.add(snapshot.getId());
+                    break;
                 }
             }
         }
-        return snapshotSessionIds;
+        return snapshotIds;
     }
 
     public static List<URI> getSingleSnapshotSessionPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
@@ -1104,6 +1087,7 @@ public class BlockStorageUtils {
                 BlockSnapshotSessionRestRep session = execute(new GetBlockSnapshotSession(snap.getId()));
                 if (session.getReplicationGroupInstance() != null && session.getReplicationGroupInstance().equals(subGroup)) {
                     snapshotSessionIds.add(session.getId());
+                    break;
                 }
             }
         }

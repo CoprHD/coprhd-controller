@@ -6,7 +6,6 @@ package com.emc.sa.service.vipr.application;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -17,7 +16,6 @@ import com.emc.sa.service.vipr.application.tasks.CreateSnapshotSessionForApplica
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
 @Service("CreateSnapshotOfApplication")
@@ -47,13 +45,12 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     @Override
     public void execute() throws Exception {
 
-        NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
-        Map<String, VolumeRestRep> volumeTypes = BlockStorageUtils.getVolumeSystemTypes(volList, subGroups);
-        List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroup(volList, subGroups);
+        NamedVolumesList applicationVolumes = getClient().application().getVolumeByApplication(applicationId);
+        List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroup(applicationVolumes, subGroups);
 
         Tasks<? extends DataObjectRestRep> tasks = null;
 
-        if (BlockStorageUtils.isVmax3(volumeTypes)) {
+        if (BlockStorageUtils.containsVmax3Volume(applicationVolumes)) {
             tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeIds, name,
                     highAvailability));
         } else {

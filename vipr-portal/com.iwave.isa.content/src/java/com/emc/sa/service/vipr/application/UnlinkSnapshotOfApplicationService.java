@@ -32,7 +32,7 @@ public class UnlinkSnapshotOfApplicationService extends ViPRService {
     protected List<URI> subGroups;
 
     @Param(value = LINKED_SNAPSHOT, required = false)
-    protected List<URI> existingLinkedSnapshotIds;
+    protected List<String> existingLinkedSnapshotIds;
 
     @Override
     public void execute() throws Exception {

@@ -426,6 +426,12 @@ public class BlockMapper {
         // Map session label.
         to.setSessionLabel(from.getSessionLabel());
 
+        // Map replication group name.
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+
+        // Map session set name.
+        to.setSessionSetName(from.getSessionSetName());
+
         return to;
     }
 

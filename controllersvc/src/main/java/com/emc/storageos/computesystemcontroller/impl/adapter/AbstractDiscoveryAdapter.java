@@ -318,10 +318,10 @@ public abstract class AbstractDiscoveryAdapter implements ComputeSystemDiscovery
 
     protected void save(DataObject model) {
         if (model.getCreationTime() == null) {
-            debug("Creating %s: %s", model.getClass().getSimpleName(), toString(model));
+            warn("Creating %s: %s", model.getClass().getSimpleName(), toString(model));
         }
         else {
-            debug("Updating %s: %s", model.getClass().getSimpleName(), toString(model));
+            warn("Updating %s: %s", model.getClass().getSimpleName(), toString(model));
         }
         modelClient.save(model);
     }

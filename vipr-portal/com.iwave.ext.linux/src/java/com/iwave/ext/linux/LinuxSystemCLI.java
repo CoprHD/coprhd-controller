@@ -16,6 +16,7 @@ import com.iwave.ext.linux.command.AddToFSTabCommand;
 import com.iwave.ext.linux.command.FindMaxLunIdCommand;
 import com.iwave.ext.linux.command.FindMountPointCommand;
 import com.iwave.ext.linux.command.GetDeviceLunMappingCommand;
+import com.iwave.ext.linux.command.GetMachineIdCommand;
 import com.iwave.ext.linux.command.LinuxCommand;
 import com.iwave.ext.linux.command.ListHBAInfoCommand;
 import com.iwave.ext.linux.command.ListIPInterfacesCommand;
@@ -249,6 +250,12 @@ public class LinuxSystemCLI {
 
     public Set<String> listIQNs() {
         ListIQNsCommand command = new ListIQNsCommand();
+        executeCommand(command);
+        return command.getResults();
+    }
+
+    public String getMachineId() {
+        GetMachineIdCommand command = new GetMachineIdCommand();
         executeCommand(command);
         return command.getResults();
     }

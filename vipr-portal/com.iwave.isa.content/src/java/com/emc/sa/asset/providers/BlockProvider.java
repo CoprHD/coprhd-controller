@@ -1064,17 +1064,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
         input.setCopySetName(copySet);
 
-        for (String replicationGroup : client.application().getApplication(applicationId).getReplicationGroupNames()) {
-            options.add(replicationGroup);
+        BlockSnapshotSessionList sessions = client.application().getVolumeGroupSnapshotSessionsByCopySet(applicationId, input);
+        for (NamedRelatedResourceRep session : sessions.getSnapSessionRelatedResourceList()) {
+            BlockSnapshotSessionRestRep sessionRep = client.blockSnapshotSessions().get(session);
+            if (sessionRep != null && sessionRep.getReplicationGroupInstance() != null) {
+                options.add(sessionRep.getReplicationGroupInstance());
+            }
         }
-
-        // BlockSnapshotSessionList sessions = client.application().getVolumeGroupSnapshotSessionsByCopySet(applicationId, input);
-        // for (NamedRelatedResourceRep session : sessions.getSnapSessionRelatedResourceList()) {
-        // BlockSnapshotSessionRestRep sessionRep = client.blockSnapshotSessions().get(session);
-        // if (sessionRep != null && sessionRep.getReplicationGroupInstance() != null) {
-        // options.add(sessionRep.getReplicationGroupInstance());
-        // }
-        // }
         return options;
     }
 
@@ -1098,7 +1094,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         ViPRCoreClient client = api(ctx);
         boolean isTarget = false;
 
-        if (virtualArray.equals("none")) {
+        if (virtualArray.equals(uri("none"))) {
             // NONE
             isTarget = false;
         } else {

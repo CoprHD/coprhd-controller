@@ -2926,7 +2926,6 @@ recoverpoint_ingest_setup()
     sleep 10
 
     run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
-    exit
 }
 
 recoverpoint_ingest_test()

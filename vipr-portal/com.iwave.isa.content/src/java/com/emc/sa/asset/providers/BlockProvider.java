@@ -1059,8 +1059,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return Lists.newArrayList();
     }
 
-    protected List<String> getReplicationGroupsForApplicationSnapshotSession(ViPRCoreClient client, URI applicationId, String copySet) {
-        List<String> options = Lists.newArrayList();
+    protected Set<String> getReplicationGroupsForApplicationSnapshotSession(ViPRCoreClient client, URI applicationId, String copySet) {
+        Set<String> options = Sets.newHashSet();
         VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
         input.setCopySetName(copySet);
 
@@ -1074,8 +1074,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    protected List<String> getReplicationGroupsForApplicationSnapshot(ViPRCoreClient client, URI applicationId, String copySet) {
-        List<String> options = Lists.newArrayList();
+    protected Set<String> getReplicationGroupsForApplicationSnapshot(ViPRCoreClient client, URI applicationId, String copySet) {
+        Set<String> options = Sets.newHashSet();
         VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
         input.setCopySetName(copySet);
         SnapshotList sessions = client.application().getVolumeGroupSnapshotsForSet(applicationId, input);

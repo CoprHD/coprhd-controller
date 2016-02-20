@@ -12,7 +12,8 @@
     },
     
     applicationSubGroup:{
-      type:"assetType.vipr.replicationGroup"
+      type:"assetType.vipr.replicationGroup",
+      select:"many"
     },
     
     linkedSnapshot:{

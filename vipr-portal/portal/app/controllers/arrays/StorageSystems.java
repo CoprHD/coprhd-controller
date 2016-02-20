@@ -709,6 +709,8 @@ public class StorageSystems extends ViprResourceController {
 
         public String elementManagerURL;
 
+        public String secretKey;
+
         public boolean useSSL;
 
         public Integer resourceLimit;
@@ -856,6 +858,7 @@ public class StorageSystems extends ViprResourceController {
             storageProviderForm.secondaryUsername = this.secondaryUsername;
             storageProviderForm.secondaryPassword = this.secondaryPassword;
             storageProviderForm.elementManagerURL = this.elementManagerURL;
+            storageProviderForm.secretKey = this.secretKey;
 
             return storageProviderForm.create();
         }

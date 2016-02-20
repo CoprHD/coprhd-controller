@@ -66,6 +66,7 @@ public class StorageProviders extends ViprResourceController {
         renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
         renderArgs.put("mdmDefaultStorageProviderList", Arrays.asList(StorageSystemTypes.MDM_DEFAULT_OPTIONS));
         renderArgs.put("mdmonlyProviderList", Arrays.asList(StorageSystemTypes.MDM_ONLY_OPTIONS));
+        renderArgs.put("secretKeyProviderList", Arrays.asList(StorageSystemTypes.SECRET_KEY_OPTIONS));
         renderArgs.put("elementManagerStorageProviderList", Arrays.asList(StorageSystemTypes.ELEMENT_MANAGER_OPTIONS));
         List<EnumOption> defaultStorageProviderPortMap = Arrays.asList(EnumOption.options(DefaultStorageProviderPortMap.values()));
         renderArgs.put("defaultStorageProviderPortMap", defaultStorageProviderPortMap);
@@ -220,6 +221,7 @@ public class StorageProviders extends ViprResourceController {
 
         public String elementManagerURL;
         
+        public String secretKey;
 
         public StorageProviderForm() {        	
         }
@@ -247,7 +249,8 @@ public class StorageProviders extends ViprResourceController {
             this.interfaceType = storageProvider.getInterface();
             this.secondaryUsername = storageProvider.getSecondaryUsername();
             this.secondaryPassword = ""; // the platform will never return the real password
-            this.elementManagerURL = storageProvider.getElementManagerURL();      
+            this.elementManagerURL = storageProvider.getElementManagerURL();
+            this.secretKey = ""; // the platform will never return the real key;
             if(isScaleIOApi()) {
             	this.secondaryUsername = this.userName;
             	this.secondaryPassword = this.password;
@@ -266,12 +269,12 @@ public class StorageProviders extends ViprResourceController {
 
         public StorageProviderRestRep update() {        	
             return StorageProviderUtils.update(uri(id), name, ipAddress, portNumber, userName,
-                    password, useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL);
+                    password, useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL, secretKey);
         }
 
         public Task<StorageProviderRestRep> create() {        	
         	Task<StorageProviderRestRep> task = StorageProviderUtils.create(name, ipAddress, portNumber, userName, password,
-                    useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL);
+                    useSSL, interfaceType, secondaryUsername, secondaryPassword, elementManagerURL, secretKey);
             new SaveWaitJob(getViprClient(), task).now();
             return task;
         }

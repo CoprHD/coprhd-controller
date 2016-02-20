@@ -167,6 +167,11 @@ Please DO NOT modify the content.
             <field name="version" type="java.lang.String">
                 <annotations/>
             </field>
+            <field name="secretKey" type="java.lang.String">
+                <annotations>
+                    <annotation name="Encrypt" type="com.emc.storageos.db.client.model.Encrypt"/>
+                </annotations>
+            </field>
         </fields>
     </data_object_schema>
     <data_object_schema name="BlockSnapshot" type="com.emc.storageos.db.client.model.BlockSnapshot">

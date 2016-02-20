@@ -50,7 +50,7 @@
       </control-group>
 
 
-      <control-group v-field="smisProvider.portNumber" required ng-hide="smisProvider.interfaceType === 'ddmc'">
+      <control-group v-field="smisProvider.portNumber" required="!isSecretKeyProviderList()" ng-hide="smisProvider.interfaceType === 'ddmc' || isSecretKeyProviderList()">
         <input-text></input-text>
       </control-group>
 
@@ -58,11 +58,11 @@
         <input-text></input-text>
       </control-group>
 
-      <control-group v-field="smisProvider.password" required="!editMode" ng-hide="isMDMOnlyType()">
+      <control-group v-field="smisProvider.password" required="!editMode && !isSecretKeyProviderList()" ng-hide="isMDMOnlyType() || isSecretKeyProviderList()">
         <input-password></input-password>
       </control-group>
 
-      <control-group v-field="smisProvider.confirmPassword" required="!editMode" ng-hide="isMDMOnlyType()">
+      <control-group v-field="smisProvider.confirmPassword" required="!editMode && !isSecretKeyProviderList()" ng-hide="isMDMOnlyType() || isSecretKeyProviderList()">
         <input-password></input-password>
       </control-group>
 
@@ -77,10 +77,13 @@
       <control-group v-field="smisProvider.secondaryPasswordConfirm" ng-show="isMDMDefaultType()" required="isMDMOnlyType()">
         <input-password></input-password>
       </control-group>      
-      
 
       <control-group v-field="smisProvider.elementManagerURL" ng-show="isElementManagerType()">
         <input-text></input-text>
+      </control-group>
+
+      <control-group v-field="smisProvider.secretKey" required="!editMode" ng-show="isSecretKeyProviderList()">
+        <input-password></input-password>
       </control-group>
 
     </fieldset>	

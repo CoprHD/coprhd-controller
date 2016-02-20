@@ -154,7 +154,7 @@
         $('#storageArray_confirmPassword').val('');        
         $('#storageArray_smisUserPassword').val('');        
         $('#storageArray_smisConfirmPassword').val('');    
-        
+        $('#storageArray_secretKey').val('');
         
         if ( isUnregistered ) {
             var saveTxt = '${messages.get("button.save")}';
@@ -271,6 +271,7 @@
                 $('#storageArray_useSSLControlGroup').show();
             }
             
+            $('#storageArray_secretKeyControlGroup').hide().attr('required', false);
             if (!editMode) {
             	$('#storageArray_elementManagerURLControlGroup').show();
                 if ($('#storageArray_type').val() == '${scaleIOStorageSystemType}') {
@@ -299,6 +300,7 @@
                 $('#storageArray_secondaryPasswordControlGroup').hide();
                 $('#storageArray_secondaryPasswordConfirmControlGroup').hide();
                 $('#storageArray_elementManagerURLControlGroup').hide();
+                $('#storageArray_secretKeyControlGroup').hide().attr('required', false);
             }
             
             $('fieldset.onboardSmisProvider').hide();            
@@ -313,7 +315,7 @@
                 $('#storageArray_userNameControlGroup').hide();
                 $('#storageArray_userPasswordControlGroup').hide();
                 $('#storageArray_confirmPasswordControlGroup').hide();
-	  		    
+                $('#storageArray_secretKeyControlGroup').hide();
 	  		}
 	  		
       } else  if (isNonSmisStorageSystem(selectedType) ) {
@@ -329,6 +331,7 @@
 	  		$('#storageArray_secondaryPasswordControlGroup').hide();
 	  		$('#storageArray_secondaryPasswordConfirmControlGroup').hide();
 	  		$('#storageArray_elementManagerURLControlGroup').hide();
+            $('#storageArray_secretKeyControlGroup').hide().attr('required', false);
             if ( !editMode ) {
                 $('#storageArray_useSSL').trigger('change'); // trigger change
             }
@@ -473,7 +476,13 @@
     #{field 'storageArray.elementManagerURL'}
       #{Form.inputTextControlGroup field:field /}
     #{/field}  
-    
+
+    #{field 'storageArray.secretKey'}
+    %{
+        field.required = !editMode
+      }%
+      #{Form.inputPasswordControlGroup field:field /}
+    #{/field}
     </fieldset>
 
     <fieldset class="onboardSmisProvider" style="display:none">

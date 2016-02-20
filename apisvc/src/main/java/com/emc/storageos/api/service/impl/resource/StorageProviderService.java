@@ -241,6 +241,8 @@ public class StorageProviderService extends TaskResourceService {
         provider.setSecondaryUsername(param.getSecondaryUsername());
         provider.setSecondaryPassword(param.getSecondaryPassword());
         provider.setElementManagerURL(param.getElementManagerURL());
+        provider.setSecretKey(param.getSecretKey());
+
         if (param.getSioCLI() != null) {
             // TODO: Validate the input?
             provider.addKey(StorageProvider.GlobalKeys.SIO_CLI.name(), param.getSioCLI());
@@ -455,6 +457,9 @@ public class StorageProviderService extends TaskResourceService {
             }
             if (param.getElementManagerURL() != null) {
                 storageProvider.setElementManagerURL(param.getElementManagerURL());
+            }
+            if (param.getSecretKey() != null) {
+            	storageProvider.setSecretKey(param.getSecretKey());
             }
 
             _dbClient.persistObject(storageProvider);

@@ -964,6 +964,10 @@ angular.module("portalApp").controller("storageProviderCtrl", function($scope) {
     	return containsOption($scope.smisProvider.interfaceType, $scope.mdmonlyProviderList);
     }
 
+    $scope.isSecretKeyProviderList = function() {
+    	return containsOption($scope.smisProvider.interfaceType, $scope.secretKeyProviderList);
+    }
+
     $scope.isElementManagerType = function() {
         return containsOption($scope.smisProvider.interfaceType, $scope.elementManagerStorageProviderList);
     }

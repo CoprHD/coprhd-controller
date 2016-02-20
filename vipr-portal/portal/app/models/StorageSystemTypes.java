@@ -72,6 +72,7 @@ public class StorageSystemTypes {
     public static final StringOption[] MDM_DEFAULT_OPTIONS = StringOption.options(new String[] { SCALEIO, SCALEIOAPI });
     public static final StringOption[] MDM_ONLY_OPTIONS = StringOption.options(new String[] {SCALEIOAPI});
     public static final StringOption[] ELEMENT_MANAGER_OPTIONS = StringOption.options(new String[] { SCALEIO });
+    public static final StringOption[] SECRET_KEY_OPTIONS = StringOption.options(new String[] {});
 
     public static boolean isNone(String type) {
         return NONE.equals(type);

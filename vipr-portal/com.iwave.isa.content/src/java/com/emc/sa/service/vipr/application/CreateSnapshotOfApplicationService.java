@@ -42,7 +42,7 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     protected Boolean readOnly;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
-    protected List<URI> subGroups;
+    protected List<String> subGroups;
 
     @Override
     public void execute() throws Exception {

@@ -32,7 +32,7 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
     protected String copySet;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
-    protected List<URI> subGroups;
+    protected List<String> subGroups;
 
     @Param(value = LINKED_SNAPSHOT, required = false)
     protected List<URI> existingLinkedSnapshotIds;

@@ -29,7 +29,7 @@ public class UnlinkSnapshotOfApplicationService extends ViPRService {
     protected String applicationCopySet;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
-    protected List<URI> subGroups;
+    protected List<String> subGroups;
 
     @Param(value = LINKED_SNAPSHOT, required = false)
     protected List<String> existingLinkedSnapshotIds;

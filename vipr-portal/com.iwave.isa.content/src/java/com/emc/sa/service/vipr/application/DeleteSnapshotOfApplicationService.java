@@ -33,7 +33,7 @@ public class DeleteSnapshotOfApplicationService extends ViPRService {
     private String applicationCopySet;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
-    protected List<URI> subGroups;
+    protected List<String> subGroups;
 
     @Override
     public void execute() throws Exception {

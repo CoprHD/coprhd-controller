@@ -1045,7 +1045,7 @@ public class BlockStorageUtils {
      * @param subGroups
      * @return
      */
-    public static Map<String, VolumeRestRep> getVolumeSystemTypes(NamedVolumesList volumeList, List<URI> subGroups) {
+    public static Map<String, VolumeRestRep> getVolumeSystemTypes(NamedVolumesList volumeList, List<String> subGroups) {
         Map<String, VolumeRestRep> volumeTypes = Maps.newHashMap();
         for (NamedRelatedResourceRep vol : volumeList.getVolumes()) {
             VolumeRestRep volume = execute(new GetBlockVolume(vol.getId()));
@@ -1057,9 +1057,9 @@ public class BlockStorageUtils {
 
     }
 
-    public static List<URI> getSingleVolumePerSubGroup(NamedVolumesList volList, List<URI> subGroups) {
+    public static List<URI> getSingleVolumePerSubGroup(NamedVolumesList volList, List<String> subGroups) {
         List<URI> volumeIds = Lists.newArrayList();
-        for (URI subGroup : subGroups) {
+        for (String subGroup : subGroups) {
             for (NamedRelatedResourceRep vol : volList.getVolumes()) {
                 VolumeRestRep v = execute(new GetBlockVolume(vol.getId()));
                 if (v.getReplicationGroupInstance() != null && v.getReplicationGroupInstance().equals(subGroup)) {
@@ -1081,10 +1081,10 @@ public class BlockStorageUtils {
     }
 
     public static List<URI> getSingleSnapshotPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
-            List<URI> subGroups) {
+            List<String> subGroups) {
         List<URI> snapshotSessionIds = Lists.newArrayList();
         SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, copySet));
-        for (URI subGroup : subGroups) {
+        for (String subGroup : subGroups) {
             for (NamedRelatedResourceRep snap : snapshotList.getSnapList()) {
                 BlockSnapshotSessionRestRep session = execute(new GetBlockSnapshotSession(snap.getId()));
                 if (session.getReplicationGroupInstance() != null && session.getReplicationGroupInstance().equals(subGroup)) {
@@ -1096,10 +1096,10 @@ public class BlockStorageUtils {
     }
 
     public static List<URI> getSingleSnapshotSessionPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
-            List<URI> subGroups) {
+            List<String> subGroups) {
         List<URI> snapshotSessionIds = Lists.newArrayList();
         BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, copySet));
-        for (URI subGroup : subGroups) {
+        for (String subGroup : subGroups) {
             for (NamedRelatedResourceRep snap : snapSessionList.getSnapSessionRelatedResourceList()) {
                 BlockSnapshotSessionRestRep session = execute(new GetBlockSnapshotSession(snap.getId()));
                 if (session.getReplicationGroupInstance() != null && session.getReplicationGroupInstance().equals(subGroup)) {

@@ -1081,8 +1081,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         SnapshotList sessions = client.application().getVolumeGroupSnapshotsForSet(applicationId, input);
         for (NamedRelatedResourceRep snap : sessions.getSnapList()) {
             BlockSnapshotRestRep snapRep = client.blockSnapshots().get(snap);
-            if (snapRep != null && snapRep.getReplicationGroupInstance() != null) {
-                options.add(snapRep.getReplicationGroupInstance());
+            // TODO get replication group from parent. should the snapshot already contain this?
+            VolumeRestRep parentVolume = client.blockVolumes().get(snapRep.getParent());
+            if (parentVolume != null && parentVolume.getReplicationGroupInstance() != null) {
+                options.add(parentVolume.getReplicationGroupInstance());
             }
         }
         return options;

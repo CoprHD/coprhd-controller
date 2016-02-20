@@ -1222,6 +1222,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             String copySet) {
         List<BlockSnapshotRestRep> snapshots = new ArrayList<BlockSnapshotRestRep>();
 
+        for (NamedRelatedResourceRep v : api(ctx).application().getVolumeByApplication(application).getVolumes()) {
+
+            snapshots.addAll(api(ctx).blockSnapshots().getByVolume(v.getId()));
+        }
+
         VolumeGroupCopySetParam param = new VolumeGroupCopySetParam();
         param.setCopySetName(copySet);
 

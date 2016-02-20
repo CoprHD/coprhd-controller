@@ -1041,7 +1041,7 @@ public class BlockStorageUtils {
     public static boolean containsVmax3Volume(NamedVolumesList volList) {
         for (NamedRelatedResourceRep volumeRep : volList.getVolumes()) {
             VolumeRestRep volume = execute(new GetBlockVolume(volumeRep.getId()));
-            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equalsIgnoreCase("vmax3")) {
+            if (volume.getSystemType() != null && volume.getSystemType().equalsIgnoreCase("vmax3")) {
                 return true;
             }
         }

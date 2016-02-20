@@ -48,21 +48,18 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     public void execute() throws Exception {
 
         NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
-
         Map<String, VolumeRestRep> volumeTypes = BlockStorageUtils.getVolumeSystemTypes(volList, subGroups);
+        List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroup(volList, subGroups);
 
         Tasks<? extends DataObjectRestRep> tasks = null;
 
-        for (String type : volumeTypes.keySet()) {
-            if (type.equalsIgnoreCase("vmax3")) {
-                tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId(), name,
-                        highAvailability));
-            } else {
-                tasks = execute(new CreateSnapshotForApplication(applicationId, volumeTypes.get(type).getId(), name, readOnly,
-                        highAvailability));
-            }
-            addAffectedResources(tasks);
+        if (BlockStorageUtils.isVmax3(volumeTypes)) {
+            tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeIds, name,
+                    highAvailability));
+        } else {
+            tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, name, readOnly,
+                    highAvailability));
         }
+        addAffectedResources(tasks);
     }
-
 }

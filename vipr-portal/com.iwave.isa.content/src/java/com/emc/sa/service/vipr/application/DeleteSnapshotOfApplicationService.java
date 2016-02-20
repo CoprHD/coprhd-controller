@@ -14,12 +14,8 @@ import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotSessionForApplication;
-import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
-import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.SnapshotList;
-import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
@@ -44,23 +40,18 @@ public class DeleteSnapshotOfApplicationService extends ViPRService {
 
         // get list of volumes in application
         NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
-
         Map<String, VolumeRestRep> volumeTypes = BlockStorageUtils.getVolumeSystemTypes(volList, subGroups);
 
         Tasks<? extends DataObjectRestRep> tasks = null;
 
-        for (String type : volumeTypes.keySet()) {
-            if (type.equalsIgnoreCase("VMAX3")) {
-                BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, applicationCopySet));
-                // TODO error if snapSessionList is empty
-                tasks = execute(new DeleteSnapshotSessionForApplication(applicationId, snapSessionList.getSnapSessionRelatedResourceList()
-                        .get(0).getId()));
-            } else {
-                SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, applicationCopySet));
-                // TODO error if snapshotList is empty
-                tasks = execute(new DeleteSnapshotForApplication(applicationId, snapshotList.getSnapList().get(0).getId()));
-            }
-            addAffectedResources(tasks);
+        if (BlockStorageUtils.isVmax3(volumeTypes)) {
+            List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, applicationCopySet,
+                    volList, subGroups);
+            tasks = execute(new DeleteSnapshotSessionForApplication(applicationId, snapshotSessionIds));
+        } else {
+            List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, volList, subGroups);
+            tasks = execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
         }
+        addAffectedResources(tasks);
     }
 }

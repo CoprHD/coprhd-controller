@@ -12,11 +12,9 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.application.tasks.ResynchronizeSnapshotForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
@@ -43,15 +41,14 @@ public class ResynchronizeSnapshotOfApplicationService extends ViPRService {
 
         Tasks<? extends DataObjectRestRep> tasks = null;
 
-        for (String type : volumeTypes.keySet()) {
-            if (type.equalsIgnoreCase("vmax3")) {
-                // TODO fail, resynchronize not supported for snapshot session
-            } else {
-                SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, applicationCopySet));
-                // TODO fail if empty
-                tasks = execute(new ResynchronizeSnapshotForApplication(applicationId, snapshotList.getSnapList().get(0).getId()));
-            }
-            addAffectedResources(tasks);
+        if (BlockStorageUtils.isVmax3(volumeTypes)) {
+            // TODO fail, not supported for snap sessions
+        } else {
+            List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, volList, subGroups);
+            tasks = execute(new ResynchronizeSnapshotForApplication(applicationId, snapshotIds));
         }
+
+        addAffectedResources(tasks);
+
     }
 }

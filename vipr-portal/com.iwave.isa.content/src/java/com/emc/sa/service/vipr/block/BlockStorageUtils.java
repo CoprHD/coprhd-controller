@@ -38,6 +38,9 @@ import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSession;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
@@ -101,11 +104,13 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -1050,5 +1055,58 @@ public class BlockStorageUtils {
         }
         return volumeTypes;
 
+    }
+
+    public static List<URI> getSingleVolumePerSubGroup(NamedVolumesList volList, List<URI> subGroups) {
+        List<URI> volumeIds = Lists.newArrayList();
+        for (URI subGroup : subGroups) {
+            for (NamedRelatedResourceRep vol : volList.getVolumes()) {
+                VolumeRestRep v = execute(new GetBlockVolume(vol.getId()));
+                if (v.getReplicationGroupInstance() != null && v.getReplicationGroupInstance().equals(subGroup)) {
+                    volumeIds.add(v.getId());
+                    break;
+                }
+            }
+        }
+        return volumeIds;
+    }
+
+    public static boolean isVmax3(Map<String, VolumeRestRep> volumeTypes) {
+        for (String type : volumeTypes.keySet()) {
+            if (type.equalsIgnoreCase("vmax3")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static List<URI> getSingleSnapshotPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
+            List<URI> subGroups) {
+        List<URI> snapshotSessionIds = Lists.newArrayList();
+        SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, copySet));
+        for (URI subGroup : subGroups) {
+            for (NamedRelatedResourceRep snap : snapshotList.getSnapList()) {
+                BlockSnapshotSessionRestRep session = execute(new GetBlockSnapshotSession(snap.getId()));
+                if (session.getReplicationGroupInstance() != null && session.getReplicationGroupInstance().equals(subGroup)) {
+                    snapshotSessionIds.add(session.getId());
+                }
+            }
+        }
+        return snapshotSessionIds;
+    }
+
+    public static List<URI> getSingleSnapshotSessionPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
+            List<URI> subGroups) {
+        List<URI> snapshotSessionIds = Lists.newArrayList();
+        BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, copySet));
+        for (URI subGroup : subGroups) {
+            for (NamedRelatedResourceRep snap : snapSessionList.getSnapSessionRelatedResourceList()) {
+                BlockSnapshotSessionRestRep session = execute(new GetBlockSnapshotSession(snap.getId()));
+                if (session.getReplicationGroupInstance() != null && session.getReplicationGroupInstance().equals(subGroup)) {
+                    snapshotSessionIds.add(session.getId());
+                }
+            }
+        }
+        return snapshotSessionIds;
     }
 }

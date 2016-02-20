@@ -16,10 +16,10 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
 import com.emc.sa.service.vipr.application.tasks.LinkSnapshotSessionForApplication;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.block.BlockSnapshotSessionList;
+import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.vipr.client.Tasks;
 
 @Service("LinkSnapshotOfApplication")
@@ -48,10 +48,10 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        BlockSnapshotSessionList snapshotSessions = execute(new GetBlockSnapshotSessionList(applicationId, copySet));
-        Tasks<? extends DataObjectRestRep> tasks = execute(new LinkSnapshotSessionForApplication(applicationId, snapshotSessions
-                .getSnapSessionRelatedResourceList()
-                .get(0).getId(),
+        NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
+        List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, copySet,
+                volList, subGroups);
+        Tasks<? extends DataObjectRestRep> tasks = execute(new LinkSnapshotSessionForApplication(applicationId, snapshotSessionIds,
                 existingLinkedSnapshotIds, linkedSnapshotCopyMode, linkedSnapshotCount, linkedSnapshotName));
         addAffectedResources(tasks);
     }

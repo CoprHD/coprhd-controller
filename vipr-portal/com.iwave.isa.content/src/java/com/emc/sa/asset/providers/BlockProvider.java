@@ -1775,16 +1775,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createNamedResourceOptions(applications.getVolumeGroups());
     }
 
-    private boolean isRPTargetReplicationGroup(String rg) {
-        if (rg != null) {
-            String[] parts = StringUtils.split(rg, '-');
-            if (parts.length > 1 && parts[parts.length - 1].equals("RPTARGET")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private List<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
         List<String> stripped = new ArrayList<String>();
 
@@ -1810,7 +1800,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> allVols = client.blockVolumes().getByRefs(volList);
             Map<String, List<VolumeRestRep>> repGrpVolMap = new HashMap<String, List<VolumeRestRep>>();
             for (VolumeRestRep vol : allVols) {
-                if (!isRPTargetReplicationGroup(vol.getReplicationGroupInstance())) {
+                if (!BlockProviderUtils.isRPTargetReplicationGroup(vol.getReplicationGroupInstance())) {
                     if (repGrpVolMap.get(vol.getReplicationGroupInstance()) == null) {
                         repGrpVolMap.put(vol.getReplicationGroupInstance(), new ArrayList<VolumeRestRep>());
                     }
@@ -1827,27 +1817,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    private Set<String> getApplicationReplicationGroupNames(AssetOptionsContext ctx, URI applicationId) {
-        final ViPRCoreClient client = api(ctx);
-        VolumeGroupRestRep application = client.application().getApplication(applicationId);
-        Set<String> visibleGroups = new HashSet<String>();
-        Set<String> groupNames = application.getReplicationGroupNames();
-        for (String grp : groupNames) {
-            if (!isRPTargetReplicationGroup(grp)) {
-                visibleGroups.add(grp);
-            }
-        }
-        return visibleGroups;
-    }
-
     @Asset("replicationGroup")
     @AssetDependencies("application")
     public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId) {
-        return createStringOptions(getApplicationReplicationGroupNames(ctx, applicationId));
+        return createStringOptions(BlockProviderUtils.getApplicationReplicationGroupNames(api(ctx), applicationId));
     }
 
     @Asset("copyReplicationGroup")
-    @AssetDependencies({ "application", "siteFullCopyName" })
+    @AssetDependencies({ "application", "restoreFullCopyName" })
     public List<AssetOption> getApplicationReplicationGroupsForCopy(AssetOptionsContext ctx, URI applicationId, String copyName) {
         final ViPRCoreClient client = api(ctx);
         List<VolumeRestRep> allCopyVols = client.blockVolumes()
@@ -1894,53 +1871,103 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("fullCopyName")
     @AssetDependencies("application")
     public List<AssetOption> getApplicationFullCopyNames(AssetOptionsContext ctx, URI applicationId) {
-        final ViPRCoreClient client = api(ctx);
-        NamedVolumesList volList = client.application().getFullCopiesByApplication(applicationId);
+        List<VolumeRestRep> fullCopies = getFullCopiesForApplication(ctx, applicationId);
         Set<String> fullCopyNames = new HashSet<String>();
-        if (volList != null && volList.getVolumes() != null && !volList.getVolumes().isEmpty()) {
-            List<URI> ids = new ArrayList<URI>();
-            for (NamedRelatedResourceRep volId : volList.getVolumes()) {
-                ids.add(volId.getId());
+        for (VolumeRestRep vol : fullCopies) {
+            if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null
+                    && vol.getProtection().getFullCopyRep().getFullCopySetName() != null) {
+                fullCopyNames.add(vol.getProtection().getFullCopyRep().getFullCopySetName());
             }
-            List<VolumeRestRep> fullCopies = client.blockVolumes().getByIds(ids);
-            for (VolumeRestRep vol : fullCopies) {
-                if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null &&
-                        vol.getProtection().getFullCopyRep().getFullCopySetName() != null) {
+        }
+        return createStringOptions(fullCopyNames);
+    }
+
+    /**
+     * returns the list of application full copies that can be restored from. For RP, we exclude target copies because the target is read
+     * only
+     * 
+     * @param ctx
+     * @param applicationId
+     * @return
+     */
+    @Asset("restoreFullCopyName")
+    @AssetDependencies("application")
+    public List<AssetOption> getApplicationFullCopyNamesForRestore(AssetOptionsContext ctx, URI applicationId) {
+        List<VolumeRestRep> fullCopies = getFullCopiesForApplication(ctx, applicationId);
+        Set<String> fullCopyNames = new HashSet<String>();
+        for (VolumeRestRep vol : fullCopies) {
+            if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null
+                    && vol.getProtection().getFullCopyRep().getFullCopySetName() != null
+                    && !fullCopyNames.contains(vol.getProtection().getFullCopyRep().getFullCopySetName())) {
+                if (!isFullCopyOfRPTarget(ctx, vol)) {
                     fullCopyNames.add(vol.getProtection().getFullCopyRep().getFullCopySetName());
                 }
             }
         }
         return createStringOptions(fullCopyNames);
+    }
+
+    /**
+     * returns true if the passed in volume is a clone of an RP source volume
+     * 
+     * @param vol
+     * @return
+     */
+    private boolean isFullCopyOfRPTarget(AssetOptionsContext ctx, VolumeRestRep vol) {
+        final ViPRCoreClient client = api(ctx);
+        // get the source volume for the full copy
+        if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null
+                && vol.getProtection().getFullCopyRep().getAssociatedSourceVolume() != null) {
+            if (isRPTarget(client.blockVolumes().get(vol.getProtection().getFullCopyRep().getAssociatedSourceVolume()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * returns true if the passed in volume is a RP source volume
+     * 
+     * @param vol
+     * @return
+     */
+    private boolean isRPTarget(VolumeRestRep vol) {
+        if (vol != null && vol.getProtection() != null && vol.getProtection().getRpRep() != null
+                && vol.getProtection().getRpRep().getPersonality() != null
+                && vol.getProtection().getRpRep().getPersonality().equals("TARGET")) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     @Asset("siteFullCopyName")
     @AssetDependencies({ "application", "applicationVirtualArray" })
     public List<AssetOption> getApplicationFullCopyNamesForSite(AssetOptionsContext ctx, URI applicationId, URI applicationVirtualArray) {
-        final ViPRCoreClient client = api(ctx);
-        NamedVolumesList volList = client.application().getFullCopiesByApplication(applicationId);
+        List<VolumeRestRep> fullCopies = getFullCopiesForApplication(ctx, applicationId);
         Set<String> fullCopyNames = new HashSet<String>();
-        if (volList != null && volList.getVolumes() != null && !volList.getVolumes().isEmpty()) {
-            List<URI> ids = new ArrayList<URI>();
-            for (NamedRelatedResourceRep volId : volList.getVolumes()) {
-                ids.add(volId.getId());
-            }
-            List<VolumeRestRep> fullCopies = client.blockVolumes().getByIds(ids);
-            for (VolumeRestRep vol : fullCopies) {
-                if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null
-                        && vol.getProtection().getFullCopyRep().getFullCopySetName() != null
-                        && (applicationVirtualArray == null || vol.getVirtualArray().getId().equals(applicationVirtualArray))) {
-                    fullCopyNames.add(vol.getProtection().getFullCopyRep().getFullCopySetName());
-                }
+        for (VolumeRestRep vol : fullCopies) {
+            if (vol != null && vol.getProtection() != null && vol.getProtection().getFullCopyRep() != null
+                    && vol.getProtection().getFullCopyRep().getFullCopySetName() != null
+                    && (applicationVirtualArray == null || vol.getVirtualArray().getId().equals(applicationVirtualArray))) {
+                fullCopyNames.add(vol.getProtection().getFullCopyRep().getFullCopySetName());
             }
         }
         return createStringOptions(fullCopyNames);
     }
 
-    private boolean isVolumeRP(VolumeRestRep vol) {
-        if (vol.getProtection() != null && vol.getProtection().getRpRep() != null) {
-            return true;
+    private List<VolumeRestRep> getFullCopiesForApplication(AssetOptionsContext ctx, URI applicationId) {
+        List<VolumeRestRep> fullCopies = new ArrayList<VolumeRestRep>();
+        final ViPRCoreClient client = api(ctx);
+        NamedVolumesList volList = client.application().getFullCopiesByApplication(applicationId);
+        if (volList != null && volList.getVolumes() != null && !volList.getVolumes().isEmpty()) {
+            List<URI> ids = new ArrayList<URI>();
+            for (NamedRelatedResourceRep volId : volList.getVolumes()) {
+                ids.add(volId.getId());
+            }
+            fullCopies.addAll(client.blockVolumes().getByIds(ids));
         }
-        return false;
+        return fullCopies;
     }
 
     @Asset("applicationVirtualArray")
@@ -1974,7 +2001,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     }
                 }
         	}
-            if (isVolumeRP(vol)) {
+            if (BlockProviderUtils.isVolumeRP(vol)) {
         		isRP = true;
                 allRPSourceVols = client.blockVolumes().getByRefs(volList, RecoverPointPersonalityFilter.SOURCE);
                 if (allRPSourceVols != null && !allRPSourceVols.isEmpty()) {

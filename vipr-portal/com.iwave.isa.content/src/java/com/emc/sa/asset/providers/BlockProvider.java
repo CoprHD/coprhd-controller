@@ -1223,7 +1223,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<BlockSnapshotRestRep> snapshots = new ArrayList<BlockSnapshotRestRep>();
 
         for (NamedRelatedResourceRep v : api(ctx).application().getVolumeByApplication(application).getVolumes()) {
-
             snapshots.addAll(api(ctx).blockSnapshots().getByVolume(v.getId()));
         }
 

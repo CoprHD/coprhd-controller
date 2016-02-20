@@ -6100,7 +6100,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         }
                         applications.add(application.toString());
                         volume.setVolumeGroupIds(applications);
-                        _dbClient.updateObject(volume);
+                        
                         // handle full copy. If the volume is in RG, set fullCopySetName in the full copy
                         StringSet fullcopies = volume.getFullCopies();
                         if (fullcopies != null && !fullcopies.isEmpty()) {
@@ -6110,6 +6110,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 if (fullCopy != null && !fullCopy.getInactive()) {
                                     Volume fullCopyBack = VPlexUtil.getVPLEXBackendVolume(fullCopy, true, _dbClient);
                                     String groupName = fullCopyBack.getReplicationGroupInstance();
+                                    if (NullColumnValueGetter.isNullValue(groupName)) {
+                                        throw DeviceControllerException.exceptions.recoverpoint.failedToAddVolumeToApplication(volume.getLabel(),
+                                                "the volume is in a replication group, but its full copy is not.");
+                                    }
                                     fullCopy.setFullCopySetName(groupName);
                                     fullCopiesToUpdate.add(fullCopy);
                                 }
@@ -6118,6 +6122,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 _dbClient.updateObject(fullCopiesToUpdate);
                             }
                         }
+                        _dbClient.updateObject(volume);
                         notInRG = false;
                         break;
                     } else {

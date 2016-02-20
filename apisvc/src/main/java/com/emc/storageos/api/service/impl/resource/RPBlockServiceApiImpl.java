@@ -42,6 +42,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -3719,10 +3720,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     private void validateAddVolumesToApplication(List<Volume> volumes, VolumeGroup application) {
         for (Volume volume : volumes) {
             // Check if the volume has any replica
-            List<BlockSnapshot> snapshots = getSnapshots(volume);
+            boolean vplex = RPHelper.isVPlexVolume(volume);
+            Volume snapSource = volume;
+            if (vplex) {
+                snapSource = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+            }
+            URIQueryResultList snapshotURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                    snapSource.getId()), snapshotURIs);
+            Iterator<URI> it = snapshotURIs.iterator();
+            boolean hasSnap = false;
+            if (it.hasNext()) {
+                hasSnap = true;
+            }
             StringSet mirrors = volume.getMirrors();
             StringSet fullCopyIds = volume.getFullCopies();
-            if ((snapshots != null && !snapshots.isEmpty()) || (mirrors != null && !mirrors.isEmpty())
+            if (hasSnap || (mirrors != null && !mirrors.isEmpty())
                     || (fullCopyIds != null && !fullCopyIds.isEmpty())) {
                 throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
                         String.format("the volumes %s has replica. please remove all replicas from the volume", volume.getLabel()));

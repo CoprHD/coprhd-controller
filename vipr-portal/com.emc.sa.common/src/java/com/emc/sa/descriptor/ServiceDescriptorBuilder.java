@@ -4,13 +4,19 @@
  */
 package com.emc.sa.descriptor;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 
 import org.apache.commons.lang.StringUtils;
+
+import com.emc.sa.catalog.ExtentionClassLoader;
 
 public class ServiceDescriptorBuilder {
     public static final String CATEGORY_SUFFIX = ".category";
@@ -30,16 +36,24 @@ public class ServiceDescriptorBuilder {
         for (int i = 0; i < bundleNames.length; i++) {
             bundles.add(ResourceBundle.getBundle(bundleNames[i], locale, loader));
         }
+        
+        try {
+			InputStream is = ExtentionClassLoader.getProxyResourceAsStream("CustomResourseBundle.properties");
+			PropertyResourceBundle customBundle = new PropertyResourceBundle(new InputStreamReader(is, "UTF-8"));
+			bundles.add(customBundle);
+		} catch (IOException e) {
+
+		}
     }
 
     public ServiceDescriptor build(ServiceDefinition definition) {
         Boolean isExtended=false;
     	String baseKey = StringUtils.defaultIfBlank(definition.baseKey, definition.serviceId);
         
-        if (baseKey.endsWith(".Extension" ) ){
-        	baseKey=baseKey.substring(0, baseKey.length()-".Extension".length());
-        	isExtended=true;
-        }
+//        if (baseKey.endsWith("Extension" ) ){
+//        	baseKey=baseKey.substring(0, baseKey.length()-"Extension".length());
+//        	isExtended=true;
+//        }
 
         ServiceDescriptor service = new ServiceDescriptor();
         service.setServiceId(definition.serviceId);

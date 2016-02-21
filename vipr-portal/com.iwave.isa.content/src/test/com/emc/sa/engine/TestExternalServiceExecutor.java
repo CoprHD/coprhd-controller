@@ -9,11 +9,13 @@ import java.io.IOException;
 
 
 
+
+
 import org.xeustechnologies.jcl.test.TestInterface;
 
 import com.emc.sa.catalog.ExtentionClassLoader;
 import com.emc.sa.descriptor.TestExternalInterface;
-import com.emc.sa.engine.service.ExternalTaskApdapterInterface;
+import com.emc.sa.engine.extension.ExternalTaskApdapterInterface;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.block.VolumeRestRep;

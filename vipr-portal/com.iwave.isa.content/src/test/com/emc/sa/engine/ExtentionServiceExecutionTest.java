@@ -19,17 +19,16 @@ import com.emc.sa.engine.ExecutionEngineImplTest.SimpleServiceFactory;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.bind.Param;
+import com.emc.sa.engine.extension.ExternalTaskParams;
 import com.emc.sa.engine.service.AbstractExecutionService;
 import com.emc.sa.engine.service.DefaultExecutionServiceFactory;
 import com.emc.sa.engine.service.ExecutionService;
 import com.emc.sa.engine.service.ExternalTaskExecutor;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.plugins.object.ExternalTaskParams;
 import com.emc.sa.service.vipr.plugins.object.GenericPluginService;
 import com.emc.sa.service.vipr.plugins.object.GenericPluginServiceHelper;
 import com.emc.sa.service.vipr.plugins.object.GenericPluginUtils;
 import com.emc.sa.service.vipr.plugins.object.GenericRestRep;
-
 import com.emc.sa.engine.service.ServiceNotFoundException;
 import com.emc.sa.model.dao.ModelClient;
 import com.emc.sa.model.mock.InMemoryDbClient;

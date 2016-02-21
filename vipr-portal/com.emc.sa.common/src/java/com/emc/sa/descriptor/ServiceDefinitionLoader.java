@@ -56,7 +56,7 @@ public class ServiceDefinitionLoader {
         
         for (ServiceDefinition extenalService : extenalServices) {
         	
-        	if(extenalService.isExtended && extenalService.extendedServiceId !=null && extenalService.extendedServiceId.equals("GenericPlugin")  ){
+        	if(extenalService.isExtended && extenalService.extendedServiceId !=null && !extenalService.extendedServiceId.equals("GenericPlugin")  ){
         		extenalService=extendServiceDefinition(services,extenalService.extendedServiceId,extenalService);
 //        		baseServiceDef.serviceId=extenalService.serviceId;
 //        		baseServiceDef.extendedServiceId=extenalService.extendedServiceId;
@@ -86,6 +86,8 @@ public class ServiceDefinitionLoader {
 				}
         		baseServiceDef.serviceId=serviceDefExtension.serviceId;
         		baseServiceDef.extendedServiceId=serviceDefExtension.extendedServiceId;
+        		baseServiceDef.baseKey=serviceDefExtension.baseKey;
+        		baseServiceDef.isExtended=serviceDefExtension.isExtended;
 				return baseServiceDef;
 			}
 		}

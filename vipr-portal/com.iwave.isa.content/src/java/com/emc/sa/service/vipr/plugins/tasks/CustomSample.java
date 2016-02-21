@@ -4,20 +4,14 @@
  */
 package com.emc.sa.service.vipr.plugins.tasks;
 
+
 import java.net.URI;
 import java.net.URISyntaxException;
 
 
-
-
-//import com.emc.sa.engine.ExecutionTask;
-
-
-
-
-
 import com.emc.sa.engine.extension.ExternalTaskApdapterInterface;
 import com.emc.storageos.vasa.async.TaskInfo;
+
 
 public class CustomSample implements ExternalTaskApdapterInterface {
 //public class CustomSample extends ExecutionTask<Object> {
@@ -28,6 +22,7 @@ public class CustomSample implements ExternalTaskApdapterInterface {
     private Integer count;
     private String name;
     private URI consistencyGroupId;
+    private boolean test=true;
 
     public CustomSample(){
     	
@@ -48,7 +43,6 @@ public class CustomSample implements ExternalTaskApdapterInterface {
         this.name = name;
         this.consistencyGroupId = consistencyGroupId;
     }
-
  	@Override
 	public void init() throws Exception {
 		System.out.println("Custom Task init");
@@ -59,23 +53,23 @@ public class CustomSample implements ExternalTaskApdapterInterface {
 		System.out.println("Custom Task precheck");
 		
 	}
+
 	@Override
 	public void preLaunch(String extenalTaskParam) throws Exception {
-		System.out.println("Custom Task preLuanch");
+		System.out.println("Custom Task preLaunch");
 		
-	}
+	}	
 	@Override
 	public TaskInfo executeExternal(String extenalTaskParam) throws Exception {
 		TaskInfo taskInfo= new TaskInfo();
-		System.out.println("Custom Task execute" + name+size +vpoolId+ varrayId +count+consistencyGroupId+projectId);
+		
 		taskInfo.setProgress(100);
 		taskInfo.setTaskState("SUCCESS");
 		
 		taskInfo.setResult("Extrenal Task Completed");
 		return taskInfo;
-
-		
 	}
+
 	@Override
 	public void postcheck() throws Exception {
 		System.out.println("Custom Task postcheck");
@@ -96,4 +90,13 @@ public class CustomSample implements ExternalTaskApdapterInterface {
 		System.out.println("Custom Task destroy");
 		
 	}
+	
+	
+	public static void main(String[] args) throws Exception {
+		CustomSample customSample = new CustomSample();
+		String extenalTaskParam=null;
+		customSample.preLaunch(extenalTaskParam);
+	}
+
+
 }

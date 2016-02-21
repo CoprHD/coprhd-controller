@@ -11,7 +11,12 @@ import java.net.URISyntaxException;
 
 
 //import com.emc.sa.engine.ExecutionTask;
-import com.emc.sa.engine.service.ExternalTaskApdapterInterface;
+
+
+
+
+
+import com.emc.sa.engine.extension.ExternalTaskApdapterInterface;
 import com.emc.storageos.vasa.async.TaskInfo;
 
 public class CustomSample implements ExternalTaskApdapterInterface {
@@ -55,12 +60,12 @@ public class CustomSample implements ExternalTaskApdapterInterface {
 		
 	}
 	@Override
-	public void preLaunch() throws Exception {
+	public void preLaunch(String extenalTaskParam) throws Exception {
 		System.out.println("Custom Task preLuanch");
 		
 	}
 	@Override
-	public TaskInfo executeExternal() throws Exception {
+	public TaskInfo executeExternal(String extenalTaskParam) throws Exception {
 		TaskInfo taskInfo= new TaskInfo();
 		System.out.println("Custom Task execute" + name+size +vpoolId+ varrayId +count+consistencyGroupId+projectId);
 		taskInfo.setProgress(100);
@@ -77,7 +82,7 @@ public class CustomSample implements ExternalTaskApdapterInterface {
 		
 	}
 	@Override
-	public void postLaunch() throws Exception {
+	public void postLaunch(String extenalTaskParam) throws Exception {
 		System.out.println("Custom Task postLuanch");
 		
 	}

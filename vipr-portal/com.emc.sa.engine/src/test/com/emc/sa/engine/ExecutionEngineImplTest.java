@@ -274,6 +274,24 @@ public class ExecutionEngineImplTest {
         public void execute() throws Exception {
             debug("execute parameters: %s", ExecutionUtils.currentContext().getParameters());
         }
+
+		@Override
+		public void preLaunch() throws Exception {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void postLaunch() throws Exception {
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void postcheck() throws Exception {
+			// TODO Auto-generated method stub
+			
+		}
     }
 
     protected static class EmptyTask extends ExecutionTask<Void> {

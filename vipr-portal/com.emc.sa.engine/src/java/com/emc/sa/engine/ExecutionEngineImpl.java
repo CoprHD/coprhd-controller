@@ -125,7 +125,10 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         try {
             init(service);
             precheck(service);
+            preLaunch(service);
             execute(service);
+            postLaunch(service);
+            postcheck(service);
         } catch (ExecutionException e) {
             logError(e, service);
             try {
@@ -139,7 +142,9 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         }
     }
 
-    protected ExecutionService createService(Order order) {
+
+
+	protected ExecutionService createService(Order order) {
         try {
             CatalogService catalogService = getModelClient().catalogServices().findById(order.getCatalogServiceId());
 
@@ -181,6 +186,21 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         }
     }
 
+    private void preLaunch(ExecutionService service) {
+        try {
+            ExecutionContext context = ExecutionUtils.currentContext();
+            LOG.debug("preLaunch " + context.getServiceName() +context.getParameters().get("externalParam"));
+            //System.out.println("preLaunch " + context.getServiceName() +"MANOJ "+context.getParameters().get("externalParam") +"MANOJ "+context.getParameters().toString() );
+            //updateExecutionStatus(ExecutionStatus.NONE);
+            service.preLaunch();
+        } catch (ExecutionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
+		
+	}
+    
     protected void execute(ExecutionService service) throws ExecutionException {
         try {
             ExecutionContext context = ExecutionUtils.currentContext();
@@ -194,6 +214,35 @@ public class ExecutionEngineImpl implements ExecutionEngine {
             throw new ExecutionException(e);
         }
     }
+    
+    private void postLaunch(ExecutionService service) {
+        try {
+            ExecutionContext context = ExecutionUtils.currentContext();
+            LOG.debug("postLaunch " + context.getServiceName());
+            //System.out.println("preLaunch " + context.getServiceName() +"MANOJ "+context.getParameters().get("externalParam") +"MANOJ "+context.getParameters().toString() );
+            //updateExecutionStatus(ExecutionStatus.NONE);
+            service.postLaunch();
+        } catch (ExecutionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
+		
+	}
+    
+    private void postcheck(ExecutionService service) {
+        try {
+            ExecutionContext context = ExecutionUtils.currentContext();
+            LOG.debug("postCheck " + context.getServiceName());
+            //updateExecutionStatus(ExecutionStatus.NONE);
+            service.postcheck();
+        } catch (ExecutionException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ExecutionException(e);
+        }
+		
+	}
 
     protected void destroy(ExecutionService service) {
         try {

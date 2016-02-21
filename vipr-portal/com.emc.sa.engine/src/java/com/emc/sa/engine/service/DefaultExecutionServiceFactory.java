@@ -22,6 +22,7 @@ import com.emc.sa.descriptor.ServiceDefinitionLoader;
 import com.emc.sa.descriptor.TestExternalInterface;
 import com.emc.sa.engine.ExecutionTask;
 import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.engine.extension.ExternalTaskApdapterInterface;
 import com.emc.storageos.db.client.model.uimodels.CatalogService;
 import com.emc.storageos.db.client.model.uimodels.Order;
 import com.google.common.collect.Maps;
@@ -69,7 +70,14 @@ public class DefaultExecutionServiceFactory implements ExecutionServiceFactory, 
     		return newInstance(serviceClass, serviceName,isExtended);
 
     	} else if (serviceName.endsWith("Extension")){
-    		serviceName=serviceName.substring(0, serviceName.length()-"Extension".length());
+    		String baseServiceName = serviceName.substring(0, serviceName.length()-"Extension".length());
+    		serviceClass = services.get(baseServiceName);
+    		ExecutionService executionService=newInstance(serviceClass, serviceName);
+        	if (executionService instanceof ExternalTaskExecutor){
+        		ExternalTaskApdapterInterface task=	 ExtentionClassLoader.getProxyObject("com.emc.sa.service.vipr.plugins.tasks."+serviceName);
+    			((ExternalTaskExecutor) executionService).setGenericExtensionTask(task);
+        	}
+        	return executionService;
     	}
 
     	serviceClass = services.get(serviceName);

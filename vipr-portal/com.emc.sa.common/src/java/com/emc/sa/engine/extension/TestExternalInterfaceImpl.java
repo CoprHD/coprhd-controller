@@ -1,4 +1,4 @@
-package com.emc.sa.service.vipr.plugins.object;
+package com.emc.sa.engine.extension;
 
 import com.emc.sa.descriptor.TestExternalInterface;
 

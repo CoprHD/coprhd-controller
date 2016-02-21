@@ -39,4 +39,22 @@ public class SampleTableService extends AbstractExecutionService {
             return "name=" + name + ", virtualArray=" + virtualArray + ", virtualPool=" + virtualPool;
         }
     }
+
+	@Override
+	public void preLaunch() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void postLaunch() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void postcheck() throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
 }

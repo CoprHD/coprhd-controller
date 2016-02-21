@@ -7,7 +7,7 @@ public class ExternalTaskParams {
 
 	public void setExternalParam(String externalParam) {
 		this.externalParam = externalParam;
-		System.out.println("ExternalTaskParams loaded "+externalParam);
+		System.out.println("ViPR ExternalTaskParams loaded "+externalParam);
 	}
 
 
@@ -15,12 +15,5 @@ public class ExternalTaskParams {
 		return externalParam;
 	}
 
-
-//	public void setParams(String externalParam) {
-//		this.externalParam=externalParam;
-//		
-//		System.out.println("ExternalTaskParams loaded "+externalParam);
-//		
-//	}
 
 }

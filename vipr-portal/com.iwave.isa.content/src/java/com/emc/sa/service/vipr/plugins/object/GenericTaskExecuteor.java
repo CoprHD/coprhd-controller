@@ -30,17 +30,11 @@ public class GenericTaskExecuteor extends WaitForTask<GenericRestRep>  {
     	this.genericExtensionTask=genericExtensionTask;
 	}
 
-    //        TaskResourceRep task = client.postURI(TaskResourceRep.class, input, uri);
-    //return new Task<>(client, task, resourceClass);
-
 
 	@Override
     public Task<GenericRestRep> doExecute() throws Exception {
-    	ExternalTaskParams taskParams = new ExternalTaskParams();
-    	//GenericPluginServiceHelper genericPluginServiceHelper = new GenericPluginServiceHelper();
-    	//BindingUtils.bind(genericPluginServiceHelper, GenericPluginUtils.createParam(taskParams));
-    	TaskInfo taskInfo = genericExtensionTask.executeExternal(taskParams.getExternalParam());
-    	System.out.println(taskInfo.toDisplayString()+ "  params= " +params);
+     	TaskInfo taskInfo = genericExtensionTask.executeExternal(params.getExternalParam());
+    	System.out.println("Vipr External Taskinfo doExecute Return "+taskInfo.toDisplayString());
     	
     	genericExtensionTask.getStatus();
     	genericExtensionTask.getStatus();
@@ -49,21 +43,16 @@ public class GenericTaskExecuteor extends WaitForTask<GenericRestRep>  {
        
     	return new Task<GenericRestRep>(client, taskResp, GenericRestRep.class);
 
-
-
     }
 
 	public Task<GenericRestRep> doPostLaunch() throws Exception {
-	   	ExternalTaskParams taskParams = new ExternalTaskParams();
-    	//GenericPluginServiceHelper genericPluginServiceHelper = new GenericPluginServiceHelper();
-    	//BindingUtils.bind(genericPluginServiceHelper, GenericPluginUtils.createParam(taskParams));
-    	genericExtensionTask.postLaunch(taskParams.getExternalParam());
-    	System.out.println("doPostLaunch");
+    	genericExtensionTask.postLaunch(params.getExternalParam());
+    	System.out.println("Vipr External Taskinfo doPostLaunch Return");
     	TaskInfo taskInfo = new TaskInfo();
 		taskInfo.setProgress(100);
 		taskInfo.setTaskState("SUCCESS");
 		
-		taskInfo.setResult("Extrenal Task Completed");
+
     	genericExtensionTask.getStatus();
     	genericExtensionTask.getStatus();
     	RestClient client = null;
@@ -72,10 +61,12 @@ public class GenericTaskExecuteor extends WaitForTask<GenericRestRep>  {
 	}
 
 	public Task<GenericRestRep> doPreLaunch() throws Exception {
-    	ExternalTaskParams taskParams = new ExternalTaskParams();
-    	genericExtensionTask.executeExternal(taskParams.getExternalParam());
-    	System.out.println("doPreLaunch");
-    	
+     	genericExtensionTask.executeExternal(params.getExternalParam());
+     	System.out.println("Vipr External Taskinfo doPreLaunch Return");;
+    	TaskInfo taskInfo = new TaskInfo();
+		taskInfo.setProgress(100);
+		taskInfo.setTaskState("SUCCESS");
+		
     	genericExtensionTask.getStatus();
     	genericExtensionTask.getStatus();
     	RestClient client = null;

@@ -3692,6 +3692,8 @@ buckets.protocols=Protocols
 common.date.format=yyyy-MM-dd HH:mm:ss
 
 # Common Messages
+button.create=create
+button.remove=remove
 button.add=Add
 button.addExisting=Add Existing
 button.addExportRule=Add Export Rule

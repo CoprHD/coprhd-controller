@@ -1183,7 +1183,7 @@ angular.module("portalApp").controller("SystemLogsCtrl", function($scope, $http,
     }
 });
 
-angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $sce, $cookies) {
+angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $sce, $cookies, translate) {
     var APPLY_FILTER = routes.AuditLog_list();
     var DOWNLOAD_LOGS = routes.AuditLog_download();
     var RESULT_STATUS = {
@@ -1213,6 +1213,7 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
         $scope.filterDialog = angular.extend({orderTypes: ''}, $scope.filter);
     });
 
+    $scope.filterText = getFilterText();
     $scope.loading = false;
     $scope.error = null;
 
@@ -1282,6 +1283,12 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             return moment(dateStr + " " + timeStr, "YYYY-MM-DD HH:mm").toDate().getTime();
         }
         return null;
+    }
+
+    // Constructs the filter text to display at the top of the page
+    function getFilterText() {
+        var startTime = formatDate($scope.filter.startTime, 'YYYY-MM-DD HH:00');
+        return $sce.trustAsHtml(translate("auditLog.filter.filterText", startTime));
     }
 
     function encodeArgs(args) {

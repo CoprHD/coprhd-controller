@@ -60,7 +60,7 @@ public class AuditLog extends Controller {
         String serviceType = params.get(PARAM_SERVICE);
         String user = params.get(PARAM_USER);
         String keyword = params.get(PARAM_KEYWORD);
-        DateTime defaultStartTime = new DateTime().minusHours(5);
+        DateTime defaultStartTime = new DateTime();
         renderArgs.put(PARAM_START, (startTime == null) ? defaultStartTime.getMillis() : startTime);
         renderArgs.put(PARAM_RESULT, resultStatus);
         renderArgs.put(PARAM_SERVICE, serviceType);

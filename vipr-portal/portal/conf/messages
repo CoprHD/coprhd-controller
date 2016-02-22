@@ -2666,6 +2666,7 @@ auditLog._operationalStatus=Result
 auditLog._description=Description
 auditLog.download=Download
 auditLog.changefilter=Filter
+auditLog.filter.filterText=Showing audit logs from starting <span class="date">%s</span>
 
 filterDialog.resultStatus=Status
 filterDialog.serviceType=Service Type

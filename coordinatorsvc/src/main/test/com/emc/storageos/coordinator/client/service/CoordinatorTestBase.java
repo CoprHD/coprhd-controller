@@ -96,6 +96,7 @@ public class CoordinatorTestBase {
         conn.setServer(Arrays.asList(URI.create("coordinator://localhost:2181")));
         conn.setTimeoutMs(timeoutMs);
         conn.setSiteId("fake-site-id");
+        conn.setSiteIdFile("fake-site-id-file");
         conn.build();
         return conn;
     }

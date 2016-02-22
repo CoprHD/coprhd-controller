@@ -764,7 +764,7 @@ public class DisasterRecoveryService {
             throw APIException.badRequests.operationOnlyAllowedOnPausedSite(standby.getName(), standby.getState().toString());
         }
 
-        try (InternalSiteServiceClient client = new InternalSiteServiceClient(standby)) {
+        try (InternalSiteServiceClient client = createInternalSiteServiceClient(standby)) {
             commonPrecheck(uuid);
 
             client.setCoordinatorClient(coordinator);
@@ -1774,6 +1774,11 @@ public class DisasterRecoveryService {
             log.error(String.format("Fail to create vipr client, vip: %s, username: %s", vip, username), e);
             throw APIException.internalServerErrors.failToCreateViPRClient();
         }
+    }
+    
+    // encapsulate the create InternalSiteServiceClient operation for easy UT writing because need to mock InternalSiteServiceClient
+    protected InternalSiteServiceClient createInternalSiteServiceClient(Site site) {
+        return new InternalSiteServiceClient(site);
     }
 
     public void setApiSignatureGenerator(InternalApiSignatureKeyGenerator apiSignatureGenerator) {

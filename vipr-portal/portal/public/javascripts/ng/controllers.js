@@ -1226,10 +1226,10 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
             if (type === 'download') {
                 $scope.filterDialog.endTime = new Date().getTime();
                 $scope.filterDialog.endTime_date = getDate($scope.filterDialog.endTime);
-                $scope.filterDialog.endTime_time = getTime($scope.filterDialog.endTime);
+                $scope.filterDialog.endTime_time = getHour($scope.filterDialog.endTime);
             }
             $scope.filterDialog.startTime_date = getDate($scope.filterDialog.startTime);
-            $scope.filterDialog.startTime_time = getTime($scope.filterDialog.startTime);
+            $scope.filterDialog.startTime_time = getHour($scope.filterDialog.startTime);
         });
     });
 
@@ -1274,8 +1274,8 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
         return millis ? formatDate(millis, "YYYY-MM-DD") : "";
     }
 
-    function getTime(millis) {
-        return millis ? formatDate(millis, "HH:mm") : "";
+    function getHour(millis) {
+        return millis ? formatDate(millis, "HH") : "";
     }
 
     function getDateTime(dateStr, timeStr) {

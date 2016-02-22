@@ -34,28 +34,6 @@
 <div class="section-header"><h1>&{'audit.log.title'}</h1></div>
 
 <div id="system-logs">
-    <form class="form-inline col-md-6" onsubmit="refreshLog(); return false;"
-          style="margin-bottom: 0px;padding-top:10px;">
-    #{field 'auditLogDate'}
-    	%{
-    		field.value = currentDate
-    	}%
-        #{Form.dateTimePicker field:field, hideTime:true /}
-    #{/field}
-    &nbsp;Hour: <select id="hour-combobox" name="hour" class="form-control input-sm" style="width:6em">
-        #{list items:00..23, as:'hourOption'}
-            %{
-                prefix = hourOption<10?"0":""
-                hourString = prefix+hourOption
-            }%
-
-            <option value="${hourString}">${hourString}</option>
-        #{/list}
-    </select>
-
-    <input type="submit" class="btn btn-sm btn-primary" value="&{'system.logs.showLogs'}"/>
-    </form>
-
     <div ng-controller="AuditLogCtrl">
         <div class="filter-text">
             <div class="buttons">
@@ -85,19 +63,40 @@
                             </control-group>
                             <control-group v-field="filterDialog.startTime" width="9">
                                 <date-picker ng-model="filterDialog.startTime_date" close="true"></date-picker>
-                                <time-picker ng-model="filterDialog.startTime_time"></time-picker>
+                                <span>&nbsp;Hour: <select class="form-control"
+                                                          style="display: inline; width:6em"
+                                                          ng-model="filterDialog.startTime_time">
+                                #{list items:00..23, as:'hourOption'}
+                                %{
+                                    prefix = hourOption<10?"0":""
+                                    hourString = prefix+hourOption
+                                    }%
+
+                                    <option value="${hourString}">${hourString}</option>
+                                #{/list}
+                                </select></span>
                             </control-group>
                             <control-group v-field="filterDialog.endTime" width="9"
                                            ng-show="filterDialog.type == 'download'">
                                 <date-picker ng-model="filterDialog.endTime_date"
                                              ng-hide="filterDialog.endTimeCurrentTime"
                                              close="true"></date-picker>
-                                <time-picker ng-model="filterDialog.endTime_time"
-                                             ng-hide="filterDialog.endTimeCurrentTime"></time-picker>
-                                <div class="checkbox current-time-toggle">
+                                <span ng-hide="filterDialog.endTimeCurrentTime" style="float: left;margin-right: 5px;">&nbsp;Hour: <select
+                                        class="form-control" style="display: inline; width:6em"
+                                        ng-model="filterDialog.endTime_time">
+                                #{list items:00..23, as:'hourOption'}
+                                %{
+                                    prefix = hourOption<10?"0":""
+                                    hourString = prefix+hourOption
+                                    }%
+
+                                    <option value="${hourString}">${hourString}</option>
+                                #{/list}
+                                </select></span>
+                                <span class="checkbox current-time-toggle">
                                     <label><input type="checkbox" ng-model="filterDialog.endTimeCurrentTime">
                                         {{'filterDialog.currentTime' | t}}</label>
-                                </div>
+                                </span>
                             </control-group>
                             <control-group v-field="filterDialog.serviceType" width="9">
                                 <input-text></input-text>
@@ -144,22 +143,6 @@ options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataPro
 #{set 'moreScripts'}
 	#{get 'moreScripts'/}
 	<script type="text/javascript">
-
-	$(document).ready(function() {
-		var initialDate = moment(#{if currentDate}${currentDate.getTime()}#{/if});
-
-		var hourString = initialDate.format("HH");
-		$('#hour-combobox').val(hourString);
-
-		initialDate.milliseconds(0);
-		initialDate.seconds(0);
-		initialDate.minutes(0);
-		initialDate.hours(0);
-
-		auditLogDate.setTime(initialDate);
-
-	  });
-
     function loadServerParams(aoData) {
         aoData.push({"name" : "date", "value" : "${currentDate.getTime()}"});
         aoData.push({"name" : "startTime", "value" : "${startTime}"});
@@ -184,14 +167,6 @@ options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataPro
         return details;
     }
 
-    function refreshLog() {
-        var time = getSelectedDateTime();
-
-        var uri = "@{list()}?date=" + time;
-
-        window.location.href = uri;
-    }
-
     function renderResult(o, val) {
         var operationalStatus = o.aData._operationalStatus;
         if (operationalStatus) {
@@ -212,22 +187,6 @@ options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataPro
     function renderDescription(o, val) {
     	return "<div class='auditLogsDescription'>" + o.aData._description + "</div>"
     }
-
-    function getSelectedDateTime() {
-    	var time = auditLogDate.getTime();
-
-    	var newDate = moment(time);
-    	newDate.hours(0);
-    	newDate.minutes(0);
-    	newDate.seconds(0);
-    	newDate.milliseconds(0);
-
-    	var hourString = $("#hour-combobox").val();
-    	newDate.hours(hourString);
-
-    	return newDate.valueOf();
-    }
-
 
 	</script>
 #{/set}

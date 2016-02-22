@@ -11234,6 +11234,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ApplicationAddVolumeList addBEVolList = new ApplicationAddVolumeList();
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty() ) {
                 _log.info("Creating steps for adding volumes to the volume group");
+
                 addVols = addVolList.getVolumes();
                 
                 for (URI addVol : addVols) {
@@ -11258,6 +11259,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
             }
+
             addBEVolList.setVolumes(allAddBEVolumes);
             addBEVolList.setReplicationGroupName(addVolList.getReplicationGroupName());
             addBEVolList.setConsistencyGroup(addVolList.getConsistencyGroup());
@@ -11268,7 +11270,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 waitFor = _blockDeviceController.addStepsForConvertVNXReplicationGroup(workflow, vnxVolumes, waitFor, opId);                
             }
             // add steps for add source and remove vols
-            _blockDeviceController.addStepsForUpdateApplication(workflow, addBEVolList, allRemoveBEVolumes, waitFor, opId);
+            waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addBEVolList, allRemoveBEVolumes, waitFor, opId);
+
+            addStepsForImportClonesOfApplicationVolumes(workflow, waitFor, addVolList.getVolumes(), opId);
+            
             completer = new VolumeGroupUpdateTaskCompleter(volumeGroup, addVols, removeVolumeList, cgs, opId);
             // Finish up and execute the plan.
             _log.info("Executing workflow plan {}", UPDATE_VOLUMEGROUP_WF_NAME);
@@ -11282,5 +11287,135 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         DeviceControllerException.exceptions.failedToUpdateVolumesFromAppication(volumeGroup.toString(), e.getMessage()));
             }
         }
+    }
+    
+    /**
+     * This method will add steps to import the clone of the source backend volumes, 
+     * create clone VPlex virtual volumes
+     * create HA backend volume for clone virtual volume if distributed.
+     * 
+     * @param workflow
+     * @param waitFor
+     * @param sourceVolumes
+     * @param opId
+     * @return
+     */
+    public void addStepsForImportClonesOfApplicationVolumes(Workflow workflow, String waitFor, List<URI>sourceVolumes, String opId) {
+        _log.info("Creating steps for importing clones");
+        for (URI vplexSrcUri : sourceVolumes) {
+            Volume vplexSrcVolume = getDataObject(Volume.class, vplexSrcUri, _dbClient);
+            Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(vplexSrcVolume, true, _dbClient);
+            long size = backendSrc.getProvisionedCapacity();
+            Volume backendHASrc =  VPlexUtil.getVPLEXBackendVolume(vplexSrcVolume, false, _dbClient);
+            StringSet backSrcCopies = backendSrc.getFullCopies();
+            if (backSrcCopies != null && !backSrcCopies.isEmpty()) {
+                for (String copy : backSrcCopies) {
+                    List<VolumeDescriptor> vplexVolumeDescriptors = new ArrayList<VolumeDescriptor>();
+                    List<VolumeDescriptor> blockDescriptors = new ArrayList<VolumeDescriptor>();
+                    Volume backCopy = getDataObject(Volume.class, URI.create(copy), _dbClient);
+                    String name = backCopy.getLabel();
+                    _log.info(String.format("Creating steps for import clone %s.", name));
+                    VolumeDescriptor vplexCopyVolume = prepareVolumeDescriptor(vplexSrcVolume, name, 
+                            VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, size, false);
+                    Volume vplexCopy = getDataObject(Volume.class, vplexCopyVolume.getVolumeURI(), _dbClient);
+                    vplexCopy.setAssociatedVolumes(new StringSet());
+                    StringSet assVol = vplexCopy.getAssociatedVolumes();
+                    assVol.add(backCopy.getId().toString());
+                    
+                    VirtualPoolCapabilityValuesWrapper capabilities = getCapabilities(backCopy, size);
+                    VolumeDescriptor backCopyDesc = new  VolumeDescriptor(VolumeDescriptor.Type.VPLEX_IMPORT_VOLUME, 
+                            backCopy.getStorageController(), backCopy.getId(), backCopy.getPool(), capabilities);
+                    blockDescriptors.add(backCopyDesc);
+                    if (backendHASrc != null) {
+                        //distributed volume
+                        name = name + "-ha";
+                        VolumeDescriptor haDesc = prepareVolumeDescriptor(backendHASrc, name, 
+                                VolumeDescriptor.Type.BLOCK_DATA, size, true);
+                        blockDescriptors.add(haDesc);
+                        assVol.add(haDesc.getVolumeURI().toString());
+                    }
+                    vplexCopy.setFullCopySetName(backCopy.getFullCopySetName());
+                    vplexCopy.setAssociatedSourceVolume(vplexSrcUri);
+                    StringSet srcClones = vplexSrcVolume.getFullCopies();
+                    if (srcClones == null) {
+                        srcClones  = new StringSet();
+                    }
+                    srcClones.add(vplexCopy.getId().toString());
+                    backCopy.setFullCopySetName(NullColumnValueGetter.getNullStr());
+                    backCopy.addInternalFlags(Flag.INTERNAL_OBJECT);
+                    _dbClient.updateObject(backCopy);
+                    _dbClient.updateObject(vplexCopy);
+                    _dbClient.updateObject(vplexSrcVolume);
+                    vplexVolumeDescriptors.add(vplexCopyVolume);
+                    createStepsForFullCopyImport(workflow, vplexSrcVolume.getStorageController(), backendSrc,
+                            vplexVolumeDescriptors, blockDescriptors, waitFor);
+                }
+            }
+        }
+        _log.info("Created workflow steps to import the backend full copies");
+    }
+    
+    /**
+     * Create a volume instance and VolumeDescriptor using the characteristics of the passed in source volume. 
+     * @param source - The volume will be used to create the volume instance
+     * @param name - The new volume label
+     * @param type - VolumeDescriptor type
+     * @param size - The volume size
+     * @param isInternal -If the volume is internal
+     * @return - The newly created VolumeDescriptor
+     */
+    private VolumeDescriptor prepareVolumeDescriptor(Volume source, String name, VolumeDescriptor.Type type, long size,
+            boolean isInternal) {
+        Volume volume = new Volume();
+        volume.setId(URIUtil.createId(Volume.class));
+        volume.setLabel(name);
+        volume.setCapacity(size);
+        URI vpoolUri = source.getVirtualPool();
+        VirtualPool vpool = getDataObject(VirtualPool.class, vpoolUri, _dbClient);
+        volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin.toString()
+                .equalsIgnoreCase(vpool.getSupportedProvisioningType()));
+        volume.setVirtualPool(vpool.getId());
+        URI projectId = source.getProject().getURI();
+        Project project = getDataObject(Project.class, projectId, _dbClient);
+        volume.setProject(new NamedURI(projectId, volume.getLabel()));
+        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(), volume.getLabel()));
+        volume.setVirtualArray(source.getVirtualArray());
+        volume.setPool(source.getPool());
+
+        volume.setProtocol(source.getProtocol());
+        volume.setStorageController(source.getStorageController());
+        if (isInternal) {
+            volume.addInternalFlags(Flag.INTERNAL_OBJECT);
+        }
+        _dbClient.createObject(volume);
+        
+        VirtualPoolCapabilityValuesWrapper capabilities = getCapabilities(source, size);
+        
+        return new VolumeDescriptor(type, volume.getStorageController(),
+                volume.getId(), volume.getPool(), capabilities);
+    }
+    
+    /**
+     * Create a VirtualPoolCapabilityValuesWrapper based on the passed in volume
+     * @param volume - The volume used to create the VirtualPoolCapabilityValuesWrapper.
+     * @param size 
+     * @return
+     */
+    private VirtualPoolCapabilityValuesWrapper getCapabilities(Volume volume, long size) {
+        URI vpoolUri = volume.getVirtualPool();
+        VirtualPool vpool = getDataObject(VirtualPool.class, vpoolUri, _dbClient);
+        VirtualPoolCapabilityValuesWrapper capabilities = new
+                VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, size);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                vpool.getSupportedProvisioningType())) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+            // To guarantee that storage pool for a copy has enough physical
+            // space to contain current allocated capacity of thin source volume
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
+                    volume.getAllocatedCapacity());
+        }
+        return capabilities;
     }
 }

@@ -2294,9 +2294,8 @@ public class VolumeIngestionUtil {
                     continue;
                 }
 
-                // TODO: This code will likely need to be rethought when we consider multiple masks to RP (VMAX2)
                 if (queryExportGroups.size() > 1) {
-                    _logger.error("More than one export group contains the initiator(s) requested.  Choosing the first one: "
+                    _logger.info("More than one export group contains the initiator(s) requested.  Choosing the first one: "
                             + exportGroup.getId().toString());
                 }
                 return exportGroup;

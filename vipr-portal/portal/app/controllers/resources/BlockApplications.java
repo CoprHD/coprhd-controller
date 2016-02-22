@@ -141,7 +141,9 @@ public class BlockApplications extends ResourceController {
 
             public VolumeApplication(VolumeRestRep volume) {
                 super(volume, virtualArrays, virtualArrays);
-                associatedSourceVolume = volume.getProtection().getFullCopyRep().getAssociatedSourceVolume();
+                if (volume.getProtection() != null && volume.getProtection().getFullCopyRep() != null) {
+                    associatedSourceVolume = volume.getProtection().getFullCopyRep().getAssociatedSourceVolume();
+                }
                 if (associatedSourceVolume != null) {
                     associatedVolume = BourneUtil.getViprClient().blockVolumes().get(associatedSourceVolume.getId());
                     associatedVolumeRG = associatedVolume.getReplicationGroupInstance();

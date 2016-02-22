@@ -380,10 +380,15 @@ public class VNXFileSshApi {
             return null;
         }
 
+        String exportName= exports.get(0).getExportName();
+        if(exportName == null) {
+            return null;
+        }
+        
         StringBuilder cmd = new StringBuilder();
         cmd.append(dataMover);
         cmd.append(" -list -name ");
-        cmd.append(exports.get(0).getExportName());
+        cmd.append(exportName);
 
         return cmd.toString();
     }

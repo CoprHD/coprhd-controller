@@ -43,6 +43,8 @@ for file in `/bin/ls $UNIT_FILES_LOCATION`; do
 	/usr/bin/systemctl enable ${fileName%.*} || exit 1
 done
 
+sed -i "s/#DefaultTimeoutStartSec=90s/DefaultTimeoutStartSec=180s/" /etc/systemd/system.conf 
+
 /usr/bin/systemctl daemon-reload
 
 #####################################################################
@@ -235,6 +237,21 @@ cp -r xio-*/* /data/simulators/xio_2/
 mv /data/simulators/xio_2/xio-simulators-*.jar /data/simulators/xio_2/xio-simulators2-$VERSION 
 rm -r xio-*
 rm -f xio-simulators-*.zip
+
+					#############################
+					# VM                       #
+					#############################
+echo "Installing XIO"
+
+LATEST_URL="http://lglw8129.lss.emc.com/simulators/vmware/vm_sim.zip" 
+echo "Downloading $LATEST_URL"
+wget $LATEST_URL || exit 1
+
+unzip -j vm_sim.zip -d vm-sim
+mkdir -p /data/simulators/vm/
+cp -r vm-*/* /data/simulators/xio/
+rm -r vm-*
+rm -f vm_sim.zip
 
 #####################################################################
 # Install update scripts                                            #

@@ -42,6 +42,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
@@ -3647,8 +3648,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<URI> allVolumes = RPHelper.getReplicationSetVolumes(addVolumeURIs, _dbClient);
         Set<String> checkedRG = new HashSet<String>();
         outVolumesList.setConsistencyGroup(cgUri);
+        List<Volume> allVolumesToCheck = new ArrayList<Volume> ();
         for (URI volumeUri : allVolumes) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
+            allVolumesToCheck.add(volume);
             boolean vplex = RPHelper.isVPlexVolume(volume);
             if (vplex) {
                 // get the backend volume
@@ -3684,6 +3687,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
                     "replication group name is not provided");
         }
+        validateAddVolumesToApplication(allVolumesToCheck, application);
         return outVolumesList;
     }
 
@@ -3705,5 +3709,38 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
         return groupNames;
+    }
+    
+    /**
+     * validate volumes can be added to an application
+     * 
+     * @param volumes
+     * @param application
+     */
+    private void validateAddVolumesToApplication(List<Volume> volumes, VolumeGroup application) {
+        for (Volume volume : volumes) {
+            // Check if the volume has any replica
+            boolean vplex = RPHelper.isVPlexVolume(volume);
+            Volume snapSource = volume;
+            if (vplex) {
+                snapSource = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+            }
+            URIQueryResultList snapshotURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                    snapSource.getId()), snapshotURIs);
+            Iterator<URI> it = snapshotURIs.iterator();
+            boolean hasSnap = false;
+            if (it.hasNext()) {
+                hasSnap = true;
+            }
+            StringSet mirrors = volume.getMirrors();
+            StringSet fullCopyIds = volume.getFullCopies();
+            if (hasSnap || (mirrors != null && !mirrors.isEmpty())
+                    || (fullCopyIds != null && !fullCopyIds.isEmpty())) {
+                throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
+                        String.format("the volumes %s has replica. please remove all replicas from the volume", volume.getLabel()));
+            }
+        }
+
     }
 }

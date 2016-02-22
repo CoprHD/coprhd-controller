@@ -514,36 +514,75 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                 "Expand Meta Volume Start - Array: %s, Head: %s, %n   New members:%s",
                 storageSystem.getSerialNumber(), metaHead.getLabel(), newMetaMembers));
 
-        try {
-            CIMObjectPath elementCompositionServicePath = _cimPath.getElementCompositionSvcPath(storageSystem);
+        boolean isRPVolume = false;
 
-            CIMArgument[] inArgs;
-            inArgs = _helper.getExpandMetaVolumeInputArguments(storageSystem, metaHead, newMetaMembers);
+        if (metaHead != null) {
+            // A volume is of type RP if the volume has an RP copy name or it's a VPlex backing volume associated to a
+            // VPlex RP source volume.
+            isRPVolume = metaHead.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(metaHead, _dbClient);
+        }
 
-            CIMArgument[] outArgs = new CIMArgument[5];
-            // TODO evaluate use of asunc call for the last operation in extend sequence
-            // _helper.invokeMethod(storageSystem, elementCompositionServicePath, SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT, inArgs,
-            // outArgs);
-            // CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-            // if (job != null) {
-            // ControllerServiceImpl.enqueueJob(new QueueJob(new SmisVolumeExpandJob(job, storageSystem.getId(),
-            // taskCompleter, "ExpandMetaVolume")));
-            // }
-            StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, metaHead);
-            _log.info("Selected Provider : {}", forProvider.getNativeGuid());
-            SmisJob smisJobCompleter = new SmisVolumeExpandJob(null, forProvider.getId(), storagePool.getId(),
-                    metaVolumeTaskCompleter, "ExpandMetaVolume");
-            _helper.invokeMethodSynchronously(forProvider, elementCompositionServicePath,
-                    SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT, inArgs,
-                    outArgs, smisJobCompleter);
-        } catch (WBEMException e) {
-            _log.error("Problem making SMI-S call: ", e);
-            ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
-            metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
-        } catch (Exception e) {
-            _log.error("Problem in expandMetaVolume: ", e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("expandVolume", e.getMessage());
-            metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
+        // initialize the retry/attempt variables
+        int attempt = 1;
+        int retries = 1;
+
+        if (isRPVolume) {
+            // if we are dealing with an RP volume, we need to set the retry count appropriately
+            retries = MAX_RP_EXPAND_RETRIES;
+        }
+
+        // Execute one-to-many expand attempts depending on if this is an RP volume or not. If the
+        // volume is RP, retry if we get the "The requested device has active sessions" error. This is
+        // because RP has issued an asynchronous call to the array to terminate the active session but it
+        // has not been received or processed yet.
+        while (attempt++ <= retries) {
+            try {
+                CIMObjectPath elementCompositionServicePath = _cimPath.getElementCompositionSvcPath(storageSystem);
+
+                CIMArgument[] inArgs;
+                inArgs = _helper.getExpandMetaVolumeInputArguments(storageSystem, metaHead, newMetaMembers);
+
+                CIMArgument[] outArgs = new CIMArgument[5];
+                // TODO evaluate use of asunc call for the last operation in extend sequence
+                // _helper.invokeMethod(storageSystem, elementCompositionServicePath, SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT,
+                // inArgs,
+                // outArgs);
+                // CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                // if (job != null) {
+                // ControllerServiceImpl.enqueueJob(new QueueJob(new SmisVolumeExpandJob(job, storageSystem.getId(),
+                // taskCompleter, "ExpandMetaVolume")));
+                // }
+                StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, metaHead);
+                _log.info("Selected Provider : {}", forProvider.getNativeGuid());
+                SmisJob smisJobCompleter = new SmisVolumeExpandJob(null, forProvider.getId(), storagePool.getId(),
+                        metaVolumeTaskCompleter, "ExpandMetaVolume");
+                _helper.invokeMethodSynchronously(forProvider, elementCompositionServicePath,
+                        SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT, inArgs,
+                        outArgs, smisJobCompleter);
+            } catch (WBEMException e) {
+                _log.error("Problem making SMI-S call: ", e);
+                ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
+                metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
+            } catch (Exception e) {
+                if (attempt != retries && isRPVolume && e.getMessage().contains("The requested device has active sessions")) {
+                    // RP has issued an async request to terminate the active session so we just need to wait
+                    // and retry the expand.
+                    _log.warn(String
+                            .format("Encountered exception attempting to expand RP volume %s.  Waiting %s milliseconds before trying again.  Error: %s",
+                                    metaHead.getLabel(), RP_EXPAND_WAIT_FOR_RETRY, e.getMessage()));
+                    try {
+                        Thread.sleep(RP_EXPAND_WAIT_FOR_RETRY);
+                    } catch (InterruptedException e1) {
+                        Thread.currentThread().interrupt();
+                    }
+                } else {
+                    _log.error("Problem in expandMetaVolume: ", e);
+                    ServiceError error = DeviceControllerErrors.smis.methodFailed("expandVolume", e.getMessage());
+                    metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
+                    // Reset the retries count to stop retrying
+                    retries = 0;
+                }
+            }
         }
 
         _log.info(String.format(

@@ -158,7 +158,7 @@ import com.google.common.base.Joiner;
 public class RPDeviceController implements RPController, BlockOrchestrationInterface, MaskingOrchestrator {
 
     private static final String DASHED_NEWLINE = "---------------------------------%n";
-	private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
+    private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
     private static final String RPA = "-rpa-";
     // RecoverPoint consistency group name prefix
     private static final String CG_NAME_PREFIX = "ViPR-";
@@ -273,9 +273,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         private URI varray;
         private List<URI> volumes;
         private URI computeResource;
-        // If journal varray is specified which is different from the copy for that RP site, 
+        // If journal varray is specified which is different from the copy for that RP site,
         // then this flag is true to indicate this is a journal only export
-        private boolean isJournalExport; 
+        private boolean isJournalExport;
 
         public RPExport() {
         }
@@ -320,21 +320,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         public void setVolumes(List<URI> volumes) {
             this.volumes = volumes;
         }
-        
-        public URI getComputeResource(){
-        	return computeResource;
+
+        public URI getComputeResource() {
+            return computeResource;
         }
-        
+
         public void setComputeResource(URI computeResource) {
-        	this.computeResource = computeResource;
+            this.computeResource = computeResource;
         }
-        
+
         public boolean getIsJournalExport() {
-        	return isJournalExport;
+            return isJournalExport;
         }
-        
+
         public void setIsJournalExport(boolean isJournalExport) {
-        	this.isJournalExport = isJournalExport;
+            this.isJournalExport = isJournalExport;
         }
 
         @Override
@@ -1062,8 +1062,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 boolean isJournalExport = rpExport.getIsJournalExport();
                 // Setup the export group - we may or may not need to create it, but we need to have everything ready in case we do
-                ExportGroup exportGroup = RPHelper.createRPExportGroup(internalSiteName, varray, _dbClient.queryObject(Project.class, 
-                        params.getProject()), rpSystem, storageSystem, 0, isJournalExport);                               
+                ExportGroup exportGroup = RPHelper.createRPExportGroup(internalSiteName, varray, _dbClient.queryObject(Project.class,
+                        params.getProject()), rpSystem, storageSystem, 0, isJournalExport);
 
                 // Get the initiators of the RP Cluster (all of the RPAs on one side of a configuration)
                 Map<String, Map<String, String>> rpaWWNs = RPHelper.getRecoverPointClient(rpSystem).getInitiatorWWNs(internalSiteName);
@@ -1184,20 +1184,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     exportGroupVolumesAdded.put(exportGroup.getId(), volumesToAdd.keySet());
                 }
 
-                //Update Host/Cluster export information if the source volume is exported information on the Source volume
-                if (rpExport.getComputeResource() != null) {                	
-                	URI computeResource = rpExport.getComputeResource();                	
-                	_log.info(String.format("RP Export: ComputeResource : %s", computeResource.toString()));
-                	                	
-					if (computeResource.toString().toLowerCase().contains(COMPUTE_RESOURCE_CLUSTER)) {
-                		Cluster cluster = _dbClient.queryObject(Cluster.class, computeResource);                		
-                		exportGroup.addCluster(cluster);
-                	} else {
-                		Host host = _dbClient.queryObject(Host.class, rpExport.getComputeResource());
-                		exportGroup.addHost(host);
-                	}        
+                // Update Host/Cluster export information if the source volume is exported information on the Source volume
+                if (rpExport.getComputeResource() != null) {
+                    URI computeResource = rpExport.getComputeResource();
+                    _log.info(String.format("RP Export: ComputeResource : %s", computeResource.toString()));
+
+                    if (computeResource.toString().toLowerCase().contains(COMPUTE_RESOURCE_CLUSTER)) {
+                        Cluster cluster = _dbClient.queryObject(Cluster.class, computeResource);
+                        exportGroup.addCluster(cluster);
+                    } else {
+                        Host host = _dbClient.queryObject(Host.class, rpExport.getComputeResource());
+                        exportGroup.addHost(host);
+                    }
                 }
-                
+
                 // Persist the export group
                 if (addExportGroupToDB) {
                     exportGroup.addInitiators(initiatorSet);
@@ -1212,7 +1212,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 StringBuilder buffer = new StringBuilder();
                 buffer.append(String.format(DASHED_NEWLINE));
                 if (!addExportGroupToDB) {
-                	
+
                     buffer.append(String.format(
                             "Adding volumes to existing Export Group for Storage System [%s], RP Site [%s], Virtual Array [%s]%n",
                             storageSystem.getLabel(), rpSiteName, varray.getLabel()));
@@ -1351,12 +1351,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         _log.error(String.format("Could not find initiator for %s on RP ID %s, site %s", rpaWWN.getKey(), rpaId, rpSiteName));
                         throw DeviceControllerExceptions.recoverpoint.noInitiatorsFoundOnRPAs();
                     }
-                    
+
                     if (!rpSiteInitiators.containsKey(rpSiteName)) {
                         rpSiteInitiators.put(rpSiteName, new HashSet<URI>());
                     }
 
-                    _log.info(String.format("Adding initiator %s, port %s on RP ID %s, site %s", initiator.getId(), rpaWWN.getKey(), rpaId, rpSiteName));
+                    _log.info(String.format("Adding initiator %s, port %s on RP ID %s, site %s", initiator.getId(), rpaWWN.getKey(), rpaId,
+                            rpSiteName));
                     rpSiteInitiators.get(rpSiteName).add(initiator.getId());
                 }
             }
@@ -1802,7 +1803,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private Collection<RPExport> generateStorageSystemExportMaps(CGRequestParams cgParams, List<VolumeDescriptor> volumeDescriptors) {
         _log.info("Generate the storage system exports");
         Map<String, RPExport> rpExportMap = new HashMap<String, RPExport>();
-        
+
         // First, iterate through source/target volumes (via the replication set). This will be slightly
         // different than the journals since we need to consider that we might have a MetroPoint source
         // volume.
@@ -1828,7 +1829,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         vpoolURI = getVirtualPoolChangeVirtualPool(volumeDescriptors);
                     } else {
                         vpoolURI = volume.getVirtualPool();
-                    }                                       
+                    }
 
                     VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, vpoolURI);
 
@@ -1886,27 +1887,29 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                     // Add host information to the export if specified
                     if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
-                    	for(VolumeDescriptor desc : volumeDescriptors) {
-                    		if (desc.getVolumeURI().equals(vol.getId())) {
-                    			if (!NullColumnValueGetter.isNullURI(desc.getComputeResource())) {
-	                            	_log.info("Add Host/Cluster information for source volume exports");
-	                    			rpExport.setComputeResource(desc.getComputeResource());
-	                    			break;
-                    			}
-                    		}
-                    	}
+                        for (VolumeDescriptor desc : volumeDescriptors) {
+                            if (desc.getVolumeURI().equals(vol.getId())) {
+                                if (!NullColumnValueGetter.isNullURI(desc.getComputeResource())) {
+                                    _log.info("Add Host/Cluster information for source volume exports");
+                                    rpExport.setComputeResource(desc.getComputeResource());
+                                    break;
+                                }
+                            }
+                        }
                     }
                     _log.info("Add Volume: " + volumeLabel + " to export: " + rpExport);
                     rpExport.getVolumes().add(volumeId);
                 }
             }
         }
-        
-        // Second,  Iterate through the journal volumes (via the copies)
+
+        // Second, Iterate through the journal volumes (via the copies)
         // We first build all the source/target copy volumes and the then journals. The order is reversed from the initial implementation.
-        // This is because, if dedicated export groups for journals are not required then we can piggyback on the export group created for the 
-        // source/target for the journal of that copy. 
-        // If the VirtualArray for the journal on a copy is different than the VirtualArray for that copy, then a new ExportGroup will be created for the journal.
+        // This is because, if dedicated export groups for journals are not required then we can piggyback on the export group created for
+        // the
+        // source/target for the journal of that copy.
+        // If the VirtualArray for the journal on a copy is different than the VirtualArray for that copy, then a new ExportGroup will be
+        // created for the journal.
         for (CreateCopyParams copy : cgParams.getCopies()) {
             _log.info("Copy: " + copy.getName());
             for (CreateVolumeParams journalVolume : copy.getJournals()) {
@@ -1923,17 +1926,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 String key = storageSystem.toString() + rpSiteName + varray.toString();
 
                 // Try and get an existing rp export object from the map using the key
-                // If a separate varray is specified is for journals, a new entry will be created. 
+                // If a separate varray is specified is for journals, a new entry will be created.
                 RPExport rpExport = rpExportMap.get(key);
 
                 // If it doesn't exist, create the entry and add it to the map with the key
                 if (rpExport == null) {
-                	_log.info("RPExport is for journals only");
+                    _log.info("RPExport is for journals only");
                     rpExport = new RPExport(storageSystem, rpSiteName, varray);
                     rpExport.setIsJournalExport(true);
                     rpExportMap.put(key, rpExport);
                 }
-                
+
                 _log.info(String.format("Add Journal Volume: [%s] to export : [%s]", volumeLabel, rpExport.toString()));
 
                 rpExport.getVolumes().add(volumeId);
@@ -2439,24 +2442,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param snapshots snapshot list
-     * 
+     *
      * @param initatorURIs initiators to send to the block controller
-     * 
+     *
      * @param token The task object
      */
     @Override
@@ -2640,19 +2643,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2765,15 +2768,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     * 
+     *
      * @param workflow Workflow
-     * 
+     *
      * @param waitFor waitFor step id
-     * 
+     *
      * @param snapshots list of snapshot to disable
-     * 
+     *
      * @param rpSystem RP system
-     * 
+     *
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -2941,24 +2944,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportGroupID The export group
-     * 
+     *
      * @param snapshot RP snapshot
-     * 
+     *
      * @param lun HLU
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -3268,7 +3271,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             Map<String, RecreateReplicationSetRequestParams> rsetParams =
                     new HashMap<String, RecreateReplicationSetRequestParams>();
 
-            RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, volume.getId());
+            RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, volURI);
             rsetParams.put(RPHelper.getRPWWn(volURI, _dbClient), rsetParam);
 
             String stepId = workflow.createStepId();
@@ -3646,7 +3649,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // rpSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + rpSiteName + "_" + varray.getLabel()
                 // and replacing all non alpha-numerics with "" (except "_").
                 String generatedName = exportGroup.getGeneratedName().trim().replaceAll(ALPHA_NUMERICS, "");
-                if (generatedName.equals(exportGroupToFind.getGeneratedName())) {                
+                if (generatedName.equals(exportGroupToFind.getGeneratedName())) {
                     _log.info("Export Group already exists in database.");
                     return exportGroup;
                 }
@@ -3838,7 +3841,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -4024,8 +4027,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                             rSet.setVolumes(volumes);
                             rSets.add(rSet);
 
-                            List<Volume> standbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, standbyCopyVol.getConsistencyGroup(), standbyCopyVol.getRpCopyName());
-                            
+                            List<Volume> standbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
+                                    standbyCopyVol.getConsistencyGroup(), standbyCopyVol.getRpCopyName());
+
                             // compile a unique set of journal volumes
                             for (Volume standbyJournal : standbyJournals) {
                                 journalVolumes.add(standbyJournal.getId());
@@ -4059,11 +4063,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                     + protectionVolume.getLabel());
                         }
                     }
-                    
-                    String standbyInternalSiteName = RPHelper.getStandbyInternalSite(_dbClient, protectionVolume);                
+
+                    String standbyInternalSiteName = RPHelper.getStandbyInternalSite(_dbClient, protectionVolume);
                     // Build standby journal
-                    if (standbyInternalSiteName != null) {            
-                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, protectionVolume.getConsistencyGroup(), standbyInternalSiteName);                        
+                    if (standbyInternalSiteName != null) {
+                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient,
+                                protectionVolume.getConsistencyGroup(), standbyInternalSiteName);
                         Volume standbyProdJournal = existingStandbyJournals.get(0);
 
                         _log.info(String.format("Found standby production journal volume %s (%s) for metropoint volume %s (%s)",
@@ -4252,7 +4257,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
@@ -5712,9 +5717,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param rpSystem The rpSystem we're using
      */
     private void upgradeRPVPlexToMetroPoint(Volume sourceVolume, VirtualPool newVpool, VirtualPool oldVpool, ProtectionSystem rpSystem) {
-        // Grab the new standby journal from the CG               
-        String standbyInternalSiteName = RPHelper.getStandbyInternalSite(_dbClient, sourceVolume);                                  
-        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, sourceVolume.getConsistencyGroup(), standbyInternalSiteName);                        
+        // Grab the new standby journal from the CG
+        String standbyInternalSiteName = RPHelper.getStandbyInternalSite(_dbClient, sourceVolume);
+        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, sourceVolume.getConsistencyGroup(),
+                standbyInternalSiteName);
         Volume standbyProdJournal = existingStandbyJournals.get(0);
 
         // Add new standby journal

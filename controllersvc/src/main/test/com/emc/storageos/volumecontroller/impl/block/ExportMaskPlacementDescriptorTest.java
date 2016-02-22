@@ -733,7 +733,7 @@ public class ExportMaskPlacementDescriptorTest {
         }
 
         // Run the helper method to replace volumes to alternative ExportMasks
-        ExportMaskPlacementDescriptorHelper.putUnplacedVolumesIntoAlternativeMask(descriptor, invalidMasks);
+        ExportMaskPlacementDescriptorHelper.putUnplacedVolumesIntoAlternativeMask(descriptor);
 
         // Now we should have placed volumes
         Assert.assertFalse(descriptor.hasUnPlacedVolumes());

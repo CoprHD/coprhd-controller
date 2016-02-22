@@ -38,11 +38,10 @@ public final class ExportMaskPlacementDescriptorHelper {
      * If there are any invalidMasks, try to determine if we can use alternative and equivalent ExportMasks.
      * If so, we will use them for placement.
      *
-     * @param descriptor [IN/OUT] - Context used for backend placement
-     * @param invalidMasks [IN] - Set of ExportMasks that were original suggested, but look to be invalid based on VPlex
-     *            criteria.
+     *  @param descriptor [IN/OUT] - Context used for backend placement
+     * 
      */
-    public static void putUnplacedVolumesIntoAlternativeMask(ExportMaskPlacementDescriptor descriptor, Set<URI> invalidMasks) {
+    public static void putUnplacedVolumesIntoAlternativeMask(ExportMaskPlacementDescriptor descriptor) {
         // First check: are there any unplaced volumes?
         if (!descriptor.hasUnPlacedVolumes()) {
             // Nope - nothing to do here.
@@ -64,28 +63,17 @@ public final class ExportMaskPlacementDescriptorHelper {
             Set<URI> equivalentExportsForVolume = descriptor.getAlternativeExportsForVolume(volumeURI);
             log.info("Found these ExportMasks are alternatives for volume {}: {}", volumeURI,
                     collectionString(equivalentExportsForVolume));
-            // Go through all the invalid exports ...
-            for (URI invalidExportURI : invalidMasks) {
-                // Get equivalents for the invalid ExportMask (if any)
-                Set<URI> equivalentExportMask = descriptor.getEquivalentExportMasks(invalidExportURI);
-                log.info("Found these ExportMasks are equivalent for invalid export {}: {}", invalidExportURI,
-                        collectionString(equivalentExportMask));
-                // Find the ExportMasks that are the intersection of the equivalent ExportMasks for
-                // the invalid export *and* the set of ExportMasks that are considered alternatives
-                // for the volume.
-                Set<URI> toChooseFrom = Sets.intersection(equivalentExportsForVolume, equivalentExportMask);
-                if (!toChooseFrom.isEmpty()) {
-                    // Find the ExportMask with the least number of volumes
-                    URI selectedURI = getExportMaskWithLeastVolumes(descriptor, toChooseFrom);
-                    log.info("Common: {} - Least volumes: {}", collectionString(toChooseFrom), selectedURI);
-                    // Update the replacement mapping for this ExportMask
-                    Map<URI, Volume> volumeMap = replaceMap.get(selectedURI);
-                    if (volumeMap == null) {
-                        volumeMap = new HashMap<>();
-                        replaceMap.put(selectedURI, volumeMap);
-                    }
-                    volumeMap.put(volumeURI, volumes.get(volumeURI));
+            if (!equivalentExportsForVolume.isEmpty()) {
+                // Find the ExportMask with the least number of volumes
+                URI selectedURI = getExportMaskWithLeastVolumes(descriptor, equivalentExportsForVolume);
+                log.info("Alternatives: {} - mask with least volumes: {}", collectionString(equivalentExportsForVolume), selectedURI);
+                // Update the replacement mapping for this ExportMask
+                Map<URI, Volume> volumeMap = replaceMap.get(selectedURI);
+                if (volumeMap == null) {
+                    volumeMap = new HashMap<>();
+                    replaceMap.put(selectedURI, volumeMap);
                 }
+                volumeMap.put(volumeURI, volumes.get(volumeURI));
             }
         }
 
@@ -94,7 +82,7 @@ public final class ExportMaskPlacementDescriptorHelper {
             descriptor.placeVolumes(replaceEntry.getKey(), replaceEntry.getValue());
         }
 
-        log.info("After trying to find invalid mask alternatives:\n{}", descriptor);
+        log.info("After trying to find mask alternatives:\n{}", descriptor);
     }
 
     /**

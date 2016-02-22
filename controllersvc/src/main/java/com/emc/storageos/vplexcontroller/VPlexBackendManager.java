@@ -280,7 +280,7 @@ public class VPlexBackendManager {
 
             // If there were any invalid masks found, we can redo the volume placement into
             // an alternative ExportMask (if there are any listed by the descriptor)
-            putUnplacedVolumesIntoAlternativeMask(placementDescriptor, invalidMasks);
+            putUnplacedVolumesIntoAlternativeMask(placementDescriptor);
             
             // Check to see if there are any available ExportMasks that can be used.
             // If not, we will attempt to generate some.

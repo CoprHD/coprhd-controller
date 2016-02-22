@@ -3438,7 +3438,6 @@ resources.filesystem.mirroring.virtualArray=Virtual Array
 resources.filesystem.mirroring.fileSystem=File System
 resources.filesystem.mirroring.status=Mirror Status
 resources.filesystem.policy.name=Policy Name
-resources.filesystem.snapshot.pattern=Snapshot Pattern
 resources.filesystem.snapshot.policy.assign=Assign Policy
 resources.filesystem.policy.none=No Policies
 resources.filesystem.policy.unassign.confirm=Are you sure you want to unassign this policy  from the file system?
@@ -3766,6 +3765,7 @@ button.addExportRule=Add Export Rule
 button.updateAcl=Access Control
 button.addNfsAcl=Add Access Controls
 button.assignPolicy=Assign Policy
+button.snapshotsList=Snapshot List
 button.unassignPolicy=Unassign Policy
 button.addSubDir=Add Share
 button.duplicate=Duplicate
@@ -4380,6 +4380,8 @@ nfsAccessControlList.type=Type
 nfsAccessControlList.domain=Domain
 nfsAccessControlList.permissionType=Permissions Type
 nfs.subdirectory=Sub Directory
+
+schedule.filepolicy.snapshot=File Policy Snaphots
 
 
 

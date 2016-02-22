@@ -61,7 +61,7 @@ public class KeystoneUtils {
         // Get Keystone endpoints from Keystone API.
         EndpointResponse endpoints = keystoneApi.getKeystoneEndpoints();
         // Find endpoint to delete.
-        EndpointV2 endpointToDelete = retrieveEndpoint(endpoints, serviceId);
+        EndpointV2 endpointToDelete = findEndpoint(endpoints, serviceId);
         // Do not execute delete call when endpoint does not exist.
         if (endpointToDelete != null) {
             // Delete endpoint using Keystone API.
@@ -76,8 +76,8 @@ public class KeystoneUtils {
      * @param serviceId Service ID.
      * @return OpenStack endpoint for the given service ID.
      */
-    public EndpointV2 retrieveEndpoint(EndpointResponse response, String serviceId) {
-        _log.debug("START - retrieveEndpoint");
+    public EndpointV2 findEndpoint(EndpointResponse response, String serviceId) {
+        _log.debug("START - findEndpoint");
 
         if (serviceId == null) {
             _log.error("serviceId is null");
@@ -86,7 +86,7 @@ public class KeystoneUtils {
 
         for (EndpointV2 endpoint : response.getEndpoints()) {
             if (endpoint.getServiceId().equals(serviceId)) {
-                _log.debug("END - retrieveEndpoint");
+                _log.debug("END - findEndpoint");
                 return endpoint;
             }
         }
@@ -129,8 +129,8 @@ public class KeystoneUtils {
      * @param serviceName Name of a service to retrieve.
      * @return ID of service with given name.
      */
-    public String retrieveServiceId(KeystoneApiClient keystoneApi, String serviceName) {
-        _log.debug("START - retrieveServiceId");
+    public String findServiceId(KeystoneApiClient keystoneApi, String serviceName) {
+        _log.debug("START - findServiceId");
 
         if (serviceName == null) {
             _log.error("serviceName is null");
@@ -142,7 +142,7 @@ public class KeystoneUtils {
 
         for (ServiceV2 service : services.getServices()) {
             if (service.getName().equals(serviceName)) {
-                _log.debug("END - retrieveServiceId");
+                _log.debug("END - findServiceId");
                 return service.getId();
             }
         }
@@ -183,7 +183,7 @@ public class KeystoneUtils {
         // Get Keystone endpoints from Keystone API.
         EndpointResponse endpoints = keystoneApi.getKeystoneEndpoints();
         // Find endpoint for the service.
-        EndpointV2 endpoint = retrieveEndpoint(endpoints, serviceId);
+        EndpointV2 endpoint = findEndpoint(endpoints, serviceId);
         // Return null if endpoint is null, otherwise return region name.
         if (endpoint != null) {
             _log.debug("END - getRegionForService");

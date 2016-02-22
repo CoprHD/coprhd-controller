@@ -266,9 +266,9 @@ public class AuthnConfigurationService extends TaggedResource {
         // Create a new KeystoneAPI.
         KeystoneApiClient keystoneApi = getKeystoneApi(provider);
         // Find Id of cinderv2 service.
-        String cinderv2ServiceId = _keystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
+        String cinderv2ServiceId = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
         // Find Id of cinderv1 service.
-        String cinderServiceId = _keystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+        String cinderServiceId = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
         
         // Throw an exception if one of cinder services is missing.
         if (cinderv2ServiceId == null) {
@@ -877,9 +877,9 @@ public class AuthnConfigurationService extends TaggedResource {
             // Create a new KeystoneAPI.
             KeystoneApiClient keystoneApi = getKeystoneApi(provider);
             // Get a cinderv2 service id.
-            String serviceIdV2 = _keystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
+            String serviceIdV2 = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
             // Get a cinderv1 service id.
-            String serviceIdV1 = _keystoneUtils.retrieveServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+            String serviceIdV1 = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
 
             // Throw an exception if one of cinder services is missing.
             if (serviceIdV2 == null) {

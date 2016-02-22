@@ -276,15 +276,23 @@ public class AuthnConfigurationService extends TaggedResource {
         } else if (cinderServiceId == null) {
             throw KeystoneApiException.exceptions.missingService(KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
         }
-        
+
+        // Get region name for a cinderv2 service.
+        String region = _keystoneUtils.getRegionForService(keystoneApi, cinderv2ServiceId);
+
+        // Set default region in case when endpoint is not present.
+        if (region == null) {
+            region = KeystoneUtils.OPENSTACK_DEFAULT_REGION;
+        }
+
         // Delete old endpoint for cinderv2 service.
         _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderv2ServiceId);
         // Delete old endpoint for cinderv1 service.
         _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderServiceId);
         // Prepare new endpoint for cinderv2 service.
-        EndpointV2 newEndpointV2 = prepareNewCinderEndpoint(KeystoneUtils.OPENSTACK_DEFAULT_REGION, cinderv2ServiceId, true);
+        EndpointV2 newEndpointV2 = prepareNewCinderEndpoint(region, cinderv2ServiceId, true);
         // Prepare new endpoint for cinderv1 service.
-        EndpointV2 newEndpointV1 = prepareNewCinderEndpoint(KeystoneUtils.OPENSTACK_DEFAULT_REGION, cinderServiceId, false);
+        EndpointV2 newEndpointV1 = prepareNewCinderEndpoint(region, cinderServiceId, false);
         // Create a new endpoint pointing to CoprHD for cinderv2 using Keystone API.
         keystoneApi.createKeystoneEndpoint(newEndpointV2);
         // Create a new endpoint pointing to CoprHD for cinderv1 using Keystone API.

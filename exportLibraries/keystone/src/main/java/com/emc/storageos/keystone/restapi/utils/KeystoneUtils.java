@@ -19,10 +19,8 @@ package com.emc.storageos.keystone.restapi.utils;
 
 import com.emc.storageos.keystone.restapi.KeystoneApiClient;
 import com.emc.storageos.keystone.restapi.KeystoneRestClientFactory;
-import com.emc.storageos.keystone.restapi.errorhandling.KeystoneApiException;
 import com.emc.storageos.keystone.restapi.model.response.*;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +36,7 @@ public class KeystoneUtils {
     public static final String OPENSTACK_CINDER_V2_NAME = "cinderv2";
     public static final String OPENSTACK_CINDER_V1_NAME = "cinder";
     public static final String OPENSTACK_TENANT_ID = "tenant_id";
-    public static String OPENSTACK_DEFAULT_REGION = "RegionOne";
+    public static final String OPENSTACK_DEFAULT_REGION = "RegionOne";
 
     private KeystoneRestClientFactory _keystoneApiFactory;
 
@@ -66,8 +64,6 @@ public class KeystoneUtils {
         EndpointV2 endpointToDelete = retrieveEndpoint(endpoints, serviceId);
         // Do not execute delete call when endpoint does not exist.
         if (endpointToDelete != null) {
-            // Override default region name.
-            OPENSTACK_DEFAULT_REGION = endpointToDelete.getRegion();
             // Delete endpoint using Keystone API.
             keystoneApi.deleteKeystoneEndpoint(endpointToDelete.getId());
         }
@@ -94,7 +90,7 @@ public class KeystoneUtils {
                 return endpoint;
             }
         }
-        // TODO: solve problem with multiple endpoints for a single service with different regions
+
         _log.warn("Missing endpoint for service {}", serviceId);
         // Return null if there is no endpoints for given service.
         return null;
@@ -168,6 +164,35 @@ public class KeystoneUtils {
             break; // There will be single URL only
         }
         return authUri;
+    }
+
+    /**
+     * Get region for the service with given ID.
+     *
+     * @param keystoneApi KeystoneApiClient.
+     * @param serviceId OpenStack service ID.
+     */
+    public String getRegionForService(KeystoneApiClient keystoneApi, String serviceId) {
+        _log.debug("START - getRegionForService");
+
+        if (serviceId == null) {
+            _log.error("serviceId is null");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Service id");
+        }
+
+        // Get Keystone endpoints from Keystone API.
+        EndpointResponse endpoints = keystoneApi.getKeystoneEndpoints();
+        // Find endpoint for the service.
+        EndpointV2 endpoint = retrieveEndpoint(endpoints, serviceId);
+        // Return null if endpoint is null, otherwise return region name.
+        if (endpoint != null) {
+            _log.debug("END - getRegionForService");
+            // Return region name.
+            return endpoint.getRegion();
+        }
+        _log.warn("Endpoint missing for a service with ID: {}", serviceId);
+
+        return null;
     }
 
     /**

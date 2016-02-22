@@ -84,7 +84,7 @@ nav.import=Import
 nav.logs=Reports
 nav.systemHealthDashboard=Health
 nav.systemHealthLogs=Logs
-nav.backup= Data Backup
+nav.backup= Data Backup and Restore
 nav.systemNodeRecovery=Node Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
@@ -983,7 +983,7 @@ system.about.license=Licenses
 db.healthdashboard.title=Database Housekeeping Status
 
 # Backup and Restore Page
-Backup.list.title=Data Backup
+Backup.list.title=Data Backup and Restore
 backup.name=Name
 backup.size=Size
 backup.GB=%s GB

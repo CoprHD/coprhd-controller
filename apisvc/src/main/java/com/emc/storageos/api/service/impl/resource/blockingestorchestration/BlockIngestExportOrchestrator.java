@@ -131,6 +131,12 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     itr.remove();
                     continue;
                 }
+                if (!VolumeIngestionUtil.validateExportMaskMatchesExportGroup(_dbClient, exportGroup, 
+                        unManagedExportMask, errorMessages)) {
+                    // logs already inside the above method.
+                    itr.remove();
+                    continue;
+                }
                 _logger.info("looking for an existing export mask for " + unManagedExportMask.getMaskName());
                 ExportMask exportMask = getExportsMaskAlreadyIngested(unManagedExportMask, _dbClient);
                 if (null == exportMask) {
@@ -187,7 +193,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     exportMask.setZoningMap(zoneMap);
                 }
 
-                _dbClient.updateAndReindexObject(exportMask);
+                _dbClient.updateObject(exportMask);
                 ExportMaskUtils.updateFCZoneReferences(exportGroup, blockObject, unManagedExportMask.getZoningMap(), initiators,
                         _dbClient);
 
@@ -317,13 +323,13 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             }
 
             // partial ingestion of volumes allowed, hence persisting to DB here itself.
-            _dbClient.updateAndReindexObject(unManagedVolume);
+            _dbClient.updateObject(unManagedVolume);
             if (requestContext.isExportGroupCreated()) {
                 _dbClient.createObject(exportGroup);
             } else {
-                _dbClient.updateAndReindexObject(exportGroup);
+                _dbClient.updateObject(exportGroup);
             }
-            _dbClient.persistObject(uemsToPersist);
+            _dbClient.updateObject(uemsToPersist);
         } catch (IngestionException e) {
             throw e;
         } catch (Exception e) {
@@ -343,7 +349,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             StringMap volumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
             if (null != volumeCharacteristics) {
                 volumeCharacteristics.put(SupportedVolumeCharacterstics.EXPORTGROUP_TYPE.toString(), exportGroupType);
-                _dbClient.updateAndReindexObject(unManagedVolume);
+                _dbClient.updateObject(unManagedVolume);
             } else {
                 _logger.error("UnManagedVolume {} volumeCharacteristics not found.", unManagedVolume.getLabel());
             }

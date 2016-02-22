@@ -84,7 +84,7 @@ nav.import=Import
 nav.logs=Reports
 nav.systemHealthDashboard=Health
 nav.systemHealthLogs=Logs
-nav.backup= Data Backup
+nav.backup= Data Backup and Restore
 nav.systemNodeRecovery=Node Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
@@ -658,6 +658,27 @@ VCenters.detachStorageConfirm=Are you sure you want to detach storage from the s
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
 
 #Application Support
+Application.list.title=Applications
+application.name=Application	
+application.description=Description	
+application.role=Role
+Application.deleteConfirm=Are you sure you want to delete the Application(s).
+ApplicationForm.create.title=Create Application
+
+ApplicationForm.edit.title=Edit Application
+application.create.description=Enter information needed for an Application
+applicationForm.name=Application Name
+applicationForm.description=Description
+applicationForm.roles=Roles
+application.volume=Volumes
+application.clones=Clones
+application.snapshot=Snapshots
+application.mirror=Mirrors
+application.save.success=Saved '%s'
+applications.deleted=Application(s) deleted successfully
+Application.unknown=Unknown Application with ID '%s'
+application.resources.title=Application
+application.copy.volumes=Copy Volumes
 applicationGroup.list.title=Applications
 applicationGroup.name=Application Name
 applicationGroup.description=Description	
@@ -962,7 +983,7 @@ system.about.license=Licenses
 db.healthdashboard.title=Database Housekeeping Status
 
 # Backup and Restore Page
-Backup.list.title=Data Backup
+Backup.list.title=Data Backup and Restore
 backup.name=Name
 backup.size=Size
 backup.GB=%s GB
@@ -2447,7 +2468,7 @@ license.trial.notice=Limited Use.
 license.usage=%s used of %s
 license.unknown.usage=Unknown Usage
 license.total.capacity=Total Capacity %s
-license.raw.capacity=Raw Capacity
+license.raw.capacity=Capacity
 license.type.tier1=Enterprise
 license.type.tier2=Midrange
 license.type.tier3=Cloud
@@ -2456,13 +2477,13 @@ license.type.trial=Trial
 licenseFeature.name=Feature
 licenseFeature.type=Type
 licenseFeature.status=Status
-licenseFeature.serial=Serial Number
 licenseFeature.expiry=Expiry
 
 consistencyGroups.list.title=Consistency Groups
 consistencyGroups.edit.title=Edit Consistency Group
 consistencyGroups.create.title=New Consistency Group
 consistencyGroup.name=Name
+consistencyGroup.arrayConsistency=Enable Array Consistency
 consistencyGroups.saved=Consistency Group %s Saved
 consistencyGroups.name=Name
 consistencyGroups.deleteConfirm=Are you sure you want to delete the selected Consistency Groups?
@@ -3335,7 +3356,13 @@ volumeApplication.vpool=Virtual Pool
 volumeApplication.protocols=Protocols
 volumeApplication.wwn=WWN
 volumeApplication.consistencyGroup=Consistency Group
-volumeApplication.replicationGroup=Replication Group
+volumeApplication.associatedVolumeRG=Replication Group
+
+cloneApplication.name=Copy Name
+cloneApplication.size=Size
+cloneApplication.status=Status
+cloneApplication.protocol=Protocol
+cloneApplication.cloneGroups=Clone Groups
 
 resources.snapshots=Block Snapshots
 resources.snapshots.none=No Snapshots
@@ -3662,6 +3689,8 @@ volumes.varray=Virtual Array
 volumes.protocols=Protocols
 volumes.consistencygroup=Consistency Group
 volumes.wwn=WWN
+volumes.replicationGroup=Replication Group
+volumes.associatedVolumeRG=Source Replication Group
 
 fileSystems.name=File System Name
 fileSystems.capacity=Size

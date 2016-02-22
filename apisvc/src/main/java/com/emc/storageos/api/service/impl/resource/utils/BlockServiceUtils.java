@@ -55,6 +55,7 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashBasedTable;
@@ -507,17 +508,17 @@ public class BlockServiceUtils {
     }
 
     /**
-     * Get replication group instances that contains volumes in the list
+     * Group volumes by storage system and replication group
      *
-     * @param volumes List of volume URIs
-     * @param uriInfo A reference to the URI info
-     * @param dbClient DbClient
-     *
-     * @return Set of replication groups
+     * @param volumeUris List of volumes (part or all) in a volume group
+     * @param cgUri
+     * @param dbClient
+     * @return table with storage URI, replication group name, and volumes
      */
-    public static Set<String> getReplicationGroupsFromVolumes(List<URI> volumes, URI cgUri, DbClient dbClient, UriInfo uriInfo) {
-        Set<String> rgs = new HashSet<String>();
-        for (URI volumeUri : volumes) {
+    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<URI> volumeUris, URI cgUri, DbClient dbClient, UriInfo uriInfo) {
+        // Group volumes by storage system and replication group
+        Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
+        for (URI volumeUri : volumeUris) {
             ArgValidator.checkFieldUriType(volumeUri, Volume.class, "volume");
             Volume volume = dbClient.queryObject(Volume.class, volumeUri);
             ArgValidator.checkEntity(volume, volumeUri, isIdEmbeddedInURL(volumeUri, uriInfo));
@@ -525,68 +526,38 @@ public class BlockServiceUtils {
                 throw APIException.badRequests.invalidParameterSourceVolumeNotInGivenConsistencyGroup(volumeUri, cgUri);
             }
 
-            String rgName = null;
-            if (volume.isVPlexVolume(dbClient)) {
+            String label = volume.getLabel();
+            boolean isVPlex = volume.isVPlexVolume(dbClient);
+            if (isVPlex) {
                 // get backend source volume to get RG name
-                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-                if (backedVol != null) {
-                    rgName = backedVol.getReplicationGroupInstance();
+                volume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (volume == null || volume.getInactive()) {
+                    throw APIException.badRequests.noBackendVolume(label);
                 }
-            } else {
-                rgName = volume.getReplicationGroupInstance();
             }
 
+            String rgName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNullValue(rgName)) {
                 throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
             }
 
-            rgs.add(rgName);
-        }
+            URI storage = volume.getStorageController();
+            if (!storageRgToVolumes.contains(storage, rgName)) {
+                List<Volume> volumes = ControllerUtils.getVolumesPartOfRG(storage, rgName, dbClient);
+                if (isVPlex) {
+                    List<Volume> vplexVolumes = new ArrayList<Volume>();
+                    for (Volume backendVol : volumes) {
+                        Volume vplexVol = Volume.fetchVplexVolume(dbClient, backendVol);
+                        if (vplexVol == null || vplexVol.getInactive()) {
+                            throw APIException.badRequests.noVPLEXVolume(backendVol.getLabel());
+                        }
+                        vplexVolumes.add(vplexVol);
+                    }
 
-        return rgs;
-    }
-
-    /**
-     * Group volumes by storage system and replication group for selected replication groups, if filter provided, or all
-     *
-     * @param cgVolumes List of all volumes in a CG
-     * @param rgFilter Set of selected replication groups
-     * @param dbClient
-     * @return table with storage URI, replication group name, and volumes
-     */
-    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<Volume> cgVolumes, Set<String> rgFiler, URI volumeGroupUri, DbClient dbClient) {
-        // Group volumes by storage system and replication group
-        // Ignore replication groups that not in rgFiler if the filter is provided
-        Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
-        for (Volume volume : cgVolumes) {
-            if (volumeGroupUri != null && !volume.getVolumeGroupIds().contains(volumeGroupUri.toString())) {
-                // volume is not belong to the volume group
-                continue;
-            }
-
-            String rgName = null;
-            if (volume.isVPlexVolume(dbClient)) {
-                // get backend source volume to get RG name
-                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-                if (backedVol != null) {
-                    rgName = backedVol.getReplicationGroupInstance();
+                    volumes = vplexVolumes;
                 }
-            } else {
-                rgName = volume.getReplicationGroupInstance();
-            }
 
-            if (NullColumnValueGetter.isNullValue(rgName)) {
-                throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
-            }
-
-            if (rgFiler == null || rgFiler.contains(rgName)) {
-                URI storage = volume.getStorageController();
-                List<Volume> volumes = storageRgToVolumes.get(storage, rgName);
-                if (volumes == null) {
-                    volumes = new ArrayList<Volume>();
-                    storageRgToVolumes.put(storage, rgName, volumes);
-                }
-                volumes.add(volume);
+                storageRgToVolumes.put(storage,  rgName, volumes);
             }
         }
 
@@ -594,37 +565,40 @@ public class BlockServiceUtils {
     }
 
     /**
-     * Group block objects by storage system and replication group for selected replication groups, if filter provided, or all
+     * Group CG volumes by storage system and replication group
      *
-     * @param blockObjects List of all block objects in a CG
-     * @param rgFilter Set of selected replication groups
-     * @return table with storage URI, replication group name, and block objects
+     * @param srcVolumes List of all volumes in a CG
+     * @param dbClient
+     * @return table with storage URI, replication group name, and volumes
      */
-    public static Table<URI, String, List<BlockObject>>
-            getReplicationGroupBlockObjects(List<BlockObject> blockObjects, Set<String> rgFiler, DbClient dbClient) {
-        // Group block objects by storage system and replication group
-        // Ignore replication groups that not in rgFiler if the filter is provided
-        Table<URI, String, List<BlockObject>> storageRgToVolumes = HashBasedTable.create();
-        for (BlockObject bo : blockObjects) {
-            String rgName = bo.getReplicationGroupInstance();
-            if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(dbClient)) {
+    public static Table<URI, String, List<Volume>> getReplicationGroupVolumes(List<Volume> srcVolumes, DbClient dbClient) {
+        // Group volumes by storage system and replication group
+        Table<URI, String, List<Volume>> storageRgToVolumes = HashBasedTable.create();
+        for (Volume volume : srcVolumes) {
+            String rgName = null;
+            URI storage = null;
+            if (volume.isVPlexVolume(dbClient)) {
                 // get backend source volume to get RG name
-                Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, dbClient);
-                rgName = srcBEVolume.getReplicationGroupInstance();
-            }
-            if (NullColumnValueGetter.isNullValue(rgName)) {
-                throw APIException.badRequests.noRepGroupInstance(bo.getLabel());
+                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (backedVol != null) {
+                    rgName = backedVol.getReplicationGroupInstance();
+                    storage = volume.getStorageController();
+                }
+            } else {
+                rgName = volume.getReplicationGroupInstance();
+                storage = volume.getStorageController();
             }
 
-            if (rgFiler == null || rgFiler.contains(rgName)) {
-                URI storage = bo.getStorageController();
-                List<BlockObject> volumes = storageRgToVolumes.get(storage, rgName);
-                if (volumes == null) {
-                    volumes = new ArrayList<BlockObject>();
-                    storageRgToVolumes.put(storage, rgName, volumes);
-                }
-                volumes.add(bo);
+            if (NullColumnValueGetter.isNullValue(rgName)) {
+                throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
             }
+
+            List<Volume> volumes = storageRgToVolumes.get(storage, rgName);
+            if (volumes == null) {
+                volumes = new ArrayList<Volume>();
+                storageRgToVolumes.put(storage, rgName, volumes);
+            }
+            volumes.add(volume);
         }
 
         return storageRgToVolumes;

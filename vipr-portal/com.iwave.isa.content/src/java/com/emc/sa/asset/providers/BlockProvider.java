@@ -46,6 +46,7 @@ import com.emc.sa.util.StringComparator;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -68,6 +69,7 @@ import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
 import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
@@ -114,6 +116,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     public static final String LINKED_SNAPSHOT_COPYMODE_VALUE = "copy";
     public static final String LINKED_SNAPSHOT_NOCOPYMODE_VALUE = "nocopy";
+
+    public static final String MIGRATE_ONLY_OPTION_KEY = "migrate_only";
+    public static final String INGEST_AND_MIGRATE_OPTION_KEY = "ingest_and_migrate";
+
+    private static final AssetOption MIGRATE_ONLY_OPTION = newAssetOption(MIGRATE_ONLY_OPTION_KEY, "Migrate Only");
+    private static final AssetOption INGEST_AND_MIGRATE_OPTION = newAssetOption(INGEST_AND_MIGRATE_OPTION_KEY,
+            "Ingest and Migrate");
 
     private static final AssetOption VOLUME_OPTION = newAssetOption(VOLUME_OPTION_KEY, "block.storage.type.volume");
     private static final AssetOption CONSISTENCY_GROUP_OPTION = newAssetOption(CONSISTENCY_GROUP_OPTION_KEY,
@@ -416,6 +425,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getMigrationTargetVirtualPools(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
             String vpoolChangeOperation) {
         return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation);
+    }
+
+    @Asset("mobilityMigrationTargetVirtualPool")
+    public List<AssetOption> getMobilityMigrationTargetVirtualPools(AssetOptionsContext ctx) {
+        return this.createBaseResourceOptions(api(ctx).blockVpools().getAll());
     }
 
     @Asset("journalCopyName")
@@ -1611,6 +1625,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
+    @Asset("mobilityGroupMethod")
+    public List<AssetOption> getMobilityGroupMethods(AssetOptionsContext context) {
+        return Lists.newArrayList(MIGRATE_ONLY_OPTION, INGEST_AND_MIGRATE_OPTION);
+    }
+
     @Asset("snapshotSessionBlockVolume")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getSnapshotSessionBlockVolumes(AssetOptionsContext context, URI project, String storageType) {
@@ -1926,6 +1945,124 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return createVolumeOptions(client, volumes);
         } else {
             return getConsistencyGroupFullCopies(ctx, volumeId);
+        }
+    }
+
+    @Asset("mobilityGroup")
+    public List<AssetOption> getMobilityGroups(AssetOptionsContext ctx) {
+        final ViPRCoreClient client = api(ctx);
+        List<VolumeGroupRestRep> volumeGroups = client.application().getApplications(new DefaultResourceFilter<VolumeGroupRestRep>() {
+            @Override
+            public boolean accept(VolumeGroupRestRep volumeGroup) {
+                if (volumeGroup.getRoles() != null && volumeGroup.getRoles().contains(VolumeGroup.VolumeGroupRole.MOBILITY.name())) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        });
+        return createBaseResourceOptions(volumeGroups);
+    }
+
+    @Asset("addMobilityGroupResource")
+    @AssetDependencies("mobilityGroup")
+    public List<AssetOption> getAddMobilityGroupResources(AssetOptionsContext ctx, final URI mobilityGroupId) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep mobilityGroup = client.application().get(mobilityGroupId);
+        if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+            // VPLEX volumes that don't have reference to this mobility group
+            List<URI> volumeIds = client.blockVolumes().listBulkIds();
+            final ResourceFilter<VolumeRestRep> vplexFilter = new VplexVolumeFilter();
+            List<VolumeRestRep> volumes = client.blockVolumes().getByIds(volumeIds, new ResourceFilter<VolumeRestRep>() {
+                @Override
+                public boolean acceptId(URI id) {
+                    return true;
+                }
+
+                @Override
+                public boolean accept(VolumeRestRep item) {
+                    return (item.getVolumeGroups() == null || !contains(item, mobilityGroupId))
+                            && vplexFilter.accept(item);
+                }
+
+                private boolean contains(VolumeRestRep item, URI mobilityGroup) {
+                    for (RelatedResourceRep vg : item.getVolumeGroups()) {
+                        if (vg.getId().equals(mobilityGroup)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            });
+            return createBaseResourceOptions(volumes);
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+            List<URI> hostIds = client.hosts().listBulkIds();
+            List<HostRestRep> hosts = client.hosts().getByIds(hostIds, new ResourceFilter<HostRestRep>() {
+
+                @Override
+                public boolean acceptId(URI id) {
+                    return true;
+                }
+
+                @Override
+                public boolean accept(HostRestRep item) {
+                    return item.getVolumeGroups() == null || !contains(item, mobilityGroupId);
+                }
+
+                private boolean contains(HostRestRep item, URI mobilityGroup) {
+                    for (RelatedResourceRep vg : item.getVolumeGroups()) {
+                        if (vg.getId().equals(mobilityGroup)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+            });
+            return createBaseResourceOptions(hosts);
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+            List<URI> clusterIds = client.clusters().listBulkIds();
+            List<ClusterRestRep> clusters = client.clusters().getByIds(clusterIds, new ResourceFilter<ClusterRestRep>() {
+
+                @Override
+                public boolean acceptId(URI id) {
+                    return true;
+                }
+
+                @Override
+                public boolean accept(ClusterRestRep item) {
+                    return item.getVolumeGroups() == null || !contains(item, mobilityGroupId);
+                }
+
+                private boolean contains(ClusterRestRep item, URI mobilityGroup) {
+                    for (RelatedResourceRep vg : item.getVolumeGroups()) {
+                        if (vg.getId().equals(mobilityGroup)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+            });
+            return createBaseResourceOptions(clusters);
+        } else {
+            return Lists.newArrayList();
+        }
+    }
+
+    @Asset("removeMobilityGroupResource")
+    @AssetDependencies("mobilityGroup")
+    public List<AssetOption> getRemoveMobilityGroupResources(AssetOptionsContext ctx, URI mobilityGroupId) {
+        final ViPRCoreClient client = api(ctx);
+        VolumeGroupRestRep mobilityGroup = client.application().get(mobilityGroupId);
+        if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.VOLUMES.name())) {
+            return createNamedResourceOptions(client.application().listVolumes(mobilityGroupId));
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.HOSTS.name())) {
+            return createNamedResourceOptions(client.application().getHosts(mobilityGroupId));
+        } else if (mobilityGroup.getMigrationGroupBy().equals(VolumeGroup.MigrationGroupBy.CLUSTERS.name())) {
+            return createNamedResourceOptions(client.application().getClusters(mobilityGroupId));
+        } else {
+            return Lists.newArrayList();
         }
     }
 

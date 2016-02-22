@@ -1456,7 +1456,7 @@ public class RPHelper {
                 for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
                     Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                     if (associatedVolume != null && !associatedVolume.getInactive()) {                                            
-                        if (!NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
+                        if (NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
                                 && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())) {
                             // If the internal site names are different, this is the standby internal site
                             standbyInternalSite = associatedVolume.getInternalSiteName();

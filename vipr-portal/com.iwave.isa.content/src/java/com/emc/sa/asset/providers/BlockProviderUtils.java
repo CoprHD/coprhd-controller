@@ -161,7 +161,7 @@ public class BlockProviderUtils {
         }
     }
 
-    protected static Set<URI> getExportedResourceIds(Collection<ExportGroupRestRep> exports, ResourceType type) {
+    public static Set<URI> getExportedResourceIds(Collection<ExportGroupRestRep> exports, ResourceType type) {
         Set<URI> ids = new HashSet<>();
         for (ExportGroupRestRep export : exports) {
             // export volumes can be volumes or snapshots

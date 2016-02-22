@@ -191,7 +191,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
     };
 
-    static final Logger log = LoggerFactory.getLogger(VolumeGroupService.class);
+    static final jdk.internal.instrumentation.Logger log = LoggerFactory.getLogger(VolumeGroupService.class);
 
     // A reference to the placement manager.
     private PlacementManager _placementManager;
@@ -1928,6 +1928,9 @@ public class VolumeGroupService extends TaskResourceService {
                 if (copyOnHighAvailabilitySide) {
                     // get backend HA volume, copy is requested on HA side of VPLEX
                     backedVol = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient);
+                    if (backedVol == null || backedVol.getInactive()) {
+                        throw APIException.badRequests.noHAVolumeFoundForVPLEX(volume.getLabel());
+                    }
                 } else {
                     // get backend source volume
                     backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);

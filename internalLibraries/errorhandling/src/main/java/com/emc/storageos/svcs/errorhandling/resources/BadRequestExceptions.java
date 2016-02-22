@@ -2780,6 +2780,9 @@ public interface BadRequestExceptions {
     public BadRequestException multipleSetNamesProvided(final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noHAVolumeFoundForVPLEX(final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidIpsecStatus();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

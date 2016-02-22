@@ -2728,6 +2728,12 @@ public interface BadRequestExceptions {
     public BadRequestException volumeGroupWithVolumesCantBeDeleted(final String volumeGroupName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupWithHostsCantBeDeleted(final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupWithClustersCantBeDeleted(final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeGroupCantBeUpdated(final String volumeGroupName, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

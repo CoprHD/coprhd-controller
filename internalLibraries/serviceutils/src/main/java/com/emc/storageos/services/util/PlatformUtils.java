@@ -150,7 +150,9 @@ public class PlatformUtils {
         String[] props = result.getStdOutput().split("\n");
         Map<String, String> propMap = new HashMap<String, String>();
         for (String s : props) {
-            propMap.put(s.split(PropertyConstants.DELIMITER)[0], s.split(PropertyConstants.DELIMITER)[1]);
+            if (s.contains(PropertyConstants.DELIMITER)) {
+                propMap.put(s.split(PropertyConstants.DELIMITER)[0], s.split(PropertyConstants.DELIMITER)[1]);
+            }
         }
         return propMap;
     }

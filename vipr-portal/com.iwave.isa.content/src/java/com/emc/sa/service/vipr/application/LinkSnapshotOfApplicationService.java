@@ -11,7 +11,6 @@ import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT_NAME;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -21,7 +20,6 @@ import com.emc.sa.service.vipr.application.tasks.LinkSnapshotSessionForApplicati
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
 @Service("LinkSnapshotOfApplication")
@@ -30,8 +28,11 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
 
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
+    protected String copySet;
+
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
-    protected List<URI> subGroups;
+    protected List<String> subGroups;
 
     @Param(value = LINKED_SNAPSHOT, required = false)
     protected List<URI> existingLinkedSnapshotIds;
@@ -47,22 +48,11 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-
-        // get list of volumes in application
         NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
-
-        Map<String, VolumeRestRep> volumeTypes = BlockStorageUtils.getVolumeSystemTypes(volList, subGroups);
-
-        Tasks<? extends DataObjectRestRep> tasks = null;
-
-        for (String type : volumeTypes.keySet()) {
-            if (type.equalsIgnoreCase("vmax3")) {
-                tasks = execute(new LinkSnapshotSessionForApplication(applicationId, volumeTypes.get(type).getId(),
-                        existingLinkedSnapshotIds, linkedSnapshotCopyMode, linkedSnapshotCount, linkedSnapshotName));
-            } else {
-                // TODO fail for snapshot
-            }
-            addAffectedResources(tasks);
-        }
+        List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, copySet,
+                volList, subGroups);
+        Tasks<? extends DataObjectRestRep> tasks = execute(new LinkSnapshotSessionForApplication(applicationId, snapshotSessionIds,
+                existingLinkedSnapshotIds, linkedSnapshotCopyMode, linkedSnapshotCount, linkedSnapshotName));
+        addAffectedResources(tasks);
     }
 }

@@ -38,6 +38,9 @@ import com.emc.sa.engine.ExecutionException;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSession;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
+import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
@@ -101,11 +104,13 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -1033,22 +1038,59 @@ public class BlockStorageUtils {
         return map;
     }
 
-    /**
-     * Helper method to get map of system type -> volume
-     * 
-     * @param volList
-     * @param subGroups
-     * @return
-     */
-    public static Map<String, VolumeRestRep> getVolumeSystemTypes(NamedVolumesList volumeList, List<URI> subGroups) {
-        Map<String, VolumeRestRep> volumeTypes = Maps.newHashMap();
-        for (NamedRelatedResourceRep vol : volumeList.getVolumes()) {
-            VolumeRestRep volume = execute(new GetBlockVolume(vol.getId()));
-            if (subGroups != null && subGroups.contains(volume.getReplicationGroupInstance())) {
-                volumeTypes.put(volume.getSystemType(), volume);
+    public static boolean containsVmax3Volume(NamedVolumesList volList) {
+        for (NamedRelatedResourceRep volumeRep : volList.getVolumes()) {
+            VolumeRestRep volume = execute(new GetBlockVolume(volumeRep.getId()));
+            if (volume.getSystemType() != null && volume.getSystemType().equalsIgnoreCase("vmax3")) {
+                return true;
             }
         }
-        return volumeTypes;
+        return false;
+    }
 
+    public static List<URI> getSingleVolumePerSubGroup(NamedVolumesList volList, List<String> subGroups) {
+        List<URI> volumeIds = Lists.newArrayList();
+        for (String subGroup : subGroups) {
+            for (NamedRelatedResourceRep vol : volList.getVolumes()) {
+                VolumeRestRep v = execute(new GetBlockVolume(vol.getId()));
+                if (v.getReplicationGroupInstance() != null && v.getReplicationGroupInstance().equals(subGroup)) {
+                    volumeIds.add(v.getId());
+                    break;
+                }
+            }
+        }
+        return volumeIds;
+    }
+
+    public static List<URI> getSingleSnapshotPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
+            List<String> subGroups) {
+        List<URI> snapshotIds = Lists.newArrayList();
+        SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, copySet));
+        for (String subGroup : subGroups) {
+            for (NamedRelatedResourceRep snapshotRep : snapshotList.getSnapList()) {
+                BlockSnapshotSessionRestRep snapshot = execute(new GetBlockSnapshotSession(snapshotRep.getId()));
+                if (snapshot.getReplicationGroupInstance() != null && snapshot.getReplicationGroupInstance().equals(subGroup)) {
+                    snapshotIds.add(snapshot.getId());
+                    break;
+                }
+            }
+        }
+        return snapshotIds;
+    }
+
+    public static List<URI> getSingleSnapshotSessionPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
+            List<String> subGroups) {
+        List<URI> snapshotSessionIds = Lists.newArrayList();
+        BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, copySet));
+        for (String subGroup : subGroups) {
+            for (NamedRelatedResourceRep snap : snapSessionList.getSnapSessionRelatedResourceList()) {
+                BlockSnapshotSessionRestRep session = execute(new GetBlockSnapshotSession(snap.getId()));
+                if (session.getReplicationGroupInstance() != null && session.getReplicationGroupInstance().equals(subGroup)) {
+                    snapshotSessionIds.add(session.getId());
+                    break;
+                }
+            }
+        }
+        return snapshotSessionIds;
     }
 }

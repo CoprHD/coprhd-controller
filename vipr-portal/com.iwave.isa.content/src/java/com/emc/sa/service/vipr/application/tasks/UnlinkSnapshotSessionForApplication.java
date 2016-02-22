@@ -17,26 +17,26 @@ import com.google.common.collect.Lists;
 
 public class UnlinkSnapshotSessionForApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
-    private final URI snapshotSession;
-    private final List<URI> existingLinkedSnapshotIds;
+    private final List<URI> snapshotSessions;
+    private final List<String> existingLinkedSnapshotIds;
 
-    public UnlinkSnapshotSessionForApplication(URI applicationId, URI snapshotSession, List<URI> existingLinkedSnapshotIds) {
+    public UnlinkSnapshotSessionForApplication(URI applicationId, List<URI> snapshotSessions, List<String> existingLinkedSnapshotIds) {
         this.applicationId = applicationId;
-        this.snapshotSession = snapshotSession;
+        this.snapshotSessions = snapshotSessions;
         this.existingLinkedSnapshotIds = existingLinkedSnapshotIds;
-        provideDetailArgs(applicationId, snapshotSession);
+        provideDetailArgs(applicationId, snapshotSessions);
     }
 
     @Override
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupSnapshotSessionUnlinkTargetsParam input = new VolumeGroupSnapshotSessionUnlinkTargetsParam();
-        input.setSnapshotSessions(Lists.newArrayList(snapshotSession));
+        input.setSnapshotSessions(snapshotSessions);
         input.setPartial(true);
         List<SnapshotSessionUnlinkTargetParam> linkedTargets = Lists.newArrayList();
         if (existingLinkedSnapshotIds != null) {
-            for (URI linkedSnapshot : existingLinkedSnapshotIds) {
+            for (String linkedSnapshot : existingLinkedSnapshotIds) {
                 SnapshotSessionUnlinkTargetParam param = new SnapshotSessionUnlinkTargetParam();
-                param.setId(linkedSnapshot);
+                param.setId(uri(linkedSnapshot));
                 // TODO should user have option to delete or not?
                 param.setDeleteTarget(Boolean.FALSE);
                 linkedTargets.add(param);

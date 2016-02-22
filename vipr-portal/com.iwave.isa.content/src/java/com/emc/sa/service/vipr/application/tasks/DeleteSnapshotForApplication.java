@@ -5,29 +5,29 @@
 package com.emc.sa.service.vipr.application.tasks;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupSnapshotOperationParam;
 import com.emc.vipr.client.Tasks;
-import com.google.common.collect.Lists;
 
 public class DeleteSnapshotForApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
-    private final URI snapshot;
+    private final List<URI> snapshots;
 
-    public DeleteSnapshotForApplication(URI applicationId, URI snapshot) {
+    public DeleteSnapshotForApplication(URI applicationId, List<URI> snapshots) {
         this.applicationId = applicationId;
-        this.snapshot = snapshot;
-        provideDetailArgs(applicationId, snapshot);
+        this.snapshots = snapshots;
+        provideDetailArgs(applicationId, snapshots);
     }
 
     @Override
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupSnapshotOperationParam input = new VolumeGroupSnapshotOperationParam();
         input.setPartial(true);
-        input.setSnapshots(Lists.newArrayList(snapshot));
+        input.setSnapshots(snapshots);
 
         TaskList taskList = getClient().application().deactivateApplicationSnapshot(applicationId, input);
 

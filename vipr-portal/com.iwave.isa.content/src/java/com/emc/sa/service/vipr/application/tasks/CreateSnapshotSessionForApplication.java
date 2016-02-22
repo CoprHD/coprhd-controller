@@ -5,24 +5,24 @@
 package com.emc.sa.service.vipr.application.tasks;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionCreateParam;
 import com.emc.vipr.client.Tasks;
-import com.google.common.collect.Lists;
 
 public class CreateSnapshotSessionForApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
     private final String name;
-    private final URI volume;
+    private final List<URI> volumes;
     private final Boolean copyOnHighAvailabilitySide;
 
-    public CreateSnapshotSessionForApplication(URI applicationId, URI volume, String name, Boolean copyOnHighAvailabilitySide) {
+    public CreateSnapshotSessionForApplication(URI applicationId, List<URI> volumes, String name, Boolean copyOnHighAvailabilitySide) {
         this.applicationId = applicationId;
         this.name = name;
-        this.volume = volume;
+        this.volumes = volumes;
         this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
         provideDetailArgs(applicationId, name);
     }
@@ -31,7 +31,7 @@ public class CreateSnapshotSessionForApplication extends WaitForTasks<TaskResour
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupSnapshotSessionCreateParam input = new VolumeGroupSnapshotSessionCreateParam();
         input.setName(name);
-        input.setVolumes(Lists.newArrayList(volume));
+        input.setVolumes(volumes);
         input.setPartial(true);
         input.setCopyOnHighAvailabilitySide(copyOnHighAvailabilitySide);
 

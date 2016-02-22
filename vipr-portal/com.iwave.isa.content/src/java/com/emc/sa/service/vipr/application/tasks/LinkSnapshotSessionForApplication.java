@@ -14,25 +14,25 @@ import com.emc.storageos.model.application.VolumeGroupSnapshotSessionLinkTargets
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
 import com.emc.vipr.client.Tasks;
-import com.google.common.collect.Lists;
 
 public class LinkSnapshotSessionForApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
-    private final URI snapSession;
+    private final List<URI> snapSessions;
     private final List<URI> linkedTargets;
     private final String copyMode;
     private final Integer count;
     private final String targetName;
 
-    public LinkSnapshotSessionForApplication(URI applicationId, URI snapSession, List<URI> linkedTargets, String copyMode, Integer count,
+    public LinkSnapshotSessionForApplication(URI applicationId, List<URI> snapSessions, List<URI> linkedTargets, String copyMode,
+            Integer count,
             String targetName) {
         this.applicationId = applicationId;
-        this.snapSession = snapSession;
+        this.snapSessions = snapSessions;
         this.linkedTargets = linkedTargets;
         this.targetName = targetName;
         this.count = count;
         this.copyMode = copyMode;
-        provideDetailArgs(applicationId, snapSession);
+        provideDetailArgs(applicationId, snapSessions);
     }
 
     @Override
@@ -43,11 +43,11 @@ public class LinkSnapshotSessionForApplication extends WaitForTasks<TaskResource
             VolumeGroupSnapshotSessionRelinkTargetsParam relinkParam = new VolumeGroupSnapshotSessionRelinkTargetsParam();
             relinkParam.setLinkedTargetIds(linkedTargets);
             relinkParam.setPartial(true);
-            relinkParam.setSnapshotSessions(Lists.newArrayList(snapSession));
+            relinkParam.setSnapshotSessions(snapSessions);
             taskList = getClient().application().relinkApplicationSnapshotSession(applicationId, relinkParam);
         } else {
             VolumeGroupSnapshotSessionLinkTargetsParam input = new VolumeGroupSnapshotSessionLinkTargetsParam();
-            input.setSnapshotSessions(Lists.newArrayList(snapSession));
+            input.setSnapshotSessions(snapSessions);
             input.setPartial(true);
             SnapshotSessionNewTargetsParam newLinkedTargets = new SnapshotSessionNewTargetsParam();
             newLinkedTargets.setCopyMode(copyMode);

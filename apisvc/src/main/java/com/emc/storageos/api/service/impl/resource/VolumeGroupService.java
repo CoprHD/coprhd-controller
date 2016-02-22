@@ -2021,16 +2021,10 @@ public class VolumeGroupService extends TaskResourceService {
      * @return The list of hosts in volume group
      */
     private static List<Host> getVolumeGroupHosts(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Host> result = new ArrayList<Host>();
         final List<Host> hosts = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Host.class,
                         AlternateIdConstraint.Factory.getHostsByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Host host : hosts) {
-            if (!host.getInactive()) {
-                result.add(host);
-            }
-        }
-        return result;
+        return hosts;
     }
 
     /**
@@ -2063,12 +2057,7 @@ public class VolumeGroupService extends TaskResourceService {
         final List<Cluster> clusters = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Cluster.class,
                         AlternateIdConstraint.Factory.getClustersByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Cluster cluster : clusters) {
-            if (!cluster.getInactive()) {
-                result.add(cluster);
-            }
-        }
-        return result;
+        return clusters;
     }
 
     /**

@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -25,6 +26,7 @@ import javax.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
@@ -39,6 +41,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
@@ -50,9 +53,12 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.db.client.util.StringSetUtil;
+import com.emc.storageos.model.ResourceOperationTypeEnum;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -454,6 +460,75 @@ public class BlockServiceUtils {
         }
 
         return numSnapshots;
+    }
+
+    /**
+     * Creates a Task on given Volume with Error state
+     *
+     * @param opr the opr
+     * @param volume the volume
+     * @param sc the sc
+     * @return the failed task for volume
+     */
+    public static TaskResourceRep createFailedTaskOnVolume(DbClient dbClient,
+            Volume volume, ResourceOperationTypeEnum opr, ServiceCoded sc) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opr);
+        dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+
+        volume = dbClient.queryObject(Volume.class, volume.getId());
+        op = volume.getOpStatus().get(taskId);
+        op.error(sc);
+        volume.getOpStatus().updateTaskStatus(taskId, op);
+        dbClient.updateObject(volume);
+        return TaskMapper.toTask(volume, taskId, op);
+    }
+
+    /**
+     * Creates a Task on given CG with Error state
+     *
+     * @param opr the opr
+     * @param cg the consistency group
+     * @param sc the sc
+     * @return the failed task for cg
+     */
+    public static TaskResourceRep createFailedTaskOnCG(DbClient dbClient,
+            BlockConsistencyGroup cg, ResourceOperationTypeEnum opr, ServiceCoded sc) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opr);
+        dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId, op);
+
+        cg = dbClient.queryObject(BlockConsistencyGroup.class, cg.getId());
+        op = cg.getOpStatus().get(taskId);
+        op.error(sc);
+        cg.getOpStatus().updateTaskStatus(taskId, op);
+        dbClient.updateObject(cg);
+        return TaskMapper.toTask(cg, taskId, op);
+    }
+
+    /**
+     * Creates a Task on given snapshot session with Error state
+     *
+     * @param opr the opr
+     * @param session the snap session
+     * @param sc the sc
+     * @return the failed task for snap session
+     */
+    public static TaskResourceRep createFailedTaskOnSnapshotSession(DbClient dbClient,
+            BlockSnapshotSession session, ResourceOperationTypeEnum opr, ServiceCoded sc) {
+        String taskId = UUID.randomUUID().toString();
+        Operation op = new Operation();
+        op.setResourceType(opr);
+        dbClient.createTaskOpStatus(BlockSnapshotSession.class, session.getId(), taskId, op);
+
+        session = dbClient.queryObject(BlockSnapshotSession.class, session.getId());
+        op = session.getOpStatus().get(taskId);
+        op.error(sc);
+        session.getOpStatus().updateTaskStatus(taskId, op);
+        dbClient.updateObject(session);
+        return TaskMapper.toTask(session, taskId, op);
     }
 
     /**

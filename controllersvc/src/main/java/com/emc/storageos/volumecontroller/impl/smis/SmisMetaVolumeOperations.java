@@ -486,6 +486,8 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                     _log.error("Problem in expandVolumeAsMetaVolume: ", e);
                     ServiceError error = DeviceControllerErrors.smis.methodFailed("expandVolumeAsMetaVolume", e.getMessage());
                     metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
+                    // Reset the retries count to stop retrying
+                    retries = 0;
                 }
             }
         }

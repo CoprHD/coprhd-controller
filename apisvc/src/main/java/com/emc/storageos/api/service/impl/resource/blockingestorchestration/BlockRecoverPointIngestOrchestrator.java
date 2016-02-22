@@ -16,7 +16,6 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -40,7 +39,6 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -731,16 +729,19 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                         storageSystem, numPaths, isJournalExport);
             }
     
-            volumeContext.setExportGroup(exportGroup);
-    
             // set RP device initiators to be used as the "host" for export mask ingestion
             List<Initiator> initiators = new ArrayList<Initiator>();
             Iterator<Initiator> initiatorItr = _dbClient.queryIterativeObjects(Initiator.class, URIUtil.toURIList(em.getKnownInitiatorUris()));
             while (initiatorItr.hasNext()) {
-                initiators.add(initiatorItr.next());
+                Initiator initiator = initiatorItr.next();
+                exportGroup.addInitiator(initiator);
+                initiators.add(initiator);
             }
             volumeContext.setDeviceInitiators(initiators);
-    
+
+            // Set the export group in the volume context.
+            volumeContext.setExportGroup(exportGroup);
+            
             // find the ingest export strategy and call into for this unmanaged export mask
             IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(unManagedVolume);
             volume = ingestStrategy.ingestExportMasks(unManagedVolume, volume, volumeContext);

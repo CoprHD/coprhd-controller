@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.api.service.impl.resource.utils.InternalSiteServiceClient;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
@@ -383,6 +384,9 @@ public class DisasterRecoveryServiceTest {
         doNothing().when(coordinator).persistServiceConfiguration(any(Configuration.class));
         doReturn(null).when(coordinator).getTargetInfo(any(String.class), eq(SiteInfo.class));
         doNothing().when(coordinator).setTargetInfo(any(String.class), any(SiteInfo.class));
+        
+        InternalSiteServiceClient internalSiteClient = mock(InternalSiteServiceClient.class);
+        doReturn(internalSiteClient).when(drService).createInternalSiteServiceClient(any(Site.class));
 
         try {
             SiteRestRep response = drService.resumeStandby(standbySite1.getUuid());

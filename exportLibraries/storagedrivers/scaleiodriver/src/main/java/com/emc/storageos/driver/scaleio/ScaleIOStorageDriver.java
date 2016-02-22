@@ -297,7 +297,38 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask deleteVolumeClone(List<VolumeClone> clones) {
-        return null;
+            log.info("Request to delete Clones -- Start :");
+            DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CLONE_DELETE));
+            countSucc = 0;
+            // Assuming clones could be from different storage system
+            if (clones != null && clones.size() > 0) {
+                for (VolumeClone clone : clones) {
+                    log.info("Get Rest client for clones {}:{} - start", clone.getDisplayName(), clone.getNativeId());
+                    client = getClientBySystemId(clone.getStorageSystemId());
+                    // delete clone
+                    if (client != null) {
+                        try {
+                            log.info("Rest client Got! delete clone {}:{} - start", clone.getDisplayName(), clone.getNativeId());
+                            client.removeVolume(clone.getNativeId());
+                            countSucc++;
+                            log.info("Successfully delete clone {}:{} - end", clone.getDisplayName(), clone.getNativeId());
+                        } catch (Exception e) {
+                            log.error("Exception while deleting clone {}", clone.getNativeId(), e);
+                        }
+                    } else {
+                        log.error("Exception while getting client instance for clone {}:{}", clone.getDisplayName(),
+                                clone.getNativeId());
+                    }
+                }
+                setTaskStatus(clones.size(), countSucc, task);
+            } else {
+                log.error("Can't delete empty clone list");
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+            }
+            task.setEndTime(Calendar.getInstance());
+            log.info("Request to delete clone -- End ");
+            return task;
+
     }
 
     /**
@@ -640,7 +671,34 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask deleteConsistencyGroupClone(List<VolumeClone> clones) {
-        return null;
+        log.info("Request to delete consistency group clones -- Start :");
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CLONE_DELETE));
+        if (ScaleIOHelper.isFromSameCGgroupClone(clones)) {
+            String systemId = clones.get(0).getStorageSystemId();
+            log.info("Start to get Rest client for ScaleIO storage system: {}", systemId);
+            ScaleIORestClient client = getClientBySystemId(systemId);
+            if (client != null) {
+                try {
+                    log.info("Rest Client Got! delete consistency group clones - Start:");
+                    //Since Clones are treated as Snaphot, so will call remove Consistency Group Snapshot.
+                    client.removeConsistencyGroupSnapshot(clones.get(0).getConsistencyGroup());
+                    task.setStatus(DriverTask.TaskStatus.READY);
+                    log.info("Successfully delete consistency group clones - End:");
+                } catch (Exception e) {
+                    log.error("Exception while deleting consistency group clones", e);
+                    task.setStatus(DriverTask.TaskStatus.FAILED);
+                }
+            } else {
+                log.error("Exception while getting client instance for storage system {}", systemId);
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+            }
+        } else {
+            log.error("clones are not from same consistency group");
+            task.setStatus(DriverTask.TaskStatus.FAILED);
+        }
+        task.setEndTime(Calendar.getInstance());
+        log.info("Request to delete consistency group clones -- End");
+        return task;
     }
 
     /**

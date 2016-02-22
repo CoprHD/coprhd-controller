@@ -598,7 +598,6 @@ public class ScaleIOStorageDriverTest {
 
     }
 
-
     @Test
     public void testDetachVolumeClone() throws Exception {
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
@@ -614,6 +613,31 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
 
+    }
+
+    @Test
+    public void testDeleteVolumeClone() throws Exception {
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
+        // test with null input parameters
+        List<VolumeClone> clones = null;
+        DriverTask task = driver.deleteVolumeClone(clones);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
+
+        // list of valid clone
+        clones = this.createCloneListDiffSys(false);
+        driver.createVolumeClone(clones, null);
+        task = driver.deleteVolumeClone(clones);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY", task.getStatus().toString());
+
+        // Some clones which does not exist
+        clones = this.createCloneListDiffSys(true);
+        driver.createVolumeClone(clones, null);
+        task = driver.deleteVolumeClone(clones);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("PARTIALLY_FAILED", task.getStatus().toString());
     }
 
     @Test
@@ -672,6 +696,37 @@ public class ScaleIOStorageDriverTest {
         task = driver.detachConsistencyGroupClone(clones);
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
+
+    }
+
+    @Test
+    public void testDeleteConsistencyGroupClone() throws Exception {
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        driver.setConnInfoToRegistry(SYS_NATIVE_ID_B, IP_ADDRESS_B, PORT_NUMBER, USER_NAME, PASSWORD);
+
+        // null
+        List<VolumeClone> clones = null;
+        DriverTask task = driver.deleteConsistencyGroupClone(clones);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
+
+        // Clones which are in same consistency group (w/o un-existed snapshot)
+        clones = this.createCloneListSameCG(false);
+        task = driver.deleteConsistencyGroupClone(clones);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("READY", task.getStatus().toString());
+
+        // Clone which does not exist.
+        clones = this.createCloneListSameCG(true);
+        task = driver.deleteConsistencyGroupClone(clones);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
+
+        // Clones in different consistency group
+        clones = this.createCloneListDiffCG(false);
+        task = driver.deleteConsistencyGroupClone(clones);
+        Assert.assertNotNull(task);
+        Assert.assertEquals("FAILED", task.getStatus().toString());
 
     }
 

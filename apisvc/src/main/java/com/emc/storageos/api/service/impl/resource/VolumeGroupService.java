@@ -191,7 +191,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
     };
 
-    static final jdk.internal.instrumentation.Logger log = LoggerFactory.getLogger(VolumeGroupService.class);
+    static final Logger log = LoggerFactory.getLogger(VolumeGroupService.class);
 
     // A reference to the placement manager.
     private PlacementManager _placementManager;

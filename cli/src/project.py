@@ -140,16 +140,20 @@ class Project(object):
     
     #Routine for project resource 
     def project_resource_show(self, fullname ,xml=False):
-        
-        
         project_uri = self.project_query(fullname)
         
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
                         Project.URI_PROJECT_RESOURCES.format(project_uri), None)
         o = common.json_decode(s)
      
-        
-        return o
+        if(xml):
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "GET",
+                Project.URI_PROJECT_RESOURCES.format(project_uri),
+                None, None, xml)
+            return s
+        else :
+            return o
     
     
     

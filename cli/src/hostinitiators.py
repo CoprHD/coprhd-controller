@@ -74,9 +74,8 @@ class HostInitiator(object):
     Returns the initiator URI for matching the name of the initiator
     '''
 
-    def query_by_portwwn(self, initiatorWWN, hostName):
-
-        hostUri = self.get_host_uri(hostName)
+    def query_by_portwwn(self, initiatorWWN, hostName, tenant=None):
+        hostUri = self.get_host_uri(hostName, tenant)
         initiatorList = self.get_host_object().list_initiators(hostUri)
        
         # Match the name and return uri
@@ -97,9 +96,8 @@ class HostInitiator(object):
     Initiator create operation
     """
 
-    def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn, initname,synctime):
-
-        hostUri = self.get_host_uri(hostlabel)
+    def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn, initname,synctime, tenant):
+        hostUri = self.get_host_uri(hostlabel, tenant)
         request = {'protocol': protocol,
                    'initiator_port': portwwn,
                    'name': initname
@@ -346,15 +344,15 @@ class HostInitiator(object):
     Given the name of the host, returns the hostUri/id
     '''
 
-    def get_host_uri(self, hostName):
-        return self.__hostObject.query_by_name(hostName)
+    def get_host_uri(self, hostName, tenant=None):
+        return self.__hostObject.query_by_name(hostName, tenant)
 
     def get_host_object(self):
         return self.__hostObject
 
-    def list_tasks(self, host_name, initiatorportwwn, task_id=None):
+    def list_tasks(self, host_name, initiatorportwwn, task_id=None, tenant=None):
 
-        uri = self.query_by_portwwn(initiatorportwwn, host_name)
+        uri = self.query_by_portwwn(initiatorportwwn, host_name, tenant)
         
       
 
@@ -459,6 +457,11 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Initiator Alias Name',
                                dest='initname',
                                metavar='<initiatorname>' )
+    
+    create_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>')
 
     mandatory_args.add_argument(
         '-pwwn', '-initiatorportwwn',
@@ -497,7 +500,8 @@ def initiator_create(args):
             args.protocol,
             args.initiatorwwn,
             args.initiatorportwwn,
-            args.initname,args.synctimeout)
+            args.initname,args.synctimeout,
+            args.tenant)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create",
@@ -524,6 +528,10 @@ def list_parser(subcommand_parsers, common_parser):
                              choices=HostInitiator.INITIATOR_PROTOCOL_LIST,
                              dest='protocol',
                              help='Initiator protocol')
+    list_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>' )
     list_parser.add_argument('-v', '-verbose',
                              dest='verbose',
                              action='store_true',
@@ -548,7 +556,7 @@ def initiator_list(args):
 
     try:
         if(args.hostlabel):
-            hostUri = initiatorObj.get_host_uri(args.hostlabel)
+            hostUri = initiatorObj.get_host_uri(args.hostlabel, args.tenant)
             initiatorList = initiatorObj.get_host_object().list_initiators(
                 hostUri)
         else:
@@ -606,6 +614,10 @@ def show_parser(subcommand_parsers, common_parser):
                                 dest='initiatorportwwn',
                                 help='Port WWN of initiator',
                                 required=True)
+    show_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>' )
     mandatory_args.add_argument(
         '-hl', '-hostlabel',
         dest='hostlabel',
@@ -621,7 +633,7 @@ def initiator_show(args):
         initiatorObj = HostInitiator(args.ip, args.port)
         initiatorUri = initiatorObj.query_by_portwwn(
             args.initiatorportwwn,
-            args.hostlabel)
+            args.hostlabel, args.tenant)
         if(initiatorUri):
             initiatorDetails = initiatorObj.show_by_uri(initiatorUri, args.xml)
 
@@ -657,6 +669,10 @@ def delete_parser(subcommand_parsers, common_parser):
                                 metavar='<hostlabel>',
                                 help='Host for which initiator to be searched',
                                 required=True)
+    delete_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>' )
     delete_parser.set_defaults(func=initiator_delete)
 
 
@@ -666,7 +682,7 @@ def initiator_delete(args):
         initiatorObj = HostInitiator(args.ip, args.port)
         initiatorUri = initiatorObj.query_by_portwwn(
             args.initiatorportwwn,
-            args.hostlabel)
+            args.hostlabel, args.tenant)
         initiatorObj.delete(initiatorUri)
 
     except SOSError as e:
@@ -722,6 +738,11 @@ def update_parser(subcommand_parsers, common_parser):
                                help='Initiator Alias Name',
                                dest='newinitname',
                                metavar='<newinitiatorname>' )
+    
+    update_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>' )
 
     mandatory_args.add_argument(
         '-npwwn', '-newinitiatorportwwn',
@@ -758,7 +779,7 @@ def initiator_update(args):
 
         initiatorUri = initiatorObj.query_by_portwwn(
             args.initiatorportwwn,
-            args.hostlabel)
+            args.hostlabel, args.tenant)
         initiatorObj.update(
             initiatorUri,
             args.newprotocol,
@@ -799,6 +820,10 @@ def task_parser(subcommand_parsers, common_parser):
                                 metavar='<hostlabel>',
                                 help='Host for which initiator to be searched',
                                 required=True)
+    task_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>' )
 
     task_parser.add_argument('-id',
                              dest='id',
@@ -823,12 +848,12 @@ def host_initiator_list_tasks(args):
             res = obj.list_tasks(
                 args.hostlabel,
                 args.initiatorportwwn,
-                args.id)
+                args.id, args.tenant)
             if(res):
                 return common.format_json_object(res)
         elif(args.hostlabel):
            
-            res = obj.list_tasks(args.hostlabel, args.initiatorportwwn)
+            res = obj.list_tasks(args.hostlabel, args.initiatorportwwn, None, args.tenant)
            
             if(res and len(res) > 0):
                 if(args.verbose):

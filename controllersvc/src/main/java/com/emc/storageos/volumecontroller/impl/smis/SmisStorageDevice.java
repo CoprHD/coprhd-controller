@@ -2493,9 +2493,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sourceURIs, URI remoteDirectorGroupURI,
-            boolean forceAdd, TaskCompleter completer) {
-        _srdfOperations.addVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, forceAdd, completer);
+    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sourceURIs, URI remoteDirectorGroupURI, TaskCompleter completer) {
+        _srdfOperations.addVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, completer);
     }
 
     @Override

@@ -30,7 +30,7 @@ public interface RemoteMirroring {
      * @param forceAdd
      * @param completer
      */
-    void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup, boolean forceAdd, TaskCompleter completer);
+    void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup, TaskCompleter completer);
 
     /**
      * Create and establish a replication link between the given source and target volume.

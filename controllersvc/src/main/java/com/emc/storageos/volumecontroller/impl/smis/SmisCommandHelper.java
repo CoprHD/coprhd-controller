@@ -2326,13 +2326,8 @@ public class SmisCommandHelper implements SmisConstants {
     public boolean doApplyRecoverPointTag(final StorageSystem storageSystem,
             Volume volume, boolean flag) throws Exception {
         boolean tagSet = false;
-        boolean validRPVolume = false;
-
-        // A valid RP volume for tagging is one that has a valid RP copy name and that isn't a VPlex backing volume
-        validRPVolume = volume.checkForRp() && !RPHelper.isAssociatedToAnyRpVplexTypes(volume, _dbClient);
-
         // Set/Unset the RP tag (if applicable)
-        if (volume != null && storageSystem != null && validRPVolume && storageSystem.getSystemType() != null
+        if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
                 && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));

@@ -102,8 +102,12 @@ public class IsilonReplicationApiTest {
     }
 
     public static void testReplicationPolicyReport() throws Exception {
-        IsilonSyncPolicyReport policyReports = _client.getReplicationPolicyReport("20-R_N_M_A_FS_1-target-varray116");
-        System.out.println(policyReports.toString());
+        IsilonSyncPolicyReport policyReports = null;
+        for (int i = 1; i <= 86; i++) {
+            String str = i + "-xyz_fs-target-varray_116";
+            policyReports = _client.getReplicationPolicyReport(str);
+            System.out.println(policyReports.toString());
+        }
     }
 
     public static void testTargetGetReplicationPolicyReport() throws Exception {

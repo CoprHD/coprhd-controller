@@ -350,7 +350,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             errMsg += " (The failing callback is " + failedCallbackName + ").";
         }
 
-        errMsg += " Please contract the EMC support team.";
+        errMsg += " Please contact the EMC support team.";
 
         alertLog.error(errMsg);
         if (e != null) {

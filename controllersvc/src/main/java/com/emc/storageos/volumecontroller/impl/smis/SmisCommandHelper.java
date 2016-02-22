@@ -630,16 +630,14 @@ public class SmisCommandHelper implements SmisConstants {
         };
     }
 
-    public CIMArgument[] getAddSyncPairInputArguments(CIMObjectPath groupSync, boolean forceAdd,
+    public CIMArgument[] getAddSyncPairInputArguments(CIMObjectPath groupSync,
             Object settings, CIMObjectPath... syncPairs) {
         List<CIMArgument> args = new ArrayList<>();
 
         args.add(_cimArgument.object(CP_REPLICATION_SETTING_DATA, settings));
         args.add(_cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true));
         args.add(_cimArgument.uint16(CP_OPERATION, ADD_SYNC_PAIR));
-        if (forceAdd) {
-            args.add(_cimArgument.bool(CP_FORCE, true));
-        }
+        args.add(_cimArgument.bool(CP_FORCE, true));
         args.add(_cimArgument.reference(CP_SYNCHRONIZATION, groupSync));
         args.add(_cimArgument.referenceArray(CP_SYNCPAIR, syncPairs));
 

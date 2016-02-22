@@ -212,6 +212,9 @@ public class BlockMapper {
             if (from.getReplicaState() != null) {
                 toFullCopy.setReplicaState(from.getReplicaState());
             }
+            if (from.getFullCopySetName() != null) {
+                toFullCopy.setFullCopySetName(from.getFullCopySetName());
+            }
         }
 
         // SRDF specific section
@@ -242,10 +245,17 @@ public class BlockMapper {
             to.setProtection(toProtection);
         }
 
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+
         if ((from.getAssociatedVolumes() != null) && (!from.getAssociatedVolumes().isEmpty())) {
             List<RelatedResourceRep> backingVolumes = new ArrayList<RelatedResourceRep>();
             for (String backingVolume : from.getAssociatedVolumes()) {
                 backingVolumes.add(toRelatedResource(ResourceTypeEnum.VOLUME, URI.create(backingVolume)));
+            }
+            // Get ReplicationGroupInstance from source back end volume
+            if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
+                Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
+                to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
             }
             to.setHaVolumes(backingVolumes);
         }
@@ -256,7 +266,7 @@ public class BlockMapper {
             }
             to.setVolumeGroups(volumeGroups);
         }
-        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+
 
         return to;
     }
@@ -460,6 +470,7 @@ public class BlockMapper {
         to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
         to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
+        to.setArrayConsistency(from.getArrayConsistency());
 
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);

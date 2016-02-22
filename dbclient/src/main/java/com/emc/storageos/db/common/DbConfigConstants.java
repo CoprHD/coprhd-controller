@@ -9,8 +9,6 @@ package com.emc.storageos.db.common;
  * Configuration keys for dbsvc
  */
 public abstract class DbConfigConstants {
-    // Thrift IP address
-    public static final String DB_IP = "dbip";
 
     // whether this dbsvc has been autobootstrapped or not
     public static final String AUTOBOOT = "autoboot";

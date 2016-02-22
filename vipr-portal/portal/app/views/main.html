@@ -268,7 +268,7 @@
       #{nav.menuSection 'nav.settings'} 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
         		#{nav.item 'properties', href: @infra.ConfigProperties.properties()/}
-        	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && isActiveSite }
+        	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && isActiveSite && !controllers.infra.ClusterInfo.isDRMultisites() }
             	#{nav.item 'clusterInfo', href: @infra.ClusterInfo.clusterIpInfo()/}
             #{/if}
          #{/deadbolt.restrict}

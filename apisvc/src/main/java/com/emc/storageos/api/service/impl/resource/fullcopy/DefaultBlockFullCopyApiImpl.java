@@ -20,11 +20,8 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
-import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -32,7 +29,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -41,6 +37,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
@@ -116,27 +113,12 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                     fcSourceObj, vpool, count);
             List<VolumeRecommendation> placementRecommendations = getPlacementRecommendations(
                     fcSourceObj, capabilities, varray, vpool.getId());
-            volumesList.addAll(prepareClonesForEachRecommendation(copyName,
+            volumesList.addAll(prepareClonesForEachRecommendation(copyName, name,
                     fcSourceObj, capabilities, createInactive, placementRecommendations));
         }
 
         // Invoke the controller.
         return invokeFullCopyCreate(aFCSource, volumesList, createInactive, taskId);
-    }
-
-    /**
-     * Gets the varray from cache.
-     *
-     * @param vArrayCache the varray cache
-     * @param vArrayURI the virtual array
-     * @return the varray from cache
-     */
-    private VirtualArray getVarrayFromCache(Map<URI, VirtualArray> vArrayCache, URI vArrayURI) {
-        if (vArrayCache.get(vArrayURI) == null) {
-            VirtualArray vArray = _dbClient.queryObject(VirtualArray.class, vArrayURI);
-            vArrayCache.put(vArrayURI, vArray);
-        }
-        return vArrayCache.get(vArrayURI);
     }
 
     /**
@@ -168,6 +150,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * Prepares a ViPR volume instance for each full copy.
      * 
      * @param name The full copy name.
+     * @param cloneSetName
      * @param blockObject The full copy source.
      * @param capabilities The full copy capabilities.
      * @param createInactive true to create the full copies inactive, false otherwise.
@@ -176,20 +159,34 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @return A list of volumes representing the full copies.
      */
     private List<Volume> prepareClonesForEachRecommendation(String name,
-            BlockObject blockObject, VirtualPoolCapabilityValuesWrapper capabilities,
+            String cloneSetName, BlockObject blockObject, VirtualPoolCapabilityValuesWrapper capabilities,
             Boolean createInactive, List<VolumeRecommendation> placementRecommendations) {
 
         // Prepare clones for each recommendation
         List<Volume> volumesList = new ArrayList<Volume>();
+        List<Volume> toUpdate = new ArrayList<Volume>();
+        boolean inApplication = false;
+        if (blockObject instanceof Volume && ((Volume) blockObject).getApplication(_dbClient) != null) {
+            inApplication = true;
+        }
         int volumeCounter = (capabilities.getResourceCount() > 1) ? 1 : 0;
         for (VolumeRecommendation recommendation : placementRecommendations) {
 
             Volume volume = StorageScheduler.prepareFullCopyVolume(_dbClient, name,
                     blockObject, recommendation, volumeCounter, capabilities, createInactive);
+            // For Application, set the user provided clone name on all the clones to identify clone set
+            if (inApplication) {
+                volume.setFullCopySetName(cloneSetName);
+                toUpdate.add(volume);
+            }
             volumesList.add(volume);
             // set volume Id in the recommendation
             recommendation.setId(volume.getId());
             volumeCounter++;
+        }
+        // persist changes
+        if (!toUpdate.isEmpty()) {
+            _dbClient.updateObject(toUpdate);
         }
         return volumesList;
     }
@@ -220,15 +217,17 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
 
         // if Volume is part of Application (COPY type VolumeGroup)
-        VolumeGroup volumeGroup = ((fcSourceObj instanceof Volume) && ((Volume) fcSourceObj).isInVolumeGroup())
-                ? ((Volume) fcSourceObj).getCopyTypeVolumeGroup(_dbClient) : null;
-        if (volumeGroup != null) {
+        VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
+                ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
+        if (volumeGroup != null &&
+                !ControllerUtils.checkVolumeForVolumeGroupPartialRequest(_dbClient, (Volume) fcSourceObj)) {
+
             Operation op = _dbClient.createTaskOpStatus(VolumeGroup.class, volumeGroup.getId(), taskId,
                     ResourceOperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY);
             taskList.getTaskList().add(TaskMapper.toTask(volumeGroup, taskId, op));
             
             // get all volumes to create tasks for all CGs involved
-            List<Volume> volumes = BlockServiceUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
+            List<Volume> volumes = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
             addConsistencyGroupTasks(volumes, taskList, taskId,
                     ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_FULL_COPY);
         } else {
@@ -408,33 +407,4 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         return uris;
     }
 
-    /**
-     * Updates passed volume and tasks on failure.
-     * 
-     * @param taskId The unique task id.
-     * @param taskList A list of the task responses.
-     * @param volumes The list of volumes for the operation.
-     * @param sc A reference to the error.
-     * @param markInactive true to mark the volumes inactive, false otherwise.
-     */
-    protected void handleFailedRequest(String taskId, TaskList taskList,
-            List<Volume> volumes, ServiceCoded sc, boolean markInactive) {
-        for (TaskResourceRep volumeTask : taskList.getTaskList()) {
-            volumeTask.setState(Operation.Status.error.name());
-            volumeTask.setMessage(sc.getMessage());
-            Volume volume = _dbClient.queryObject(Volume.class, volumeTask.getResource().getId());
-            Operation op = volume.getOpStatus().get(taskId);
-            if (op != null) {
-                op.error(sc);
-                volume.getOpStatus().updateTaskStatus(taskId, op);
-                _dbClient.persistObject(volume);
-            }
-        }
-        if (markInactive) {
-            for (Volume volume : volumes) {
-                volume.setInactive(true);
-                _dbClient.persistObject(volume);
-            }
-        }
-    }
 }

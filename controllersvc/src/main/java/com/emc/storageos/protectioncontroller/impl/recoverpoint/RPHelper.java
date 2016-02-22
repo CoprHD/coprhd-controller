@@ -108,6 +108,27 @@ public class RPHelper {
     }
 
     /**
+     * Get all of the volumes in this replication set for a list of volumes; the source and all of its targets.
+     * For a multi-CG protection, it only returns the targets (and source) associated with this one volume.
+     *
+     * @param volumeIds
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> getReplicationSetVolumes(List<URI> volumeIds, DbClient dbClient) {
+        List<URI> volumeList = new ArrayList<URI>();
+        Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeIds);
+        while (volumes.hasNext()) {
+            Volume volume = volumes.next();
+            RPHelper helper = new RPHelper();
+            helper.setDbClient(dbClient);
+            volumeList.addAll(helper.getReplicationSetVolumes(volume));
+        }
+        return volumeList;
+
+    }
+
+    /**
      * Get all of the volumes in this replication set; the source and all of its targets.
      * For a multi-CG protection, it only returns the targets (and source) associated with this one volume.
      *
@@ -995,12 +1016,60 @@ public class RPHelper {
     }
 
     /**
-     * Gets all the volumes of the specified personality type in RecoverPoint
-     * consistency group.
+     * filters the list of volumes by source or target site; site is defined by a varray
      *
-     * @param dbClient The dbClient instance
-     * @param blockConsistencyGroupUri The CG to check
-     * @param personality The personality of the volumes to filter with
+     * @param varrayId
+     * @param vpoolId
+     * @param volumes
+     * @return
+     */
+    public static List<Volume> getVolumesForSite(URI varrayId, URI vpoolId, Collection<Volume> volumes) {
+
+        List<Volume> volumesForSite = new ArrayList<Volume>();
+
+        String personality = null;
+        for (Volume volume : volumes) {
+            if (varrayId != null) {
+                if (vpoolId != null) {
+                    // for CDP volumes we need both varray and vpool to identify source or target
+                    if (volume.getVirtualArray().equals(varrayId) && volume.getVirtualPool().equals(vpoolId)) {
+                        volumesForSite.add(volume);
+                        personality = volume.getPersonality();
+                    }
+                } else if (volume.getVirtualArray().equals(varrayId)) {
+                    // check the first volume and include all source volumes
+                    volumesForSite.add(volume);
+                    personality = volume.getPersonality();
+                }
+            } else if (NullColumnValueGetter.isNotNullValue(volume.getPersonality())
+                    && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
+                volumesForSite.add(volume);
+                personality = volume.getPersonality();
+            }
+        }
+
+        // if the personality is source, include all source volumes including those not matching the passed in varray
+        if (Volume.PersonalityTypes.SOURCE.toString().equals(personality)) {
+            for (Volume volume : volumes) {
+                if (Volume.PersonalityTypes.SOURCE.toString().equals(volume.getPersonality())
+                        && !volume.getVirtualArray().equals(varrayId)) {
+                    volumesForSite.add(volume);
+                }
+            }
+        }
+
+        return volumesForSite;
+    }
+
+    /**
+     * Gets all the volumes of the specified personality type in RecoverPoint consistency group.
+     *
+     * @param dbClient
+     *            The dbClient instance
+     * @param blockConsistencyGroupUri
+     *            The CG to check
+     * @param personality
+     *            The personality of the volumes to filter with
      * @return All Source volumes in the CG
      */
     public static List<Volume> getCgVolumes(DbClient dbClient, URI blockConsistencyGroupUri, String personality) {
@@ -1137,11 +1206,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {

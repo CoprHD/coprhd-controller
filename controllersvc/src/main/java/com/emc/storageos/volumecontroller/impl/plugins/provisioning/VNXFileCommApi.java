@@ -902,6 +902,21 @@ public class VNXFileCommApi {
                 }
 
                 _log.info("Export info {} {}", moverOrVdmName, netBios);
+              //Check for existance of share by name
+                String shareNameCheckData = sshApi.formatCheckShareForExportCmd(moverOrVdmName, newExportEntries, userInfo, netBios);
+                XMLApiResult shareNameCheckCommandResult = sshApi.executeSshRetry(VNXFileSshApi.SERVER_EXPORT_CMD, shareNameCheckData);
+                if(shareNameCheckCommandResult.isCommandSuccess()) {
+                    _log.error("Export command failed for share name {}", newExportEntries.get(0).getExportName());
+                    StringBuilder errorMessageBuilder = new StringBuilder();
+                    errorMessageBuilder.append("Share by the name ");
+                    errorMessageBuilder.append(newExportEntries.get(0).getExportName());
+                    errorMessageBuilder.append(" Already exists on mover ");
+                    errorMessageBuilder.append(moverOrVdmName);
+                    
+                    result.setCommandFailed();
+                    result.setMessage(errorMessageBuilder.toString());
+                    return result;
+                }
                 String data = sshApi.formatExportCmd(moverOrVdmName, newExportEntries, userInfo, netBios);
                 _log.info("Export command {}", data);
                 if (data != null) {

@@ -24,37 +24,79 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 
+// TODO: Auto-generated Javadoc
 /**
  * Responsible for sending VNX CLI commands to the VNX File System using SSH.
  */
 
 public class VNXFileSshApi {
+    
+    /** The Constant SERVER_EXPORT_CMD. */
     public static final String SERVER_EXPORT_CMD = "/nas/bin/server_export";
+    
+    /** The Constant SERVER_MOUNT_CMD. */
     public static final String SERVER_MOUNT_CMD = "/nas/bin/server_mount";
+    
+    /** The Constant SERVER_UNMOUNT_CMD. */
     public static final String SERVER_UNMOUNT_CMD = "/nas/bin/server_umount";
+    
+    /** The Constant SERVER_INFO_CMD. */
     public static final String SERVER_INFO_CMD = "/nas/bin/nas_server";
+    
+    /** The Constant SERVER_USER_CMD. */
     public static final String SERVER_USER_CMD = "/nas/sbin/server_user";
+    
+    /** The Constant EXPORT. */
     public static final String EXPORT = "EXPORT";
+    
+    /** The Constant VNX_CIFS. */
     public static final String VNX_CIFS = "cifs";
+    
+    /** The Constant NAS_FS. */
     public static final String NAS_FS = "/nas/bin/nas_fs";
+    
+    /** The Constant SHARE. */
     public static final String SHARE = "share";
+    
+    /** The Constant SERVER_MODEL. */
     public static final String SERVER_MODEL = "/nas/sbin/model";
 
+    /** The Constant _log. */
     private static final Logger _log = LoggerFactory.getLogger(VNXFileSshApi.class);
 
+    /** The _host. */
     private String _host;
+    
+    /** The _user name. */
     private String _userName;
+    
+    /** The _password. */
     private String _password;
 
+    /** The _resp delay. */
     // Amount of time in milliseconds to wait for a response
     private int _respDelay = 1000;
 
+    /** The Constant BUFFER_SIZE. */
     private static final int BUFFER_SIZE = 1024;
+    
+    /** The Constant DEFAULT_PORT. */
     private static final int DEFAULT_PORT = 22;
 
+    /**
+     * The Enum SecurityTypes.
+     */
     // TODO: change build files to be able to access FileShareExport.SecurityTypes.
     private enum SecurityTypes {
-        sys, krb5, krb5i, krb5p
+        
+        /** The sys. */
+        sys, 
+ /** The krb5. */
+ krb5, 
+ /** The krb5i. */
+ krb5i, 
+ /** The krb5p. */
+ krb5p
     }
 
     /**
@@ -80,7 +122,8 @@ public class VNXFileSshApi {
     }
 
     /**
-     * 
+     * Sets the response delay.
+     *
      * @param delay time in milliseconds
      */
     public void setResponseDelay(int delay) {
@@ -92,6 +135,13 @@ public class VNXFileSshApi {
         _respDelay = delay;
     }
 
+    /**
+     * Format cifs cmd.
+     *
+     * @param exports the exports
+     * @param netBios the net bios
+     * @return the string
+     */
     private String formatCifsCmd(List<VNXFileExport> exports, String netBios) {
         VNXFileExport fileExp = exports.get(0);
         StringBuilder command = new StringBuilder();
@@ -141,6 +191,13 @@ public class VNXFileSshApi {
         return command.toString();
     }
 
+    /**
+     * Format nfs cmd.
+     *
+     * @param exports the exports
+     * @param userInfo the user info
+     * @return the string
+     */
     private String formatNfsCmd(List<VNXFileExport> exports, Map<String, String> userInfo) {
 
         StringBuilder options = new StringBuilder();
@@ -228,8 +285,8 @@ public class VNXFileSshApi {
     }
 
     /**
-     * Create the command string for removing a CIFS file share
-     * 
+     * Create the command string for removing a CIFS file share.
+     *
      * @param dataMover data mover that contains the CIFS file share
      * @param fileShare name of the file share to remove.
      * @param netBios netbios used
@@ -249,9 +306,11 @@ public class VNXFileSshApi {
 
     /**
      * Create the command string for exporting a file system.
-     * 
+     *
      * @param dataMover data mover that the export will reside on
      * @param exports contains file export details
+     * @param userInfo the user info
+     * @param netBios the net bios
      * @return formatted command required by the VNX CLI for file export
      */
     public String formatExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo, String netBios) {
@@ -298,6 +357,38 @@ public class VNXFileSshApi {
         return cmd.toString();
     }
 
+    /**
+     * Format check share for export cmd.
+     *
+     * @param dataMover the data mover
+     * @param exports the exports
+     * @param userInfo the user info
+     * @param netBios the net bios
+     * @return the string
+     */
+    public String formatCheckShareForExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo, String netBios) {
+
+        // Verify that there is at least one entry in exports
+        if (exports.isEmpty()) {
+            _log.debug("There is no entry to export");
+            return null;
+        }
+
+        String mountPoint = entryPathsDiffer(exports);
+        // Verify that all export entries apply to the same file system or subdirectory
+        if (mountPoint == null) {
+            _log.debug("Single ssh API command is being applied to multiple paths.");
+            return null;
+        }
+
+        StringBuilder cmd = new StringBuilder();
+        cmd.append(dataMover);
+        cmd.append(" -list -name ");
+        cmd.append(exports.get(0).getExportName());
+
+        return cmd.toString();
+    }
+    
     /**
      * Create the command string for deleting file system export.
      * 
@@ -360,6 +451,12 @@ public class VNXFileSshApi {
         return cmd.toString();
     }
 
+    /**
+     * Entry paths differ.
+     *
+     * @param exports the exports
+     * @return the string
+     */
     private String entryPathsDiffer(List<VNXFileExport> exports) {
         HashSet<String> paths = new HashSet<>();
         for (VNXFileExport exp : exports) {
@@ -371,6 +468,12 @@ public class VNXFileSshApi {
         return null;
     }
 
+    /**
+     * Entry protocols differ.
+     *
+     * @param exports the exports
+     * @return the string
+     */
     private String entryProtocolsDiffer(List<VNXFileExport> exports) {
         HashSet<String> protocols = new HashSet<>();
         for (VNXFileExport exp : exports) {
@@ -384,11 +487,12 @@ public class VNXFileSshApi {
 
     /**
      * Create an access string for VNX File exports.
-     * 
+     *
      * @param security security method: sys, krb5, krb5i, or krb5p
      * @param perm access mode depending on security method: ro, rw=, ro=, root=, access=, etc.
      * @param clients list of endpoints to be exported to
      * @param anon mapping for an unknown or root user.
+     * @param userInfo the user info
      * @return formatted access string to be used by the VNX CLI.
      */
     public String createAccessString(String security, String perm, List<String> clients, String anon, Map<String, String> userInfo) {
@@ -557,6 +661,12 @@ public class VNXFileSshApi {
         return result;
     }
 
+    /**
+     * Gets the fs mountpath map.
+     *
+     * @param dmName the dm name
+     * @return the fs mountpath map
+     */
     public Map<String, String> getFsMountpathMap(String dmName) {
         Map<String, String> fsMountpathMap = new ConcurrentHashMap<String, String>();
         try {
@@ -585,6 +695,12 @@ public class VNXFileSshApi {
         return fsMountpathMap;
     }
 
+    /**
+     * Gets the VDM interfaces.
+     *
+     * @param vdmName the vdm name
+     * @return the VDM interfaces
+     */
     public Map<String, String> getVDMInterfaces(String vdmName) {
         Map<String, String> vdmIntfs = new ConcurrentHashMap<String, String>();
         try {
@@ -623,6 +739,13 @@ public class VNXFileSshApi {
         return vdmIntfs;
     }
 
+    /**
+     * Gets the NFS exports for path.
+     *
+     * @param dmName the dm name
+     * @param path the path
+     * @return the NFS exports for path
+     */
     public Map<String, Map<String, String>> getNFSExportsForPath(String dmName, String path) {
 
         Map<String, Map<String, String>> pathExportMap = new ConcurrentHashMap<String, Map<String, String>>();
@@ -673,6 +796,12 @@ public class VNXFileSshApi {
         return pathExportMap;
     }
 
+    /**
+     * Gets the NFS exports for path.
+     *
+     * @param dmName the dm name
+     * @return the NFS exports for path
+     */
     public Map<String, Map<String, String>> getNFSExportsForPath(String dmName) {
 
         Map<String, Map<String, String>> pathExportMap = new ConcurrentHashMap<String, Map<String, String>>();
@@ -721,6 +850,13 @@ public class VNXFileSshApi {
         return pathExportMap;
     }
 
+    /**
+     * Gets the fs export info.
+     *
+     * @param dmName the dm name
+     * @param path the path
+     * @return the fs export info
+     */
     public Map<String, String> getFsExportInfo(String dmName, String path) {
 
         Map<String, String> fsExportInfoMap = new ConcurrentHashMap<String, String>();
@@ -759,6 +895,12 @@ public class VNXFileSshApi {
         return fsExportInfoMap;
     }
 
+    /**
+     * Gets the CIFS exports for path.
+     *
+     * @param dmName the dm name
+     * @return the CIFS exports for path
+     */
     public Map<String, Map<String, String>> getCIFSExportsForPath(String dmName) {
 
         Map<String, Map<String, String>> pathExportMap = new ConcurrentHashMap<String, Map<String, String>>();
@@ -816,6 +958,12 @@ public class VNXFileSshApi {
         return pathExportMap;
     }
 
+    /**
+     * Gets the user info.
+     *
+     * @param dmName the dm name
+     * @return the user info
+     */
     public Map<String, String> getUserInfo(String dmName) {
         Map<String, String> userInfo = new ConcurrentHashMap<String, String>();
         try {
@@ -860,6 +1008,11 @@ public class VNXFileSshApi {
         return userInfo;
     }
 
+    /**
+     * Gets the model info.
+     *
+     * @return the model info
+     */
     public String getModelInfo() {
         String modelStr = new String("VNX7500");
 
@@ -891,6 +1044,19 @@ public class VNXFileSshApi {
 
     // nas_fs -name testSAPCliThinFS -type uxfs -create size=100M pool="clarsas_archive" -auto_extend yes -thin yes
     // -hwm 90% -max_size 10G
+    /**
+     * Format create fs.
+     *
+     * @param name the name
+     * @param type the type
+     * @param initialSizeInMB the initial size in mb
+     * @param finalSizeInMB the final size in mb
+     * @param pool the pool
+     * @param desc the desc
+     * @param thin the thin
+     * @param id the id
+     * @return the string
+     */
     // nas_fs -name testSAPCliThickFS -type uxfs -create size=100M pool="clarsas_archive" -auto_extend no -thin no
     public String formatCreateFS(String name, String type, String initialSizeInMB, String finalSizeInMB,
             String pool, String desc, boolean thin, String id) {
@@ -937,6 +1103,12 @@ public class VNXFileSshApi {
         // log_type=common fast_clone_level=1 -auto_extend yes -thin yes -max_size 100M -o id=132
     }
 
+    /**
+     * Gets the FS size info.
+     *
+     * @param fsName the fs name
+     * @return the FS size info
+     */
     // nas_fs -size ThinFS
     public String getFSSizeInfo(String fsName) {
 
@@ -988,6 +1160,13 @@ public class VNXFileSshApi {
         return fsSize;
     }
 
+    /**
+     * Execute ssh retry.
+     *
+     * @param command the command
+     * @param request the request
+     * @return the XML api result
+     */
     // Retry executeSsh Command
     public XMLApiResult executeSshRetry(String command, String request) {
 

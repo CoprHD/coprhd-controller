@@ -1536,10 +1536,10 @@ public class DisasterRecoveryService {
                     .addStandbyPrecheckFailed("Unsupported network configuration. Active site has IPv4. Standby site should be IPv4 or dual stack ");
         }
 
-        // active has only IPv6 and standby has no IPv6
-        if (isMapEmpty(site.getHostIPv4AddressMap()) && isMapEmpty(standby.getHostIPv6AddressMap())) {
+        // active has only IPv6 and standby has IPv4
+        if (isMapEmpty(site.getHostIPv4AddressMap()) && !isMapEmpty(standby.getHostIPv4AddressMap())) {
             throw APIException.internalServerErrors
-                    .addStandbyPrecheckFailed("Unsupported network configuration. Active site only has IPv6, Standby site should has IPv6 address");
+                    .addStandbyPrecheckFailed("Unsupported network configuration. Active site only has IPv6, Standby site should not has IPv4 address");
         }
     }
 

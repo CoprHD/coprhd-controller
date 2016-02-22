@@ -1,16 +1,6 @@
 #{extends 'main.html'/}
 #{set navSelected: ['nav.settings', 'nav.auditLog'] /}
 
-%{
-	currentDate = params["date"]
-	if (currentDate == null) {
-		currentDate = new Date()
-	}
-	else {
-		currentDate = new Date(new Long(currentDate));
-	}
-}%
-
 #{set 'moreStyles'}
 <style type="text/css">
 
@@ -144,13 +134,11 @@ options = ['bFilter': false, 'fnServerParams': 'loadServerParams', 'sAjaxDataPro
 	#{get 'moreScripts'/}
 	<script type="text/javascript">
     function loadServerParams(aoData) {
-        aoData.push({"name" : "date", "value" : "${currentDate.getTime()}"});
         aoData.push({"name" : "startTime", "value" : "${startTime}"});
         aoData.push({"name" : "resultStatus", "value" : "${resultStatus}"});
         aoData.push({"name" : "serviceType", "value" : "${serviceType}"});
         aoData.push({"name" : "user", "value" : "${user}"});
         aoData.push({"name" : "keyword", "value" : "${keyword}"});
-        aoData.push({"name" : "triggerByFilter", "value" : "${triggerByFilter}"});
     }
 
     function renderTime(o, val) {

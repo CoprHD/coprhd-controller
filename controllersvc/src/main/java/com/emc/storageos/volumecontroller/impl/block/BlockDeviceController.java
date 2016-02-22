@@ -4311,7 +4311,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMethodNullMethod(), null);
 
                 // call ReplicaDeviceController
-                waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, consistencyGroup, addVolumesList, task);
+                waitFor = _replicaDeviceController.addStepsForAddingVolumesToRG(workflow, waitFor, consistencyGroup, addVolumesList, groupName, task);
             }
 
             if (removeVolumesList != null && !removeVolumesList.isEmpty()) {
@@ -6299,7 +6299,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                    rollbackMethodNullMethod(), null);
 
            // call ReplicaDeviceController
-           waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, cguri, addVolumesList, opId);
+           waitFor = _replicaDeviceController.addStepsForAddingVolumesToRG(workflow, waitFor, cguri, addVolumesList, rgName, opId);
        }
 
        return waitFor;

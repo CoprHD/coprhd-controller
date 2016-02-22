@@ -1576,18 +1576,20 @@ public class ControllerUtils {
     public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes, DbClient dbClient) {
         Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
         for (Volume volume : volumes) {
+            String storage = volume.getStorageController().toString();
             String repGroupName = volume.getReplicationGroupInstance();
             if (volume.isVPlexVolume(dbClient)) {
                 // get backend source volume
                 Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                 if (backedVol != null) {
                     repGroupName = backedVol.getReplicationGroupInstance();
+                    storage = backedVol.getStorageController().toString();
                 }
             }
             if (NullColumnValueGetter.isNullValue(repGroupName)) {
                 repGroupName = "";
             }
-            String key = repGroupName + volume.getStorageController().toString();
+            String key = repGroupName + storage;
             if (arrayGroupToVolumes.get(key) == null) {
                 arrayGroupToVolumes.put(key, new ArrayList<Volume>());
             }

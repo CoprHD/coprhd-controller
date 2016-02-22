@@ -1,0 +1,80 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          VMSIM
+# Required-Start:    SimService
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       starts Vmware simulator
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+VM_HOME=/data/simulators/vm
+DELAY=60
+
+start() {
+        echo -n $"Starting VMSIM:..hold on 10sec .."
+		cd ${VM_HOME}
+        java -Dcom.sun.xml.bind.v2.runtime.JAXBContextImpl.fastBoot=true -cp . -jar vmware-simulators-1.0-SNAPSHOT.jar >/var/log/VM.log 2>&1 &
+        RETVAL=$?
+
+        while [ $DELAY -gt 0 ]; do
+        #echo "delay $DELAY"
+	if [ -f "${VM_HOME}/vmware_simulator.log" ] ; then 
+	 STARTSSL=`grep "start server ready" ${VM_HOME}/vmware_simulator.log`
+         if [ "${STARTSSL}" != "" ] ; then
+           echo "${STARTSSL}" >> /var/log/VM.log 2>&1  
+           echo "..OK"
+           return
+         fi
+        fi
+        sleep 2
+        DELAY=$((DELAY -1))
+       done
+
+       echo "Failed to start in 60 sec..try manual start" >> /var/log/VM.log 2>&1
+}
+
+stop() {
+
+        echo -n $"Stopping VM: "
+		pkill -9 -f vmware-simulators-1.0-SNAPSHOT.jar >> /var/log/VM.log 2>&1
+        RETVAL=$?
+	echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+    cnt=`pgrep -f vmware-simulators-1.0-SNAPSHOT.jar |wc -l`
+	if(test $cnt -eq 1) ;
+	then
+		echo "VM simulator already running..."
+	else
+		echo "VM simulator not running."
+	fi 
+    #    rc_status -v
+
+        ;;
+  *)
+        echo $"Usage: VM {start|stop|status}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+
+

@@ -60,6 +60,7 @@ import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -275,22 +276,7 @@ public class BlockFullCopyManager {
             
             // if RP get source or target volumes
             if (volumes != null && !volumes.isEmpty() && Volume.checkForRP(_dbClient, volumes.iterator().next().getId())) {
-                List<Volume> rpVolumes = new ArrayList<Volume>();
-                for (Volume volume : volumes) {
-                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
-                        if (param.getVarrayId() != null) {
-                            if (param.getVpoolId() != null) {
-                                if (volume.getVirtualArray().equals(param.getVarrayId()) && volume.getVirtualPool().equals(param.getVpoolId())) {
-                                    rpVolumes.add(volume);
-                                }
-                            } else if (volume.getVirtualArray().equals(param.getVarrayId())) {
-                                rpVolumes.add(volume);
-                            }
-                        } else if (NullColumnValueGetter.isNotNullValue(volume.getPersonality()) && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
-                            rpVolumes.add(volume);
-                        }
-                    }
-                }
+                List<Volume> rpVolumes = RPHelper.getVolumesForSite(param.getVarrayId(), param.getVpoolId(), volumes);
                 volumes.clear();
                 volumes.addAll(rpVolumes);
             }

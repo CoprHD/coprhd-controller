@@ -2658,20 +2658,41 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     protected List<AssetOption> createVpoolChangeOptions(String vpoolChangeOperation, List<VirtualPoolChangeRep> vpoolChanges) {
         List<AssetOption> options = Lists.newArrayList();
+        List<AssetOption> available = Lists.newArrayList();
+        List<AssetOption> wrongOperation = Lists.newArrayList();
+        List<AssetOption> notAllowed = Lists.newArrayList();
         for (VirtualPoolChangeRep vpoolChange : vpoolChanges) {
-            if (vpoolChange.getAllowedChangeOperations() != null) {
+            if (vpoolChange.getAllowed() && vpoolChange.getAllowedChangeOperations() != null) {
                 for (StringHashMapEntry allowedChangeOperation : vpoolChange.getAllowedChangeOperations()) {
                     String operation = allowedChangeOperation.getName();
                     boolean isCorrectOperation =
                             StringUtils.isNotBlank(operation) &&
                                     operation.equalsIgnoreCase(vpoolChangeOperation);
                     if (isCorrectOperation) {
-                        options.add(new AssetOption(vpoolChange.getId(), vpoolChange.getName()));
+                        available.add(new AssetOption(vpoolChange.getId(), vpoolChange.getName()));
+                    } else {
+                        wrongOperation.add(new AssetOption("", 
+                                getMessage("block.virtualPool.vpoolChangeOperation", vpoolChange.getName(), 
+                                        getAllowedChangeOperationNames(vpoolChange.getAllowedChangeOperations()))));
                     }
                 }
+            } else {
+                notAllowed.add(new AssetOption("", 
+                        getMessage("block.virtualPool.vpoolChangeReason", vpoolChange.getName(), vpoolChange.getNotAllowedReason())));
             }
         }
+        options.addAll(available);
+        options.addAll(wrongOperation);
+        options.addAll(notAllowed);
         return options;
+    }
+    
+    private String getAllowedChangeOperationNames(List<StringHashMapEntry> allowedChangeOperations) {
+        List<String> names = Lists.newArrayList();
+        for (StringHashMapEntry allowedChangeOperation : allowedChangeOperations) {
+            names.add(getMessage("virtualPoolChange.operation." + allowedChangeOperation.getName()));
+        }
+        return StringUtils.join(names, ',');
     }
 
     protected List<BlockObjectRestRep>

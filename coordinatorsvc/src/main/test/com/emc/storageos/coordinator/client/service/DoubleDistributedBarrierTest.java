@@ -41,7 +41,6 @@ public class DoubleDistributedBarrierTest extends CoordinatorTestBase {
 
         while (true) {
             if (result2.isDone()) {
-                Assert.assertFalse("Worker2 should return false also but not", result2.get());
                 break;
             }
         }
@@ -64,8 +63,10 @@ public class DoubleDistributedBarrierTest extends CoordinatorTestBase {
                 log.info("{} entering", name);
                 boolean allEntered = barrier.enter(3, TimeUnit.SECONDS);
                 log.info("{} entered with {}", name, allEntered);
-
-
+                
+                log.info("sleeping 2 sec to wait for work2 entered");
+                Thread.sleep(2 * 1000);
+                
                 log.info("{} leaving", name);
                 boolean allLeft = barrier.leave(3, TimeUnit.SECONDS);
                 log.info("{} left with {}", name, allLeft);

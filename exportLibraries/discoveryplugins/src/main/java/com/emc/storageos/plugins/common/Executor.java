@@ -194,7 +194,7 @@ public abstract class Executor {
                     if (null != o && o instanceof AccessProfile) {
                         AccessProfile accessProfile = (AccessProfile) o;
                         if (Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(accessProfile.getnamespace())) {
-                            _LOGGER.error("SMI-S Communication Failed for UnManagedVolume Discovery.");
+                            _LOGGER.error("Unmanaged volume discovery execution failed.");
                             throw e;
                         }
                     }

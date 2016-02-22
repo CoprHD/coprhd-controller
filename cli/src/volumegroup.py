@@ -26,6 +26,8 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_LIST = '/volume-groups/block'
     URI_VOLUME_GROUP = '/volume-groups/block/{0}'
     URI_VOLUME_GROUP_VOLUMES = '/volume-groups/block/{0}/volumes'
+    URI_VOLUME_GROUP_HOSTS = '/volume-groups/block/{0}/hosts'
+    URI_VOLUME_GROUP_CLUSTERS = '/volume-groups/block/{0}/clusters'
     URI_VOLUME_GROUP_CHILDREN = '/volume-groups/block/{0}/volume-groups'
     URI_DEACTIVATE = URI_VOLUME_GROUP + '/deactivate'
     URI_TAG_VOLUME_GROUP = URI_VOLUME_GROUP + "/tags"
@@ -48,7 +50,7 @@ class VolumeGroup(object):
         self.__ipAddr = ipAddr
         self.__port = port
         
-    def create(self, name, description, roles, parent):
+    def create(self, name, description, roles, parent, migrationType, migrationGroupBy):
         '''
         Makes REST API call to create volume group
         Parameters:
@@ -63,6 +65,8 @@ class VolumeGroup(object):
         request["description"] = description
         request["roles"] = roles.split(',')
         request["parent"] = parent
+        request["migration_type"] = migrationType
+        request["migration_group_by"] = migrationGroupBy
 
         body = json.dumps(request)
 
@@ -166,7 +170,7 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         return self.delete_by_uri(volume_group_uri)
 
-    def update(self, name, new_name, new_description, add_volumes, cg_id, rg_name, remove_volumes, parent):
+    def update(self, name, new_name, new_description, add_volumes, cg_id, rg_name, remove_volumes, parent, add_hosts, add_clusters, remove_hosts, remove_clusters):
         '''
         Makes REST API call and updates volume group name and description
         Parameters:
@@ -198,6 +202,14 @@ class VolumeGroup(object):
             remove_vols = dict()
             remove_vols["volume"] = remove_volumes.split(',')
             request["remove_volumes"] = remove_vols
+        if(add_hosts and len(add_hosts) > 0):
+            request["add_hosts"] = add_hosts.split(',')
+        if(add_clusters and len(add_clusters) > 0):
+            request["add_clusters"] = add_clusters.split(',')
+        if(remove_hosts and len(remove_hosts) > 0):
+            request["remove_hosts"] = remove_hosts.split(',')
+        if(remove_clusters and len(remove_clusters) > 0):
+            request["remove_clusters"] = remove_clusters.split(',')
 
         body = json.dumps(request)
 
@@ -563,13 +575,22 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<parent>',
                                dest='parent',
                                help='parent volume group for volume group')
+    create_parser.add_argument('-mt', '-migrationType',
+                               metavar='<migrationType>',
+                               dest='migrationType',
+                               help='migration type for mobility volume group')
+    create_parser.add_argument('-mg', '-migrationGroupBy',
+                               metavar='<migrationGroupBy>',
+                               dest='migrationGroupBy',
+                               help='migration group by for mobility volume group')
+    
     create_parser.set_defaults(func=create)
 
 
 def create(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
-        obj.create(args.name, args.description, args.roles, args.parent)
+        obj.create(args.name, args.description, args.roles, args.parent, args.migrationType, args.migrationGroupBy)
     except SOSError as e:
         if (e.err_code in [SOSError.NOT_FOUND_ERR,
                             SOSError.ENTRY_ALREADY_EXISTS_ERR]):
@@ -729,17 +750,35 @@ def update_parser(subcommand_parsers, common_parser):
                                        metavar='<parent>',
                                        dest='parent',
                                        help='A parent volume group for the volume group')
+    update_parser.add_argument('-rh', '-remove_hosts',
+                                       metavar='<remove_hosts>',
+                                       dest='remove_hosts',
+                                       help='A list of hosts to remove from the volume group')
+    update_parser.add_argument('-ah', '-add_hosts',
+                                       metavar='<add_hosts>',
+                                       dest='add_hosts',
+                                       help='A list of hosts to add to the volume group')
+    update_parser.add_argument('-rc', '-remove_clusters',
+                                       metavar='<remove_clusters>',
+                                       dest='remove_clusters',
+                                       help='A list of clusters to remove from the volume group')
+    update_parser.add_argument('-ac', '-add_clusters',
+                                       metavar='<add_clusters>',
+                                       dest='add_clusters',
+                                       help='A list of clusters to add to the volume group')
+
 
     update_parser.set_defaults(func=update)
 
 
 def update(args):
 
-    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None and args.parent is None):
+    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None and args.parent is None and args.remove_hosts is None and args.add_hosts is None and args.add_clusters is None and args.remove_clusters is None):
         raise SOSError(SOSError.CMD_LINE_ERR,
             "viprcli volume group update: error: at least one of " +
             "the arguments -np/-newname -d/-description -a/-add_volumes " +
-            " -r/-remove_volumes is required")
+            " -r/-remove_volumes -rh/-remove_hosts -ah/-add_hosts " +
+            " -rc/-remove_clusters -ac/-add_clusters required")
      
     add_vols = []
     if(args.add_volumes and len(args.add_volumes) > 0):
@@ -767,7 +806,7 @@ def update(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
         obj.update(args.name, args.newname,
-                    args.description, ",".join(add_vols), args.consistency_group, args.replication_group, ",".join(rem_vols), args.parent)
+                    args.description, ",".join(add_vols), args.consistency_group, args.replication_group, ",".join(rem_vols), args.parent, args.add_hosts, args.add_clusters, args.remove_hosts, args.remove_clusters)
     except SOSError as e:
         raise e
 

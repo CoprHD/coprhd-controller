@@ -8560,6 +8560,24 @@ application_crud_test()
     # test and verify volume group delete
     run volumegroup delete ${newappname}
     fail volumegroup show ${newappname}
+
+    mobilityname=mobilitygroup-${RANDOM}
+    run volumegroup create ${mobilityname} description MOBILITY VPLEX VOLUMES
+    run volumegroup delete ${mobilityname}
+
+    mobilityname=mobilitygroup-${RANDOM}
+    run volumegroup create ${mobilityname} description MOBILITY VPLEX HOSTS
+    run volumegroup delete ${mobilityname}
+
+    mobilityname=mobilitygroup-${RANDOM}
+    run volumegroup create ${mobilityname} description MOBILITY VPLEX CLUSTERS
+    run volumegroup delete ${mobilityname}
+ 
+    mobilityname=mobilitygroup-${RANDOM}
+    fail volumegroup create ${mobilityname} description MOBILITY VPLEX INVALIDTYPE 
+
+    mobilityname=mobilitygroup-${RANDOM}
+    fail volumegroup create ${mobilityname} description MOBILITY INVALIDTYPE VOLUMES
 }
 
 application_createvols()

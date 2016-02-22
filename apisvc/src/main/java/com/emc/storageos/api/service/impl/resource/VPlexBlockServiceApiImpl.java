@@ -2941,7 +2941,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * 
      * @param volume
      */
-    private Long getVolumeCapacity(Volume volume) {
+    public Long getVolumeCapacity(Volume volume) {
         Long userRequestedCapacity = volume.getCapacity();
         Long provisionedCapacity = volume.getProvisionedCapacity();
         if (provisionedCapacity > userRequestedCapacity) {

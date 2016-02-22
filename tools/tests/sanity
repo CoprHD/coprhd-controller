@@ -3713,7 +3713,7 @@ recoverpoint_tests()
             fi
 
             if [ "$RP_INGESTPRIME" = "1" ]; then
-                secho 'RP ingest volumes priming only'
+                secho 'RP ingest volumes priming'
                 if [ "$RP_CDP" = "1" ] ; then
                     recoverpoint_ingest_primer rp${rptypetag}_cdp
                 fi

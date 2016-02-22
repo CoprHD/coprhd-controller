@@ -556,6 +556,12 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                 _log.info("Selected Provider : {}", forProvider.getNativeGuid());
                 SmisJob smisJobCompleter = new SmisVolumeExpandJob(null, forProvider.getId(), storagePool.getId(),
                         metaVolumeTaskCompleter, "ExpandMetaVolume");
+
+                if (metaHead.checkForRp()) {
+                    _log.info(String.format("Attempt %s/%s to expand volume %s, which is associated with RecoverPoint", attempt,
+                            MAX_RP_EXPAND_RETRIES, metaHead.getLabel()));
+                }
+
                 _helper.invokeMethodSynchronously(forProvider, elementCompositionServicePath,
                         SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT, inArgs,
                         outArgs, smisJobCompleter);

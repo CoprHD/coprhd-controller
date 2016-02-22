@@ -454,24 +454,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
-        URI volumeGroupId = null;
-        Set<String> selectedRGs = null;
+        Table<URI, String, List<Volume>> storageRgToVolumes = null;
         if (!param.getVolumes().isEmpty()) {
-            selectedRGs = BlockServiceUtils.
-                    getReplicationGroupsFromVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
-            Volume volume = _dbClient.queryObject(Volume.class, param.getVolumes().get(0));
-            if (volume != null && !volume.getInactive()) {
-                VolumeGroup volumeGroup = volume.getApplication(_dbClient);
-                if (volumeGroup != null && !volumeGroup.getInactive()) {
-                    volumeGroupId = volumeGroup.getId();
-                }
-            }
+            // Volume group snapshot
+            // group volumes by backend storage system and replication group
+            storageRgToVolumes = BlockServiceUtils.
+                    getReplicationGroupVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
+        } else {
+            // CG snapshot
+            storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
+                    blockServiceApiImpl.getActiveCGVolumes(consistencyGroup), _dbClient);
         }
 
-        // Group volumes by storage system and replication group, ignore replication groups that not in selectedRGs if it is not null
-        Table<URI, String, List<Volume>> storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
-                blockServiceApiImpl.getActiveCGVolumes(consistencyGroup),
-                selectedRGs, volumeGroupId, _dbClient);
         TaskList taskList = new TaskList();
         for (Cell<URI, String, List<Volume>> cell : storageRgToVolumes.cellSet()) {
             List<Volume> volumeList = cell.getValue();

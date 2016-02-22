@@ -649,7 +649,6 @@ public class BucketService extends TaskResourceService {
 
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
         ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
-        final String _VERSION = "2.4";
         String task = UUID.randomUUID().toString();
         _log.info(String.format(
                 "SYNC Bucket ACL  --- Bucket id: %1$s, Task: %2$s", bucket.getId(), task));
@@ -670,7 +669,7 @@ public class BucketService extends TaskResourceService {
         String READY = "ready";
         String ERROR = "error";
         String message = "";
-        int MAX_SYNC_TIMEOUT = 3000;
+        int MAX_SYNC_TIMEOUT = 8000;
         while (!breakLoop) {
             Task dbTask = TaskUtils.findTaskForRequestId(_dbClient, bucket.getId(), task);
             if (READY.equals(dbTask.getStatus())) {
@@ -683,7 +682,7 @@ public class BucketService extends TaskResourceService {
             }
             if ((System.currentTimeMillis() - startTime) > MAX_SYNC_TIMEOUT) {
                 breakLoop = true;
-                message = "Request Time-Out";
+                message = "Request Time-Out  Wait untill bucket sync task is finished.";
             }
             try {
                 Thread.sleep(100);
@@ -695,10 +694,7 @@ public class BucketService extends TaskResourceService {
                 Thread.currentThread().interrupt();
             }
         }
-        if (!failedOp) {
-            bucket.setVersion(_VERSION);
-            _dbClient.updateObject(bucket);
-        } else {
+        if (failedOp) {
             throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(),
                     "Could not get ACL from ECS {} " + message + " Please try again later.");
         }

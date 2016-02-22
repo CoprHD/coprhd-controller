@@ -624,6 +624,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             List<ECSBucketACL.GroupAcl> group_acl = acl.getGroupAcl();
             List<ECSBucketACL.CustomGroupAcl> customgroup_acl = acl.getCustomgroupAcl();
             List<BucketACE> aclToAdd = Lists.newArrayList();
+            final String _VERSION = "2.4";
             final String DELIMETER = "@";
             for (ECSBucketACL.UserAcl userAce : user_acl) {
                 String userWithDomain = userAce.getUser();
@@ -678,6 +679,8 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             aclForAddition.setBucketACL(aclToAdd);
             param.setAclToAdd(aclForAddition);
             updateBucketACLInDB(param, objectArgs, bucket);
+            bucket.setVersion(_VERSION);
+            _dbClient.updateObject(bucket);
         } catch (ECSException e) {
             _log.error("Sync ACL for Bucket : {} failed.", objectArgs.getName(), e);
             completeTask(bucket.getId(), taskId, e);

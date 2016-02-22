@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +66,7 @@ public class QualityOfServiceMigration extends BaseCustomMigrationCallback{
     private static final String LABEL_UNLIMITED_SNAPSHOTS = "unlimited";
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         _log.debug("START - QualityOfServiceMigration callback");
 
         DbClient _dbClient = getDbClient();
@@ -95,67 +96,76 @@ public class QualityOfServiceMigration extends BaseCustomMigrationCallback{
      * @param virtualPool Virtual Pool
      * @return QosSpecification filled with information from Virtual Pool
      */
-    public static QosSpecification getDataFromVirtualPool(VirtualPool virtualPool) {
+    private QosSpecification getDataFromVirtualPool(VirtualPool virtualPool) throws MigrationCallbackException {
         _log.debug("Fetching data from Virtual Pool, id: {}", virtualPool.getId());
-        QosSpecification qos = new QosSpecification();
-        StringMap specs = new StringMap();
-        qos.setName(QOS_NAME + virtualPool.getLabel());
-        qos.setConsumer(QOS_CONSUMER);
-        qos.setLabel(virtualPool.getLabel());
-        qos.setId(URIUtil.createId(QosSpecification.class));
-        qos.setVirtualPoolId(virtualPool.getId());
-        String protocols = null;
-        if (virtualPool.getProtocols() != null) {
-            protocols = virtualPool.getProtocols().toString();
-        }
-        if (protocols != null) {
-            specs.put(SPEC_PROTOCOL, protocols.substring(1, protocols.length() - 1));
-        }
-        if (virtualPool.getSupportedProvisioningType() != null) {
-            specs.put(SPEC_PROVISIONING_TYPE, virtualPool.getSupportedProvisioningType());
-        }
-        if (virtualPool.getDriveType() != null) {
-            specs.put(SPEC_DRIVE_TYPE, virtualPool.getDriveType());
-        }
-        String systemType = getSystemType(virtualPool);
-        if (systemType != null) {
-            specs.put(SPEC_SYSTEM_TYPE, systemType);
-        }
-        if (virtualPool.getMultivolumeConsistency() != null) {
-            specs.put(SPEC_MULTI_VOL_CONSISTENCY, Boolean.toString(virtualPool.getMultivolumeConsistency()));
-        }
-        if (virtualPool.getArrayInfo() != null && virtualPool.getArrayInfo().get(RAID_LEVEL) != null) {
-            specs.put(SPEC_RAID_LEVEL, virtualPool.getArrayInfo().get(RAID_LEVEL).toString());
-        }
-        if (virtualPool.getExpandable() != null) {
-            specs.put(SPEC_EXPENDABLE, Boolean.toString(virtualPool.getExpandable()));
-        }
-        if (virtualPool.getNumPaths() != null) {
-            specs.put(SPEC_MAX_SAN_PATHS, Integer.toString(virtualPool.getNumPaths()));
-        }
-        if (virtualPool.getMinPaths() != null) {
-            specs.put(SPEC_MIN_SAN_PATHS, Integer.toString(virtualPool.getMinPaths()));
-        }
-        if (virtualPool.getMaxNativeContinuousCopies() != null) {
-            specs.put(SPEC_MAX_BLOCK_MIRRORS, Integer.toString(virtualPool.getMaxNativeContinuousCopies()));
-        }
-        if (virtualPool.getPathsPerInitiator() != null) {
-            specs.put(SPEC_PATHS_PER_INITIATOR, Integer.toString(virtualPool.getPathsPerInitiator()));
-        }
-        if (virtualPool.getHighAvailability() != null) {
-            specs.put(SPEC_HIGH_AVAILABILITY, virtualPool.getHighAvailability());
-        }
-        if (virtualPool.getMaxNativeSnapshots() != null) {
-            if (virtualPool.getMaxNativeSnapshots().equals(UNLIMITED_SNAPSHOTS)) {
-                specs.put(SPEC_MAX_SNAPSHOTS, LABEL_UNLIMITED_SNAPSHOTS);
-            }else if(virtualPool.getMaxNativeSnapshots().equals(DISABLED_SNAPSHOTS)){
-                specs.put(SPEC_MAX_SNAPSHOTS, LABEL_DISABLED_SNAPSHOTS);
-            }else{
-                specs.put(SPEC_MAX_SNAPSHOTS, Integer.toString(virtualPool.getMaxNativeSnapshots()));
+
+        QosSpecification qos = null;
+        try {
+            qos = new QosSpecification();
+            StringMap specs = new StringMap();
+            qos.setName(QOS_NAME + virtualPool.getLabel());
+            qos.setConsumer(QOS_CONSUMER);
+            qos.setLabel(virtualPool.getLabel());
+            qos.setId(URIUtil.createId(QosSpecification.class));
+            qos.setVirtualPoolId(virtualPool.getId());
+            String protocols = null;
+            if (virtualPool.getProtocols() != null) {
+                protocols = virtualPool.getProtocols().toString();
             }
+            if (protocols != null) {
+                specs.put(SPEC_PROTOCOL, protocols.substring(1, protocols.length() - 1));
+            }
+            if (virtualPool.getSupportedProvisioningType() != null) {
+                specs.put(SPEC_PROVISIONING_TYPE, virtualPool.getSupportedProvisioningType());
+            }
+            if (virtualPool.getDriveType() != null) {
+                specs.put(SPEC_DRIVE_TYPE, virtualPool.getDriveType());
+            }
+            String systemType = getSystemType(virtualPool);
+            if (systemType != null) {
+                specs.put(SPEC_SYSTEM_TYPE, systemType);
+            }
+            if (virtualPool.getMultivolumeConsistency() != null) {
+                specs.put(SPEC_MULTI_VOL_CONSISTENCY, Boolean.toString(virtualPool.getMultivolumeConsistency()));
+            }
+            if (virtualPool.getArrayInfo() != null && virtualPool.getArrayInfo().get(RAID_LEVEL) != null) {
+                specs.put(SPEC_RAID_LEVEL, virtualPool.getArrayInfo().get(RAID_LEVEL).toString());
+            }
+            if (virtualPool.getExpandable() != null) {
+                specs.put(SPEC_EXPENDABLE, Boolean.toString(virtualPool.getExpandable()));
+            }
+            if (virtualPool.getNumPaths() != null) {
+                specs.put(SPEC_MAX_SAN_PATHS, Integer.toString(virtualPool.getNumPaths()));
+            }
+            if (virtualPool.getMinPaths() != null) {
+                specs.put(SPEC_MIN_SAN_PATHS, Integer.toString(virtualPool.getMinPaths()));
+            }
+            if (virtualPool.getMaxNativeContinuousCopies() != null) {
+                specs.put(SPEC_MAX_BLOCK_MIRRORS, Integer.toString(virtualPool.getMaxNativeContinuousCopies()));
+            }
+            if (virtualPool.getPathsPerInitiator() != null) {
+                specs.put(SPEC_PATHS_PER_INITIATOR, Integer.toString(virtualPool.getPathsPerInitiator()));
+            }
+            if (virtualPool.getHighAvailability() != null) {
+                specs.put(SPEC_HIGH_AVAILABILITY, virtualPool.getHighAvailability());
+            }
+            if (virtualPool.getMaxNativeSnapshots() != null) {
+                if (virtualPool.getMaxNativeSnapshots().equals(UNLIMITED_SNAPSHOTS)) {
+                    specs.put(SPEC_MAX_SNAPSHOTS, LABEL_UNLIMITED_SNAPSHOTS);
+                }else if(virtualPool.getMaxNativeSnapshots().equals(DISABLED_SNAPSHOTS)){
+                    specs.put(SPEC_MAX_SNAPSHOTS, LABEL_DISABLED_SNAPSHOTS);
+                }else{
+                    specs.put(SPEC_MAX_SNAPSHOTS, Integer.toString(virtualPool.getMaxNativeSnapshots()));
+                }
+            }
+
+            qos.setSpecs(specs);
+        } catch (Exception e) {
+            String errorMsg = String.format("%s encounter unexpected error %s", getName(), e.getMessage());
+            _log.error(errorMsg);
+            throw new MigrationCallbackException(errorMsg, e);
         }
 
-        qos.setSpecs(specs);
         return qos;
     }
 
@@ -165,7 +175,7 @@ public class QualityOfServiceMigration extends BaseCustomMigrationCallback{
      * @param virtualPool
      * @return {@link String} vpool's systemType
      */
-    public static String getSystemType(VirtualPool virtualPool) {
+    private String getSystemType(VirtualPool virtualPool) {
         String systemType = null;
 
         if (virtualPool != null && virtualPool.getArrayInfo() != null && virtualPool.getArrayInfo().containsKey(SYSTEM_TYPE)) {

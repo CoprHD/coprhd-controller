@@ -12,7 +12,6 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.CreateSnapshotForApplication;
-import com.emc.sa.service.vipr.application.tasks.CreateSnapshotSessionForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.block.NamedVolumesList;
@@ -48,15 +47,8 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
         NamedVolumesList applicationVolumes = getClient().application().getVolumeByApplication(applicationId);
         List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroup(applicationVolumes, subGroups);
 
-        Tasks<? extends DataObjectRestRep> tasks = null;
-
-        if (BlockStorageUtils.containsVmax3Volume(applicationVolumes)) {
-            tasks = execute(new CreateSnapshotSessionForApplication(applicationId, volumeIds, name,
-                    highAvailability));
-        } else {
-            tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, name, readOnly,
-                    highAvailability));
-        }
+        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, name, readOnly,
+                highAvailability));
         addAffectedResources(tasks);
     }
 }

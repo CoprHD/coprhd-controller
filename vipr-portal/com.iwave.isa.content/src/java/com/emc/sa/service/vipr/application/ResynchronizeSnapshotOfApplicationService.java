@@ -34,15 +34,10 @@ public class ResynchronizeSnapshotOfApplicationService extends ViPRService {
 
         // get list of volumes in application
         NamedVolumesList applicationVolumes = getClient().application().getVolumeByApplication(applicationId);
-        Tasks<? extends DataObjectRestRep> tasks = null;
 
-        if (BlockStorageUtils.containsVmax3Volume(applicationVolumes)) {
-            // TODO fail, not supported for snap sessions
-        } else {
-            List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, applicationVolumes,
-                    subGroups);
-            tasks = execute(new ResynchronizeSnapshotForApplication(applicationId, snapshotIds));
-        }
+        List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, applicationVolumes,
+                subGroups);
+        Tasks<? extends DataObjectRestRep> tasks = execute(new ResynchronizeSnapshotForApplication(applicationId, snapshotIds));
 
         addAffectedResources(tasks);
 

@@ -7,6 +7,7 @@ package com.emc.sa.service.vipr.application;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
@@ -40,7 +41,7 @@ public class RestoreSnapshotOfApplicationService extends ViPRService {
         NamedVolumesList applicationVolumes = getClient().application().getVolumeByApplication(applicationId);
         Tasks<? extends DataObjectRestRep> tasks = null;
 
-        if (BlockStorageUtils.containsVmax3Volume(applicationVolumes)) {
+        if (snapshotType != null && snapshotType.equalsIgnoreCase(BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE)) {
             List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, applicationCopySet,
                     applicationVolumes, subGroups);
             tasks = execute(new RestoreSnapshotSessionForApplication(applicationId, snapshotSessionIds));

@@ -186,11 +186,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
             }
             return true;
         } else {
-            // We support adjusting num_tokens for dbsvc, have to wait for it to complete before continue.
-            // geodbsvc is not supported to adjust num_tokens, yet, if it's enabled in UpgradeManager,
-            // move this to common code path in both dbsvc and geodbsvc.
-            statusChecker.waitForAllNodesNumTokenAdjusted();
-
             // for dbsvc, we have to wait till all geodbsvc becomes migration_init since we might
             // need to copy geo-replicated resources from local to geo db.
             statusChecker.waitForAllNodesMigrationInit(Constants.GEODBSVC_NAME);

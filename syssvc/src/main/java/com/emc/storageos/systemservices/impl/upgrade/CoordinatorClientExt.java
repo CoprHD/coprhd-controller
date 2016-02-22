@@ -1382,34 +1382,6 @@ public class CoordinatorClientExt {
         return false;
     }
 
-    /**
-     * Check if the dbsvc on current node has completed its adjustNumTokens() call.
-     * If not, it's UpgradeManager's responsibility to call it through DbManager's MBean interface.
-     * 
-     * @return
-     */
-    public boolean isLocalNodeTokenAdjusted() {
-        if (this.getNodeCount() == 1) {
-            _log.info("single node cluster, skip adjust token");
-            return true;
-        }
-        String dbSvcId = "db" + this.mySvcId.substring(this.mySvcId.lastIndexOf("-"));
-
-        Configuration config = this._coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_CONFIG, dbSvcId);
-        if (config == null) {
-            _log.warn("dbconfig not initialized");
-            return true;
-        }
-
-        String numToken = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
-        if (numToken == null) {
-            _log.info("Did not found {} for {}, treating as not adjusted", DbConfigConstants.NUM_TOKENS_KEY, dbSvcId);
-            return false;
-        }
-
-        return Integer.valueOf(numToken).equals(DbConfigConstants.DEFUALT_NUM_TOKENS);
-    }
-
     public boolean isDBMigrationDone() {
         return statusChecker.isMigrationDone();
     }

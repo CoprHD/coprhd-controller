@@ -14,7 +14,7 @@ import java.util.concurrent.*;
 
 public class DoubleDistributedBarrierTest extends CoordinatorTestBase {
 
-    Logger log = LoggerFactory.getLogger(DoubleDistributedBarrierTest.class);
+    private Logger log = LoggerFactory.getLogger(DoubleDistributedBarrierTest.class);
 
     private String baarrierPath = "/barriers/test";
 

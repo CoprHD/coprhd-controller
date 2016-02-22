@@ -592,7 +592,7 @@ public class FileStorageUtils {
         }
 
         for (FileStorageUtils.FileSystemACLs element : toRemove) {
-            fileACLs = ArrayUtils.removeElement(fileACLs, element);
+            fileACLs = (FileStorageUtils.FileSystemACLs[])ArrayUtils.removeElement(fileACLs, element);
         }
 
         return fileACLs;

@@ -423,7 +423,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
         }
 
         // initialize the retry/attempt variables
-        int attempt = 1;
+        int attempt = 0;
         int retries = 1;
 
         if (isRPVolume) {
@@ -523,7 +523,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
         }
 
         // initialize the retry/attempt variables
-        int attempt = 1;
+        int attempt = 0;
         int retries = 1;
 
         if (isRPVolume) {

@@ -35,7 +35,6 @@ import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.ResourceType;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
@@ -43,6 +42,7 @@ import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
+import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -210,13 +210,13 @@ public class BlockVolumes extends ResourceController {
 
         render(snapshots);
     }
-    
+
     public static void volumeSnapshotSessions(String volumeId) {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
 
         List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
-        
+
         List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
 
         render(snapshotSessions, volumeId);
@@ -283,7 +283,9 @@ public class BlockVolumes extends ResourceController {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        List<NamedRelatedResourceRep> migrations = client.blockVolumes().listMigrations(uri(volumeId));
+        List<NamedRelatedResourceRep> migrationsRep = client.blockVolumes().listMigrations(uri(volumeId));
+
+        List<MigrationRestRep> migrations = client.blockMigrations().getByRefs(migrationsRep);
 
         render(migrations);
     }
@@ -349,6 +351,36 @@ public class BlockVolumes extends ResourceController {
         volume(volumeId, continuousCopyId);
     }
 
+    @FlashException(referrer = { "volume" })
+    public static void pauseMigration(String volumeId, String migrationId) {
+        if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(migrationId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.blockMigrations().pause(uri(migrationId));
+            flash.put("info", MessagesUtils.get("resources.migrations.pause"));
+        }
+        volume(volumeId, null);
+    }
+
+    @FlashException(referrer = { "volume" })
+    public static void cancelMigration(String volumeId, String migrationId) {
+        if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(migrationId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.blockMigrations().cancel(uri(migrationId));
+            flash.put("info", MessagesUtils.get("resources.migrations.cancel"));
+        }
+        volume(volumeId, null);
+    }
+
+    @FlashException(referrer = { "volume" })
+    public static void resumeMigration(String volumeId, String migrationId) {
+        if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(migrationId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.blockMigrations().resume(uri(migrationId));
+            flash.put("info", MessagesUtils.get("resources.migrations.resume"));
+        }
+        volume(volumeId, null);
+    }
+
     @Util
     private static CopiesParam createCopiesParam(String continuousCopyId) {
         Copy copy = new Copy();
@@ -392,16 +424,16 @@ public class BlockVolumes extends ResourceController {
     @Util
     private static List<NamedRelatedResourceRep> getApplications() {
         List<NamedRelatedResourceRep> application = AppSupportUtil.getApplications();
-        if(!application.isEmpty()) {
-        Collections.sort(application, new Comparator<NamedRelatedResourceRep>() {
-            @Override
-            public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
-            {
-                return app1.getName().compareTo(app2.getName());
-            }
-        });
-        
-    }
+        if (!application.isEmpty()) {
+            Collections.sort(application, new Comparator<NamedRelatedResourceRep>() {
+                @Override
+                public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
+                {
+                    return app1.getName().compareTo(app2.getName());
+                }
+            });
+
+        }
         return application;
     }
 }

@@ -2927,7 +2927,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      *
      * @param volume
      */
-    private Long getVolumeCapacity(Volume volume) {
+    public Long getVolumeCapacity(Volume volume) {
         Long userRequestedCapacity = volume.getCapacity();
         Long provisionedCapacity = volume.getProvisionedCapacity();
         if (provisionedCapacity > userRequestedCapacity) {
@@ -3590,7 +3590,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
             }
             validateAddVolumesToApplication(volsToValidate, volumeGroup);
-
+            
             List<URI> allVolumes = new ArrayList<URI>();
             addVols.setConsistencyGroup(addVolsCg);
             addVols.setReplicationGroupName(addVolsGroupName);
@@ -3684,33 +3684,65 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param taskId
      */
     private void updateVolumesInCgInApplication(List<URI> volumesInCG, VolumeGroup application, String taskId) {
-        // for volumes with backing volumes aready in a CG, we just need to update the db if it is not VNX
+        // For volumes with backing volumes aready in a CG, we just need to update the db if it is not VN
+        // if the volume has clone, we would add the volume to the application, and
+        // set the fullCopySetName for the clone, so that it becomes part of the application clone.
         URI cguri = null;
-        for (URI volumeUri : volumesInCG) {
-            Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
-            StringSet applications = volume.getVolumeGroupIds();
-            if (applications == null) {
-                applications = new StringSet();
-            }
-            applications.add(application.getId().toString());
-            volume.setVolumeGroupIds(applications);
-            Operation op = volume.getOpStatus().get(taskId);
-            op.ready();
-            volume.getOpStatus().updateTaskStatus(taskId, op);
-            _dbClient.updateObject(volume);
-            if (cguri == null) {
-                // Once a volume in the CG is added into an application, the CG's arrayConsistency is set to false
-                cguri = volume.getConsistencyGroup();
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
-                if (cg.getArrayConsistency()) {
-                    cg.setArrayConsistency(false);
+
+        Iterator<Volume> volumeIt = _dbClient.queryIterativeObjects(Volume.class, volumesInCG);
+        List<Volume> volumes = new ArrayList<Volume>();
+        while (volumeIt.hasNext()) {
+            volumes.add(volumeIt.next());
+        }
+        Map<String, List<Volume>> volumeMap = ControllerUtils.groupVolumesByArrayGroup(volumes, _dbClient);
+        for (List<Volume> volumesInRG : volumeMap.values()) {
+            for (Volume volume : volumesInRG) {
+                StringSet applications = volume.getVolumeGroupIds();
+                if (applications == null) {
+                    applications = new StringSet();
                 }
-                Operation cgop = cg.getOpStatus().get(taskId);
-                if (cgop != null) {
-                    cgop.ready();
-                    cg.getOpStatus().updateTaskStatus(taskId,  cgop);
+                applications.add(application.getId().toString());
+                volume.setVolumeGroupIds(applications);
+                // handle fullcopy. If the volume is in RG, set fullCopySetName in the full copy
+                StringSet fullcopies = volume.getFullCopies();
+                if (fullcopies != null && !fullcopies.isEmpty()) {
+                    List<Volume> fullCopiesToUpdate = new ArrayList<Volume>();
+                    for (String fullCopyId : fullcopies) {
+                        Volume fullCopy = _dbClient.queryObject(Volume.class, URI.create(fullCopyId));
+                        if (fullCopy != null && !fullCopy.getInactive()) {
+                            Volume fullCopyBack = VPlexUtil.getVPLEXBackendVolume(fullCopy, true, _dbClient);
+                            String groupName = fullCopyBack.getReplicationGroupInstance();
+                            if (NullColumnValueGetter.isNullValue(groupName)) {
+                                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                                        "the volume has full copy, and the full copy is not in a replication group");
+                            }
+                            fullCopy.setFullCopySetName(groupName);
+                            fullCopiesToUpdate.add(fullCopy);
+                        }
+                    }
+                    if (!fullCopiesToUpdate.isEmpty()) {
+                        _dbClient.updateObject(fullCopiesToUpdate);
+                    }
                 }
-                _dbClient.updateObject(cg);
+                
+                Operation op = volume.getOpStatus().get(taskId);
+                op.ready();
+                volume.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.updateObject(volume);
+                if (cguri == null) {
+                    // Once a volume in the CG is added into an application, the CG's arrayConsistency is set to false
+                    cguri = volume.getConsistencyGroup();
+                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
+                    if (cg.getArrayConsistency()) {
+                        cg.setArrayConsistency(false);
+                    }
+                    Operation cgop = cg.getOpStatus().get(taskId);
+                    if (cgop != null) {
+                        cgop.ready();
+                        cg.getOpStatus().updateTaskStatus(taskId,  cgop);
+                    }
+                    _dbClient.updateObject(cg);
+                }
             }
         }
     }

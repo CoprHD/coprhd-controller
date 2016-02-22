@@ -84,7 +84,7 @@ nav.import=Import
 nav.logs=Reports
 nav.systemHealthDashboard=Health
 nav.systemHealthLogs=Logs
-nav.backup= Data Backup
+nav.backup= Data Backup and Restore
 nav.systemNodeRecovery=Node Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
@@ -141,6 +141,7 @@ nav.sites=Sites
 nav.userGroups=User Groups
 nav.object.buckets=Buckets
 nav.app=Applications
+nav.mobilityGroups=Mobility Groups
 nav.disasterRecovery=System Disaster Recovery
 nav.ipsec=IPsec
 
@@ -983,7 +984,7 @@ system.about.license=Licenses
 db.healthdashboard.title=Database Housekeeping Status
 
 # Backup and Restore Page
-Backup.list.title=Data Backup
+Backup.list.title=Data Backup and Restore
 backup.name=Name
 backup.size=Size
 backup.GB=%s GB
@@ -3536,6 +3537,20 @@ resources.filesnapshot.share.deactivate=Task created to delete file snapshot sha
 
 resources.migrations.none=No Migrations
 resources.migration.name=Name
+resources.migrations.pauseButton=Pause
+resources.migrations.cancelButton=Cancel
+resources.migrations.resumeButton=Resume
+resources.migrations.pauseConfirm=Are you sure you want to pause this migration?
+resources.migrations.cancelConfirm=Are you sure you want to cancel this migration?
+resources.migrations.resumeConfirm=Are you sure you want to resume this migration?
+resources.migrations.pause=Created task to stop migration.
+resources.migrations.cancel=Created task to pause migration.
+resources.migrations.resume=Created task to resume migration.
+
+resources.migrations.name=Name
+resources.migrations.percentage=Percentage
+resources.migrations.status=Status
+resources.migrations.start=Start
 
 resources.varray=Virtual Array
 resources.vpool=Virtual Pool
@@ -4467,3 +4482,31 @@ ipreconfig.error=Your network re-configuration request failed.
 ipreconfig.exception=Your network re-configuration request failed with exception: '%s'
 ipreconfig.status.success=Your last network re-configuration request completed successfully.
 ipreconfig.status.error=Your last network re-configuration request failed. Error message: '%s'
+
+MobilityGroup.list.title=Mobility Groups
+MobilityGroups.create.title=Create Mobility Group
+MobilityGroups.edit.title=Edit Mobility Group
+mobilityGroup.edit.description=Edit an existing Mobility Group
+mobilityGroup.create.description=Create a new Mobility Group
+mobilityGroupForm.name=Name
+mobilityGroupForm.description=Description
+mobilityGroupForm.migrationType=Migration Type
+mobilityGroupForm.migrationGroupBy=Group By
+mobilityGroupForm.volumes=Volumes
+mobilityGroupForm.hosts=Hosts
+mobilityGroupForm.clusters=Clusters
+mobilityGroup.name=Name
+mobilityGroup.description=Description
+mobilityGroup.migrationGroupBy=Grouped By
+mobilityGroup.save.success=Mobility Group saved successfully
+mobilityGroups.deleted=Mobility Groups deleted successfully
+MobilityGroup.deleteConfirm=Are you sure you want to delete the selected Mobility Groups?
+
+MobilityGroups.resources.title=Mobility Group Resources
+mobilityGroupResources.name=Name
+mobilityGroupResources.id=ID
+mobilityGroupResources.virtualArray=Virtual Array
+mobilityGroupResources.virtualPool=Virtual Pool
+mobilityGroupResources.type=Type
+mobilityGroupResources.hostname=Hostname
+mobilityGroupResources.tenant=Tenant

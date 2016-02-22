@@ -22,3 +22,4 @@ com.emc.storageos.objcontrol.service.impl.resource.zone.ZoneInfoService=Virtual 
 com.emc.storageos.objcontrol.service.impl.resource.ConfigurationService=Object Configuration
 com.emc.storageos.systemservices.impl.resource.ConfigService=Configuration
 com.emc.storageos.systemservices.impl.resource.LogService=Logs
+com.emc.storageos.systemservices.impl.resource.IPsecService=IPSec

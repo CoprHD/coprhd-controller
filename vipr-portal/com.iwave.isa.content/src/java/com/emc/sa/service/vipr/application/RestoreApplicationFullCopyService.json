@@ -7,13 +7,8 @@
       type:"assetType.vipr.application"
     },
     
-    applicationSite:{
-      type:"assetType.vipr.applicationVirtualArray",
-      default: 0
-    },
-    
     copyName:{
-      type:"assetType.vipr.siteFullCopyName",
+      type:"assetType.vipr.restoreFullCopyName",
       required:"true"
     },
     

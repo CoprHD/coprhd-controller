@@ -113,6 +113,7 @@ import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.SRDFCopyRecommendation;
+import com.emc.storageos.volumecontroller.SRDFRecommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -257,7 +258,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         List<URI> allVolumes = new ArrayList<URI>();
         List<VolumeDescriptor> descriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
-                volRecommendations, task, vPoolCapabilities,
+                volRecommendations, task, vPoolCapabilities, vPoolCapabilities.getBlockConsistencyGroup(),
                 taskList, allVolumes, true);
         for (VolumeDescriptor desc: descriptors) {
             s_logger.info("Vplex Root Descriptors: " + desc.toString());
@@ -276,8 +277,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 if (srdfCopyRecommendation instanceof VPlexRecommendation) {
                     String name = param.getName();
                     param.setName(name + "-target-" + vArray.getLabel());
+                    // Do not pass in the consistency group for vplex volumes fronting targets
+                    // as we will eventually put them in the target CG.
                     srdfCopyDescriptors = createVPlexVolumeDescriptors(param, project, vArray, vPool,
-                            copyRecommendations, task, vPoolCapabilities,
+                            copyRecommendations, task, vPoolCapabilities, null,
                             taskList, allVolumes, true);
                     param.setName(name);
                 } else {
@@ -333,8 +336,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     public List<VolumeDescriptor> createVPlexVolumeDescriptors(VolumeCreate param, Project project,
             VirtualArray vArray, VirtualPool vPool, List<Recommendation> recommendations,
-            String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
-            TaskList taskList, List<URI> allVolumes, boolean createTask) {
+            String task, VirtualPoolCapabilityValuesWrapper vPoolCapabilities, 
+            URI blockConsistencyGroupURI, TaskList taskList, List<URI> allVolumes, boolean createTask) {
         s_logger.info("Request to create {} VPlex virtual volume(s)",
                 vPoolCapabilities.getResourceCount());
 
@@ -361,8 +364,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         long size = SizeUtil.translateSize(param.getSize());
 
         // The consistency group or null when not specified.
-        final BlockConsistencyGroup consistencyGroup = vPoolCapabilities.getBlockConsistencyGroup() == null ? null : _dbClient
-                .queryObject(BlockConsistencyGroup.class, vPoolCapabilities.getBlockConsistencyGroup());
+        final BlockConsistencyGroup consistencyGroup = blockConsistencyGroupURI == null ? null 
+                : _dbClient.queryObject(BlockConsistencyGroup.class, blockConsistencyGroupURI);
 
         // Find all volumes assigned to the group
         boolean cgContainsVolumes = false;
@@ -399,6 +402,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     .iterator();
             while (recommendationsIter.hasNext()) {
                 VPlexRecommendation recommendation = recommendationsIter.next();
+                Recommendation childRecommendation = recommendation.getRecommendation();
                 URI storageDeviceURI = recommendation.getSourceStorageSystem();
                 URI storagePoolURI = recommendation.getSourceStoragePool();
                 VirtualPool vpool = recommendation.getVirtualPool();
@@ -3494,9 +3498,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             String newVolumeLabel = generateVolumeLabel(volumeLabel, varrayCount, volumeCounter, 0);
             Recommendation childRecommendation = recommendation.getRecommendation();
             boolean srdfTarget = (childRecommendation instanceof SRDFCopyRecommendation);
+            boolean srdfSource = (childRecommendation instanceof SRDFRecommendation);
             if (srdfTarget) {
-                // Targets get a naming based on varray label.
-                newVolumeLabel = volumeLabel;
+                newVolumeLabel = generateVolumeLabel(volumeLabel+"-target", varrayCount, volumeCounter, 0);
+            } else if (srdfSource) {
+                newVolumeLabel = generateVolumeLabel(volumeLabel+"-source", varrayCount, volumeCounter, 0);
             }
             List<Recommendation> childRecommendations = new ArrayList<Recommendation>();
             childRecommendations.add(childRecommendation);

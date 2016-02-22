@@ -227,7 +227,11 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                         volumeURIs.add(srcVolume.getId());
                         taskList.getTaskList().add(toTask(srcVolume, task, op));
                     }
-
+                    
+                    // Remove "-source" designation in the label if found
+                    if (newVolumeLabel.contains("-source")) {
+                        newVolumeLabel = newVolumeLabel.replaceAll("-source", "");
+                    }
                     Map<URI, VpoolRemoteCopyProtectionSettings> settingMap = VirtualPool
                             .getRemoteProtectionSettings(vpool, _dbClient);
                     for (VirtualArray protectionVirtualArray : SRDFScheduler
@@ -237,7 +241,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                                 .get(protectionVirtualArray.getId());
 
                         // COP-16363 Create target BCG in controllersvc
-
+                        
+                        
                         // Prepare and populate CG request for the SRDF targets
                         volumeURIs.addAll(prepareTargetVolumes(project, vpool, recommendation,
                                 new StringBuilder(newVolumeLabel), protectionVirtualArray,

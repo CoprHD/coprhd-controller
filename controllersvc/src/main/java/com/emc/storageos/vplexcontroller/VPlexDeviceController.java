@@ -562,7 +562,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Now make a Step to create the VPlex Virtual volume.
                 // This will be done from this controller.
                 String stepId = workflow.createStepId();
-                workflow.createStep(
+                lastStep = workflow.createStep(
                         VPLEX_STEP,
                         String.format("VPlex %s creating virtual volumes:%n%s",
                                 vplexSystem.getId().toString(),
@@ -580,8 +580,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Deal with CGs.
                 // Filter out any VPlex Volumes that front the SRDF targets for now.
                 List<URI> volsForCG = VPlexUtil.filterOutVplexSrdfTargets(_dbClient, vplexVolumeURIs);
-                lastStep = consistencyGroupManager.addStepsForCreateConsistencyGroup(workflow, stepId,
-                        vplexSystem, volsForCG, false);
+                if (!volsForCG.isEmpty()) {
+                    lastStep = consistencyGroupManager.addStepsForCreateConsistencyGroup(workflow, lastStep,
+                            vplexSystem, volsForCG, false);
+                }
+                
+                // If the are VPlex Volumes fronting SRDF targets, handle them.
+                // They will go into a separate CG that represents the SRDF targets.
+                // That CG will have already been generated?
+                volsForCG = VPlexUtil.returnVplexSrdfTargets(_dbClient, vplexVolumeURIs, true);
+                if (!volsForCG.isEmpty()) {
+                    lastStep = consistencyGroupManager.addStepsForCreateConsistencyGroup(workflow, lastStep,
+                            vplexSystem, volsForCG, false);
+                }
                 _log.info("Added steps for creating consistency group");
             }
             return lastStep;

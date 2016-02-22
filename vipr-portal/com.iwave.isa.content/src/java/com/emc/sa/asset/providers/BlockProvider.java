@@ -1113,7 +1113,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
             } else {
                 if (volume.getProtection() == null || volume.getProtection().getRpRep() == null
-                        || volume.getProtection().getRpRep().getPersonality() == null) {
+                        || volume.getProtection().getRpRep().getPersonality() == null
+                        || volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
                     subGroups.add(volume.getReplicationGroupInstance());
                 }
             }

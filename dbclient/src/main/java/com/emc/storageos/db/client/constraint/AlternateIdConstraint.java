@@ -297,6 +297,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("snapsetLabel"), label);
         }
 
+        public static AlternateIdConstraint getFullCopiesBySetName(String setName) {
+            DataObjectType doType = TypeMap.getDoType(Volume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("fullCopySetName"), setName);
+        }
+
         public static AlternateIdConstraint getVirtualArrayStoragePoolsConstraint(String varrayId) {
             DataObjectType doType = TypeMap.getDoType(StoragePool.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("taggedVirtualArrays"), varrayId);
@@ -704,6 +709,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getObjectNamespaceByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(ObjectNamespace.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
+        }
+        
+        public static AlternateIdConstraint getFCZoneReferenceByWWNKey(String pwwnKey) {
+            DataObjectType doType = TypeMap.getDoType(FCZoneReference.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("pwwnKey"), pwwnKey);       	
         }
     }
 }

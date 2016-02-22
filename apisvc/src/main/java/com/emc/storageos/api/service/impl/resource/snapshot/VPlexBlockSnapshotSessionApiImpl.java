@@ -7,9 +7,9 @@ package com.emc.storageos.api.service.impl.resource.snapshot;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -20,6 +20,7 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -214,10 +215,31 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // a VPLEX volume, but has a vpool that specifies VPLEX HA. This causes many
             // problems, because we end up using the VPlexBlockServiceApiImpl to perform
             // block operations on a non-VPLEX volume.
-            Iterator<Boolean> targetDeleteIter = targetMap.values().iterator();
-            while (targetDeleteIter.hasNext()) {
-                if (Boolean.FALSE == targetDeleteIter.next()) {
+            for (Entry<URI, Boolean> targetEntry : targetMap.entrySet()) {
+                URI snapshotURI = targetEntry.getKey();
+                Boolean deleteTarget = targetEntry.getValue();
+                if (Boolean.FALSE == deleteTarget) {
+                    // For VPLEX, the linked target volume must be deleted when they are unlinked.
+                    // If we allow this, then you end up with a public Volume instance that is not
+                    // a VPLEX volume, but has a vpool that specifies VPLEX HA. This causes many
+                    // problems, because we end up using the VPlexBlockServiceApiImpl to perform
+                    // block operations on a non-VPLEX volume.
                     throw APIException.badRequests.mustDeleteTargetsOnUnlinkForVPlex();
+                } else {
+                    // Don't allow if there is a VPLEX volume built on the linked target volume.
+                    // The VPLEX volume must be deleted first.
+                    BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                    String snapshotNativeGuid = snapshot.getNativeGuid();
+                    List<Volume> volumesWithSameNativeGuid = CustomQueryUtility.getActiveVolumeByNativeGuid(_dbClient, snapshotNativeGuid);
+                    if (!volumesWithSameNativeGuid.isEmpty()) {
+                        // There should only be one and it should be a backend volume for
+                        // a VPLEX volume.
+                        List<Volume> vplexVolumes = CustomQueryUtility.queryActiveResourcesByConstraint(
+                                _dbClient, Volume.class, AlternateIdConstraint.Factory.getVolumeByAssociatedVolumesConstraint(
+                                        volumesWithSameNativeGuid.get(0).getId().toString()));
+                        throw APIException.badRequests.cantDeleteSnapshotExposedByVolume(snapshot.getLabel().toString(),
+                                vplexVolumes.get(0).getLabel());
+                    }
                 }
             }
         } else {
@@ -405,6 +427,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
         // However, the project is from the VPLEX volume.
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
         snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        _dbClient.updateObject(snapshot);
 
         return snapshot;
     }

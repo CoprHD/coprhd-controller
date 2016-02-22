@@ -910,7 +910,7 @@ public class VNXFileCommApi {
                     StringBuilder errorMessageBuilder = new StringBuilder();
                     errorMessageBuilder.append("Share by the name ");
                     errorMessageBuilder.append(newExportEntries.get(0).getExportName());
-                    errorMessageBuilder.append(" Already exists on mover ");
+                    errorMessageBuilder.append(" Already exists on server ");
                     errorMessageBuilder.append(moverOrVdmName);
                     
                     result.setCommandFailed();

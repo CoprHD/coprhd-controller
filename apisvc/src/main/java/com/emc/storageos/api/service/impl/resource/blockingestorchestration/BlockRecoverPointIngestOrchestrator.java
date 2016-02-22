@@ -734,8 +734,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             Iterator<Initiator> initiatorItr = _dbClient.queryIterativeObjects(Initiator.class, URIUtil.toURIList(em.getKnownInitiatorUris()));
             while (initiatorItr.hasNext()) {
                 Initiator initiator = initiatorItr.next();
-                initiators.add(initiator);
                 exportGroup.addInitiator(initiator);
+                initiators.add(initiator);
             }
             volumeContext.setDeviceInitiators(initiators);
 

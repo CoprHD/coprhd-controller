@@ -1039,16 +1039,6 @@ public class BlockStorageUtils {
         return map;
     }
 
-    public static boolean containsVmax3Volume(NamedVolumesList volList) {
-        for (NamedRelatedResourceRep volumeRep : volList.getVolumes()) {
-            VolumeRestRep volume = execute(new GetBlockVolume(volumeRep.getId()));
-            if (volume.getSystemType() != null && volume.getSystemType().equalsIgnoreCase("vmax3")) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public static List<URI> getSingleVolumePerSubGroup(NamedVolumesList volList, List<String> subGroups) {
         List<URI> volumeIds = Lists.newArrayList();
         for (String subGroup : subGroups) {

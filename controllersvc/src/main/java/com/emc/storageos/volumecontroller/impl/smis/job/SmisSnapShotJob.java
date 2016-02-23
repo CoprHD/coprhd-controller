@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -129,7 +130,7 @@ public class SmisSnapShotJob extends SmisJob {
                 snapSession.setSessionInstance(snapshot.getSettingsInstance());
                 snapSession.setProject(snapshot.getProject());
 
-                setParentOrConsistencyGroupAssociation(snapSession, snapshot);
+                setParentOrConsistencyGroupAssociation(snapSession, snapshot, dbClient);
             }
 
             addSnapshotAsLinkedTarget(snapSession, snapshot);
@@ -167,9 +168,14 @@ public class SmisSnapShotJob extends SmisJob {
         return result;
     }
 
-    private void setParentOrConsistencyGroupAssociation(BlockSnapshotSession session, BlockSnapshot snapshot) {
+    private void setParentOrConsistencyGroupAssociation(BlockSnapshotSession session, BlockSnapshot snapshot, DbClient dbClient) {
         if (snapshot.hasConsistencyGroup()) {
             session.setConsistencyGroup(snapshot.getConsistencyGroup());
+            BlockObject parent = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
+            if (parent != null) {
+                session.setReplicationGroupInstance(parent.getReplicationGroupInstance());
+                session.setSessionSetName(parent.getReplicationGroupInstance());
+            }
         } else {
             session.setParent(snapshot.getParent());
         }

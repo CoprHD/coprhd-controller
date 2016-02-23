@@ -895,7 +895,7 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error activating Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
+                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnVolume(_dbClient, fullCopy,
                         ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
@@ -985,7 +985,7 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error detaching Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
+                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnVolume(_dbClient, fullCopy,
                         ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
@@ -1076,7 +1076,7 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error restoring Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
+                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnVolume(_dbClient, fullCopy,
                         ResourceOperationTypeEnum.RESTORE_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
@@ -1167,7 +1167,7 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Error resynchronizing Array Replication Group %s, Full Copy %s",
                         replicationGroup, fullCopy.getLabel());
                 log.error(errMsg, e);
-                TaskResourceRep task = createFailedTaskOnVolume(fullCopy,
+                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnVolume(_dbClient, fullCopy,
                         ResourceOperationTypeEnum.RESYNCHRONIZE_VOLUME_FULL_COPY, e);
                 taskList.addTask(task);
             }
@@ -1256,74 +1256,6 @@ public class VolumeGroupService extends TaskResourceService {
         }
         Volume srcVolume = _dbClient.queryObject(Volume.class, fullCopy.getAssociatedSourceVolume());
         return srcVolume != null ? srcVolume.getConsistencyGroup() : null;
-    }
-
-    /**
-     * Creates a Task on given Volume with Error state
-     * 
-     * @param opr the opr
-     * @param volume the volume
-     * @param sc the sc
-     * @return the failed task for volume
-     */
-    private TaskResourceRep createFailedTaskOnVolume(Volume volume, ResourceOperationTypeEnum opr, ServiceCoded sc) {
-        String taskId = UUID.randomUUID().toString();
-        Operation op = new Operation();
-        op.setResourceType(opr);
-        _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
-
-        volume = _dbClient.queryObject(Volume.class, volume.getId());
-        op = volume.getOpStatus().get(taskId);
-        op.error(sc);
-        volume.getOpStatus().updateTaskStatus(taskId, op);
-        _dbClient.updateObject(volume);
-        return TaskMapper.toTask(volume, taskId, op);
-    }
-
-    /**
-     * Creates a Task on given CG with Error state
-     *
-     * @param opr the opr
-     * @param cg the consistency group
-     * @param sc the sc
-     * @return the failed task for cg
-     */
-    private TaskResourceRep createFailedTaskOnCG(BlockConsistencyGroup cg, ResourceOperationTypeEnum opr, ServiceCoded sc) {
-        String taskId = UUID.randomUUID().toString();
-        Operation op = new Operation();
-        op.setResourceType(opr);
-        _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, cg.getId(), taskId, op);
-
-        cg = _dbClient.queryObject(BlockConsistencyGroup.class, cg.getId());
-        op = cg.getOpStatus().get(taskId);
-        op.error(sc);
-        cg.getOpStatus().updateTaskStatus(taskId, op);
-        _dbClient.updateObject(cg);
-        return TaskMapper.toTask(cg, taskId, op);
-    }
-
-
-    /**
-     * Creates a Task on given snapshot session with Error state
-     *
-     * @param opr the opr
-     * @param session the snap session
-     * @param sc the sc
-     * @return the failed task for snap session
-     */
-    private TaskResourceRep createFailedTaskOnSnapshotSession(BlockSnapshotSession session,
-            ResourceOperationTypeEnum opr, ServiceCoded sc) {
-        String taskId = UUID.randomUUID().toString();
-        Operation op = new Operation();
-        op.setResourceType(opr);
-        _dbClient.createTaskOpStatus(BlockSnapshotSession.class, session.getId(), taskId, op);
-
-        session = _dbClient.queryObject(BlockSnapshotSession.class, session.getId());
-        op = session.getOpStatus().get(taskId);
-        op.error(sc);
-        session.getOpStatus().updateTaskStatus(taskId, op);
-        _dbClient.updateObject(session);
-        return TaskMapper.toTask(session, taskId, op);
     }
 
     /**
@@ -1521,6 +1453,16 @@ public class VolumeGroupService extends TaskResourceService {
                 name);
         TaskList taskList = new TaskList();
 
+        /**
+         * If there are VMAX3 volumes in the request, we need to create snap session for them.
+         * For others, create snapshot.
+         * 
+         * vmax3Volumes - block VMAX3 or backend VMAX3 for VPLEX based on copy side requested
+         * volumes - except volumes filtered out for above case
+         */
+        List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, param.getCopyOnHighAvailabilitySide());
+
+        // create snapshot
         Map<URI, List<URI>> cgToVolUris = ControllerUtils.groupVolumeURIsByCG(volumes);
         Set<Entry<URI, List<URI>>> entrySet = cgToVolUris.entrySet();
         for (Entry<URI, List<URI>> entry : entrySet) {
@@ -1537,7 +1479,40 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
             } catch (InternalException | APIException e) {
-                log.error("Exception when creating snapshot with consistency group {}: {}", cgUri, e.getMessage());
+                log.error("Exception when creating snapshot with consistency group {}: {}", cgUri, e);
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnCG(_dbClient, cg,
+                        ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT, e);
+                taskList.addTask(task);
+            } catch (Exception ex) {
+                log.error("Unexpected Exception occurred while creating snapshot for consistency group {}: {}",
+                        cgUri, ex);
+            }
+        }
+
+        // create snapshot session for VMAX3
+        Map<URI, List<URI>> cgToV3VolUris = ControllerUtils.groupVolumeURIsByCG(vmax3Volumes);
+        Set<Entry<URI, List<URI>>> entrySetV3 = cgToV3VolUris.entrySet();
+        for (Entry<URI, List<URI>> entry : entrySetV3) {
+            URI cgUri = entry.getKey();
+            log.info("Create snapshot session for consistency group {}, volumes {}",
+                    cgUri, Joiner.on(',').join(entry.getValue()));
+            try {
+                // create snap session with No targets
+                SnapshotSessionCreateParam cgSnapshotSessionParam = new SnapshotSessionCreateParam(
+                        name, null, entry.getValue());
+                taskList.getTaskList().addAll(
+                        _blockConsistencyGroupService.createConsistencyGroupSnapshotSession(cgUri, cgSnapshotSessionParam)
+                                .getTaskList());
+            } catch (InternalException | APIException e) {
+                log.error("Exception while creating snapshot session for consistency group {}: {}", cgUri, e);
+                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnCG(_dbClient, cg,
+                        ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION, e);
+                taskList.addTask(task);
+            } catch (Exception ex) {
+                log.error("Unexpected Exception occurred while creating snapshot session for consistency group {}: {}",
+                        cgUri, ex);
             }
         }
 
@@ -1931,6 +1906,47 @@ public class VolumeGroupService extends TaskResourceService {
         return performVolumeGroupSnapshotOperation(volumeGroupId, param, OperationTypeEnum.RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT);
     }
 
+    /**
+     * Separates the VMAX3 volumes from the given list.
+     * 
+     * If there are VMAX3 volumes in the request, we need to create snap session for them.
+     * For others, create snapshot.
+     * VMAX could be either the 'block' or back-end for VPLEX virtual volume.
+     *
+     * @param vgVolumes the volume group volumes
+     * @param copyOnHighAvailabilitySide side where to take snap in case of VPLEX Distributed volumes
+     * @return the VMAX3 volumes
+     */
+    private List<Volume> getVMAX3Volumes(List<Volume> vgVolumes, boolean copyOnHighAvailabilitySide) {
+        List<Volume> vmax3Volumes = new ArrayList<Volume>();
+        Iterator<Volume> itr = vgVolumes.iterator();
+        while (itr.hasNext()) {
+            Volume volume = itr.next();
+            URI systemURI = volume.getStorageController();
+            if (volume.isVPlexVolume(_dbClient)) {
+                Volume backedVol = null;
+                if (copyOnHighAvailabilitySide) {
+                    // get backend HA volume, copy is requested on HA side of VPLEX
+                    backedVol = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient);
+                    if (backedVol == null || backedVol.getInactive()) {
+                        throw APIException.badRequests.noHAVolumeFoundForVPLEX(volume.getLabel());
+                    }
+                } else {
+                    // get backend source volume
+                    backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                }
+                systemURI = backedVol.getStorageController();
+            }
+            StorageSystem system = _permissionsHelper.getObjectById(systemURI, StorageSystem.class);
+            if (system.checkIfVmax3()) {
+                vmax3Volumes.add(volume);
+                // remove vmax3 volume from given list
+                itr.remove();
+            }
+        }
+        return vmax3Volumes;
+    }
+
     /*
      * get all snapshot session set names associated with the volume group
      */
@@ -2056,7 +2072,7 @@ public class VolumeGroupService extends TaskResourceService {
             } catch (InternalException | APIException e) {
                 log.error("Exception while creating snapshot session for consistency group {}: {}", cgUri, e);
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
-                TaskResourceRep task = createFailedTaskOnCG(cg,
+                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnCG(_dbClient, cg,
                         ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION, e);
                 taskList.addTask(task);
             } catch (Exception ex) {
@@ -2362,7 +2378,7 @@ public class VolumeGroupService extends TaskResourceService {
                 String errMsg = String.format("Exception occurred while performing %s on Replication group %s",
                         opType.getDescription(), cell.getColumnKey());
                 log.error(errMsg, e);
-                TaskResourceRep task = createFailedTaskOnSnapshotSession(session, oprEnum, e);
+                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnSnapshotSession(_dbClient, session, oprEnum, e);
                 taskList.addTask(task);
             } catch (Exception ex) {
                 String errMsg = String.format("Unexpected Exception occurred while performing %s on Replication group %s",

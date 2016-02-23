@@ -1477,18 +1477,20 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Validate the unmanaged export mask is a mask that aligns with the export group provided.
+     * Validate the unmanaged export mask is a mask that aligns with the host/cluster initiators provided.
+     * If they do match, they will eventually be fed into the export group.
      * 
      * @param dbClient dbclient
-     * @param exportGroup export group
+     * @param exportGroup export group.  Used for error messages only
+     * @param computeInitiators list of initiators
      * @param unManagedExportMask unmanaged export mask
      * @param errorMessages error messages
      * @return true if the export mask is aligned to the export group.
      */
-    public static boolean validateExportMaskMatchesExportGroup(DbClient dbClient, ExportGroup exportGroup,
+    public static boolean validateExportMaskMatchesComputeResourceInitiators(DbClient dbClient, ExportGroup exportGroup, StringSet computeInitiators,
             UnManagedExportMask unManagedExportMask, List<String> errorMessages) {
-        // Validate export group initiators
-        if (exportGroup.getInitiators() == null) {
+        // Validate future export group initiators
+        if (computeInitiators == null) {
             String errorMessage = String.format("ExportGroup %s has no initiators and therefore unmanaged export mask %s can't be ingested with it.",
                     exportGroup.getLabel(), unManagedExportMask.getMaskName());
             errorMessages.add(errorMessage.toString());
@@ -1503,8 +1505,8 @@ public class VolumeIngestionUtil {
             return false;
         }
 
-        // If you find the export group contains some initiators in the unmanaged export mask, go ahead and process it.
-        if (StringSetUtil.hasIntersection(unManagedExportMask.getKnownInitiatorUris(), exportGroup.getInitiators())) {
+        // If you find the compute resource contains some initiators in the unmanaged export mask, go ahead and process it.
+        if (StringSetUtil.hasIntersection(unManagedExportMask.getKnownInitiatorUris(), computeInitiators)) {
             String message = String.format("Unmanaged export mask has initiators that match the export group (%s) initiators and therefore will be attempted to be ingested.",
                     unManagedExportMask.getMaskName(), exportGroup.getLabel());
             _logger.info(message);

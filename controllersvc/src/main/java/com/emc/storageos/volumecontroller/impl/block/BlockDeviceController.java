@@ -155,7 +155,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCo
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
-import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -2760,7 +2760,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doFractureMirror(storageObj, mirrorList.get(0), sync, completer);
             } else {
-                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
+                completer.addConsistencyGroupId(ConsistencyGroupUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doFractureGroupMirrors(storageObj, mirrorList, sync, completer);
             }
         } catch (Exception e) {
@@ -2889,7 +2889,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doResumeNativeContinuousCopy(storageObj, mirrorList.get(0), completer);
             } else {
-                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
+                completer.addConsistencyGroupId(ConsistencyGroupUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doResumeGroupNativeContinuousCopies(storageObj, mirrorList, completer);
             }
         } catch (Exception e) {
@@ -2917,7 +2917,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doDetachMirror(storageObj, mirrorList.get(0), completer);
             } else {
-                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
+                completer.addConsistencyGroupId(ConsistencyGroupUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doDetachGroupMirrors(storageObj, mirrorList, deleteGroup, completer);
             }
         } catch (Exception e) {
@@ -5448,7 +5448,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String groupName = null;
             boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
             if (isCG) {
-                BlockConsistencyGroup cg = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
+                BlockConsistencyGroup cg = ConsistencyGroupUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
                 groupName = cg.getCgNameOnStorageSystem(systemURI);
             }
 
@@ -6016,7 +6016,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String groupName = null;
             boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
             if (isCG) {
-                BlockConsistencyGroup cg = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
+                BlockConsistencyGroup cg = ConsistencyGroupUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
                 groupName = cg.getCgNameOnStorageSystem(systemURI);
             }
 

@@ -71,10 +71,6 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     private List<Initiator> _deviceInitiators;
     List<BlockObject> _objectsIngestedByExportProcessing;
 
-    private Map<String, BlockConsistencyGroup> _cgsToCreateMap;
-
-    private List<UnManagedConsistencyGroup> _umCGsToUpdate;
-
     /**
      * Constructor.
      * 
@@ -359,29 +355,6 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         }
 
         return _objectsToBeCreatedMap;
-    }
-
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getCGObjectsToCreateMap()
-     */
-    @Override
-    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
-        if (null == _cgsToCreateMap) {
-            _cgsToCreateMap = new HashMap<String, BlockConsistencyGroup>();
-        }
-
-        return _cgsToCreateMap;
-    }
-
-    @Override
-    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
-        if (null == _umCGsToUpdate) {
-            _umCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
-        }
-
-        return _umCGsToUpdate;
     }
 
     /*
@@ -806,6 +779,25 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         }
 
         _logger.info("\tdid not find an already-loaded object to update for URI " + uri);
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findUnManagedConsistencyGroup(com.emc.storageos.db.client.model.BlockConsistencyGroup)
+     */
+    @Override
+    public UnManagedConsistencyGroup findUnManagedConsistencyGroup(BlockConsistencyGroup bcg) {
+        for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+            List<UnManagedConsistencyGroup> umcgList = volumeContext.getUmCGObjectsToUpdate();
+            if (null != umcgList && !umcgList.isEmpty()) {
+                for (UnManagedConsistencyGroup umcg : umcgList) {
+                    if (umcg.getLabel().equalsIgnoreCase(bcg.getLabel())) {
+                        return umcg;
+                    }
+                }
+            }
+        }
+
         return null;
     }
 

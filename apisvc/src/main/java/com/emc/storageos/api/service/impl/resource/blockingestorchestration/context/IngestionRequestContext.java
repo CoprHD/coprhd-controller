@@ -167,21 +167,6 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public Map<String, BlockObject> getObjectsToBeCreatedMap();
 
     /**
-     * Returns a Map of BlockConsistencyGroup created during ingestion
-     * as mapped by their label for the key.
-     * 
-     * @return a Map of Label Strings to BlockConistencyGroupss
-     */
-    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap();
-
-    /**
-     * Returns the list of UnManagedConsistencyGroup's to update.
-     * 
-     * @return a List of UnManagedConsistencyGroup.
-     */
-    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate();
-
-    /**
      * Returns a Map of a List of DataObjects updated by ingestion
      * as mapped to the native GUID of the UnManagedVolume Object
      * for which they were updated.
@@ -362,5 +347,13 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return a BlockObject for the native GUID on null if none found
      */
     public DataObject findInUpdatedObjects(URI uri);
-    
+
+    /**
+     * Find an UnManagedConsistencyGroup in the volume contexts associated
+     * with this IngestionRequestContext.
+     * 
+     * @param bcg the BlockConsistencyGroup whose label should be matched
+     * @return an UnManagedConsistencyGroup
+     */
+    public UnManagedConsistencyGroup findUnManagedConsistencyGroup(BlockConsistencyGroup bcg);
 }

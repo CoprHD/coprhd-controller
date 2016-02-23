@@ -178,7 +178,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
                 createProtectionSet(volumeContext);
                 BlockConsistencyGroup bcg = createBlockConsistencyGroup(volumeContext);
-                parentRequestContext.getCGObjectsToCreateMap().put(bcg.getId().toString(), bcg);
+                volumeContext.getCGObjectsToCreateMap().put(bcg.getId().toString(), bcg);
 
                 // Once we have a proper managed consistency group and protection set, we need to
                 // sprinkle those references over the managed volumes.

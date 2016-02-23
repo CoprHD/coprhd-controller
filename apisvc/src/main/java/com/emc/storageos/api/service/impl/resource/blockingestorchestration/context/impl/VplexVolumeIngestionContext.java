@@ -75,6 +75,9 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private List<Initiator> _deviceInitiators;
     private List<BlockObject> _objectsIngestedByExportProcessing;
 
+    private Map<String, BlockConsistencyGroup> _cgsToCreateMap;
+    private List<UnManagedConsistencyGroup> _umCGsToUpdate;
+
     /**
      * Constructor.
      * 
@@ -887,11 +890,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         return super.toString();
     }
 
-    @Override
-    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
-        return _parentRequestContext.getCGObjectsToCreateMap();
-    }
-
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllUnManagedVolumesToBeDeleted()
      */
@@ -899,12 +897,6 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     public List<UnManagedVolume> findAllUnManagedVolumesToBeDeleted() {
         return _parentRequestContext.findAllUnManagedVolumesToBeDeleted();
     }
-
-    @Override
-    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
-        return _parentRequestContext.getUmCGObjectsToUpdate();
-    }
-
 
     /* (non-Javadoc)
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.URI)
@@ -949,4 +941,36 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
         return _parentRequestContext.findCreatedBlockObject(uri);
     }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getCGObjectsToCreateMap()
+     */
+    @Override
+    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
+        if (null == _cgsToCreateMap) {
+            _cgsToCreateMap = new HashMap<String, BlockConsistencyGroup>();
+        }
+
+        return _cgsToCreateMap;
+    }
+
+    @Override
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
+        if (null == _umCGsToUpdate) {
+            _umCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        }
+
+        return _umCGsToUpdate;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findUnManagedConsistencyGroup(com.emc.storageos.db.client.model.BlockConsistencyGroup)
+     */
+    @Override
+    public UnManagedConsistencyGroup findUnManagedConsistencyGroup(BlockConsistencyGroup bcg) {
+        return _parentRequestContext.findUnManagedConsistencyGroup(bcg);
+    }
+
 }

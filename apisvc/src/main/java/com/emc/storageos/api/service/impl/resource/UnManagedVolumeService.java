@@ -296,13 +296,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
 
+                    VolumeIngestionContext volumeContext = requestContext.getVolumeContext();
+                    
                     // Get the CG's created as part of the ingestion process
                     // Iterate through each CG & decorate its objects.
-                    // TODO: i think this CG processing should probably be part of the individual volume commit/rollback;
-                    //       since the decision to create a BCG and PSET is done when the last volume is detected...
-                    //       workaround for now is to just clear the collections below
-                    if (!requestContext.getCGObjectsToCreateMap().isEmpty()) {
-                        for (Entry<String, BlockConsistencyGroup> cgEntry : requestContext.getCGObjectsToCreateMap().entrySet()) {
+                    if (!volumeContext.getCGObjectsToCreateMap().isEmpty()) {
+                        for (Entry<String, BlockConsistencyGroup> cgEntry : volumeContext.getCGObjectsToCreateMap().entrySet()) {
                             BlockConsistencyGroup cg = cgEntry.getValue();
                             Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
                             Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
@@ -312,14 +311,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                         }
                     }
 
-                    persistConsistencyGroups(requestContext.getCGObjectsToCreateMap().values());
-                    requestContext.getCGObjectsToCreateMap().clear();
+                    persistConsistencyGroups(volumeContext.getCGObjectsToCreateMap().values());
 
                     // Update UnManagedConsistencyGroups.
-                    if (!requestContext.getUmCGObjectsToUpdate().isEmpty()) {
+                    if (!volumeContext.getUmCGObjectsToUpdate().isEmpty()) {
                         _logger.info("updating {} unmanagedConsistencyGroups in db.");
-                        _dbClient.updateObject(requestContext.getUmCGObjectsToUpdate());
-                        requestContext.getUmCGObjectsToUpdate().clear();
+                        _dbClient.updateObject(volumeContext.getUmCGObjectsToUpdate());
                     }
 
                     requestContext.getVolumeContext().commit();
@@ -496,33 +493,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.getProcessedUnManagedVolumeMap().put(
                         unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
 
-                // Get the CG's created as part of the ingestion process
-                // Iterate through each CG & decorate its objects.
-                // TODO: i think this CG processing should probably be part of the individual volume commit/rollback;
-                //       since the decision to create a BCG and PSET is done when the last volume is detected...
-                //       workaround for now is to just clear the collections below, but if an exception is thrown
-                //       during export mask processing below, these CG object will have been persisted
-                if (!requestContext.getCGObjectsToCreateMap().isEmpty()) {
-                    for (Entry<String, BlockConsistencyGroup> cgEntry : requestContext.getCGObjectsToCreateMap().entrySet()) {
-                        BlockConsistencyGroup cg = cgEntry.getValue();
-                        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
-                        Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
-                        _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
-                        rpCGDecorator.setDbClient(_dbClient);
-                        rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
-                    }
-                }
-
-                persistConsistencyGroups(requestContext.getCGObjectsToCreateMap().values());
-                requestContext.getCGObjectsToCreateMap().clear();
-
-                // Update UnManagedConsistencyGroups.
-                if (!requestContext.getUmCGObjectsToUpdate().isEmpty()) {
-                    _logger.info("updating {} unmanagedConsistencyGroups in db.");
-                    _dbClient.updateObject(requestContext.getUmCGObjectsToUpdate());
-                    requestContext.getUmCGObjectsToUpdate().clear();
-                }
-
             } catch (APIException ex) {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class,
@@ -604,6 +574,27 @@ public class UnManagedVolumeService extends TaskResourceService {
                 List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
+                }
+
+                // Get the CG's created as part of the ingestion process
+                // Iterate through each CG & decorate its objects.
+                if (!volumeContext.getCGObjectsToCreateMap().isEmpty()) {
+                    for (Entry<String, BlockConsistencyGroup> cgEntry : volumeContext.getCGObjectsToCreateMap().entrySet()) {
+                        BlockConsistencyGroup cg = cgEntry.getValue();
+                        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
+                        Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
+                        _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
+                        rpCGDecorator.setDbClient(_dbClient);
+                        rpCGDecorator.decorate(cg, processedUnManagedVolume, allCGBlockObjects, requestContext);
+                    }
+                }
+
+                persistConsistencyGroups(volumeContext.getCGObjectsToCreateMap().values());
+
+                // Update UnManagedConsistencyGroups.
+                if (!volumeContext.getUmCGObjectsToUpdate().isEmpty()) {
+                    _logger.info("updating {} unmanagedConsistencyGroups in db.");
+                    _dbClient.updateObject(volumeContext.getUmCGObjectsToUpdate());
                 }
 
                 volumeContext.commit();

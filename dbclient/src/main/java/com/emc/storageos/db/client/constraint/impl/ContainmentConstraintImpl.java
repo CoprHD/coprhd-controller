@@ -92,4 +92,9 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
     public Class<? extends DataObject> getDataObjectType() {
         return _field.getDataObjectType();
     }
+
+	@Override
+	public boolean isValid() {
+		return this._indexKey!=null && this._indexKey.toString().length()!=0;
+	}
 }

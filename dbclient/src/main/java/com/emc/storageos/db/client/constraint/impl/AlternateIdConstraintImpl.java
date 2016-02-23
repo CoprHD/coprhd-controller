@@ -75,4 +75,9 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
     public Class<? extends DataObject> getDataObjectType() {
         return _entryType;
     }
+
+	@Override
+	public boolean isValid() {
+		return this._altId!=null && this._altId.length()!=0;
+	}
 }

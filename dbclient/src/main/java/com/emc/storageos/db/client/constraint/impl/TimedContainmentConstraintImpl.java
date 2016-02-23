@@ -121,4 +121,9 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     public Class<? extends DataObject> getDataObjectType() {
         return field.getDataObjectType();
     }
+    
+	@Override
+	public boolean isValid() {
+		return this.indexKey!=null && this.indexKey.toString().length()!=0;
+	}
 }

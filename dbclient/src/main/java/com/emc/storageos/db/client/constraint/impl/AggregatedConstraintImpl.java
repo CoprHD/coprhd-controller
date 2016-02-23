@@ -18,6 +18,8 @@ import com.netflix.astyanax.query.RowQuery;
 
 import java.net.URI;
 
+import org.jsoup.helper.StringUtil;
+
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
  */
@@ -95,4 +97,9 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     public Class<? extends DataObject> getDataObjectType() {
         return entryType;
     }
+
+	@Override
+	public boolean isValid() {
+		return this.rowKey!=null && this.rowKey.length()!=0;
+	}
 }

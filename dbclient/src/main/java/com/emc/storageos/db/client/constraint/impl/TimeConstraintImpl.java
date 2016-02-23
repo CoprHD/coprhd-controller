@@ -154,4 +154,9 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     public Class<? extends DataObject> getDataObjectType() {
         return entityType;
     }
+    
+	@Override
+	public boolean isValid() {
+		return rowKey!=null && rowKey.length()!=0;
+	}
 }

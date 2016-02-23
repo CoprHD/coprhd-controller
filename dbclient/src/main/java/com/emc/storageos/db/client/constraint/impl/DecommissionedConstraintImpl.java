@@ -160,4 +160,9 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     public Class<? extends DataObject> getDataObjectType() {
         return _entryType;
     }
+    
+	@Override
+	public boolean isValid() {
+		return this._rowKey!=null && this._rowKey.length()!=0;
+	}
 }

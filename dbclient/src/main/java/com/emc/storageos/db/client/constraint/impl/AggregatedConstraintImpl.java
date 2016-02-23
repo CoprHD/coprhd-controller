@@ -18,8 +18,6 @@ import com.netflix.astyanax.query.RowQuery;
 
 import java.net.URI;
 
-import org.jsoup.helper.StringUtil;
-
 /**
  * Constrained query to get list of decommissioned object URIs of a given type
  */

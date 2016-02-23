@@ -133,9 +133,6 @@ public class UpgradeManager extends AbstractManager {
         // need to distinguish persistent locks acquired from UpgradeManager/VdcManager/PropertyManager
         // otherwise they might release locks acquired by others when they start
         final String svcId = String.format("%s,upgrade", coordinator.getMySvcId());
-        boolean dbEncrypted = false;
-        boolean dbCurrentVersionEncrypted = false;
-        boolean isDBMigrationDone = false;
         isValidRepo = localRepository.isValidRepository();
 
         addRepositoryInfoListener();
@@ -144,38 +141,6 @@ public class UpgradeManager extends AbstractManager {
             log.debug("Main loop: Start");
 
             shortSleep = false;
-
-            // Step0: check DB encryption status and change it if necessary
-            try {
-                dbEncrypted = isDbEncrypt();
-
-                dbCurrentVersionEncrypted = isDbCurrentVersionEncrypted();
-                isDBMigrationDone = coordinator.isDBMigrationDone();
-            } catch (Exception e) {
-                log.info("Step0: Exception when getting DB encryption status and will be retried: {}", e.getMessage());
-                retrySleep();
-                continue;
-            }
-
-            log.info("Step0: dbCurrentVersionEncrypted={} dbEncrypted={} migration done={}",
-                    new Object[] { dbCurrentVersionEncrypted, dbEncrypted, isDBMigrationDone });
-
-            if (isDBMigrationDone && !dbEncrypted) {
-                // we've finished the upgrade, so
-                // turn on db encrypt feature then reboot
-                enableDbEncrypt();
-                log.info("enable db encryption so re-configure then restart geodbsvc and dbsvc");
-                reconfigAndStartDBSerivces();
-
-            } else if (!isDBMigrationDone && !dbCurrentVersionEncrypted && dbEncrypted) {
-                disableDbEncrypt();
-                log.info("disable db encryption, so re-configure then restart geodbsvc and dbsvc");
-                shortSleep = true;
-            }
-
-            if (!isDBMigrationDone && !dbCurrentVersionEncrypted && !dbEncrypted) {
-                shortSleep = true;
-            }
 
             // Step1: check if we have the reboot lock
             boolean hasLock;
@@ -278,35 +243,6 @@ public class UpgradeManager extends AbstractManager {
                 }
             }
 
-            // Step5: adjust dbsvc num_tokens if necessary
-            log.info("Step5: Adjust dbsvc num_tokens if necessary");
-            if (!coordinator.isLocalNodeTokenAdjusted()) {
-                try {
-                    if (!getUpgradeLock(svcId)) {
-                        log.info("Step5: Get reboot lock for adjusting dbsvc num_tokens failed. Retry");
-                        retrySleep();
-                        continue;
-                    }
-
-                    if (!areAllDbsvcActive()) {
-                        releaseUpgradeLock(svcId);
-                        retrySleep();
-                        continue;
-                    }
-                    try (DbManagerOps dbOps = new DbManagerOps(Constants.DBSVC_NAME)) {
-                        if (dbOps.adjustNumTokens()) {
-                            log.info("Adjusted dbsvc num_tokens, restarting dbsvc...");
-                            localRepository.restart(Constants.DBSVC_NAME);
-                        }
-                    }
-                    continue;
-                } catch (Exception e) {
-                    log.error("Step5: Adjust dbsvc num_tokens failed", e);
-                    retrySleep();
-                    continue;
-                }
-            }
-
             // Step6: sleep
             log.info("Step6: sleep");
             longSleep();
@@ -343,36 +279,6 @@ public class UpgradeManager extends AbstractManager {
             return false;
         }
 
-        return true;
-    }
-
-    private boolean isDbEncrypt() {
-        File dbEncryptFlag = new File(dbNoEncryptFlagFile);
-        if (dbEncryptFlag.exists()) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean enableDbEncrypt() {
-        File dbEncryptFlag = new File(dbNoEncryptFlagFile);
-        try {
-            dbEncryptFlag.delete();
-        } catch (Exception e) {
-            log.error("Failed to delete file {} e", dbEncryptFlag.getName(), e);
-            return false;
-        }
-        return true;
-    }
-
-    private boolean disableDbEncrypt() {
-        File dbEncryptFlag = new File(dbNoEncryptFlagFile);
-        try {
-            new FileOutputStream(dbEncryptFlag).close();
-        } catch (Exception e) {
-            log.error("Failed to create file {} e", dbEncryptFlag.getName(), e);
-            return false;
-        }
         return true;
     }
 
@@ -430,9 +336,9 @@ public class UpgradeManager extends AbstractManager {
                 try {
                     if (drUtil.isStandby()) {
                         log.info("Step3a: sync'ing with active site as leader of standby site");
-                        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
+                        Site activeSite = drUtil.getActiveSite();
                         URI activeVipEndpoint = URI.create(String.format(SysClientFactory.BASE_URL_FORMAT,
-                                activeSite.getVip(), service.getEndpoint().getPort()));
+                                activeSite.getVipEndPoint(), service.getEndpoint().getPort()));
                         if (!coordinator.isActiveSiteStable(activeSite)) {
                             log.info("Step3a: software image {} not sync'ed on active site yet. Retry later", syncinfo);
                         } else if (syncToNodeInSync(activeVipEndpoint, syncinfo)) {
@@ -591,8 +497,9 @@ public class UpgradeManager extends AbstractManager {
             } catch (Exception e) {
                 throw APIException.internalServerErrors.getObjectFromError("Node downloading info", "coordinator", e);
             }
-            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size, downloadingInfo._size,
-                    DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))), "downloadinfo", coordinator.getMySvcId());
+            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size,
+                    downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<>(Arrays.asList(0, 0))),
+                    DOWNLOADINFO_KIND, coordinator.getMySvcId());
             // Because the file exists, we set the downloadinfo directly to COMPLETED status
             log.info(prefix + "Success!");
             return file;
@@ -641,12 +548,13 @@ public class UpgradeManager extends AbstractManager {
         if (file.exists()) {
             DownloadingInfo downloadingInfo;
             try {
-                downloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, "downloadinfo", coordinator.getMySvcId());
+                downloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, DOWNLOADINFO_KIND,
+                        coordinator.getMySvcId());
                 // if the downloading info is present and the version is the same then update the progress
                 if (downloadingInfo != null && version.toString().equals(downloadingInfo._version)) {
                     coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(downloadingInfo._version, downloadingInfo._size,
-                            downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))), "downloadinfo",
-                            coordinator.getMySvcId());
+                            downloadingInfo._size, DownloadStatus.COMPLETED, new ArrayList<Integer>(Arrays.asList(0, 0))),
+                            DOWNLOADINFO_KIND, coordinator.getMySvcId());
                 }
             } catch (Exception e) {
                 throw APIException.internalServerErrors.getObjectFromError("Node downloading info", "coordinator", e);

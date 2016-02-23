@@ -19,11 +19,13 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.audit.AuditLogManagerFactory;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -46,6 +48,14 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "FileController";
     protected FileShare.MirrorStatus mirrorSyncStatus = FileShare.MirrorStatus.OTHER;
+
+    protected MirrorStatus getMirrorSyncStatus() {
+        return mirrorSyncStatus;
+    }
+
+    protected void setMirrorSyncStatus(MirrorStatus mirrorSyncStatus) {
+        this.mirrorSyncStatus = mirrorSyncStatus;
+    }
 
     public MirrorFileTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -116,7 +126,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
     /**
      * Record FileShare related event and audit
-     *
+     * 
      * @param dbClient db client
      * @param opType operation type
      * @param status operation status
@@ -144,6 +154,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                 case STOP_FILE_MIRROR:
                 case FAILBACK_FILE_MIRROR:
                 case RESYNC_FILE_MIRROR:
+                case REFRESH_FILE_MIRROR:
                     auditFile(dbClient, opType, opStatus, opStage, extParam);
                     break;
 
@@ -158,7 +169,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
 
     /**
      * Record audit log for file service
-     *
+     * 
      * @param auditType Type of AuditLog
      * @param operationalStatus Status of operation
      * @param description Description for the AuditLog
@@ -168,7 +179,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
             boolean operationalStatus,
             String description,
             Object... descparams) {
-        AuditLogManager auditMgr = new AuditLogManager();
+        AuditLogManager auditMgr = AuditLogManagerFactory.getAuditLogManager();
         auditMgr.setDbClient(dbClient);
         auditMgr.recordAuditLog(null, null,
                 EVENT_SERVICE_TYPE,
@@ -180,7 +191,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     }
 
     /**
-     *
+     * 
      * @param dbClient
      * @param evtType
      * @param status

@@ -4,6 +4,10 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
+import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.google.common.collect.Lists.newArrayList;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -18,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +36,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -59,10 +63,10 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
@@ -74,8 +78,6 @@ import com.google.common.collect.ListMultimap;
  * Utilities class encapsulates controller utility methods.
  */
 public class ControllerUtils {
-
-    private static final String SMI81_VERSION_STARTING_STR = "V8.1";
 
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(ControllerUtils.class);
@@ -91,6 +93,9 @@ public class ControllerUtils {
     private static final VolumeURIHLU[] EMPTY_VOLUME_URI_HLU_ARRAY = new VolumeURIHLU[0];
 
     private static final String LABEL_DELIMITER = "-";
+
+    private static final int SMIS_MAJOR_VERSION = 8;
+    private static final int SMIS_MINOR_VERSION = 1;
 
     /**
      * Gets the URI of the tenant organization for the project with the passed
@@ -409,6 +414,14 @@ public class ControllerUtils {
                 } catch (DatabaseException e) {
                     s_logger.error("Exception caught", e);
                 }
+            } else if (resource instanceof BlockSnapshotSession) {
+                BlockSnapshotSession session = (BlockSnapshotSession) resource;
+                try {
+                    id = session.getId();
+                    projectURI = session.getProject().getURI();
+                } catch (DatabaseException e) {
+                    s_logger.error("Exception caught", e);
+                }
             } else if (resource instanceof ExportGroup) {
                 ExportGroup exportGroup = (ExportGroup) resource;
                 try {
@@ -656,7 +669,10 @@ public class ControllerUtils {
                 dbClient.queryByConstraint(AlternateIdConstraint.Factory
                         .getFASTPolicyByNameConstraint(policyNameInVpool), result);
             } else {
-                StringSet systemType = vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
+                StringSet systemType = new StringSet();
+                if (vPool.getArrayInfo() != null) {
+                    systemType.addAll(vPool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE));
+                }
                 if (systemType.contains(DiscoveredDataObject.Type.vnxblock.name())) {
                     dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getFASTPolicyByNameConstraint(policyNameInVpool), result);
@@ -790,6 +806,24 @@ public class ControllerUtils {
     }
 
     /**
+     * Takes in a list of URIs, queries using Iterative method and returns list of volume objects.
+     *
+     * @param dbClient the db client
+     * @param volumeURIs the volume uris
+     * @return the list of volume objects
+     */
+    public static List<Volume> queryVolumesByIterativeQuery(DbClient dbClient, List<URI> volumeURIs) {
+        List<Volume> volumes = new ArrayList<Volume>();
+        @SuppressWarnings("unchecked")
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                volumeURIs);
+        while (volumeIterator.hasNext()) {
+            volumes.add(volumeIterator.next());
+        }
+        return volumes;
+    }
+
+    /**
      * Utility method which will filter the snapshots from getBlockSnapshotsBySnapsetLabel query by the
      * snapshot's project
      * 
@@ -860,6 +894,7 @@ public class ControllerUtils {
 
     /**
      * Gets the volumes part of a given replication group.
+     * TODO look at below method (getVolumesPartOfRG()) while correcting this.
      */
     public static List<Volume> getVolumesPartOfRG(StorageSystem storage, URI cgURI /* TODO - use replicaitonGroupInstance */, DbClient dbClient) {
         List<Volume> volumes = new ArrayList<Volume>();
@@ -888,9 +923,15 @@ public class ControllerUtils {
 
     /**
      * Gets the volumes part of a given replication group.
-     * TODO remove this method when the above method (getVolumesPartOfRG) takes in RepGroup name instead of CG.
+     * TODO remove this method when the above method (getVolumesPartOfRG) takes in RepGroup name instead of CG
+     * and add system check.
+     *
+     * @param system the storage system where the replication group resides
+     * @param replicationGroupInstance the replication group instance
+     * @param dbClient the db client
+     * @return the volumes part of replication group
      */
-    public static List<Volume> getVolumesPartOfRG(String replicationGroupInstance, DbClient dbClient) {
+    public static List<Volume> getVolumesPartOfRG(URI system, String replicationGroupInstance, DbClient dbClient) {
         List<Volume> volumes = new ArrayList<Volume>();
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -899,7 +940,7 @@ public class ControllerUtils {
                 uriQueryResultList, true);
         while (volumeIterator.hasNext()) {
             Volume volume = volumeIterator.next();
-            if (volume != null && !volume.getInactive()) {
+            if (volume != null && system.toString().equals(volume.getStorageController().toString())) {
                 volumes.add(volume);
             }
         }
@@ -1240,6 +1281,17 @@ public class ControllerUtils {
         return false;
     }
 
+    public static boolean checkSnapshotSessionConsistencyGroup(URI snapshotSession, DbClient dbClient, TaskCompleter completer) {
+        BlockConsistencyGroup group = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapshotSession, dbClient);
+        if (group != null) {
+            if (completer != null) {
+                completer.addConsistencyGroupId(group.getId());
+            }
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
      *
@@ -1296,15 +1348,21 @@ public class ControllerUtils {
     }
 
     /**
-     * Check whether the given volume is in VNX virtual replication group
+     * Check whether the given volume is not in a real replication group
      *
      * @param volume
      * @param dbClient
      * @return
      */
-    public static boolean isInVNXVirtualRG(Volume volume, DbClient dbClient) {
-        return volume != null && ControllerUtils.isVnxVolume(volume, dbClient) &&
-                StringUtils.startsWith(volume.getReplicationGroupInstance(), SmisConstants.VNX_VIRTUAL_RG);
+    public static boolean isNotInRealVNXRG(Volume volume, DbClient dbClient) {
+        if (volume != null && volume.isInCG() && ControllerUtils.isVnxVolume(volume, dbClient)) {
+            BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
+            if (consistencyGroup != null && !consistencyGroup.getInactive()) {
+                return !consistencyGroup.getArrayConsistency();
+            }
+        }
+
+        return false;
     }
 
     public static String generateReplicationGroupName(StorageSystem storage, URI cgUri, String replicationGroupName, DbClient dbClient) {
@@ -1339,10 +1397,6 @@ public class ControllerUtils {
         return groupName;
     }
 
-    public static String generateVirtualReplicationGroupName(String groupName) {
-        return SmisConstants.VNX_VIRTUAL_RG + groupName;
-    }
-
     /**
      * This utility method returns the snapsetLabel of the existing snapshots.
      * This is required when we try to create a new snapshot when the existing source volumes have snapshots.
@@ -1361,22 +1415,26 @@ public class ControllerUtils {
     }
 
     /**
-     * Check whether the given storage system is managed by SMI 8.1
+     * Check whether the given storage system is managed by SMI 8.1 or later
      * 
      * @param storage
      * @param dbClient
-     * @return status
+     * @return true if the version is at least 8.1
      */
     public static boolean isVmaxUsing81SMIS(StorageSystem storage, DbClient dbClient) {
-        boolean status = false;
-        if (storage != null) {
+        if (storage != null && !NullColumnValueGetter.isNullURI(storage.getActiveProviderURI())) {
             StorageProvider provider = dbClient.queryObject(StorageProvider.class, storage.getActiveProviderURI());
-            if (provider != null) {
-                String providerVersion = provider.getVersionString();
-                status = providerVersion != null && providerVersion.startsWith(SMI81_VERSION_STARTING_STR);
+
+            if (provider != null && provider.getVersionString() != null) {
+                String providerVersion = provider.getVersionString().replaceFirst("[^\\d]", "");
+                String provStr[] = providerVersion.split(Constants.SMIS_DOT_REGEX);
+                int major = Integer.parseInt(provStr[0]);
+                int minor = Integer.parseInt(provStr[1]);
+                return major > SMIS_MAJOR_VERSION || major == SMIS_MAJOR_VERSION && minor >= SMIS_MINOR_VERSION;
             }
         }
-        return status;
+
+        return false;
     }
 
     /**
@@ -1432,46 +1490,196 @@ public class ControllerUtils {
      */
     public static boolean checkCGCreatedOnBackEndArray(Volume volume) {
 
-        return (volume != null && StringUtils.isNotBlank(volume.getReplicationGroupInstance()));
+        return (volume != null && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance()));
+    }
+
+    /**
+     * Returns true if the request is made for subset of array groups within the Volume Group.
+     * For Partial request, PARTIAL Flag was set on the requested Volume.
+     *
+     * @param dbClient the db client
+     * @param volume the volume
+     * @return true, if the request is Partial
+     */
+    public static boolean checkVolumeForVolumeGroupPartialRequest(DbClient dbClient, Volume volume) {
+        boolean partial = false;
+        if (volume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+            partial = true;
+        } else {
+            // check on other volumes part of the array group.
+            List<Volume> volumes = new ArrayList<Volume>();
+            String rgName = volume.getReplicationGroupInstance();
+            if (volume.isVPlexVolume(dbClient)) {
+                // get backend source volume
+                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (backedVol != null) {
+                    rgName = backedVol.getReplicationGroupInstance();
+                    if (rgName != null) {
+                        List<Volume> backendVolumes = getVolumesPartOfRG(backedVol.getStorageController(), rgName, dbClient);
+                        for (Volume backendVolume : backendVolumes) {
+                            Volume vplexVolume = Volume.fetchVplexVolume(dbClient, backendVolume);
+                            volumes.add(vplexVolume);
+                        }
+                    }
+                }
+            } else if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                volumes = getVolumesPartOfRG(volume.getStorageController(), rgName, dbClient);
+            }
+            for (Volume vol : volumes) {
+                if (vol.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                    partial = true;
+                    break;
+                }
+            }
+        }
+        return partial;
+    }
+
+    /**
+     * Returns true if the request is made for subset of array groups within the Volume Group.
+     * For Partial request, PARTIAL Flag was set on the requested Volume.
+     *
+     * @param dbClient the db client
+     * @param volumes the volumes
+     * @return true, if the request is Partial
+     */
+    public static boolean checkVolumesForVolumeGroupPartialRequest(DbClient dbClient, List<BlockObject> volumes) {
+        boolean partial = false;
+        for (BlockObject volume : volumes) {
+            if (volume.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                partial = true;
+                break;
+            }
+        }
+        return partial;
     }
 
     /**
      * Get volume group's volumes.
-     * skip internal volumes
      *
      * @param volumeGroup
      * @return The list of volumes in volume group
      */
     public static List<Volume> getVolumeGroupVolumes(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Volume> result = new ArrayList<Volume>();
-        final List<Volume> volumes = CustomQueryUtility
+        return CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(volumeGroup.getId().toString()));
-        for (Volume vol : volumes) {
-            // return only visible volumes. i.e skip backend or internal volumes
-            // TODO check with others
-            if (!vol.getInactive() && !vol.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
-                result.add(vol);
-            }
-        }
-        return result;
     }
 
     /**
-     * Group volumes by array group.
+     * Group volumes by array group + storage system Id. For VPLEX virtual volumes, group them by backend src volumes's array group.
      *
      * @param volumes the volumes
+     * @param dbClient dbCLient instance
      * @return the map of array group to volumes
      */
-    public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes) {
+    public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes, DbClient dbClient) {
         Map<String, List<Volume>> arrayGroupToVolumes = new HashMap<String, List<Volume>>();
         for (Volume volume : volumes) {
+            String storage = volume.getStorageController().toString();
             String repGroupName = volume.getReplicationGroupInstance();
-            if (arrayGroupToVolumes.get(repGroupName) == null) {
-                arrayGroupToVolumes.put(repGroupName, new ArrayList<Volume>());
+            if (volume.isVPlexVolume(dbClient)) {
+                // get backend source volume
+                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (backedVol != null) {
+                    repGroupName = backedVol.getReplicationGroupInstance();
+                    storage = backedVol.getStorageController().toString();
+                }
             }
-            arrayGroupToVolumes.get(repGroupName).add(volume);
+            if (NullColumnValueGetter.isNullValue(repGroupName)) {
+                repGroupName = "";
+            }
+            String key = repGroupName + storage;
+            if (arrayGroupToVolumes.get(key) == null) {
+                arrayGroupToVolumes.put(key, new ArrayList<Volume>());
+            }
+            arrayGroupToVolumes.get(key).add(volume);
         }
         return arrayGroupToVolumes;
+    }
+
+    /*
+     * Check replicationGroup contains all and only volumes provided
+     *
+     * Assumption - all volumes provided are in the same replicationGroup
+     *
+     * @param dbClient
+     * @param rpName replication group name
+     * @param volumes volumes in the same replication group
+     * @return boolean
+     */
+    public static boolean replicationGroupHasNoOtherVolume(DbClient dbClient, String rpName, Collection<URI> volumes, URI storage) {
+        List<Volume> rpVolumes = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient, Volume.class,
+                        AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(rpName));
+        int rpVolumeCount = 0;
+        for (Volume rpVol : rpVolumes) {
+            URI storageUri = rpVol.getStorageController();
+            if (storageUri.toString().equals(storage.toString())) {
+                rpVolumeCount++;
+            }
+        }
+
+        s_logger.info("rpVolumeCount {} volume size {}", rpVolumeCount, volumes.size());
+        return rpVolumeCount == volumes.size();
+    }
+
+
+    /**
+     * gets the application volume group for this CG and group name if it exists
+     *
+     * @param dbClient
+     *            dbClient to query objects from db
+     * @param consistencyGroup
+     *            consistency group object
+     * @param cgNameOnArray
+     *            cg name to check
+     * @return a VolumeGroup object or null if this CG and group name are not associated with an application
+     */
+    public static VolumeGroup getApplicationForCG(DbClient dbClient, BlockConsistencyGroup consistencyGroup, String cgNameOnArray) {
+        VolumeGroup volumeGroup = null;
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
+                volumeGroup = volume.getApplication(dbClient);
+                if (volumeGroup != null) {
+                    break;
+                }
+            }
+        }
+        return volumeGroup;
+    }
+
+    public static boolean checkIfVolumeHasSnapshot(Volume volume, DbClient dbClient) {
+        URIQueryResultList list = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                list);
+        Iterator<URI> it = list.iterator();
+        while (it.hasNext()) {
+            URI snapshotID = it.next();
+            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
+            if (snapshot != null & !snapshot.getInactive()) {
+                s_logger.debug("Volume {} has snapshot", volume.getId());
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Return snapshot sessions based on the given snapshot session instance.
+     *
+     * @param instance
+     * @param dbClient
+     * @return
+     */
+    public static List<URI> getSnapshotSessionsByInstance(String instance, DbClient dbClient) {
+        URIQueryResultList resultList = new URIQueryResultList();
+        dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(instance), resultList);
+        return newArrayList(resultList.iterator());
     }
 }

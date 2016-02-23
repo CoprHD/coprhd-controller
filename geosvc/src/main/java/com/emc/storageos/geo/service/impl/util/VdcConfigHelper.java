@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -221,7 +222,7 @@ public class VdcConfigHelper {
         }
 
         if (vdcConfigChanged) {
-            String action = SiteInfo.NONE;
+            String action = SiteInfo.GEO_OP_CONFIG_CHANGE;
             // on newly added vdc, rotate the ipsec key first before reboot.. otherwise first rebooted node
             // loses connection with other nodes
             if (assignedVdcId != null) {
@@ -734,8 +735,8 @@ public class VdcConfigHelper {
         if ((vdc.getDescription() != null) && (!vdc.getDescription().isEmpty())) {
             vdcConfig.setDescription(vdc.getDescription());
         }
-        if (activeSite.getVip() != null) {
-            vdcConfig.setApiEndpoint(activeSite.getVip());
+        if (activeSite.getVipEndPoint() != null) {
+            vdcConfig.setApiEndpoint(activeSite.getVipEndPoint());
         }
 
         vdcConfig.setHostCount(activeSite.getNodeCount());
@@ -835,11 +836,26 @@ public class VdcConfigHelper {
      */
     public boolean areNodesReachable(String vdcShortId, Map<String, String> ipv4, Map<String, String> ipv6, boolean isAllNotReachable) {
         List<String> ips = new ArrayList<String>();
+
         if (ipv4 != null && !ipv4.isEmpty()) {
-            ips.addAll(ipv4.values());
-        } else if (ipv6 != null && !ipv6.isEmpty()) {
-            ips.addAll(ipv6.values());
-        } else {
+            for (String node: ipv4.keySet()) {
+                if(!ipv4.get(node).equals(PropertyConstants.IPV4_ADDR_DEFAULT)) {
+                    ips.add(ipv4.get(node));
+                }
+            }
+        }
+
+        if (ips.isEmpty()) {
+            if (ipv6 != null && !ipv6.isEmpty()) {
+                for (String node: ipv6.keySet()) {
+                    if(!ipv6.get(node).equals(PropertyConstants.IPV6_ADDR_DEFAULT)) {
+                        ips.add(ipv6.get(node));
+                    }
+                }
+            }
+        }
+
+        if (ips.isEmpty()) {
             throw new IllegalStateException("Cannot perform node reachable check on vdc " + vdcShortId
                     + " no nodes were found on VdcConfig object");
         }
@@ -902,7 +918,7 @@ public class VdcConfigHelper {
             vdcConfig.setShortId(vdc.getShortId());
             Site activeSite = drUtil.getActiveSite(vdc.getShortId());
             
-            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty()) {
+            if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty() && activeSite.isUsingIpv4()) {
                 HashMap<String, String> addressMap = new HashMap<String, String>(activeSite.getHostIPv4AddressMap());
                 vdcConfig.setHostIPv4AddressesMap(addressMap);
             } else if (activeSite.getHostIPv6AddressMap() != null && !activeSite.getHostIPv6AddressMap().isEmpty()) {
@@ -1053,7 +1069,14 @@ public class VdcConfigHelper {
         site.setHostIPv6AddressMap(vdc.getHostIPv6AddressesMap());
         site.setState(SiteState.ACTIVE);
         site.setCreationTime(System.currentTimeMillis());
-        site.setVip(vdc.getApiEndpoint());
+        String vdcEndpoint = vdc.getApiEndpoint();
+        if (vdcEndpoint.contains(":")) {
+            site.setVip6(vdcEndpoint);
+            site.setVip(PropertyConstants.IPV4_ADDR_DEFAULT);
+        } else {
+            site.setVip(vdcEndpoint);
+            site.setVip6(PropertyConstants.IPV6_ADDR_DEFAULT);
+        }
         site.setNodeCount(vdc.getHostCount());
         
         coordinator.persistServiceConfiguration(site.toConfiguration());

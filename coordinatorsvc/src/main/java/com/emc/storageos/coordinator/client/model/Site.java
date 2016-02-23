@@ -9,24 +9,25 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.jsoup.helper.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.model.property.PropertyConstants;
 
 /**
  * Representation for a ViPR site, both primary and standby
  */
 public class Site {
-    private static final Logger log = LoggerFactory.getLogger(Site.class);
-
+    private static final String NO_ACTIVE_SITE_MESSAGE = "<no active site>";
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
+    private static final String KEY_VIP6 = "vip6";
     private static final String KEY_SITE_SHORTID = "siteShortId";
     private static final String KEY_CREATIONTIME = "creationTime";
     private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
+    private static final String KEY_LAST_LOST_QUORUM_TIME = "lastLostQuorumTime";
+    private static final String KEY_LASTSTATE = "lastState";
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_PING = "networkLatencyInMs";
     private static final String KEY_NETWORK_HEALTH = "networkHealth";
@@ -36,21 +37,41 @@ public class Site {
     private static TreeMap<String, String> treeMapSorter = new TreeMap<String, String>();
     
     public static final String CONFIG_KIND = "disasterRecoverySites";
+    
+    public static final Site DUMMY_ACTIVE_SITE;
+
+    public enum NetworkHealth {
+        GOOD,
+        SLOW,
+        BROKEN
+    }
 
     private String uuid;
     private String vdcShortId;
     private String name;
     private String vip;
+    private String vip6;
     private String description;
     private Map<String, String> hostIPv4AddressMap = new HashMap<>();
     private Map<String, String> hostIPv6AddressMap = new HashMap<>();
     private String siteShortId;
     private long creationTime;
     private long lastStateUpdateTime;
+    private long lastLostQuorumTime;
+
     private double networkLatencyInMs;
-    private String networkHealth;
+    private NetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
+    private SiteState lastState;
     private int nodeCount;
+    
+    static {
+        DUMMY_ACTIVE_SITE = new Site();
+        DUMMY_ACTIVE_SITE.setUuid("");
+        DUMMY_ACTIVE_SITE.setVip(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setName(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setState(SiteState.NONE);
+    }
 
     public Site() {
     }
@@ -59,6 +80,14 @@ public class Site {
         if (config != null) {
             fromConfiguration(config);
         }
+    }
+
+    public SiteState getLastState() {
+        return lastState;
+    }
+
+    public void setLastState(SiteState lastState) {
+        this.lastState = lastState;
     }
     
     public String getUuid() {
@@ -149,11 +178,19 @@ public class Site {
         this.networkLatencyInMs = networkLatencyInMs;
     }
 
-    public String getNetworkHealth() {
+    public long getLastLostQuorumTime() {
+        return lastLostQuorumTime;
+    }
+
+    public void setLastLostQuorumTime(long lastLostQuorumTime) {
+        this.lastLostQuorumTime = lastLostQuorumTime;
+    }
+
+    public NetworkHealth getNetworkHealth() {
         return networkHealth;
     }
 
-    public void setNetworkHealth(String networkHealth) {
+    public void setNetworkHealth(NetworkHealth networkHealth) {
         this.networkHealth = networkHealth;
     }
 
@@ -172,6 +209,14 @@ public class Site {
     public void setState(SiteState state) {
         this.state = state;
         setLastStateUpdateTime(System.currentTimeMillis());
+    }
+
+    public String getVip6() {
+        return vip6;
+    }
+
+    public void setVip6(String vip6) {
+        this.vip6 = vip6;
     }
 
     @Override
@@ -210,6 +255,9 @@ public class Site {
         if (vip != null) {
             config.setConfig(KEY_VIP, vip);
         }
+        if (vip6 != null) {
+            config.setConfig(KEY_VIP6, vip6);
+        }
         if (siteShortId != null) {
             config.setConfig(KEY_SITE_SHORTID, this.siteShortId);
         }
@@ -217,11 +265,18 @@ public class Site {
         if (lastStateUpdateTime != 0L) {
             config.setConfig(KEY_LASTSTATEUPDATETIME, String.valueOf(lastStateUpdateTime));
         }
+        if (lastLostQuorumTime != 0L) {
+            config.setConfig(KEY_LAST_LOST_QUORUM_TIME, String.valueOf(lastLostQuorumTime));
+        }
         if (networkLatencyInMs != 0D) {
             config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
         }
         if (networkHealth != null) {
-            config.setConfig(KEY_NETWORK_HEALTH, networkHealth);
+            config.setConfig(KEY_NETWORK_HEALTH, networkHealth.toString());
+        }
+
+        if (lastState != null) {
+            config.setConfig(KEY_LASTSTATE, String.valueOf(lastState));
         }
 
         if (state != null) {
@@ -252,7 +307,11 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
-            this.networkHealth = config.getConfig(KEY_NETWORK_HEALTH);
+            this.vip6 = config.getConfig(KEY_VIP6);
+            String networkHealthStr = config.getConfig(KEY_NETWORK_HEALTH);
+            if (networkHealthStr != null && !networkHealthStr.isEmpty()) {
+                this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealthStr.toUpperCase());
+            }
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
@@ -262,10 +321,22 @@ public class Site {
             if (s != null) {
                 this.lastStateUpdateTime = Long.valueOf(s);
             }
+
+            s = config.getConfig(KEY_LAST_LOST_QUORUM_TIME);
+            if (s != null) {
+                lastLostQuorumTime = Long.valueOf(s);
+            }
+
+            s = config.getConfig(KEY_LASTSTATE);
+            if (s != null) {
+                lastState = SiteState.valueOf(config.getConfig(KEY_LASTSTATE));
+            }
+
             s = config.getConfig(KEY_PING);
             if (s != null) {
                 this.networkLatencyInMs = Double.valueOf(s);
             }
+
             s = config.getConfig(KEY_SITE_STATE);
             if (s != null) {
                 state = SiteState.valueOf(config.getConfig(KEY_SITE_STATE));
@@ -337,4 +408,20 @@ public class Site {
         builder.append(", uuid=").append(uuid).append("]");
         return builder.toString();
     }
+
+    public boolean isUsingIpv4() {
+        if (StringUtil.isBlank(vip) || PropertyConstants.IPV4_ADDR_DEFAULT.equals(vip)) {
+            return false;
+        }
+        return true;
+    }
+
+    public String getVipEndPoint() {
+        if (isUsingIpv4()) {
+            return vip;
+        } else {
+            return "[" + vip6 + "]";
+        }
+    }
+    
 }

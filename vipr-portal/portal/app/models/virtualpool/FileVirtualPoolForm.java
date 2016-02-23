@@ -11,11 +11,12 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
-
-import models.FileProtectionSystemTypes;
 import jobs.vipr.ConnectedFileVirtualPoolsCall;
 import jobs.vipr.MatchingFileStoragePoolsCall;
+import models.FileProtectionSystemTypes;
+
+import org.apache.commons.collections.CollectionUtils;
+
 import play.Logger;
 import play.data.validation.Min;
 import util.VirtualPoolUtils;
@@ -40,24 +41,23 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
     public Integer maxSnapshots;
 
     public Boolean longTermRetention;
-    
+
     public String replicationCopiesJson = "[]";
     public ReplicationCopyForm[] replicationCopies = {};
-    
+
     public String replicationType;
     public String replicationMode;
     public Long replicationRpo;
     public String rpRpoType;
-    
+
     public Boolean scheduleSnapshots;
-    
-    
+
     public void deserialize() {
         Gson g = new Gson();
         replicationCopies = g.fromJson(replicationCopiesJson, ReplicationCopyForm[].class);
-        
+
     }
-    
+
     public ConnectedFileVirtualPoolsCall replicationVirtualPools() {
         List<URI> varrayIds = uris(virtualArrays);
         return new ConnectedFileVirtualPoolsCall(varrayIds);
@@ -82,24 +82,24 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         if (protection != null) {
             scheduleSnapshots = protection.getScheduleSnapshots();
         }
-       
-        if(replication != null){
+
+        if (replication != null) {
             FileReplicationPolicy replicationPolicy = replication.getSourcePolicy();
             replicationMode = replicationPolicy.getCopyMode();
             rpRpoType = replicationPolicy.getRpoType();
             replicationRpo = replicationPolicy.getRpoValue();
             Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> rpCopies = replication.getCopies();
             List<ReplicationCopyForm> copyForms = Lists.newArrayList();
-            for (VirtualPoolRemoteProtectionVirtualArraySettingsParam rpCopy : rpCopies){
+            for (VirtualPoolRemoteProtectionVirtualArraySettingsParam rpCopy : rpCopies) {
                 ReplicationCopyForm replicationCopyForm = new ReplicationCopyForm();
                 replicationCopyForm.load(rpCopy);
                 copyForms.add(replicationCopyForm);
             }
-            
+
             replicationCopies = copyForms.toArray(new ReplicationCopyForm[0]);
             Gson gson = new Gson();
             replicationCopiesJson = gson.toJson(replicationCopies);
-            
+
         }
         longTermRetention = virtualPool.getLongTermRetention();
     }
@@ -136,35 +136,34 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         builder.setSnapshots(maxSnapshots);
         builder.setScheduleSnapshots(scheduleSnapshots);
         builder.setLongTermRetention(longTermRetention);
-        
+
         FileReplicationPolicy fileReplicationPolicy = new FileReplicationPolicy();
         fileReplicationPolicy.setReplicationType(replicationType);
         FileVirtualPoolReplicationParam replicationParam = new FileVirtualPoolReplicationParam();
-        
-        
-        if(FileProtectionSystemTypes.isTypeLocal(replicationType)){
+
+        if (FileProtectionSystemTypes.isTypeLocal(replicationType)) {
             fileReplicationPolicy.setCopyMode(replicationMode);
             fileReplicationPolicy.setRpoType(rpRpoType);
             fileReplicationPolicy.setRpoValue(replicationRpo);
         }
-        
-       if (FileProtectionSystemTypes.isTypeRemote(replicationType)){
-           Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = Sets.newLinkedHashSet();
-           fileReplicationPolicy.setCopyMode(replicationMode);
-           fileReplicationPolicy.setRpoType(rpRpoType);
-           fileReplicationPolicy.setRpoValue(replicationRpo);
-           
-           for (ReplicationCopyForm replicationCopyForm : replicationCopies) {
-               if (replicationCopyForm != null ) {
-                   copies.add(replicationCopyForm.write(replicationMode));
-               }
-           }
-           replicationParam.setCopies(copies);
-       }
-       
-       replicationParam.setSourcePolicy(fileReplicationPolicy);
-       builder.setReplicationParam(replicationParam);
-        
+
+        if (FileProtectionSystemTypes.isTypeRemote(replicationType)) {
+            Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = Sets.newLinkedHashSet();
+            fileReplicationPolicy.setCopyMode(replicationMode);
+            fileReplicationPolicy.setRpoType(rpRpoType);
+            fileReplicationPolicy.setRpoValue(replicationRpo);
+
+            for (ReplicationCopyForm replicationCopyForm : replicationCopies) {
+                if (replicationCopyForm != null) {
+                    copies.add(replicationCopyForm.write(replicationMode));
+                }
+            }
+            replicationParam.setCopies(copies);
+        }
+
+        replicationParam.setSourcePolicy(fileReplicationPolicy);
+        builder.setReplicationParam(replicationParam);
+
         return builder;
     }
 
@@ -173,40 +172,40 @@ public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRe
         builder.setSnapshots(maxSnapshots);
         builder.setScheduleSnapshots(scheduleSnapshots);
         builder.setLongTermRetention(longTermRetention);
-        
-        
-        FileReplicationPolicy fileReplicationPolicy = new FileReplicationPolicy();
-        fileReplicationPolicy.setReplicationType(replicationType);
-        FileVirtualPoolReplicationUpdateParam replicationParam = new FileVirtualPoolReplicationUpdateParam();
-        
-        
-        if(FileProtectionSystemTypes.isTypeLocal(replicationType)){
-            fileReplicationPolicy.setCopyMode(replicationMode);
-            fileReplicationPolicy.setRpoType(rpRpoType);
-            fileReplicationPolicy.setRpoValue(replicationRpo);
+
+        if (!isLocked()) {
+            FileReplicationPolicy fileReplicationPolicy = new FileReplicationPolicy();
+            fileReplicationPolicy.setReplicationType(replicationType);
+            FileVirtualPoolReplicationUpdateParam replicationParam = new FileVirtualPoolReplicationUpdateParam();
+
+            if (FileProtectionSystemTypes.isTypeLocal(replicationType)) {
+                fileReplicationPolicy.setCopyMode(replicationMode);
+                fileReplicationPolicy.setRpoType(rpRpoType);
+                fileReplicationPolicy.setRpoValue(replicationRpo);
+            }
+
+            if (FileProtectionSystemTypes.isTypeRemote(replicationType)) {
+                fileReplicationPolicy.setCopyMode(replicationMode);
+                fileReplicationPolicy.setRpoType(rpRpoType);
+                fileReplicationPolicy.setRpoValue(replicationRpo);
+                Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = Sets.newLinkedHashSet();
+                for (ReplicationCopyForm replicationCopyForm : replicationCopies) {
+
+                    if (replicationCopyForm != null) {
+                        copies.add(replicationCopyForm.write(replicationMode));
+                    }
+                }
+                FileVirtualPoolReplicationParam oldPoolReplicationParam = builder.getOldReplicationParam();
+                Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> oldCopies = oldPoolReplicationParam.getCopies();
+
+                replicationParam.getAddRemoteCopies().addAll(CollectionUtils.subtract(copies, oldCopies));
+                replicationParam.getRemoveRemoteCopies().addAll(CollectionUtils.subtract(oldCopies, copies));
+
+            }
+            replicationParam.setSourcePolicy(fileReplicationPolicy);
+            builder.setReplicationParam(replicationParam);
         }
-        
-       if (FileProtectionSystemTypes.isTypeRemote(replicationType)){
-           fileReplicationPolicy.setCopyMode(replicationMode);
-           fileReplicationPolicy.setRpoType(rpRpoType);
-           fileReplicationPolicy.setRpoValue(replicationRpo);
-           Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> copies = Sets.newLinkedHashSet();
-           for (ReplicationCopyForm replicationCopyForm : replicationCopies) {
-               
-               if (replicationCopyForm != null ) {
-                   copies.add(replicationCopyForm.write(replicationMode));
-               }
-           }
-           FileVirtualPoolReplicationParam oldPoolReplicationParam = builder.getOldReplicationParam();
-           Set<VirtualPoolRemoteProtectionVirtualArraySettingsParam> oldCopies = oldPoolReplicationParam.getCopies();
-           
-           replicationParam.getAddRemoteCopies().addAll(CollectionUtils.subtract(copies, oldCopies));
-           replicationParam.getRemoveRemoteCopies().addAll(CollectionUtils.subtract(oldCopies, copies));
-           
-       }       
-       replicationParam.setSourcePolicy(fileReplicationPolicy);
-       builder.setReplicationParam(replicationParam);
-        
+
         return builder;
     }
 

@@ -11,6 +11,9 @@ import java.util.Iterator;
 @Cf("BlockConsistencyGroup")
 public class BlockConsistencyGroup extends DataObject implements ProjectResource {
 
+    // device native ID for this consistency group
+    private String _nativeId;
+
     /**
      * Storage system where this consistency group is located
      */
@@ -93,6 +96,16 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         VPLEX,
         /* Array-based consistency group type. */
         LOCAL
+    }
+
+    @Name("nativeId")
+    public String getNativeId() {
+        return _nativeId;
+    }
+
+    public void setNativeId(String nativeId) {
+        _nativeId = nativeId;
+        setChanged("nativeId");
     }
 
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)

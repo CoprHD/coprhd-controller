@@ -206,7 +206,7 @@ public class SchedulePolicyService extends TaggedResource {
                 throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, minExpireTime, maxExpireTime);
             }
         } else {
-            if (param.getPolicyType().equalsIgnoreCase(SchedulePolicyType.snapshot.toString())) {
+            if (param.getPolicyType().equalsIgnoreCase(SchedulePolicyType.file_snapshot.toString())) {
                 errorMsg.append("Required parameter snapshot_expire was missing or empty");
                 _log.error("Failed to update schedule policy due to {} ", errorMsg.toString());
                 throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());
@@ -270,8 +270,11 @@ public class SchedulePolicyService extends TaggedResource {
 
     @Override
     public SchedulePolicyBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-        verifySystemAdmin();
-        return queryBulkResourceReps(ids);
+        Iterator<SchedulePolicy> _dbIterator = _dbClient.queryIterativeObjects(
+                getResourceClass(), ids);
+        BulkList.ResourceFilter filter = new BulkList.SchedulePolicyFilter(getUserFromContext(), _permissionsHelper);
+        return new SchedulePolicyBulkRep(BulkList.wrapping(_dbIterator,
+                MapSchedulePolicy.getInstance(_dbClient), filter));
     }
 
     /**

@@ -14,8 +14,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGroupUpdateCompleter{
 
@@ -41,16 +43,23 @@ public class BlockConsistencyGroupAddVolumeCompleter extends BlockConsistencyGro
                 if (groupName == null) {
                     groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
                 }
+
+                VolumeGroup volumeGroup = ControllerUtils.getApplicationForCG(dbClient, cg, groupName);
+
                 for (URI voluri : addVolumeList) {
                     Volume volume = dbClient.queryObject(Volume.class, voluri);
                     if (volume != null && !volume.getInactive()) {
                         volume.setReplicationGroupInstance(groupName);
                         volume.setConsistencyGroup(this.getConsistencyGroupURI());
+
+                        if (volumeGroup != null) {
+                            volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                        }
+
                         dbClient.updateObject(volume);
                     }
                 }
             }
-
         } catch (Exception e) {
             log.error("Failed updating status. BlockConsistencyGroupRemoveVolume {}, for task "
                     + getOpId(), getId(), e);

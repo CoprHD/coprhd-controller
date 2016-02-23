@@ -77,9 +77,6 @@ public interface RecoverPointExceptions {
     public RecoverPointException exceptionLookingForBookmarks(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-    public RecoverPointException apitEnableNotImplementedYet();
-
-    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToFindBookmarkOrAPIT();
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
@@ -326,4 +323,7 @@ public interface RecoverPointExceptions {
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
     public RecoverPointException failedToLookupConsistencyGroups(final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
+    public RecoverPointException failedToAddVolumeToApplication(final String volumeLabel, final String reason);
 }

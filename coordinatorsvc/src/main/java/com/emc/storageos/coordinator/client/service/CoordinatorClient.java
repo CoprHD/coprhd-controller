@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
+import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -89,6 +90,30 @@ public interface CoordinatorClient {
      * @throws CoordinatorException
      */
     public <T> T locateService(Class<T> clazz, String name, String version, String tag, String endpointKey)
+            throws CoordinatorException;
+
+    /**
+     * Looks up a service with clazz, name and version; tag, default tag and endpointKey (optional)
+     * If cannot find service for a tag, returns service for default tag.
+     * Binds advertised endpoint with a given interface and returns a stub object that implements this interface.
+     * Currently supported endpoint types are rmi, tbd...
+     * <p/>
+     * Default coordinator implementation may implement any load balancing scheme when multiple services of the same name and version are
+     * available. Client stub object for the same endpoint may be cached in CoordinatorClient implementation for performance.
+     * <p/>
+     * Note that liveness of endpoint is not guaranteed - any retry mechanism is a stub object implementation specific.
+     *
+     * @param clazz
+     * @param name
+     * @param version
+     * @param tag
+     * @param defaultTag
+     * @param endpointKey
+     * @param <T>
+     * @return
+     * @throws CoordinatorException
+     */
+    public <T> T locateService(Class<T> clazz, String name, String version, String tag, String defaultTag, String endpointKey)
             throws CoordinatorException;
 
     /**
@@ -509,6 +534,9 @@ public interface CoordinatorClient {
     public <T extends CoordinatorSerializable> Map<Service,
             T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception;
 
+    <T extends CoordinatorSerializable> Map<Service,
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter, String siteId) throws Exception;
+
     public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception;
 
@@ -693,4 +721,23 @@ public interface CoordinatorClient {
      * @return true if node exists
      */
     boolean nodeExists(String path);
+    
+    /**
+     * Start a ZK transaction for a serial of ZK updates. Currently we support 
+     * only persistServiceConfig/removeSerivceConfig calls.
+     */
+    public void startTransaction();
+    
+    /**
+     * Commit transaction. All ZK updates may succeed, or fail. No partial completion is 
+     * guranteed
+     * 
+     */
+    public void commitTransaction() throws CoordinatorException;
+    
+    /**
+     * Discard current zk transaction
+     */
+    public void discardTransaction();
+
 }

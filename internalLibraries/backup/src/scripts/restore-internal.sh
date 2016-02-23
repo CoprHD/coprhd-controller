@@ -93,7 +93,7 @@ copy_missing_files() {
 purge_node() {
     local viprNode=${1}
     initdb="no"
-    if [ ${IS_CONNECTED_VDC} == true ]; then
+    if [[ ${IS_CONNECTED_VDC} ]]; then
         initdb="yes"
     fi
     local command="/opt/storageos/bin/bkutils -p $initdb"

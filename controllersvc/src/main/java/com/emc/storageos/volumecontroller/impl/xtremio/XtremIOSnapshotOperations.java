@@ -27,6 +27,7 @@ import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
@@ -126,7 +127,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             // Check if the CG for which we are creating snapshot exists on the array
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             String snapsetLabel = snapshotObj.getSnapsetLabel();
-            String cgName = getParentConsistencyGroupName(snapshotObj);
+            String cgName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, dbClient);
             XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName);
             if (cg == null) {
                 _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
@@ -277,7 +278,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
 
             // Check if the CG exists on the array
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-            String cgName = getParentConsistencyGroupName(snapshotObj);
+            String cgName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, dbClient);
             XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName);
             if (cg == null) {
                 _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
@@ -326,7 +327,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
 
             // Check if the CG exists on the array
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-            String cgName = getParentConsistencyGroupName(snapshotObj);
+            String cgName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, dbClient);
             XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName);
             if (cg == null) {
                 _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
@@ -372,11 +373,6 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 CustomConfigConstants.XTREMIO_VOLUME_FOLDER_NAME, storage.getSystemType(), dataSource);
 
         return volumeGroupFolderName;
-    }
-
-    private String getParentConsistencyGroupName(BlockSnapshot snapshot) {
-        Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
-        return (volume == null ? null : volume.getReplicationGroupInstance());
     }
 
     @Override

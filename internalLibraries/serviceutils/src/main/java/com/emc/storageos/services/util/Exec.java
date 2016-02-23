@@ -213,16 +213,22 @@ public class Exec {
             }
 
             // apply maskFilter to stand output
-            Matcher m = maskFilter.matcher(stdOutput.toString());
-            StringBuffer maskedOutput = new StringBuffer();
-            while (m.find ()) {
-                m.appendReplacement(maskedOutput, "***masked***");
+            String output = null;
+            if (maskFilter != null) {
+                Matcher m = maskFilter.matcher(stdOutput.toString());
+                StringBuffer maskedOutput = new StringBuffer();
+                while (m.find()) {
+                    m.appendReplacement(maskedOutput, "***masked***");
+                }
+                m.appendTail(maskedOutput);
+                output = maskedOutput.toString();
+            } else {
+                output = stdOutput.toString();
             }
-            m.appendTail(maskedOutput);
 
             final int exitValue = p.exitValue();
             Result result = new Result(cmd, timeout,
-                    p.exitValue(), maskedOutput.toString(), stdError.toString(),
+                    p.exitValue(), output, stdError.toString(),
                     (destroyed && exitValue != 0) ? Termination._TIMEOUT : Termination._NORMAL);
 
             _log.debug("exec(): " + result);

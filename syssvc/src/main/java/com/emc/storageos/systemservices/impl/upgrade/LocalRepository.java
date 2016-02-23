@@ -669,7 +669,7 @@ public class LocalRepository {
 
     private static String[] exec(final String prefix, String outputMaskPatternStr, String[] cmd) throws LocalRepositoryException {
         Pattern maskFilter = null;
-        if (!StringUtils.isEmpty(outputMaskPatternStr.trim())) {
+        if (!StringUtils.isEmpty(outputMaskPatternStr)) {
             maskFilter = Pattern.compile(outputMaskPatternStr);
         }
 

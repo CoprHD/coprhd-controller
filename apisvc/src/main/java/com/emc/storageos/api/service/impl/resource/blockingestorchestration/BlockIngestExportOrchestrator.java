@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -90,6 +91,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
             // In cluster/Host , if we don't find at least 1 initiator in
             // registered state, then skip this volume from ingestion.
+            StringSet computeInitiators = new StringSet();
             for (Host hostObj : hosts) {
                 Set<String> initiatorSet = getInitiatorsOfHost(hostObj.getId());
                 Set<URI> initiatorUris = new HashSet<URI>(Collections2.transform(initiatorSet,
@@ -101,18 +103,30 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     _logger.warn("Host skipped {} as we can't find at least 1 initiator in registered status", hostObj.getLabel());
                     return;
                 }
+                
+                computeInitiators.addAll(initiatorSet);
             }
 
             if (null != requestContext.getDeviceInitiators() && !requestContext.getDeviceInitiators().isEmpty()) {
-                // note: ViPR-generated greenfield VPLEX export groups
-                // actually have no export group type set
-                exportGroupType = ExportGroupType.Host.name();
+                if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT)) {
+                    // RP export groups are cluster-based, although they don't contains a cluster/host ID 
+                    exportGroupType = ExportGroupType.Cluster.name();
+                } else {
+                    // note: ViPR-generated greenfield VPLEX export groups
+                    // actually have no export group type set
+                    exportGroupType = ExportGroupType.Host.name();
+                }
 
                 if (!VolumeIngestionUtil.validateInitiatorPortsRegistered(requestContext.getDeviceInitiators())) {
                     _logger.warn("Device with initiators {} skipped as we can't "
                             + "find at least 1 initiator in registered status",
                             requestContext.getDeviceInitiators());
                     return;
+                }
+                
+                // For validation checks below, add these initiator to the compute resource list
+                for (Initiator initiator : requestContext.getDeviceInitiators()) {
+                    computeInitiators.add(initiator.getId().toString());
                 }
             }
 
@@ -131,7 +145,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     itr.remove();
                     continue;
                 }
-                if (!VolumeIngestionUtil.validateExportMaskMatchesExportGroup(_dbClient, exportGroup, 
+                if (!VolumeIngestionUtil.validateExportMaskMatchesComputeResourceInitiators(_dbClient, exportGroup, computeInitiators,
                         unManagedExportMask, errorMessages)) {
                     // logs already inside the above method.
                     itr.remove();

@@ -729,18 +729,15 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                         storageSystem, numPaths, isJournalExport);
             }
     
+            volumeContext.setExportGroup(exportGroup);
+            
             // set RP device initiators to be used as the "host" for export mask ingestion
             List<Initiator> initiators = new ArrayList<Initiator>();
             Iterator<Initiator> initiatorItr = _dbClient.queryIterativeObjects(Initiator.class, URIUtil.toURIList(em.getKnownInitiatorUris()));
             while (initiatorItr.hasNext()) {
-                Initiator initiator = initiatorItr.next();
-                exportGroup.addInitiator(initiator);
-                initiators.add(initiator);
+                initiators.add(initiatorItr.next());
             }
             volumeContext.setDeviceInitiators(initiators);
-
-            // Set the export group in the volume context.
-            volumeContext.setExportGroup(exportGroup);
             
             // find the ingest export strategy and call into for this unmanaged export mask
             IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(unManagedVolume);

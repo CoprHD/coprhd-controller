@@ -1060,7 +1060,8 @@ public class BlockStorageUtils {
         for (String subGroup : subGroups) {
             for (NamedRelatedResourceRep snapshotRep : snapshotList.getSnapList()) {
                 BlockSnapshotRestRep snapshot = execute(new GetBlockSnapshot(snapshotRep.getId()));
-                if (snapshot.getReplicationGroupInstance() != null && snapshot.getReplicationGroupInstance().equals(subGroup)) {
+                VolumeRestRep parentVolume = execute(new GetBlockVolume(snapshot.getParent().getId()));
+                if (parentVolume.getReplicationGroupInstance() != null && parentVolume.getReplicationGroupInstance().equals(subGroup)) {
                     snapshotIds.add(snapshot.getId());
                     break;
                 }

@@ -140,9 +140,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             String snapshotSetTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client,
                     getVolumeFolderName(snapshotObj.getProject().getURI(), storage), clusterName)
                     .get(XtremIOConstants.SNAPSHOT_KEY);
-            client.createConsistencyGroupSnapshot(cgName, snapshotObj.getSnapsetLabel(), "", snapType, clusterName);
+            client.createConsistencyGroupSnapshot(cgName, snapsetLabel, "", snapType, clusterName);
             // tag the created the snapshotSet
-            client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapshotObj.getSnapsetLabel(), clusterName);
+            client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapsetLabel, clusterName);
 
             _log.info("Snapset label :{}", snapsetLabel);
             // Create mapping of volume.deviceLabel to BlockSnapshot object
@@ -228,8 +228,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
             // We should use snapsetLabel to get the snapset name because in case of ingested snaps, the replicationGroupInstance
             // will be populated with the CG name corresponding to the snapset.
-            if (null != XtremIOProvUtils.isSnapsetAvailableInArray(client, snapshotObj.getSnapsetLabel(), clusterName)) {
-                client.deleteSnapshotSet(snapshotObj.getSnapsetLabel(), clusterName);
+            String snapsetName = snapshotObj.getSnapsetLabel();
+            if (null != XtremIOProvUtils.isSnapsetAvailableInArray(client, snapsetName, clusterName)) {
+                client.deleteSnapshotSet(snapsetName, clusterName);
             }
             // Set inactive=true for all snapshots in the snap
             List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, dbClient);

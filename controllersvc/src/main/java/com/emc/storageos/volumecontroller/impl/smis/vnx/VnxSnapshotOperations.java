@@ -40,6 +40,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 import com.emc.storageos.workflow.WorkflowException;
 
 public class VnxSnapshotOperations extends AbstractSnapshotOperations {
@@ -125,7 +126,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             }
 
             // Check if the consistency group exists
-            String consistencyGroupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String consistencyGroupName = ConsistencyUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             storage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
 
             if (storage == null) {
@@ -245,7 +246,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             String snapLabelToUse =
                     _nameGenerator.generate(tenantName, snapshotObj.getLabel(),
                             snapshot.toString(), '-', SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
-            String groupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String groupName = ConsistencyUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             CIMArgument[] inArgs = _helper.getCreateGroupReplicaInputArgumentsForVNX(storage, cgPath,
@@ -286,7 +287,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             BlockSnapshot snapshotObj = snapshots.get(0);
 
             // Check if the consistency group exists
-            String consistencyGroupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String consistencyGroupName = ConsistencyUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             StorageSystem newStorage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
 
             if (newStorage == null) {
@@ -414,7 +415,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             final BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
 
             // Check if the consistency group exists
-            final String consistencyGroupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            final String consistencyGroupName = ConsistencyUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             storage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
 
             if (storage == null) {

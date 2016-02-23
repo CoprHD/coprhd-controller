@@ -31,6 +31,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
 
 /**
  * Utils for consistency group related operations for snapshot and clone
@@ -171,7 +172,7 @@ public class VmaxGroupOperationsUtils {
             final SmisCommandHelper helper,
             final CIMObjectPathFactory cimPath) throws Exception {
         boolean isSuccess = false;
-        String groupName = helper.getSourceConsistencyGroupName(sourceVolume);
+        String groupName = ConsistencyUtils.getSourceConsistencyGroupName(sourceVolume, dbClient);
         String replicaGroupName = blockObj.getReplicationGroupInstance();
         CIMObjectPath groupSynchronized = cimPath.getGroupSynchronizedPath(storage, groupName, replicaGroupName);
         CIMArgument[] inArgs = null;

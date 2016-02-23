@@ -363,7 +363,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return api(ctx).unmanagedFileSystems().getByStorageSystem(storageSystem);
     }
 
-    protected static boolean matchesVpool(UnManagedVolumeRestRep volume, URI vpool) {
+    public static boolean matchesVpool(UnManagedVolumeRestRep volume, URI vpool) {
         Set<URI> vpools = getVpoolsForUnmanaged(volume.getVolumeCharacteristics(), volume.getSupportedVPoolUris());
         return vpools.contains(vpool);
     }

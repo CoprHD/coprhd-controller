@@ -26,7 +26,6 @@
   #{/field}
   
   <fieldset>
-  
     #{field 'consistencyGroup.name'}
       %{
         field.cssClass = 'span6 initialFocus';
@@ -35,7 +34,10 @@
       }%
       #{Form.inputTextControlGroup field:field /}
     #{/field}
-
+    
+    #{field 'consistencyGroup.arrayConsistency'}
+       #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
   </fieldset>
 
   #{Form.saveCancel /}

@@ -567,7 +567,7 @@ public class VolumeIngestionUtil {
                 for (DataObject dataObj : dataObjList) {
                     if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
                         Volume volume = (Volume) dataObj;
-                        if (volume.checkForVplexVirtualVolume(dbClient)) {
+                        if (volume.isVPlexVolume(dbClient)) {
                             isRPProtectingVplexVolumes = true;
                             break;
                         }
@@ -1473,6 +1473,48 @@ public class VolumeIngestionUtil {
     }
 
     /**
+     * Validate the unmanaged export mask is a mask that aligns with the export group provided.
+     * 
+     * @param dbClient dbclient
+     * @param exportGroup export group
+     * @param unManagedExportMask unmanaged export mask
+     * @param errorMessages error messages
+     * @return true if the export mask is aligned to the export group.
+     */
+    public static boolean validateExportMaskMatchesExportGroup(DbClient dbClient, ExportGroup exportGroup,
+            UnManagedExportMask unManagedExportMask, List<String> errorMessages) {
+        // Validate export group initiators
+        if (exportGroup.getInitiators() == null) {
+            String errorMessage = String.format("ExportGroup %s has no initiators and therefore unmanaged export mask %s can't be ingested with it.",
+                    exportGroup.getLabel(), unManagedExportMask.getMaskName());
+            errorMessages.add(errorMessage.toString());
+            return false;
+        }
+
+        // Validate unmanaged export mask initiators
+        if (unManagedExportMask.getKnownInitiatorUris() == null) {
+            String errorMessage = String.format("Unmanaged export mask %s has no initiators and therefore it can't be ingested.  (ExportGroup: %s)",
+                    unManagedExportMask.getMaskName(), exportGroup.getLabel());
+            errorMessages.add(errorMessage.toString());
+            return false;
+        }
+
+        // If you find the export group contains some initiators in the unmanaged export mask, go ahead and process it.
+        if (StringSetUtil.hasIntersection(unManagedExportMask.getKnownInitiatorUris(), exportGroup.getInitiators())) {
+            String message = String.format("Unmanaged export mask has initiators that match the export group (%s) initiators and therefore will be attempted to be ingested.",
+                    unManagedExportMask.getMaskName(), exportGroup.getLabel());
+            _logger.info(message);
+            return true;
+        }
+        
+        // Probably the most common scenario.  Don't try to ingest an export mask that doesn't match the export group's initiators.
+        String errorMessage = String.format("ExportGroup %s has no initiators that match unmanaged export mask %s and therefore can't be ingested with it.",
+                exportGroup.getLabel(), unManagedExportMask.getMaskName());
+        errorMessages.add(errorMessage.toString());
+        return false;
+    }
+
+    /**
      * Validates StoragePorts in a VirtualArray for an UnManagedExportMask.
      *
      * @param dbClient a reference to the database client
@@ -2252,9 +2294,8 @@ public class VolumeIngestionUtil {
                     continue;
                 }
 
-                // TODO: This code will likely need to be rethought when we consider multiple masks to RP (VMAX2)
                 if (queryExportGroups.size() > 1) {
-                    _logger.error("More than one export group contains the initiator(s) requested.  Choosing the first one: "
+                    _logger.info("More than one export group contains the initiator(s) requested.  Choosing the first one: "
                             + exportGroup.getId().toString());
                 }
                 return exportGroup;
@@ -3166,7 +3207,7 @@ public class VolumeIngestionUtil {
                 Volume managedVolume = managedVolumeIdsIterator.next();
                 if (hasUnManagedVolume(managedVolume, ingestedUnManagedVolumes, dbClient)) {
                     _logger.info(
-                            "Managed volume {} still has a corresponding unmanaged volume left which means that there is still some info to be ingested",
+                            "INGEST VALIDATION: Managed volume {} still has a corresponding unmanaged volume left which means that there is still some info to be ingested",
                             managedVolume.getId());
                     return false;
                 }
@@ -3177,7 +3218,7 @@ public class VolumeIngestionUtil {
         if (umpset.getUnManagedVolumeIds() != null && umpset.getManagedVolumeIds() != null && umpset.getVolumeWwns() != null &&
                 umpset.getUnManagedVolumeIds().size() == umpset.getManagedVolumeIds().size() &&
                 umpset.getManagedVolumeIds().size() == umpset.getVolumeWwns().size()) {
-            _logger.info("Found that all volumes associated with the RP CG have been ingested: " + umpset.getCgName());
+            _logger.info("INGEST VALIDATION: Found that all volumes associated with the RP CG have been ingested: " + umpset.getCgName());
             return true;
         }
 
@@ -3393,7 +3434,7 @@ public class VolumeIngestionUtil {
             _logger.info("Updating volume " + volume.getLabel() + " flags/settings to " + volume.getInternalFlags());
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
-            if (volume.checkForVplexVirtualVolume(dbClient)) {
+            if (volume.isVPlexVolume(dbClient)) {
 
                 // We need the VPLEX ingest context to get the backend volume info
                 // This information is stored in the context if the vplex volume is the last volume
@@ -3886,5 +3927,6 @@ public class VolumeIngestionUtil {
             }
         }
     }
+
 }
 

@@ -721,6 +721,9 @@ public class BulkList<T> implements List<T> {
                 StorageOSUser user, PermissionsHelper permissionsHelper) {
             URI volumeURI = migration.getVolume();
             Volume volume = permissionsHelper.getObjectById(volumeURI, Volume.class);
+            if (volume == null) {
+                return false;
+            }
             URI projectURI = volume.getProject().getURI();
             Project project = permissionsHelper.getObjectById(projectURI, Project.class);
             if ((permissionsHelper.userHasGivenRole(user,

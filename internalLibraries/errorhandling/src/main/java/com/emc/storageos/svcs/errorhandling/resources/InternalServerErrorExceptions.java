@@ -291,16 +291,13 @@ public interface InternalServerErrorExceptions {
     InternalServerErrorException pauseStandbyFailedTimeout(final long timeoutValue);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
-    InternalServerErrorException pauseStandbyPrecheckFailed(String siteId, String errMsg);
+    InternalServerErrorException pauseStandbyPrecheckFailed(String siteName, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_RECONFIG_FAILED)
     InternalServerErrorException pauseStandbyReconfigFailed(String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_PRECHECK_FAILED)
-    InternalServerErrorException resumeStandbyPrecheckFailed(String siteId, String errMsg);
-
-    @DeclareServiceCode(ServiceCode.SYS_DR_OPERATION_RECONFIG_FAILED)
-    InternalServerErrorException resumeStandbyReconfigFailed(String errMsg);
+    InternalServerErrorException resumeStandbyPrecheckFailed(String siteName, String errMsg);
 
     @DeclareServiceCode(ServiceCode.SYS_DR_RESUME_STANDBY_FAILED)
     public InternalServerErrorException resumeStandbyFailed(final String siteName, String errMsg);

@@ -15,8 +15,8 @@ ifeq ($(BUILD_TYPE),oss)
     DEVKIT_LOCAL=CoprHDDevKit.x86_64-2.5.0.0.$(DEVKIT_BUILD).tbz
     DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/2.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
 else
-    DEVKIT_BUILD=7
-    DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.5.0.0.$(DEVKIT_BUILD)
+    DEVKIT_BUILD=11
+    DEVKIT_IMAGE=nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:3.0.0.0.$(DEVKIT_BUILD)
 endif
 
 DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR):/workspace" -v "/disks:/disks" -v "$(CURDIR)/.gradle:/root/.gradle" $(DEVKIT_IMAGE)

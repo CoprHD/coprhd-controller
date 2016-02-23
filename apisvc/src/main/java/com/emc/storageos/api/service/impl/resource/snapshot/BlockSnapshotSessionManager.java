@@ -258,7 +258,7 @@ public class BlockSnapshotSessionManager {
             storageRgToVolumes = BlockServiceUtils.
                     getReplicationGroupVolumes(param.getVolumes(), cg.getId(), _dbClient, _uriInfo);
         } else {
-            // ignore replication groups that not in selectedRGs if it is not null
+            // CG snapshot session
             storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
                     BlockConsistencyGroupUtils.getAllCGVolumes(cg, _dbClient), _dbClient);
         }

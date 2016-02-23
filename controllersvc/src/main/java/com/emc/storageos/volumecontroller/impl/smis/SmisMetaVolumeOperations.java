@@ -458,7 +458,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                 SmisJob smisJobCompleter = new SmisVolumeExpandJob(null, forProvider.getId(), storagePool.getId(),
                         metaVolumeTaskCompleter, "ExpandAsMetaVolume");
 
-                if (metaHead.checkForRp()) {
+                if (isRPVolume) {
                     _log.info(String.format("Attempt %s/%s to expand volume %s, which is associated with RecoverPoint", attempt,
                             MAX_RP_EXPAND_RETRIES, metaHead.getLabel()));
                 }
@@ -560,7 +560,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                 SmisJob smisJobCompleter = new SmisVolumeExpandJob(null, forProvider.getId(), storagePool.getId(),
                         metaVolumeTaskCompleter, "ExpandMetaVolume");
 
-                if (metaHead.checkForRp()) {
+                if (isRPVolume) {
                     _log.info(String.format("Attempt %s/%s to expand volume %s, which is associated with RecoverPoint", attempt,
                             MAX_RP_EXPAND_RETRIES, metaHead.getLabel()));
                 }

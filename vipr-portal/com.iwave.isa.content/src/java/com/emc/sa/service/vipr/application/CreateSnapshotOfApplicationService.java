@@ -31,7 +31,7 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     protected String name;
 
     @Param(ServiceParams.APPLICATION_SITE)
-    protected URI virtualArray;
+    protected String virtualArrayParameter;
 
     @Param(ServiceParams.HIGH_AVAILABILITY)
     protected Boolean highAvailability;
@@ -64,8 +64,9 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
      */
     public NamedVolumesList getVolumesBySite() {
         boolean isTarget = false;
-        if (virtualArray != null && StringUtils.split(virtualArray.toString(), ':')[0].equals("tgt")) {
-            virtualArray = URI.create(StringUtils.substringAfter(virtualArray.toString(), ":"));
+        URI virtualArray = null;
+        if (virtualArrayParameter != null && StringUtils.split(virtualArrayParameter, ':')[0].equals("tgt")) {
+            virtualArray = URI.create(StringUtils.substringAfter(virtualArrayParameter, ":"));
             isTarget = true;
         } else {
             isTarget = false;

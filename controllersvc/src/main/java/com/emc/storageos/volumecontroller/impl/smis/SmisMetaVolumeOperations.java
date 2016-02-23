@@ -466,6 +466,9 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                 _helper.invokeMethodSynchronously(forProvider, elementCompositionServicePath,
                         SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT, inArgs,
                         outArgs, smisJobCompleter);
+
+                // No exceptions so break out of the retry loop
+                break;
             } catch (WBEMException e) {
                 _log.error("Problem making SMI-S call: ", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
@@ -486,8 +489,8 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                     _log.error("Problem in expandVolumeAsMetaVolume: ", e);
                     ServiceError error = DeviceControllerErrors.smis.methodFailed("expandVolumeAsMetaVolume", e.getMessage());
                     metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
-                    // Reset the retries count to stop retrying
-                    retries = 0;
+                    // Break out of the retry loop
+                    break;
                 }
             }
         }
@@ -565,6 +568,9 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                 _helper.invokeMethodSynchronously(forProvider, elementCompositionServicePath,
                         SmisConstants.CREATE_OR_MODIFY_COMPOSITE_ELEMENT, inArgs,
                         outArgs, smisJobCompleter);
+
+                // No exceptions so break out of the retry loop
+                break;
             } catch (WBEMException e) {
                 _log.error("Problem making SMI-S call: ", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
@@ -585,8 +591,8 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                     _log.error("Problem in expandMetaVolume: ", e);
                     ServiceError error = DeviceControllerErrors.smis.methodFailed("expandVolume", e.getMessage());
                     metaVolumeTaskCompleter.getVolumeTaskCompleter().error(_dbClient, _locker, error);
-                    // Reset the retries count to stop retrying
-                    retries = 0;
+                    // Break out of the retry loop
+                    break;
                 }
             }
         }

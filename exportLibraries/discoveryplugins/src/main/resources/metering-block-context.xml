@@ -554,7 +554,7 @@
 			</list>
 		</property>
 		<property name="instance" ref="connectionManagerUtils"/>
-		<property name="method" value="invoke"/>
+		<property name="method" value="allowReaping"/>
 		<property name="message" value="Allow CIM connections for provider to be cleaned up"/>
 	</bean>
 
@@ -574,6 +574,12 @@
 		<property name="value" value="cimClient" />
 	</bean>
 
+	<bean id="dbclient"
+		  class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="dbClient" />
+	</bean>
 
 	<!-- Processors -->
 	<bean id="cimpathprocessor"

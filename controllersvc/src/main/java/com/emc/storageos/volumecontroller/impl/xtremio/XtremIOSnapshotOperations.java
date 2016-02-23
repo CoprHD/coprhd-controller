@@ -229,7 +229,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             // We should use snapsetLabel to get the snapset name because in case of ingested snaps, the replicationGroupInstance
             // will be populated with the CG name corresponding to the snapset.
             if (null != XtremIOProvUtils.isSnapsetAvailableInArray(client, snapshotObj.getSnapsetLabel(), clusterName)) {
-                client.deleteSnapshotSet(snapshotObj.getReplicationGroupInstance(), clusterName);
+                client.deleteSnapshotSet(snapshotObj.getSnapsetLabel(), clusterName);
             }
             // Set inactive=true for all snapshots in the snap
             List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, dbClient);

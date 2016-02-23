@@ -2271,15 +2271,62 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("applicationSnapshotVirtualArray")
     @AssetDependencies("application")
     public List<AssetOption> getApplicationSnapshotVirtualArrays(AssetOptionsContext ctx, URI applicationId) {
-        List<AssetOption> options = getApplicationVirtualArrays(ctx, applicationId);
-        Iterator<AssetOption> iterator = options.iterator();
-        // Remove High Availability option from Site dropdown for snapshot operations
-        String haOption = getMessage("protection.site.type.ha");
-        while (iterator.hasNext()) {
-            AssetOption option = iterator.next();
-            if (option.value.equalsIgnoreCase(haOption)) {
-                iterator.remove();
+        final ViPRCoreClient client = api(ctx);
+        List<NamedRelatedResourceRep> volList = client.application().listVolumes(applicationId);
+        List<AssetOption> options = new ArrayList<AssetOption>();
+        boolean isVplex = false;
+        boolean isRP = false;
+        URI sourceVarrayId = null;
+        List<VolumeRestRep> allRPSourceVols = null;
+
+        if (volList != null && !volList.isEmpty()) {
+            VolumeRestRep vol = client.blockVolumes().get(volList.get(0));
+            StorageSystemRestRep sys = client.storageSystems().get(vol.getStorageController());
+            if (sys.getSystemType().equals("vplex")) {
+                isVplex = true;
+                sourceVarrayId = vol.getVirtualArray().getId();
             }
+            if (BlockProviderUtils.isVolumeRP(vol)) {
+                isRP = true;
+                allRPSourceVols = client.blockVolumes().getByRefs(volList, RecoverPointPersonalityFilter.SOURCE);
+                if (allRPSourceVols != null && !allRPSourceVols.isEmpty()) {
+                    VolumeRestRep rpvol = allRPSourceVols.get(0);
+                    sourceVarrayId = rpvol.getVirtualArray().getId();
+                }
+            }
+        } else {
+            return options;
+        }
+
+        // if it's neither RP nor vplex, it's just a simple block volume application; site is not needed
+        if (!isVplex && !isRP) {
+            options.add(newAssetOption(URI.create("none"), "None"));
+        }
+
+        // if the volumes are vplex or RP display source as an option
+        if (isVplex || isRP) {
+            options.add(newAssetOption(sourceVarrayId, "protection.site.type.source"));
+        }
+
+        // if the volumes are RP (vplex or not) add the RP targets as options
+        if (isRP) {
+            Set<URI> targetVarrayIds = new HashSet<URI>();
+            List<AssetOption> targetOptions = new ArrayList<AssetOption>();
+            List<VolumeRestRep> allRPTargetVols = client.blockVolumes().getByRefs(volList, RecoverPointPersonalityFilter.TARGET);
+            for (VolumeRestRep targetVol : allRPTargetVols) {
+                targetVarrayIds.add(targetVol.getVirtualArray().getId());
+            }
+            List<VirtualArrayRestRep> targetVarrays = client.varrays().getByIds(targetVarrayIds);
+            for (VirtualArrayRestRep targetVarray : targetVarrays) {
+                targetOptions.add(newAssetOption(String.format("tgt:%s", targetVarray.getId().toString()),
+                        "protection.site.type.target", targetVarray.getName()));
+            }
+
+            // sort the targets
+            AssetOptionsUtils.sortOptionsByLabel(targetOptions);
+
+            options.addAll(targetOptions);
+
         }
         return options;
     }

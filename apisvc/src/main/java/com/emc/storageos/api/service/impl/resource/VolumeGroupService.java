@@ -1460,9 +1460,7 @@ public class VolumeGroupService extends TaskResourceService {
          * vmax3Volumes - block VMAX3 or backend VMAX3 for VPLEX based on copy side requested
          * volumes - except volumes filtered out for above case
          */
-        final Boolean copyOnHighAvailabilitySide = param.getCopyOnHighAvailabilitySide() == null
-                ? Boolean.FALSE : param.getCopyOnHighAvailabilitySide();
-        List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, copyOnHighAvailabilitySide);
+        List<Volume> vmax3Volumes = getVMAX3Volumes(volumes, param.getCopyOnHighAvailabilitySide());
 
         // create snapshot
         Map<URI, List<URI>> cgToVolUris = ControllerUtils.groupVolumeURIsByCG(volumes);

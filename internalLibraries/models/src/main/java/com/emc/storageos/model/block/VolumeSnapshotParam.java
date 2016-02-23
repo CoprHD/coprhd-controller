@@ -20,7 +20,7 @@ public class VolumeSnapshotParam {
 
     // flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes
     // By default, create copy on source back end side
-    private Boolean copyOnHighAvailabilitySide;
+    private Boolean copyOnHighAvailabilitySide = Boolean.FALSE;
 
     public VolumeSnapshotParam() {
     }

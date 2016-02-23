@@ -1280,14 +1280,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     Iterator<URI> it = list.iterator();
                     while (it.hasNext()) {
                         BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, it.next());
-                        String snapGroupName = null;
-                        if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
-                            snapGroupName = snapshot.getReplicationGroupInstance();
-                        } else if (NullColumnValueGetter.isNotNullValue(snapshot.getSnapsetLabel())) {
-                            snapGroupName = snapshot.getSnapsetLabel();
-                        }
-
-                        if (snapGroupName != null) {
+                        if (snapshot != null && !snapshot.getInactive() && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                            String snapGroupName = snapshot.getReplicationGroupInstance();
                             if (snapGroupCloneURIMap.get(snapGroupName) == null) {
                                 snapGroupCloneURIMap.put(snapGroupName, new ArrayList<URI>());
                             }

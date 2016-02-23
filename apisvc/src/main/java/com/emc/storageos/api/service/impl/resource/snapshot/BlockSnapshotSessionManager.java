@@ -249,21 +249,24 @@ public class BlockSnapshotSessionManager {
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     public TaskList createSnapshotSession(BlockConsistencyGroup cg, SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
-        Set<String> selectedRGs = null;
+        Table<URI, String, List<Volume>> storageRgToVolumes = null;
         if (!param.getVolumes().isEmpty()) {
-            selectedRGs = BlockServiceUtils.getReplicationGroupsFromVolumes(param.getVolumes(), cg.getId(), _dbClient, _uriInfo);
+            // volume group snapshot session
+            // group volumes by backend storage system and replication group
+            storageRgToVolumes = BlockServiceUtils.
+                    getReplicationGroupVolumes(param.getVolumes(), cg.getId(), _dbClient, _uriInfo);
+        } else {
+            // ignore replication groups that not in selectedRGs if it is not null
+            storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
+                    BlockConsistencyGroupUtils.getAllCGVolumes(cg, _dbClient), _dbClient);
         }
 
-        // Group volumes by storage system and replication group,
-        // ignore replication groups that not in selectedRGs if it is not null
-        Table<URI, String, List<BlockObject>> storageRgToVolumes = BlockServiceUtils.getReplicationGroupBlockObjects(
-                BlockConsistencyGroupUtils.getAllSources(cg, _dbClient),
-                selectedRGs, _dbClient);
         TaskList taskList = new TaskList();
-        for (Cell<URI, String, List<BlockObject>> cell : storageRgToVolumes.cellSet()) {
+        for (Cell<URI, String, List<Volume>> cell : storageRgToVolumes.cellSet()) {
             String rgName = cell.getColumnKey();
-            List<BlockObject> volumeList = cell.getValue();
+            List<Volume> volumeList = cell.getValue();
             s_logger.info("Processing Replication Group {}, Volumes {}",
                     rgName, Joiner.on(',').join(transform(volumeList, fctnDataObjectToID())));
             if (volumeList == null || volumeList.isEmpty()) {
@@ -273,7 +276,7 @@ public class BlockSnapshotSessionManager {
 
             try {
                 taskList.getTaskList().addAll(
-                        createSnapshotSession(volumeList, param, fcManager).getTaskList());
+                        createSnapshotSession(((List<BlockObject>) (List<?>) volumeList), param, fcManager).getTaskList());
             } catch (Exception e) {
                 s_logger.error("Exception when creating snapshot session for replication group {}: {}",
                         rgName, e);
@@ -959,19 +962,19 @@ public class BlockSnapshotSessionManager {
         if (snapSession.hasConsistencyGroup()) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
             // return only those volumes belonging to session's RG
-            List<BlockObject> cgSources = BlockConsistencyGroupUtils.getAllSources(cg, _dbClient);
+            List<Volume> cgSources = BlockConsistencyGroupUtils.getAllCGVolumes(cg, _dbClient);
             List<BlockObject> cgSourcesInRG = new ArrayList<BlockObject>();
             String rgName = snapSession.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(rgName)) {
-                for (BlockObject bo : cgSources) {
-                    String boRGName = bo.getReplicationGroupInstance();
-                    if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(_dbClient)) {
+                for (Volume vol : cgSources) {
+                    String volRGName = vol.getReplicationGroupInstance();
+                    if (vol.isVPlexVolume(_dbClient)) {
                         // get RG name from back end volume
-                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, _dbClient);
-                        boRGName = srcBEVolume.getReplicationGroupInstance();
+                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) vol, true, _dbClient);
+                        volRGName = srcBEVolume.getReplicationGroupInstance();
                     }
-                    if (rgName.equals(boRGName)) {
-                        cgSourcesInRG.add(bo);
+                    if (rgName.equals(volRGName)) {
+                        cgSourcesInRG.add(vol);
                     }
                 }
             }

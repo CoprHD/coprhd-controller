@@ -2273,9 +2273,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getApplicationSnapshotVirtualArrays(AssetOptionsContext ctx, URI applicationId) {
         List<AssetOption> options = getApplicationVirtualArrays(ctx, applicationId);
         Iterator<AssetOption> iterator = options.iterator();
+        // Remove High Availability option from Site dropdown for snapshot operations
+        String haOption = getMessage("protection.site.type.ha");
         while (iterator.hasNext()) {
             AssetOption option = iterator.next();
-            if (option.value.equalsIgnoreCase("protection.site.type.ha")) {
+            if (option.value.equalsIgnoreCase(haOption)) {
                 iterator.remove();
             }
         }

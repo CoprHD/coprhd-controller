@@ -173,18 +173,18 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
         if (snapSession.hasConsistencyGroup()) {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
             // return only those volumes belonging to session's RG
-            List<BlockObject> cgSources = BlockConsistencyGroupUtils.getAllSources(cg, dbClient);
+            List<Volume> cgSources = BlockConsistencyGroupUtils.getAllCGVolumes(cg, dbClient);
             List<BlockObject> cgSourcesInRG = new ArrayList<BlockObject>();
             String rgName = snapSession.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(rgName)) {
-                for (BlockObject bo : cgSources) {
-                    String boRGName = bo.getReplicationGroupInstance();
-                    if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(dbClient)) {
-                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, dbClient);
-                        boRGName = srcBEVolume.getReplicationGroupInstance();
+                for (Volume vol : cgSources) {
+                    String volRGName = vol.getReplicationGroupInstance();
+                    if (vol.isVPlexVolume(dbClient)) {
+                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) vol, true, dbClient);
+                        volRGName = srcBEVolume.getReplicationGroupInstance();
                     }
-                    if (rgName.equals(boRGName)) {
-                        cgSourcesInRG.add(bo);
+                    if (rgName.equals(volRGName)) {
+                        cgSourcesInRG.add(vol);
                     }
                 }
             }

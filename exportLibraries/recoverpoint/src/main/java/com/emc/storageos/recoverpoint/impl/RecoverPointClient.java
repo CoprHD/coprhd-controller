@@ -2223,7 +2223,7 @@ public class RecoverPointClient {
         for (ConsistencyGroupLinkState cgLinkState : cgLinkStateList) {
             // OK, this is our link that we just restored. Check the link state to see if it is active
             if (PipeState.ACTIVE.equals(cgLinkState.getPipeState()) || PipeState.SNAP_IDLE.equals(cgLinkState.getPipeState()) || 
-                    PipeState.SNAP_SHIPPING.equals(cgLinkState.getPipeState())) {
+                PipeState.SNAP_SHIPPING.equals(cgLinkState.getPipeState()) || PipeState.STAND_BY.equals(cgLinkState.getPipeState())) {
                 someCopiesNotPaused = true;
             } else {
                 someCopiesPaused = true;

@@ -1122,6 +1122,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         NamedVolumesList applicationVolumes = client.application().getVolumeByApplication(applicationId);
         for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
             VolumeRestRep volume = client.blockVolumes().get(volumeId);
+            if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
+                volume = client.blockVolumes().get(volume.getHaVolumes().get(0).getId());
+            }
             if (isTarget) {
                 if (volume.getVirtualArray().getId().equals(virtualArray)) {
                     subGroups.add(volume.getReplicationGroupInstance());

@@ -76,6 +76,9 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
         NamedVolumesList volumesToUse = new NamedVolumesList();
         for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
             VolumeRestRep volume = getClient().blockVolumes().get(volumeId);
+            if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
+                volume = getClient().blockVolumes().get(volume.getHaVolumes().get(0).getId());
+            }
             if (isTarget) {
                 if (volume.getVirtualArray().getId().equals(virtualArray)) {
                     volumesToUse.getVolumes().add(volumeId);

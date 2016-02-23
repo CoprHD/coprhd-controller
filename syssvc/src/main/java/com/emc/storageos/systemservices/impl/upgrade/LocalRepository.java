@@ -19,7 +19,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -659,8 +661,19 @@ public class LocalRepository {
         _log.info(prefix + "Success!");
     }
 
+
+
     private static String[] exec(final String prefix, String[] cmd) throws LocalRepositoryException {
-        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        return exec(prefix, null, cmd);
+    }
+
+    private static String[] exec(final String prefix, String outputMaskPatternStr, String[] cmd) throws LocalRepositoryException {
+        Pattern maskFilter = null;
+        if (!StringUtils.isEmpty(outputMaskPatternStr.trim())) {
+            maskFilter = Pattern.compile(outputMaskPatternStr);
+        }
+
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, maskFilter, cmd);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             _log.info(prefix + "Command failed. Result exit value: " + result.getExitValue());
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Command failed: " + result);

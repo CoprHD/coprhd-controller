@@ -12,6 +12,8 @@ import java.lang.Thread;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,15 +138,22 @@ public class Exec {
      * @return Exec.Result object
      */
     public static Result sudo(long timeout, String... args) {
+        return sudo(timeout, null, args);
+    }
+
+    /**
+     *  maskFilter is for masking any matched string when printing stdOutput in log file.
+     */
+    public static Result sudo(long timeout, Pattern maskFilter, String... args) {
         String userName = System.getProperty("user.name");
         if (userName.equals("root")) {
             // Root user does not need SUDO.
-            return exec(timeout, args);
+            return exec(timeout, maskFilter, args);
         }
         List<String> tmpList = new ArrayList(Arrays.asList(args));
         tmpList.add(0, "sudo");
         String[] newArray = tmpList.toArray(new String[tmpList.size()]);
-        return exec(timeout, newArray);
+        return exec(timeout, maskFilter, newArray);
     }
 
     /***
@@ -156,6 +165,11 @@ public class Exec {
      * @return Exec.Result object
      */
     public static Result exec(long timeout, String... args) {
+        return exec(timeout, null, args);
+    }
+
+
+    public static Result exec(long timeout, Pattern maskFilter, String... args) {
         List<String> cmdList = new ArrayList(Arrays.asList(args));
 
         final String[] cmd = cmdList.toArray(new String[cmdList.size()]);
@@ -198,9 +212,17 @@ public class Exec {
                 }
             }
 
+            // apply maskFilter to stand output
+            Matcher m = maskFilter.matcher(stdOutput.toString());
+            StringBuffer maskedOutput = new StringBuffer();
+            while (m.find ()) {
+                m.appendReplacement(maskedOutput, "***masked***");
+            }
+            m.appendTail(maskedOutput);
+
             final int exitValue = p.exitValue();
             Result result = new Result(cmd, timeout,
-                    p.exitValue(), stdOutput.toString(), stdError.toString(),
+                    p.exitValue(), maskedOutput.toString(), stdError.toString(),
                     (destroyed && exitValue != 0) ? Termination._TIMEOUT : Termination._NORMAL);
 
             _log.debug("exec(): " + result);

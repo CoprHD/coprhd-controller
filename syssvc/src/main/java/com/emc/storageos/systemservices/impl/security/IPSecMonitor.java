@@ -107,8 +107,6 @@ public class IPSecMonitor implements Runnable {
                 log.info("no latest ipsec properties found, skip following check steps");
                 return;
             }
-            log.info("latest ipsec properties: " + latest.toString());
-
 
             log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
             if (isSyncNeeded(latest)) {

@@ -195,12 +195,13 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         List<URI> snapIdList = new ArrayList<URI>();
         List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
         TaskList response = new TaskList();
+        //by default only source side is supported through Cinder.
         snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
-                volumeList, snapshotType, snapshotName, snapIdList, taskId));
+                volumeList, snapshotType, snapshotName, snapIdList,true, taskId));
         for (BlockSnapshot snapshot : snapshotList) {
             response.getTaskList().add(toTask(snapshot, taskId));
         }
-        blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, readOnly, taskId);
+        blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, readOnly,false,  taskId);
 
         auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.cgsnapshot.name,

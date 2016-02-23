@@ -10987,7 +10987,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Determine the backend storage system containing the native snapshot session.
             Volume firstVplexVolume = vplexVolumes.get(0);
-            Volume firstSnapSessionParentVolume = VPlexUtil.getVPLEXBackendVolume(firstVplexVolume, true, _dbClient);
+            Volume firstSnapSessionParentVolume = VPlexUtil.getBackEndVolumeFromSnapSession(snapSession, _dbClient);
+            
             StorageSystem snapSessionSystem = getDataObject(StorageSystem.class, firstSnapSessionParentVolume.getStorageController(),
                     _dbClient);
 

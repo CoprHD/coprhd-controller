@@ -376,12 +376,13 @@ public interface BlockServiceApi {
      * @param snapShotType The snapshot technology type.
      * @param snapshotName The snapshot name.
      * @param snapshotURIs [OUT] The URIs for the prepared snapshots.
+     * @param copyOnSourceSide if true, snap will be taken at source side else HA side.
      * @param taskId The unique task identifier
      * 
      * @return The list of snapshots
      */
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapShotType,
-            String snapshotName, List<URI> snapshotURIs, String taskId);
+            String snapshotName, List<URI> snapshotURIs, Boolean copyOnSourceSide, String taskId);
 
     /**
      * Uses the appropriate controller to create the snapshots.
@@ -392,10 +393,11 @@ public interface BlockServiceApi {
      * @param createInactive true if the snapshots should be created but not
      *            activated, false otherwise.
      * @param readOnly true if the snapshot should be read only, false otherwise
+     * @param highAvailability true, then snapshot will be taken at HA side.
      * @param taskId The unique task identifier.
      */
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId);
+            String snapshotType, Boolean createInactive, Boolean readOnly, Boolean highAvailability,  String taskId);
 
     /**
      * Uses the appropriate controller to delete the snapshot.

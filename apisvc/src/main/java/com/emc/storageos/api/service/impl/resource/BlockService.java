@@ -2200,9 +2200,9 @@ public class BlockService extends TaskResourceService {
         // initialize the task list.
         String taskId = UUID.randomUUID().toString();
         List<URI> snapshotURIs = new ArrayList<URI>();
-
+        //TODO Change to accept HA side
         List<BlockSnapshot> snapshots = blockServiceApiImpl.prepareSnapshots(
-                volumesToSnap, snapshotType, snapshotName, snapshotURIs, taskId);
+                volumesToSnap, snapshotType, snapshotName, snapshotURIs,true,  taskId);
 
         TaskList response = new TaskList();
         for (BlockSnapshot snapshot : snapshots) {
@@ -2215,7 +2215,7 @@ public class BlockService extends TaskResourceService {
 
         // Invoke the block service API implementation to create the snapshot
         blockServiceApiImpl.createSnapshot(requestedVolume, snapshotURIs, snapshotType,
-                createInactive, readOnly, taskId);
+                createInactive, readOnly, true,  taskId);
 
         // Record a message in the audit log.
         auditOp(OperationTypeEnum.CREATE_VOLUME_SNAPSHOT, true,

@@ -30,6 +30,7 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -297,6 +298,12 @@ public class BlockSnapshotSessionManager {
             SnapshotSessionCreateParam param, BlockFullCopyManager fcManager) {
         Collection<URI> sourceURIs = transform(snapSessionSourceObjList, fctnDataObjectToID());
         s_logger.info("START create snapshot session for sources {}", Joiner.on(',').join(sourceURIs));
+        
+        // Set the high availability only flag.
+        final Boolean copyOnHASide = param.getCopyOnHighAvailabilitySide() == null ? Boolean.FALSE : param.getCopyOnHighAvailabilitySide();
+        
+        boolean copySide = true; //by default source side
+        if (copyOnHASide) copySide = false;
 
         // Get the snapshot session label.
         String snapSessionLabel = param.getName();
@@ -332,7 +339,7 @@ public class BlockSnapshotSessionManager {
         // snapshot sessions.
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
         BlockSnapshotSession snapSession = snapSessionApiImpl.prepareSnapshotSession(snapSessionSourceObjList,
-                snapSessionLabel, newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId);
+                snapSessionLabel, newLinkedTargetsCount, newTargetsName, snapSessionSnapshots,copySide,  taskId);
 
         // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();
@@ -368,7 +375,7 @@ public class BlockSnapshotSessionManager {
         // Create the snapshot sessions.
         try {
             snapSessionApiImpl.createSnapshotSession(sourceObj, snapSession.getId(),
-                    snapSessionSnapshotURIs, newTargetsCopyMode, taskId);
+                    snapSessionSnapshotURIs, newTargetsCopyMode,copySide,  taskId);
         } catch (Exception e) {
             String errorMsg = format("Failed to create snapshot sessions for source %s: %s", sourceObj.getId(), e.getMessage());
             ServiceCoded sc = null;
@@ -428,7 +435,7 @@ public class BlockSnapshotSessionManager {
         // Prepare the BlockSnapshot instances to represent the new linked targets.
         List<Map<URI, BlockSnapshot>> snapshots = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObjs, 0,
                 newLinkedTargetsCount,
-                newTargetsName);
+                newTargetsName, snapSession);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
@@ -965,12 +972,16 @@ public class BlockSnapshotSessionManager {
             if (NullColumnValueGetter.isNotNullValue(rgName)) {
                 for (BlockObject bo : cgSources) {
                     String boRGName = bo.getReplicationGroupInstance();
+                    String haRGName = null;
                     if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(_dbClient)) {
                         // get RG name from back end volume
                         Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, _dbClient);
                         boRGName = srcBEVolume.getReplicationGroupInstance();
+                        
+                        Volume hABEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, false, _dbClient);
+                        haRGName = srcBEVolume.getReplicationGroupInstance();
                     }
-                    if (rgName.equals(boRGName)) {
+                    if (rgName.equals(boRGName) || rgName.equals(haRGName)) {
                         cgSourcesInRG.add(bo);
                     }
                 }

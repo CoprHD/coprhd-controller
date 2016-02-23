@@ -51,12 +51,13 @@ public interface BlockSnapshotSessionApi {
      * @param newTargetCount The number of new targets to create and link to each snapshot session.
      * @param newTargetsName The requested name for the new linked targets.
      * @param snapSessionSnapshots This OUT parameter gets populated with the BlockSnaphot instances created for each session, if any.
+     * @param copySide If true, snap sessions will be taken at source else HA side. 
      * @param taskId The unique task identifier.
      * 
      * @return
      */
     public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId);
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, Boolean copySide, String taskId);
 
     /**
      * Prepare a ViPR BlockSnapshotSession instance for the passed source object.
@@ -83,7 +84,7 @@ public interface BlockSnapshotSessionApi {
      * @return A map containing the prepared BlockSnapshot instances, keyed by the snapshot URI.
      */
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
-            String newTargetsName);
+            String newTargetsName, BlockSnapshotSession session);
 
     /**
      * Prepare a ViPR BlockSnapshot instance for a new target to be created and
@@ -95,7 +96,7 @@ public interface BlockSnapshotSessionApi {
      *
      * @return The prepared BlockSnapshot instance.
      */
-    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel);
+    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel, BlockSnapshotSession session);
 
     /**
      * Creates a new block snapshot session.
@@ -104,10 +105,11 @@ public interface BlockSnapshotSessionApi {
      * @param snapSessionURI The URI of the ViPR BlockSnashotSession instances to be created.
      * @param snapSessionSnapshotURIs A map containing the URis of the BlockSnapshot instances for each session.
      * @param copyMode The copy mode for linked targets.
+     * @param copySide If copy side is true, then sessions will be created at source else HA
      * @param taskId A unique task identifier.
      */
     public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
-            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId);
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, Boolean copySide, String taskId);
 
     /**
      * Validates a link new targets to block snapshot session request.

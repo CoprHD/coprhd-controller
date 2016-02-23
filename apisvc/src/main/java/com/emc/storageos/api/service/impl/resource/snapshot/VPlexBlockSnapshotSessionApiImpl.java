@@ -96,14 +96,14 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
-            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId) {
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode,Boolean copySide,  String taskId) {
         if (URIUtil.isType(sourceObj.getId(), Volume.class)) {
             // Get the platform specific implementation for the source side
             // backend storage system and call the create method.
             Volume vplexVolume = (Volume) sourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, copySide , _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
-            snapSessionImpl.createSnapshotSession(srcSideBackendVolume, snapSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
+            snapSessionImpl.createSnapshotSession(srcSideBackendVolume, snapSessionURI, snapSessionSnapshotURIs, copyMode, copySide,  taskId);
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should never be called.
@@ -122,6 +122,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // Get the platform specific implementation for the source side
             // backend storage system and call the validation routine.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
+            //This backend is not used in validation
             BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.validateLinkNewTargetsRequest(srcSideBackendVolume, project, newTargetsCount, newTargetsName,
@@ -143,7 +144,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // Get the platform specific implementation for the source side
             // backend storage system and call the link method.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            BlockObject srcSideBackendVolume = VPlexUtil.getBackEndVolumeFromSnapSession(snapSession, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.linkNewTargetVolumesToSnapshotSession(srcSideBackendVolume, snapSession, snapshotURIs, copyMode, taskId);
         } else {
@@ -164,7 +165,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // Get the platform specific implementation for the source side
             // backend storage system and call the validation routine.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            BlockObject srcSideBackendVolume = VPlexUtil.getBackEndVolumeFromSnapSession(tgtSnapSession, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.validateRelinkSnapshotSessionTargets(srcSideBackendVolume, tgtSnapSession, project, snapshotURIs, uriInfo);
         } else {
@@ -184,7 +185,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // Get the platform specific implementation for the source side
             // backend storage system and call the relink method.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            BlockObject srcSideBackendVolume = VPlexUtil.getBackEndVolumeFromSnapSession(TgtSnapSession, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.relinkTargetVolumesToSnapshotSession(srcSideBackendVolume, TgtSnapSession, snapshotURIs, taskId);
         } else {
@@ -205,7 +206,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // Get the platform specific implementation for the source side
             // backend storage system and call the validation routine.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            BlockObject srcSideBackendVolume = VPlexUtil.getBackEndVolumeFromSnapSession(snapSession, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.validateUnlinkSnapshotSessionTargets(snapSession, srcSideBackendVolume, project, targetMap,
                     uriInfo);
@@ -259,7 +260,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // Get the platform specific implementation for the source side
             // backend storage system and call the unlink target method.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            BlockObject srcSideBackendVolume = VPlexUtil.getBackEndVolumeFromSnapSession(snapSession, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.unlinkTargetVolumesFromSnapshotSession(srcSideBackendVolume, snapSession, snapshotDeletionMap, taskId);
         } else {
@@ -335,7 +336,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // Get the platform specific implementation for the source side
             // backend storage system and call the validation routine.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            BlockObject srcSideBackendVolume = VPlexUtil.getBackEndVolumeFromSnapSession(snapSession, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.validateDeleteSnapshotSession(snapSession, srcSideBackendVolume, project);
 
@@ -358,7 +359,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             // Get the platform specific implementation for the source side
             // backend storage system and call the delete method.
             Volume vplexVolume = (Volume) snapSessionSourceObj;
-            BlockObject srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            BlockObject srcSideBackendVolume = VPlexUtil.getBackEndVolumeFromSnapSession(snapSession, _dbClient);
             BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
             snapSessionImpl.deleteSnapshotSession(snapSession, srcSideBackendVolume, taskId, deleteType);
         } else {
@@ -380,6 +381,17 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
             URI parentURI = srcSideBackendVolume.getId();
             snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
                     ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(parentURI));
+            
+            Volume haSideBackendVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+            if (null != haSideBackendVolume) {
+            	List<BlockSnapshotSession> haSnapSessions = new ArrayList();
+            	haSnapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
+                        ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(haSideBackendVolume.getId()));
+            	if (null != haSnapSessions && null != snapSessions) {
+            		snapSessions.addAll(haSnapSessions);
+            	}
+            }
+            
         } else {
             // We don't currently support snaps of BlockSnapshot instances
             // so should not be called.
@@ -393,8 +405,8 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
-            String taskId) {
+    public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,  
+    		String taskId) {
         // The snapshot is generally prepared with information from the
         // source side backend volume, which is the volume being snapped.
         // The passed source object will be a volume, else would not have
@@ -415,14 +427,14 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      * {@inheritDoc}
      */
     @Override
-    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel) {
+    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel, BlockSnapshotSession session) {
         // The snapshot is generally prepared with information from the
         // source side backend volume, which is the volume being snapped.
         // The passed source object will be a volume, else would not have
         // made it this far.
-        Volume srcSideBackendVolume = VPlexUtil.getVPLEXBackendVolume((Volume) sourceObj, true, _dbClient);
+        Volume srcSideBackendVolume = VPlexUtil.getBackEndVolumeFromSnapSession(session, _dbClient);
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolume.getStorageController());
-        BlockSnapshot snapshot = snapSessionImpl.prepareSnapshotForSession(srcSideBackendVolume, snapsetLabel, instanceLabel);
+        BlockSnapshot snapshot = snapSessionImpl.prepareSnapshotForSession(srcSideBackendVolume, snapsetLabel, instanceLabel, session);
 
         // However, the project is from the VPLEX volume.
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
@@ -437,18 +449,18 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sourceCount, int newTargetCount,
-            String newTargetsName) {
+            String newTargetsName, BlockSnapshotSession session) {
         // The snapshots are generally prepared with information from the
         // source side backend volume, which is the volume being snapped.
         // The passed source object will be a volume, else would not have
         // made it this far.
         List<BlockObject> srcSideBackendVolumes = new ArrayList<>();
         for (BlockObject sourceObj : sourceObjList) {
-            srcSideBackendVolumes.add(VPlexUtil.getVPLEXBackendVolume((Volume) sourceObj, true, _dbClient));
+            srcSideBackendVolumes.add(VPlexUtil.getBackEndVolumeFromSnapSession(session, _dbClient));
         }
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(srcSideBackendVolumes.get(0).getStorageController());
         List<Map<URI, BlockSnapshot>> snapshotMap = snapSessionImpl.prepareSnapshotsForSession(srcSideBackendVolumes, sourceCount,
-                newTargetCount, newTargetsName);
+                newTargetCount, newTargetsName, session);
 
         // However, the project is from the VPLEX volume.
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObjList.get(0), _dbClient);

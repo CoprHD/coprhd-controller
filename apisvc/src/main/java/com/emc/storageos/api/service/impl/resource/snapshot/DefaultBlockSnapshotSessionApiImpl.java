@@ -257,7 +257,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId) {
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, Boolean copySide, String taskId) {
         // Create a single snap session based on a sample volume in the CG
         BlockObject source = sourceObjList.get(0);
         BlockSnapshotSession snapSession = prepareSnapshotSessionFromSource(source, snapSessionLabel, snapSessionLabel, taskId);
@@ -294,7 +294,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                     String rgName = sourceObj.getReplicationGroupInstance();
                     if (sourceObj instanceof Volume && ((Volume) sourceObj).isVPlexVolume(_dbClient)) {
                         // get RG name from back end volume
-                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) sourceObj, true, _dbClient);
+                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) sourceObj, copySide, _dbClient);
                         rgName = srcBEVolume.getReplicationGroupInstance();
                     }
                     if (NullColumnValueGetter.isNotNullValue(rgName)) {
@@ -308,7 +308,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                         label = String.format("%s-%s", snapsetLabel, ++count);
                     }
 
-                    BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label);
+                    BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label, snapSession);
                     targetMap.put(blockSnapshot.getId(), blockSnapshot);
                 }
                 snapSessionSnapshots.add(targetMap);
@@ -358,7 +358,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String label) {
+    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String label, BlockSnapshotSession session) {
         BlockSnapshot snapshot = new BlockSnapshot();
 
         snapshot.setId(URIUtil.createId(BlockSnapshot.class));
@@ -388,7 +388,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sourceCount, int newTargetCount,
-            String newTargetsName) {
+            String newTargetsName, BlockSnapshotSession session) {
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
 
         for (int i = 0; i < newTargetCount; i++) {
@@ -410,7 +410,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                     label = String.format("%s-%s", snapsetLabel, ++count);
                 }
 
-                BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label);
+                BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label, session);
                 targetMap.put(blockSnapshot.getId(), blockSnapshot);
             }
             snapSessionSnapshots.add(targetMap);
@@ -424,7 +424,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
-            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId) {
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, Boolean copySide,  String taskId) {
         // Must be implemented by platform implementations for which this is supported.
         throw APIException.methodNotAllowed.notSupported();
     }
@@ -703,4 +703,9 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 .getPlatformSpecificImplForSystem(srcSideBackendSystem);
         return snapSessionImpl;
     }
+    
+    
+    
+   
 }
+

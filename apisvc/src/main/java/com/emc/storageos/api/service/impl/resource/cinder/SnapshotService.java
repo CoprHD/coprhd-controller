@@ -233,7 +233,7 @@ public class SnapshotService extends TaskResourceService {
         List<URI> snapshotURIs = new ArrayList<URI>();
 
         List<BlockSnapshot> snapshots = api.prepareSnapshots(volumesToSnap,
-                snapshotType, snapshotName, snapshotURIs, taskId);
+                snapshotType, snapshotName, snapshotURIs, true,  taskId);
 
         TaskList response = new TaskList();
         for (BlockSnapshot snapshot : snapshots) {
@@ -247,7 +247,7 @@ public class SnapshotService extends TaskResourceService {
         Boolean readOnly = false;
         // Invoke the block service API implementation to create the snapshot
         api.createSnapshot(volume, snapshotURIs, snapshotType, createInactive,
-                readOnly, taskId);
+                readOnly, true, taskId);
 
         SnapshotCreateResponse snapCreateResp = new SnapshotCreateResponse();
 

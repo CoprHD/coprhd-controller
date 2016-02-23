@@ -2962,13 +2962,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @return A reference to the new BlockSnapshot instance.
      */
     @Override
-    protected BlockSnapshot prepareSnapshotFromVolume(Volume vplexVolume, String snapsetLabel, String label) {
+    protected BlockSnapshot prepareSnapshotFromVolume(Volume vplexVolume, String snapsetLabel, String label, Boolean copySide) {
 
         // When creating a snapshot for a VPLEX volume, we create a
         // native snapshot of the source backend volume for the
         // VPLEX volume. The source backend volume is the associated
         // volume in the same virtual arrays as the VPLEX volume.
-        Volume nativeSnapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
+        Volume nativeSnapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, copySide);
 
         // Note that when creating the ViPR snapshot, some of the properties
         // of the snapshot come from the VPLEX volume, while others come
@@ -3005,7 +3005,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @return A reference to the backend volume to serve as the snapshot
      *         source.
      */
-    public Volume getVPLEXSnapshotSourceVolume(Volume vplexVolume) {
+    public Volume getVPLEXSnapshotSourceVolume(Volume vplexVolume, boolean copySide) {
+    	
         String vplexVolumeId = vplexVolume.getId().toString();
         StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
         if (associatedVolumeIds == null) {
@@ -3015,7 +3016,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Get the backend volume that will serve as the source volume
         // for a native snapshot.
-        Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+        Volume snapshotSourceVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, copySide, _dbClient);
         if (snapshotSourceVolume == null) {
             throw InternalServerErrorException.internalServerErrors
                     .noSourceVolumeForVPLEXVolumeSnapshot(vplexVolumeId);
@@ -3071,11 +3072,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
+            String snapshotType, Boolean createInactive, Boolean readOnly, Boolean copySide, String taskId) {
 
-        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(reqVolume);
+        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(reqVolume, copySide);
         super.createSnapshot(snapshotSourceVolume, snapshotURIs, snapshotType,
-                createInactive, readOnly, taskId);
+                createInactive, readOnly, copySide, taskId);
     }
 
     /**
@@ -3092,7 +3093,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     protected int getNumNativeSnapshots(Volume vplexVolume) {
-        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
+        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, false);
         return super.getNumNativeSnapshots(snapshotSourceVolume);
     }
 
@@ -3104,7 +3105,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     protected void checkForDuplicatSnapshotName(String name, Volume vplexVolume) {
-        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
+        Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, true);
         super.checkForDuplicatSnapshotName(name, snapshotSourceVolume);
     }
 
@@ -3118,7 +3119,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public List<BlockSnapshot> getSnapshots(Volume vplexVolume) {
         if (!vplexVolume.isIngestedVolume(_dbClient)) {
-            Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
+            Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume, true);
             return super.getSnapshots(snapshotSourceVolume);
         }
 
@@ -3374,7 +3375,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
             String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
-        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume), volumesToSnap, snapshotType, snapshotName, fcManager);
+        super.validateCreateSnapshot(getVPLEXSnapshotSourceVolume(reqVolume, true), volumesToSnap, snapshotType, snapshotName, fcManager);
 
         // If the volume is a VPLEX volume created on a block snapshot,
         // we don't support creation of a snapshot. In this case the

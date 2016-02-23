@@ -1165,7 +1165,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapshotType,
-            String snapshotName, List<URI> snapshotURIs, String taskId) {
+            String snapshotName, List<URI> snapshotURIs,Boolean copySide, String taskId) {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int count = 1;
@@ -1173,7 +1173,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             // Attempt to create distinct labels here when creating >1 volumes (ScaleIO requirement)
             String rgName = volume.getReplicationGroupInstance();
             if (volume.isVPlexVolume(_dbClient)) {
-                Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), true, _dbClient);
+                Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), copySide, _dbClient);
                 if (backendVol != null && !backendVol.getInactive()) {
                     rgName = backendVol.getReplicationGroupInstance();
                 }
@@ -1191,7 +1191,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 label = String.format("%s-%s", snapshotName, count++);
             }
 
-            BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, label);
+            BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, label, copySide);
             snapshot.setTechnologyType(snapshotType);
             snapshot.setOpStatus(new OpStatusMap());
             Operation op = new Operation();
@@ -1213,8 +1213,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param label The label for the new snapshot
      * @return A reference to the new BlockSnapshot instance.
      */
-    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String label) {
-        return prepareSnapshotFromVolume(volume, label, label);
+    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String label, Boolean copySide) {
+        return prepareSnapshotFromVolume(volume, label, copySide);
     }
 
     /**
@@ -1224,9 +1224,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param volume The volume for which the snapshot is being created.
      * @param snapsetLabel The snapset label for grouping this snapshot
      * @param label The label for the new snapshot
+     * @param copySide If true, snaps will be taken at source side else HA side
      * @return A reference to the new BlockSnapshot instance.
      */
-    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapsetLabel, String label) {
+    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapsetLabel, String label, Boolean copySide) {
         BlockSnapshot snapshot = new BlockSnapshot();
         snapshot.setId(URIUtil.createId(BlockSnapshot.class));
         URI cgUri = volume.getConsistencyGroup();
@@ -1259,7 +1260,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
+            String snapshotType, Boolean createInactive, Boolean readOnly, Boolean copyOnHaSide, String taskId) {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, reqVolume.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.createSnapshot(storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);

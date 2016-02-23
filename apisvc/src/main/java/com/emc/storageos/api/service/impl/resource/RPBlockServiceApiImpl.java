@@ -2344,7 +2344,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 for (Volume vplexVolume : volumesToSnap) {
                     if (vplexVolume.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())
                             || vplexVolume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                        baseVolumesToSnap.add(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(vplexVolume));
+                        baseVolumesToSnap.add(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(vplexVolume, true));
                     }
                 }
             }
@@ -2417,7 +2417,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapshotType,
-            String snapshotName, List<URI> snapshotURIs, String taskId) {
+            String snapshotName, List<URI> snapshotURIs, Boolean copySide, String taskId) {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         for (Volume volume : volumes) {
@@ -2440,7 +2440,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 boolean vplex = RPHelper.isVPlexVolume(volume);
                 Volume volumeToSnap = volume;
                 if (vplex) {
-                    volumeToSnap = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(volume);
+                    volumeToSnap = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(volume, copySide);
                 }
 
                 boolean isRPTarget = false;
@@ -2640,12 +2640,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
+            String snapshotType, Boolean createInactive, Boolean readOnly, Boolean copySide, String taskId) {
         boolean vplex = RPHelper.isVPlexVolume(reqVolume);
         ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, reqVolume.getProtectionController());
         URI storageControllerURI = null;
         if (vplex) {
-            Volume backendVolume = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume);
+            Volume backendVolume = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume, copySide);
             storageControllerURI = backendVolume.getStorageController();
         } else {
             storageControllerURI = reqVolume.getStorageController();
@@ -2657,10 +2657,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);
         } else {
             if (vplex) {
-                super.createSnapshot(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume), snapshotURIs, snapshotType,
-                        createInactive, readOnly, taskId);
+                super.createSnapshot(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume, copySide), snapshotURIs, snapshotType,
+                        createInactive, readOnly, copySide, taskId);
             } else {
-                super.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, readOnly, taskId);
+                super.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, readOnly, copySide, taskId);
             }
         }
     }

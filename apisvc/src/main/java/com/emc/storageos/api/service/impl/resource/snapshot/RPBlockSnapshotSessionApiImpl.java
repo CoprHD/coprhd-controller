@@ -81,9 +81,9 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void createSnapshotSession(BlockObject sourceObj, URI snapSessionURI,
-            List<List<URI>> snapSessionSnapshotURIs, String copyMode, String taskId) {
+            List<List<URI>> snapSessionSnapshotURIs, String copyMode, Boolean copySide, String taskId) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
-        snapSessionImpl.createSnapshotSession(sourceObj, snapSessionURI, snapSessionSnapshotURIs, copyMode, taskId);
+        snapSessionImpl.createSnapshotSession(sourceObj, snapSessionURI, snapSessionSnapshotURIs, copyMode, copySide, taskId);
     }
 
     /**
@@ -208,13 +208,13 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel) {
+    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String instanceLabel, BlockSnapshotSession session) {
         // Important: that the only difference between these snapshots and snapshots created with the
         // create snapshot APIs is that the parent and project NamedURIs for those snapshots use the
         // snapshot label rather than the source label. This is an inconsistency between non-RP snaps
         // and other snaps and should probably be fixed.
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
-        BlockSnapshot snapshot = snapSessionImpl.prepareSnapshotForSession(sourceObj, snapsetLabel, instanceLabel);
+        BlockSnapshot snapshot = snapSessionImpl.prepareSnapshotForSession(sourceObj, snapsetLabel, instanceLabel, session);
 
         // This is a native snapshot so do not set the consistency group, otherwise
         // the SMIS code/array will get confused trying to look for a consistency
@@ -230,7 +230,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
-            String newTargetsName) {
+            String newTargetsName, BlockSnapshotSession session) {
         // Important: that the only difference between these snapshots and snapshots created with the
         // create snapshot APIs is that the parent and project NamedURIs for those snapshots use the
         // snapshot label rather than the source label. This is an inconsistency between non-RP snaps
@@ -238,7 +238,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         BlockObject sourceObj = sourceObjList.get(0);
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
         List<Map<URI, BlockSnapshot>> snapshotMap = snapSessionImpl.prepareSnapshotsForSession(sourceObjList, sessionCount, newTargetCount,
-                newTargetsName);
+                newTargetsName, session);
         for (Map<URI, BlockSnapshot> map : snapshotMap) {
             for (BlockSnapshot snapshot : map.values()) {
                 // This is a native snapshot so do not set the consistency group, otherwise

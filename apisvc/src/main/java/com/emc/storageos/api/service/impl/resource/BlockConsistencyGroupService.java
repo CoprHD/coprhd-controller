@@ -492,12 +492,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     : param.getCreateInactive();
             // Set the read only flag.
             final Boolean readOnly = param.getReadOnly() == null ? Boolean.FALSE : param.getReadOnly();
-
+            
+            // Set the high availability only flag.
+            final Boolean copyOnHASide = param.getCopyOnHighAvailabilitySide() == null ? Boolean.FALSE : param.getCopyOnHighAvailabilitySide();
+            
+            boolean copySide = true; //by default source side
+            if (copyOnHASide) copySide = false;
+            
             // Prepare and create the snapshots for the group.
             List<URI> snapIdList = new ArrayList<URI>();
             List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
             snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
-                    volumeList, snapshotType, snapshotName, snapIdList, taskId));
+                    volumeList, snapshotType, snapshotName, snapIdList, copySide,  taskId));
             TaskList response = new TaskList();
             for (BlockSnapshot snapshot : snapshotList) {
                 response.getTaskList().add(toTask(snapshot, taskId));
@@ -506,7 +512,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             addConsistencyGroupTask(consistencyGroup, response, taskId,
                     ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT);
             try {
-                blockServiceApiImpl.createSnapshot(volumeList.get(0), snapIdList, snapshotType, createInactive, readOnly, taskId);
+                blockServiceApiImpl.createSnapshot(volumeList.get(0), snapIdList, snapshotType, createInactive, readOnly, copySide, taskId);
                 auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
                         AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
                         consistencyGroup.getId().toString());

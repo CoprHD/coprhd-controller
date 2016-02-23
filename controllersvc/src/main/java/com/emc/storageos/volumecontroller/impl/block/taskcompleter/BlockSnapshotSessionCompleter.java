@@ -179,11 +179,16 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
             if (NullColumnValueGetter.isNotNullValue(rgName)) {
                 for (BlockObject bo : cgSources) {
                     String boRGName = bo.getReplicationGroupInstance();
+                    String haRGName = null;
                     if (bo instanceof Volume && ((Volume) bo).isVPlexVolume(dbClient)) {
                         Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, true, dbClient);
                         boRGName = srcBEVolume.getReplicationGroupInstance();
+                        
+                        Volume haBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) bo, false, dbClient);
+                        haRGName = haBEVolume.getReplicationGroupInstance();
+                        
                     }
-                    if (rgName.equals(boRGName)) {
+                    if (rgName.equals(boRGName) || rgName.equals(haRGName)) {
                         cgSourcesInRG.add(bo);
                     }
                 }

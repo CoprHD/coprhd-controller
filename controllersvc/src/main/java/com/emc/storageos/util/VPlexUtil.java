@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -1454,6 +1455,33 @@ public class VPlexUtil {
             }
         }
         return result;
+    }
+    
+    
+   
+    /**
+     * Get back end Volume from session
+     * @param session
+     * @param dbClient
+     * @return
+     */
+    public static  Volume getBackEndVolumeFromSnapSession(BlockSnapshotSession session, DbClient dbClient ) {
+    	URI volumeUri = null;
+    	if (session.getReplicationGroupInstance() != null) {
+    		 List<URI> volumes = new ArrayList<URI>();
+    	        URIQueryResultList queryResults = new URIQueryResultList();
+    	        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+    	                .getVolumeReplicationGroupInstanceConstraint(session.getReplicationGroupInstance()), queryResults);
+    	        Iterator<URI> resultsIter = queryResults.iterator();
+    	        while (resultsIter.hasNext()) {
+    	            volumeUri = resultsIter.next();
+                    break;
+    	        }
+    	} else {
+    		volumeUri = session.getParent().getURI();
+    	}
+    	
+        return dbClient.queryObject(Volume.class, volumeUri);
     }
 
 }

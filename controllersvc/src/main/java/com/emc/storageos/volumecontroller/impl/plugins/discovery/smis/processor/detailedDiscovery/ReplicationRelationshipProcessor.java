@@ -149,7 +149,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                     String relationshipName = getCIMPropertyValue(instance, EMC_RELATIONSHIP_NAME);
                     Set<String> duplicateElementNamesForSrc = _duplicateElementNameMap.get(srcNativeGuid);
                     if (duplicateElementNamesForSrc.contains(relationshipName)) {
-                        replicaObj.setSettingsInstance(Constants.UNSUPPORTED_SYNC_ASPECT);
+                        replicaObj.setSettingsInstance(Constants.NOT_INGESTABLE_SYNC_ASPECT);
                     } else {
                         Map<String, String> aspectsForSource = _syncAspectMap.get(srcNativeGuid);
                         if (null != aspectsForSource) {

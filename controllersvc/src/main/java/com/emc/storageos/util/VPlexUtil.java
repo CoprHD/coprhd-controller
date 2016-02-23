@@ -1117,12 +1117,12 @@ public class VPlexUtil {
     }
 
     // constants related to supporting device structure validation
-    private static final String LOCAL_DEVICE = "local-device: ";
-    private static final String LOCAL_DEVICE_COMPONENT = "   local-device-component: ";
-    private static final String DISTRIBUTED_DEVICE = "distributed-device: ";
-    private static final String DISTRIBUTED_DEVICE_COMPONENT = "   distributed-device-component: ";
-    private static final String EXTENT = "   extent: ";
-    private static final String STORAGE_VOLUME = "   storage-volume: ";
+    private static final String LOCAL_DEVICE = "local-device:";
+    private static final String LOCAL_DEVICE_COMPONENT = "local-device-component:";
+    private static final String DISTRIBUTED_DEVICE = "distributed-device:";
+    private static final String DISTRIBUTED_DEVICE_COMPONENT = "distributed-device-component:";
+    private static final String EXTENT = "extent:";
+    private static final String STORAGE_VOLUME = "storage-volume:";
     private static final String START = "^(?s)";
     private static final String ANYTHING = "(.*)";
     private static final String END = "(.*)$";
@@ -1214,10 +1214,10 @@ public class VPlexUtil {
                     int extentCount = StringUtils.countMatches(drillDownResponse, EXTENT);
 
                     String firstLine = lines[0];
-                    if (firstLine.startsWith(LOCAL_DEVICE)) {
+                    if (firstLine.trim().startsWith(LOCAL_DEVICE)) {
                         return validateLocalDevice(
                                 drillDownResponse, localDeviceComponentCount, storageVolumeCount, extentCount);
-                    } else if (firstLine.startsWith(DISTRIBUTED_DEVICE)) {
+                    } else if (firstLine.trim().startsWith(DISTRIBUTED_DEVICE)) {
                         return validateDistributedDevice(
                                 drillDownResponse, localDeviceComponentCount, storageVolumeCount, extentCount);
                     }

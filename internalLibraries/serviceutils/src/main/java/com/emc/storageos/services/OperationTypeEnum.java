@@ -128,6 +128,8 @@ public enum OperationTypeEnum {
     DELETE_EXPORT_VOLUME("ExportVolumeRemoved", "ExportVolumeRemoveFailed", "ExportVolume Remove"),
 
     CREATE_FILE_SYSTEM("FileSystemCreated", "FileSystemCreateFailed", "FileSystem created"),
+    INGEST_FILE_SYSTEM("FileSystemIngested", "FileSystemIngestFailed", "FileSystem Ingested"),
+    UPDATE_FILE_SYSTEM("FileSystemUpdated", "FileSystemUpdateFailed", "FileSystem updated"),
     DELETE_FILE_SYSTEM("FileSystemDeleted", "FileSystemDeleteFailed", "FileSystem deleted"),
     EXPORT_FILE_SYSTEM("FileSystemExported", "FileSystemExportFailed", "FileSystem exported"),
     UPDATE_EXPORT_RULES_FILE_SYSTEM("FileSystemExportRulesUpdated", "FileSystemExportRulesUpdateFailed", "FileSystem export rules updated"),
@@ -172,6 +174,7 @@ public enum OperationTypeEnum {
     FAILBACK_FILE_MIRROR("FileSystemMirrorFailback", "FileSystemMirrorFailbackFailed", "FileSystemMirror Fail Back"),
     STOP_FILE_MIRROR("FileSystemMirrorStop", "FileSystemMirrorStopFailed", "FileSystemMirror Stop"),
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
+    REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
     RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
@@ -446,7 +449,11 @@ public enum OperationTypeEnum {
     UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
 
     CREATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyCreated", "VolumeGroupFullCopyCreateFailed", "VolumeGroupFullCopy Created"),
+    ACTIVATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyActivated", "VolumeGroupFullCopyActivateFailed", "VolumeGroupFullCopy Activated"),
     DETACH_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyDetached", "VolumeGroupFullCopyDetachFailed", "VolumeGroupFullCopy Detached"),
+    RESTORE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyRestored", "VolumeGroupFullCopyRestoreFailed", "VolumeGroupFullCopy Restored"),
+    RESYNCHRONIZE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyResynchronized", "VolumeGroupFullCopyResynchronizeFailed",
+            "VolumeGroupFullCopy Resynchronized"),
 
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
@@ -465,6 +472,7 @@ public enum OperationTypeEnum {
     REMOVE_STANDBY("REMOVE STANDBY", "", "operation to initiate removing an existing standby from ensemble"),
     PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between acitve site and standby site"),
     RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between acitve site and standby site"),
+    RETRY_STANDBY_OP("RETRY STANDBY OPERATION", "", "operation to initiate retry of last operation on a standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
     SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
     ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),

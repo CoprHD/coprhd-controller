@@ -32,7 +32,9 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailbackGroup
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailbackStorageSyncsStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailoverGroupSyncStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.FailoverStorageSyncsStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.RestoreGroupActiveSyncStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.RestoreGroupSyncStrategy;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.RestoreStorageActiveSyncsStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.RestoreStorageSyncsStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SplitGroupSyncStrategy;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.executors.SplitStorageSyncsStrategy;
@@ -78,6 +80,7 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
             ctx.appendFilters(new ActiveSynchronizationsOnlyFilter(utils));
         }
 
+        boolean activeMode = Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()));
         // Determine how to build the SMI-S arguments
         ExecutorStrategy executorStrategy = null;
         switch (operation) {
@@ -90,13 +93,13 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 break;
             case SUSPEND:
                 if (target.hasConsistencyGroup()) {
-                    if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                    if (activeMode) {
                         executorStrategy = new SuspendGroupActiveStrategy(helper);
                     } else {
                         executorStrategy = new SuspendGroupSyncStrategy(helper);
                     }
                 } else {
-                    if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                    if (activeMode) {
                         executorStrategy = new SuspendStorageActiveStrategy(helper);
                     } else {
                         executorStrategy = new SuspendStorageSyncsStrategy(helper);
@@ -115,13 +118,13 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 break;
             case ESTABLISH:
                 if (target.hasConsistencyGroup()) {
-                    if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                    if (activeMode) {
                         executorStrategy = new EstablishGroupActiveStrategy(helper);
                     } else {
                         executorStrategy = new EstablishGroupSyncStrategy(helper);
                     }
                 } else {
-                    if (Mode.ACTIVE.equals(Mode.valueOf(target.getSrdfCopyMode()))) {
+                    if (activeMode) {
                         executorStrategy = new EstablishStorageActiveStrategy(helper);
                     } else {
                         executorStrategy = new EstablishStorageSyncsStrategy(helper);
@@ -144,9 +147,17 @@ public class SRDFOperationContextFactory80 extends AbstractSRDFOperationContextF
                 break;
             case RESTORE:
                 if (target.hasConsistencyGroup()) {
-                    executorStrategy = new RestoreGroupSyncStrategy(helper);
+                    if (activeMode) {
+                        executorStrategy = new RestoreGroupActiveSyncStrategy(helper);
+                    } else {
+                        executorStrategy = new RestoreGroupSyncStrategy(helper);
+                    }
                 } else {
-                    executorStrategy = new RestoreStorageSyncsStrategy(helper);
+                    if (activeMode) {
+                        executorStrategy = new RestoreStorageActiveSyncsStrategy(helper);
+                    } else {
+                        executorStrategy = new RestoreStorageSyncsStrategy(helper);
+                    }
                 }
                 break;
             case SWAP:

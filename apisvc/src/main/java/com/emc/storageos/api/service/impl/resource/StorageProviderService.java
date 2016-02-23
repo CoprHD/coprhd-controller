@@ -566,7 +566,7 @@ public class StorageProviderService extends TaskResourceService {
         URIQueryResultList list = new URIQueryResultList();
 
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
-        if (!StorageSystem.Type.isProviderStorageSystem(DiscoveredDataObject.Type.valueOf(param.getSystemType()))) {
+        if (!StorageSystem.Type.isProviderStorageSystem(param.getSystemType())) {
             throw APIException.badRequests.cannotAddStorageSystemTypeToStorageProvider(param.getSystemType());
         }
 

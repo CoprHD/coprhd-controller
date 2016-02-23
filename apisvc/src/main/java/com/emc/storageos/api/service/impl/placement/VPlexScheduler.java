@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -25,11 +26,9 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.api.service.impl.resource.BlockService;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -40,7 +39,6 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
@@ -288,17 +286,20 @@ public class VPlexScheduler implements Scheduler {
 
         // If only specified VPlex from source volume is desired, filter the vplexPoolMapForSrcVarray
         // to only use pools from the vplexStorageSystemURI.
+        Iterator<Entry<String, List<StoragePool>>> it = vplexPoolMapForSrcVarray.entrySet().iterator();
         if (vplexStorageSystemURI != null) {
-            for (String vplexKey : vplexPoolMapForSrcVarray.keySet()) {
+            while (it.hasNext()) {
+                Entry<String, List<StoragePool>> entry = it.next();
+                String vplexKey = entry.getKey();
                 URI vplexURI = null;
                 try {
-                    vplexURI = new URI(vplexKey);
-                } catch (URISyntaxException ex) {
+                    vplexURI = URI.create(vplexKey);
+                } catch (IllegalArgumentException ex) {
                     _log.error("Bad VPLEX URI: " + vplexURI);
                     continue;
                 }
                 if (false == vplexStorageSystemURI.equals(vplexURI)) {
-                    vplexPoolMapForSrcVarray.remove(vplexKey);
+                    it.remove();
                 }
             }
         }
@@ -793,7 +794,9 @@ public class VPlexScheduler implements Scheduler {
         // If only specified VPlexes are desired, filter the vplexPoolMapForSrcNH
         // to only use pools from the requestedVPlexSystems.
         if (requestedVPlexSystems != null && requestedVPlexSystems.isEmpty() == false) {
-            for (String vplexKey : vplexPoolMapForSrcVarray.keySet()) {
+            Iterator<Map.Entry<String, List<StoragePool>>> it = vplexPoolMapForSrcVarray.entrySet().iterator();
+            while (it.hasNext()) {
+                String vplexKey = it.next().getKey();
                 URI vplexURI = null;
                 try {
                     vplexURI = new URI(vplexKey);
@@ -802,7 +805,7 @@ public class VPlexScheduler implements Scheduler {
                     continue;
                 }
                 if (false == requestedVPlexSystems.contains(vplexURI)) {
-                    vplexPoolMapForSrcVarray.remove(vplexKey);
+                    it.remove();
                 }
             }
         }

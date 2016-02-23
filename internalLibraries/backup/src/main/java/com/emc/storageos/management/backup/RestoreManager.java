@@ -36,10 +36,15 @@ public class RestoreManager {
     private String ipAddress4;
     private String ipAddress6;
     private Boolean enableChangeVersion;
+    private boolean onlyRestoreSiteId;
 
     private enum Validation {
         passed,
         failed
+    }
+
+    public void setOnlyRestoreSiteId(boolean onlyRestoreSiteId) {
+        this.onlyRestoreSiteId = onlyRestoreSiteId;
     }
 
     public void setDbRestoreHandler(RestoreHandler dbRestoreHandler) {
@@ -111,6 +116,13 @@ public class RestoreManager {
             validateBackupFolder(backupPath, snapshotName);
             purge(false);
 
+            if (onlyRestoreSiteId) {
+                zkRestoreHandler.setOnlyRestoreSiteId(true);
+                zkRestoreHandler.replace();
+                log.info("Backup ({}) has been restored (only site id) on local successfully", snapshotName);
+                return;
+            }
+
             dbRestoreHandler.replace();
             log.info(String.format(OUTPUT_FORMAT,
                     "Restore data of local database", Validation.passed.name()));
@@ -176,7 +188,10 @@ public class RestoreManager {
             }
         });
         String errorMessage = String.format("Need db, geodb and zk backup files under folder");
-        if (backupFiles == null || backupFiles.length < BackupType.values().length - 1) {
+        if (backupFiles == null) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+        if (!onlyRestoreSiteId && backupFiles.length < BackupType.values().length - 1) {
             throw new IllegalArgumentException(errorMessage);
         }
 
@@ -212,7 +227,9 @@ public class RestoreManager {
             log.debug("Found backup file: {}", backupFile.getName());
         }
 
-        if (matched != BackupType.values().length - 1) {
+        // When restoring 5-node cluster using 3-node backup, should only restore site id on vipr4 and vipr5.
+        // There's no need to validate backup files on nodes where only site id will be restored, so skip it.
+        if (!onlyRestoreSiteId && matched != BackupType.values().length - 1) {
             throw new IllegalArgumentException(errorMessage);
         }
 

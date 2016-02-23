@@ -73,7 +73,6 @@ import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
 import com.emc.storageos.model.valid.Endpoint;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
-import com.emc.storageos.svcs.errorhandling.utils.MessageUtils;
 import com.emc.vipr.client.Task;
 import com.google.common.collect.Lists;
 
@@ -503,6 +502,7 @@ public class StorageSystems extends ViprResourceController {
     }
 
     public static void vNasMoreDetails(String id) {
+        id = id.substring(0, id.indexOf("~~~"));
         List<URI> ids = Lists.newArrayList();
         ids.add(uri(id));
         List<VirtualNASRestRep> vNasRep = getViprClient().virtualNasServers().getByIds(ids);
@@ -946,7 +946,7 @@ public class StorageSystems extends ViprResourceController {
         private boolean isScaleIOApi() {
             return StorageSystemTypes.isScaleIOApi(type);
         }
-        
+
         private boolean isIsilon() {
             return StorageSystemTypes.isIsilon(type);
         }

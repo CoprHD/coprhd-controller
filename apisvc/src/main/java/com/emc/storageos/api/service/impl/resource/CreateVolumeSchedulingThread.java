@@ -77,13 +77,14 @@ class CreateVolumeSchedulingThread implements Runnable {
                     varray, project, vpool, capabilities);
 
             if (recommendationMap.isEmpty()) {
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
+                throw APIException.badRequests.
+                noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(), varray.getLabel());
             }
 
             // At this point we are committed to initiating the request.
             if (consistencyGroup != null) {
                 consistencyGroup.addRequestedTypes(requestedTypes);
-                this.blockService._dbClient.updateAndReindexObject(consistencyGroup);
+                this.blockService._dbClient.updateObject(consistencyGroup);
             }
 
             // Call out to the respective block service implementation to prepare
@@ -103,7 +104,7 @@ class CreateVolumeSchedulingThread implements Runnable {
                 // Set the volumes to inactive
                 Volume volume = this.blockService._dbClient.queryObject(Volume.class, taskObj.getResource().getId());
                 volume.setInactive(true);
-                this.blockService._dbClient.updateAndReindexObject(volume);
+                this.blockService._dbClient.updateObject(volume);
             }
         }
         _log.info("Ending scheduling/placement thread...");

@@ -116,7 +116,7 @@ public class RemoteConnectivityCollectionProcessor extends StorageProcessor {
                 StorageProvider storageProvider = _dbClient.queryObject(StorageProvider.class, storageSystem.getActiveProviderURI());
                 String providerVersion = storageProvider.getVersionString();
                 String versionSubstring = providerVersion.split("\\.")[1];
-                return (Integer.parseInt(versionSubstring) >= 1);
+                return (Integer.parseInt(versionSubstring) >= 2);
             } catch (Exception e) {
                 _log.error("Exception get provider version for the storage system {} {}.", storageSystem.getLabel(),
                         storageSystem.getId());

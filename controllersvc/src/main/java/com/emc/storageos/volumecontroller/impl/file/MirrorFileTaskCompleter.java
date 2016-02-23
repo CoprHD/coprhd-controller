@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.FileShare.MirrorStatus;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -47,6 +48,14 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
     private static final String EVENT_SERVICE_TYPE = "file";
     private static final String EVENT_SERVICE_SOURCE = "FileController";
     protected FileShare.MirrorStatus mirrorSyncStatus = FileShare.MirrorStatus.OTHER;
+
+    protected MirrorStatus getMirrorSyncStatus() {
+        return mirrorSyncStatus;
+    }
+
+    protected void setMirrorSyncStatus(MirrorStatus mirrorSyncStatus) {
+        this.mirrorSyncStatus = mirrorSyncStatus;
+    }
 
     public MirrorFileTaskCompleter(Class clazz, URI id, String opId) {
         super(clazz, id, opId);
@@ -145,6 +154,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                 case STOP_FILE_MIRROR:
                 case FAILBACK_FILE_MIRROR:
                 case RESYNC_FILE_MIRROR:
+                case REFRESH_FILE_MIRROR:
                     auditFile(dbClient, opType, opStatus, opStage, extParam);
                     break;
 

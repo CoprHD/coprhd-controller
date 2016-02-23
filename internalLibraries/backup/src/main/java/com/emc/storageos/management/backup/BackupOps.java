@@ -29,6 +29,7 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import com.emc.storageos.model.property.PropertyConstants;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1307,7 +1308,7 @@ public class BackupOps {
         util.setCoordinator(coordinatorClient);
         Site localSite = util.getLocalSite();
         Map<String, String> addresses = localSite.getHostIPv4AddressMap();
-        if (addresses.isEmpty()) {
+        if (!localSite.isUsingIpv4()) {
             addresses = localSite.getHostIPv6AddressMap();
         }
 

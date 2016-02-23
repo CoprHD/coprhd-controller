@@ -42,6 +42,15 @@ public interface RemoteFileMirrorOperation {
     void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName);
 
     /**
+     * Starts a replication link.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     */
+    void doRefreshMirrorLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer);
+
+    /**
      * stop a replication link.
      *
      * @param system
@@ -66,8 +75,9 @@ public interface RemoteFileMirrorOperation {
      * @param sources
      * @param targets
      * @param completer
+     * @param opId
      */
-    void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer);
+    void doRollbackMirrorLink(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer, String opId);
 
     /**
      * Suspend replication links.

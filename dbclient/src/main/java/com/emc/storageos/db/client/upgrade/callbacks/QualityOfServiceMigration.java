@@ -17,19 +17,20 @@
 
 package com.emc.storageos.db.client.upgrade.callbacks;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.QosSpecification;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * DB Migration callback to populate Quality of Service objects for
@@ -89,7 +90,7 @@ public class QualityOfServiceMigration extends BaseCustomMigrationCallback{
         specs.put("Drive Type", virtualPool.getDriveType());
         specs.put("System Type", getSystemType(virtualPool));
         specs.put("Multi-Volume Consistency", Boolean.toString(virtualPool.getMultivolumeConsistency()));
-        if (virtualPool.getArrayInfo().get("raid_level") != null) {
+        if (virtualPool.getArrayInfo() != null && virtualPool.getArrayInfo().get("raid_level") != null) {
             specs.put("RAID LEVEL", virtualPool.getArrayInfo().get("raid_level").toString());
         }
         specs.put("Expendable", Boolean.toString(virtualPool.getExpandable()));
@@ -121,7 +122,7 @@ public class QualityOfServiceMigration extends BaseCustomMigrationCallback{
     public static String getSystemType(VirtualPool virtualPool) {
         String systemType = null;
 
-        if (virtualPool != null && virtualPool.getArrayInfo().containsKey(SYSTEM_TYPE)) {
+        if (virtualPool != null && virtualPool.getArrayInfo() != null && virtualPool.getArrayInfo().containsKey(SYSTEM_TYPE)) {
             for (String sysType : virtualPool.getArrayInfo().get(SYSTEM_TYPE)) {
                 systemType = sysType;
                 break;

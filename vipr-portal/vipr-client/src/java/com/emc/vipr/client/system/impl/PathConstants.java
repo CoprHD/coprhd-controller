@@ -10,7 +10,7 @@ public class PathConstants {
     public static final String IMAGE_REMOVE_URL = UPGRADE_URL + "/image/remove";
     public static final String IMAGE_UPLOAD_URL = UPGRADE_URL + "/image/upload ";
     public static final String IMAGE_INSTALL_CANCEL_URL = UPGRADE_URL + "/image/install/cancel/";
-    public static final String IMAGE_DOWNLOAD_PROGRESS_URL = UPGRADE_URL + "/image/download/progress/";
+    public static final String IMAGE_DOWNLOAD_PROGRESS_URL = UPGRADE_URL + "/image/download/progress";
     public static final String TARGET_VERSION_URL = UPGRADE_URL + "/target-version";
     public static final String CLUSTER_STATE_URL = UPGRADE_URL + "/cluster-state";
     public static final String LOGS_URL = "/logs";

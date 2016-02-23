@@ -53,7 +53,7 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotsNotSupportedForRPCGs();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException snapshotsNotSupportedForVNXVRG();
+    public BadRequestException snapshotsNotSupportedForNonRealVNXRG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAllowedWhenVNXCGHasSnapshot();
@@ -124,7 +124,7 @@ public interface BadRequestExceptions {
             final String unsupportedFor);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException changeToVirtualPoolNotSupported(final URI vpoolId,
+    public BadRequestException changeToVirtualPoolNotSupported(final String vpool,
             final String notSuppReasonBuff);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -945,23 +945,23 @@ public interface BadRequestExceptions {
     public BadRequestException noIntiatorsConnectedToVolumes();
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingRecoverPointProtectionPools(final URI varrayId,
-            final URI vPoolId, final Set<String> varrayIds);
+    public BadRequestException noMatchingRecoverPointProtectionPools(final String varrayLabel,
+            final String vPoolLabel, final Set<String> varrayLabels);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingRecoverPointStoragePoolsForVpoolAndVarrays(
-            final URI vpoolId, final Set<String> varrayId);
+            final String vpoolLabel, final Set<String> varrayLabels);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingStoragePoolsForVpoolAndVarray(final URI vpoolId,
-            final URI varrayId);
+    public BadRequestException noMatchingStoragePoolsForVpoolAndVarray(final String vpoolLabel,
+            final String varrayLabel);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingStoragePoolsForVpoolAndVarrayForClones(final URI vpoolId,
-            final URI varrayId, final URI volumeId);
+    public BadRequestException noMatchingStoragePoolsForVpoolAndVarrayForClones(final String vpoolLabel,
+            final String varrayLabel, final URI volumeId);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noStoragePoolsForVpoolInVarray(final URI varrayId, final URI vpoolId);
+    public BadRequestException noStoragePoolsForVpoolInVarray(final String varrayLabel, final String vpoolLabel);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForContinuousCopiesVpoolForVplex(final String varrayLabel, final String vpoolLabel,
@@ -969,11 +969,11 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForRemoteFileReplication(
-            final URI vpoolId, final Set<String> varrayId);
+            final String vpoolLabel, final Set<String> varrayLabels);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException noMatchingStoragePoolsForVpoolAndVarrays(
-            final URI vpoolId, final Set<String> varrayId);
+            final String vpoolLabel, final Set<String> varrayLabel);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_MISSING)
     public BadRequestException noRoleSpecifiedInAssignmentEntry();
@@ -982,8 +982,8 @@ public interface BadRequestExceptions {
     public BadRequestException noStorageFoundForVolume();
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noStorageFoundForVolumeMigration(final URI vPoolId,
-            final URI vArrayId, final URI volumeId);
+    public BadRequestException noStorageFoundForVolumeMigration(final String vPoolLabel,
+            final String vArrayLabel, final URI volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notAnInstanceOf(final String clazzName);
@@ -1591,11 +1591,11 @@ public interface BadRequestExceptions {
     public BadRequestException missingPersonalityAttribute(String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException noMatchingSRDFPools(final URI varrayId, final URI vPoolId,
-            final Set<String> varrayIds);
+    public BadRequestException noMatchingSRDFPools(final String varrayLabel, final String vPoolLabel,
+            final Set<String> varrayLabels);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
-    public BadRequestException unableToFindSuitablePoolForTargetVArray(final URI varrayId);
+    public BadRequestException unableToFindSuitablePoolForTargetVArray(final String varrayLabel);
 
     @DeclareServiceCode(ServiceCode.API_NO_PLACEMENT_FOUND)
     public BadRequestException srdfNoSolutionsFoundError();
@@ -1851,6 +1851,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotIsNotForConsistencyGroup(final String snapshotName, final String cgName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionIsNotForConsistencyGroup(final String snapSessionName, final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_INVALID_MAX_CONTINUOUS_COPIES)
     public BadRequestException invalidMaxContinuousCopiesForVplex(final Integer maxCopies);
@@ -2439,6 +2442,9 @@ public interface BadRequestExceptions {
     public BadRequestException replicaOperationNotAllowedSourceNotInVolumeGroup(final String replicaType, final String replicaId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedVolumeNotInVolumeGroup(final String replicaType, final String volumeName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException notSupportedSnapshotWithMixedArrays(URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2492,6 +2498,12 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationOnlyAllowedOnPausedSite(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationOnlyAllowedOnErrorSite(final String siteId, final String siteState);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationRetryOnlyAllowedOnLastState(final String siteId, final String siteState);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();
@@ -2716,6 +2728,12 @@ public interface BadRequestExceptions {
     public BadRequestException volumeGroupWithVolumesCantBeDeleted(final String volumeGroupName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupWithHostsCantBeDeleted(final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupWithClustersCantBeDeleted(final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeGroupCantBeUpdated(final String volumeGroupName, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2725,7 +2743,7 @@ public interface BadRequestExceptions {
     public BadRequestException volumeCantBeAddedToVolumeGroup(final String volumeName, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException removeVolumeFromCGNotAllowed(final String volumeName, final String applicationName);
+    public BadRequestException volumeCantBeRemovedFromVolumeGroup(final String volumeName, final String reason);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotNotAllowedWhenBackendVolumeDoestHavingCG();
@@ -2734,11 +2752,17 @@ public interface BadRequestExceptions {
     public BadRequestException fullcopyNotAllowedWhenBackendVolumeDoestHavingCG();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException replicaOperationNotAllowedOnEmptyVolumeGroup(final String volumeGroupName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException replicaOperationNotAllowedForNonCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException
             replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(final String volumeGroupName, final String replicaType);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException setNameDoesNotBelongToVolumeGroup(final String setType, final String setName, final String volumeGroupName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidIpsecStatus();
@@ -2828,7 +2852,7 @@ public interface BadRequestExceptions {
     public BadRequestException multipleACLsWithUserOrGroupOrCustomGroupFound(String opType, String userOrGroup);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException bucketACLNotFoundFound(String opType, String acl);
+    public BadRequestException bucketACLNotFound(String opType, String acl);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException bucketACLAlreadyExists(String opType, String acl);
@@ -2863,4 +2887,10 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException expandMirrorFileSupportedOnlyOnSource(URI id);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToPerformMirrorOperation(String operation, final URI fsUri, String reason);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException mustDeleteTargetsOnUnlinkForVPlex();
 }

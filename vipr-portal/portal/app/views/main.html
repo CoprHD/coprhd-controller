@@ -138,6 +138,7 @@
             #{nav.item 'file.virtualPools', href: @arrays.FileVirtualPools.list()/}
             #{nav.item 'object.virtualPools', href: @arrays.ObjectVirtualPools.list()/}
             #{nav.item 'computeVirtualPools', href: @compute.ComputeVirtualPools.list()/}
+            #{nav.item 'mobilityGroups', href: @arrays.MobilityGroups.list()/}
           #{/license.ifController}
         #{/deadbolt.restrict}
         #{nav.item 'vdcs', href: @infra.VirtualDataCenters.list()/}
@@ -179,6 +180,7 @@
       	#{nav.separator/}
         #{nav.item 'block.volumes', href: @resources.BlockVolumes.volumes()/}
         #{nav.item 'block.snapshots', href: @resources.BlockSnapshots.snapshots()/}
+        #{nav.item 'block.snapshotsessions', href: @resources.BlockSnapshotSessions.snapshotSessions()/}
         #{nav.item 'block.exportgroups', href: @resources.BlockExportGroups.exportGroups()/}
         #{nav.separator/}
         #{nav.item 'file.filesystems', href: @resources.FileSystems.fileSystems()/}
@@ -267,7 +269,7 @@
       #{nav.menuSection 'nav.settings'} 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
         		#{nav.item 'properties', href: @infra.ConfigProperties.properties()/}
-        	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && isActiveSite }
+        	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && isActiveSite && !controllers.infra.ClusterInfo.isDRMultisites() }
             	#{nav.item 'clusterInfo', href: @infra.ClusterInfo.clusterIpInfo()/}
             #{/if}
          #{/deadbolt.restrict}
@@ -276,7 +278,7 @@
                   #{nav.item 'backup', href: @Backup.list()/}
               	#{/if}
               #{/deadbolt.restrict}
-              #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+              #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN'],['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
             	#{nav.item 'disasterRecovery', href: @infra.DisasterRecovery.list()/}
               #{/deadbolt.restrict}
               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}

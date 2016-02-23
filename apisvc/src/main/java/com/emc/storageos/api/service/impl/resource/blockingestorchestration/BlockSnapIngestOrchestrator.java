@@ -134,7 +134,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         if (null == snapsetName || snapsetName.trim().isEmpty()) {
             snapsetName = deviceLabel;
         }
-        snapShot.setSnapsetLabel(snapsetName);// TODO: shld revisit this
+        snapShot.setSnapsetLabel(snapsetName);
 
         snapShot.setStorageController(requestContext.getStorageSystem().getId());
         snapShot.setVirtualArray(requestContext.getVarray(unManagedVolume).getId());

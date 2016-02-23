@@ -418,12 +418,10 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         if (xioSnap.getSnapSetList() != null && !xioSnap.getSnapSetList().isEmpty()) {
             StringSet snapsetName = new StringSet();
-            for (List<Object> snapSet : xioSnap.getSnapSetList()) {
-                snapsetName.add(snapSet.get(1).toString());
-                unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
-                        snapsetName);
-                break;
-            }
+            List<Object> snapsetDetails = xioSnap.getSnapSetList().get(0);
+            snapsetName.add(snapsetDetails.get(1).toString());
+            unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(),
+                    snapsetName);
         }
 
         log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));

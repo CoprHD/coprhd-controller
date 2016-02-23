@@ -1546,6 +1546,8 @@ public class VolumeIngestionUtil {
             } else {
                 portsValid = diff.isEmpty();
             }
+            // TODO: forcing this for testing
+            portsValid = false;
         }
 
         if (!portsValid) {

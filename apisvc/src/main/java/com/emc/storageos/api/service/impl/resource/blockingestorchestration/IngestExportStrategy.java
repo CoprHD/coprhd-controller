@@ -64,8 +64,13 @@ public class IngestExportStrategy {
                 if (blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
                     // check if none of the export masks are ingested
                     if (masksIngestedCount.intValue() == 0) {
-                        throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(
-                                unManagedVolume.getLabel(), Joiner.on(", ").join(errorMessages));
+                        if (null != errorMessages && errorMessages.size() > 0) {
+                            throw IngestionException.exceptions.unmanagedVolumeMasksNotIngestedAdditionalInfo(
+                                    unManagedVolume.getLabel(), Joiner.on(", ").join(errorMessages));
+                        } else {
+                            throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(
+                                    unManagedVolume.getLabel());
+                        }
                     } else {
                         return blockObject;
                     }
@@ -108,8 +113,13 @@ public class IngestExportStrategy {
 
                     return blockObject;
                 } else {
-                    throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(
-                            unManagedVolume.getLabel(), Joiner.on(", ").join(errorMessages));
+                    if (null != errorMessages && errorMessages.size() > 0) {
+                        throw IngestionException.exceptions.unmanagedVolumeMasksNotIngestedAdditionalInfo(
+                                unManagedVolume.getLabel(), Joiner.on(", ").join(errorMessages));
+                    } else {
+                        throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(
+                                unManagedVolume.getLabel());
+                    }
                 }
             }
         }

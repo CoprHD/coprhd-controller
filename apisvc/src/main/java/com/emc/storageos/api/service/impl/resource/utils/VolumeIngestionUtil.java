@@ -738,7 +738,13 @@ public class VolumeIngestionUtil {
             return;
         }
 
-        throw IngestionException.exceptions.unmanagedVolumeNotIngestable(unManagedVolume.getLabel());
+        String reason = unManagedVolumeCharacteristics
+                .get(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.toString());
+        if (reason == null || reason.isEmpty()) {
+            reason = "Unknown";
+        }
+
+        throw IngestionException.exceptions.unmanagedVolumeNotIngestable(unManagedVolume.getLabel(), reason);
     }
 
     /**
@@ -3397,30 +3403,30 @@ public class VolumeIngestionUtil {
 
                 // We need the VPLEX ingest context to get the backend volume info
                 // This information is stored in the context if the vplex volume is the last volume
-                // in the ingestion.  Otherwise we'll fish it out of the database in the findVolume()
+                // in the ingestion. Otherwise we'll fish it out of the database in the findVolume()
                 // method below.
                 Map<String, BlockObject> createdMap = null;
                 Map<String, List<DataObject>> updatedMap = null;
                 if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
-                    createdMap = ((RpVplexVolumeIngestionContext)
-                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getObjectsToBeCreatedMap();  
-                    updatedMap = ((RpVplexVolumeIngestionContext)
-                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getObjectsToBeUpdatedMap();  
+                    createdMap = ((RpVplexVolumeIngestionContext) requestContext.getVolumeContext()).getVplexVolumeIngestionContext()
+                            .getObjectsToBeCreatedMap();
+                    updatedMap = ((RpVplexVolumeIngestionContext) requestContext.getVolumeContext()).getVplexVolumeIngestionContext()
+                            .getObjectsToBeUpdatedMap();
                 }
-                
-                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
-                    // Find the associated volumes using the context maps or the db if they are already there               
-                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient, 
-                                                                             createdMap,
-                                                                             updatedMap,
-                                                                             associatedVolumeIdStr);     
+
+                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
+                    // Find the associated volumes using the context maps or the db if they are already there
+                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient,
+                            createdMap,
+                            updatedMap,
+                            associatedVolumeIdStr);
                     if (associatedVolume != null) {
                         associatedVolume.setConsistencyGroup(rpCG.getId());
-                        updatedObjects.add(associatedVolume);                    
+                        updatedObjects.add(associatedVolume);
                     } else {
-                       // This may not be a failure if we're not ingesting backing volumes.  Put a warning to the log.
-                       _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
-                    }                        
+                        // This may not be a failure if we're not ingesting backing volumes. Put a warning to the log.
+                        _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
+                    }
                 }
             }
 
@@ -3478,15 +3484,15 @@ public class VolumeIngestionUtil {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
 
         // In the case where IS_VOLUME_IN_CONSISTENCYGROUP flag is set to TRUE, but there is no UnManagedConsistencyGroup, we
-        // can't perform this check fully and need to return null.  This will occur with VMAX/VNX volumes in CGs until we have
+        // can't perform this check fully and need to return null. This will occur with VMAX/VNX volumes in CGs until we have
         // CG ingestion support for such volumes.
         if (umcg == null || umcg.getUnManagedVolumesMap() == null) {
             _logger.info("There is no unmanaged consistency group associated with unmanaged volume {}, however " +
-                         "the volume has the IS_VOLUME_IN_CONSISTENCYGROUP flag set to true.  Ignoring CG operation" +
-                         " as there is not enough information to put this volume in a CG by itself.", unManagedVolume.getNativeGuid());
+                    "the volume has the IS_VOLUME_IN_CONSISTENCYGROUP flag set to true.  Ignoring CG operation" +
+                    " as there is not enough information to put this volume in a CG by itself.", unManagedVolume.getNativeGuid());
             return null;
         }
-        
+
         boolean isLastUmvToIngest = isLastUnManagedVolumeToIngest(umcg, unManagedVolume);
         boolean isVplexOrRPProtected = isRPOrVplexProtected(unManagedVolume);
         if (isVplexOrRPProtected || !isLastUmvToIngest) {
@@ -3703,7 +3709,7 @@ public class VolumeIngestionUtil {
 
         return blockObjects;
     }
-    
+
     /**
      * Convenience method to find the a volume from the database or maps based
      * on ingestion.
@@ -3716,14 +3722,15 @@ public class VolumeIngestionUtil {
      * @param volumeId The id of the volume to find
      * @return The volume, or null if nothing can be found.
      */
-    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, List<DataObject>> updatedMap, String volumeId) {
+    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, List<DataObject>> updatedMap,
+            String volumeId) {
         if (volumeId == null) {
             return null;
         }
-        
+
         BlockObject blockObject = null;
         URI volumeURI = URI.create(volumeId);
-                
+
         if (createdMap != null) {
             // Check the created map
             for (BlockObject bo : createdMap.values()) {
@@ -3733,36 +3740,36 @@ public class VolumeIngestionUtil {
                 }
             }
         }
-        
+
         if (updatedMap != null) {
             // Check the updated map
             for (List<DataObject> objectsToBeUpdated : updatedMap.values()) {
                 for (DataObject o : objectsToBeUpdated) {
-                    if (o.getId().equals(volumeURI)) {                    
+                    if (o.getId().equals(volumeURI)) {
                         blockObject = (BlockObject) o;
                         break;
                     }
                 }
-            }      
+            }
         }
-        
+
         if (dbClient != null) {
             // Lastly, check the db
             if (blockObject == null) {
                 blockObject = (BlockObject) dbClient.queryObject(volumeURI);
             }
         }
-                
+
         Volume volume = null;
         if (blockObject != null && blockObject instanceof Volume) {
             _logger.info("\t Found volume object: " + blockObject.forDisplay());
             volume = (Volume) blockObject;
-        }    
-        
+        }
+
         return volume;
     }
 
-   /**
+    /**
      * Sets up the Recover Point CG by creating the protection set, block CG and associating the RP volumes
      * with the protection set and the block CG.
      * It also clears the RP volumes' replicas' flags.
@@ -3798,12 +3805,12 @@ public class VolumeIngestionUtil {
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects, dbClient);
 
-        // the RP volume ingestion context will take care of persisting the 
-        // new objects and deleting the old UnManagedProtectionSet 
+        // the RP volume ingestion context will take care of persisting the
+        // new objects and deleting the old UnManagedProtectionSet
         if (requestContext instanceof RecoverPointVolumeIngestionContext) {
             _logger.info("setting the new CG and ProtectionSet in the ingestion request context");
-            ((RecoverPointVolumeIngestionContext)requestContext).setManagedBlockConsistencyGroup(cg);
-            ((RecoverPointVolumeIngestionContext)requestContext).setManagedProtectionSet(pset);
+            ((RecoverPointVolumeIngestionContext) requestContext).setManagedBlockConsistencyGroup(cg);
+            ((RecoverPointVolumeIngestionContext) requestContext).setManagedProtectionSet(pset);
         }
     }
 
@@ -3887,4 +3894,3 @@ public class VolumeIngestionUtil {
         }
     }
 }
-

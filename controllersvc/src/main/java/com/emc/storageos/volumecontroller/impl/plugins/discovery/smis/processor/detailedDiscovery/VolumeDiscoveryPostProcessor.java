@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.plugins.BaseCollectionException;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -76,8 +77,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                         setVPoolsForDependents(vPools, srcObj,
                                 volumeToReplicaMap, modifiedUnManagedVolumes,
                                 dbClient);
-                    }
-                    else {
+                    } else {
                         _logger.info("Cannot find supported VPools for {}", srcNativeGuid);
                     }
                 } catch (Exception e) {
@@ -138,38 +138,51 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
 
         for (Entry<String, LocalReplicaObject> entry : volumeToReplicaMap.entrySet()) {
             String nativeGuid = entry.getKey();
-            // for each snapshot target, if it has its own snapshot targets, then the snapshot target and all its snapshot targets are non ingestable
+            // for each snapshot target, if it has its own snapshot targets, then the snapshot target and all its snapshot targets are non
+            // ingestable
             LocalReplicaObject obj = entry.getValue();
             if (LocalReplicaObject.Types.BlockSnapshot.equals(obj.getType())) {
-                // check its snapshots
-                StringSet targets = obj.getSnapshots();
-                if (targets != null && !targets.isEmpty()) {
-                    try {
-                        UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
-                        if (unManagedVolume != null) {
-                            _logger.info("Set UnManagedVolume {} for {} to non ingestable, this snapshot target is the source of other snapshot targets.", unManagedVolume.getId(), nativeGuid);
-                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(),
-                                    FALSE);
-                            modifiedUnManagedVolumes.add(unManagedVolume);
-                        } else {
-                            _logger.warn("No UnManagedVolume found for {}", nativeGuid);
-                        }
-
-                        // set all its snapshot targets to non ingestable since they are snapshot targets of a snapshot target
-                        for (String tgtNativeId : targets) {
-                            UnManagedVolume tgtUnManagedVolume = checkUnManagedVolumeExistsInDB(tgtNativeId, dbClient);
-                            if (tgtUnManagedVolume != null) {
-                                _logger.info("Set UnManagedVolume {} for {} to non ingestable, the source of this snapshot target is also a snapshot target.", unManagedVolume.getId(), tgtNativeId);
-                                tgtUnManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(),
+                try {
+                    UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
+                    String syncAspect = obj.getSettingsInstance();
+                    if (Constants.NOT_INGESTABLE_SYNC_ASPECT.equals(syncAspect)) {
+                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(), FALSE);
+                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.name(),
+                                "There are multiple snapshots with the same name");
+                        modifiedUnManagedVolumes.add(unManagedVolume);
+                    } else {
+                        // check its snapshots
+                        StringSet targets = obj.getSnapshots();
+                        if (targets != null && !targets.isEmpty()) {
+                            if (unManagedVolume != null) {
+                                _logger.info(
+                                        "Set UnManagedVolume {} for {} to non ingestable, this snapshot target is the source of other snapshot targets.",
+                                        unManagedVolume.getId(), nativeGuid);
+                                unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(),
                                         FALSE);
-                                modifiedUnManagedVolumes.add(tgtUnManagedVolume);
+                                modifiedUnManagedVolumes.add(unManagedVolume);
                             } else {
-                                _logger.warn("No UnManagedVolume found for {}", tgtNativeId);
+                                _logger.warn("No UnManagedVolume found for {}", nativeGuid);
+                            }
+
+                            // set all its snapshot targets to non ingestable since they are snapshot targets of a snapshot target
+                            for (String tgtNativeId : targets) {
+                                UnManagedVolume tgtUnManagedVolume = checkUnManagedVolumeExistsInDB(tgtNativeId, dbClient);
+                                if (tgtUnManagedVolume != null) {
+                                    _logger.info(
+                                            "Set UnManagedVolume {} for {} to non ingestable, the source of this snapshot target is also a snapshot target.",
+                                            unManagedVolume.getId(), tgtNativeId);
+                                    tgtUnManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(),
+                                            FALSE);
+                                    modifiedUnManagedVolumes.add(tgtUnManagedVolume);
+                                } else {
+                                    _logger.warn("No UnManagedVolume found for {}", tgtNativeId);
+                                }
                             }
                         }
-                    } catch (Exception e) {
-                        _logger.warn("Exception on filterNestedSnapshots {}", e.getMessage());
                     }
+                } catch (Exception e) {
+                    _logger.warn("Exception on filterNestedSnapshots {}", e.getMessage());
                 }
             }
 

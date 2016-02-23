@@ -5,8 +5,10 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
@@ -32,6 +34,7 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
 
     private AccessProfile _profile;
     private Map<String, Map<String, String>> _syncAspectMap;
+    private Map<String, Set<String>> _duplicateElementNameMap;
 
     @Override
     public void processResult(Operation operation, Object resultObj,
@@ -39,10 +42,12 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
         _logger.debug("Calling SynchronizationAspectProcessor");
         _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
         _syncAspectMap = new HashMap<String, Map<String, String>>();
+        _duplicateElementNameMap = new HashMap<String, Set<String>>();
 
         processResultbyChunk(resultObj, keyMap);
-        keyMap.put(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP,
-                _syncAspectMap);
+
+        keyMap.put(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP, _syncAspectMap);
+        keyMap.put(Constants.DUPLICATE_ELEMENT_NAME_MAP, _duplicateElementNameMap);
     }
 
     /**
@@ -59,6 +64,7 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
     @Override
     protected int processInstances(Iterator<CIMInstance> instances, WBEMClient client) {
         int count = 0;
+        Map<String, Set<String>> processedNameMap = new HashMap<String, Set<String>>();
         while (instances.hasNext()) {
             try {
                 count++;
@@ -79,16 +85,42 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
 
                 String srcNativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(srcPath);
                 String elementName = getCIMPropertyValue(instance, Constants.ELEMENTNAME);
+                boolean isDuplicateElementNameForSrc = false;
+                if (processedNameMap.containsKey(srcNativeGuid)) {
+                    Set<String> elementNamesForSrc = processedNameMap.get(srcNativeGuid);
+                    if (elementNamesForSrc.contains(elementName)) {
+                        Set<String> duplicateElementNamesForSrc;
+                        if (_duplicateElementNameMap.containsKey(srcNativeGuid)) {
+                            duplicateElementNamesForSrc = _duplicateElementNameMap.get(srcNativeGuid);
+                        } else {
+                            duplicateElementNamesForSrc = new HashSet<String>();
+                            _duplicateElementNameMap.put(srcNativeGuid, duplicateElementNamesForSrc);
+                        }
+                        duplicateElementNamesForSrc.add(elementName);
+                        isDuplicateElementNameForSrc = true;
+                    } else {
+                        elementNamesForSrc.add(elementName);
+                    }
+                } else {
+                    Set<String> elementNamesForSrc = new HashSet<String>();
+                    elementNamesForSrc.add(elementName);
+                    processedNameMap.put(srcNativeGuid, elementNamesForSrc);
+                }
 
                 Map<String, String> aspectsForSource = null;
-                if (_syncAspectMap.containsKey(srcNativeGuid)) {
-                    aspectsForSource = _syncAspectMap.get(srcNativeGuid);
+                String aspectKey = getSyncAspectMapKey(srcNativeGuid, elementName);
+                if (!isDuplicateElementNameForSrc) {
+                    if (_syncAspectMap.containsKey(srcNativeGuid)) {
+                        aspectsForSource = _syncAspectMap.get(srcNativeGuid);
+                    } else {
+                        aspectsForSource = new HashMap<String, String>();
+                        _syncAspectMap.put(srcNativeGuid, aspectsForSource);
+                    }
+                    aspectsForSource.put(aspectKey, instance.getObjectPath().getKeyValue(Constants.INSTANCEID).toString());
                 } else {
-                    aspectsForSource = new HashMap<String, String>();
-                    _syncAspectMap.put(srcNativeGuid, aspectsForSource);
+                    aspectsForSource = _syncAspectMap.get(srcNativeGuid);
+                    aspectsForSource.remove(aspectKey);
                 }
-                aspectsForSource.put(getSyncAspectMapKey(srcNativeGuid, elementName),
-                        instance.getObjectPath().getKeyValue(Constants.INSTANCEID).toString());
             } catch (Exception e) {
                 _logger.error("Exception on processing instances", e);
             }

@@ -246,6 +246,8 @@ public class Constants {
     public static final String UN_VOLUME_RAGROUP_MAP = "unManagedVolumesToRAGroupMap";
     public static final String UN_VOLUME_LOCAL_REPLICA_MAP = "unManagedVolumesToLocalReplicaMap";
     public static final String SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP = "snapshotsToSynchronizationAspects";
+    public static final String DUPLICATE_ELEMENT_NAME_MAP = "duplicateElementNameMap";
+    public static final String NOT_INGESTABLE_SYNC_ASPECT = "notIngestableSyncAspect";
     public static final String UNMANAGED_EXPORT_MASKS_MAP = "unManagedExportMasksMap";
     public static final String UNMANAGED_EXPORT_MASKS_SET = "unManagedExportMasksSet";
     public static final String UNMANAGED_EXPORT_MASKS_CREATE_LIST = "unManagedExportMasksCreateList";

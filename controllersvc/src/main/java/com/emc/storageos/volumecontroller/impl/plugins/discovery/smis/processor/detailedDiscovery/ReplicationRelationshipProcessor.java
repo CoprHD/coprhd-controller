@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery;
 
 import java.util.Map;
+import java.util.Set;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMDataType;
@@ -49,6 +50,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
 
     private Map<String, LocalReplicaObject> _volumeToLocalReplicaMap;
     private Map<String, Map<String, String>> _syncAspectMap;
+    private Map<String, Set<String>> _duplicateElementNameMap;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -59,6 +61,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                 .get(Constants.UN_VOLUME_LOCAL_REPLICA_MAP);
         _syncAspectMap = (Map<String, Map<String, String>>) keyMap
                 .get(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP);
+        _duplicateElementNameMap = (Map<String, Set<String>>) keyMap.get(Constants.DUPLICATE_ELEMENT_NAME_MAP);
 
         CIMInstance[] instances = (CIMInstance[]) getFromOutputArgs((CIMArgument[]) resultObj, SmisConstants.SYNCHRONIZATIONS);
         if (instances == null) {
@@ -144,10 +147,18 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                     replicaObj.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
 
                     String relationshipName = getCIMPropertyValue(instance, EMC_RELATIONSHIP_NAME);
-                    Map<String, String> aspectsForSource = _syncAspectMap.get(srcNativeGuid);
-                    if (null != aspectsForSource) {
-                        String syncAspect = aspectsForSource.get(getSyncAspectMapKey(srcNativeGuid, relationshipName));
-                        replicaObj.setSettingsInstance(syncAspect);
+                    Set<String> duplicateElementNamesForSrc = _duplicateElementNameMap.get(srcNativeGuid);
+                    if (duplicateElementNamesForSrc.contains(relationshipName)) {
+                        replicaObj.setSettingsInstance(Constants.UNSUPPORTED_SYNC_ASPECT);
+                    } else {
+                        Map<String, String> aspectsForSource = _syncAspectMap.get(srcNativeGuid);
+                        if (null != aspectsForSource) {
+                            String aspectKey = getSyncAspectMapKey(srcNativeGuid, relationshipName);
+                            if (aspectsForSource.containsKey(aspectKey)) {
+                                String syncAspect = aspectsForSource.get(aspectKey);
+                                replicaObj.setSettingsInstance(syncAspect);
+                            }
+                        }
                     }
 
                     if (null == srcReplicaObj.getSnapshots()) {
@@ -161,7 +172,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                                 // Mirrors with restorable states (fractured and split, except synchronized) are treated as full copies,
                                 // while mirrors with synchronized and other states are treated as mirrors
                                 systemName.toLowerCase().startsWith(Constants.CLARIION) &&
-                        (copyState.equals(COPY_STATE_FRACTURED) || copyState.equals(COPY_STATE_SPLIT)))) {
+                                (copyState.equals(COPY_STATE_FRACTURED) || copyState.equals(COPY_STATE_SPLIT)))) {
                     replicaObj.setType(LocalReplicaObject.Types.FullCopy);
                     replicaObj.setSyncActive(inSync);
                     replicaObj.setReplicaState(isReplicaOfSnapshot ? SNAPSHOT_CLONE_REPLICA_STATE : getReplicaState(copyState));
@@ -235,12 +246,11 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
     /**
      * Returns true if the given syncType and/or copyMethod is determined to represent a snapshot.
      *
-     * @param syncType      Value of a SyncType property.
-     * @param copyMethod    Value of a CopyMethodology property.
-     * @return              true, if they represent a snapshot, false otherwise.
+     * @param syncType Value of a SyncType property.
+     * @param copyMethod Value of a CopyMethodology property.
+     * @return true, if they represent a snapshot, false otherwise.
      */
     private boolean isReplicationSnapshot(String syncType, String copyMethod) {
-        return SYNC_TYPE_SNAPSHOT.equals(syncType) || (
-                SYNC_TYPE_CLONE.equals(syncType) && SNAPVX_COPY_METHODOLOGY.equals(copyMethod));
+        return SYNC_TYPE_SNAPSHOT.equals(syncType) || (SYNC_TYPE_CLONE.equals(syncType) && SNAPVX_COPY_METHODOLOGY.equals(copyMethod));
     }
 }

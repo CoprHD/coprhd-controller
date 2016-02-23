@@ -21,7 +21,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
  *
  * @author Ian Bibby
  */
-public class ConsistencyUtils {
+public class ConsistencyGroupUtils {
 
     /**
      * Gets the {@BlockConsistencyGroup} associated with the given clone.

@@ -37,7 +37,7 @@ import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGMirrorJob;
-import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.google.common.base.Joiner;
 
 public class VmaxMirrorOperations extends AbstractMirrorOperations {
@@ -58,7 +58,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             BlockMirror mirrorObj = _dbClient.queryObject(BlockMirror.class, mirror);
             Volume volumeObj = _dbClient.queryObject(Volume.class, sourceVolume);
             CIMObjectPath srcRepSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
-            String volumeGroupName = ConsistencyUtils.getSourceConsistencyGroupName(volumeObj, _dbClient);
+            String volumeGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volumeObj, _dbClient);
             CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
             CIMObjectPath mirrorGroupPath = _cimPath.getReplicationGroupPath(storage, mirrorObj.getReplicationGroupInstance());
 
@@ -111,7 +111,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
             BlockMirror firstMirror = mirrors.get(0);
             Volume sourceVolume = _dbClient.queryObject(Volume.class, firstMirror.getSource());
-            String sourceGroupName = ConsistencyUtils.getSourceConsistencyGroupName(sourceVolume, _dbClient);
+            String sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVolume, _dbClient);
             String replicaLabel = ControllerUtils.generateLabel(sourceVolume.getLabel(), firstMirror.getLabel());
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);

@@ -36,7 +36,7 @@ import com.emc.storageos.volumecontroller.impl.smis.AbstractMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVnxCreateCGMirrorJob;
-import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 /*
  * Modified based on VnxCloneOperations.java. For VNX, group clones and group mirrors are the same.
@@ -70,7 +70,7 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
             mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
             BlockMirror firstMirror = mirrors.get(0);
             Volume sourceVolume = _dbClient.queryObject(Volume.class, firstMirror.getSource());
-            String sourceGroupName = ConsistencyUtils.getSourceConsistencyGroupName(sourceVolume, _dbClient);
+            String sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVolume, _dbClient);
 
             if (!ControllerUtils.isNotInRealVNXRG(sourceVolume, _dbClient)) {
                 // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.

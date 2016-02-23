@@ -83,6 +83,7 @@ import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
+import com.emc.storageos.model.property.PropertyConstants;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -1531,24 +1532,30 @@ public class DisasterRecoveryService {
         Site site = drUtil.getLocalSite();
 
         // active has IPv4 and standby has no IPv4
-        if (!isMapEmpty(site.getHostIPv4AddressMap()) && isMapEmpty(standby.getHostIPv4AddressMap())) {
+        if (!isHostIPAddressMapEmpty(site.getHostIPv4AddressMap()) && isHostIPAddressMapEmpty(standby.getHostIPv4AddressMap())) {
             throw APIException.internalServerErrors
                     .addStandbyPrecheckFailed("Unsupported network configuration. Active site has IPv4. Standby site should be IPv4 or dual stack ");
         }
 
         // active has only IPv6 and standby has IPv4
-        if (isMapEmpty(site.getHostIPv4AddressMap()) && !isMapEmpty(standby.getHostIPv4AddressMap())) {
+        if (isHostIPAddressMapEmpty(site.getHostIPv4AddressMap()) && !isHostIPAddressMapEmpty(standby.getHostIPv4AddressMap())) {
             throw APIException.internalServerErrors
                     .addStandbyPrecheckFailed("Unsupported network configuration. Active site only has IPv6, Standby site should not has IPv4 address");
         }
     }
 
-    private boolean isMapEmpty(Map<?, ?> map) {
-        if (map == null || map.isEmpty()) {
+    private boolean isHostIPAddressMapEmpty(Map<String, String> map) {
+        if (map == null) {
             return true;
         }
+        
+        for (String ip : map.values()) {
+            if (!PropertyConstants.IPV4_ADDR_DEFAULT.equals(ip) && !PropertyConstants.IPV6_ADDR_DEFAULT.equals(ip)) {
+                return false;
+            }
+        }
 
-        return false;
+        return true;
     }
 
     protected void precheckStandbyVersion(SiteAddParam standby) {

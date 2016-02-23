@@ -1059,7 +1059,7 @@ public class BlockStorageUtils {
         SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, copySet));
         for (String subGroup : subGroups) {
             for (NamedRelatedResourceRep snapshotRep : snapshotList.getSnapList()) {
-                BlockSnapshotSessionRestRep snapshot = execute(new GetBlockSnapshotSession(snapshotRep.getId()));
+                BlockSnapshotRestRep snapshot = execute(new GetBlockSnapshot(snapshotRep.getId()));
                 if (snapshot.getReplicationGroupInstance() != null && snapshot.getReplicationGroupInstance().equals(subGroup)) {
                     snapshotIds.add(snapshot.getId());
                     break;

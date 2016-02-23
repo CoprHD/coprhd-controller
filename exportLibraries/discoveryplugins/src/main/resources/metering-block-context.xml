@@ -17,6 +17,9 @@
 		class="com.emc.storageos.plugins.common.domainmodel.Namespace">
 		<property name="operations">
 			<list>
+				<ref bean="start" />
+				<!-- All processors after this -->
+
 				<ref bean="system" />
 				<ref bean="blockStatisticsService" />
 				<ref bean="blockStatisticsCapabilities" />
@@ -47,7 +50,9 @@
 				<ref bean="getStoragePools" />
 				<ref bean="getVolumeCapacity" />
 				<ref bean="getVolumeCapacityFor8x"/>
-				
+
+				<!-- "complete" should be the last step. All new steps above this -->
+				<ref bean="complete" />
 			</list>
 		</property>
 	</bean>
@@ -529,7 +534,38 @@
         <property name="name" value="prvcList" />
     </bean>
 
-	
+	<bean id="start" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="accessProfile"/>
+				<ref bean="dbclient"/>
+			</list>
+		</property>
+		<property name="instance" ref="connectionManagerUtils"/>
+		<property name="method" value="disallowReaping"/>
+		<property name="message" value="Setting keep alive for CIM Connections"/>
+	</bean>
+
+	<bean id="complete" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="accessProfile"/>
+				<ref bean="dbclient"/>
+			</list>
+		</property>
+		<property name="instance" ref="connectionManagerUtils"/>
+		<property name="method" value="invoke"/>
+		<property name="message" value="Allow CIM connections for provider to be cleaned up"/>
+	</bean>
+
+	<bean id="connectionManagerUtils" class="com.emc.storageos.volumecontroller.impl.utils.ConnectionManagerUtils"/>
+
+	<bean id="accessProfile" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="accessProfile" />
+	</bean>
+
 	<!-- cimClient -->
 	 <bean id="cimClient"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">

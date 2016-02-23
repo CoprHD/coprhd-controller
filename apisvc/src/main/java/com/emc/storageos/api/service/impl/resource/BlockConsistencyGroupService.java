@@ -447,7 +447,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
 
         // Snapshots of RecoverPoint consistency groups is not supported.
-        if (consistencyGroup.checkForType(Types.RP)) {
+        // Volume group snapshot is supported
+        if (isIdEmbeddedInURL(consistencyGroupId) && consistencyGroup.checkForType(Types.RP)) {
             throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
 
@@ -725,7 +726,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
 
         // Snapshots of RecoverPoint consistency groups is not supported.
-        if (consistencyGroup.checkForType(Types.RP)) {
+        if (isIdEmbeddedInURL(consistencyGroupId) && consistencyGroup.checkForType(Types.RP)) {
             throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
 

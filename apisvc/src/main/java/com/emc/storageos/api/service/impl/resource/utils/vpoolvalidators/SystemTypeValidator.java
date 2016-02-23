@@ -34,7 +34,8 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
     @Override
     protected void validateVirtualPoolUpdateAttributeValue(
             VirtualPool vPool, VirtualPoolUpdateParam updateParam, DbClient dbClient) {
-        if (null == SystemType.lookup(updateParam.getSystemType())) {
+        if (!storageDriverManager.isDriverManaged(updateParam.getSystemType()) &&
+                null == SystemType.lookup(updateParam.getSystemType())) {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
         }
 
@@ -77,7 +78,8 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
 
     @Override
     protected void validateVirtualPoolCreateAttributeValue(VirtualPoolCommonParam createParam, DbClient dbClient) {
-        if (null == SystemType.lookup(createParam.getSystemType())) {
+        if (!storageDriverManager.isDriverManaged(createParam.getSystemType()) &&
+        null == SystemType.lookup(createParam.getSystemType())) {
             throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
         }
     }

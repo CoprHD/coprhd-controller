@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -447,7 +448,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         for (VolumeURIHLU volumeURIHLU : volumeURIHLUs) {
             URI volumeURI = volumeURIHLU.getVolumeURI();
-            Volume volume = dbClient.queryObject(Volume.class, volumeURI);
+            BlockObject volume = (BlockObject)dbClient.queryObject(volumeURI);
             StorageVolume driverVolume = createDriverVolume(storage, volume);
             driverVolumes.add(driverVolume);
             // We send volume lun number to driver in decimal format.
@@ -462,6 +463,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             driverVolumeToHLUMap.put(driverVolume.getNativeId(), decimalHLU.toString());
             volumeNativeIdToUriMap.put(driverVolume.getNativeId(), volumeURI);
         }
+
+        log.info("createExportMask: volume-HLU pairs for driver: {}", driverVolumeToHLUMap);
     }
 
     private void prepareVolumes(StorageSystem storage, List<URI> volumeUris, List<StorageVolume> driverVolumes) {
@@ -585,7 +588,13 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     }
 
-    private StorageVolume createDriverVolume(StorageSystem storage, Volume volume) {
+    /**
+     * Create driver block object
+     * @param storage
+     * @param volume
+     * @return
+     */
+    private StorageVolume createDriverVolume(StorageSystem storage,  BlockObject volume) {
         StorageVolume driverVolume = new StorageVolume();
         driverVolume.setStorageSystemId(storage.getNativeId());
         driverVolume.setNativeId(volume.getNativeId());

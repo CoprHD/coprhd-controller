@@ -117,11 +117,10 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Restore from clone.
      *
-     * @param volume  Type: Input/Output.
-     * @param clone   Type: Input.
+     * @param clones   Clones to restore from. Type: Input/Output.
      * @return task
      */
-    public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone);
+    public DriverTask restoreFromClone(List<VolumeClone> clones);
 
     /**
      * Delete volume clones.

@@ -205,6 +205,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverClone.setStorageSystemId(storageSystem.getNativeId());
                 driverClone.setNativeId(volume.getNativeId());
                 driverClone.setParentId(sourceVolume.getNativeId());
+                driverClone.setConsistencyGroup(volume.getReplicationGroupInstance());
                 task = driver.deleteVolumeClone(Collections.singletonList(driverClone));
             } else {
                 // this is regular volume
@@ -534,15 +535,205 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
 
 
     @Override
-    public void doDetachClone(StorageSystem storage, URI cloneVolume,
+    public void doDetachClone(StorageSystem storageSystem, URI cloneVolume,
                               TaskCompleter taskCompleter) {
-        // todo: complete ... do as cinder ....
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+        DriverTask task = null;
         Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
-        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
-        clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
-        clone.setReplicaState(Volume.ReplicationState.DETACHED.name());
-        dbClient.updateObject(clone);
-        taskCompleter.ready(dbClient);
+        _log.info("Detaching volume clone on storage system {}, clone: {} .",
+                storageSystem.getNativeId(), clone.toString());
+
+        try {
+            BlockObject sourceVolume = BlockObject.fetch(dbClient, clone.getAssociatedSourceVolume());
+            VolumeClone driverClone = new VolumeClone();
+            driverClone.setStorageSystemId(storageSystem.getNativeId());
+            driverClone.setNativeId(clone.getNativeId());
+            driverClone.setParentId(sourceVolume.getNativeId());
+            driverClone.setConsistencyGroup(clone.getReplicationGroupInstance());
+
+            // Call driver
+            task = driver.deleteVolumeClone(Collections.singletonList(driverClone));
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
+                clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+                clone.setReplicaState(Volume.ReplicationState.DETACHED.name());
+                String msg = String.format("doDetachClone -- Detached volume clone: %s .", task.getMessage());
+                _log.info(msg);
+                dbClient.updateObject(clone);
+                taskCompleter.ready(dbClient);
+            } else {
+                String msg = String.format("Failed to detach volume clone on storage system %s, clone: %s .",
+                        storageSystem.getNativeId(), clone.toString());
+                _log.error(msg);
+                // todo: add error
+                ServiceError serviceError = ExternalDeviceException.errors.detachVolumeCloneFailed("doDetachClone", msg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            String msg = String.format("Failed to detach volume clone on storage system %s, clone: %s .",
+                    storageSystem.getNativeId(), clone.toString());
+            _log.error(msg, e);
+            // todo: add error
+            ServiceError serviceError = ExternalDeviceException.errors.detachVolumeCloneFailed("doDetachClone", msg);
+            taskCompleter.error(dbClient, serviceError);
+        }
+    }
+
+    @Override
+    public void doDetachGroupClone(StorageSystem storageSystem, List<URI> cloneVolumes,
+                                   TaskCompleter taskCompleter) {
+
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+        DriverTask task = null;
+        List<Volume> clones = dbClient.queryObject(Volume.class, cloneVolumes);
+        _log.info("Detaching group clones on storage system {}, clone: {} .",
+                storageSystem.getNativeId(), clones.toString());
+
+        try {
+            Map<VolumeClone, Volume> driverCloneToCloneMap = new HashMap<>();
+            List<VolumeClone> driverClones = new ArrayList<>();
+            for (Volume clone : clones) {
+                BlockObject sourceVolume = BlockObject.fetch(dbClient, clone.getAssociatedSourceVolume());
+                VolumeClone driverClone = new VolumeClone();
+                driverClone.setStorageSystemId(storageSystem.getNativeId());
+                driverClone.setNativeId(clone.getNativeId());
+                driverClone.setParentId(sourceVolume.getNativeId());
+                driverClone.setConsistencyGroup(clone.getReplicationGroupInstance());
+                driverClones.add(driverClone);
+                driverCloneToCloneMap.put(driverClone, clone);
+            }
+            // Call driver
+            task = driver.detachVolumeClone(driverClones);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                for (Map.Entry<VolumeClone, Volume> entry : driverCloneToCloneMap.entrySet() ) {
+                    VolumeClone driverClone = entry.getKey();
+                    Volume clone = entry.getValue();
+                    ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
+                    clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+                    clone.setReplicaState(Volume.ReplicationState.DETACHED.name());
+                }
+
+                String msg = String.format("doDetachGroupClone -- Detached group clone: %s .", task.getMessage());
+                _log.info(msg);
+                dbClient.updateObject(clones);
+                taskCompleter.ready(dbClient);
+            } else {
+                String msg = String.format("Failed to detach group clone on storage system %s, clones: %s .",
+                        storageSystem.getNativeId(), clones.toString());
+                _log.error(msg);
+                // todo: add error
+                ServiceError serviceError = ExternalDeviceException.errors.detachVolumeCloneFailed("doDetachGroupClone", msg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            String msg = String.format("Failed to detach group clone on storage system %s, clones: %s .",
+                    storageSystem.getNativeId(), clones.toString());
+            _log.error(msg, e);
+            // todo: add error
+            ServiceError serviceError = ExternalDeviceException.errors.detachVolumeCloneFailed("doDetachGroupClone", msg);
+            taskCompleter.error(dbClient, serviceError);
+        }
+    }
+
+    @Override
+    public void doRestoreFromClone(StorageSystem storageSystem, URI cloneVolume,
+                                   TaskCompleter taskCompleter) {
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+        DriverTask task = null;
+        Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        _log.info("Restore from volume clone on storage system {}, clone: {} .",
+                storageSystem.getNativeId(), clone.toString());
+
+        try {
+            BlockObject sourceVolume = BlockObject.fetch(dbClient, clone.getAssociatedSourceVolume());
+            VolumeClone driverClone = new VolumeClone();
+
+            driverClone.setStorageSystemId(storageSystem.getNativeId());
+            driverClone.setNativeId(clone.getNativeId());
+            driverClone.setParentId(sourceVolume.getNativeId());
+            driverClone.setConsistencyGroup(clone.getReplicationGroupInstance());
+
+            // Call driver
+            task = driver.restoreFromClone(Collections.singletonList(driverClone));
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                clone.setReplicaState(driverClone.getReplicationState().name());
+                String msg = String.format("doRestoreFromClone -- Restored volume from clone: %s .", task.getMessage());
+                _log.info(msg);
+                dbClient.updateObject(clone);
+                taskCompleter.ready(dbClient);
+            } else {
+                String msg = String.format("Failed to restore volume from clone on storage system %s, clone: %s .",
+                        storageSystem.getNativeId(), clone.toString());
+                _log.error(msg);
+                // todo: add error
+                ServiceError serviceError = ExternalDeviceException.errors.restoreVolumesFromClonesFailed("doRestoreFromClone", msg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            String msg = String.format("Failed to restore volume from clone on storage system %s, clone: %s .",
+                    storageSystem.getNativeId(), clone.toString());
+            _log.error(msg);
+            // todo: add error
+            ServiceError serviceError = ExternalDeviceException.errors.restoreVolumesFromClonesFailed("doRestoreFromClone", msg);
+            taskCompleter.error(dbClient, serviceError);
+        }
+    }
+
+    @Override
+    public void doRestoreFromGroupClone(StorageSystem storageSystem,
+                                        List<URI> cloneVolumes, TaskCompleter taskCompleter) {
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+        DriverTask task = null;
+        List<Volume> clones = dbClient.queryObject(Volume.class, cloneVolumes);
+        _log.info("Restore from group clone on storage system {}, clones: {} .",
+                storageSystem.getNativeId(), clones.toString());
+
+        try {
+            Map<VolumeClone, Volume> driverCloneToCloneMap = new HashMap<>();
+            List<VolumeClone> driverClones = new ArrayList<>();
+            for (Volume clone : clones) {
+                BlockObject sourceVolume = BlockObject.fetch(dbClient, clone.getAssociatedSourceVolume());
+                VolumeClone driverClone = new VolumeClone();
+                driverClone.setStorageSystemId(storageSystem.getNativeId());
+                driverClone.setNativeId(clone.getNativeId());
+                driverClone.setParentId(sourceVolume.getNativeId());
+                driverClone.setConsistencyGroup(clone.getReplicationGroupInstance());
+                driverClones.add(driverClone);
+                driverCloneToCloneMap.put(driverClone, clone);
+            }
+            // Call driver
+            task = driver.restoreFromClone(driverClones);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                for (Map.Entry<VolumeClone, Volume> entry : driverCloneToCloneMap.entrySet() ) {
+                    VolumeClone driverClone = entry.getKey();
+                    Volume clone = entry.getValue();
+                    clone.setReplicaState(driverClone.getReplicationState().name());
+                }
+
+                String msg = String.format("doRestoreFromGroupClone -- Restore from group clone: %s .", task.getMessage());
+                _log.info(msg);
+                dbClient.updateObject(clones);
+                taskCompleter.ready(dbClient);
+            } else {
+                String msg = String.format("Failed to restore from group clone on storage system %s, clones: %s .",
+                        storageSystem.getNativeId(), clones.toString());
+                _log.error(msg);
+                // todo: add error
+                ServiceError serviceError = ExternalDeviceException.errors.restoreVolumesFromClonesFailed("doRestoreFromGroupClone", msg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            String msg = String.format("Failed to restore from group clone on storage system %s, clones: %s .",
+                    storageSystem.getNativeId(), clones.toString());
+            _log.error(msg, e);
+            // todo: add error
+            ServiceError serviceError = ExternalDeviceException.errors.restoreVolumesFromClonesFailed("doRestoreFromGroupClone", msg);
+            taskCompleter.error(dbClient, serviceError);
+        }
     }
 
 

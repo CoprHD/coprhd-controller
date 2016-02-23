@@ -136,6 +136,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
                 Set<StoragePool.Protocols> protocols = new HashSet<>();
                 protocols.add(StoragePool.Protocols.FC);
                 protocols.add(StoragePool.Protocols.iSCSI);
+                protocols.add(StoragePool.Protocols.ScaleIO);
                 pool.setProtocols(protocols);
                 pool.setPoolServiceType(StoragePool.PoolServiceType.block);
                 pool.setMaximumThickVolumeSize(3000000L);
@@ -196,8 +197,8 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
             port.setDeviceLabel("er-port-1234577" + i + storageSystem.getNativeId());
             port.setPortName(port.getDeviceLabel());
             //port.setNetworkId("er-network77"+ storageSystem.getNativeId());
-            port.setNetworkId("er-network77");
-            port.setTransportType(StoragePort.TransportType.FC);
+            port.setNetworkId("er-networkScaleIO");
+            port.setTransportType(StoragePort.TransportType.ScaleIO);
             port.setPortNetworkId("6" + Integer.toHexString(index) + ":FE:FE:FE:FE:FE:FE:1" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);
             port.setPortHAZone("zone-"+i);
@@ -326,7 +327,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         for (VolumeClone clone : clones) {
             clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
             clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
-            clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
+            clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
             clone.setDeviceLabel(clone.getNativeId());
         }
         String taskType = "create-volume-clone";
@@ -343,12 +344,31 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
     @Override
     public DriverTask detachVolumeClone(List<VolumeClone> clones) {
-        return null;
+        String taskType = "detach-volume-clone";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("StorageDriver: detachVolumeClone for storage system %s, " +
+                        "clones nativeId %s - end",
+                clones.get(0).getStorageSystemId(), clones.toString());
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
-    public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone) {
-        return null;
+    public DriverTask restoreFromClone(List<VolumeClone> clones) {
+        String taskType = "restore-volume-clones";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+        String msg = String.format("StorageDriver: restoreFromClone : clones %s ", clones);
+        for (VolumeClone clone : clones) {
+            clone.setReplicationState(VolumeClone.ReplicationState.RESTORED);
+        }
+        _log.info(msg);
+        task.setMessage(msg);
+        return task;
     }
 
     @Override
@@ -493,7 +513,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         for (VolumeClone clone : clones) {
             clone.setNativeId("clone-" + clone.getParentId() + clone.getDisplayName());
             clone.setWwn(String.format("%s%s", clone.getStorageSystemId(), clone.getNativeId()));
-            clone.setReplicationState(VolumeClone.ReplicationState.DETACHED);
+            clone.setReplicationState(VolumeClone.ReplicationState.SYNCHRONIZED);
             clone.setDeviceLabel(clone.getNativeId());
             clone.setConsistencyGroup(consistencyGroup.getNativeId()+"_clone-"+cloneTimestamp);
         }

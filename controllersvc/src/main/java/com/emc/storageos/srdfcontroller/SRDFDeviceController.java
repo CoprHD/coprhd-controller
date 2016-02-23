@@ -381,6 +381,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     .getNativeGuid());
         }
 
+        if (!group.getVolumes().isEmpty()) {
+            // Make sure that the Active volumes in this group are not created outside the ViPR Controller
+            // ViPR Controller should not attempt to suspend them
+            try {
+                // The below call will return an error if there is a single volume in the group that does not have an associated Volume URI
+                List<Volume> volumes = utils.getAssociatedVolumesForSRDFGroup(system, group);
+            } catch (Exception e) {
+                log.info("RDF Group {} has devices created outside ViPRController", group.getNativeGuid());
+                clearSourceAndTargetVolumes(sourceDescriptors, targetDescriptors);
+                throw DeviceControllerException.exceptions.rdfGroupHasPairsCreatedOutsideViPR(group
+                        .getNativeGuid());
+            }
+        }
+
         String createSrdfPairStep = null;
         if (volumesInRDFGroupsOnProvider.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
             log.info("RA Group {} was empty", group.getId());

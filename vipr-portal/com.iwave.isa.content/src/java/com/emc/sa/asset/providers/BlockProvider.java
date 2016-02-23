@@ -1106,12 +1106,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
     @Asset("replicationGroup")
     @AssetDependencies({ "application", "applicationSnapshotVirtualArray" })
-    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId, URI virtualArray) {
+    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId, String virtualArrayParameter) {
         ViPRCoreClient client = api(ctx);
         boolean isTarget = false;
+        URI virtualArray = null;
 
-        if (virtualArray != null && StringUtils.split(virtualArray.toString(), ':')[0].equals("tgt")) {
-            virtualArray = URI.create(StringUtils.substringAfter(virtualArray.toString(), ":"));
+        if (virtualArrayParameter != null && StringUtils.split(virtualArrayParameter, ':')[0].equals("tgt")) {
+            virtualArray = URI.create(StringUtils.substringAfter(virtualArrayParameter, ":"));
             isTarget = true;
         } else {
             isTarget = false;

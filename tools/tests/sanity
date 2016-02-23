@@ -8115,7 +8115,7 @@ backuprestore_setup()
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_password "${BACKUP_SERVER_PASSWORD}"
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_url "${BACKUP_SERVER_URL}"
 
-    echo "Done url=${BACKUP_EXTERNAL_LOCATION_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
+    echo "Done url=${BACKUP_SERVER_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
 }
 
 backuprestore_tests()
@@ -8168,7 +8168,7 @@ backup_tests()
 
     echo "List local backup ${backupname} successful"
 
-    echo "Uploading backup(${backupname}) to ${BACKUP_EXTERNAL_LOCATION_URL}"
+    echo "Uploading backup(${backupname}) to ${BACKUP_SERVER_URL}"
     backup upload "${backupname}"
 
     if [ $? != 0 ]; then
@@ -8195,7 +8195,7 @@ backup_tests()
         exit 1
     fi
 
-    echo "Listing external backup(${backupname} from ${BACKUP_EXTERNAL_LOCATION_URL})"
+    echo "Listing external backup(${backupname} from ${BACKUP_SERVER_URL})"
 
     found=""
     for(( i=0; i<60; i++ )); do
@@ -8209,11 +8209,11 @@ backup_tests()
     done
 
     if [[ "${found}" == "" ]]; then
-       echo "Failed to find backup ${backupname} on ${BACKUP_EXTERNAL_LOCATION_URL}"
+       echo "Failed to find backup ${backupname} on ${BACKUP_SERVER_URL}"
        exit 1
     fi
 
-    echo "Pull backup(${found} from ${BACKUP_EXTERNAL_LOCATION_URL})"
+    echo "Pull backup(${found} from ${BACKUP_SERVER_URL})"
     backup pull "${found}"
 
     if [[ $? -ne 0 ]]; then
@@ -8309,9 +8309,10 @@ restore_tests()
     SCP $BOURNE_IPADDR ${filepath} ${filepath}
 
     echo "Restoring backup file ${filepath} on $BOURNE_IPADDR"    
-    result=`SSH $BOURNE_IPADDR "echo -e 'yes\n$password' | /opt/storageos/bin/restore '${filepath}'" | grep 'Restore'`
-    echo "$result"
-    if [[ "$result"x != "Restore successful!"x ]]; then
+    SSH $BOURNE_IPADDR "echo -e 'yes\n$password' | /opt/storageos/bin/restore '${filepath}'"
+    ret=$?
+    echo "ret=$ret"
+    if [[ ${ret} -ne 0 ]]; then
         echo "Please check /opt/storageos/logs/bkutils.log for details"
         exit 1
     fi

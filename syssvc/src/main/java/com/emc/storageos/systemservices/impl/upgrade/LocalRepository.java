@@ -88,7 +88,8 @@ public class LocalRepository {
     private static final String _SYSTOOL_REMOTE_SYSTOOL = "--remote-systool";
     private static final String _SYSTOOL_RESTART_COORDINATOR = "--restart-coordinator";
 
-    private static final String _IPSECTOOL_CMD="/etc/ipsectool";
+    private static final String _IPSECTOOL_CMD = "/etc/ipsectool";
+    private static final String MASK_IPSEC_KEY_PATTERN = "ipsec_key=.*?\\\\n";
 
     // inject value from spring config.
     private String cmdZkutils;
@@ -259,9 +260,11 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_VDC_PROPS };
-        String[] props = exec(prefix, cmd1);
+        String[] props = exec(prefix, MASK_IPSEC_KEY_PATTERN, cmd1);
 
-        _log.debug(prefix + "properties={}", Strings.repr(props));
+        // remove below redundant debug info, the props content already print
+        // in above exec method.
+        // _log.debug(prefix + "properties={}", Strings.repr(props));
         return new PropertyInfoExt(props);
     }
 
@@ -417,7 +420,6 @@ public class LocalRepository {
      * Restart a service on remote node
      *
      * @param nodeId
-     * @param serviceName service name
      * @throws LocalRepositoryException
      */
     public void remoteRestartCoordinator(String nodeId, String type) throws LocalRepositoryException {
@@ -576,9 +578,8 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd = { _IPSECTOOL_CMD, IPSEC_GET_PROPS, ip };
-        String[] props = exec(prefix, cmd);
+        String[] props = exec(prefix, MASK_IPSEC_KEY_PATTERN, cmd);
 
-        _log.debug(prefix + "properties={}", Strings.repr(props));
         return PropertyInfoUtil.splitKeyValue(props);
     }
 

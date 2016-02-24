@@ -1,7 +1,6 @@
 package com.emc.sa.service.vipr.plugins.tasks;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
@@ -10,10 +9,8 @@ import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import com.emc.sa.engine.extension.ExternalTaskApdapterInterface;
-import com.emc.sa.service.vipr.plugins.tasks.ApprovalTaskParam.NameValueParam;
 import com.emc.storageos.vasa.async.TaskInfo;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
@@ -24,7 +21,7 @@ import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 
 	String inputNew = "{ \"processDefinitionKey\":\"simpleApprovalProcess\", \"variables\": [{\"name\":\"mailcontent\",\"value\":\"Hello Administrator,A new request for provisioning has arrived.Please view the request and take action.<a href=\\\"http://lglbv240.lss.emc.com:9090/activiti-explorer/#tasks?category=inbox\\\">View and Approve</a>\"},{\"name\":\"to\",\"value\":\"manoj.jain@emc.com\"}]}";
-	String REST_URL = "http://lglbv240.lss.emc.com:9090/activiti-rest/service/runtime/process-instances";
+	String REST_URL = "http://localhost:8080/activiti-rest/service/runtime/process-instances";
 	Client client = Client.create();
 	HTTPBasicAuthFilter filter = new HTTPBasicAuthFilter("kermit", "kermit");
 	
@@ -32,8 +29,6 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 		client.addFilter(filter);
 	}
 
-	private boolean test=true;
-    
 	@Override
 	public void init() throws Exception {
 		// TODO Auto-generated method stub
@@ -47,9 +42,13 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 	}
 	@Override
 	public void preLaunch(String extenalTaskParam) throws Exception {
-
-		sendApprovalMail(extenalTaskParam);
-		System.out.println("External Custom Task preLaunch "+extenalTaskParam);
+		ApprovalTaskParam approvalTaskParam = new ApprovalTaskParam();
+		approvalTaskParam.configurePreLaunchParams(extenalTaskParam);
+		Gson uglyJson = new Gson();
+		
+		String uglyJsonString = uglyJson.toJson(approvalTaskParam);
+		sendApprovalMail(uglyJsonString);
+		System.out.println("Custom Service pre launch complete!");
 		
 	}
 
@@ -68,8 +67,13 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 
 	@Override
 	public void postLaunch(String extenalTaskParam) throws Exception {
-		sendApprovalMail(extenalTaskParam);
-		System.out.println("External  Custom Task postLaunch "+extenalTaskParam);
+		ApprovalTaskParam approvalTaskParam = new ApprovalTaskParam();
+		approvalTaskParam.configurePostLaunchParameters(extenalTaskParam);
+		Gson uglyJson = new Gson();
+		
+		String uglyJsonString = uglyJson.toJson(approvalTaskParam);
+		sendApprovalMail(uglyJsonString);
+		System.out.println("Custom Service post launch complete!");
 		
 	}
 
@@ -86,10 +90,10 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 		
 	}
 	
-	private void sendApprovalMail(String extenalTaskParam){
-		System.out.println("External Custom Task sendApprovalMail "+extenalTaskParam);
+	private void sendApprovalMail(String approvalTaskParam){
+		System.out.println("Approval Task Param for  sendApprovalMail \n"+ approvalTaskParam);
 		WebResource webResource = client.resource(REST_URL);
-		ClientResponse clientReponse = webResource.type("application/json").post(ClientResponse.class, inputNew);
+		ClientResponse clientReponse = webResource.type("application/json").post(ClientResponse.class, approvalTaskParam);
 		String processDefinitionId = null;
 		try {
 			if (201 == clientReponse.getClientResponseStatus().getStatusCode()) {
@@ -99,7 +103,7 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 				processDefinitionId = result.get("processDefinitionId").asText();
 
 				while (true) {
-					System.out.println("Waiting for status check!");
+					System.out.println("Waiting for activiti process to complete!");
 					try {
 						Thread.sleep(5000);
 
@@ -126,11 +130,11 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 								}
 							}
 							if (!processRunning) {
-								System.out.println("Process execution complete!");
+								System.out.println("Activiti Process execution complete!");
 								break;
 							}
 						} else {
-							System.out.println("Process execution complete!");
+							System.out.println("Activiti Process execution complete!");
 							break;
 						}
 						
@@ -138,6 +142,8 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 						// ignore for now
 					}
 				}
+			} else {
+				System.out.println(clientReponse.getEntity(String.class));
 			}
 		} catch (ClientHandlerException e) {
 			// ignore exceptions for now
@@ -188,8 +194,9 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 
 		CreateVolumeExtension createVolumeExtension = new CreateVolumeExtension();
 		String extenalTaskParam=inputNew;
-		//createVolumeExtension.preLaunch(extenalTaskParam);
+		createVolumeExtension.preLaunch(extenalTaskParam);
 		createVolumeExtension.postLaunch(extenalTaskParam);
+		//createVolumeExtension.postLaunch(extenalTaskParam);
 	}
 
 }

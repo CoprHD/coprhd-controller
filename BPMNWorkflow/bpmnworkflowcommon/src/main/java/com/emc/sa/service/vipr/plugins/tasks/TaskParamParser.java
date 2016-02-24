@@ -3,27 +3,26 @@ package com.emc.sa.service.vipr.plugins.tasks;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
-import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.io.IOUtils;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import com.emc.sa.service.vipr.plugins.tasks.ApprovalTaskParam.NameValueParam;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 /*
  		String inputNew = "{ \"processDefinitionKey\":\"simpleApprovalProcess\", \"variables\": [{\"name\":\"mailcontent\",\"value\":\"Hello Administrator,A new request for provisioning has arrived.Please view the request and take action.<a href=\\\"http://lglbv240.lss.emc.com:9090/activiti-explorer/#tasks?category=inbox\\\">View and Approve</a>\"},{\"name\":\"to\",\"value\":\"manoj.jain@emc.com\"}]}";
 
+
+String ExternalTaskParams  ={"virtualArray":"\"urn:storageos:VirtualArray:bf8cd0ff-5746-433b-a817-dd45c9f72633:vdc1\"","virtualPool":"\"urn:storageos:VirtualPool:757bb977-8a5b-4e26-9b06-4e6787520c0e:vdc1\"","project":"\"urn:storageos:Project:047dde9b-3049-45ec-8599-0101e10fff7c:global\"","name":"\"MYVOLEXT-21-1\"","size":"\"1\"","numberOfVolumes":"\"1\"","consistencyGroup":"\"\"","externalParam":"externalParam"}
  */
 public class TaskParamParser {
 	
@@ -43,29 +42,13 @@ public class TaskParamParser {
 	
 	    public static <T> T getJsonXpathPropert(String json,String xpath,Class<T> classz) throws Exception{	    	//actually it is a Map instance with maps-fields within
 	    	
-	    	String[] jsonXpathTokens=xpath.split(".");
-	    	
 	    	Map<String, Object> jsonMap = new HashMap<String,Object>();
 	    	jsonMap = (Map<String, Object>)GSON.fromJson(json, jsonMap.getClass());
 	    	
-//	    	for( String jsonXpathToken : jsonXpathTokens){
-//	    		jsonMap=jsonMap.get(jsonXpathToken);
-//	    	}
-	    	
-	    	
-	    	ObjectMapper mapper = new ObjectMapper();
-	    	Object jsonObj = mapper.readValue(json, Object.class);
-	    	Object xpathObj = PropertyUtils.getProperty(jsonObj, xpath);
+	    	Object xpathObj = jsonMap.get(xpath);
 	    	return classz.cast(xpathObj);
 
 	    }
-	    
-	    public Object traverseMap(Map<String, Object> jsonMap,String jsonXpathToken) {
-	    	Object nested=jsonMap.get(jsonXpathToken);
-	    
-	    return nested;
-	 }
-	    
 	    
 		public static void main(String[] args) throws Exception{
 
@@ -99,7 +82,7 @@ public class TaskParamParser {
 
 			System.out.println("\nUgly printing: "+ugJason);
 			
-			TaskParamParser.getJsonXpathPropert(ugJason,"variables.to",String.class);
+			TaskParamParser.getJsonXpathPropert(ugJason,"variables.[1].value",String.class);
 
 		}
 		

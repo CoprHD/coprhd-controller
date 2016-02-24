@@ -112,9 +112,8 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             completeTask(bucket.getId(), taskId, e);
             result = BiosCommandResult.createErrorResult(e);
         }
-        String productIdent = readFile(PRODUCT_IDENT_PATH);
-        productIdent = (productIdent == null) ? "Unknown" : productIdent;
-        bucket.setVersion(productIdent);
+        String aclSupportedVersion = "acl_supported";
+        bucket.setVersion(aclSupportedVersion);
         _dbClient.persistObject(bucket);
         return result;
     }
@@ -579,30 +578,6 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         completer.statusReady(_dbClient, message);
     }
     
-    /**
-     * Reads the product file and returns the product version. 
-     */
-    private String readFile(String path) {
-        BufferedReader br = null;
-        String content = null;
-        try {
-            br = new BufferedReader(new FileReader(path));
-            content = br.readLine();
-        } catch (Exception e) {
-            _log.warn("Ignoring failure during reading the file({})", path, e);
-        } finally {
-            try {
-                if (br != null) {
-                    br.close();
-                }
-            } catch (IOException ex) {
-                _log.debug("Ignoring failure during closing the buffer reader", ex);
-            }
-        }
-
-        return content;
-    }
-
     /*
      * (non-Javadoc)
      * 
@@ -624,7 +599,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             List<ECSBucketACL.GroupAcl> group_acl = acl.getGroupAcl();
             List<ECSBucketACL.CustomGroupAcl> customgroup_acl = acl.getCustomgroupAcl();
             List<BucketACE> aclToAdd = Lists.newArrayList();
-            final String _VERSION = "2.4";
+            final String _VERSION = "acl_supported";
             final String DELIMETER = "@";
             for (ECSBucketACL.UserAcl userAce : user_acl) {
                 String userWithDomain = userAce.getUser();

@@ -1030,6 +1030,33 @@ public class ControllerUtils {
     }
 
     /**
+     * Filters the CG volumes by given Replication Group name.
+     *
+     * @param cgVolumes the cg volumes
+     * @param rgName the repliaction group name
+     * @param dbClient the db client
+     * @return volumes belonging to RG in a CG
+     */
+    public static List<BlockObject> getAllVolumesForRGInCG(List<Volume> cgVolumes, String rgName, DbClient dbClient) {
+        List<BlockObject> cgVolumesInRG = new ArrayList<BlockObject>();
+        // get only those volumes belonging to given RG name
+        if (NullColumnValueGetter.isNotNullValue(rgName)) {
+            for (Volume vol : cgVolumes) {
+                String volRGName = vol.getReplicationGroupInstance();
+                if (vol.isVPlexVolume(dbClient)) {
+                    // get RG name from back end volume
+                    Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume(vol, true, dbClient);
+                    volRGName = srcBEVolume.getReplicationGroupInstance();
+                }
+                if (rgName.equals(volRGName)) {
+                    cgVolumesInRG.add(vol);
+                }
+            }
+        }
+        return cgVolumesInRG;
+    }
+
+    /**
      * Gets the replication group name from replicas of all volumes in CG.
      */
     public static String getGroupNameFromReplicas(List<URI> replicas,

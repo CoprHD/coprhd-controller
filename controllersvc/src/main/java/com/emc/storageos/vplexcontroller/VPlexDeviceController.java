@@ -10978,12 +10978,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             } else {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
                 List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
+                List<BlockObject> allVplexVolumesInRG = ControllerUtils.getAllVolumesForRGInCG(allVplexVolumesInCG,
+                        snapSession.getReplicationGroupInstance(), _dbClient);
                 // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
                 // that are RP source volumes.
-                for (Volume vplexVolume : allVplexVolumesInCG) {
-                    String personality = vplexVolume.getPersonality();
+                for (BlockObject vplexVolume : allVplexVolumesInRG) {
+                    String personality = ((Volume) vplexVolume).getPersonality();
                     if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
-                        vplexVolumes.add(vplexVolume);
+                        vplexVolumes.add((Volume) vplexVolume);
                     }
                 }
             }

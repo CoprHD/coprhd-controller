@@ -1479,13 +1479,13 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
             } catch (InternalException | APIException e) {
-                log.error("Exception when creating snapshot with consistency group {}: {}", cgUri, e);
+                log.error("Exception when creating snapshot for consistency group {}", cgUri, e);
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
                 TaskResourceRep task = BlockServiceUtils.createFailedTaskOnCG(_dbClient, cg,
                         ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT, e);
                 taskList.addTask(task);
             } catch (Exception ex) {
-                log.error("Unexpected Exception occurred while creating snapshot for consistency group {}: {}",
+                log.error("Unexpected Exception occurred when creating snapshot for consistency group {}",
                         cgUri, ex);
             }
         }
@@ -1602,6 +1602,10 @@ public class VolumeGroupService extends TaskResourceService {
 
         // validate that source of the provided snapshot is part of the volume group
         Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
+        if (volume != null && Volume.checkForVplexBackEndVolume(_dbClient, volume)) {
+            // get VPLEX virtual volume to check for volume group reference
+            volume = Volume.fetchVplexVolume(_dbClient, volume);
+        }
         if (volume == null || volume.getInactive() || !volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
             throw APIException.badRequests
                     .replicaOperationNotAllowedSourceNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(),
@@ -2069,14 +2073,8 @@ public class VolumeGroupService extends TaskResourceService {
                 taskList.getTaskList().addAll(
                         _blockConsistencyGroupService.createConsistencyGroupSnapshotSession(cgUri, cgSnapshotSessionParam)
                                 .getTaskList());
-            } catch (InternalException | APIException e) {
-                log.error("Exception while creating snapshot session for consistency group {}: {}", cgUri, e);
-                BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
-                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnCG(_dbClient, cg,
-                        ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION, e);
-                taskList.addTask(task);
             } catch (Exception ex) {
-                log.error("Unexpected Exception occurred while creating snapshot session for consistency group {}: {}",
+                log.error("Unexpected Exception occurred when creating snapshot session for consistency group {}",
                         cgUri, ex);
             }
         }

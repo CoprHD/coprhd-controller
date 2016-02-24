@@ -172,23 +172,10 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
     protected List<BlockObject> getAllSources(BlockSnapshotSession snapSession, DbClient dbClient) {
         if (snapSession.hasConsistencyGroup()) {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            // return only those volumes belonging to session's RG
             List<Volume> cgSources = BlockConsistencyGroupUtils.getAllCGVolumes(cg, dbClient);
-            List<BlockObject> cgSourcesInRG = new ArrayList<BlockObject>();
-            String rgName = snapSession.getReplicationGroupInstance();
-            if (NullColumnValueGetter.isNotNullValue(rgName)) {
-                for (Volume vol : cgSources) {
-                    String volRGName = vol.getReplicationGroupInstance();
-                    if (vol.isVPlexVolume(dbClient)) {
-                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) vol, true, dbClient);
-                        volRGName = srcBEVolume.getReplicationGroupInstance();
-                    }
-                    if (rgName.equals(volRGName)) {
-                        cgSourcesInRG.add(vol);
-                    }
-                }
-            }
-            return cgSourcesInRG;
+            // return only those volumes belonging to session's RG
+            return ControllerUtils.getAllVolumesForRGInCG(cgSources,
+                    snapSession.getReplicationGroupInstance(), dbClient);
         }
         return Lists.newArrayList(getSource(snapSession, dbClient));
     }

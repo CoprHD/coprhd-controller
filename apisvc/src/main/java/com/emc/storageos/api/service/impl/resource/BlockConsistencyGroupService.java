@@ -505,8 +505,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
                         AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
                         consistencyGroup.getId().toString());
-            } catch (Exception e) {
-                _log.warn("Exception when creating snapshot of replication group {}: {}", cell.getColumnKey(), e.getMessage());
+            } catch (Exception ex) {
+                _log.error("Unexpected Exception occurred when creating snapshot for replication group {}",
+                        cell.getColumnKey(), ex);
             }
 
             taskList.getTaskList().addAll(response.getTaskList());

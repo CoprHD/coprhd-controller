@@ -30,6 +30,7 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +75,7 @@ import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Joiner;
@@ -277,10 +279,14 @@ public class BlockSnapshotSessionManager {
             try {
                 taskList.getTaskList().addAll(
                         createSnapshotSession(((List<BlockObject>) (List<?>) volumeList), param, fcManager).getTaskList());
-            } catch (Exception e) {
-                s_logger.error("Exception when creating snapshot session for replication group {}: {}",
-                        rgName, e);
-                // TODO create Error Task
+            } catch (InternalException | APIException e) {
+                s_logger.error("Exception when creating snapshot session for replication group {}", rgName, e);
+                TaskResourceRep task = BlockServiceUtils.createFailedTaskOnCG(_dbClient, cg,
+                        ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT_SESSION, e);
+                taskList.addTask(task);
+            } catch (Exception ex) {
+                s_logger.error("Unexpected Exception occurred when creating snapshot session for replication group {}",
+                        rgName, ex);
             }
         }
 
@@ -961,24 +967,10 @@ public class BlockSnapshotSessionManager {
     private List<BlockObject> getAllSnapshotSessionSources(BlockSnapshotSession snapSession) {
         if (snapSession.hasConsistencyGroup()) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
-            // return only those volumes belonging to session's RG
             List<Volume> cgSources = BlockConsistencyGroupUtils.getAllCGVolumes(cg, _dbClient);
-            List<BlockObject> cgSourcesInRG = new ArrayList<BlockObject>();
-            String rgName = snapSession.getReplicationGroupInstance();
-            if (NullColumnValueGetter.isNotNullValue(rgName)) {
-                for (Volume vol : cgSources) {
-                    String volRGName = vol.getReplicationGroupInstance();
-                    if (vol.isVPlexVolume(_dbClient)) {
-                        // get RG name from back end volume
-                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) vol, true, _dbClient);
-                        volRGName = srcBEVolume.getReplicationGroupInstance();
-                    }
-                    if (rgName.equals(volRGName)) {
-                        cgSourcesInRG.add(vol);
-                    }
-                }
-            }
-            return cgSourcesInRG;
+            // return only those volumes belonging to session's RG
+            return ControllerUtils.getAllVolumesForRGInCG(cgSources,
+                    snapSession.getReplicationGroupInstance(), _dbClient);
         } else {
             BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
                     _uriInfo, true, _dbClient);

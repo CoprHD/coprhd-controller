@@ -37,7 +37,7 @@ public class DistributedDoubleBarrierTest extends CoordinatorTestBase {
 
         while (true) {
             if (result2.isDone()) {
-                Assert.assertTrue("Work2 should return true since it leaves after all others leave", result2.get());
+                Assert.assertFalse("Work2 should return false since work1 leaves with timeout", result2.get());
                 break;
             }
         }

@@ -56,7 +56,7 @@ public class AuditLog extends Controller {
         AuditLogDataTable dataTable = new AuditLogDataTable();
 
         Long startTime = params.get(PARAM_START, Long.class);
-        String resultStatus = params.get(PARAM_RESULT);
+        String resultStatus = params.get(PARAM_RESULT) == null ? "" : params.get(PARAM_RESULT);
         String serviceType = params.get(PARAM_SERVICE);
         String user = params.get(PARAM_USER);
         String keyword = params.get(PARAM_KEYWORD);

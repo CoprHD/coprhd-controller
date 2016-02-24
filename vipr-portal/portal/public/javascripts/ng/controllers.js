@@ -1187,6 +1187,7 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
     var APPLY_FILTER = routes.AuditLog_list();
     var DOWNLOAD_LOGS = routes.AuditLog_download();
     var RESULT_STATUS = {
+        '' : 'ALL STATUS',
         'S': 'SUCCESS',
         'F': 'FAILURE'
     };
@@ -1287,8 +1288,9 @@ angular.module("portalApp").controller("AuditLogCtrl", function($scope, $http, $
 
     // Constructs the filter text to display at the top of the page
     function getFilterText() {
+        var status = RESULT_STATUS[$scope.filter.resultStatus];
         var startTime = formatDate($scope.filter.startTime, 'YYYY-MM-DD HH:00');
-        return $sce.trustAsHtml(translate("auditLog.filter.filterText", startTime));
+        return $sce.trustAsHtml(translate("auditLog.filter.filterText", status, startTime));
     }
 
     function encodeArgs(args) {

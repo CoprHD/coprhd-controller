@@ -52,6 +52,34 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     private CephClientFactory _cephClientFactory;
     private SnapshotOperations _snapshotOperations;
 
+    private class RBDMappingOptions {
+    	public String poolName = null;
+    	public String volumeName = null;
+    	public String snapshotName = null;
+
+    	public RBDMappingOptions(BlockObject object) {
+        	URI uri = object.getId();
+        	Volume volume = null;
+        	BlockSnapshot snapshot = null;
+        	if (URIUtil.isType(uri, Volume.class) || URIUtil.isType(uri, BlockMirror.class)) {
+            	volume = (Volume)object;
+        	} else if (URIUtil.isType(uri, BlockSnapshot.class)) {
+        		snapshot = (BlockSnapshot)object;
+        		volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
+        	} else {
+            	String msg = String.format("getRRBOptions: Unsupported block object type URI %s", uri);
+                throw DeviceControllerExceptions.ceph.operationException(msg);
+        	}
+            StoragePool pool = _dbClient.queryObject(StoragePool.class, volume.getPool());
+            this.poolName = pool.getPoolName();
+            this.volumeName = volume.getNativeId();
+            this.snapshotName = null;
+            if (snapshot != null) {
+            	this.snapshotName = snapshot.getNativeId();
+            }
+    	}
+    }
+
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
@@ -190,6 +218,92 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         taskCompleter.ready(_dbClient);
     }
 
+    @Override
+    public void doExportGroupCreate(StorageSystem storage, ExportMask exportMask,
+            Map<URI, Integer> volumeMap, List<Initiator> initiators, List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} Ceph doExportGroupCreate START ...", storage.getSerialNumber());
+		filterInitiators(initiators);
+		mapVolumes(storage, exportMask, volumeMap, initiators, taskCompleter);
+        _log.info("{} doExportGroupCreate END...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doExportGroupDelete(StorageSystem storage, ExportMask exportMask, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} Ceph: doExportGroupDelete START ...", storage.getSerialNumber());
+    	List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
+        Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
+        filterInitiators(initiators);
+        unmapVolumes(storage, exportMask, volumeURIs, initiators, taskCompleter);
+        _log.info("{} Ceph: doExportGroupDelete END...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumeMap, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} Ceph: doExportAddVolumes START ...", storage.getSerialNumber());
+        Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
+        filterInitiators(initiators);
+		mapVolumes(storage, exportMask, volumeMap, initiators, taskCompleter);
+        _log.info("{}  Ceph: doExportAddVolumes END...", storage.getSerialNumber());
+
+    }
+
+    @Override
+    public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} Ceph doExportRemoveVolumes START ...", storage.getSerialNumber());
+        Set<Initiator> initiators = ExportMaskUtils.getInitiatorsForExportMask(_dbClient, exportMask, null);
+        filterInitiators(initiators);
+        unmapVolumes(storage, exportMask, volumeURIs, initiators, taskCompleter);
+        _log.info("{} Ceph: doExportRemoveVolumes END...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume, Integer lun, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        Map<URI, Integer> volumes = new HashMap<>();
+        volumes.put(volume, lun);
+        doExportAddVolumes(storage, exportMask, volumes, taskCompleter);
+    }
+
+    @Override
+    public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        doExportRemoveVolumes(storage, exportMask, asList(volume), taskCompleter);
+    }
+
+    @Override
+    public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} Ceph doExportAddInitiators START ...", storage.getSerialNumber());
+        Map<URI, Integer> volumes = createVolumeMapForExportMask(exportMask);
+        mapVolumes(storage, exportMask, volumes, initiators, taskCompleter);
+        _log.info("{} Ceph: doExportAddInitiators END...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask, List<Initiator> initiators, List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} Ceph doExportRemoveInitiators START ...", storage.getSerialNumber());
+        List<URI> volumeURIs = ExportMaskUtils.getVolumeURIs(exportMask);
+        unmapVolumes(storage, exportMask, volumeURIs, initiators, taskCompleter);
+        _log.info("{} Ceph: doExportRemoveInitiators END...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask, Initiator initiator, List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        doExportAddInitiators(storage, exportMask, asList(initiator), targets,  taskCompleter);
+    }
+
+    @Override
+    public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask, Initiator initiator, List<URI> targets,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        doExportRemoveInitiators(storage, exportMask, asList(initiator), targets, taskCompleter);
+    }
+
     /**
      * Method calls the completer with error message indicating that the caller's method is unsupported
      *
@@ -206,4 +320,114 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
         return CephUtils.connectToCeph(_cephClientFactory, storage);
     }
 
+    private LinuxSystemCLI getLinuxClient(Host host) {
+        LinuxSystemCLI cli = new LinuxSystemCLI();
+        cli.setHost(host.getHostName());
+        cli.setPort(host.getPortNumber());
+        cli.setUsername(host.getUsername());
+        cli.setPassword(host.getPassword());
+        cli.setHostId(host.getId());
+        return cli;
+    }
+
+    private void filterInitiators(Collection<Initiator> initiators) {
+        Iterator<Initiator> initiatorIterator = initiators.iterator();
+        while (initiatorIterator.hasNext()) {
+            Initiator initiator = initiatorIterator.next();
+            if (!initiator.getProtocol().equals(Initiator.Protocol.RBD.name())) {
+                initiatorIterator.remove();
+            }
+        }
+    }
+
+    private Map<URI, Integer> createVolumeMapForExportMask(ExportMask exportMask) {
+        Map<URI, Integer> map = new HashMap<>();
+        for (URI uri : ExportMaskUtils.getVolumeURIs(exportMask)) {
+            map.put(uri, ExportGroup.LUN_UNASSIGNED);
+        }
+        return map;
+    }
+
+    private void mapVolumes(StorageSystem storage, ExportMask exportMask, Map<URI, Integer> volumeMap, Collection<Initiator> initiators,
+    		TaskCompleter completer) {
+        _log.info("mapVolumes: exportMask id: {}", exportMask.getId());
+        _log.info("mapVolumes: volumeMap: {}", volumeMap);
+        _log.info("mapVolumes: initiators: {}", initiators);
+    	try {
+	        for (Map.Entry<URI, Integer> volMapEntry : volumeMap.entrySet()) {
+	        	URI objectUri = volMapEntry.getKey();
+	        	BlockObject object = Volume.fetchExportMaskBlockObject(_dbClient, objectUri);
+	            String monitorAddress = storage.getSmisProviderIP();
+	            String monitorUser = storage.getSmisUserName();
+	            String monitorKey = storage.getSmisPassword();
+	            RBDMappingOptions rbdOptions = new RBDMappingOptions(object);
+	            for (Initiator initiator : initiators) {
+	            	Host host = _dbClient.queryObject(Host.class, initiator.getHost());
+	                if (initiator.getProtocol().equals(HostInterface.Protocol.RBD.name())) {
+	                	_log.info(String.format("mapVolume: host %s pool %s volume %s", host.getHostName(), rbdOptions.poolName, rbdOptions.volumeName));    	
+	                	LinuxSystemCLI linuxClient = getLinuxClient(host);
+	                	String id = linuxClient.mapRBD(monitorAddress, monitorUser, monitorKey, rbdOptions.poolName, rbdOptions.volumeName, rbdOptions.snapshotName);
+	                	exportMask.addVolume(object.getId(), Integer.valueOf(id));
+	                	_dbClient.updateObject(exportMask);
+	                } else {
+	                	String msg = String.format("Unexpected initiator protocol %s, port %s, pool %s, volume %s",
+	                			initiator.getProtocol(), initiator.getInitiatorPort(), rbdOptions.poolName, rbdOptions.volumeName);
+	                    ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("mapVolumes", msg);
+	                    completer.error(_dbClient, code);
+	                    return;
+	                }
+	            }
+	        }
+	        completer.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error("Encountered an exception", e);
+            ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("mapVolumes", e.getMessage());
+            completer.error(_dbClient, code);
+        }
+    }
+
+    private void unmapVolumes(StorageSystem storage, ExportMask exportMask, List<URI> volumeURIs, Collection<Initiator> initiators,
+            TaskCompleter completer) {
+        _log.info("unmapVolumes: volumeURIs: {}", volumeURIs);
+        _log.info("unmapVolumes: initiators: {}", initiators);
+    	try {
+	    	for (URI uri : volumeURIs) {
+	    		if (exportMask.checkIfVolumeHLUSet(uri)) {
+	            	_log.warn("Attempted to unmap BlockObject {}, which has not HLU set", uri);
+	            	continue;
+	    		}
+	    		BlockObject object = BlockObject.fetch(_dbClient, uri);
+	            if (object == null) {
+	            	_log.warn("Attempted to unmap BlockObject {}, which is empty", uri);
+	            	continue;
+	    		}
+	            if (object.getInactive()) {
+	            	_log.warn("Attempted to unmap BlockObject {}, which is inactive", uri);
+	                continue;
+	            }
+	            RBDMappingOptions rbdOptions = new RBDMappingOptions(object);
+	            for (Initiator initiator : initiators) {
+	            	Host host = _dbClient.queryObject(Host.class, initiator.getHost());
+	                String port = initiator.getInitiatorPort();
+	                if (initiator.getProtocol().equals(HostInterface.Protocol.RBD.name())) {
+	            		LinuxSystemCLI linuxClient = getLinuxClient(host);
+	            		linuxClient.unmapRBD(rbdOptions.poolName, rbdOptions.volumeName, rbdOptions.snapshotName);
+	            		exportMask.removeVolume(uri);
+	                	_dbClient.updateObject(exportMask);
+	                } else {
+	                	String msgPattern = "Unexpected initiator protocol %s for port %s and uri %s";
+	                	String msg = String.format(msgPattern, initiator.getProtocol(), port, uri);
+	                	ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("unmapVolumes", msg);
+	                    completer.error(_dbClient, code);
+	                    return;
+	                }
+	            }
+	        }
+	        completer.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error("Encountered an exception", e);
+            ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("unmapVolumes", e.getMessage());
+            completer.error(_dbClient, code);
+        }
+    }
 }

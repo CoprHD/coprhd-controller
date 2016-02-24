@@ -145,6 +145,13 @@
         <property name="networkDeviceController" ref="networkDeviceController"/>
     </bean>
 
+	<bean id="cephMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.CephMaskingOrchestrator">
+        <property name="blockScheduler" ref="blockscheduler"/>
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService"/>
+        <property name="networkDeviceController" ref="networkDeviceController"/>
+	</bean>
+
     <bean id="externalDeviceMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.externaldevice.ExternalDeviceMaskingOrchestrator">
         <property name="blockScheduler" ref="blockscheduler"/>
         <property name="dbClient" ref="dbclient"/>
@@ -960,6 +967,7 @@
                 <entry key="rp" value-ref="rpProtection"/>
                 <entry key="scaleio" value-ref="scaleioMaskingOrchestrator"/>
                 <entry key="xtremio" value-ref="xtremioMaskingOrchestrator"/>
+                <entry key="ceph" value-ref="cephMaskingOrchestrator"/>
                 <entry key="externaldevice" value-ref="externalDeviceMaskingOrchestrator"/>
             </map>
         </property>

@@ -163,6 +163,6 @@ public class DecommissionedConstraintImpl extends ConstraintImpl implements Deco
     
 	@Override
 	public boolean isValid() {
-		return this._rowKey!=null && this._rowKey.length()!=0;
+        return this._rowKey!=null && !this._rowKey.isEmpty();
 	}
 }

@@ -98,6 +98,6 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
 
 	@Override
 	public boolean isValid() {
-		return this.rowKey!=null && this.rowKey.length()!=0;
+        return this.rowKey!=null && !this.rowKey.isEmpty();
 	}
 }

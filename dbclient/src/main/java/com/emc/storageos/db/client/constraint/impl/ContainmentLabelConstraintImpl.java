@@ -72,6 +72,6 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
     
 	@Override
 	public boolean isValid() {
-		return this._indexKey!=null && this._indexKey.toString().length()!=0;
+        return this._indexKey!=null && !this._indexKey.toString().isEmpty();
 	}
 }

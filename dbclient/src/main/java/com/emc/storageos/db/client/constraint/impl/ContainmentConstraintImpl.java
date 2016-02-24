@@ -95,6 +95,6 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
 
 	@Override
 	public boolean isValid() {
-		return this._indexKey!=null && this._indexKey.toString().length()!=0;
+        return this._indexKey!=null && !this._indexKey.toString().isEmpty();
 	}
 }

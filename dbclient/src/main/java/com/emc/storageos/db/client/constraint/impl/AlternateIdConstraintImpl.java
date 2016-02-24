@@ -78,6 +78,6 @@ public class AlternateIdConstraintImpl extends ConstraintImpl implements Alterna
 
 	@Override
 	public boolean isValid() {
-		return this._altId!=null && this._altId.length()!=0;
+        return this._altId!=null && !this._altId.isEmpty();
 	}
 }

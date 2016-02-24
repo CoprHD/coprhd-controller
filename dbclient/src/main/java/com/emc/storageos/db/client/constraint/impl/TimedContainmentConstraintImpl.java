@@ -124,6 +124,6 @@ public class TimedContainmentConstraintImpl extends ConstraintImpl {
     
 	@Override
 	public boolean isValid() {
-		return this.indexKey!=null && this.indexKey.toString().length()!=0;
+        return this.indexKey!=null && !this.indexKey.toString().isEmpty();
 	}
 }

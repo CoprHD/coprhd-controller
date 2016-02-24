@@ -157,6 +157,6 @@ public class TimeConstraintImpl extends ConstraintImpl implements Decommissioned
     
 	@Override
 	public boolean isValid() {
-		return rowKey!=null && rowKey.length()!=0;
+        return rowKey!=null && !rowKey.isEmpty();
 	}
 }

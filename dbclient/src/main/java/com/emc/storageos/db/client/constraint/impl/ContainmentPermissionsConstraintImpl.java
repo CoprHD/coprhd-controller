@@ -73,7 +73,7 @@ public class ContainmentPermissionsConstraintImpl extends ConstraintImpl impleme
     
 	@Override
 	public boolean isValid() {
-		return this._indexKey!=null && this._indexKey.length()!=0;
+        return this._indexKey!=null && !this._indexKey.isEmpty();
 	}
 
 }

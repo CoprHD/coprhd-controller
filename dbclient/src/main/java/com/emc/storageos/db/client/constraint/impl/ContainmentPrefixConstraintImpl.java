@@ -72,6 +72,6 @@ public class ContainmentPrefixConstraintImpl extends ConstraintImpl implements C
     
 	@Override
 	public boolean isValid() {
-		return this._indexKey!=null && this._indexKey.toString().length()!=0;
+        return this._indexKey!=null && !this._indexKey.toString().isEmpty();
 	}
 }

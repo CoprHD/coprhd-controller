@@ -82,6 +82,6 @@ public class LabelConstraintImpl extends ConstraintImpl implements PrefixConstra
 	@Override
 	public boolean isValid() {
 		String key = _field.getPrefixIndexRowKey(_label);
-		return key!=null && key.length()!=0;
+        return key!=null && !key.isEmpty();
 	}
 }

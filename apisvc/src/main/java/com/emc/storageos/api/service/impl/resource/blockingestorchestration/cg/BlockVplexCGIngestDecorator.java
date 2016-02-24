@@ -99,7 +99,7 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             BlockObject cgBlockObject = allCGBlockObjectItr.next();
             if (cgBlockObject instanceof Volume) {
                 Volume volume = (Volume) cgBlockObject;
-                if (volume.checkForVplexVirtualVolume(getDbClient())) {
+                if (volume.isVPlexVolume(getDbClient())) {
                     cgVplexAssocBlockObjects.add(volume);
                 }
             }

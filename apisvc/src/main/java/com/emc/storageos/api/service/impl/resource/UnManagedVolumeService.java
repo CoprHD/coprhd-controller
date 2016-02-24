@@ -393,6 +393,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
+
+                // Update the created objects if any after ingestion
+                List<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
+                if (createdObjects != null && !createdObjects.isEmpty()) {
+                    _dbClient.createObject(createdObjects);
+                }
             }
 
             _dbClient.createObject(requestContext.getBlockObjectsToBeCreatedMap().values());
@@ -574,6 +580,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                 List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
+                }
+
+                // Create the related objects if any after successful export mask ingestion
+                List<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
+                if (createdObjects != null && !createdObjects.isEmpty()) {
+                    _dbClient.createObject(createdObjects);
                 }
 
                 // Get the CG's created as part of the ingestion process

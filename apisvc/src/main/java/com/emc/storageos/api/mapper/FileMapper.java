@@ -87,6 +87,9 @@ public class FileMapper {
         if (from.getAccessState() != null) {
             replication.setAccessState(from.getAccessState());
         }
+        if(from.getActualMaxRPO() !=null){
+            replication.setActualMaxRPO(from.getActualMaxRPO());
+        }
         to.setProtection(replication);
         return to;
     }

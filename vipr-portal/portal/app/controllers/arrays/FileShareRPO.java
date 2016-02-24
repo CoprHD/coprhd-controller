@@ -61,6 +61,7 @@ public class FileShareRPO extends ViprResourceController {
         BulkIdParam ids = client.fileSystems().getBulkFS();
         FileVirtualPoolRestRep vpool = client.fileVpools().get(uri(id));
         Long rpo = vpool.getProtection().getReplicationParam().getSourcePolicy().getRpoValue();
+        String rpoType = vpool.getProtection().getReplicationParam().getSourcePolicy().getRpoType().toLowerCase();
         List<URI> fsIds = ids.getIds();
         for (URI fsId : fsIds) {
             FileShareRestRep fileSystem = client.fileSystems().get(fsId);
@@ -71,7 +72,7 @@ public class FileShareRPO extends ViprResourceController {
                 fileSystems.add(fileSystem);
             }
         }
-        render(fileSystems,rpo);
+        render(fileSystems,rpo, rpoType);
     }
 
     public static class FileShareDataTable extends DataTable {

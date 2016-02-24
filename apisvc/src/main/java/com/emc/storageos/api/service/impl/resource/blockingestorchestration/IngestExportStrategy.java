@@ -84,10 +84,10 @@ public class IngestExportStrategy {
                         boolean isRPVolume = VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
                         // if its RP volume and non RP exported, then check whether the RP CG is fully ingested
                         if (isRPVolume && VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)) {
-                            List<DataObject> updateObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
+                            List<DataObject> updateObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
                             if (updateObjects == null) {
                                 updateObjects = new ArrayList<DataObject>();
-                                requestContext.getObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), updateObjects);
+                                requestContext.getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), updateObjects);
                             }
                             List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllUnManagedVolumesToBeDeleted();
                             ingestedUnManagedVolumes.add(unManagedVolume);

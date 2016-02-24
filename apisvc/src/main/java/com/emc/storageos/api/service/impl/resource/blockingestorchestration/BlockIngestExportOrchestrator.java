@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
@@ -244,7 +245,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         // ExportMask
                         _logger.info("Only 1 mask {} found for cluster {}", eligibleMasks.get(0).toString(), cluster.forDisplay());
 
-                        VolumeIngestionUtil.createExportMask(eligibleMasks.get(0), system,
+                        ExportMask exportMask = VolumeIngestionUtil.createExportMask(eligibleMasks.get(0), system,
                                 unManagedVolume, exportGroup, blockObject,
                                 _dbClient, hosts, cluster, cluster.getLabel());
                         uemsToPersist.add(eligibleMasks.get(0));
@@ -255,7 +256,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                                 cluster.forDisplay());
                         // 1 MV per Cluster Node
                         for (UnManagedExportMask eligibleMask : eligibleMasks) {
-                            VolumeIngestionUtil.createExportMask(eligibleMask, system,
+                            ExportMask exportMask = VolumeIngestionUtil.createExportMask(eligibleMask, system,
                                     unManagedVolume, exportGroup, blockObject,
                                     _dbClient, hosts, cluster, cluster.getLabel());
                             uemsToPersist.add(eligibleMask);
@@ -280,7 +281,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _logger.info("No eligible unmanaged export masks found for Host {}", host.getId());
                     }
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
-                        VolumeIngestionUtil.createExportMask(eligibleMask, system,
+                        ExportMask exportMask = VolumeIngestionUtil.createExportMask(eligibleMask, system,
                                 unManagedVolume, exportGroup, blockObject,
                                 _dbClient, hosts, cluster, host.getHostName());
                         uemsToPersist.add(eligibleMask);
@@ -312,7 +313,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     }
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
                         // this getHostName will be the name of the VPLEX device
-                        VolumeIngestionUtil.createExportMask(eligibleMask, system,
+                        ExportMask exportMask = VolumeIngestionUtil.createExportMask(eligibleMask, system,
                                 unManagedVolume, exportGroup, blockObject,
                                 _dbClient, hosts, cluster,
                                 deviceInitiators.get(0).getHostName());
@@ -323,13 +324,17 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             }
 
             // partial ingestion of volumes allowed, hence persisting to DB here itself.
-            _dbClient.updateObject(unManagedVolume);
             if (requestContext.isExportGroupCreated()) {
                 _dbClient.createObject(exportGroup);
             } else {
                 _dbClient.updateObject(exportGroup);
             }
-            _dbClient.updateObject(uemsToPersist);
+//            List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
+//            if (null == updatedObjects) {
+//                updatedObjects = new ArrayList<DataObject>();
+//                requestContext.getObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), updatedObjects);
+//            }
+//            updatedObjects.addAll(uemsToPersist);
         } catch (IngestionException e) {
             throw e;
         } catch (Exception e) {

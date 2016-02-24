@@ -629,7 +629,6 @@ public class ExportMaskUtils {
         // need to sync up all remaining existing volumes
         exportMask.addToExistingVolumesIfAbsent(wwnToHluMap);
 
-        dbClient.updateAndReindexObject(exportMask);
         // Update the FCZoneReferences if zoning is enables for the varray
         updateFCZoneReferences(exportGroup, volume, zoneInfoMap, initiators, dbClient);
         return exportMask;

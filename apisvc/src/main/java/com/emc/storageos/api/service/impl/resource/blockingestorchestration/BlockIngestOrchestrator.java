@@ -829,10 +829,10 @@ public abstract class BlockIngestOrchestrator {
     private void setupParentReplicaRelationships(UnManagedVolume currentUnmanagedVolume,
             Map<BlockObject, List<BlockObject>> parentReplicaMap, IngestionRequestContext requestContext,
             List<UnManagedVolume> processedUnManagedVolumes) {
-        List<DataObject> updateObjects = requestContext.getObjectsToBeUpdatedMap().get(currentUnmanagedVolume.getNativeGuid());
+        List<DataObject> updateObjects = requestContext.getDataObjectsToBeUpdatedMap().get(currentUnmanagedVolume.getNativeGuid());
         if (updateObjects == null) {
             updateObjects = new ArrayList<DataObject>();
-            requestContext.getObjectsToBeUpdatedMap().put(currentUnmanagedVolume.getNativeGuid(), updateObjects);
+            requestContext.getDataObjectsToBeUpdatedMap().put(currentUnmanagedVolume.getNativeGuid(), updateObjects);
         }
         for (BlockObject parent : parentReplicaMap.keySet()) {
             // clear the parent internal flags

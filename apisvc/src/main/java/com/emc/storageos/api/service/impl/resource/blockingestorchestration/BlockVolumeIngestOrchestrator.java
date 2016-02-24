@@ -159,7 +159,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.SNAPSHOT.name();
             IngestStrategy ingestStrategy = ingestStrategyFactory.getIngestStrategy(IngestStrategyEnum.getIngestStrategy(strategyKey));
             snapshot = ingestStrategy.ingestBlockObjects(requestContext, BlockSnapshot.class);
-            requestContext.getObjectsToBeCreatedMap().put(snapshot.getNativeGuid(), snapshot);
+            requestContext.getBlockObjectsToBeCreatedMap().put(snapshot.getNativeGuid(), snapshot);
         }
 
         // Run this always when volume NO_PUBLIC_ACCESS
@@ -228,7 +228,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                 blockObject.setReplicationGroupInstance(cg.getLabel());
             }
             if (!blockObjectsToUpdate.isEmpty()) {
-                requestContext.getObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
+                requestContext.getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
             }
         }
         volume.setConsistencyGroup(cg.getId());

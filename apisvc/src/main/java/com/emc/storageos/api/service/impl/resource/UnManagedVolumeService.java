@@ -292,7 +292,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                                 unManagedVolume.getLabel(), "check the logs for more details");
                     }
 
-                    requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
+                    requestContext.getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
 
@@ -389,17 +389,17 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 // Update the related objects if any after ingestion
-                List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
+                List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
             }
 
-            _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
+            _dbClient.createObject(requestContext.getBlockObjectsToBeCreatedMap().values());
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
 
             // record the events after they have been persisted
-            for (BlockObject volume : requestContext.getObjectsToBeCreatedMap().values()) {
+            for (BlockObject volume : requestContext.getBlockObjectsToBeCreatedMap().values()) {
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
                         Status.ready, volume.getId());
             }
@@ -489,7 +489,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 // TODO come up with a common response object to hold snaps/mirrors/clones
-                requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
+                requestContext.getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                 requestContext.getProcessedUnManagedVolumeMap().put(
                         unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
 
@@ -571,7 +571,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 // Update the related objects if any after successful export mask ingestion
-                List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
+                List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }

@@ -242,9 +242,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         rpVolumeContext.setManagedBlockObject(volume);
         if (null != _dbClient.queryObject(Volume.class, volume.getId())) {
-            rpVolumeContext.addObjectToUpdate(volume);
+            rpVolumeContext.addDataObjectToUpdate(volume);
         } else {
-            rpVolumeContext.addObjectToCreate(volume);
+            rpVolumeContext.addBlockObjectToCreate(volume);
         }
 
         return volume;
@@ -338,8 +338,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
                 // Find the associated volumes using the context maps or the db if they are already there               
                 Volume associatedVolume = VolumeIngestionUtil.findVolume(_dbClient, 
-                                                                            vplexVolumeContext.getObjectsToBeCreatedMap(),
-                                                                            vplexVolumeContext.getObjectsToBeUpdatedMap(), 
+                                                                            vplexVolumeContext.getBlockObjectsToBeCreatedMap(),
+                                                                            vplexVolumeContext.getDataObjectsToBeUpdatedMap(), 
                                                                             associatedVolumeIdStr);        
                 
                 // If we can't get the a handle on the associated volume we'll have to throw an exception
@@ -543,7 +543,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
 
         // Set up the unmanaged protection set object to be updated
-        volumeContext.addObjectToUpdate(umpset);
+        volumeContext.addDataObjectToUpdate(umpset);
     }
 
     /**
@@ -586,7 +586,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         for (DataObject volume : updatedObjects) {
             if (!volumeContext.getManagedBlockObject().getId().equals(volume.getId())) {
                 // add all volumes except the newly ingested one to the update list
-                volumeContext.addObjectToUpdate(volume);
+                volumeContext.addDataObjectToUpdate(volume);
             }
         }
     }
@@ -597,7 +597,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @param volumeContext
      */
     private void clearReplicaFlagsInIngestionContext(RecoverPointVolumeIngestionContext volumeContext) {
-        for (List<DataObject> updatedObjects : volumeContext.getObjectsToBeUpdatedMap().values()) {
+        for (List<DataObject> updatedObjects : volumeContext.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject updatedObject : updatedObjects) {
                 if (updatedObject instanceof BlockMirror || updatedObject instanceof BlockSnapshot
                         || (updatedObject instanceof Volume && ((Volume) updatedObject).getAssociatedSourceVolume() != null)) {
@@ -651,8 +651,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
                 // Find the associated volumes using the context maps or the db if they are already there               
                 Volume associatedVolume = VolumeIngestionUtil.findVolume(_dbClient, 
-                                                                            vplexVolumeContext.getObjectsToBeCreatedMap(),
-                                                                            vplexVolumeContext.getObjectsToBeUpdatedMap(), 
+                                                                            vplexVolumeContext.getBlockObjectsToBeCreatedMap(),
+                                                                            vplexVolumeContext.getDataObjectsToBeUpdatedMap(), 
                                                                             associatedVolumeIdStr);
                 // If we don't already have an entry for this internal site name, let's add it now.
                 if (!internalSiteToVarrayMap.containsKey(associatedVolume.getInternalSiteName())) {

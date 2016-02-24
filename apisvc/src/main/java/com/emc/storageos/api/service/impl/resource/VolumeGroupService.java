@@ -1601,7 +1601,7 @@ public class VolumeGroupService extends TaskResourceService {
         ArgValidator.checkEntity(snapshot, snapshotId,isIdEmbeddedInURL(snapshotId), true);
 
         // validate that source of the provided snapshot is part of the volume group
-        Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent());
+        Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
         if (volume == null || volume.getInactive() || !volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
             throw APIException.badRequests
                     .replicaOperationNotAllowedSourceNotInVolumeGroup(ReplicaTypeEnum.SNAPSHOT.toString(),

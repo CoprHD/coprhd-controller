@@ -1029,10 +1029,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
         } catch (DatabaseException e) {
             String message = String.format(
-                    "IO exception when trying to restore snapshot(s) on array %s",
+                    "IO exception when trying to resync snapshot(s) on array %s",
                     storage.getSerialNumber());
             _log.error(message, e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("doRestoreFromSnapshot",
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doResyncSnapshot",
                     e.getMessage());
             taskCompleter.error(_dbClient, error);
         }

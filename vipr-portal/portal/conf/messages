@@ -11,8 +11,8 @@ application.name=EMC ViPR Controller
 # Most of these are exact copies from the play framework and are here to make
 # it easier to find and change validation messages for the entire application.
 validation.required=Required
-validation.minSize=Minimum size is %2$d
-validation.maxSize=Maximum size is %2$d
+validation.minSize=Minimum length is %2$d
+validation.maxSize=Maximum length is %2$d
 validation.email=Invalid email address
 validation.range=Not in the range %2$d through %3$d
 validation.min=Cannot be lower than %2$d

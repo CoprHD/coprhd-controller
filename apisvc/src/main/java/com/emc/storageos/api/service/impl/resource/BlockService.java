@@ -72,7 +72,6 @@ import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -710,7 +709,7 @@ public class BlockService extends TaskResourceService {
 
         // CQECC00604134
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
-    
+
         // Get and validate the project.
         Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
         ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
@@ -837,7 +836,7 @@ public class BlockService extends TaskResourceService {
             if (consistencyGroup.creationInitiated()) {
                 if (!consistencyGroup.getRequestedTypes().containsAll(requestedTypes)) {
                     throw APIException.badRequests.consistencyGroupIsNotCompatibleWithRequest(
-                            consistencyGroup.getId(), consistencyGroup.getTypes().toString(), requestedTypes.toString());
+                            consistencyGroup.getId(), consistencyGroup.getRequestedTypes().toString(), requestedTypes.toString());
                 }
             }
 
@@ -911,6 +910,12 @@ public class BlockService extends TaskResourceService {
                                 // The target virtual arrays are not compatible with the CG
                                 throw APIException.badRequests.vPoolTargetVarraysNotCompatibleForCG(consistencyGroup.getLabel());
                             }
+                        }
+
+                        // Ensure the replication mode is not null and is the same as the existing vpool
+                        if (requestedVpool.getRpCopyMode() == null ||
+                                !requestedVpool.getRpCopyMode().equals(existingVpool.getRpCopyMode())) {
+                            throw APIException.badRequests.vPoolRPCopyModeNotCompatibleForCG(consistencyGroup.getLabel());
                         }
                     }
                 }
@@ -1071,7 +1076,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Verify that new volumes can be created in the passed consistency group.
-     * 
+     *
      * @param consistencyGroup A reference to the consistency group.
      * @param cgVolumes The volumes in the consistency group.
      */
@@ -3872,14 +3877,14 @@ public class BlockService extends TaskResourceService {
          * 4. Add SRDF
          */
         if (volume.getApplication(_dbClient) != null) {
-            //Move into VPLEX
+            // Move into VPLEX
             if (!VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) && VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
                 notSuppReasonBuff.append("Non VPLEX volumes in applications cannot be moved into VPLEX pools");
                 throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                         notSuppReasonBuff.toString());
             }
 
-            //Add recoverPoint
+            // Add recoverPoint
             if (!VirtualPool.vPoolSpecifiesProtection(currentVpool)
                     && VirtualPool.vPoolSpecifiesProtection(newVpool)) {
                 notSuppReasonBuff.append("Non RP volumes in applications cannot be moved into RP pools");
@@ -3887,8 +3892,8 @@ public class BlockService extends TaskResourceService {
                         notSuppReasonBuff.toString());
             }
 
-            //Remove RecoverPoint
-            if(VirtualPool.vPoolSpecifiesProtection(currentVpool)
+            // Remove RecoverPoint
+            if (VirtualPool.vPoolSpecifiesProtection(currentVpool)
                     && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
                 notSuppReasonBuff.append("RP volumes in applications cannot be moved into non RP pools");
                 throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),

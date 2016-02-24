@@ -223,6 +223,11 @@ public class AuthnConfigurationService extends TaggedResource {
         String mode = provider.getMode();
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
             populateKeystoneToken(provider, null);
+
+            // If the checkbox is checked, then register CoprHD.
+            if(provider.getAutoRegisterOpenStackProjects()){
+                registerCoprhdInKeystone(provider);
+            }
         } else {
             // Now validate the authn provider to make sure
             // either both group object classes and
@@ -240,9 +245,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
         // We have to create tenants and projects after the creation of AuthProvider.
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
-            // If the checkbox is checked, then register CoprHD.
+            // If the checkbox is checked, then create Tenants and Projects for OS.
             if(provider.getAutoRegisterOpenStackProjects()){
-                registerCoprhdInKeystone(provider);
                 createTenantAndProjectForAutomaticKeystoneRegistration(provider);
             }
         }

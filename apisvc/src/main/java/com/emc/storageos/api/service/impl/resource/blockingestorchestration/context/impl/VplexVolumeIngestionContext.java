@@ -132,6 +132,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         }
 
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
+
+        // commit the UnmanagedConsistencyGroups and CGs to create
+        _dbClient.updateObject(getUmCGObjectsToUpdate());
+        _dbClient.updateObject(getCGObjectsToCreateMap().values());
     }
 
     /*
@@ -147,6 +151,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         getDataObjectsToBeUpdatedMap().clear();
         getUnManagedVolumesToBeDeleted().clear();
         getCreatedVplexMirrors().clear();
+        getUmCGObjectsToUpdate().clear();
+        getCGObjectsToCreateMap().clear();
     }
 
     /*

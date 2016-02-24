@@ -257,6 +257,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         if (null != _managedBlockConsistencyGroup) {
             _dbClient.createObject(_managedBlockConsistencyGroup);
         }
+
+        super.commit();
     }
 
     /*
@@ -304,6 +306,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         if (_exportGroupCreated) {
             _dbClient.markForDeletion(_exportGroup);
         }
+
+        super.rollback();
     }
 
     /*

@@ -67,8 +67,9 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
      */
     @Override
     public void commit() {
-        // basic block volume ingestion doesn't need to commit anything
-        // as all database saves are handled at the end of the ingestion process
+        // commit the UnmanagedConsistencyGroups and CGs to create
+        _dbClient.updateObject(getUmCGObjectsToUpdate());
+        _dbClient.updateObject(getCGObjectsToCreateMap().values());
     }
 
     /*
@@ -78,8 +79,9 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
      */
     @Override
     public void rollback() {
-        // basic block volume ingestion doesn't need to roll back anything
-        // as all database saves are handled at the end of the ingestion process
+        // rollback the UnmanagedConsistencyGroups and CGs to create
+        getUmCGObjectsToUpdate().clear();
+        getCGObjectsToCreateMap().clear();
     }
 
     /*

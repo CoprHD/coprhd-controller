@@ -584,7 +584,11 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         clearReplicaFlagsInIngestionContext(volumeContext);
 
         for (DataObject volume : updatedObjects) {
-            if (!volumeContext.getManagedBlockObject().getId().equals(volume.getId())) {
+            if (volumeContext.getManagedBlockObject().getId().equals(volume.getId())
+                    && (null == _dbClient.queryObject(Volume.class, volume.getId()))) {
+                // this is the managed block object and it hasn't been saved to the db yet
+                continue;
+            } else {
                 // add all volumes except the newly ingested one to the update list
                 volumeContext.addDataObjectToUpdate(volume);
             }

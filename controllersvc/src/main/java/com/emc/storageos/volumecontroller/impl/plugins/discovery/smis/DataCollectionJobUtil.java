@@ -106,6 +106,10 @@ public class DataCollectionJobUtil {
                 StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(
                         ((StorageProvider) taskObject).getInterfaceType())) {
             populateXtremIOAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.ceph.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            populateCephAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
         } else if (clazz == ProtectionSystem.class) {
@@ -349,6 +353,21 @@ public class DataCollectionJobUtil {
     }
 
     /**
+     * inject details needed for Scanning
+     *
+     * @param accessProfile
+     * @param providerInfo
+     */
+    private void populateCephAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType("ceph");
+    }
+
+    /**
      * inject Details needed for Discovery
      * 
      * @param accessProfile
@@ -539,6 +558,14 @@ public class DataCollectionJobUtil {
             }
         } else if (storageDevice.getSystemType().equals(Type.hds.toString())) {
             populateHDSAccessProfile(accessProfile, storageDevice, nameSpace);
+        }  else if (storageDevice.getSystemType().equals(
+                Type.ceph.toString())) {
+            accessProfile.setSystemType(storageDevice.getSystemType());
+            accessProfile.setIpAddress(storageDevice.getSmisProviderIP());
+            accessProfile.setUserName(storageDevice.getSmisUserName());
+            accessProfile.setserialID(storageDevice.getSerialNumber());
+            accessProfile.setPassword(storageDevice.getSmisPassword());
+            accessProfile.setLastSampleTime(0L);
         } else if (StorageSystem.Type.isDriverManagedStorageSystem(storageDevice.getSystemType())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());

@@ -218,6 +218,8 @@ DefaultStorageArrayPortMap.datadomain=3009
 DefaultStorageArrayPortMap.datadomain_useSSL=3009
 DefaultStorageArrayPortMap.ecs=4443
 DefaultStorageArrayPortMap.ecs_useSSL=4443
+DefaultStorageArrayPortMap.ceph=22
+DefaultStorageArrayPortMap.ceph_useSSL=22
 
 DefaultStorageProviderPortMap.hicommand_useSSL=2001
 DefaultStorageProviderPortMap.hicommand=2001
@@ -236,6 +238,8 @@ DefaultStorageProviderPortMap.ddmc_useSSL=3009
 DefaultStorageProviderPortMap.ibmxiv_useSSL=5989
 DefaultStorageProviderPortMap.ibmxiv=5989
 DefaultStorageProviderPortMap.xtremio=443
+DefaultStorageProviderPortMap.ceph_useSSL=22
+DefaultStorageProviderPortMap.ceph=22
 
 DefaultSanSwitchPortMap.brocade_useSSL=5989
 DefaultSanSwitchPortMap.brocade=5988
@@ -287,6 +291,7 @@ StorageSystemType.scaleioapi=ScaleIO Gateway
 StorageSystemType.xtremio=EMC XtremIO
 StorageSystemType.vnxe=EMC VNXe
 StorageSystemType.datadomain=Data Domain
+StorageSystemType.ceph=Ceph Block Device
 StorageSystemType.ecs=EMC Elastic Cloud Storage
 StorageSystemType.STORAGE_PROVIDER.vmax=Storage Provider for EMC VMAX, VNX Block
 StorageSystemType.STORAGE_PROVIDER.scaleioapi=ScaleIO Gateway
@@ -297,6 +302,7 @@ StorageSystemType.STORAGE_PROVIDER.scaleio=Block Storage Powered by ScaleIO
 StorageSystemType.STORAGE_PROVIDER.ddmc=Storage Provider for Data Domain Management Center
 StorageSystemType.STORAGE_PROVIDER.ibmxiv=Storage Provider for IBM XIV
 StorageSystemType.STORAGE_PROVIDER.xtremio=Storage Provider for EMC XtremIO
+StorageSystemType.STORAGE_PROVIDER.ceph=Block Storage Powered by Ceph
 
 HostType.Linux=Linux
 HostType.Windows=Windows
@@ -1914,6 +1920,7 @@ storageProvider.interfaceType.scaleio=ScaleIO CLI
 storageProvider.interfaceType.ddmc=Data Domain Management Center
 storageProvider.interfaceType.ibmxiv=SMI-S for IBM XIV
 storageProvider.interfaceType.xtremio=EMC XtremIO
+storageProvider.interfaceType.ceph=Ceph Block Device
 
 StorageSystems.list.title=Storage Systems
 StorageSystems.edit.title=Edit Storage System

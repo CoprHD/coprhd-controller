@@ -45,6 +45,10 @@
         <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
         <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
+
+        <entry key="Scanner-ceph" value="discovery-ceph-context.xml" />
+        <entry key="Discovery-ceph-all" value="discovery-ceph-context.xml" />
+        <entry key="Discovery-ceph-unmanaged_volumes" value="discovery-ceph-context.xml" />
         
         <entry key="CS_Discovery-host-all" value="discovery-computesystem-context.xml" />
         <entry key="CS_Discovery-vcenter-all" value="discovery-computesystem-context.xml" />
@@ -66,6 +70,7 @@
         <entry key="Metering-scaleio" value="discovery-scaleio-context.xml"/>
         <entry key="Metering-datadomain" value="discovery-datadomain-context.xml" />
         <entry key="Metering-vnxe" value="metering-vnxe-context.xml" />
+        <entry key="Metering-ceph" value="discovery-ceph-context.xml" />
 
         <!-- in seconds -->
         <!-- how often the job should be scheduled automatically -->

@@ -5,6 +5,7 @@
 
 package com.emc.storageos.exceptions;
 
+import com.emc.storageos.ceph.CephErrors;
 import com.emc.storageos.cinder.errorhandling.CinderErrors;
 import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiErrors;
 import com.emc.storageos.hds.HDSErrors;
@@ -78,6 +79,9 @@ public interface DeviceControllerErrors {
 
     /** Holds the methods used to create VNXe related error conditions */
     public static final VNXeErrors vnxe = ExceptionMessagesProxy.create(VNXeErrors.class);
+
+    /** Holds the methods used to create Ceph related error conditions */
+    public static final CephErrors ceph = ExceptionMessagesProxy.create(CephErrors.class);
 
     public static final DeviceDataCollectionErrors dataCollectionErrors = ExceptionMessagesProxy.create(DeviceDataCollectionErrors.class);
 

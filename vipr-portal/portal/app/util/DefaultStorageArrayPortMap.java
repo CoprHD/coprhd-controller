@@ -33,5 +33,7 @@ public enum DefaultStorageArrayPortMap {
     vnxe,
     netappc,
     ecs,
-    ecs_useSSl
+    ecs_useSSl,
+    ceph,
+    ceph_useSSL
 }

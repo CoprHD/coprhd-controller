@@ -8,6 +8,7 @@ package com.emc.storageos.exceptions;
 import java.net.URI;
 import java.util.Collection;
 
+import com.emc.storageos.ceph.CephExceptions;
 import com.emc.storageos.cinder.errorhandling.CinderExceptions;
 import com.emc.storageos.hds.HDSExceptions;
 import com.emc.storageos.isilon.restapi.IsilonExceptions;
@@ -73,6 +74,9 @@ public interface DeviceControllerExceptions {
 
     /** Holds the methods used to create VNXe related exceptions */
     public static final VNXeExceptions vnxe = ExceptionMessagesProxy.create(VNXeExceptions.class);
+
+    /** Holds the methods used to create Ceph related exceptions */
+    public static final CephExceptions ceph = ExceptionMessagesProxy.create(CephExceptions.class);
 
     @DeclareServiceCode(ServiceCode.DISPATCHER_UNABLE_FIND_CONTROLLER)
     public DeviceControllerException unableToDispatchToController(final String targetClassName);

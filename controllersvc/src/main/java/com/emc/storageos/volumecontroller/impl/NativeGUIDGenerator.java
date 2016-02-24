@@ -137,6 +137,7 @@ public class NativeGUIDGenerator {
         _deviceTypeMap.put(StorageSystem.Type.vnxe.name(), "VNXE");
         _deviceTypeMap.put(StorageSystem.Type.xtremio.name(), "XTREMIO");
         _deviceTypeMap.put(StorageSystem.Type.ecs.name(), "ECS");
+        _deviceTypeMap.put(StorageSystem.Type.ceph.name(), "CEPH");
 
         // add systems managed by driver
         Collection<String> storageSystems = storageDriverManager.getStorageSystemsMap().values();

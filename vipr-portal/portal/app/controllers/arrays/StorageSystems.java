@@ -114,6 +114,7 @@ public class StorageSystems extends ViprResourceController {
         renderArgs.put("vnxfileStorageSystemType", StorageSystemTypes.VNX_FILE);
         renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
         renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
+        renderArgs.put("cephStorageSystemType", StorageSystemTypes.CEPH);
     }
 
     public static void list() {

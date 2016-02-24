@@ -388,13 +388,13 @@ public class UnManagedVolumeService extends TaskResourceService {
                             IngestionException.exceptions.unmanagedVolumeIsNotVisible(unManagedVolume.getLabel(), taskMessage));
                 }
 
-                // Update the related objects if any after ingestion
+                // Commit this volume's updated data objects if any after ingestion
                 List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
 
-                // Update the created objects if any after ingestion
+                // Commit this volume's created data objects if any after ingestion
                 List<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
                 if (createdObjects != null && !createdObjects.isEmpty()) {
                     _dbClient.createObject(createdObjects);

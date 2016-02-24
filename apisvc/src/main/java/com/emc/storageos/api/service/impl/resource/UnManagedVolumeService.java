@@ -575,7 +575,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 // If there is a CG involved in the ingestion, organize, pollenate, and commit.
-                commitIngestedCG(requestContext);
+                commitIngestedCG(requestContext, volumeContext.getUnmanagedVolume());
 
                 volumeContext.commit();
 
@@ -728,26 +728,6 @@ public class UnManagedVolumeService extends TaskResourceService {
         }
 
         return taskList;
-    }
-
-    /**
-     * Create and commit any ingested CG objects
-     * 
-     * @param requestContext request context
-     * @throws Exception
-     */
-    private void commitIngestedCG(IngestionRequestContext requestContext) throws Exception {
-        while (requestContext.hasNext()) {
-            UnManagedVolume unManagedVolume = requestContext.next();
-
-            if (null == unManagedVolume) {
-                _logger.info("No Unmanaged Volume with URI {} found in database. Continuing...",
-                        requestContext.getCurrentUnManagedVolumeUri());
-                continue;
-            }
-            
-            commitIngestedCG(requestContext, unManagedVolume);
-        }
     }
 
     /**

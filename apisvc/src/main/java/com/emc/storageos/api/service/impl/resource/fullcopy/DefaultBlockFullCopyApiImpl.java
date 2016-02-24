@@ -33,7 +33,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -81,8 +80,8 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
-    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-            String name, boolean createInactive, int count, String taskId) {
+    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray, String name, boolean createInactive, int count,
+            boolean copySource, String taskId) {
         // Get the placement recommendations for the full copies and
         // prepare the ViPR volumes to represent the full copies.
         // TBD We are getting recommendations one at a time instead

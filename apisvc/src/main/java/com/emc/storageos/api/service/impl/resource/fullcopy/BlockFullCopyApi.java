@@ -65,17 +65,25 @@ public interface BlockFullCopyApi {
     /**
      * Creates one or more full copies using the passed parameters.
      * 
-     * @param fcSourceObj A list of Volumes or a list of BlockSnapshots
-     * @param varray A reference to the virtual array.
-     * @param name The name for the copies.
-     * @param createInactive true to create the full copies inactive, false otherwise.
-     * @param count The number of full copies to create.
-     * @param taskId The unique task identifier.
+     * @param fcSourceObj
+     *            A list of Volumes or a list of BlockSnapshots
+     * @param varray
+     *            A reference to the virtual array.
+     * @param name
+     *            The name for the copies.
+     * @param createInactive
+     *            true to create the full copies inactive, false otherwise.
+     * @param count
+     *            The number of full copies to create.
+     * @param copySource
+     *            indicates whether the source or HA side of a vplex distributed volume is copied
+     * @param taskId
+     *            The unique task identifier.
      * 
      * @return TaskList
      */
-    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-            String name, boolean createInactive, int count, String taskId);
+    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray, String name, boolean createInactive, int count,
+            boolean copySource, String taskId);
 
     /**
      * Activate the passed full copy volume.

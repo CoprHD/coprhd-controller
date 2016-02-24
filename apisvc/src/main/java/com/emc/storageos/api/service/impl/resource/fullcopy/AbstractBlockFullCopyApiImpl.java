@@ -243,7 +243,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-            String name, boolean createInactive, int count, String taskId) {
+ String name, boolean createInactive, int count,
+            boolean copySource, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
 

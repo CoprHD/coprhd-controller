@@ -266,8 +266,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
-    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-            String name, boolean createInactive, int count, String taskId) {
+    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray, String name, boolean createInactive, int count,
+            boolean copySource, String taskId) {
 
         // Populate the descriptors list with all volumes required
         // to create the VPLEX volume copies.
@@ -343,11 +343,16 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                         vplexSrcHAVolume = assocVolume;
                     }
                 }
+                if (!copySource) {
+                    Volume temp = vplexSrcPrimaryVolume;
+                    vplexSrcPrimaryVolume = vplexSrcHAVolume;
+                    vplexSrcHAVolume = temp;
+                }
 
             }
 
             // Get the capabilities
-            VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
+            VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(vplexSrcPrimaryVolume, _dbClient);
             VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
                     fcSourceObj, vpool, count);
 
@@ -437,6 +442,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         BlockObject fcSourceObj = fcSourceObjList.get(0);
         VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
                 ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
+        boolean useSource = true;
         if (volumeGroup != null &&
                 !ControllerUtils.checkVolumesForVolumeGroupPartialRequest(_dbClient, fcSourceObjList)) {
 
@@ -458,8 +464,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             VPlexController controller = getController(VPlexController.class,
                     DiscoveredDataObject.Type.vplex.toString());
             // TBD controller needs to be updated to handle CGs.
-            controller.createFullCopy(vplexSrcSystemId, volumeDescriptors, taskId);
-            s_logger.info("Successfully invoked controller.");
+            controller.createFullCopy(vplexSrcSystemId, volumeDescriptors, copySource, taskId);
+            s_logger.info("Successfully invoked xxcontroller.");
         } catch (InternalException e) {
             s_logger.error("Controller error", e);
 

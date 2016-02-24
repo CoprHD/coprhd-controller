@@ -6744,9 +6744,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * {@inheritDoc}
      */
     @Override
-    public void createFullCopy(URI vplexURI, List<VolumeDescriptor> volumeDescriptors,
+    public void createFullCopy(URI vplexURI, List<VolumeDescriptor> volumeDescriptors, boolean useSource,
             String opId) throws ControllerException {
-        _log.info("Copy volumes on VPLEX", vplexURI);
+        _log.info("Copy volumes on xVPLEX", vplexURI);
 
         // When we copy a VPLEX virtual volume we natively copy the primary backend
         // volume of the virtual volume. This primary copy is then imported to the
@@ -6858,7 +6858,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // use the same backend storage system.
                     VolumeDescriptor vplexSrcVolumeDescr = vplexSrcVolumeDescrs.get(0);
                     vplexSrcVolumeURI = vplexSrcVolumeDescr.getVolumeURI();
-                    primarySourceObject = getPrimaryForFullCopySrcVolume(vplexSrcVolumeURI);
+                    primarySourceObject = getPrimaryForFullCopySrcVolume(vplexSrcVolumeURI, useSource);
                 } else {
                     // For snapshot full copy
                     URI importVolUri = importVolumeDescriptors.get(0).getVolumeURI();
@@ -6942,13 +6942,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *
      * @return A reference to the primary volume for the VPLEX volume.
      */
-    private Volume getPrimaryForFullCopySrcVolume(URI vplexVolumeURI) {
+    private Volume getPrimaryForFullCopySrcVolume(URI vplexVolumeURI, boolean useSource) {
         Volume primaryVolume = null;
         Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
         _log.info("Got VPLEX volume {}", vplexVolume.getId());
         URI vplexVolumeVarrayURI = vplexVolume.getVirtualArray();
         _log.info("VPLEX volume virtual array is{}", vplexVolumeVarrayURI);
-        primaryVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, true, _dbClient);
+        primaryVolume = VPlexUtil.getVPLEXBackendVolume(vplexVolume, useSource, _dbClient);
         _log.info("Primary volume is {}", primaryVolume.getId());
         return primaryVolume;
     }

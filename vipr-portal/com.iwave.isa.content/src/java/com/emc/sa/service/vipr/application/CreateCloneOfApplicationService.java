@@ -75,6 +75,26 @@ public class CreateCloneOfApplicationService extends ViPRService {
             if (virtualPoolId == null) {
                 ExecutionUtils.fail("failTask.CreateCloneOfApplicationService.virtualArrayId.precheck", new Object[] {});
             }
+        } else if (isVplex) {
+            List<VolumeRestRep> appVols = getClient().blockVolumes().getByRefs(getClient().application().listVolumes(applicationId));
+            for (VolumeRestRep vol : appVols) {
+                if (vol.getHaVolumes() != null && vol.getHaVolumes().size() == 2) {
+                    List<VolumeRestRep> backingVols = getClient().blockVolumes().withInternal(true).getByRefs(vol.getHaVolumes());
+                    for (VolumeRestRep backingVol : backingVols) {
+                        if (backingVol.getVirtualArray().getId().equals(virtualArrayId)) {
+                            virtualPoolId = backingVol.getVirtualPool().getId();
+                            break;
+                        }
+                    }
+                }
+                if (virtualPoolId != null) {
+                    break;
+                }
+            }
+            if (virtualPoolId == null) {
+                ExecutionUtils.fail("failTask.CreateCloneOfApplicationService.virtualArrayId.precheck", new Object[] {});
+            }
+
         }
     }
 }

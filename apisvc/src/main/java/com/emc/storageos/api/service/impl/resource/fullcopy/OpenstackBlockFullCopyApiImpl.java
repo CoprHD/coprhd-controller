@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.storageos.api.service.impl.placement.Scheduler;
-import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -60,11 +59,11 @@ public class OpenstackBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
-    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-            String name, boolean createInactive, int count, String taskId) {
+    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray, String name, boolean createInactive, int count,
+            boolean copySource, String taskId) {
         // Setting createInactive to true for openstack as it is not
         // needed to wait for synchronization to complete and detach.
-        return super.create(fcSourceObjList, varray, name, true, count, taskId);
+        return super.create(fcSourceObjList, varray, name, true, count, copySource, taskId);
     }
 
     /**

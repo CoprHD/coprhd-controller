@@ -74,9 +74,9 @@ public class VNXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
-    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-            String name, boolean createInactive, int count, String taskId) {
-        return super.create(fcSourceObjList, varray, name, createInactive, count, taskId);
+    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray, String name, boolean createInactive, int count,
+            boolean copySource, String taskId) {
+        return super.create(fcSourceObjList, varray, name, createInactive, count, copySource, taskId);
     }
 
     /**

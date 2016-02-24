@@ -88,8 +88,8 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
-    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-            String name, boolean createInactive, int count, String taskId) {
+    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray, String name, boolean createInactive, int count,
+            boolean copySource, String taskId) {
         BlockFullCopyApi fullCopyApiImpl = null;
         TaskList taskList = new TaskList();
         List<BlockObject> vplexList = new ArrayList<BlockObject>();
@@ -110,13 +110,15 @@ public class RPBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         }
         if (!vplexList.isEmpty()) {
             fullCopyApiImpl = _fullCopyMgr.getVplexFullCopyImpl();
-            taskList.getTaskList().addAll(fullCopyApiImpl.create(vplexList, varray, name, createInactive, count, taskId).getTaskList());
+            taskList.getTaskList()
+                    .addAll(fullCopyApiImpl.create(vplexList, varray, name, createInactive, count, copySource, taskId).getTaskList());
         }
         if (!blockList.isEmpty()) {
             BlockObject block = blockList.get(0);
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, block.getStorageController());
             fullCopyApiImpl = _fullCopyMgr.getPlatformSpecificFullCopyImplForSystem(system);
-            taskList.getTaskList().addAll(fullCopyApiImpl.create(blockList, varray, name, createInactive, count, taskId).getTaskList());
+            taskList.getTaskList()
+                    .addAll(fullCopyApiImpl.create(blockList, varray, name, createInactive, count, copySource, taskId).getTaskList());
         }
         return taskList;
     }

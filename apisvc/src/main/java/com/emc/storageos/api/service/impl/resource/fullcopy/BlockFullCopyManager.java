@@ -269,6 +269,7 @@ public class BlockFullCopyManager {
                 ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
         boolean partialRequest = fcSourceObj.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
         VirtualArray varray = null;
+        boolean copySource = true;
         if (volumeGroup != null && !partialRequest) {
             s_logger.info("Volume {} is part of Application, Creating full copy for all volumes in the Application.", sourceURI);
             // get all volumes
@@ -281,6 +282,8 @@ public class BlockFullCopyManager {
                 volumes.addAll(rpVolumes);
             }
             
+            VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, volumes.iterator().next().getVirtualPool());
+
             // group volumes by Array Group
             Map<String, List<Volume>> arrayGroupToVolumesMap = ControllerUtils.groupVolumesByArrayGroup(volumes, _dbClient);
             fcSourceObjList = new ArrayList<BlockObject>();
@@ -310,6 +313,13 @@ public class BlockFullCopyManager {
                         fullCopyApiImpl);
                 
                 fcSourceObjList.addAll(fcSourceObjListPerArrayGroup);
+
+                // determine if the source or HA side should be copied
+                URI vpoolId = param.getVpoolId();
+                if (vpoolId != null && VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(srcVpool)
+                        && !vpoolId.equals(srcVpool.getId())) {
+                    copySource = false;
+                }
             }
         } else {
 
@@ -335,8 +345,7 @@ public class BlockFullCopyManager {
         }
 
         // Create the full copies
-        TaskList taskList = fullCopyApiImpl.create(fcSourceObjList, varray, name,
-                createInactive, count, taskId);
+        TaskList taskList = fullCopyApiImpl.create(fcSourceObjList, varray, name, createInactive, count, copySource, taskId);
         s_logger.info("FINISH create full copy for source {}", sourceURI);
         return taskList;
     }

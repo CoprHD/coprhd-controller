@@ -139,8 +139,8 @@ public interface VPlexController extends Controller {
      * @throws InternalException When an error occurs configuring the full
      *             copy workflow.
      */
-    public abstract void createFullCopy(URI vplexURI,
-            List<VolumeDescriptor> volumeDescriptors, String opId) throws InternalException;
+    public abstract void createFullCopy(URI vplexURI, List<VolumeDescriptor> volumeDescriptors, boolean useSource, String opId)
+            throws InternalException;
 
     /**
      * Restore contents the source volumes for the full copies with the passed

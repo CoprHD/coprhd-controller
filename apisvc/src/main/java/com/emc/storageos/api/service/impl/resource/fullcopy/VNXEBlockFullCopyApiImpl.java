@@ -55,8 +55,8 @@ public class VNXEBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
-    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-            String name, boolean createInactive, int count, String taskId) {
+    public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray, String name, boolean createInactive, int count,
+            boolean copySource, String taskId) {
         throw APIException.methodNotAllowed.notSupportedForVNXE();
     }
 

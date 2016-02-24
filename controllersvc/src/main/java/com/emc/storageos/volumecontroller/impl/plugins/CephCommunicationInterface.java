@@ -111,6 +111,7 @@ public class CephCommunicationInterface extends ExtendedCommunicationInterfaceIm
         try {
             CephClient cephClient = CephUtils.connectToCeph(_cephClientFactory, system);
             system.setReachableStatus(true);
+            system.setSharedStorageCapacity(true);
             ClusterInfo clusterInfo = cephClient.getClusterInfo();
             List<PoolInfo> pools = cephClient.getPools();
             for (PoolInfo pool: pools) {

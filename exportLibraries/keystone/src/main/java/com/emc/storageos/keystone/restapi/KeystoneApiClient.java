@@ -40,7 +40,7 @@ import com.sun.jersey.api.client.WebResource.Builder;
 /**
  * Keystone API client to execute rest APIs on
  * keystone service.
- * 
+ *
  */
 public class KeystoneApiClient extends StandardRestClient {
     private static Logger log = LoggerFactory.getLogger(KeystoneApiClient.class);
@@ -49,7 +49,7 @@ public class KeystoneApiClient extends StandardRestClient {
 
     /**
      * Constructor
-     * 
+     *
      * @param client
      *            A reference to a Jersey Apache HTTP client.
      * @param username
@@ -143,7 +143,7 @@ public class KeystoneApiClient extends StandardRestClient {
     }
 
     /**
-     * Retrieves Keystone services from the Keystone API.
+     * Get Keystone services from the Keystone API.
      *
      * @return ServiceResponse object filled with Keystone services data.
      */
@@ -214,9 +214,9 @@ public class KeystoneApiClient extends StandardRestClient {
      * Creates a new Keystone endpoint.
      *
      * @param endpoint A new endpoint to create filled with information.
-     * @return CreateResponse object with created Keystone endpoint.
+     * @return CreateEndpointResponse object with created Keystone endpoint.
      */
-    public CreateResponse createKeystoneEndpoint(EndpointV2 endpoint) {
+    public CreateEndpointResponse createKeystoneEndpoint(EndpointV2 endpoint) {
 
         log.debug("START - createKeystoneEndpoint");
 
@@ -255,21 +255,79 @@ public class KeystoneApiClient extends StandardRestClient {
         }
 
         // Parse response to Java object.
-        CreateResponse createResponse;
+        CreateEndpointResponse createEndpointResponse;
         log.debug("Parsing service request results to Java object");
         try {
-            createResponse = getResponseObject(CreateResponse.class, response);
+            createEndpointResponse = getResponseObject(CreateEndpointResponse.class, response);
         } catch (Exception e) {
             log.error("Failed to parse the endpoint validation response");
             throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
         }
 
         log.debug("END - createKeystoneEndpoint");
-        return createResponse;
+        return createEndpointResponse;
     }
 
     /**
-     * Retrieves Keystone tenants from the Keystone API.
+     * Creates a new Keystone service.
+     *
+     * @param service A new service to create filled with information.
+     * @return CreateServiceResponse object with created Keystone service.
+     */
+    public CreateServiceResponse createKeystoneService(ServiceV2 service) {
+
+        log.debug("START - createKeystoneService");
+
+        if (service == null) {
+            log.error("service is null");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Service object");
+        }
+
+        // Authenticate user.
+        authenticate_keystone();
+
+        // Construct the Java pojo request object
+        CreateServiceResponse serviceResponse = new CreateServiceResponse();
+        serviceResponse.setService(service);
+
+        String body = "";
+        try {
+            // Convert java pojo to json request body
+            body = getJsonForEntity(serviceResponse);
+        } catch (Exception e) {
+            throw KeystoneApiException.exceptions.requestJsonPayloadParseFailure(serviceResponse.toString());
+        }
+
+        // Create a new URI for service creation.
+        String uri = KeystoneConstants.URI_SERVICES;
+        URI requestURI = _base.resolve(URI.create(uri));
+
+        // Send a create request to Keystone API.
+        ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
+                .header(KeystoneConstants.AUTH_TOKEN, _authToken).post(ClientResponse.class, body);
+
+        // Throw an exception when response code is other than OK or CREATED.
+        if (response.getClientResponseStatus() != ClientResponse.Status.OK
+                && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
+            throw KeystoneApiException.exceptions.apiExecutionFailed(response.toString());
+        }
+
+        // Parse response to Java object.
+        CreateServiceResponse createServiceResponse;
+        log.debug("Parsing service request results to Java object");
+        try {
+            createServiceResponse = getResponseObject(CreateServiceResponse.class, response);
+        } catch (Exception e) {
+            log.error("Failed to parse the endpoint validation response");
+            throw KeystoneApiException.exceptions.responseJsonParseFailure(response.toString());
+        }
+
+        log.debug("END - createKeystoneService");
+        return createServiceResponse;
+    }
+
+    /**
+     * Get Keystone tenants from the Keystone API.
      *
      * @return TenantResponse object filled with Keystone tenants data.
      */
@@ -343,7 +401,7 @@ public class KeystoneApiClient extends StandardRestClient {
     /**
      * Validates the token
      * If valid - returns the token response
-     * 
+     *
      * @param userToken
      * @return
      */

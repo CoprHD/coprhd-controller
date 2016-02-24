@@ -146,7 +146,7 @@ public class KeystoneUtils {
                 return service.getId();
             }
         }
-        _log.error("Missing service {}", serviceName);
+        _log.warn("Missing service {}", serviceName);
         // Return null if service is missing.
         return null;
     }

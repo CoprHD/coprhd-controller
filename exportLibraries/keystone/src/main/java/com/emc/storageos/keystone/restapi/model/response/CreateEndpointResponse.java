@@ -18,9 +18,9 @@
 package com.emc.storageos.keystone.restapi.model.response;
 
 /**
- * Keystone API Create response class.
+ * Keystone API Create endpoint response class.
  */
-public class CreateResponse {
+public class CreateEndpointResponse {
 
     EndpointV2 endpoint;
 

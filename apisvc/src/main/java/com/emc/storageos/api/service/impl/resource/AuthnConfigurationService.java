@@ -269,12 +269,19 @@ public class AuthnConfigurationService extends TaggedResource {
         String cinderv2ServiceId = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
         // Find Id of cinderv1 service.
         String cinderServiceId = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
-        
-        // Throw an exception if one of cinder services is missing.
+
+        // Create service when cinderv2 service is missing.
         if (cinderv2ServiceId == null) {
-            throw KeystoneApiException.exceptions.missingService(KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
-        } else if (cinderServiceId == null) {
-            throw KeystoneApiException.exceptions.missingService(KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+            ServiceV2 service = prepareNewCinderService(true);
+            CreateServiceResponse response = keystoneApi.createKeystoneService(service);
+            cinderv2ServiceId = response.getService().getId();
+        }
+
+        // Create service when cinder service is missing.
+        if (cinderServiceId == null) {
+            ServiceV2 service = prepareNewCinderService(false);
+            CreateServiceResponse response = keystoneApi.createKeystoneService(service);
+            cinderServiceId = response.getService().getId();
         }
 
         // Get region name for a cinderv2 service.
@@ -374,6 +381,29 @@ public class AuthnConfigurationService extends TaggedResource {
         endpoint.setInternalURL(url);
 
         return endpoint;
+    }
+
+    /**
+     * Prepare a new service (cinder or cinderv2).
+     *
+     * @param isCinderv2 Boolean that holds information about version of a service.
+     * @return Service filled with necessary information.
+     */
+    private ServiceV2 prepareNewCinderService(Boolean isCinderv2) {
+
+        ServiceV2 service = new ServiceV2();
+
+        if (isCinderv2) {
+            service.setName(CinderConstants.SERVICE_NAME_CINDERV2);
+            service.setType(CinderConstants.SERVICE_TYPE_VOLUMEV2);
+        } else {
+            service.setName(CinderConstants.SERVICE_NAME_CINDER);
+            service.setType(CinderConstants.SERVICE_TYPE_VOLUME);
+        }
+
+        service.setDescription(CinderConstants.SERVICE_DESCRIPTION);
+
+        return service;
     }
 
     /**
@@ -881,17 +911,20 @@ public class AuthnConfigurationService extends TaggedResource {
             // Get a cinderv1 service id.
             String serviceIdV1 = _keystoneUtils.findServiceId(keystoneApi, KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
 
-            // Throw an exception if one of cinder services is missing.
-            if (serviceIdV2 == null) {
-                throw KeystoneApiException.exceptions.missingService(KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
-            } else if (serviceIdV1 == null) {
-                throw KeystoneApiException.exceptions.missingService(KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
+            // Delete endpoint when cinderv2 service exist.
+            if (serviceIdV2 != null) {
+
+                // Delete endpoint for cinderv2 service.
+                _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, serviceIdV2);
             }
 
-            // Delete endpoint for cinderv2 service.
-            _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, serviceIdV2);
-            // Delete endpoint for cinder service.
-            _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, serviceIdV1);
+            // Delete endpoint when cinder service exist.
+            if (serviceIdV1 != null) {
+
+                // Delete endpoint for cinder service.
+                _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, serviceIdV1);
+            }
+
         }
         _dbClient.removeObject(provider);
         notifyChange();

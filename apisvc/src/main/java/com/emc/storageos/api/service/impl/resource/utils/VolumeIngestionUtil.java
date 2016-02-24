@@ -3846,12 +3846,20 @@ public class VolumeIngestionUtil {
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects, dbClient);
 
+        RecoverPointVolumeIngestionContext rpContext = null;
+        
         // the RP volume ingestion context will take care of persisting the 
         // new objects and deleting the old UnManagedProtectionSet 
         if (requestContext instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext)requestContext;
+        } else if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
+        }
+        
+        if (rpContext != null) {
             _logger.info("setting the new CG and ProtectionSet in the ingestion request context");
-            ((RecoverPointVolumeIngestionContext)requestContext).setManagedBlockConsistencyGroup(cg);
-            ((RecoverPointVolumeIngestionContext)requestContext).setManagedProtectionSet(pset);
+            rpContext.setManagedBlockConsistencyGroup(cg);
+            rpContext.setManagedProtectionSet(pset);
         }
     }
 

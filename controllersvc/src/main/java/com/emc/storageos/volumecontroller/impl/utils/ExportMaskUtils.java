@@ -580,8 +580,12 @@ public class ExportMaskUtils {
             List<Initiator> userAddedInis, DbClient dbClient,
             Map<String, Integer> wwnToHluMap)
                     throws Exception {
-        ExportMask exportMask = ExportMaskUtils.createExportMask(dbClient, exportGroup,
-                storage.getId(), maskName);
+
+        ExportMask exportMask = new ExportMask();
+        exportMask.setId(URIUtil.createId(ExportMask.class));
+        exportMask.setMaskName(maskName);
+        exportMask.setStorageDevice(storage.getId());
+
         String resourceRef;
         if (exportGroup.getType() != null) {
             if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {

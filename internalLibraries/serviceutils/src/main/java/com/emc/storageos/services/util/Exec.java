@@ -132,7 +132,7 @@ public class Exec {
                     m.appendReplacement(sb, "***masked***");
                 }
                 m.appendTail(sb);
-                maskedOutput = maskedOutput.toString();
+                maskedOutput = sb.toString();
             } else {
                 maskedOutput = _stdOutput.toString();
             }

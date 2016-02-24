@@ -609,6 +609,11 @@ public enum ServiceCode {
     EXTERNALDEVICE_DELETE_VOLUME_FROM_EXPORT_MASK_ERROR(66012),
     EXTERNALDEVICE_DELETE_EXPORT_MASK_ERROR(66013),
 
+    // Ceph errors (66000 - 66999)
+    CEPH_CONNECTION_ERROR(66000),
+    CEPH_OPERATION_EXCEPTION(66001),
+    CEPH_INVALID_CREDENTIALS_ERROR(66002),
+
     // ****************************
     // Old style of Service codes
     // ****************************

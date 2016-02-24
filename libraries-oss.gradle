@@ -11,5 +11,8 @@ ext {
         "com.emc.vipr:com.iwave.ext.netapp:2.4.1.0.4878.78d5471",
         "com.emc.vipr:com.iwave.ext.netappc:2.4.1.0.4878.78d5471"
     ]
+    ceph = [
+        "com.ceph:rados:0.2.0"
+    ]
 
 }

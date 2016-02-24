@@ -307,6 +307,8 @@
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}
               #{nav.item 'auditLog', href: @infra.AuditLog.list()/}
             #{/deadbolt.restrict}
+            #{nav.separator/}
+            #{nav.item 'fileShareRPO', href:@arrays.FileShareRPO.list()/}
       #{/nav.menuSection} 
     #{/nav.menu}
   #{/deadbolt.restrict}

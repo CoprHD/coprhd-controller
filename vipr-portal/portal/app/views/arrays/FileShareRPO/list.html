@@ -1,0 +1,17 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.settings', 'nav.fileShare'] /}
+
+#{DataTable.header titleKey:'nav.fileShare' /} 
+#{DataTable.table id:'virtualPools',
+				  expandable:true,
+                  dataTable:dataTable,
+                  source:@listJson(), 
+                  selectable:true/}
+#{DataTable.expandHtml @fileSystemDetails(':id'), table:'virtualPools' /}
+
+<script type="text/javascript">
+function renderLink(o, val) {
+    
+    return val;
+}
+</script>

@@ -102,6 +102,8 @@ nav.tenantsettings=Tenants
 nav.project=Tenant Groups
 nav.consistencygroups=Consistency Groups
 nav.tasks=Tasks
+nav.fileShare=File Pool Share
+nav.fileShareRPO=File Pool Share
 # Subnavigation
 nav.vdcs=Virtual Data Centers
 nav.projects=Projects
@@ -2137,6 +2139,7 @@ virtualPools.provisionedAs=Type
 virtualPools.protocols=Protocols
 virtualPools.numPools=Pools
 virtualPools.numResources=Resources
+virtualPools.rpo=RPO
 
 # Virtual Pool groups
 vpool.group.hardware=Hardware

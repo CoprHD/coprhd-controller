@@ -1553,14 +1553,6 @@ public class VolumeIngestionUtil {
             } else {
                 portsValid = diff.isEmpty();
             }
-//            // TODO: temp for testing
-//            _logger.error("mask.getMaskName() " + mask.getMaskName());
-//            if (mask.getMaskName().startsWith("nathanbeach")) {
-//                _logger.error("intentionally throwing exception here!!!!!!");
-//                portsValid = false;
-//            } else {
-//                _logger.error("doesn't start with nathanbeach");
-//            }
         }
 
         if (!portsValid) {

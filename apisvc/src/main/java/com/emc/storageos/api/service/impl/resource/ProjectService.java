@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.QuotaOfCinder;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -479,6 +480,19 @@ public class ProjectService extends TaggedResource {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
+        
+        List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
+        for (URI quota : quotas) {
+            QuotaOfCinder quotaObj = _dbClient.queryObject(QuotaOfCinder.class, quota);
+
+            if ((quotaObj.getProject() != null) &&
+                    (quotaObj.getProject().toString().equalsIgnoreCase(project.getId().toString()))) {
+            	_log.debug("Deleting related Quota object {}.",quotaObj.getId());
+            	_dbClient.removeObject(quotaObj);            	
+            }
+        }
+        
+        
         ArgValidator.checkReference(Project.class, id, checkForDelete(project));
 
         // Check the project has been assigned with vNAS servers!!!

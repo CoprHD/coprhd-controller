@@ -481,6 +481,8 @@ public class ProjectService extends TaggedResource {
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
         
+        //for block service cinder if there is QuotaOfCinder entries 
+        //we need to remove before the project removal
         List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
         for (URI quota : quotas) {
             QuotaOfCinder quotaObj = _dbClient.queryObject(QuotaOfCinder.class, quota);

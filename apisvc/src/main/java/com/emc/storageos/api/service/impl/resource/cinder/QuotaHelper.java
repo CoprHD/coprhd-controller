@@ -443,7 +443,21 @@ public class QuotaHelper {
     }
     
     
-    
+
+    /**
+     * Get usage statistics in terms of quota attributes like gigabytes,snapshots, volumes. 
+     * The details include in_use,reserved,limit.
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param tenantId
+     * @param quotaMap of project and vpools
+     * @param proj project under consideration
+     * 
+     * @brief get usage statistics in terms of project and volume types.
+     * @return CinderUsage
+     */
     public CinderUsage getUsageStatistics(URI tenantId , HashMap<String, String> quotaMap, Project proj){
     	CinderUsage objCinderUsage = new CinderUsage();
     	
@@ -470,8 +484,8 @@ public class QuotaHelper {
                 		objSnapsUsage.limit = Long.parseLong(quotaMap.get("snapshots" + "_" + pool.getLabel()));
                 		
                 		objCinderUsage.quota_set.put("gigabytes" + "_" + pool.getLabel(),objSpaceUsage);
-                		objCinderUsage.quota_set.put("snapshots" + "_" + pool.getLabel(),objVolsUsage);
-                		objCinderUsage.quota_set.put("volumes" + "_" + pool.getLabel(), objSnapsUsage);                   
+                		objCinderUsage.quota_set.put("snapshots" + "_" + pool.getLabel(),objSnapsUsage);
+                		objCinderUsage.quota_set.put("volumes" + "_" + pool.getLabel(), objVolsUsage);                   
                 }
             }
         }
@@ -494,8 +508,8 @@ public class QuotaHelper {
 		objSnapsUsage.limit = Long.parseLong(quotaMap.get("snapshots"));
 		
 		objCinderUsage.quota_set.put("gigabytes",objSpaceUsage);
-		objCinderUsage.quota_set.put("snapshots",objVolsUsage);
-		objCinderUsage.quota_set.put("volumes", objSnapsUsage);  
+		objCinderUsage.quota_set.put("snapshots",objSnapsUsage);
+		objCinderUsage.quota_set.put("volumes", objVolsUsage);  
 		
 		return objCinderUsage;
     }

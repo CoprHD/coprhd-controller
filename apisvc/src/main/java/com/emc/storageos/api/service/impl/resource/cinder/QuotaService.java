@@ -397,15 +397,17 @@ public class QuotaService extends TaskResourceService {
     // internal function
     /**
      *Depending on mediatype either xml/json Quota usage response is returned 
-     * @throws IllegalAccessException 
-     * @throws IllegalArgumentException 
-     * @throws DOMException 
      */
-    private Response getQuotaUsageFormat(HttpHeaders header, CinderUsage respCinderUsage) throws DOMException, IllegalArgumentException, IllegalAccessException {
+    private Response getQuotaUsageFormat(HttpHeaders header, CinderUsage respCinderUsage){
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
-            return CinderApiUtils.getCinderResponse(CinderApiUtils
-                    .convertObjectMapToXML(respCinderUsage.quota_set, "quota_set"),
-                    header, false);
+            try {
+				return CinderApiUtils.getCinderResponse(CinderApiUtils
+				        .convertObjectMapToXML(respCinderUsage.quota_set, "quota_set"),
+				        header, false);
+			} catch (IllegalAccessException e) {
+				_log.info("Illegal access exception encountered while converting Usage details to XML format");
+				return Response.status(404).build();
+			}
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
             return CinderApiUtils.getCinderResponse(respCinderUsage, header, false);
         } else {

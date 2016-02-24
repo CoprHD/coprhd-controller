@@ -168,7 +168,7 @@ public class CinderApiUtils {
     
     
     /**
-     * This function converts object Map to xml format
+     * This function converts Map of string, object to xml format
      * 
      * @param map Hash Map
      * @param root root Element Name

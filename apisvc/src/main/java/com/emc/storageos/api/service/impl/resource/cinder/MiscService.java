@@ -223,16 +223,61 @@ public class MiscService extends TaskResourceService {
     public Response getOsServices(@PathParam("tenant_id") String openstack_tenant_id, @Context HttpHeaders header) {
         _log.info("START getOsServices");
 
+        boolean serviceDown = false;
+        
         CinderOsServicesRestResp osServicesResp = new CinderOsServicesRestResp();
         CinderOsService volumeService = new CinderOsService();
+        CinderOsService schedulerService = new CinderOsService();
         Date curDate = new Date();
         SimpleDateFormat  format = new SimpleDateFormat("dd-M-yyyy hh:mm:ss:SSS");
         
-        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();       
-        
         volumeService.setBinary("coprHD-volume");
-        volumeService.setHost(localNodeId);
-        volumeService.setZone("nova");   
+        volumeService.setZone("nova"); 
+        schedulerService.setBinary("coprHD-scheduler");
+        schedulerService.setZone("nova");        
+        
+        if (_coordinator == null || !_coordinator.isConnected())
+        {
+            _log.info("Coordinator service  is Down");
+            serviceDown = true;
+        } else 
+        {
+        	//List<Service> currentSvcs = null;
+        	if((_coordinator.locateAllSvcsAllVers("geosvc").isEmpty()) || 
+        	  (_coordinator.locateAllSvcsAllVers("geodbsvc").isEmpty()) ||
+        	  (_coordinator.locateAllSvcsAllVers("dbsvc").isEmpty()) ||
+        	  (_coordinator.locateAllSvcsAllVers("authsvc").isEmpty()) ||
+        	  (_coordinator.locateAllSvcsAllVers("syssvc").isEmpty()) ||
+        	  (_coordinator.locateAllSvcsAllVers("controllersvc").isEmpty()))       	  
+        	{
+                _log.info("Services like geosvc/geodbsvc/dbsvc/authsvc/syssvc/controllersvc may be Down");
+                serviceDown = true;	
+        	}  
+        }
+        
+        if (serviceDown)
+        {
+            volumeService.setHost(""); 
+           	volumeService.setState("down");
+        	volumeService.setStatus("disabled");
+        	volumeService.setDisabledReason("Required coprHD service or services may be down");
+            curDate = new Date();
+            volumeService.setUpdatedAt(format.format(curDate));
+            osServicesResp.getServices().add(volumeService);
+            
+           	schedulerService.setState("down");
+        	schedulerService.setStatus("disabled");
+            schedulerService.setDisabledReason("Required coprHD service or services may be down");             
+            schedulerService.setHost(""); 
+            curDate = new Date();
+            schedulerService.setUpdatedAt(format.format(curDate));
+            osServicesResp.getServices().add(schedulerService);
+        	
+            return CinderApiUtils.getCinderResponse(osServicesResp, header, false);     	
+        }
+        
+        String localNodeId = _coordinator.getInetAddessLookupMap().getNodeId();       
+        volumeService.setHost(localNodeId); 
         //If Apisvc is running and any storage system is registered then coprHD-volume is up
         List<URI> ids = _dbClient.queryByType(StorageSystem.class, true);
         Iterator<StorageSystem> iter = _dbClient.queryIterativeObjects(StorageSystem.class, ids);
@@ -252,23 +297,13 @@ public class MiscService extends TaskResourceService {
         volumeService.setUpdatedAt(format.format(curDate));
         osServicesResp.getServices().add(volumeService);
               
-        List<Service> schedulerSvcs = _coordinator.locateAllSvcsAllVers("controllersvc");
-        CinderOsService schedulerService = new CinderOsService();
-        schedulerService.setBinary("coprHD-scheduler");
-        schedulerService.setHost(localNodeId);
-        schedulerService.setZone("nova");
-        
-        if (schedulerSvcs.isEmpty())
-        {          
-        	schedulerService.setState("down");
-        	schedulerService.setStatus("disabled");
-            schedulerService.setDisabledReason("controller service is not available");              	
-        }else	
-        {        	
-        	schedulerService.setState("up");
-        	schedulerService.setStatus("enabled");
-        	schedulerService.setDisabledReason(null);      
-        }  
+       // List<Service> schedulerSvcs = _coordinator.locateAllSvcsAllVers("controllersvc");
+
+        schedulerService.setHost(localNodeId);        
+        schedulerService.setState("up");
+        schedulerService.setStatus("enabled");
+        schedulerService.setDisabledReason(null);      
+  
         curDate = new Date();
         schedulerService.setUpdatedAt(format.format(curDate));
         osServicesResp.getServices().add(schedulerService);

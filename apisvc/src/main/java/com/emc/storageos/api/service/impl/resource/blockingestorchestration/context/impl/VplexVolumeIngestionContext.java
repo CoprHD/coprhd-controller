@@ -127,6 +127,9 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         _dbClient.createObject(getBlockObjectsToBeCreatedMap().values());
         _dbClient.createObject(getCreatedSnapshotMap().values());
 
+        for (List<DataObject> dos : getDataObjectsToBeCreatedMap().values()) {
+            _dbClient.createObject(dos);
+        }
         for (List<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
             _dbClient.updateObject(dos);
         }

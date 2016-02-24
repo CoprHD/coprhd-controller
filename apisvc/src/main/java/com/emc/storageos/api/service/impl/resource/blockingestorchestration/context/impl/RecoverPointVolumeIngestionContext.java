@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -234,6 +235,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
         _dbClient.createObject(getBlockObjectsToBeCreatedMap().values());
 
+        for (List<DataObject> dos : getDataObjectsToBeCreatedMap().values()) {
+            _dbClient.createObject(dos);
+        }
         for (List<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
             _dbClient.updateObject(dos);
         }
@@ -258,6 +262,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
             _dbClient.createObject(_managedBlockConsistencyGroup);
         }
 
+        
+        
         super.commit();
     }
 

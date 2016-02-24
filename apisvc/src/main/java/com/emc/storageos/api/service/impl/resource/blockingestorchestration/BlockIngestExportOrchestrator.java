@@ -229,6 +229,8 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 _logger.info("Removing unmanaged mask {} from the list of items to process, as block object is added already",
                         unManagedExportMask.getMaskName());
                 itr.remove();
+
+                requestContext.addDataObjectToUpdate(exportMask);
             }
 
             _logger.info("{} unmanaged mask(s) remaining to process", unManagedMasks.size());

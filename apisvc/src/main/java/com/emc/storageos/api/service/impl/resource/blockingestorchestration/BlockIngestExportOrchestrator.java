@@ -235,7 +235,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
 
             _logger.info("{} unmanaged mask(s) remaining to process", unManagedMasks.size());
 
-            ExportMask exportMaskToCreate = null;
+            List<ExportMask> exportMasksToCreate = new ArrayList<ExportMask>();
             List<UnManagedExportMask> eligibleMasks = null;
             if (!unManagedMasks.isEmpty()) {
                 if (null != cluster) {
@@ -261,9 +261,10 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         // ExportMask
                         _logger.info("Only 1 mask {} found for cluster {}", eligibleMasks.get(0).toString(), cluster.forDisplay());
 
-                        exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMasks.get(0), system,
+                        ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMasks.get(0), system,
                                 unManagedVolume, exportGroup, blockObject,
                                 _dbClient, hosts, cluster, cluster.getLabel());
+                        exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMasks.get(0));
                         masksIngestedCount.increment();
 
@@ -272,9 +273,10 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                                 cluster.forDisplay());
                         // 1 MV per Cluster Node
                         for (UnManagedExportMask eligibleMask : eligibleMasks) {
-                            exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, system,
+                            ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, system,
                                     unManagedVolume, exportGroup, blockObject,
                                     _dbClient, hosts, cluster, cluster.getLabel());
+                            exportMasksToCreate.add(exportMaskToCreate);
                             uemsToPersist.add(eligibleMask);
                             masksIngestedCount.increment();
                         }
@@ -297,9 +299,10 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         _logger.info("No eligible unmanaged export masks found for Host {}", host.getId());
                     }
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
-                        exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, system,
+                        ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, system,
                                 unManagedVolume, exportGroup, blockObject,
                                 _dbClient, hosts, cluster, host.getHostName());
+                        exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
 
@@ -329,10 +332,11 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     }
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
                         // this getHostName will be the name of the VPLEX device
-                        exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, system,
+                        ExportMask exportMaskToCreate = VolumeIngestionUtil.createExportMask(eligibleMask, system,
                                 unManagedVolume, exportGroup, blockObject,
                                 _dbClient, hosts, cluster,
                                 deviceInitiators.get(0).getHostName());
+                        exportMasksToCreate.add(exportMaskToCreate);
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
                     }
@@ -343,7 +347,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 requestContext.addDataObjectToUpdate(uem);
             }
 
-            if (exportMaskToCreate != null) {
+            for (ExportMask exportMaskToCreate : exportMasksToCreate) {
                 requestContext.addDataObjectToCreate(exportMaskToCreate);
                 exportGroup.addExportMask(exportMaskToCreate.getId());
             }

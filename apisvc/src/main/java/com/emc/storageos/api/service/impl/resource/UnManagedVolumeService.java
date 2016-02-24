@@ -690,6 +690,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.setHost(exportIngestParam.getHost());
             }
 
+            _logger.info("Ingestion of exported unmanaged volumes started....");
+
+            // First ingest the block objects
+            ingestBlockObjects(requestContext, taskMap);
+            _logger.info("Ingestion of unmanaged volumes ended....");
+
             ExportGroupNameGenerator gen = new ExportGroupNameGenerator();
             String exportGroupLabel = gen.generate(null, computeResourcelabel, null, '_', 56);
             ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), exportGroupResourceUri,
@@ -702,13 +708,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             }
 
             requestContext.setExportGroup(exportGroup);
-
-            _logger.info("Ingestion of exported unmanaged volumes started....");
-
-            // First ingest the block objects
-            ingestBlockObjects(requestContext, taskMap);
-            _logger.info("Ingestion of unmanaged volumes ended....");
-
+            
             // next ingest the export masks for the unmanaged volumes which have been fully ingested
             _logger.info("Ingestion of unmanaged exportmasks started....");
             ingestBlockExportMasks(requestContext, taskMap);

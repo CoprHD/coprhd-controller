@@ -1305,7 +1305,11 @@ public class VolumeIngestionUtil {
                 // was found, then we can return the one found with null storage array and
                 // virtual array. this would indicate the user created the CG, but hadn't
                 // used it yet in creating a volume
+                // COP-20683: Update the properties in the user created CG
                 if (null != potentialUnclaimedCg) {
+                    potentialUnclaimedCg.addConsistencyGroupTypes(Types.VPLEX.name());
+                    potentialUnclaimedCg.setStorageController(storageSystem.getId());
+                    potentialUnclaimedCg.setVirtualArray(varrayUri);
                     return potentialUnclaimedCg;
                 }
 
@@ -1474,18 +1478,20 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Validate the unmanaged export mask is a mask that aligns with the export group provided.
+     * Validate the unmanaged export mask is a mask that aligns with the host/cluster initiators provided.
+     * If they do match, they will eventually be fed into the export group.
      * 
      * @param dbClient dbclient
-     * @param exportGroup export group
+     * @param exportGroup export group.  Used for error messages only
+     * @param computeInitiators list of initiators
      * @param unManagedExportMask unmanaged export mask
      * @param errorMessages error messages
      * @return true if the export mask is aligned to the export group.
      */
-    public static boolean validateExportMaskMatchesExportGroup(DbClient dbClient, ExportGroup exportGroup,
+    public static boolean validateExportMaskMatchesComputeResourceInitiators(DbClient dbClient, ExportGroup exportGroup, StringSet computeInitiators,
             UnManagedExportMask unManagedExportMask, List<String> errorMessages) {
-        // Validate export group initiators
-        if (exportGroup.getInitiators() == null) {
+        // Validate future export group initiators
+        if (computeInitiators == null) {
             String errorMessage = String.format("ExportGroup %s has no initiators and therefore unmanaged export mask %s can't be ingested with it.",
                     exportGroup.getLabel(), unManagedExportMask.getMaskName());
             errorMessages.add(errorMessage.toString());
@@ -1500,8 +1506,8 @@ public class VolumeIngestionUtil {
             return false;
         }
 
-        // If you find the export group contains some initiators in the unmanaged export mask, go ahead and process it.
-        if (StringSetUtil.hasIntersection(unManagedExportMask.getKnownInitiatorUris(), exportGroup.getInitiators())) {
+        // If you find the compute resource contains some initiators in the unmanaged export mask, go ahead and process it.
+        if (StringSetUtil.hasIntersection(unManagedExportMask.getKnownInitiatorUris(), computeInitiators)) {
             String message = String.format("Unmanaged export mask has initiators that match the export group (%s) initiators and therefore will be attempted to be ingested.",
                     unManagedExportMask.getMaskName(), exportGroup.getLabel());
             _logger.info(message);
@@ -3447,7 +3453,7 @@ public class VolumeIngestionUtil {
 
                 // We need the VPLEX ingest context to get the backend volume info
                 // This information is stored in the context if the vplex volume is the last volume
-                // in the ingestion.  Otherwise we'll fish it out of the database in the findVolume()
+                // in the ingestion. Otherwise we'll fish it out of the database in the findVolume()
                 // method below.
                 Map<String, BlockObject> createdMap = null;
                 Map<String, List<DataObject>> updatedMap = null;
@@ -3457,20 +3463,20 @@ public class VolumeIngestionUtil {
                     updatedMap = ((RpVplexVolumeIngestionContext)
                             requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getDataObjectsToBeUpdatedMap();  
                 }
-                
-                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
-                    // Find the associated volumes using the context maps or the db if they are already there               
-                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient, 
-                                                                             createdMap,
-                                                                             updatedMap,
-                                                                             associatedVolumeIdStr);     
+
+                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
+                    // Find the associated volumes using the context maps or the db if they are already there
+                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient,
+                            createdMap,
+                            updatedMap,
+                            associatedVolumeIdStr);
                     if (associatedVolume != null) {
                         associatedVolume.setConsistencyGroup(rpCG.getId());
-                        updatedObjects.add(associatedVolume);                    
+                        updatedObjects.add(associatedVolume);
                     } else {
-                       // This may not be a failure if we're not ingesting backing volumes.  Put a warning to the log.
-                       _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
-                    }                        
+                        // This may not be a failure if we're not ingesting backing volumes. Put a warning to the log.
+                        _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
+                    }
                 }
             }
 
@@ -3528,15 +3534,15 @@ public class VolumeIngestionUtil {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
 
         // In the case where IS_VOLUME_IN_CONSISTENCYGROUP flag is set to TRUE, but there is no UnManagedConsistencyGroup, we
-        // can't perform this check fully and need to return null.  This will occur with VMAX/VNX volumes in CGs until we have
+        // can't perform this check fully and need to return null. This will occur with VMAX/VNX volumes in CGs until we have
         // CG ingestion support for such volumes.
         if (umcg == null || umcg.getUnManagedVolumesMap() == null) {
             _logger.info("There is no unmanaged consistency group associated with unmanaged volume {}, however " +
-                         "the volume has the IS_VOLUME_IN_CONSISTENCYGROUP flag set to true.  Ignoring CG operation" +
-                         " as there is not enough information to put this volume in a CG by itself.", unManagedVolume.getNativeGuid());
+                    "the volume has the IS_VOLUME_IN_CONSISTENCYGROUP flag set to true.  Ignoring CG operation" +
+                    " as there is not enough information to put this volume in a CG by itself.", unManagedVolume.getNativeGuid());
             return null;
         }
-        
+
         boolean isLastUmvToIngest = isLastUnManagedVolumeToIngest(umcg, unManagedVolume);
         boolean isVplexOrRPProtected = isRPOrVplexProtected(unManagedVolume);
         if (isVplexOrRPProtected || !isLastUmvToIngest) {
@@ -3753,27 +3759,28 @@ public class VolumeIngestionUtil {
 
         return blockObjects;
     }
-    
+
     /**
      * Convenience method to find the a volume from the database or maps based
      * on ingestion.
-     * 
+     *
      * This is an alternative to using the context objects directly.
-     * 
+     *
      * @param dbClient DbClient reference
      * @param createdMap Map of created objects
      * @param updatedMap Map of updated objects
      * @param volumeId The id of the volume to find
      * @return The volume, or null if nothing can be found.
      */
-    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, List<DataObject>> updatedMap, String volumeId) {
+    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, List<DataObject>> updatedMap,
+            String volumeId) {
         if (volumeId == null) {
             return null;
         }
-        
+
         BlockObject blockObject = null;
         URI volumeURI = URI.create(volumeId);
-                
+
         if (createdMap != null) {
             // Check the created map
             for (BlockObject bo : createdMap.values()) {
@@ -3783,36 +3790,36 @@ public class VolumeIngestionUtil {
                 }
             }
         }
-        
+
         if (updatedMap != null) {
             // Check the updated map
             for (List<DataObject> objectsToBeUpdated : updatedMap.values()) {
                 for (DataObject o : objectsToBeUpdated) {
-                    if (o.getId().equals(volumeURI)) {                    
+                    if (o.getId().equals(volumeURI)) {
                         blockObject = (BlockObject) o;
                         break;
                     }
                 }
-            }      
+            }
         }
-        
+
         if (dbClient != null) {
             // Lastly, check the db
             if (blockObject == null) {
                 blockObject = (BlockObject) dbClient.queryObject(volumeURI);
             }
         }
-                
+
         Volume volume = null;
         if (blockObject != null && blockObject instanceof Volume) {
             _logger.info("\t Found volume object: " + blockObject.forDisplay());
             volume = (Volume) blockObject;
-        }    
-        
+        }
+
         return volume;
     }
 
-   /**
+    /**
      * Sets up the Recover Point CG by creating the protection set, block CG and associating the RP volumes
      * with the protection set and the block CG.
      * It also clears the RP volumes' replicas' flags.
@@ -3938,4 +3945,3 @@ public class VolumeIngestionUtil {
     }
 
 }
-

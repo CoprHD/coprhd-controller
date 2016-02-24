@@ -6148,11 +6148,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Adds the necessary RecoverPoint controller steps that need to be executed prior
      * to restoring a volume from full copy. The pre-restore step is required if we
-     * are restoring a VPLEX full copy     
+     * are restoring a VPLEX distributed full copy     
      * @param workflow the Workflow being constructed
+     * @param waitFor the step that the newly created steps will wait for.
      * @param storageSystemURI the URI of storage controller
-     * @param volumeURI the URI of volume to be restored
-     * @param snapshotURI the URI of snapshot used for restoration
+     * @param fullCopies the URI of full copies to restore
      * @param taskId the top level operation's taskId
      * @return A waitFor key that can be used by subsequent controllers to wait on
      */

@@ -67,18 +67,18 @@ public class FileShare extends FileObject implements ProjectResource {
     private URI _originalProject;
 
     private URI virtualNAS;
-    
+
     private Long softLimit;
-    
+
     private Boolean softLimitExceeded;
-    
+
     private Integer softGracePeriod;
-    
+
     private Long notificationLimit;
-    
-    //mirror related attributes
-    
-    //mirror target fileshares
+
+    // mirror related attributes
+
+    // mirror target fileshares
     private StringSet _mirrorfsTargets;
 
     // source file share
@@ -96,12 +96,12 @@ public class FileShare extends FileObject implements ProjectResource {
     // policy associated with the file.
     private StringSet filePolicies;
 
-    //job id to fetch report
+    // job id to fetch report
     private Long lastReplicationJobId;
-    
-    //Average duration of replication jobs in seconds..
-    private Integer avgDuration;
-    
+
+    // actual maximum RPO
+    private Long actualMaxRPO;
+
     public enum MirrorStatus {
         UNKNOWN("0"),
         FAILED_OVER("1"),
@@ -113,7 +113,7 @@ public class FileShare extends FileObject implements ProjectResource {
         OTHER("7"),
         SYNCHRONIZED("8"),
         ERROR("9");
-        
+
         private final String status;
 
         MirrorStatus(String status) {
@@ -401,9 +401,9 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     @Name("virtualNAS")
-	public URI getVirtualNAS() {
-		return virtualNAS;
-	}
+    public URI getVirtualNAS() {
+        return virtualNAS;
+    }
 
     public void setVirtualNAS(URI vituralNAS) {
         this.virtualNAS = vituralNAS;
@@ -452,7 +452,7 @@ public class FileShare extends FileObject implements ProjectResource {
         this.softGracePeriod = softGracePeriod;
         setChanged("softGracePeriod");
     }
-    
+
     @Name("notificationLimit")
     public Long getNotificationLimit() {
         return notificationLimit;
@@ -462,7 +462,7 @@ public class FileShare extends FileObject implements ProjectResource {
         this.notificationLimit = notificationLimit;
         setChanged("notificationLimit");
     }
-    
+
     @Name("lastReplicationJobId")
     public Long getlastReplicationJobId() {
         return lastReplicationJobId;
@@ -472,15 +472,15 @@ public class FileShare extends FileObject implements ProjectResource {
         this.lastReplicationJobId = lastReplicationJobId;
         setChanged("lastReplicationJobId");
     }
-    
-    @Name("avgDuration")
-    public Integer getAvgDuration() {
-        return avgDuration;
+
+    @Name("actualMaxRPO")
+    public Long getActualMaxRPO() {
+        return actualMaxRPO;
     }
 
-    public void setAvgDuration(Integer avgDuration) {
-        this.avgDuration = avgDuration;
-        setChanged("avgDuration");
+    public void setActualMaxRPO(Long actualMaxRPO) {
+        this.actualMaxRPO = actualMaxRPO;
+        setChanged("actualMaxRPO");
     }
 
 }

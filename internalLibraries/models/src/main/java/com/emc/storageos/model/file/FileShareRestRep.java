@@ -289,6 +289,7 @@ public class FileShareRestRep extends FileObjectRestRep {
         private String accessState;
         private RelatedResourceRep parentFileSystem;
         private List<VirtualArrayRelatedResourceRep> targetFileSystems;
+        private Long actualMaxRPO;
 
         /**
          * SOURCE
@@ -342,6 +343,15 @@ public class FileShareRestRep extends FileObjectRestRep {
 
         public void setTargetFileSystems(List<VirtualArrayRelatedResourceRep> targetFileSystems) {
             this.targetFileSystems = targetFileSystems;
+        }
+
+        public Long getActualMaxRPO() {
+            return actualMaxRPO;
+        }
+        
+        @XmlElement(name = "actualMaxRPO")
+        public void setActualMaxRPO(Long actualMaxRPO) {
+            this.actualMaxRPO = actualMaxRPO;
         }
     }
 

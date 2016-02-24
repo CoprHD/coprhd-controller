@@ -296,28 +296,8 @@ public class UnManagedVolumeService extends TaskResourceService {
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
 
-                    VolumeIngestionContext volumeContext = requestContext.getVolumeContext();
-                    
-                    // Get the CG's created as part of the ingestion process
-                    // Iterate through each CG & decorate its objects.
-                    if (!volumeContext.getCGObjectsToCreateMap().isEmpty()) {
-                        for (Entry<String, BlockConsistencyGroup> cgEntry : volumeContext.getCGObjectsToCreateMap().entrySet()) {
-                            BlockConsistencyGroup cg = cgEntry.getValue();
-                            Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
-                            Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
-                            _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
-                            rpCGDecorator.setDbClient(_dbClient);
-                            rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
-                        }
-                    }
-
-                    persistConsistencyGroups(volumeContext.getCGObjectsToCreateMap().values());
-
-                    // Update UnManagedConsistencyGroups.
-                    if (!volumeContext.getUmCGObjectsToUpdate().isEmpty()) {
-                        _logger.info("updating {} unmanagedConsistencyGroups in db.");
-                        _dbClient.updateObject(volumeContext.getUmCGObjectsToUpdate());
-                    }
+                    // Commit any ingested CG
+                    commitIngestedCG(requestContext, unManagedVolume);
 
                     requestContext.getVolumeContext().commit();
 
@@ -588,32 +568,14 @@ public class UnManagedVolumeService extends TaskResourceService {
                     _dbClient.createObject(createdObjects);
                 }
 
-                // Get the CG's created as part of the ingestion process
-                // Iterate through each CG & decorate its objects.
-                if (!volumeContext.getCGObjectsToCreateMap().isEmpty()) {
-                    for (Entry<String, BlockConsistencyGroup> cgEntry : volumeContext.getCGObjectsToCreateMap().entrySet()) {
-                        BlockConsistencyGroup cg = cgEntry.getValue();
-                        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
-                        Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
-                        _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
-                        rpCGDecorator.setDbClient(_dbClient);
-                        rpCGDecorator.decorate(cg, processedUnManagedVolume, allCGBlockObjects, requestContext);
-                    }
-                }
-
-                persistConsistencyGroups(volumeContext.getCGObjectsToCreateMap().values());
-
-                // Update UnManagedConsistencyGroups.
-                if (!volumeContext.getUmCGObjectsToUpdate().isEmpty()) {
-                    _logger.info("updating {} unmanagedConsistencyGroups in db.");
-                    _dbClient.updateObject(volumeContext.getUmCGObjectsToUpdate());
-                }
-
                 if (requestContext.isExportGroupCreated()) {
                     _dbClient.createObject(requestContext.getExportGroup());
                 } else {
                     _dbClient.updateObject(requestContext.getExportGroup());
                 }
+
+                // If there is a CG involved in the ingestion, organize, pollenate, and commit.
+                commitIngestedCG(requestContext);
 
                 volumeContext.commit();
 
@@ -766,6 +728,59 @@ public class UnManagedVolumeService extends TaskResourceService {
         }
 
         return taskList;
+    }
+
+    /**
+     * Create and commit any ingested CG objects
+     * 
+     * @param requestContext request context
+     * @throws Exception
+     */
+    private void commitIngestedCG(IngestionRequestContext requestContext) throws Exception {
+        while (requestContext.hasNext()) {
+            UnManagedVolume unManagedVolume = requestContext.next();
+
+            if (null == unManagedVolume) {
+                _logger.info("No Unmanaged Volume with URI {} found in database. Continuing...",
+                        requestContext.getCurrentUnManagedVolumeUri());
+                continue;
+            }
+            
+            commitIngestedCG(requestContext, unManagedVolume);
+        }
+    }
+
+    /**
+     * Commit ingested consistency group
+     * 
+     * @param requestContext request context
+     * @param unManagedVolume unmanaged volume to ingest against this CG
+     * @throws Exception
+     */
+    private void commitIngestedCG(IngestionRequestContext requestContext, UnManagedVolume unManagedVolume) throws Exception {
+
+        VolumeIngestionContext volumeContext = requestContext.getVolumeContext();
+
+        // Get the CG's created as part of the ingestion process
+        // Iterate through each CG & decorate its objects.
+        if (!volumeContext.getCGObjectsToCreateMap().isEmpty()) {
+            for (Entry<String, BlockConsistencyGroup> cgEntry : volumeContext.getCGObjectsToCreateMap().entrySet()) {
+                BlockConsistencyGroup cg = cgEntry.getValue();
+                Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
+                Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
+                _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
+                rpCGDecorator.setDbClient(_dbClient);
+                rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
+            }
+        }
+
+        persistConsistencyGroups(volumeContext.getCGObjectsToCreateMap().values());
+
+        // Update UnManagedConsistencyGroups.
+        if (!volumeContext.getUmCGObjectsToUpdate().isEmpty()) {
+            _logger.info("updating {} unmanagedConsistencyGroups in db.");
+            _dbClient.updateObject(volumeContext.getUmCGObjectsToUpdate());
+        }
     }
 
     /**

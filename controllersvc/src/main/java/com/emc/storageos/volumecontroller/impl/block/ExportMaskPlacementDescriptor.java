@@ -9,8 +9,10 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -18,6 +20,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
+import com.google.common.base.Joiner;
 
 /**
  * Data structure do be used for placing volumes into existing ExportMasks.
@@ -74,6 +77,21 @@ public class ExportMaskPlacementDescriptor {
     // These are volumes that could not be placed in an ExportMask.
     private Map<URI, Volume> unplacedVolumes;
 
+    // OUTPUT:
+    // Mapping of ExportMask URI to its ExportMaskPolicy
+    private Map<URI, ExportMaskPolicy> exportMaskPolicy;
+
+    // OUTPUT:
+    // This is a map of a key String to a set of ExportMasks that are
+    // equivalent in terms of properties, but # of volumes can differ.
+    // The key String is generated based on the ExportMask's ExportMaskPolicy
+    // components.
+    private Map<String, Set<URI>> equivalentMasks;
+
+    // OUTPUT:
+    // Mapping of volume to alternative ExportMask placements
+    private Map<URI, Set<URI>> volumeToAlternativeMasks;
+
     public enum PlacementHint {
         VOLUMES_TO_SINGLE_MASK, VOLUMES_TO_SEPARATE_MASKS
     }
@@ -100,6 +118,9 @@ public class ExportMaskPlacementDescriptor {
         descriptor.setVirtualArray(virtualArrayURI);
         descriptor.setBackendArray(array);
         descriptor.setInitiators(initiators);
+        descriptor.exportMaskPolicy = new HashMap<>();
+        descriptor.equivalentMasks = new HashMap<>();
+        descriptor.volumeToAlternativeMasks = new HashMap<>();
         return descriptor;
     }
 
@@ -118,6 +139,9 @@ public class ExportMaskPlacementDescriptor {
         this.maskToVolumes = new HashMap<>();
         this.maskExportGroupMap = new HashMap<>();
         this.placementHint = PlacementHint.VOLUMES_TO_SINGLE_MASK;
+        this.exportMaskPolicy = new HashMap<>();
+        this.equivalentMasks = new HashMap<>();
+        this.volumeToAlternativeMasks = new HashMap<>();
     }
 
     /**
@@ -264,7 +288,28 @@ public class ExportMaskPlacementDescriptor {
     public void invalidateExportMask(URI uri) {
         masks.remove(uri);
         maskExportGroupMap.remove(uri);
-        maskToVolumes.remove(uri);
+        // Remove the entry from maskToVolumes, then get the volume map entry for the export
+        // we removed. Use that as a tentative list of volumes that are unplaced. We will
+        // determine below, if indeed the volumes are not placed elsewhere.
+        Map<URI, Volume> tentativelyUnplacedVolumes = new HashMap<>(maskToVolumes.remove(uri));
+        // Search through the mask to volumes mapping to see if any of the
+        // tentatively unplaced volumes show up there.
+        for (URI exportURI : maskToVolumes.keySet()) {
+            Map<URI, Volume> volumeMap = maskToVolumes.get(exportURI);
+            // Go through the volumes mapped to this ExportMask ...
+            for (URI volumeURI : volumeMap.keySet()) {
+                // If the volume is in the tentative list, then we can remove
+                // it because we know it's been associated with something
+                if (tentativelyUnplacedVolumes.containsKey(volumeURI)) {
+                    tentativelyUnplacedVolumes.remove(volumeURI);
+                }
+            }
+        }
+        // Check if there's anything still left in tentative list after the above processing
+        if (!tentativelyUnplacedVolumes.isEmpty()) {
+            // Yep - there are volumes still not placed anywhere
+            unplacedVolumes.putAll(tentativelyUnplacedVolumes);
+        }
     }
 
     /**
@@ -411,7 +456,90 @@ public class ExportMaskPlacementDescriptor {
         return (maskToVolumes != null && !maskToVolumes.isEmpty()) ? Collections.unmodifiableSet(maskToVolumes.keySet())
                 : Collections.EMPTY_SET;
     }
-    
+
+    /**
+     * Groups ExportMask based on ExportMaskPolicy equivalence (minus the #volumes)
+     *
+     * @param exportMask [IN] - ExportMask representing the mapping/masking component on the array
+     * @param policy [IN] - ExportMaskPolicy describes attributes of the ExportMask
+     */
+    public void addToEquivalentMasks(ExportMask exportMask, ExportMaskPolicy policy) {
+        String key = generatePolicyKey(policy);
+        Set<URI> similarMasks = equivalentMasks.get(key);
+        if (similarMasks == null) {
+            similarMasks = new HashSet<>();
+            equivalentMasks.put(key, similarMasks);
+        }
+        similarMasks.add(exportMask.getId());
+        exportMaskPolicy.put(exportMask.getId(), policy);
+    }
+
+    /**
+     * Get a list of ExportMasks that are equivalent (except for #volumes)
+     *
+     * @param exportMaskURI [IN] - ExportMask representing the mapping/masking component on the array
+     * @return Set URIs pointing to ExportMasks that are equivalent
+     */
+    public Set<URI> getEquivalentExportMasks(URI exportMaskURI) {
+        Set<URI> result = new HashSet<>();
+        ExportMaskPolicy policy = exportMaskPolicy.get(exportMaskURI);
+        if (policy != null) {
+            String key = generatePolicyKey(policy);
+            Set<URI> equivalent = equivalentMasks.get(key);
+            // If we found equivalent masks ...
+            if (equivalent != null) {
+                // Add all of them to the result ...
+                result.addAll(equivalent);
+                // And then remove the one we're looking at
+                result.remove(exportMaskURI);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Generates a String key based on the fields in the ExportMaskPolicy
+     * 
+     * @param policy [IN] - ExportMaskPolicy describes attributes of the ExportMask
+     * @return String key representing the policy
+     */
+    private String generatePolicyKey(ExportMaskPolicy policy) {
+        // policy.tierPolicies is a StringSet, so lets make sure that the names are in some order
+        // to prevent getting different keys with the same set of policy names
+        Set<String> sortedPolicyNames = (policy.getTierPolicies() != null && policy.getTierPolicies().isEmpty())
+                ? new TreeSet<>(policy.getTierPolicies()) : Collections.<String> emptySet();
+        String sortedPolicyNamesString = Joiner.on(';').join(sortedPolicyNames);
+        return String.format("type=%s,ig=%s,localTier=%s,policies=%s,cascaded=%s,simple=%s,hostIObw=%d,hostIOPs=%d", policy.getExportType(),
+                policy.getIgType(), policy.getLocalTierPolicy(), sortedPolicyNamesString, policy.isCascadedIG(), policy.isSimpleMask(),
+                policy.getHostIOLimitBandwidth(), policy.getHostIOLimitIOPs());
+    }
+
+    /**
+     * Return a set of ExportMask URIs that represent the ExportMasks that the volume could *have* been placed into
+     * 
+     * @param volumeURI [IN] - Volume URI
+     * @return Set of ExportMask URIs that represent the ExportMasks that the volume could *have* been placed into
+     */
+    public Set<URI> getAlternativeExportsForVolume(URI volumeURI) {
+        Set<URI> alternatesForVolume = volumeToAlternativeMasks.get(volumeURI);
+        return (alternatesForVolume != null) ? Collections.unmodifiableSet(alternatesForVolume) : Collections.<URI> emptySet();
+    }
+
+    /**
+     * Associate that the volume, with given URI, can be potentially be placed into the ExportMask, given by its URI.
+     * 
+     * @param volumeURI [IN] - Volume URI
+     * @param exportMaskURI [IN] - ExportMask URI to associate with volume
+     */
+    public void addAsAlternativeExportForVolume(URI volumeURI, URI exportMaskURI) {
+        Set<URI> alternatesForVolume = volumeToAlternativeMasks.get(volumeURI);
+        if (alternatesForVolume == null) {
+            alternatesForVolume = new HashSet<>();
+            volumeToAlternativeMasks.put(volumeURI, alternatesForVolume);
+        }
+        alternatesForVolume.add(exportMaskURI);
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -419,6 +547,7 @@ public class ExportMaskPlacementDescriptor {
                 append("vplexArray        : ").append(vplex.forDisplay()).append('\n').
                 append("backendArray      : ").append(backendArray.forDisplay()).append('\n').
                 append("masks             : ").append(CommonTransformerFunctions.collectionString(masks.keySet())).append('\n').
+                append("unplacedVolumes   : ").append(CommonTransformerFunctions.collectionString(unplacedVolumes.keySet())).append('\n').
                 append("volumesToPlace    : ").append(CommonTransformerFunctions.collectionString(volumesToPlace.keySet())).append('\n').
                 append("maskToExportGroup : [").append(displayMaskToExportGroup()).append("]\n").
                 append("maskToVolumes     :\n").append(displayMaskToVolumes());

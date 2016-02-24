@@ -2872,9 +2872,8 @@ recoverpoint_ingest_host_setup()
     run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN2}
 }
 
-recoverpoint_ingest_setup()
+recoverpoint_ingest_setup_vars()
 {
-    secho 'RP ingest setup'
     INGEST_NATIVEGUID=$VMAX1_SIMULATOR_NATIVEGUID
     RP_NATIVEGUID=$RECOVERPOINT_RP_SIM_NATIVEGUID
 
@@ -2883,7 +2882,7 @@ recoverpoint_ingest_setup()
         RP_NATIVEGUID=$RECOVERPOINT_RP_NATIVEGUID
     fi
 
-    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" -o "${RPMP_TESTS}" = "1" ]; then
         INGEST_NATIVEGUID2=$RECOVERPOINT_STORAGE_ARRAY_B_GUID
         INGEST_NATIVEGUID3=$RECOVERPOINT_STORAGE_ARRAY_C_GUID
         if [ "$RP_QUICK_PARAM" == "quick" ]; then
@@ -2891,12 +2890,20 @@ recoverpoint_ingest_setup()
             INGEST_NATIVEGUID3=$VMAX3_SIMULATOR_NATIVEGUID
         fi
     fi	
+}
+
+recoverpoint_ingest_setup()
+{
+    secho 'RP ingest setup'
 
     # Discover unmanaged volumes on the array
     run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
 
-    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" -o "${RPMP_TESTS}" = "1" ]; then
         run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+    fi
+
+    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
         run storagedevice discover_namespace $INGEST_NATIVEGUID3 'UNMANAGED_VOLUMES'
     fi	
 
@@ -2974,6 +2981,10 @@ recoverpoint_ingest_test()
 	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
         # Recreate unmanaged volumes/protection sets
 	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
+	if [ ${RPMP_TESTS} = "1" ]; then
+	    run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+	fi
+
 	if [ ${RPVPLEX_TESTS} = "1" ]; then
 	    run storagedevice discover_namespace $VPLEX1_SIMULATOR_GUID 'UNMANAGED_VOLUMES'
 	    if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
@@ -3022,14 +3033,17 @@ recoverpoint_ingest_test()
     # Recreate unmanaged volumes/protection sets
     run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
 
-    if [ ${vpool} = "rp${rptypetag}_crr" -o ${vpool} = "rp${rptypetag}_clr" ]; then
+    if [ ${vpool} = "rp${rptypetag}_crr" -o ${vpool} = "rp${rptypetag}_clr" -o "${RPMP_TESTS}" = "1" ]; then
 	run storagedevice discover_namespace $INGEST_NATIVEGUID2 'UNMANAGED_VOLUMES'
+    fi	
+
+    if [ ${vpool} = "rp${rptypetag}_crr" -o ${vpool} = "rp${rptypetag}_clr" ]; then
         run storagedevice discover_namespace $INGEST_NATIVEGUID3 'UNMANAGED_VOLUMES'
     fi	
 
-    if [ ${RPVPLEX_TESTS} = "1" -o "${RPMP_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         run storagedevice discover_namespace $RECOVERPOINT_VPLEX_A_GUID 'UNMANAGED_VOLUMES'
-        if [ ${RP_CRR} = "1" -o ${RP_CLR} = "1" ]; then
+        if [ "${RP_CRR}" = "1" -o "${RP_CLR}" = "1" ]; then
             run storagedevice discover_namespace $RECOVERPOINT_VPLEX_B_GUID 'UNMANAGED_VOLUMES'
         fi
     fi
@@ -3040,9 +3054,7 @@ recoverpoint_ingest_test()
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
-	/opt/storageos/bin/dbutils list Volume > /tmp/vol1.txt
 	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
-	/opt/storageos/bin/dbutils list Volume > /tmp/vol2.txt
         # Recreate unmanaged volumes/protection sets
 	run storagedevice discover_namespace $INGEST_NATIVEGUID 'UNMANAGED_VOLUMES'
 	if [ ${RPVPLEX_TESTS} = "1" ]; then
@@ -3052,7 +3064,6 @@ recoverpoint_ingest_test()
 	    fi
 	fi
 	run protectionsystem discover_namespace $RP_NATIVEGUID 'UNMANAGED_CGS'
-	/opt/storageos/bin/dbutils list Volume > /tmp/vol3.txt
 
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp_targets $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
@@ -3097,10 +3108,10 @@ recoverpoint_ingest_primer()
     #RECOVERPOINT_INGEST_VOL1_HOST_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}_${vpool}
     #RECOVERPOINT_INGEST_VOL1_HOST_SRC=${RECOVERPOINT_INGEST_VOL1BASE}_${vpool}
     #run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_HOST_CG}
-    #run volume create ${RECOVERPOINT_INGEST_VOL1_HOST_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_HOST_CG}
-    #run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC} --hosts ${RP_HOSTNAME}
+    #run volume create ${RECOVERPOINT_INGEST_VOL1_HOST_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_HOST_CG} --count 2
+    #run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC}-1 --hosts ${RP_HOSTNAME}
+    #run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC}-2 --hosts ${RP_HOSTNAME}
     #volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_HOST_SRC} --vipronly
-    #exit;
 }
 
 recoverpoint_failover_test()
@@ -3390,7 +3401,7 @@ recoverpoint_simulator_setup()
     project_setup
     rp_varray_setup
 
-    run syssvc $CONFIG_FILE localhost set_prop controller_discovery_refresh_interval 5
+    run syssvc $CONFIG_FILE $BOURNE_IPADDR set_prop controller_discovery_refresh_interval 5
 
     # Simulators being used
     run smisprovider create $PROVIDER_SIMULATOR $RP_PROVIDER_SIMULATOR_IP $RP_VMAX_SMIS_SIM_PORT $SMIS_USER "$SMIS_PASSWD" false
@@ -3514,6 +3525,7 @@ recoverpoint_setup()
             secho 'RecoverPoint Simulator setup'
             recoverpoint_simulator_setup
         else
+	    # This is intentionally a local-only execution for now.  Regular sanity for RP should always have RP_RUN_SETUP turned on.
             RP_SANITY_RANDOM=`/opt/storageos/bin/dbutils list UnManagedVolume | grep label | awk '{print $3}' | cut -c10-12 | head -1`
             secho "Determine existing volume label uses random value: ${RP_SANITY_RANDOM}"
         fi
@@ -3567,7 +3579,7 @@ recoverpoint_tests()
         secho 'Run RP tests'
 
         # Setup CGs
-        rp_cg_setup
+	rp_cg_setup
 
         rp_src_varray=$RECOVERPOINT_VARRAY1
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
@@ -3701,7 +3713,7 @@ recoverpoint_tests()
             fi
 
             if [ "$RP_INGESTPRIME" = "1" ]; then
-                secho 'RP ingest volumes priming only'
+                secho 'RP ingest volumes priming'
                 if [ "$RP_CDP" = "1" ] ; then
                     recoverpoint_ingest_primer rp${rptypetag}_cdp
                 fi
@@ -3715,7 +3727,8 @@ recoverpoint_tests()
 
             if [ "$RP_INGESTTESTS" = "1" ]; then
                 secho 'RP ingest volumes'
-                recoverpoint_ingest_setup
+		recoverpoint_ingest_setup_vars
+		recoverpoint_ingest_setup
 
                 if [ "$RP_CDP" = "1" ] ; then
                     recoverpoint_ingest_test rp${rptypetag}_cdp
@@ -8102,7 +8115,7 @@ backuprestore_setup()
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_password "${BACKUP_SERVER_PASSWORD}"
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_url "${BACKUP_SERVER_URL}"
 
-    echo "Done url=${BACKUP_EXTERNAL_LOCATION_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
+    echo "Done url=${BACKUP_SERVER_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
 }
 
 backuprestore_tests()
@@ -8155,7 +8168,7 @@ backup_tests()
 
     echo "List local backup ${backupname} successful"
 
-    echo "Uploading backup(${backupname}) to ${BACKUP_EXTERNAL_LOCATION_URL}"
+    echo "Uploading backup(${backupname}) to ${BACKUP_SERVER_URL}"
     backup upload "${backupname}"
 
     if [ $? != 0 ]; then
@@ -8182,7 +8195,7 @@ backup_tests()
         exit 1
     fi
 
-    echo "Listing external backup(${backupname} from ${BACKUP_EXTERNAL_LOCATION_URL})"
+    echo "Listing external backup(${backupname} from ${BACKUP_SERVER_URL})"
 
     found=""
     for(( i=0; i<60; i++ )); do
@@ -8196,11 +8209,11 @@ backup_tests()
     done
 
     if [[ "${found}" == "" ]]; then
-       echo "Failed to find backup ${backupname} on ${BACKUP_EXTERNAL_LOCATION_URL}"
+       echo "Failed to find backup ${backupname} on ${BACKUP_SERVER_URL}"
        exit 1
     fi
 
-    echo "Pull backup(${found} from ${BACKUP_EXTERNAL_LOCATION_URL})"
+    echo "Pull backup(${found} from ${BACKUP_SERVER_URL})"
     backup pull "${found}"
 
     if [[ $? -ne 0 ]]; then
@@ -8296,9 +8309,10 @@ restore_tests()
     SCP $BOURNE_IPADDR ${filepath} ${filepath}
 
     echo "Restoring backup file ${filepath} on $BOURNE_IPADDR"    
-    result=`SSH $BOURNE_IPADDR "echo -e 'yes\n$password' | /opt/storageos/bin/restore '${filepath}'" | grep 'Restore'`
-    echo "$result"
-    if [[ "$result"x != "Restore successful!"x ]]; then
+    SSH $BOURNE_IPADDR "echo -e 'yes\n$password' | /opt/storageos/bin/restore '${filepath}'"
+    ret=$?
+    echo "ret=$ret"
+    if [[ ${ret} -ne 0 ]]; then
         echo "Please check /opt/storageos/logs/bkutils.log for details"
         exit 1
     fi
@@ -8547,6 +8561,24 @@ application_crud_test()
     # test and verify volume group delete
     run volumegroup delete ${newappname}
     fail volumegroup show ${newappname}
+
+    mobilityname=mobilitygroup-${RANDOM}
+    run volumegroup create ${mobilityname} description MOBILITY VPLEX VOLUMES
+    run volumegroup delete ${mobilityname}
+
+    mobilityname=mobilitygroup-${RANDOM}
+    run volumegroup create ${mobilityname} description MOBILITY VPLEX HOSTS
+    run volumegroup delete ${mobilityname}
+
+    mobilityname=mobilitygroup-${RANDOM}
+    run volumegroup create ${mobilityname} description MOBILITY VPLEX CLUSTERS
+    run volumegroup delete ${mobilityname}
+ 
+    mobilityname=mobilitygroup-${RANDOM}
+    fail volumegroup create ${mobilityname} description MOBILITY VPLEX INVALIDTYPE 
+
+    mobilityname=mobilitygroup-${RANDOM}
+    fail volumegroup create ${mobilityname} description MOBILITY INVALIDTYPE VOLUMES
 }
 
 application_createvols()

@@ -89,7 +89,7 @@ public class LocalRepository {
     private static final String _SYSTOOL_RESTART_COORDINATOR = "--restart-coordinator";
 
     private static final String _IPSECTOOL_CMD = "/etc/ipsectool";
-    private static final String MASK_IPSEC_KEY_PATTERN = "ipsec_key=.*?\\\\n";
+    private static final String MASK_IPSEC_KEY_PATTERN = "ipsec_key=.*?\\n";
 
     // inject value from spring config.
     private String cmdZkutils;

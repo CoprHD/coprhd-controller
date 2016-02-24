@@ -246,7 +246,7 @@
           "baseService": "AssociateFilePolicyToFileSystem"
         },
         {
-          "image": "Service_Associate_File_Policy_File_System.png",
+          "image": "Service_Dissociate_File_Policy_File_System.png",
           "baseService": "DissociateFilePolicyFromFileSystem"
         },
         {

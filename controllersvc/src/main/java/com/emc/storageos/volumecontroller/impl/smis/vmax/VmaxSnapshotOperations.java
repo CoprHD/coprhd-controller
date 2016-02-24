@@ -95,6 +95,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSession
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionUnlinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
@@ -173,7 +174,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             }
 
             // Check if the consistency group exists
-            String groupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             storage = findProviderFactory.withGroup(storage, groupName).find();
 
             if (storage == null) {
@@ -360,7 +361,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
         try {
             final BlockSnapshot first = _dbClient.queryObject(BlockSnapshot.class, snapshotList.get(0));
-            sourceGroupName = _helper.getSourceConsistencyGroupName(first);
+            sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(first, _dbClient);
             Volume snapVolume = _dbClient.queryObject(Volume.class, first.getParent());
             boolean thinProvisioning = snapVolume.getThinlyProvisioned() != null && snapVolume.getThinlyProvisioned();
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, snapVolume.getTenant().getURI());
@@ -457,7 +458,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             // Check if the consistency group exists
-            String consistencyGroupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             StorageSystem newStorage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
 
             if (newStorage == null) {
@@ -594,7 +595,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             // Check if the consistency group exists
-            String consistencyGroupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             storage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
 
             if (storage == null) {
@@ -1293,7 +1294,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             }
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             // Check if the consistency group exists
-            String consistencyGroupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             storage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
 
             if (storage == null) {
@@ -1309,16 +1310,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMArgument[] restoreCGSnapInput = _helper.getResyncSnapshotWithWaitInputArguments(groupSynchronized);
                 cimJob = _helper.callModifyReplica(storage, restoreCGSnapInput);
 
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotJob(cimJob, storage.getId(), taskCompleter)));
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockResyncSnapshotJob(cimJob, storage.getId(), taskCompleter)));
             } else {
                 ServiceError error = DeviceControllerErrors.smis.unableToFindSynchPath(consistencyGroupName);
                 taskCompleter.error(_dbClient, error);
             }
         } catch (Exception e) {
-            String message = String.format("Generic exception when trying to restoring snapshots from consistency group on array %s",
+            String message = String.format("Generic exception when trying to resynchronizing consistency group snapshots on array %s",
                     storage.getSerialNumber());
             _log.error(message, e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("restoreGroupSnapshots", e.getMessage());
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("resyncGroupSnapshots", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
     }
@@ -1339,7 +1340,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             Volume volumeObj = _dbClient.queryObject(Volume.class, sourceVolume);
             CIMObjectPath srcRepSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
-            String volumeGroupName = _helper.getSourceConsistencyGroupName(volumeObj);
+            String volumeGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volumeObj, _dbClient);
             CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
             CIMObjectPath snapshotGroupPath = _cimPath.getReplicationGroupPath(storage, snapshotObj.getReplicationGroupInstance());
 
@@ -1579,7 +1580,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String targetGroupName;
             if (!targetsExist) {
                 // This is the normal scenario for linking group targets to a group snapshot session.
-                sourceGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+                sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sampleParent, _dbClient);
                 // Group snapshots parent volumes by their pool and size
                 Map<String, List<Volume>> volumesBySizeMap = new HashMap<>();
                 for (BlockSnapshot target : snapshots) {
@@ -1639,10 +1640,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 sourceGroupName = sourceGroupName.substring(groupNameStartIndex);
 
                 // The target in this case is actually a source volume and the target group
-                // is the source volume group, which we can get from the consistency group.
+                // is the source volume group, which we can get from the parent's replication group instance.
                 // Note that we can use the sample parent because it references the same
-                // consistency group as the source volume.
-                targetGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+                // repliaction group as the source volume.
+                targetGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sampleParent, _dbClient);
 
                 // Get the CIM object path for the target group.
                 targetGroupPath = _cimPath.getReplicationGroupPath(system, targetGroupName);

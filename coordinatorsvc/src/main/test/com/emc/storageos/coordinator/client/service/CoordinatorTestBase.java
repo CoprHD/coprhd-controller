@@ -72,6 +72,7 @@ public class CoordinatorTestBase {
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(createConnection(10 * 1000));
         client.setInetAddessLookupMap(createLocalInetAddressLookupMap());
+        client.setVdcShortId("vdc1");
         client.start();
         return client;
     }

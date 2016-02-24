@@ -856,6 +856,11 @@
 	<bean id="defaultCapacityCalculator" class="com.emc.storageos.api.service.impl.resource.utils.DefaultCapacityCalculator" />
 	<bean id="vmaxCapacityCalculator" class="com.emc.storageos.api.service.impl.resource.utils.VmaxCapacityCalculator"/>
 	<bean id="xtremioCapacityCalculator" class="com.emc.storageos.api.service.impl.resource.utils.XtremioCapacityCalculator"/>
+	
+	<bean id="auditLogManagerFactory" class="com.emc.storageos.security.audit.AuditLogManagerFactory">
+        <property name="coordinator" ref="coordinator"/>
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
 
    	<util:map id="capacityCalculators" 
    			 map-class="java.util.HashMap">

@@ -35,9 +35,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
-import com.emc.storageos.model.property.PropertyConstants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +55,6 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseType;
-import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
@@ -1381,34 +1380,6 @@ public class CoordinatorClientExt {
             }
         }
         return false;
-    }
-
-    /**
-     * Check if the dbsvc on current node has completed its adjustNumTokens() call.
-     * If not, it's UpgradeManager's responsibility to call it through DbManager's MBean interface.
-     * 
-     * @return
-     */
-    public boolean isLocalNodeTokenAdjusted() {
-        if (this.getNodeCount() == 1) {
-            _log.info("single node cluster, skip adjust token");
-            return true;
-        }
-        String dbSvcId = "db" + this.mySvcId.substring(this.mySvcId.lastIndexOf("-"));
-
-        Configuration config = this._coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_CONFIG, dbSvcId);
-        if (config == null) {
-            _log.warn("dbconfig not initialized");
-            return true;
-        }
-
-        String numToken = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
-        if (numToken == null) {
-            _log.info("Did not found {} for {}, treating as not adjusted", DbConfigConstants.NUM_TOKENS_KEY, dbSvcId);
-            return false;
-        }
-
-        return Integer.valueOf(numToken).equals(DbConfigConstants.DEFUALT_NUM_TOKENS);
     }
 
     public boolean isDBMigrationDone() {

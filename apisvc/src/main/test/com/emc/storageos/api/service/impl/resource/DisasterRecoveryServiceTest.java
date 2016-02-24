@@ -415,11 +415,13 @@ public class DisasterRecoveryServiceTest {
         //active and standby is IPv4
         primarySite.getHostIPv4AddressMap().clear();
         primarySite.getHostIPv4AddressMap().put("vipr1", "10.247.101.1");
-        primarySite.setHostIPv6AddressMap(null);
+        primarySite.setHostIPv6AddressMap(new HashMap<String, String>());
+        primarySite.getHostIPv6AddressMap().put("vipr1", "::0");
         
         standby.getHostIPv4AddressMap().clear();
         standby.getHostIPv4AddressMap().put("vipr1", "10.247.98.1");
-        standby.setHostIPv6AddressMap(null);
+        standby.setHostIPv6AddressMap(new HashMap<String, String>());
+        standby.getHostIPv6AddressMap().put("vipr1", "::0");
         
         drService.checkSupportedIPForAttachStandby(standby);
     }
@@ -433,7 +435,8 @@ public class DisasterRecoveryServiceTest {
         //active and standby is IPv4
         primarySite.getHostIPv4AddressMap().clear();
         primarySite.getHostIPv4AddressMap().put("vipr1", "10.247.101.1");
-        primarySite.setHostIPv6AddressMap(null);
+        primarySite.setHostIPv6AddressMap(new HashMap<String, String>());
+        primarySite.getHostIPv6AddressMap().put("vipr1", "::0");
         
         standby.getHostIPv4AddressMap().clear();
         standby.getHostIPv4AddressMap().put("vipr1", "10.247.98.1");
@@ -451,10 +454,12 @@ public class DisasterRecoveryServiceTest {
         
         //active and standby is IPv4
         primarySite.getHostIPv4AddressMap().clear();
+        primarySite.getHostIPv4AddressMap().put("vipr1", "0.0.0.0");
         primarySite.setHostIPv6AddressMap(new HashMap<String, String>());
         primarySite.getHostIPv6AddressMap().put("vipr1", "fe80::280:56ff:fe9f:1234");
         
         standby.getHostIPv4AddressMap().clear();
+        standby.getHostIPv4AddressMap().put("vipr1", "0.0.0.0");
         standby.setHostIPv6AddressMap(new HashMap<String, String>());
         standby.getHostIPv6AddressMap().put("vipr1", "fe80::250:56ff:fe9f:1dc3");
         
@@ -475,6 +480,8 @@ public class DisasterRecoveryServiceTest {
         
         standby.getHostIPv4AddressMap().clear();
         standby.getHostIPv4AddressMap().put("vipr1", "10.247.98.1");
+        standby.setHostIPv6AddressMap(new HashMap<String, String>());
+        standby.getHostIPv6AddressMap().put("vipr1", "::0");
         
         drService.checkSupportedIPForAttachStandby(standby);
     }
@@ -529,6 +536,26 @@ public class DisasterRecoveryServiceTest {
         primarySite.getHostIPv6AddressMap().put("vipr1", "fe80::280:56ff:fe9f:1234");
         
         standby.getHostIPv4AddressMap().clear();
+        standby.setHostIPv6AddressMap(new HashMap<String, String>());
+        standby.getHostIPv6AddressMap().put("vipr1", "fe80::250:56ff:fe9f:1dc3");
+        
+        drService.checkSupportedIPForAttachStandby(standby);
+    }
+    
+    @Test(expected=InternalServerErrorException.class)
+    public void testCheckSupportedIPForAttachStandby_ActiveIPv6_StandbyDual() {
+        doReturn(ClusterInfo.ClusterState.STABLE).when(coordinator).getControlNodesState();
+        doReturn(primarySite.getUuid()).when(coordinator).getSiteId();
+        doReturn(primarySite).when(drUtil).getLocalSite();
+        
+        //active and standby is IPv4
+        primarySite.getHostIPv4AddressMap().clear();
+        primarySite.getHostIPv4AddressMap().put("vipr1", "0.0.0.0");
+        primarySite.setHostIPv6AddressMap(new HashMap<String, String>());
+        primarySite.getHostIPv6AddressMap().put("vipr1", "fe80::280:56ff:fe9f:1234");
+        
+        standby.getHostIPv4AddressMap().clear();
+        standby.getHostIPv4AddressMap().put("vipr1", "10.247.101.1");
         standby.setHostIPv6AddressMap(new HashMap<String, String>());
         standby.getHostIPv6AddressMap().put("vipr1", "fe80::250:56ff:fe9f:1dc3");
         

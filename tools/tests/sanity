@@ -7228,6 +7228,30 @@ wait_for_site_stable()
     BOURNE_IPADDR=$old_bourne_ipaddr
 }
 
+get_nodes() {
+    if [ ! $1 ]; then
+        echo 'Virtual IP not specified'
+        exit 1
+    fi
+    SSH $1 "cat /etc/ovfenv.properties" | awk '/^network_._ipaddr=/ {print substr($1,18)}'
+}
+
+stop_vipr() {
+    for ip in $(get_nodes $1)
+    do
+        echo "Stopping ViPR service of ${ip} ..."
+        SSH $ip "/etc/storageos/storageos stop"
+    done
+}
+
+start_vipr() {
+    for ip in $(get_nodes $1)
+    do
+        echo "Starting ViPR service of ${ip} ..."
+        SSH $ip "/etc/storageos/storageos start"
+    done
+}
+
 dr_tests()
 {
     if [ -z "$DR_SITE_C_IP" ]; then
@@ -7378,11 +7402,59 @@ dr_basic_tests()
     dr waitforstate $standby_site ACTIVE 10 1200 && echo "standby has been switched into active"
     dr waitforstate $active_site STANDBY_SYNCED 10 1200 && echo "active has been switched into standby"
 
-    # by now, active site and standby site has been switched, need to switch variables accordingly
-    local switch_tmp
-    switch_tmp=$DR_SITE_A_IP; DR_SITE_A_IP=$DR_SITE_B_IP; DR_SITE_B_IP=$switch_tmp
-    switch_tmp=$DR_SITE_A_NAME; DR_SITE_A_NAME=$DR_SITE_B_NAME; DR_SITE_B_NAME=$switch_tmp
-    switch_tmp=$active_site; active_site=$standby_site; standby_site=$switch_tmp
+    # NOTE: active site and standby site has been switched, site A is standby and site B is active now
+
+    # failover test part
+    echo "Stopping active site $DR_SITE_B_NAME services to prepare for failover test ..."
+    stop_vipr $DR_SITE_B_IP
+    echo "Sleep 400 seconds to wait standby site (VIP: ${DR_SITE_A_IP}) ZK switch to participant"
+    sleep 400
+    echo "Wait for site ${DR_SITE_A_NAME} to be stable ..."
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
+
+    echo "Failover to promote site $DR_SITE_A_NAME as active ..."
+    dr failover --ip "${DR_SITE_A_IP}" $active_site
+    echo "Sleep 800 seconds to wait failover ..."
+    sleep 800
+
+    echo "Wait for site ${DR_SITE_A_NAME} to be stable ..."
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
+
+    echo "Wait site state to become ACTIVE after failover ..."
+    dr waitforstate $active_site ACTIVE 30 600 --ip "${DR_SITE_A_IP}"
+
+    # failback test part
+    echo "Starting old active site $DR_SITE_B_NAME services ..."
+    start_vipr $DR_SITE_B_IP
+    echo "Sleep 400 seconds to wait old site to become ACTIVE_DEGRADED ..."
+    sleep 400
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip "${DR_SITE_B_IP}" 10 600
+    dr waitforstate $standby_site ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_B_IP}"
+
+    # readd ACTIVE_DEGRADED site to prepare next standby-removing test
+    echo "Waiting $DR_SITE_A_NAME to be stable ..."
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
+    echo "---READD STANDBY SITE---"
+    echo "Readding site ${DR_SITE_B_NAME} (ACTIVE_DEGRADED) to site ${DR_SITE_A_NAME} (ACTIVE) after failover ..."
+    standby_site=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" "${DR_SITE_B_IP}" $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site; exit 1; }
+    echo "Readding done"
+    echo "Readded standby site uuid is $standby_site"
+
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    echo "Sleep 800s to wait standby adding done ..."
+    sleep 800
+    dr waitforstate $standby_site STANDBY_SYNCED 30 600
+
+    # NOTE: after switchover and failover (then readd old active), site A is active and site B is standby
 
     # delete standby
     echo "---DELETE STANDBY $standby_site---"
@@ -7418,6 +7490,12 @@ dr_multisite_tests()
 
     active_site=$(dr find state ACTIVE|tail -1) || { echo "get dr active site failed."; echo $active_site; exit 1; }
     echo "active uuid is $active_site"
+
+    echo "Change system property to allow root ssh login ..."
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
     
     echo "---ADD STANDBY SITE B---"
     echo "Adding new standby into current vipr system"
@@ -7675,10 +7753,9 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     project show $test_projectid
 
-    echo "Power off active site $DR_SITE_A_IP to do failover"
-    BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr poweroffcluster "${DR_SITE_A_IP}"
+    # failover test part
+    echo "Stopping active site $DR_SITE_A_NAME services to prepare for failover test ..."
+    stop_vipr $DR_SITE_A_IP
 
     echo "Sleep 400 seconds to wait standby ZK switch to participant"
     sleep 400
@@ -7701,6 +7778,16 @@ dr_multisite_tests()
 
     echo "Wait site state to be PRIAMRY after failover"
     dr waitforstate $standby_site_c ACTIVE 30 600 --ip "${DR_SITE_C_IP}"
+
+    # failback test part
+    echo "Starting old active site $DR_SITE_A_NAME services ..."
+    start_vipr $DR_SITE_A_IP
+    echo "Sleep 400 seconds to wait old site to become ACTIVE_DEGRADED ..."
+    sleep 400
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
+    dr waitforstate $active_site ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_A_IP}"
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail

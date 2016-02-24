@@ -389,6 +389,12 @@
     <bean id="cephStorageDevice" class="com.emc.storageos.volumecontroller.impl.ceph.CephStorageDevice">
         <property name="dbClient" ref="dbclient"/>
         <property name="cephClientFactory" ref="cephClientFactory"/>
+        <property name="snapshotOperations" ref="cephSnapshotOperations"/>
+    </bean>
+
+    <bean id="cephSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.ceph.CephSnapshotOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="cephClientFactory" ref="cephClientFactory"/>
     </bean>
 
     <bean id="cephClientFactory" class="com.emc.storageos.ceph.CephClientFactory"

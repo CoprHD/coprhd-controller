@@ -297,6 +297,12 @@ public class MetaVolumeUtils {
             return recommendation;
         }
 
+        if (storageSystem.getSystemType().equals(StorageSystem.Type.ceph.name())) {
+            recommendation.setCreateMetaVolumes(false);
+            _log.info(String.format("Ceph Volume Expand Recommendation: Use meta volumes: %s", recommendation.isCreateMetaVolumes()));
+            return recommendation;
+        }
+
         // For all other volume types we have to use meta volumes for extension
         recommendation.setCreateMetaVolumes(true);
         // Set meta volume type.

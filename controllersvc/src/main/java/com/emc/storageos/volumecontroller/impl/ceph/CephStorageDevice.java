@@ -50,6 +50,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
 
     private DbClient _dbClient;
     private CephClientFactory _cephClientFactory;
+    private SnapshotOperations _snapshotOperations;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -57,6 +58,10 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
 
     public void setCephClientFactory(CephClientFactory cephClientFactory) {
         _cephClientFactory = cephClientFactory;
+    }
+
+    public void setSnapshotOperations(SnapshotOperations snapshotOperations) {
+        this._snapshotOperations = snapshotOperations;
     }
 
     @Override
@@ -83,6 +88,106 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doRemoveStorageSystem(StorageSystem storage) throws DeviceControllerException {
         _log.info("doRemoveStorageSystem {} (nothing to do for ceph)", storage.getId().toString());
+    }
+
+    @Override
+    public void doCreateVolumes(StorageSystem storage, StoragePool storagePool, String opId, List<Volume> volumes,
+            VirtualPoolCapabilityValuesWrapper capabilities, TaskCompleter taskCompleter) throws DeviceControllerException {
+        try {
+            CephClient cephClient = getClient(storage);
+            for (Volume volume : volumes) {
+                String id = CephUtils.createNativeId(volume);
+                cephClient.createImage(storagePool.getPoolName(), id, volume.getCapacity());
+
+                volume.setNativeId(id);
+                volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, volume));
+                volume.setDeviceLabel(volume.getLabel());
+                volume.setProvisionedCapacity(volume.getCapacity());
+                volume.setAllocatedCapacity(volume.getCapacity());
+                volume.setInactive(false);
+            }
+            _dbClient.updateObject(volumes);
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error("Error while creating volumes", e);
+            _dbClient.updateObject(volumes);
+            ServiceError error = DeviceControllerErrors.ceph.operationFailed("doCreateVolumes", e.getMessage());
+            taskCompleter.error(_dbClient, error);
+        }
+    }
+
+    @Override
+    public void doDeleteVolumes(StorageSystem storage, String opId, List<Volume> volumes, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        HashMap<URI, String> pools = new HashMap<URI, String>();
+        try {
+            CephClient cephClient = getClient(storage);
+            for (Volume volume : volumes) {
+            	if (volume.getNativeId() != null && !volume.getNativeId().isEmpty()) {
+            	    URI poolUri = volume.getPool();
+            	    String poolName = pools.get(poolUri);
+            	    if (poolName == null) {
+            	        StoragePool pool = _dbClient.queryObject(StoragePool.class, poolUri);
+            	        poolName = pool.getPoolName();
+            	        pools.put(poolUri, poolName);
+            	    }
+                	cephClient.deleteImage(poolName, volume.getNativeId());
+            	} else {
+                    _log.info("Volume {} was not created completely, so skip real deletion and just delete it from DB", volume.getLabel());            		
+            	}
+                volume.setInactive(true);
+                _dbClient.updateObject(volume);
+            }
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error("Error while deleting volumes", e);
+            ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("deleteVolume", e.getMessage());
+            taskCompleter.error(_dbClient, code);
+        }
+    }
+
+    @Override
+    public void doExpandVolume(StorageSystem storage, StoragePool pool, Volume volume, Long size, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        try {
+            CephClient cephClient = getClient(storage);
+            cephClient.resizeImage(pool.getPoolName(), volume.getNativeId(), size);
+            volume.setProvisionedCapacity(size);
+            volume.setAllocatedCapacity(size);
+            volume.setCapacity(size);
+            _dbClient.updateObject(volume);
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error("Error while expanding volumes", e);
+            ServiceCoded code = DeviceControllerErrors.ceph.operationFailed("expandVolume", e.getMessage());
+            taskCompleter.error(_dbClient, code);
+        }
+    }
+
+    @Override
+    public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        _snapshotOperations.createSingleVolumeSnapshot(storage, snapshotList.get(0), createInactive,
+                readOnly, taskCompleter);
+    }
+
+    @Override
+    public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        _snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
+    }
+
+    @Override
+    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.error("Consistency groups are not supported for Ceph cluster");
+        completeTaskAsUnsupported(taskCompleter);
+    }
+
+    @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.debug("doDeleteConsistencyGroup: do nothing for Ceph, because of doCreateConsistencyGroup is unsupported");
+        taskCompleter.ready(_dbClient);
     }
 
     /**

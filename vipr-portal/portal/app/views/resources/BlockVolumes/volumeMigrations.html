@@ -2,13 +2,40 @@
     <table class='table table-condensed table-striped'>
   <thead>
     <tr>
-      <th>&{'resources.migration.name'}</th>
+      <th colspan="7">&{'resources.migration.name'}</th>
     </tr>
   </thead>
   <tbody>  
     #{list items:migrations, as:'migration'}
       <tr>
-        <td>${migration.name}</td>
+        <td>&{'resources.migrations.name'}: ${migration.name}</td>
+        <td>&{'resources.migrations.percentage'}: ${migration.percentageDone}</td>
+        <td>&{'resources.migrations.status'}: ${migration.status}</td>
+        <td>&{'resources.migrations.start'}: ${migration.startTime}</td>
+        #{if migration.status != null && migration.status != ''}
+	        #{if migration.status != 'complete' && migration.status != 'error' && 
+	        	migration.status != 'committed' && migration.status != 'cancelled'}
+	        <td><a href="@{pauseMigration(migration.volume.id, migration.id)}"
+	              class="btn btn-default"
+	              onclick="return confirm('&{'resources.migrations.pauseConfirm'}');"
+	            >&{'resources.migrations.pauseButton'}</a>
+	        </td>
+	        #{/if}
+	        #{if migration.status != 'committed'}
+	        <td><a href="@{cancelMigration(migration.volume.id, migration.id)}"
+	              class="btn btn-default"
+	              onclick="return confirm('&{'resources.migrations.cancelConfirm'}');"
+	            >&{'resources.migrations.cancelButton'}</a>
+	        </td>
+	        #{/if}
+	        #{if migration.status == 'paused'}
+	        <td><a href="@{resumeMigration(migration.volume.id, migration.id)}"
+	              class="btn btn-default"
+	              onclick="return confirm('&{'resources.migrations.resumeConfirm'}');"
+	            >&{'resources.migrations.resumeButton'}</a>
+	        </td>
+	        #{/if} 
+        #{/if}       
       </tr>
     #{/list}
   </tbody>

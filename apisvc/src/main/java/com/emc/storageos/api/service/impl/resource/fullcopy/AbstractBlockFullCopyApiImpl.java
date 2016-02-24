@@ -381,8 +381,10 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 taskList.getTaskList().add(fullCopyVolumeTask);
             }
 
-            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                    ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+            if (NullColumnValueGetter.isNotNullValue(fullCopyVolume.getReplicationGroupInstance())) {
+                addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                        ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+            }
 
             try {
                 controller.detachFullCopy(storageSystem.getId(), new ArrayList<URI>(

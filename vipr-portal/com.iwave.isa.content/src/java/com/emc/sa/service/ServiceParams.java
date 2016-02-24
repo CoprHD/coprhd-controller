@@ -36,6 +36,9 @@ public interface ServiceParams {
 
     public String COPY_NAME = "copyName";
 
+    public String MOBILITY_GROUP = "mobilityGroup";
+    public String MOBILITY_GROUP_RESOURCES = "mobilityGroupResources";
+
     public String PROJECT = "project";
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";
@@ -74,6 +77,9 @@ public interface ServiceParams {
     public String COPIES = "copies";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
+
+    public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
+
     public String APPLICATION = "application";
     public String APPLICATION_SUB_GROUP = "applicationSubGroup";
     public String NEW_APPLICATION_SUB_GROUP = "newApplicationSubGroup";

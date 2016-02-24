@@ -10,7 +10,7 @@
 #
 RUN_DIR=`pwd`
 # Devkit related for containerized build
-DEVKIT_IMAGE := nile-registry.lss.emc.com:5000/viprcontroller/viprdevkit-sles12:2.5.0.0.4
+DEVKIT_IMAGE := nile-registry.lss.emc.com:5000/emcadg/devkit:latest
 # for building OVF in viprdevkit container
 DOCKER_RUN_OVF_BUILD := docker run --rm -it --net=host --privileged -v "/home/ionixauto/.subversion:/root/.subversion" -v "/workspace:/workspace" -v "/opt/ADG/createAppliance/jobs:/opt/ADG/createAppliance/jobs" -v "/opt/ADG/createAppliance/log:/opt/ADG/createAppliance/log" -v "/opt/downloads/images:/opt/downloads/images" -w "$(RUN_DIR)" "$(DEVKIT_IMAGE)"
 

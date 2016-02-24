@@ -156,7 +156,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCo
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
-import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -488,11 +488,15 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         capabilities.getIsMetaVolume(), capabilities.getMetaVolumeType(), capabilities.getMetaVolumeMemberSize(),
                         capabilities.getMetaVolumeMemberCount()));
 
+                Volume volume = _dbClient.queryObject(Volume.class, first.getVolumeURI());
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+
                 boolean createAsMetaVolume = capabilities.getIsMetaVolume()
                         || MetaVolumeUtils.createAsMetaVolume(first.getVolumeURI(), _dbClient, capabilities);
+                if (storageSystem.checkIfVmax3()) {
+                    createAsMetaVolume = false; // VMAX3 does not support META and we will get here due to change VPool scenario
+                }
                 if (createAsMetaVolume) {
-                    Volume volume = _dbClient.queryObject(Volume.class, first.getVolumeURI());
-                    StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
                     // For vmax thin meta volumes we can create multiple meta volumes in one smis request
                     if (volume.getThinlyProvisioned() && storageSystem.getSystemType().equals(StorageSystem.Type.vmax.toString())) {
                         workflow.createStep(CREATE_VOLUMES_STEP_GROUP,
@@ -2765,7 +2769,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doFractureMirror(storageObj, mirrorList.get(0), sync, completer);
             } else {
-                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
+                completer.addConsistencyGroupId(ConsistencyGroupUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doFractureGroupMirrors(storageObj, mirrorList, sync, completer);
             }
         } catch (Exception e) {
@@ -2894,7 +2898,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doResumeNativeContinuousCopy(storageObj, mirrorList.get(0), completer);
             } else {
-                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
+                completer.addConsistencyGroupId(ConsistencyGroupUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doResumeGroupNativeContinuousCopies(storageObj, mirrorList, completer);
             }
         } catch (Exception e) {
@@ -2922,7 +2926,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             if (!isCG) {
                 getDevice(storageObj.getSystemType()).doDetachMirror(storageObj, mirrorList.get(0), completer);
             } else {
-                completer.addConsistencyGroupId(ConsistencyUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
+                completer.addConsistencyGroupId(ConsistencyGroupUtils.getMirrorsConsistencyGroup(mirrorList, _dbClient).getId());
                 getDevice(storageObj.getSystemType()).doDetachGroupMirrors(storageObj, mirrorList, deleteGroup, completer);
             }
         } catch (Exception e) {
@@ -4317,7 +4321,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMethodNullMethod(), null);
 
                 // call ReplicaDeviceController
-                waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, consistencyGroup, addVolumesList, task);
+                waitFor = _replicaDeviceController.addStepsForAddingVolumesToRG(workflow, waitFor, consistencyGroup, addVolumesList, groupName, task);
             }
 
             if (removeVolumesList != null && !removeVolumesList.isEmpty()) {
@@ -5454,7 +5458,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String groupName = null;
             boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
             if (isCG) {
-                BlockConsistencyGroup cg = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
+                BlockConsistencyGroup cg = ConsistencyGroupUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
                 groupName = cg.getCgNameOnStorageSystem(systemURI);
             }
 
@@ -6022,7 +6026,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String groupName = null;
             boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
             if (isCG) {
-                BlockConsistencyGroup cg = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
+                BlockConsistencyGroup cg = ConsistencyGroupUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
                 groupName = cg.getCgNameOnStorageSystem(systemURI);
             }
 
@@ -6305,7 +6309,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                    rollbackMethodNullMethod(), null);
 
            // call ReplicaDeviceController
-           waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, cguri, addVolumesList, opId);
+           waitFor = _replicaDeviceController.addStepsForAddingVolumesToRG(workflow, waitFor, cguri, addVolumesList, rgName, opId);
        }
 
        return waitFor;

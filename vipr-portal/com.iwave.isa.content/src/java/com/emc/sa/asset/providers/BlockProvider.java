@@ -1228,16 +1228,18 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             String copySet) {
         List<BlockSnapshotRestRep> snapshots = new ArrayList<BlockSnapshotRestRep>();
 
-        for (NamedRelatedResourceRep v : api(ctx).application().getVolumeByApplication(application).getVolumes()) {
-            snapshots.addAll(api(ctx).blockSnapshots().getByVolume(v.getId()));
-        }
-
         VolumeGroupCopySetParam param = new VolumeGroupCopySetParam();
         param.setCopySetName(copySet);
 
         BlockSnapshotSessionList snapshotSessionList = api(ctx).application().getVolumeGroupSnapshotSessionsByCopySet(application, param);
         List<BlockSnapshotSessionRestRep> snapshotSessions = api(ctx).blockSnapshotSessions().getByRefs(
                 snapshotSessionList.getSnapSessionRelatedResourceList());
+        for (BlockSnapshotSessionRestRep session : snapshotSessions) {
+            for (RelatedResourceRep target : session.getLinkedTarget()) {
+                BlockSnapshotRestRep blockSnapshot = api(ctx).blockSnapshots().get(target);
+                snapshots.add(blockSnapshot);
+            }
+        }
 
         return constructSnapshotWithSnapshotSessionOptions(snapshots, snapshotSessions);
     }

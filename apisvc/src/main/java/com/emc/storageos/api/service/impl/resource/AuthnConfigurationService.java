@@ -394,10 +394,10 @@ public class AuthnConfigurationService extends TaggedResource {
         ServiceV2 service = new ServiceV2();
 
         if (isCinderv2) {
-            service.setName(CinderConstants.SERVICE_NAME_CINDERV2);
+            service.setName(KeystoneUtils.OPENSTACK_CINDER_V2_NAME);
             service.setType(CinderConstants.SERVICE_TYPE_VOLUMEV2);
         } else {
-            service.setName(CinderConstants.SERVICE_NAME_CINDER);
+            service.setName(KeystoneUtils.OPENSTACK_CINDER_V1_NAME);
             service.setType(CinderConstants.SERVICE_TYPE_VOLUME);
         }
 

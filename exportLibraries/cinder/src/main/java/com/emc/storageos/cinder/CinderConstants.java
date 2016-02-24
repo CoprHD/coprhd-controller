@@ -29,8 +29,6 @@ public interface CinderConstants {
     String SERVICE_DESCRIPTION = "OpenStack Block Storage";
     String SERVICE_TYPE_VOLUME = "volume";
     String SERVICE_TYPE_VOLUMEV2 = "volumev2";
-    String SERVICE_NAME_CINDER = "cinder";
-    String SERVICE_NAME_CINDERV2 = "cinderv2";
 
     String USERNAME = "username";
     String TENANTNAME = "tenantname";

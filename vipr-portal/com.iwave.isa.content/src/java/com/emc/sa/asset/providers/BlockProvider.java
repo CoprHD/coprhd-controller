@@ -1133,7 +1133,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 if (volume.getProtection() == null || volume.getProtection().getRpRep() == null
                         || volume.getProtection().getRpRep().getPersonality() == null
                         || volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
-                    subGroups.add(volume.getReplicationGroupInstance());
+                    if (!BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
+                        subGroups.add(volume.getReplicationGroupInstance());
+                    }
                 }
             }
         }

@@ -262,8 +262,12 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
             _dbClient.createObject(_managedBlockConsistencyGroup);
         }
 
-        
-        
+        if (isExportGroupCreated()) {
+            _dbClient.createObject(getExportGroup());
+        } else {
+            _dbClient.updateObject(getExportGroup());
+        }
+
         super.commit();
     }
 

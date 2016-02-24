@@ -609,6 +609,12 @@ public class UnManagedVolumeService extends TaskResourceService {
                     _dbClient.updateObject(volumeContext.getUmCGObjectsToUpdate());
                 }
 
+                if (requestContext.isExportGroupCreated()) {
+                    _dbClient.createObject(requestContext.getExportGroup());
+                } else {
+                    _dbClient.updateObject(requestContext.getExportGroup());
+                }
+
                 volumeContext.commit();
 
             } catch (APIException ex) {
@@ -655,7 +661,6 @@ public class UnManagedVolumeService extends TaskResourceService {
 
         BaseIngestionRequestContext requestContext = null;
         try {
-            ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
             if (exportIngestParam.getUnManagedVolumes().size() > getMaxBulkSize()) {
                 throw APIException.badRequests.exceedingLimit("unmanaged volumes", getMaxBulkSize());
             }
@@ -686,6 +691,13 @@ public class UnManagedVolumeService extends TaskResourceService {
                     _dbClient, exportIngestParam.getUnManagedVolumes(), vpool,
                     varray, project, tenant, exportIngestParam.getVplexIngestionMethod());
 
+            _logger.info("Ingestion of exported unmanaged volumes started....");
+
+            // First ingest the block objects
+            ingestBlockObjects(requestContext, taskMap);
+            _logger.info("Ingestion of unmanaged volumes ended....");
+
+            // find or create ExportGroup for this set of volumes being ingested
             URI exportGroupResourceUri = null;
             String resourceType = ExportGroupType.Host.name();
             String computeResourcelabel = null;
@@ -702,25 +714,20 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.setHost(exportIngestParam.getHost());
             }
 
-            _logger.info("Ingestion of exported unmanaged volumes started....");
-
-            // First ingest the block objects
-            ingestBlockObjects(requestContext, taskMap);
-            _logger.info("Ingestion of unmanaged volumes ended....");
-
             ExportGroupNameGenerator gen = new ExportGroupNameGenerator();
             String exportGroupLabel = gen.generate(null, computeResourcelabel, null, '_', 56);
             ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), exportGroupResourceUri,
                     varray.getId(), resourceType, _dbClient);
             if (null == exportGroup) {
                 _logger.info("Creating Export Group with label {}", exportGroupLabel);
+                ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
                 exportGroup = VolumeIngestionUtil.initializeExportGroup(project, resourceType, varray.getId(),
                         exportGroupLabel, _dbClient, nameGenerator, tenant);
                 requestContext.setExportGroupCreated(true);
             }
 
             requestContext.setExportGroup(exportGroup);
-            
+
             // next ingest the export masks for the unmanaged volumes which have been fully ingested
             _logger.info("Ingestion of unmanaged exportmasks started....");
             ingestBlockExportMasks(requestContext, taskMap);

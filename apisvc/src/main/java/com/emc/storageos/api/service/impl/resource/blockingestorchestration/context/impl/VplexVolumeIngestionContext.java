@@ -139,6 +139,12 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         // commit the UnmanagedConsistencyGroups and CGs to create
         _dbClient.updateObject(getUmCGObjectsToUpdate());
         _dbClient.updateObject(getCGObjectsToCreateMap().values());
+
+        if (isExportGroupCreated()) {
+            _dbClient.createObject(getExportGroup());
+        } else {
+            _dbClient.updateObject(getExportGroup());
+        }
     }
 
     /*

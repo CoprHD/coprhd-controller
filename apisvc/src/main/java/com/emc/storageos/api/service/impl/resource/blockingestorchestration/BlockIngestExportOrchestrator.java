@@ -347,15 +347,6 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                 requestContext.addDataObjectToCreate(exportMaskToCreate);
                 exportGroup.addExportMask(exportMaskToCreate.getId());
             }
-
-            // TODO: this ExportGroup update/create should be moved into the ingestion 
-            // context for rollback purposes, but currently ExportGroup rollback is handled 
-            // manually in the UnManagedVolumeService (would be nice to fix eventually)
-            if (requestContext.isExportGroupCreated()) {
-                _dbClient.createObject(exportGroup);
-            } else {
-                _dbClient.updateObject(exportGroup);
-            }
         } catch (IngestionException e) {
             throw e;
         } catch (Exception e) {

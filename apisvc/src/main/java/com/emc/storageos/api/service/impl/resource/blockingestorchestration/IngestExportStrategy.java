@@ -17,6 +17,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
@@ -47,6 +48,17 @@ public class IngestExportStrategy {
             T blockObject, IngestionRequestContext requestContext) throws IngestionException {
 
         if (null != requestContext.getExportGroup()) {
+
+            // refresh ExportGroup
+            URI exportGroupUri = requestContext.getExportGroup().getId();
+            if (exportGroupUri != null) {
+                ExportGroup existingGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
+                if (null != existingGroup) {
+                    requestContext.setExportGroup(existingGroup);
+                    requestContext.setExportGroupCreated(false);
+                }
+            }
+
             if (null != unManagedVolume.getUnmanagedExportMasks() && !unManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 List<URI> unManagedMaskUris = new ArrayList<URI>(Collections2.transform(
                         unManagedVolume.getUnmanagedExportMasks(), CommonTransformerFunctions.FCTN_STRING_TO_URI));

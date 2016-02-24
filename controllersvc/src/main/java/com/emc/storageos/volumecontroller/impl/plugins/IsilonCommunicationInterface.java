@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
@@ -3106,19 +3107,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     try {
                         IsilonSyncPolicy policy = api.getReplicationPolicy(policyName);
                         if (policy.getLastJobState().equals(JobState.finished)) {
-
+                            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fileShare.getVirtualPool());
                             if (fileShare.getlastReplicationJobId() == null) { // for first time
                                 fileShare.setlastReplicationJobId(1L);
                             }
                             String reportId = fileShare.getlastReplicationJobId().toString() + "-" + policyName;
                             report = api.getReplicationPolicyReport(reportId);
-                            if (fileShare.getAvgDuration() == null) { // for first time
-                                fileShare.setAvgDuration(report.getDuration());
-                            } else { // other times..
-                                fileShare.setAvgDuration((fileShare.getAvgDuration() + report.getDuration()) / 2);
-                            }
+                            calculateRPO(vpool, fileShare, report);
                             fileShare.setlastReplicationJobId(fileShare.getlastReplicationJobId() + 1);
-
                             _dbClient.updateObject(fileShare);
                         }
                     } catch (Exception e) {
@@ -3128,6 +3124,32 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     continue;
                 }
             }
+        }
+    }
+
+    public void calculateRPO(VirtualPool vpool, FileShare fs, IsilonSyncPolicyReport report) {
+
+        String rpoType = vpool.getRpRpoType();
+        switch (rpoType) {
+
+            case "minutes":
+                if (fs.getActualMaxRPO() == null) {
+                    fs.setActualMaxRPO((report.getDuration()) / 60 + vpool.getRpRpoValue());
+                } else {
+                    fs.setActualMaxRPO(((report.getDuration()) / 60 + vpool.getRpRpoValue() + fs.getActualMaxRPO()) / 2);
+                }
+            case "hours":
+                if (fs.getActualMaxRPO() == null) {
+                    fs.setActualMaxRPO((report.getDuration()) / 36000 + vpool.getRpRpoValue());
+                } else {
+                    fs.setActualMaxRPO(((report.getDuration()) / 3600 + vpool.getRpRpoValue() + fs.getActualMaxRPO()) / 2);
+                }
+            case "days":
+                if (fs.getActualMaxRPO() == null) {
+                    fs.setActualMaxRPO((report.getDuration()) / 86400 + vpool.getRpRpoValue());
+                } else {
+                    fs.setActualMaxRPO(((report.getDuration()) / 86400 + vpool.getRpRpoValue() + fs.getActualMaxRPO()) / 2);
+                }
         }
     }
 }

@@ -2140,6 +2140,9 @@ virtualPools.protocols=Protocols
 virtualPools.numPools=Pools
 virtualPools.numResources=Resources
 virtualPools.rpo=RPO
+virtualPools.Status=Status
+virtualPools.fileSystems=File Systems
+virtualPools.noFS=No File Systems found
 
 # Virtual Pool groups
 vpool.group.hardware=Hardware

@@ -16,6 +16,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -23,6 +24,7 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.DOMException;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
@@ -32,6 +34,7 @@ import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderQuotaClassDetails;
 import com.emc.storageos.cinder.model.CinderQuotaDetails;
+import com.emc.storageos.cinder.model.CinderUsage;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaClassOfCinder;
@@ -88,7 +91,8 @@ public class QuotaService extends TaskResourceService {
     @Path("/{target_tenant_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response getQuotaDetails(
-            @PathParam("target_tenant_id") String openstackTargetTenantId, @Context HttpHeaders header) {
+            @PathParam("target_tenant_id") String openstackTargetTenantId, 
+            @QueryParam("usage") String usage, @Context HttpHeaders header)  {
 
         Project project = getCinderHelper().getProject(openstackTargetTenantId.toString(),
                 getUserFromContext());
@@ -98,6 +102,8 @@ public class QuotaService extends TaskResourceService {
         }
         
         HashMap<String, String> defaultQuotaMap = getQuotaHelper().getCompleteDefaultConfiguration(openstackTargetTenantId);
+        
+      
         
         List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
         Map<String, String> vpoolsMap = new HashMap<String, String>();
@@ -158,6 +164,12 @@ public class QuotaService extends TaskResourceService {
             }
         }
 
+        if(usage.equals("True")){
+        	CinderUsage objUsage = getQuotaHelper().getUsageStatistics(URI.create(openstackTargetTenantId) , 
+        																(HashMap<String,String>)respCinderQuota.quota_set, project );
+        	return getQuotaUsageFormat(header, objUsage);
+        }
+        
         return getQuotaDetailFormat(header, respCinderQuota);
 
     }
@@ -379,7 +391,29 @@ public class QuotaService extends TaskResourceService {
         }
     }
     
-   
+    // internal function
+    /**
+     *Depending on mediatype either xml/json Quota usage response is returned 
+     */
+    private Response getQuotaUsageFormat(HttpHeaders header, CinderUsage respCinderUsage){
+        if (CinderApiUtils.getMediaType(header).equals("xml")) {
+            try {
+				return CinderApiUtils.getCinderResponse(CinderApiUtils
+				        .convertObjectMapToXML(respCinderUsage.quota_set, "quota_set"),
+				        header, false);
+			} catch (IllegalAccessException e) {
+				_log.info("Illegal access exception encountered while converting Usage details to XML format");
+				return Response.status(404).build();
+			}
+        } else if (CinderApiUtils.getMediaType(header).equals("json")) {
+            return CinderApiUtils.getCinderResponse(respCinderUsage, header, false);
+        } else {
+            return Response.status(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getStatusCode()).entity(ClientResponse.Status.UNSUPPORTED_MEDIA_TYPE.getReasonPhrase())
+                    .build();
+        }
+    }
+    
+    
     /**
      *Depending on mediatype either xml/json Quota class details response is returned 
      */

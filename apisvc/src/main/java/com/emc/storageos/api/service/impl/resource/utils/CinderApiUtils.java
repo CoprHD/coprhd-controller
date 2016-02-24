@@ -5,7 +5,12 @@
 package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.IOException;
-import java.util.*;
+import java.lang.reflect.Field;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
@@ -25,11 +30,13 @@ import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.ls.DOMImplementationLS;
 import org.w3c.dom.ls.LSSerializer;
 
+import com.emc.storageos.cinder.model.UsageAndLimits;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class CinderApiUtils {
@@ -157,6 +164,57 @@ public class CinderApiUtils {
 
     }
 
+    
+    
+    
+    /**
+     * This function converts Map of string, object to xml format
+     * 
+     * @param map Hash Map
+     * @param root root Element Name
+     * @return XML object in String form
+     * @throws IllegalAccessException 
+     * @throws IllegalArgumentException 
+     * @throws DOMException,IllegalArgumentException, IllegalAccessException
+     */
+    public static Object convertObjectMapToXML(Map<String, UsageAndLimits> map, String root) throws DOMException, IllegalArgumentException, IllegalAccessException {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder documentBuilder;
+        Document document = null;
+        LSSerializer lsSerializer = null;
+        try {
+            documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            document = documentBuilder.newDocument();
+            Element rootElement = document.createElement(root);
+            if (null != rootElement) {
+                document.appendChild(rootElement);
+                for (Entry<String, UsageAndLimits> entry : map.entrySet()) {
+                    Element mapElement = document.createElement(entry.getKey());
+                    
+                	Field[] fields = entry.getValue().getClass().getDeclaredFields();
+                	for ( Field field : fields  ) {
+                		Element subElement = document.createElement(field.getName());	
+                		subElement.setTextContent(field.get(field).toString());
+                		mapElement.appendChild(subElement);
+                	}                    	                    	                    	
+                
+                    rootElement.appendChild(mapElement);
+                }
+            }
+            DOMImplementationLS domImplementation = (DOMImplementationLS) document
+                    .getImplementation();
+            lsSerializer = domImplementation.createLSSerializer();
+        } catch (ParserConfigurationException e) {
+            throw APIException.internalServerErrors.ioWriteError(root);
+        }
+
+        return lsSerializer.writeToString(document);
+
+    }
+
+    
+    
+    
     /**
      * Create error message according to OpenStack environment in JSON
      * 
@@ -203,5 +261,4 @@ public class CinderApiUtils {
     public static String timeFormat(Calendar cal) {
         return new java.text.SimpleDateFormat("EEE, d MMM yyyy HH:mm:ss Z").format(cal.getTimeInMillis());
     }
-
 }

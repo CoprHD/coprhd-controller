@@ -3861,6 +3861,10 @@ public class VolumeIngestionUtil {
             _logger.info("setting the new CG and ProtectionSet in the ingestion request context");
             ((RecoverPointVolumeIngestionContext)requestContext).setManagedBlockConsistencyGroup(cg);
             ((RecoverPointVolumeIngestionContext)requestContext).setManagedProtectionSet(pset);
+        } else if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
+            _logger.info("setting the new CG and ProtectionSet in the ingestion request context");
+            ((RecoverPointVolumeIngestionContext)requestContext.getVolumeContext()).setManagedBlockConsistencyGroup(cg);
+            ((RecoverPointVolumeIngestionContext)requestContext.getVolumeContext()).setManagedProtectionSet(pset);
         }
     }
 

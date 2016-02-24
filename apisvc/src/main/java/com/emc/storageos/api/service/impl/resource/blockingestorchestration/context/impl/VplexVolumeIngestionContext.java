@@ -157,6 +157,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         getObjectsIngestedByExportProcessing().clear();
         getBlockObjectsToBeCreatedMap().clear();
         getCreatedSnapshotMap().clear();
+        getDataObjectsToBeCreatedMap().clear();
         getDataObjectsToBeUpdatedMap().clear();
         getUnManagedVolumesToBeDeleted().clear();
         getCreatedVplexMirrors().clear();

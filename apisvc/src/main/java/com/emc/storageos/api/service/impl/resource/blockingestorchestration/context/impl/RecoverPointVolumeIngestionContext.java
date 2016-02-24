@@ -287,6 +287,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
             getBlockObjectsToBeCreatedMap().clear();
         }
 
+        if (getDataObjectsToBeCreatedMap() != null) {
+            getDataObjectsToBeCreatedMap().clear();
+        }
+
         if (getDataObjectsToBeUpdatedMap() != null) {
             getDataObjectsToBeUpdatedMap().clear();
         }

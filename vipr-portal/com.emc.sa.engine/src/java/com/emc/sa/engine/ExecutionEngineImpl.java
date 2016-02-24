@@ -190,8 +190,8 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         try {
             ExecutionContext context = ExecutionUtils.currentContext();
             LOG.debug("preLaunch " + context.getServiceName() +context.getParameters().get("externalParam"));
-            //System.out.println("preLaunch " + context.getServiceName() +"MANOJ "+context.getParameters().get("externalParam") +"MANOJ "+context.getParameters().toString() );
-            //updateExecutionStatus(ExecutionStatus.NONE);
+
+            updateExecutionStatus(ExecutionStatus.PRELAUNCH);
             service.preLaunch();
         } catch (ExecutionException e) {
             throw e;
@@ -219,8 +219,7 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         try {
             ExecutionContext context = ExecutionUtils.currentContext();
             LOG.debug("postLaunch " + context.getServiceName());
-            //System.out.println("preLaunch " + context.getServiceName() +"MANOJ "+context.getParameters().get("externalParam") +"MANOJ "+context.getParameters().toString() );
-            //updateExecutionStatus(ExecutionStatus.NONE);
+            updateExecutionStatus(ExecutionStatus.POSTLAUNCH);
             service.postLaunch();
         } catch (ExecutionException e) {
             throw e;
@@ -234,7 +233,7 @@ public class ExecutionEngineImpl implements ExecutionEngine {
         try {
             ExecutionContext context = ExecutionUtils.currentContext();
             LOG.debug("postCheck " + context.getServiceName());
-            //updateExecutionStatus(ExecutionStatus.NONE);
+            updateExecutionStatus(ExecutionStatus.POSTLAUNCH);
             service.postcheck();
         } catch (ExecutionException e) {
             throw e;

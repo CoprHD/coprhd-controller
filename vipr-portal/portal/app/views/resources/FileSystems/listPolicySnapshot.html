@@ -4,9 +4,7 @@
 #{breadcrumb.container}
   #{breadcrumb.item @fileSystems()}&{'resources.filesystems'}#{/breadcrumb.item}
   #{breadcrumb.item @resources.FileSystems.fileSystem(fileSystemId?:fileSystemId)}${fileSystemName}#{/breadcrumb.item}
-      #{breadcrumb.item @fileSystems()}&{'resources.filesystem.policy.name'}#{/breadcrumb.item}
-  #{breadcrumb.item @resources.FileSystems.fileSystem(policyId?:policyId)}${filePolicyName}#{/breadcrumb.item}
-
+  #{breadcrumb.item}${filePolicyName}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
 #{if flash.warningMessage}
@@ -16,16 +14,13 @@
 
 #{DataTable.header titleKey:'schedule.filepolicy.snapshot'/}
 
-#{DataTable.table id: snapshotList,
+#{DataTable.table id:'snapshots',
                   dataTable: dataTable,
-                  selectable: false,
-                  source: @listPolicySnapshotJson(fileSystemId, policyId)}
+                  selectable: false,                  
+                source: @listPolicySnapshotJson(fileSystemAndpolicyId)}
 
 #{/DataTable.table}
-
-
-
-  <!-- <table class='table table-condensed table-striped'>
+<!-- <table class='table table-condensed table-striped'>
   <thead>
     <tr>
       <th>&{'resources.filesystem.quota.name'}</th>
@@ -38,5 +33,4 @@
       </tr>
     #{/list}
   </tbody>
-  </table>
- -->
+  </table> -->

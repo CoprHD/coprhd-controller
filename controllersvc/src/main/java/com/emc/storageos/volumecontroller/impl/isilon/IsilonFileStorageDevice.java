@@ -2565,9 +2565,12 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         snap.setId(URIUtil.createId(Snapshot.class));
                         snap.setOpStatus(new OpStatusMap());
                         snap.setProject(new NamedURI(fs.getProject().getURI(), islon_snap.getName()));
+                        snap.setMountPath(getSnapshotPath(islon_snap.getPath(), islon_snap.getName()));
                         snap.setParent(new NamedURI(fs.getId(), islon_snap.getName()));
                         StringMap map = new StringMap();
                         map.put("Schedule", fp.getPolicyName());
+                        map.put("created", islon_snap.getCreated());
+                        map.put("expires", islon_snap.getExpires());
                         snap.setExtensions(map);
                         _dbClient.updateObject(snap);
 

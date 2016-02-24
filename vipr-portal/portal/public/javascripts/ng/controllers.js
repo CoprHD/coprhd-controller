@@ -585,18 +585,6 @@ angular.module("portalApp").controller({
             });
        }
     },
-    FileSnapshotPolicyCtrl: function($scope, $http, $filter, translate) {
-             
-        $scope.populateModal = function(id) {
-            $scope.id = id;
-            $scope.filesnapshot = {};
-            var data = {params: { id: id}};
-            $http.get(routes.FileSystems_listPolicySnapshotJson(), data).success(function(data) {
-                $scope.filesnapshot.name = data.name;
-
-            });
-       }
-    },
     ClusterCtrl: function ($scope, $http, $interval) {
         $scope.clusterUnstable = true;
         var LONG_POLLING=15000;

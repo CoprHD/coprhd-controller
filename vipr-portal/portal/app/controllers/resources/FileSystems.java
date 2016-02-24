@@ -34,7 +34,6 @@ import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
 import com.emc.storageos.model.file.Copy;
 import com.emc.storageos.model.file.ExportRule;
@@ -56,6 +55,8 @@ import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.QuotaDirectoryDeleteParam;
 import com.emc.storageos.model.file.QuotaDirectoryRestRep;
 import com.emc.storageos.model.file.QuotaDirectoryUpdateParam;
+import com.emc.storageos.model.file.ScheduleSnapshotList;
+import com.emc.storageos.model.file.ScheduleSnapshotRestRep;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -257,34 +258,33 @@ public class FileSystems extends ResourceController {
         renderArgs.put("policyId", uri(policyId));
         ViPRCoreClient client = BourneUtil.getViprClient();
         FileShareRestRep restRep = client.fileSystems().get(uri(fileSystemId));
-
-        renderArgs.put("fileSystemName", restRep.getName());
         renderArgs.put("filePolicyName", policyName);
-
-        SnapshotList snapList = client.fileSystems().getFilePolicySnapshots(uri(fileSystemId), uri(policyId));
-        List<FilePolicySnapshotsDataTable.FileSnapshot> snapshotList = Lists
-                .newArrayList();
-
-        for (NamedRelatedResourceRep snap : snapList.getSnapList()) {
-            snapshotList.add(new FilePolicySnapshotsDataTable.FileSnapshot(snap.getId().toString(), snap.getName()));
-        }
-        renderArgs.put("snapshotList", snapshotList);
+        renderArgs.put("fileSystemName", restRep.getName());
+        renderArgs.put("fileSystemAndpolicyId", fileSystemId + "~~~" + policyId);
         render();
 
     }
 
-    public static void listPolicySnapshotJson(String fileSystemId, String policyId) {
+    public static void listPolicySnapshotJson(String fileSystemAndpolicyId) {
         renderArgs.put("dataTable", new FilePolicySnapshotsDataTable());
-        renderArgs.put("fileSystemId", uri(fileSystemId));
-        renderArgs.put("policyId", uri(policyId));
+
+        String fileSystemId = null;
+        String policyId = null;
+        if (StringUtils.isNotBlank(fileSystemAndpolicyId)) {
+            String[] parts = fileSystemAndpolicyId.split("~~~");
+            if (parts.length == 2) {
+                fileSystemId = parts[0];
+                policyId = parts[1];
+
+            }
+        }
         ViPRCoreClient client = BourneUtil.getViprClient();
         List<FilePolicySnapshotsDataTable.FileSnapshot> snapshotList = Lists
                 .newArrayList();
-        SnapshotList snapList = client.fileSystems().getFilePolicySnapshots(uri(fileSystemId), uri(policyId));
-        // renderArgs.put("snapList", snapList.getSnapList());
+        ScheduleSnapshotList snapList = client.fileSystems().getFilePolicySnapshots(uri(fileSystemId), uri(policyId));
 
-        for (NamedRelatedResourceRep snap : snapList.getSnapList()) {
-            snapshotList.add(new FilePolicySnapshotsDataTable.FileSnapshot(snap.getId().toString(), snap.getName()));
+        for (ScheduleSnapshotRestRep snap : snapList.getScheduleSnapList()) {
+            snapshotList.add(new FilePolicySnapshotsDataTable.FileSnapshot(snap));
         }
 
         renderJSON(DataTablesSupport.createJSON(snapshotList, params));

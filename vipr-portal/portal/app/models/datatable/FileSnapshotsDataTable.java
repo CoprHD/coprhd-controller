@@ -21,9 +21,8 @@ import controllers.resources.FileSnapshots;
 public class FileSnapshotsDataTable extends DataTable {
 
     public FileSnapshotsDataTable() {
-        addColumn("fileSystemId").hidden();
+        addColumn("id").hidden();
         addColumn("name");
-        addColumn("policyId");
         sortAll();
         setDefaultSort("name", "asc");
         setRowCallback("createRowLink");

@@ -14,7 +14,6 @@ import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.MirrorList;
@@ -40,6 +39,7 @@ import com.emc.storageos.model.file.FileSystemUpdateParam;
 import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLs;
+import com.emc.storageos.model.file.ScheduleSnapshotList;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -789,9 +789,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the ID of the policy.
      * @return a file policy list.
      */
-    public SnapshotList getFilePolicySnapshots(URI fileSystemId, URI filePolicyId) {
+    public ScheduleSnapshotList getFilePolicySnapshots(URI fileSystemId, URI filePolicyId) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/file-policies/{filePolicyId}/snapshots");
         URI targetUri = builder.build(fileSystemId, filePolicyId);
-        return client.get(SnapshotList.class, targetUri.getPath());
+        return client.get(ScheduleSnapshotList.class, targetUri.getPath());
     }
 }

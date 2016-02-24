@@ -128,6 +128,8 @@ import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
+import com.emc.storageos.model.file.ScheduleSnapshotList;
+import com.emc.storageos.model.file.ScheduleSnapshotRestRep;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -3432,7 +3434,7 @@ public class FileService extends TaskResourceService {
     }
 
     /**
-     * Get Snapshot for file system created by policy
+     * Get file system Snapshot created by policy
      * 
      * @param id
      * @param filePolicyUri
@@ -3442,13 +3444,13 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/file-policies/{filePolicyUri}/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public SnapshotList getFileSystemPolicy(@PathParam("id") URI id,
+    public ScheduleSnapshotList getFileSystemSchedulePolicySnapshots(@PathParam("id") URI id,
             @PathParam("filePolicyUri") URI filePolicyUri, @QueryParam("timeout") int timeout) {
         // valid value of timout is 10 sec to 10 min
         if (timeout < 10 || timeout > 600) {
             timeout = 30;// default timeout value.
         }
-        SnapshotList list = new SnapshotList();
+        ScheduleSnapshotList list = new ScheduleSnapshotList();
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
 
@@ -3499,8 +3501,9 @@ public class FileService extends TaskResourceService {
                 for (Snapshot snap : snapList) {
 
                     if (!snap.getInactive() && snap.getExtensions().containsKey("Schedule")) {
-
-                        list.getSnapList().add(toNamedRelatedResource(snap));
+                        ScheduleSnapshotRestRep snapRest = new ScheduleSnapshotRestRep();
+                        getScheduleSnapshotRestRep(snapRest, snap);
+                        list.getScheduleSnapList().add(snapRest);
                         snap.setInactive(true);
                         _dbClient.updateObject(snap);
                     }
@@ -3522,6 +3525,21 @@ public class FileService extends TaskResourceService {
         }
         return list;
 
+    }
+
+    private void getScheduleSnapshotRestRep(ScheduleSnapshotRestRep target, Snapshot source) {
+
+        if (source.getExtensions().containsKey("created")) {
+            target.setCreated(source.getExtensions().get("created"));
+
+        }
+        if (source.getExtensions().containsKey("expires")) {
+            target.setExpires(source.getExtensions().get("expires"));
+
+        }
+        target.setId(source.getId());
+        target.setMountPath(source.getMountPath());
+        target.setName(source.getName());
     }
 
     /**

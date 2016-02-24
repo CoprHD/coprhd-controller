@@ -40,6 +40,9 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
+import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.VPlexHighAvailabilityMatcher;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -617,8 +620,19 @@ public class ConnectivityUtil {
 
             _log.info(logMsg.toString());
         }
-
-        return rpSystems;
+        
+        //Make sure that the candidate protection systems are pingable
+        Set<ProtectionSystem> protectionSystems = new HashSet<ProtectionSystem>();
+        for (ProtectionSystem rpSystem : rpSystems) {
+        	try {
+            	RPHelper.getRecoverPointClient(rpSystem);
+        		protectionSystems.add(rpSystem);
+        	} catch (RecoverPointException rpe) {
+        		_log.info(String.format("ProtectionSystem %s not pingable, excluding from consideration", rpSystem.getLabel()));
+        	}
+        }
+        
+     return protectionSystems;
     }
 
     /**
@@ -791,7 +805,7 @@ public class ConnectivityUtil {
         }
         rpSystem.getVirtualArrays().replace(
                 StringSetUtil.uriListToSet(getRPSystemVirtualArrays(dbClient, rpSystem.getId())));
-        dbClient.updateAndReindexObject(rpSystem);
+        dbClient.updateObject(rpSystem);
     }
 
     /**

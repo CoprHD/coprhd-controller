@@ -691,6 +691,11 @@ public class RecoverPointClient {
                 // The CG does not exist so we cannot add replication sets
                 throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());
             }
+            
+            //Validate that the CG is in a good state
+            RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
+            logger.info("Checking/waiting for the CG to be in a good state before adding rsets");
+            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));     
 
             response.setCgId(cgUID.getId());
 
@@ -726,10 +731,7 @@ public class RecoverPointClient {
             ConsistencyGroupSettingsChangesParam cgSettingsParam = configureCGSettingsChangeParams(request, cgUID, prodSites,
                     clusterIdCache,
                     productionCopiesUID, nonProductionCopiesUID, attachAsClean);
-
-            logger.info("Validating add rsets and journals for CG: " + request.getCgName());
-            functionalAPI.validateSetConsistencyGroupSettings(cgSettingsParam);
-            
+                    
             logger.info("Adding journals and rsets for CG " + request.getCgName());            
             functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
 
@@ -737,8 +739,7 @@ public class RecoverPointClient {
             // starts initializing some time afterwards. Adding this sleep to make sure the CG
             // starts initializing before we check the link states
             waitForRpOperation();
-
-            RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
+            
             logger.info("Waiting for links to become active for CG " + request.getCgName());
 
             rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
@@ -746,9 +747,6 @@ public class RecoverPointClient {
 
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
             return response;
-        } catch (FunctionalAPIValidationException_Exception ve) { 
-        	logger.info("Validation failed for setConsistencyGroupSettings for CG : " + request.getCgName());
-        	throw RecoverPointException.exceptions.failedToAddReplicationSetToConsistencyGroup(request.getCgName(), getCause(ve));
         } catch (Exception e) {
             for (CreateRSetParams rsetParam : request.getRsets()) {
                 for (CreateVolumeParams volumeParam : rsetParam.getVolumes()) {

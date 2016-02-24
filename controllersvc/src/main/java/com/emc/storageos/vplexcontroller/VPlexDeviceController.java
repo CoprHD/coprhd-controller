@@ -6003,8 +6003,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public void createVirtualVolumeFromImportStep(URI vplexURI, URI vplexVolumeURI,
             URI existingVolumeURI, URI newVolumeURI, URI vplexSystemProject,
-            URI vplexSystemTenant, URI newCosURI, String newLabel, String stepId,
-            String transferSize)
+            URI vplexSystemTenant, URI newCosURI, String newLabel, String transferSize,
+            String stepId)
             throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);

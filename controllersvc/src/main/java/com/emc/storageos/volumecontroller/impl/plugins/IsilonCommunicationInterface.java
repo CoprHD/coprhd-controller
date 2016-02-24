@@ -3129,27 +3129,30 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
     public void calculateRPO(VirtualPool vpool, FileShare fs, IsilonSyncPolicyReport report) {
 
-        String rpoType = vpool.getRpRpoType();
+        String rpoType = vpool.getFrRpoType();
         switch (rpoType) {
 
-            case "minutes":
+            case "MINUTES":
                 if (fs.getActualMaxRPO() == null) {
-                    fs.setActualMaxRPO((report.getDuration()) / 60 + vpool.getRpRpoValue());
+                    fs.setActualMaxRPO((report.getDuration()) / 60 + vpool.getFrRpoValue());
                 } else {
-                    fs.setActualMaxRPO(((report.getDuration()) / 60 + vpool.getRpRpoValue() + fs.getActualMaxRPO()) / 2);
+                    fs.setActualMaxRPO(((report.getDuration()) / 60 + vpool.getFrRpoValue() + fs.getActualMaxRPO()) / 2);
                 }
-            case "hours":
+                break;
+            case "HOURS":
                 if (fs.getActualMaxRPO() == null) {
-                    fs.setActualMaxRPO((report.getDuration()) / 36000 + vpool.getRpRpoValue());
+                    fs.setActualMaxRPO((report.getDuration()) / 36000 + vpool.getFrRpoValue());
                 } else {
-                    fs.setActualMaxRPO(((report.getDuration()) / 3600 + vpool.getRpRpoValue() + fs.getActualMaxRPO()) / 2);
+                    fs.setActualMaxRPO(((report.getDuration()) / 3600 + vpool.getFrRpoValue() + fs.getActualMaxRPO()) / 2);
                 }
-            case "days":
+                break;
+            case "DAYS":
                 if (fs.getActualMaxRPO() == null) {
-                    fs.setActualMaxRPO((report.getDuration()) / 86400 + vpool.getRpRpoValue());
+                    fs.setActualMaxRPO((report.getDuration()) / 86400 + vpool.getFrRpoValue());
                 } else {
-                    fs.setActualMaxRPO(((report.getDuration()) / 86400 + vpool.getRpRpoValue() + fs.getActualMaxRPO()) / 2);
+                    fs.setActualMaxRPO(((report.getDuration()) / 86400 + vpool.getFrRpoValue() + fs.getActualMaxRPO()) / 2);
                 }
+                break;
         }
     }
 }

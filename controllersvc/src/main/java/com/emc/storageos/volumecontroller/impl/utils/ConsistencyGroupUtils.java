@@ -21,7 +21,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
  *
  * @author Ian Bibby
  */
-public class ConsistencyUtils {
+public class ConsistencyGroupUtils {
 
     /**
      * Gets the {@BlockConsistencyGroup} associated with the given clone.
@@ -100,12 +100,36 @@ public class ConsistencyUtils {
         BlockConsistencyGroup cgResult = null;
         BlockSnapshot snapshot = snapshots.get(0);
 
-        if (snapshot != null && !isNullURI(snapshot.getConsistencyGroup())) {
+        if (snapshot != null && !isNullURI(snapshot.getConsistencyGroup()) && 
+                getSourceConsistencyGroupName(snapshot, dbClient) != null) {
             cgResult = dbClient.queryObject(BlockConsistencyGroup.class, snapshot.getConsistencyGroup());
         }
         return cgResult;
     }
 
+    /**
+     * Gets the source consistency group name.
+     * If the given block object is Volume, get the group name from Volume object.
+     * If snapshot, mirror or clone, get the group name from its parent which is Volume.
+     * 
+     * @param bo the block object
+     * @return the consistency group name
+     */
+    public static String getSourceConsistencyGroupName(BlockObject bo, DbClient dbClient) {
+        Volume volume = null;
+        if (bo instanceof BlockSnapshot) {
+            volume = dbClient.queryObject(Volume.class, ((BlockSnapshot) bo).getParent().getURI());
+        } else if (bo instanceof BlockMirror) {
+            volume = dbClient.queryObject(Volume.class, ((BlockMirror) bo).getSource().getURI());
+        } else if (bo instanceof Volume) {
+            volume = (Volume) bo;
+            if (ControllerUtils.isVolumeFullCopy(volume, dbClient)) {
+                volume = dbClient.queryObject(Volume.class, volume.getAssociatedSourceVolume());
+            }
+        }
+        return (volume == null ? null : volume.getReplicationGroupInstance());
+    }
+    
     /**
      * Returns true, if a snapshot in the given list of snapshots is in a consistency group, false otherwise.
      *

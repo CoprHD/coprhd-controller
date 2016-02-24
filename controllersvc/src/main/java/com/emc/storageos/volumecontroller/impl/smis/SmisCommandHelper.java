@@ -45,8 +45,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.net.util.IPAddressUtil;
-
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
@@ -101,6 +99,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
+
+import sun.net.util.IPAddressUtil;
 
 /**
  * Helper for Smis commands
@@ -4223,28 +4223,6 @@ public class SmisCommandHelper implements SmisConstants {
         return id;
     }
 
-    /**
-     * Gets the source consistency group name.
-     * If the given block object is Volume, get the group name from Volume object.
-     * If snapshot, mirror or clone, get the group name from its parent which is Volume.
-     *
-     * @param bo the block object
-     * @return the consistency group name
-     */
-    public String getSourceConsistencyGroupName(BlockObject bo) {
-        Volume volume = null;
-        if (bo instanceof BlockSnapshot) {
-            volume = _dbClient.queryObject(Volume.class, ((BlockSnapshot) bo).getParent().getURI());
-        } else if (bo instanceof BlockMirror) {
-            volume = _dbClient.queryObject(Volume.class, ((BlockMirror) bo).getSource().getURI());
-        } else if (bo instanceof Volume) {
-            volume = (Volume) bo;
-            if (ControllerUtils.isVolumeFullCopy(volume, _dbClient)) {
-                volume = _dbClient.queryObject(Volume.class, volume.getAssociatedSourceVolume());
-            }
-        }
-        return (volume == null ? null : volume.getReplicationGroupInstance());
-    }
 
     public String getConsistencyGroupName(BlockObject bo, StorageSystem storageSystem) {
         if (bo.getConsistencyGroup() == null) {

@@ -98,7 +98,7 @@ _isIPConsistent() {
     ovfenv_vip6key="network_vip6"
     ovfenv_vip6=$(_get_ipv6_compressed "${ovfenvpropMap[$ovfenv_vip6key]}")
     vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip6";
-    [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenv_vip6}" ] && echo "false" && return
+    [ -n "${vdcpropMap[$vdc_vipkey]}" ] && [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenv_vip6}" ] && echo "false" && return
 
     echo "true" && return
 }

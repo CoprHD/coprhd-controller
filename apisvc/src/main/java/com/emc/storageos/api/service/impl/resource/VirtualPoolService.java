@@ -805,11 +805,9 @@ public abstract class VirtualPoolService extends TaggedResource {
         for (URI quota : quotas) {
             QuotaOfCinder quotaObj = _dbClient.queryObject(QuotaOfCinder.class, quota);
 
-
             if ((quotaObj.getVpool() != null) &&
                     (quotaObj.getVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
-            	_log.info("RAG Deleting related Quota object {}.",quotaObj.getVpool().toString());
-            	_log.info("RAG Deleting related Vpool  {}.",vpool.getId().toString());
+            	_log.info("Deleting related Vpool for quota object {}.",vpool.getId().toString());
             	_dbClient.removeObject(quotaObj);            	
             }
         }

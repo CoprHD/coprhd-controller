@@ -242,7 +242,6 @@ public class MiscService extends TaskResourceService {
             serviceDown = true;
         } else 
         {
-        	//List<Service> currentSvcs = null;
         	if((_coordinator.locateAllSvcsAllVers("geosvc").isEmpty()) || 
         	  (_coordinator.locateAllSvcsAllVers("geodbsvc").isEmpty()) ||
         	  (_coordinator.locateAllSvcsAllVers("dbsvc").isEmpty()) ||
@@ -296,8 +295,6 @@ public class MiscService extends TaskResourceService {
         curDate = new Date();
         volumeService.setUpdatedAt(format.format(curDate));
         osServicesResp.getServices().add(volumeService);
-              
-       // List<Service> schedulerSvcs = _coordinator.locateAllSvcsAllVers("controllersvc");
 
         schedulerService.setHost(localNodeId);        
         schedulerService.setState("up");

@@ -72,7 +72,6 @@ import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -837,7 +836,7 @@ public class BlockService extends TaskResourceService {
             if (consistencyGroup.creationInitiated()) {
                 if (!consistencyGroup.getRequestedTypes().containsAll(requestedTypes)) {
                     throw APIException.badRequests.consistencyGroupIsNotCompatibleWithRequest(
-                            consistencyGroup.getId(), consistencyGroup.getTypes().toString(), requestedTypes.toString());
+                            consistencyGroup.getId(), consistencyGroup.getRequestedTypes().toString(), requestedTypes.toString());
                 }
             }
 

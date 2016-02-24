@@ -108,6 +108,8 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Detach volume clones.
+     * It is implementation responsibility to validate consistency of this operation
+     * when clones belong to consistency groups.
      *
      * @param clones Type: Input/Output.
      * @return task
@@ -116,6 +118,9 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Restore from clone.
+     *
+     * It is implementation responsibility to validate consistency of this operation
+     * when clones belong to consistency groups.
      *
      * @param clones   Clones to restore from. Type: Input/Output.
      * @return task
@@ -248,6 +253,8 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Create clone of consistency group.
+     * It is implementation responsibility to validate consistency of this group operation.
+     *
      * @param consistencyGroup input/output
      * @param clones output
      * @param capabilities Capabilities of clones. Type: Input.
@@ -258,6 +265,8 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Delete consistency group clone
+     * It is implementation responsibility to validate consistency of this group operation.
+     *
      * @param clones  output
      * @return
      */

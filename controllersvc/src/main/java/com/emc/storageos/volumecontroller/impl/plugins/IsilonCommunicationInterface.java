@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -956,7 +957,8 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             _log.info("discoverPools for storage system {} - start", storageSystemId);
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
+            boolean isNfsV4Enabled = false;
+            // isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
             boolean syncLicenseValid = isValidLicense(isilonApi.getReplicationLicenseInfo(), storageSystem);
             boolean snapLicenseValid = isValidLicense(isilonApi.snapshotIQLicenseInfo(), storageSystem);
 
@@ -3088,15 +3090,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         IsilonSyncPolicyReport report = null;
 
         List<URI> fileSystemsURIS = _dbClient.queryByType(FileShare.class, true);
+
         for (URI fsUri : fileSystemsURIS) {
             fileShare = _dbClient.queryObject(FileShare.class, fsUri);
 
             if (fileShare.getMirrorStatus() == null || fileShare.getPersonality().equals(PersonalityTypes.TARGET.toString())
-                    || fileShare.getMirrorStatus().equals(MirrorStatus.UNKNOWN.toString())
-                    || fileShare.getMirrorStatus().equals(MirrorStatus.FAILED_OVER.toString()) ||
-                    fileShare.getMirrorStatus().equals(MirrorStatus.DETACHED.toString())) {
+                    || fileShare.getMirrorStatus().equals(MirrorStatus.FAILED_OVER.toString())) {
                 continue;
+
             } else {
+                VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fileShare.getVirtualPool());
+
                 List<String> targetfileUris = new ArrayList<String>();
                 if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(fileShare.getPersonality())) {
                     targetfileUris.addAll(fileShare.getMirrorfsTargets());
@@ -3104,16 +3108,26 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                         targetFileShare = _dbClient.queryObject(FileShare.class, URI.create(target));
                     }
                     String policyName = targetFileShare.getLabel();
+
                     try {
                         IsilonSyncPolicy policy = api.getReplicationPolicy(policyName);
-                        if (policy.getLastJobState().equals(JobState.finished)) {
-                            VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fileShare.getVirtualPool());
+
+                        // Some add on for the policy in unknown state, detached, suspended state
+                        if (fileShare.getMirrorStatus().equals(MirrorStatus.DETACHED.toString())
+                                || fileShare.getMirrorStatus().equals(MirrorStatus.UNKNOWN.toString())
+                                || fileShare.getMirrorStatus().equals(MirrorStatus.SUSPENDED.toString())) {
+                            setRPO(vpool, fileShare, policy);
+                            _dbClient.updateObject(fileShare);
+
+                        } else if (fileShare.getMirrorStatus().equals(MirrorStatus.SYNCHRONIZED.toString())
+                                || fileShare.getMirrorStatus().equals(MirrorStatus.IN_SYNC.toString())) {
+
                             if (fileShare.getlastReplicationJobId() == null) { // for first time
                                 fileShare.setlastReplicationJobId(1L);
                             }
                             String reportId = fileShare.getlastReplicationJobId().toString() + "-" + policyName;
                             report = api.getReplicationPolicyReport(reportId);
-                            calculateRPO(vpool, fileShare, report);
+                            setRPO(vpool, fileShare, report);
                             fileShare.setlastReplicationJobId(fileShare.getlastReplicationJobId() + 1);
                             _dbClient.updateObject(fileShare);
                         }
@@ -3127,7 +3141,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         }
     }
 
-    public void calculateRPO(VirtualPool vpool, FileShare fs, IsilonSyncPolicyReport report) {
+    public void setRPO(VirtualPool vpool, FileShare fs, IsilonSyncPolicyReport report) {
 
         String rpoType = vpool.getFrRpoType();
         switch (rpoType) {
@@ -3151,6 +3165,49 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                     fs.setActualMaxRPO((report.getDuration()) / 86400 + vpool.getFrRpoValue());
                 } else {
                     fs.setActualMaxRPO(((report.getDuration()) / 86400 + vpool.getFrRpoValue() + fs.getActualMaxRPO()) / 2);
+                }
+                break;
+        }
+    }
+
+    public void setRPO(VirtualPool vpool, FileShare fs, IsilonSyncPolicy policy) {
+        Calendar cal = Calendar.getInstance();
+        Long currentRPO = 0L;
+        Long fsCreationTime = fs.getCreationTime().getTimeInMillis();
+
+        if (policy.getLastStarted() == null) {
+            // policy is in never started
+            currentRPO = (cal.getTimeInMillis() - fsCreationTime) / 1000;
+        } else if (!policy.getEnabled() && policy.getLastJobState().equals(JobState.finished)) {
+            // policy is in disabled state
+            currentRPO = (cal.getTimeInMillis() / 1000) - policy.getLastStarted();
+        } else if (policy.getEnabled() && policy.getLastJobState().equals(JobState.paused)) {
+            // policy is in paused state
+            currentRPO = (cal.getTimeInMillis() / 1000) - policy.getLastStarted();
+        }
+
+        String rpoType = vpool.getFrRpoType();
+        switch (rpoType) {
+
+            case "MINUTES":
+                if (fs.getActualMaxRPO() == null) {
+                    fs.setActualMaxRPO(currentRPO / 60);
+                } else {
+                    fs.setActualMaxRPO(((currentRPO / 60) + fs.getActualMaxRPO()) / 2);
+                }
+                break;
+            case "HOURS":
+                if (fs.getActualMaxRPO() == null) {
+                    fs.setActualMaxRPO(currentRPO / 3600);
+                } else {
+                    fs.setActualMaxRPO(((currentRPO / 3600) + fs.getActualMaxRPO()) / 2);
+                }
+                break;
+            case "DAYS":
+                if (fs.getActualMaxRPO() == null) {
+                    fs.setActualMaxRPO(currentRPO / 86400);
+                } else {
+                    fs.setActualMaxRPO(((currentRPO / 86400) + fs.getActualMaxRPO()) / 2);
                 }
                 break;
         }

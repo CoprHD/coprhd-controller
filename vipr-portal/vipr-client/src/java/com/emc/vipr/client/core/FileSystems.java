@@ -170,6 +170,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         return putTask(input, getIdUrl(), id);
     }
 
+    public BulkIdParam getBulkFS () {
+        return client.get(BulkIdParam.class, "/file/filesystems/bulk");
+    }
     /**
      * Begins expanding the given file system by ID.
      * <p>

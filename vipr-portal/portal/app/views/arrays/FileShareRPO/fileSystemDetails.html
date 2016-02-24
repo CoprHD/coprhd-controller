@@ -1,0 +1,32 @@
+#{if fileSystems}
+
+  <table class='table'>
+  <thead>
+    <tr>    
+      <th>&{'virtualPools.fileSystems'}</th>
+      <th>&{'virtualPools.rpo'}</th>
+      <th>&{'virtualPools.Status'}</th>
+    </tr>
+  </thead>
+  <tbody>  
+    #{list items:fileSystems, as:'fileSystem'}
+      <tr>
+        <td>${fileSystem.name}</td>
+        <td></td>
+        <td>
+        #{if true}
+        <img class="glyphicon glyphicon-remove" src="/public/img/Critical.png"><span></span>
+        #{/if}
+        #{else}
+        <img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span></span>
+        #{/else}
+        </td>
+      </tr>
+    #{/list}
+  </tbody>
+  </table>
+#{/if}
+#{else}
+<script>console.info("here")</script>
+  <tr>&{'virtualPools.noFS'}</tr>
+#{/else}

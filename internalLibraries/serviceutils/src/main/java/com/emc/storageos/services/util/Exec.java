@@ -44,10 +44,11 @@ public class Exec {
         private final String _stdOutput;
         private final String _stdError;
         private final Termination _termination;
+        private final Pattern _maskFilter;
 
         Result(final String[] cmd, final long timeout,
                 final int exitValue, final String stdOutput, final String stdError,
-                final Termination termination) {
+                final Termination termination, final Pattern maskFilter) {
         	if(cmd == null){
         		_cmd = new String[0];
         	}else{
@@ -59,6 +60,7 @@ public class Exec {
             _stdOutput = stdOutput;
             _stdError = stdError;
             _termination = termination;
+            _maskFilter = maskFilter;
         }
 
         public String[] getCmd() {
@@ -120,10 +122,25 @@ public class Exec {
             } else {
                 builder.append("null");
             }
+
+            // apply maskFilter to stand output
+            String maskedOutput = null;
+            if (_maskFilter != null) {
+                Matcher m = _maskFilter.matcher(_stdOutput.toString());
+                StringBuffer sb = new StringBuffer();
+                while (m.find()) {
+                    m.appendReplacement(sb, "***masked***");
+                }
+                m.appendTail(sb);
+                maskedOutput = maskedOutput.toString();
+            } else {
+                maskedOutput = _stdOutput.toString();
+            }
+
             builder.append(" timeout=").append(_timeout).append(" ms");
             builder.append(" terminated=").append(_termination);
             builder.append(" status=").append(_exitValue);
-            builder.append(" stdout=").append(Strings.repr(_stdOutput));
+            builder.append(" stdout=").append(Strings.repr(maskedOutput));
             builder.append(" stderr=").append(Strings.repr(_stdError));
             return builder.toString();
         }
@@ -212,31 +229,19 @@ public class Exec {
                 }
             }
 
-            // apply maskFilter to stand output
-            String output = null;
-            if (maskFilter != null) {
-                Matcher m = maskFilter.matcher(stdOutput.toString());
-                StringBuffer maskedOutput = new StringBuffer();
-                while (m.find()) {
-                    m.appendReplacement(maskedOutput, "***masked***");
-                }
-                m.appendTail(maskedOutput);
-                output = maskedOutput.toString();
-            } else {
-                output = stdOutput.toString();
-            }
+
 
             final int exitValue = p.exitValue();
             Result result = new Result(cmd, timeout,
-                    p.exitValue(), output, stdError.toString(),
-                    (destroyed && exitValue != 0) ? Termination._TIMEOUT : Termination._NORMAL);
+                    p.exitValue(), stdOutput.toString(), stdError.toString(),
+                    (destroyed && exitValue != 0) ? Termination._TIMEOUT : Termination._NORMAL, maskFilter);
 
             _log.debug("exec(): " + result);
             return result;
         } catch (Exception e) {
             Result result = new Result(cmd, timeout,
                     _EXCEPTION_EXIT_VALUE, stdOutput.toString(), stdError.toString(),
-                    Termination._EXCEPTION);
+                    Termination._EXCEPTION, maskFilter);
             _log.error("exec(): " + result + " (" + e + ")");
             return result;
         } finally {

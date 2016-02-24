@@ -12,9 +12,9 @@
     #{list items:fileSystems, as:'fileSystem'}
       <tr>
         <td>${fileSystem.name}</td>
-        <td></td>
+        <td>${fileSystem.protection.actualMaxRPO}</td>
         <td>
-        #{if true}
+        #{if fileSystem.protection.actualMaxRPO>rpo}
         <img class="glyphicon glyphicon-remove" src="/public/img/Critical.png"><span></span>
         #{/if}
         #{else}

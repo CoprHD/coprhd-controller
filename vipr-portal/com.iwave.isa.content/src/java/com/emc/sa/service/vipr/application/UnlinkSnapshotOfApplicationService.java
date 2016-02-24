@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.vipr.application;
 
+import static com.emc.sa.service.ServiceParams.DELETE_TARGET;
 import static com.emc.sa.service.ServiceParams.LINKED_SNAPSHOT;
 
 import java.net.URI;
@@ -34,13 +35,16 @@ public class UnlinkSnapshotOfApplicationService extends ViPRService {
     @Param(value = LINKED_SNAPSHOT, required = false)
     protected List<String> existingLinkedSnapshotIds;
 
+    @Param(value = DELETE_TARGET, required = false)
+    protected Boolean deleteTarget;
+
     @Override
     public void execute() throws Exception {
         NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
         List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, applicationCopySet,
                 volList, subGroups);
         Tasks<? extends DataObjectRestRep> tasks = execute(new UnlinkSnapshotSessionForApplication(applicationId, snapshotSessionIds,
-                existingLinkedSnapshotIds));
+                existingLinkedSnapshotIds, deleteTarget));
         addAffectedResources(tasks);
     }
 }

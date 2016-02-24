@@ -19,11 +19,14 @@ public class UnlinkSnapshotSessionForApplication extends WaitForTasks<TaskResour
     private final URI applicationId;
     private final List<URI> snapshotSessions;
     private final List<String> existingLinkedSnapshotIds;
+    private final Boolean deleteTarget;
 
-    public UnlinkSnapshotSessionForApplication(URI applicationId, List<URI> snapshotSessions, List<String> existingLinkedSnapshotIds) {
+    public UnlinkSnapshotSessionForApplication(URI applicationId, List<URI> snapshotSessions, List<String> existingLinkedSnapshotIds,
+            Boolean deleteTarget) {
         this.applicationId = applicationId;
         this.snapshotSessions = snapshotSessions;
         this.existingLinkedSnapshotIds = existingLinkedSnapshotIds;
+        this.deleteTarget = deleteTarget;
         provideDetailArgs(applicationId, snapshotSessions);
     }
 
@@ -37,8 +40,9 @@ public class UnlinkSnapshotSessionForApplication extends WaitForTasks<TaskResour
             for (String linkedSnapshot : existingLinkedSnapshotIds) {
                 SnapshotSessionUnlinkTargetParam param = new SnapshotSessionUnlinkTargetParam();
                 param.setId(uri(linkedSnapshot));
-                // TODO should user have option to delete or not?
-                param.setDeleteTarget(Boolean.FALSE);
+                if (deleteTarget != null) {
+                    param.setDeleteTarget(deleteTarget);
+                }
                 linkedTargets.add(param);
             }
         }

@@ -146,6 +146,8 @@ public interface ServiceParams {
     public String SOFT_LIMIT = "softLimit";
     public String GRACE_PERIOD = "gracePeriod";
 
+    public String DELETE_TARGET = "deleteTarget";
+
     public String LINKED_SNAPSHOT = "linkedSnapshot";
     public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";

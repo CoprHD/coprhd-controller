@@ -20,6 +20,13 @@
       type:"assetType.vipr.linkedSnapshotsForVolume",
       select: "many",
       required: "false"
+    },
+    
+    deleteTarget:{
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
     }
   }
 }

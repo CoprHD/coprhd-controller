@@ -29,6 +29,8 @@ public class CustomNameResolver extends CustomConfigResolver {
     private static final String START_DELIMITER = "{";
     private static final String END_DELIMITER = "}";
     private static final String METHOD_NAMES = "%METHODS%";
+    private static final String START_PAREN = "(";
+    private static final String END_PAREN = ")";
     // Regex to find the first open parenthesis that is not proceeded by one of the method names
     // The code will loop to find the inner-most expression, the regex only needs to find the first
     private String NESTED_EXPRESSION_START = "(?<!" + METHOD_NAMES
@@ -178,6 +180,8 @@ public class CustomNameResolver extends CustomConfigResolver {
     @Override
     public void validate(CustomConfigType configTemplate, StringMap scope,
             String value) {
+
+        simpleSyntaxValidation(value);
 
         // Parse the value and validate the datasource properties
         StringTokenizer tokenizer = new StringTokenizer(value, START_DELIMITER + END_DELIMITER, true);
@@ -443,5 +447,55 @@ public class CustomNameResolver extends CustomConfigResolver {
             expression = expression.replaceAll(METHOD_NAMES, methods);
         }
         return expression;
+    }
+
+    /**
+     * Routine determines if the value looks invalid, like having too many parenthesis or not enough.
+     * 
+     * @param value [IN] - Configuration value to validate
+     */
+    private void simpleSyntaxValidation(String value) {
+        // Do a simple validation of value by tracking opening/closing brackets and parenthesis
+        Map<String, Integer> characterCounts = new HashMap<>();
+        characterCounts.put(START_DELIMITER, 0);
+        characterCounts.put(START_PAREN, 0);
+        for (char theChar : value.toCharArray()) {
+            if (START_DELIMITER.indexOf(theChar) != -1) {
+                Integer count = characterCounts.get(START_DELIMITER);
+                characterCounts.put(START_DELIMITER, count + 1);
+            } else if (END_DELIMITER.indexOf(theChar) != -1) {
+                Integer count = characterCounts.get(START_DELIMITER);
+                characterCounts.put(START_DELIMITER, count - 1);
+            } else if (START_PAREN.indexOf(theChar) != -1) {
+                Integer count = characterCounts.get(START_PAREN);
+                characterCounts.put(START_PAREN, count + 1);
+            } else if (END_PAREN.indexOf(theChar) != -1) {
+                Integer count = characterCounts.get(START_PAREN);
+                characterCounts.put(START_PAREN, count - 1);
+            }
+        }
+
+        // Any of the character counts not zero means there is too much
+        // of it or not enough. String together the reason
+        for (String character : characterCounts.keySet()) {
+            Integer count = characterCounts.get(character);
+            if (count != 0) {
+                String invalid = "";
+                // Get the closing character ...
+                if (START_DELIMITER.contains(character)) {
+                    invalid = END_DELIMITER;
+                } else if (START_PAREN.contains(character)) {
+                    invalid = END_PAREN;
+                }
+                // Build the reason message
+                String reason = "";
+                if (count > 0) {
+                    reason = String.format("Missing a '%s'", invalid);
+                } else if (count < 0) {
+                    reason = String.format("Extra '%s' characters", invalid);
+                }
+                throw CustomConfigControllerException.exceptions.invalidSyntax(value, reason);
+            }
+        }
     }
 }

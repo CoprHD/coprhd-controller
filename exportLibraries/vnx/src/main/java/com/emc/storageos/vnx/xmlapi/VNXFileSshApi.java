@@ -40,6 +40,9 @@ public class VNXFileSshApi {
     public static final String SHARE = "share";
     public static final String SERVER_MODEL = "/nas/sbin/model";
 
+    public static final String NAS_REPLICATE_CMD = "nas_replicate";
+    public static final String NAS_CEL_CMD = "nas_cel";
+
     private static final Logger _log = LoggerFactory.getLogger(VNXFileSshApi.class);
 
     private String _host;
@@ -1006,7 +1009,7 @@ public class VNXFileSshApi {
                         && !message.isEmpty()
                         && (message.contains("unable to acquire lock(s)") ||
                                 message.contains("NAS_DB locked object is stale") ||
-                                message.contains("Temporarily no Data Mover is available"))) {
+                        message.contains("Temporarily no Data Mover is available"))) {
                     try {
                         // Delaying execution since NAS_DB object is locked till
                         // current execution complete
@@ -1031,4 +1034,257 @@ public class VNXFileSshApi {
         return reTryResult;
     }
 
+    // vnx replication command interfaces
+
+    /*
+     * nas_replicate -create rep2
+     * -source -fs src_ufs1
+     * -destination -pool=dst_pool1
+     * -interconnect cs100_s2s3
+     * -source_interfaces ip=192.168.52.136
+     * -destination_interfaces ip=192.168.52.146
+     * -manual_refresh/max_time_out_of_sync
+     */
+
+    /*
+     * nas_replicate -create rep1
+     * -source -fs src_ufs1
+     * -destination -pool clar_r1
+     * -interconnect cs100_s2s3
+     * -max_time_out_of_sync 15
+     */
+
+    public String formatCreateReplicateSession(String name, String sourceFS, String destinationFS,
+            String destinationVdm, String destinationPool, String interConnect, String maxSynctime) {
+
+        StringBuilder cmd = new StringBuilder();
+
+        cmd.append(" -create ");
+        cmd.append(name);
+
+        cmd.append(" -source -fs ");
+        cmd.append(sourceFS);
+
+        cmd.append(" -destination ");
+        if (destinationFS != null) {
+            cmd.append(" -fs ");
+            cmd.append(destinationFS);
+        }
+        if (destinationVdm != null) {
+            cmd.append(" -vdm ");
+            cmd.append(destinationVdm);
+        }
+        if (destinationPool != null) {
+            cmd.append(" -pool ");
+            cmd.append(destinationVdm);
+        }
+
+        cmd.append(" -interconnect ");
+        cmd.append(interConnect);
+
+        cmd.append(" -max_time_out_of_sync ");
+        cmd.append(maxSynctime);
+
+        return cmd.toString();
+
+    }
+
+    /*
+     * commmand for create VDM replication session
+     * nas_replicate -create <name>
+     * -source -vdm <vdmName>
+     * -destination -vdm <existing_dstVdmName>
+     * -interconnect {<name>|id=<interConnectId>}
+     * [{-max_time_out_of_sync <maxTimeOutOfSync>|-manual_refresh}]
+     * 
+     * example : nas_replicate -create rep_vdm1
+     * -source -vdm vdm1
+     * -destination -vdm dst_vdm
+     * -interconnect cs100_s2s3
+     * -max_time_out_of_sync 10
+     */
+
+    /**
+     * fomrat create VDM replicate session
+     * 
+     * @param name
+     * @param sourceVdm
+     * @param destinationVdm
+     * @param interConnet
+     * @param maxSynctime
+     * @return
+     */
+    public String formatCreateVDMReplicateSession(String name,
+            String sourceVdm, String destinationVdm, String destinationPool, String interConnet, String maxSynctime) {
+        StringBuilder cmd = new StringBuilder();
+
+        cmd.append(" -create ");
+        cmd.append(name);
+
+        cmd.append(" -source -vdm ");
+        cmd.append(sourceVdm);
+
+        cmd.append(" -destination ");
+
+        if (destinationVdm != null) {
+            cmd.append(" -vdm ");
+            cmd.append(destinationVdm);
+        } else if (destinationPool != null) {
+            cmd.append(" -pool ");
+            cmd.append(destinationVdm);
+        }
+        cmd.append(" -interconnect ");
+        cmd.append(interConnet);
+
+        if (maxSynctime != null && !maxSynctime.isEmpty()) {
+            cmd.append(" -max_time_out_of_sync ");
+            cmd.append(maxSynctime);
+        }
+
+        return cmd.toString();
+
+    }
+
+    /**
+     * get the vnx interconnects
+     * 
+     * @return
+     */
+    public Map<String, Map<String, String>> getReplicatorInterconnects() {
+        XMLApiResult result = null;
+        Map<String, Map<String, String>> interConnectsMap = new ConcurrentHashMap<String, Map<String, String>>();
+        // Prepare arguments for CLI command
+        try {
+            StringBuilder data = new StringBuilder();
+            data.append(" -interconnect -list ");
+
+            // Execute command
+            result = this.executeSsh(VNXFileSshApi.NAS_CEL_CMD, data.toString());
+            // process the result and parse the message
+
+            String[] propList = result.getMessage().split("[\n]");
+            if (propList == null || propList.length < 1) {
+                // no exports found
+                return interConnectsMap;
+            }
+            for (int i = 1; i < propList.length; i++) {
+                String inConnetEntry = propList[i];
+                String interConnectId = "";
+                Map<String, String> fsinterconnectInfoMap = new ConcurrentHashMap<String, String>();
+                // prepare the interconnect info object
+                String[] interConnInfo = inConnetEntry.split(" ");
+                if (interConnInfo.length >= 4) {
+                    fsinterconnectInfoMap.put("id", interConnInfo[0]);
+                    fsinterconnectInfoMap.put("name", interConnInfo[1]);
+                    fsinterconnectInfoMap.put("source_server", interConnInfo[2]);
+                    fsinterconnectInfoMap.put("destination_system", interConnInfo[3]);
+                    fsinterconnectInfoMap.put("destination_server", interConnInfo[4]);
+                }
+                // the interface to map
+                interConnectsMap.put(interConnectId, fsinterconnectInfoMap);
+            }
+
+        } catch (Exception ex) {
+            StringBuilder message = new StringBuilder();
+            message.append("VNXFile  get interconnects is failed ");
+            // message.append(", due to {}");
+        }
+        return interConnectsMap;
+    }
+
+    /*
+     * send vnx replicator command
+     */
+    public XMLApiResult sendRpCommand(String request) {
+
+        XMLApiResult result = null;
+        try {
+            result = this.executeSsh(VNXFileSshApi.NAS_REPLICATE_CMD, request);
+
+        } catch (Exception ex) {
+            StringBuilder message = new StringBuilder();
+            message.append("VNX File replication is failed cmd:" + request);
+        }
+        return result;
+    }
+
+    public boolean isInterConnectValid(String id) {
+        XMLApiResult result = null;
+        boolean validinterConnect = false;
+        // Prepare arguments for CLI command
+        try {
+            StringBuilder data = new StringBuilder();
+            data.append(" -interconnect -info id=");
+            data.append(id);
+
+            // Execute command
+            result = this.executeSsh(VNXFileSshApi.NAS_CEL_CMD, data.toString());
+            // process the result and parse the message
+
+            String[] propList = result.getMessage().split("[\n]");
+            if (propList == null || propList.length < 1) {
+                // no exports found
+                return false;
+            }
+
+            for (String prop : propList) {
+                String[] tempStr = prop.split("=");
+                if (tempStr.length > 1) {
+                    if (tempStr[0].equals("status") && tempStr[1].contains("OK")) {
+                        validinterConnect = true;
+                        break;
+                    }
+                }
+            }
+
+        } catch (Exception ex) {
+            StringBuilder message = new StringBuilder();
+            message.append("VNXFile  get interconnects is failed ");
+            // message.append(", due to {}");
+        }
+
+        return validinterConnect;
+
+    }
+
+    public String getReplicationConfig(String ipDest) {
+        XMLApiResult result = null;
+        Map<String, String> nasCelList = new ConcurrentHashMap<String, String>();
+        try {
+            StringBuilder data = new StringBuilder();
+            data.append(" -list");
+
+            // Execute command
+            result = this.executeSsh(VNXFileSshApi.NAS_CEL_CMD, data.toString());
+            // process the result and parse the message
+
+            String[] propList = result.getMessage().split("[\n]");
+            if (propList == null || propList.length < 1) {
+                // no exports found
+                return null;
+            }
+
+            for (int i = 1; i < propList.length; i++) {
+                String inConnetEntry = propList[i];
+                String[] interConnInfos = inConnetEntry.split(" ");
+
+                if (interConnInfos != null && interConnInfos.length > 3) {
+
+                    for (int j = 2; i < interConnInfos.length; i++) {
+                        if (interConnInfos[j].equals(ipDest)) {
+                            return interConnInfos[j];
+                        }
+                    }
+                }
+            }
+
+        } catch (Exception ex) {
+            StringBuilder message = new StringBuilder();
+            message.append("VNXFile  get interconnects is failed ");
+            // message.append(", due to {}");
+        }
+
+        return null;
+
+    }
 }

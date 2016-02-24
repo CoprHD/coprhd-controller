@@ -47,8 +47,10 @@ import com.emc.storageos.vnx.xmlapi.VNXSnapshot;
 import com.emc.storageos.vnx.xmlapi.XMLApiResult;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
+import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.plugins.provisioning.VNXFileCommApi;
 
 /*
@@ -80,6 +82,16 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
+    }
+
+    private FileMirrorOperations mirrorOperations;
+
+    public FileMirrorOperations getMirrorOperations() {
+        return mirrorOperations;
+    }
+
+    public void setMirrorOperations(FileMirrorOperations mirrorOperations) {
+        this.mirrorOperations = mirrorOperations;
     }
 
     /**
@@ -1403,4 +1415,27 @@ public class VNXFileStorageDeviceXML extends AbstractFileStorageDevice {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnx.operationNotSupported());
     }
+
+    // vnx replication calls
+
+    @Override
+    public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName) {
+        mirrorOperations.startMirrorFileShareLink(system, target, completer, policyName);
+    }
+
+    @Override
+    public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        mirrorOperations.stopMirrorFileShareLink(system, target, completer);
+    }
+
+    @Override
+    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+        mirrorOperations.createMirrorFileShareLink(system, source, target, completer);
+    }
+
+    @Override
+    public void doDetachMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+        mirrorOperations.deleteMirrorFileShareLink(system, source, target, completer);
+    }
+
 }

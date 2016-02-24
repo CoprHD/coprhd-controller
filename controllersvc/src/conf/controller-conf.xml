@@ -871,9 +871,14 @@
         <property name="computeDeviceController" ref="computeDeviceController"/>
         <property name="blockScheduler" ref="blockscheduler"/>
     </bean>
-
+	
+	<bean id="vnxfileMirrorOperations" class="com.emc.storageos.volumecontroller.impl.vnx.VnxFileMirrorOperations">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
+    
     <bean id="vnxFileDevice" class="com.emc.storageos.volumecontroller.impl.vnx.VNXFileStorageDeviceXML">
         <property name="dbClient" ref="dbclient"/>
+        <property name="mirrorOperations" ref="vnxfileMirrorOperations"/>
     </bean>
     
     <bean id="vnxeDevice" class="com.emc.storageos.volumecontroller.impl.vnxe.VNXeStorageDevice">

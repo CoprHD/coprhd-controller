@@ -3908,7 +3908,7 @@ public class BlockService extends TaskResourceService {
                 _dbClient, notSuppReasonBuff)) {
             ExportPathUpdater updater = new ExportPathUpdater(_dbClient);
             ExportPathParams newParam = new ExportPathParams(newVpool.getNumPaths(),
-                    newVpool.getMinPaths(), newVpool.getPathsPerInitiator());
+                    newVpool.getMinPaths(), newVpool.getPathsPerInitiator(), newVpool.getMaxInitiatorsPerPort());
             updater.validateChangePathParams(volume.getId(), newParam);
             _log.info("New VPool specifies an Export Path Params change");
             return;

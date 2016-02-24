@@ -20,6 +20,7 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;
+    private Integer maxInitiatorPerPort; 
     private RaidLevelChanges raidLevelChanges;
     private String autoTieringPolicyName;
     private Integer thinVolumePreAllocationPercentage;
@@ -61,6 +62,16 @@ public class BlockVirtualPoolUpdateParam extends VirtualPoolUpdateParam {
 
     public void setMinPaths(Integer minPaths) {
         this.minPaths = minPaths;
+    }
+
+    @XmlElement(name = "max_initiator_per_port")
+    @Range(min = 1, max = 65535)
+    public Integer getMaxInitiatorPerPort() {
+        return maxInitiatorPerPort;
+    }
+
+    public void setMaxInitiatorPerPort(Integer maxInitiatorPerPort) {
+        this.maxInitiatorPerPort = maxInitiatorPerPort;
     }
 
     /**

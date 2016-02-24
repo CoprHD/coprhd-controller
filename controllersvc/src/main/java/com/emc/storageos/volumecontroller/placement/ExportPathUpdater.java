@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -130,6 +131,7 @@ public class ExportPathUpdater {
     private List<URI> getUnusedInitiators(ExportGroup group, ExportMask mask) {
         List<URI> unusedInitiators = new ArrayList<URI>();
         List<URI> hostURIs = new ArrayList<URI>();
+        StringSet uniquePorts = new StringSet();
         for (String initiatorId : mask.getInitiators()) {
             Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
             if (initiator == null || initiator.getInactive()) {
@@ -141,7 +143,17 @@ public class ExportPathUpdater {
             if (mask.getZoningMap().get(initiatorId) == null) {
                 unusedInitiators.add(initiator.getId());
             }
+            // StringSet uniquePorts = new StringSet;
+            StringSet portsInCurrentInitiator = new StringSet();
+	    	for (String port : mask.getZoningMap().get(initiatorId)) {
+	    		if (uniquePorts.add(port)) {
+	    			portsInCurrentInitiator.add(port);
+	    		}
+	    	}
+	    	mask.removeZoningMapEntry(initiatorId);
+	    	mask.addZoningMapEntry(initiatorId, portsInCurrentInitiator); 	
         }
+        
 
         // Any initiators not in the exportMask should be checked to see if they can be added
         for (URI hostURI : hostURIs) {

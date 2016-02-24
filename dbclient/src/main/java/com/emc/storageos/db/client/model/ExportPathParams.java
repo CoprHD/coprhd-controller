@@ -44,16 +44,16 @@ public class ExportPathParams extends DataObject {
         // default constructor needed for persistence framework
     }
 
-    public ExportPathParams(int maxPaths, int minPaths, int pathsPerInitiator) {
-        this(maxPaths, minPaths, pathsPerInitiator, ExportGroupType.Host);
+    public ExportPathParams(int maxPaths, int minPaths, int pathsPerInitiator, int maxInitiatorsPerPort) {
+        this(maxPaths, minPaths, pathsPerInitiator, maxInitiatorsPerPort, ExportGroupType.Host);
     }
 
-    public ExportPathParams(int maxPaths, int minPaths, int pathsPerInitiator, ExportGroupType type) {
+    public ExportPathParams(int maxPaths, int minPaths, int pathsPerInitiator, int maxInitiatorsPerPort, ExportGroupType type) {
         this.maxPaths = maxPaths;
         this.minPaths = minPaths;
         this.pathsPerInitiator = pathsPerInitiator;
         this.exportGroupType = type.toString();
-        this.maxInitiatorsPerPort = 1;
+        this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
     
     public String toString() {
@@ -89,6 +89,16 @@ public class ExportPathParams extends DataObject {
     public void setPathsPerInitiator(Integer pathsPerInitiator) {
         this.pathsPerInitiator = pathsPerInitiator;
         setChanged("pathsPerInitiator");
+    }
+    
+    @Name("maxInitiatorsPerPort")
+    public Integer getMaxInitiatorsPerPort() {
+        return maxInitiatorsPerPort;
+    }
+
+    public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
+        this.maxInitiatorsPerPort = maxInitiatorsPerPort;
+        setChanged("maxInitiatorsPerPort");
     }
     
     @Name("storagePorts")
@@ -140,19 +150,6 @@ public class ExportPathParams extends DataObject {
 
     public void setAllowFewerPorts(Boolean allowFewerPorts) {
         this.allowFewerPorts = allowFewerPorts;
-    }
-
-    @Transient
-    public Integer getMaxInitiatorsPerPort() {
-        if (maxInitiatorsPerPort == null) {
-            // 1 is the default because we normally want only one initiator to use each storage port
-            return 1;
-        }
-        return maxInitiatorsPerPort;
-    }
-
-    public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
-        this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
 
 }

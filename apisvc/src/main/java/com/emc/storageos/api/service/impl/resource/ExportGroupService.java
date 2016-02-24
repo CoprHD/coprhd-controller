@@ -2580,6 +2580,7 @@ public class ExportGroupService extends TaskResourceService {
         pathParam.setMaxPaths(param.getMaxPaths());
         pathParam.setMinPaths(param.getMinPaths());
         pathParam.setPathsPerInitiator(param.getPathsPerInitiator());
+        pathParam.setMaxInitiatorsPerPort(param.getMaxInitiatorsPerPort());
         if (param.getStoragePorts() != null) { 
             pathParam.setStoragePorts(StringSetUtil.uriListToStringSet(param.getStoragePorts()));
         }

@@ -1322,37 +1322,61 @@ public class BlockStorageScheduler {
         Map<String, Integer> hostInitiatorCounts = new HashMap<String, Integer>();
         // Calculate the path parameters.
         ExportPathParams param = new ExportPathParams(0, 0, 0);
+        //maxInitiatorsPerPort maps a port to a count of initiators using it.
+        Map<String, Integer> maxInitiatorsPerPort = new HashMap<String, Integer>();     
+        //portsPerInitiator maps initiator to the count of ports using it
+        Map<String, Integer> portsPerInitiator  = new HashMap<String, Integer>(); 
+        // It will store the maximum value of Initiators per Port.
+        Integer max_initiators_per_port = 0;
+        // It will store the maximum value of Ports per Initiators.
+        Integer paths_per_initiator = 0;
+        // It will store unique ports
+        Set<String> uniquePorts = new HashSet<String>();
+        // It will store the number of unique ports
+        Integer max_path = 0;
         // If there is a zoningMap, use that.
+        
         if (mask.getZoningMap() != null) {
             for (String initiatorId : mask.getZoningMap().keySet()) {
                 Initiator initiator = dbClient.queryObject(Initiator.class, URI.create(initiatorId));
                 if (initiator == null || initiator.getInactive()) {
                     continue;
                 }
-                String host = (initiator.getHost() != null) ? initiator.getHost().toString() : "<unknown>";
-                if (hostInitiatorCounts.get(host) == null) {
-                    hostInitiatorCounts.put(host, 0);
-                }
+                
                 Set<String> portIds = mask.getZoningMap().get(initiatorId);
                 if (portIds == null) {
                     continue;
                 }
-                int ppi = 0;
+               
                 for (String portId : portIds) {
-                    Integer newValue = hostInitiatorCounts.get(host) + 1;
-                    hostInitiatorCounts.put(host, newValue);
-                    ppi++;
+                	// get current initiator count for a given port.
+                    Integer newInitiator = maxInitiatorsPerPort.get(portId); 
+                    // Check if the port has been registered with an initiator,
+                    // increment it, if it has been registered, added it otherwise.
+                    newInitiator = (newInitiator != null) ? newInitiator + 1 : 1;
+                    maxInitiatorsPerPort.put(portId, newInitiator);
+                    // get current port count given initiator.
+                    Integer newPortsCount = portsPerInitiator.get(initiatorId);
+                    // Check if the initiator has been registered with a port,
+                    // increment it, if it has been registered, added it otherwise.
+                    newPortsCount = (newPortsCount != null) ? newPortsCount + 1 : 1;
+                    portsPerInitiator.put(initiatorId, newPortsCount);  
+
+                    // add port if is not there.
+                    uniquePorts.add(portId);        
                 }
-                if (ppi > param.getPathsPerInitiator()) {
-                    param.setPathsPerInitiator(ppi);
-                }
+                
             }
-            // Return the maximum of any host.
-            for (Integer value : hostInitiatorCounts.values()) {
-                if (value > param.getMaxPaths()) {
-                    param.setMaxPaths(value);
-                }
+            //Looks for the maximum initiators a port might have.
+            for (Integer maximizer : maxInitiatorsPerPort.values()) {
+            	if (maximizer > max_initiators_per_port) {
+            		max_initiators_per_port = maximizer;
+            		param.setMaxInitiatorsPerPort(max_initiators_per_port);
+            	}
             }
+            // the number of unique ports allocated.
+            max_path = uniquePorts.size();
+            param.setMaxPaths(max_path);
         } else {
             // If there is not a zoning map, we won't change things.
             _log.info(String.format("No zoning map for mask %s (%s), will not change zoning",

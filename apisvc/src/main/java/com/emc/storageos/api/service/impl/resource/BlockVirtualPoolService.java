@@ -485,7 +485,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             vpool.setDriveType(param.getDriveType());
         }
 
-        validateAndSetPathParams(vpool, param.getMaxPaths(), param.getMinPaths(), param.getPathsPerInitiator());
+        validateAndSetPathParams(vpool, param.getMaxPaths(), param.getMinPaths(), param.getPathsPerInitiator(), param.getMaxInitiatorPerPort());
 
         if (param.getThinVolumePreAllocationPercentage() != null) {
             vpool.setThinVolumePreAllocationPercentage(param.getThinVolumePreAllocationPercentage());
@@ -1353,7 +1353,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
      * @param pathsPerInitiator
      */
     private void validateAndSetPathParams(VirtualPool vpool,
-            Integer maxPaths, Integer minPaths, Integer pathsPerInitiator) {
+            Integer maxPaths, Integer minPaths, Integer pathsPerInitiator, Integer maxInitiatorsPerPort) {
         // If minPaths is specified, or pathsPerInitiator is specified, maxPaths must be specified
         if ((minPaths != null || pathsPerInitiator != null) && maxPaths == null) {
             throw APIException.badRequests.maxPathsRequired();
@@ -1367,9 +1367,13 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (pathsPerInitiator != null) {
             ArgValidator.checkFieldMinimum(pathsPerInitiator, 1, "paths_per_initiator");
         }
+        if (maxInitiatorsPerPort != null) {
+        	ArgValidator.checkFieldMinimum(maxInitiatorsPerPort, 1, "max_initirators_per_port");
+        }
         Integer min = (minPaths != null) ? minPaths : vpool.getMinPaths();
         Integer max = (maxPaths != null) ? maxPaths : vpool.getNumPaths();
         Integer ppi = (pathsPerInitiator != null) ? pathsPerInitiator : vpool.getPathsPerInitiator();
+        Integer mip = (maxInitiatorsPerPort != null ) ? maxInitiatorsPerPort: vpool.getMaxInitiatorsPerPort();
         // Default the parameters to one if not set either in vPool or parameters
         if (min == null) {
             minPaths = min = 1;
@@ -1379,6 +1383,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
         if (ppi == null) {
             pathsPerInitiator = ppi = 1;
+        }
+        if (mip == null) {
+        	maxInitiatorsPerPort = mip = 1;
         }
         // minPaths must be <= than maxPaths.
         if (min > max) {
@@ -1397,6 +1404,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
         if (pathsPerInitiator != null) {
             vpool.setPathsPerInitiator(pathsPerInitiator);
+        }
+        if (maxInitiatorsPerPort != null) {
+        	vpool.setMaxInitiatorsPerPort(maxInitiatorsPerPort);
         }
     }
 
@@ -1738,7 +1748,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         }
 
         // Set the min/max paths an paths per initiator
-        validateAndSetPathParams(vpool, param.getMaxPaths(), param.getMinPaths(), param.getPathsPerInitiator());
+        validateAndSetPathParams(vpool, param.getMaxPaths(), param.getMinPaths(), param.getPathsPerInitiator(), param.getMaxInitiatorsPerPort());
 
         if (null != param.getUniquePolicyNames()) {
             vpool.setUniquePolicyNames(param.getUniquePolicyNames());

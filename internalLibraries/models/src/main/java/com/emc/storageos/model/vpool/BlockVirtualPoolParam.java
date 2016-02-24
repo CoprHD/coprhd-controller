@@ -22,6 +22,7 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
     private Integer maxPaths;
     private Integer minPaths;
     private Integer pathsPerInitiator;
+    private Integer maxInitiatorsPerPort;
     private Set<String> raidLevels;
     // For example, if auto_tiering_policy_name is specified ,then on vnx, ranking
     // algorithm is applied to get matching pools.
@@ -118,6 +119,18 @@ public class BlockVirtualPoolParam extends VirtualPoolCommonParam {
 
     public void setPathsPerInitiator(Integer pathsPerInitiator) {
         this.pathsPerInitiator = pathsPerInitiator;
+    }
+
+    @XmlElement(name = "max_initiators_per_port")
+    @Range(min = 1, max = 65535)
+    /**
+     * The maximum number of initiators mapped per port.
+     */
+    public Integer getMaxInitiatorsPerPort() {
+        return maxInitiatorsPerPort;
+    }
+    public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
+        this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
 
     @XmlElementWrapper(name = "raid_levels")

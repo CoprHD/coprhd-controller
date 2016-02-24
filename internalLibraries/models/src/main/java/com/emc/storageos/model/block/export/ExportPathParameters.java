@@ -19,6 +19,7 @@ public class ExportPathParameters {
     private Integer maxPaths;
     private Integer pathsPerInitiator;
     private Integer minPaths;
+    private Integer maxInitiatorsPerPort;
     private List<URI> storagePorts;
     
     @XmlElement(name = "max_paths")
@@ -56,6 +57,18 @@ public class ExportPathParameters {
     }
     public void setMinPaths(Integer minPaths) {
         this.minPaths = minPaths;
+    }
+    
+    @XmlElement(name = "max_initiators_per_port")
+    @Range(min = 1, max = 65535)
+    /**
+     * The maximum number of initiators mapped per port.
+     */
+    public Integer getMaxInitiatorsPerPort() {
+        return maxInitiatorsPerPort;
+    }
+    public void setMaxInitiatorsPerPort(Integer maxInitiatorsPerPort) {
+        this.maxInitiatorsPerPort = maxInitiatorsPerPort;
     }
     
     @XmlElementWrapper(name="storage_ports", required=false)

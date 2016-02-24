@@ -40,6 +40,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Integer _minPaths;
     // number of paths to access storage per Initiator, block only
     private Integer _pathsPerInitiator;
+    // maximum number of initiators per port.
+    private Integer _maxInitiatorsPerPort;
     // VirtualArrays where this VirtualPool is available
     private StringSet _virtualArrays;
     // optional VirtualPool reference used for mirror placement
@@ -525,6 +527,16 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setMinPaths(final Integer minPaths) {
         this._minPaths = minPaths;
         setChanged("minPaths");
+    }
+    
+    @Name("maxInitiatorsPerPort")
+    public Integer getMaxInitiatorsPerPort() {
+        return _maxInitiatorsPerPort;
+    }
+
+    public void setMaxInitiatorsPerPort(final Integer maxInitiatorsPerPort) {
+        this._maxInitiatorsPerPort = maxInitiatorsPerPort;
+        setChanged("maxInitiatorsPerPort");
     }
 
     @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)

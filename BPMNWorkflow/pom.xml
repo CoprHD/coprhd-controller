@@ -178,6 +178,23 @@
 
 			<!-- <dependency> <groupId>javax.servlet</groupId> <artifactId>servlet-api</artifactId> 
 				<version>3.0-alpha-1</version> </dependency> -->
+
+			<dependency>
+				<groupId>com.emc.storageos</groupId>
+				<artifactId>vipr-client</artifactId>
+				<version>1.0</version>
+				<scope>system</scope>
+				<systemPath>${basedir}/lib/vipr-client.jar</systemPath>
+			</dependency>
+
+			<dependency>
+				<groupId>com.emc.storageos</groupId>
+				<artifactId>storageos-models</artifactId>
+				<version>1.0</version>
+				<scope>system</scope>
+				<systemPath>${basedir}/lib/storageos-models.jar</systemPath>
+			</dependency>
+
 		</dependencies>
 
 	</dependencyManagement>

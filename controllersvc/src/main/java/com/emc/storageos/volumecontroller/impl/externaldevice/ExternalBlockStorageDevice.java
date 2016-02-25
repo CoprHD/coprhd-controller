@@ -522,7 +522,6 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 URI sourceVolumeUri = clone.getAssociatedSourceVolume();
                 Volume sourceVolume = dbClient.queryObject(Volume.class, sourceVolumeUri);
                 VolumeClone driverClone = new VolumeClone();
-                //driverClone.setConsistencyGroup(cg.getLabel());
                 driverClone.setParentId(sourceVolume.getNativeId());
                 driverClone.setStorageSystemId(storageSystem.getNativeId());
                 driverClone.setDisplayName(clone.getLabel());

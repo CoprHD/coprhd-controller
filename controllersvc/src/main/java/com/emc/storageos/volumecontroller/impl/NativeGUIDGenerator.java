@@ -108,7 +108,7 @@ public class NativeGUIDGenerator {
     }
 
     // Cannot get this bean from ControllerServiceImpl context,
-    // since ControllerServiceImpl is not loaded by spring in apisvc. The context is null.
+    // since ControllerServiceImpl is not loaded by spring in apisvc (it is passed in ZK). The context is null.
     private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
            getApplicationContext().getBean("storageDriverManager");
 

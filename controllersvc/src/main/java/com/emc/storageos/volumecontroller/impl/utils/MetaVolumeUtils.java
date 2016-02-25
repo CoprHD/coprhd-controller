@@ -29,7 +29,10 @@ public class MetaVolumeUtils {
 
     public static StorageDriverManager getDriverManager() {
         if (driverManager == null) {
-            driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+            // Cannot get this bean from ControllerServiceImpl context,
+            // since ControllerServiceImpl is not loaded by spring in apisvc (it is passed in ZK). The context is null.
+            driverManager = (StorageDriverManager)StorageDriverManager.
+                    getApplicationContext().getBean("storageDriverManager");
         }
         return driverManager;
     }

@@ -6174,6 +6174,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 Workflow.Method deleteRsetExecuteMethod = new Workflow.Method(METHOD_DELETE_RSET_STEP,
                         rpSystem.getId(), volumeURIs);
     
+                // rollback method for deleteRset. If deleteRest fails, recreate the Rset
                 Workflow.Method recreateRSetExecuteMethod = new Workflow.Method(METHOD_RECREATE_RSET_STEP,
                         rpSystem.getId(), volumeURIs, rsetParams);
     

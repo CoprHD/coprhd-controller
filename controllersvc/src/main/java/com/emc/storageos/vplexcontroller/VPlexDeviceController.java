@@ -11428,6 +11428,17 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         return capabilities;
     }
     
+    /**
+     * Add steps to restore full copy
+     * @param workflow - the workflow the steps would be added to
+     * @param waitFor - the step would be waited before the added steps would be executed
+     * @param storage - the storage controller URI
+     * @param fullcopies - the full copies to restore
+     * @param opId 
+     * @param completer - the CloneRestoreCompleter
+     * @return the step id for the added step
+     * @throws InternalException
+     */
     public String addStepsForRestoreFromFullcopy(Workflow workflow,
             String waitFor, URI storage, List<URI> fullcopies, String opId,
             CloneRestoreCompleter completer) throws InternalException {

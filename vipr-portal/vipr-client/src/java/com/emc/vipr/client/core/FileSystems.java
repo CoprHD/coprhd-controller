@@ -787,7 +787,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the ID of the file system.
      * @param filePolicyId
      *            the ID of the policy.
-     * @return a file policy list.
+     * @return list of snapshot created by file policy.
      */
     public ScheduleSnapshotList getFilePolicySnapshots(URI fileSystemId, URI filePolicyId) {
         UriBuilder builder = client.uriBuilder(getIdUrl() + "/file-policies/{filePolicyId}/snapshots");

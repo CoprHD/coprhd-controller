@@ -86,6 +86,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     private static final String EXPORT_OP_NAME = "Snapshot Export";
     private static final String SHARE_OP_NAME = "Snapshot Share";
+    public static final long SEC_IN_MILLI = 1000L;
 
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
@@ -2568,9 +2569,11 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
                         snap.setMountPath(getSnapshotPath(islon_snap.getPath(), islon_snap.getName()));
                         snap.setParent(new NamedURI(fs.getId(), islon_snap.getName()));
                         StringMap map = new StringMap();
-                        map.put("Schedule", fp.getPolicyName());
-                        map.put("created", islon_snap.getCreated());
-                        map.put("expires", islon_snap.getExpires());
+                        Long createdTime = Long.parseLong(islon_snap.getCreated()) * SEC_IN_MILLI;
+                        Long expiresTime = Long.parseLong(islon_snap.getExpires()) * SEC_IN_MILLI;
+                        map.put("created", createdTime.toString());
+                        map.put("expires", expiresTime.toString());
+                        map.put("schedule", fp.getPolicyName());
                         snap.setExtensions(map);
                         _dbClient.updateObject(snap);
 
@@ -2584,7 +2587,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
             return BiosCommandResult.createErrorResult(e);
         }
         Task task = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), args.getOpId());
-        // set task to completed and progress to 100 and stored in DB, so waiting thread in apisvc can read it.
+        // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
         task.ready();
         task.setProgress(100);
         _dbClient.updateObject(task);

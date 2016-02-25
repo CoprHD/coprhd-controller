@@ -3674,7 +3674,6 @@ nav.files=File Systems
 snapshots.name=Name
 snapshots.volume=Volume
 snapshots.createdDate=Date Created
-snapshots.created=Date Created
 snapshots.lun=Lun
 snapshots.actions=Action
 snapshots.expires=Date Expires

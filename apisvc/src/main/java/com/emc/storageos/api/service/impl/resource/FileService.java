@@ -3437,8 +3437,10 @@ public class FileService extends TaskResourceService {
      * Get file system Snapshot created by policy
      * 
      * @param id
+     *            The URN of a ViPR file system
      * @param filePolicyUri
-     * @return snapshot details
+     *            The URN of a file policy schedule
+     * @return List snapshot created by a file policy
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -3450,16 +3452,16 @@ public class FileService extends TaskResourceService {
         if (timeout < 10 || timeout > 600) {
             timeout = 30;// default timeout value.
         }
+
         ScheduleSnapshotList list = new ScheduleSnapshotList();
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
-
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-
         ArgValidator.checkFieldUriType(filePolicyUri, SchedulePolicy.class, "filePolicyUri");
         ArgValidator.checkUri(filePolicyUri);
         SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
         ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+
         // verify the file system tenant is same as policy tenant
         if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
             throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
@@ -3468,13 +3470,13 @@ public class FileService extends TaskResourceService {
         if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
             throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
         }
+
         String task = UUID.randomUUID().toString();
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
         FileController controller = getController(FileController.class, device.getSystemType());
-
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE);
-        op.setDescription("Filesystem snaphot based based on policy");
+        op.setDescription("list snapshot created by a policy");
 
         try {
 
@@ -3485,8 +3487,8 @@ public class FileService extends TaskResourceService {
             auditOp(OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
                     fs.getId().toString(), device.getId().toString(), fp.getId());
             int timeoutCounter = 0;
+            // wait till timout or result from controler service ,whichever is erlier
             do {
-
                 TimeUnit.SECONDS.sleep(1);
                 taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
                 timeoutCounter++;
@@ -3500,7 +3502,7 @@ public class FileService extends TaskResourceService {
 
                 for (Snapshot snap : snapList) {
 
-                    if (!snap.getInactive() && snap.getExtensions().containsKey("Schedule")) {
+                    if (!snap.getInactive() && snap.getExtensions().containsKey("schedule")) {
                         ScheduleSnapshotRestRep snapRest = new ScheduleSnapshotRestRep();
                         getScheduleSnapshotRestRep(snapRest, snap);
                         list.getScheduleSnapList().add(snapRest);
@@ -3517,10 +3519,10 @@ public class FileService extends TaskResourceService {
 
         } catch (BadRequestException e) {
             op = _dbClient.error(FileShare.class, fs.getId(), task, e);
-            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
+            _log.error("Error getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
             throw e;
         } catch (Exception e) {
-            _log.error("Error Assigning Filesystem policy {}, {}", e.getMessage(), e);
+            _log.error("Error getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
         return list;

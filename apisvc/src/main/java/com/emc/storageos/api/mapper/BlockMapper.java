@@ -415,7 +415,7 @@ public class BlockMapper {
         // Map storage controller
         URI storageURI = from.getStorageController();
         if (storageURI != null) {
-            to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, storageURI));
+            to.setStorageController(storageURI);
         }
 
         // Map linked targets.

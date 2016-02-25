@@ -1030,25 +1030,29 @@ public class ControllerUtils {
     }
 
     /**
-     * Filters the CG volumes by given Replication Group name.
+     * Filters the CG volumes by given Replication Group name and system.
      *
      * @param cgVolumes the cg volumes
      * @param rgName the repliaction group name
+     * @param system the system
      * @param dbClient the db client
-     * @return volumes belonging to RG in a CG
+     * @return volumes belonging to given repliaction group and system in a CG
      */
-    public static List<BlockObject> getAllVolumesForRGInCG(List<Volume> cgVolumes, String rgName, DbClient dbClient) {
+    public static List<BlockObject> getAllVolumesForRGInCG(List<Volume> cgVolumes, String rgName,
+            URI system, DbClient dbClient) {
         List<BlockObject> cgVolumesInRG = new ArrayList<BlockObject>();
         // get only those volumes belonging to given RG name
         if (NullColumnValueGetter.isNotNullValue(rgName)) {
             for (Volume vol : cgVolumes) {
                 String volRGName = vol.getReplicationGroupInstance();
+                URI systemForVolume = vol.getStorageController();
                 if (vol.isVPlexVolume(dbClient)) {
                     // get RG name from back end volume
                     Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume(vol, true, dbClient);
                     volRGName = srcBEVolume.getReplicationGroupInstance();
+                    systemForVolume = srcBEVolume.getStorageController();
                 }
-                if (rgName.equals(volRGName)) {
+                if (rgName.equals(volRGName) && systemForVolume.toString().equals(system.toString())) {
                     cgVolumesInRG.add(vol);
                 }
             }

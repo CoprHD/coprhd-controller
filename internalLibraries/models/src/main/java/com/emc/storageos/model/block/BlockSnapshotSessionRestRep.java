@@ -1,9 +1,10 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +14,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
 /**
@@ -21,13 +23,19 @@ import com.emc.storageos.model.RelatedResourceRep;
  */
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "block_snapshot_session")
-public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
+public class BlockSnapshotSessionRestRep extends DataObjectRestRep {
 
     // Related resource representation for the snapshot session source object.
     private RelatedResourceRep parent;
 
+    // The consistency group where the snapshot session belongs to.
+    private RelatedResourceRep consistencyGroup;
+
     // Related resource representation for the snapshot session source project.
     private RelatedResourceRep project;
+
+    // The storage controller where the snapshot session is created.
+    private RelatedResourceRep storageController;
 
     // Related resource representations for the BlockSnapshot instances
     // representing the targets linked to the snapshot session.
@@ -36,10 +44,10 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     // The session label.
     private String sessionLabel;
 
-    // The replication group for which the session is created for.
+    // The source replication group for which the snapshot session is created for.
     private String replicationGroupInstance;
 
-    // The session set name to group all sessions created for replication groups in an Application.
+    // The session set name to group all snapshot sessions created for replication groups in an Application.
     private String sessionSetName;
 
     /**
@@ -56,6 +64,20 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     }
 
     /**
+     * URI and reference link to the consistency group
+     * where the snapshot session belongs to.
+     * 
+     */
+    @XmlElement(name = "consistency_group")
+    public RelatedResourceRep getConsistencyGroup() {
+        return consistencyGroup;
+    }
+
+    public void setConsistencyGroup(RelatedResourceRep consistencyGroup) {
+        this.consistencyGroup = consistencyGroup;
+    }
+
+    /**
      * URI and reference link of the project to which the snapshot belongs.
      * 
      */
@@ -66,6 +88,20 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
 
     public void setProject(RelatedResourceRep project) {
         this.project = project;
+    }
+
+    /**
+     * URI and reference link of the Storage controller
+     * where the snapshot session is located.
+     * 
+     */
+    @XmlElement(name = "storage_controller")
+    public RelatedResourceRep getStorageController() {
+        return storageController;
+    }
+
+    public void setStorageController(RelatedResourceRep storageController) {
+        this.storageController = storageController;
     }
 
     /**
@@ -100,7 +136,7 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     }
 
     /**
-     * Replication Group name for which this session is created for.
+     * Source Replication Group name for which this session is created for.
      * 
      */
     @XmlElement(name = "replication_group_instance")

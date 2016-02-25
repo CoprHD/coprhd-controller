@@ -129,6 +129,7 @@ public class SmisSnapShotJob extends SmisJob {
                 snapSession.setSessionLabel(snapshot.getSnapsetLabel());
                 snapSession.setSessionInstance(snapshot.getSettingsInstance());
                 snapSession.setProject(snapshot.getProject());
+                snapSession.setStorageController(storage.getId());
 
                 setParentOrConsistencyGroupAssociation(snapSession, snapshot, dbClient);
             }

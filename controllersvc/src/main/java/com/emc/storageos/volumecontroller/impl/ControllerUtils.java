@@ -1723,15 +1723,7 @@ public class ControllerUtils {
             getSnapshotSessionForStorageReplicationGroup(List<BlockSnapshotSession> sessions, DbClient dbClient) {
         Table<URI, String, BlockSnapshotSession> storageRgToSession = HashBasedTable.create();
         for (BlockSnapshotSession session : sessions) {
-            URI storage = null;
-            URI cgURI = session.getConsistencyGroup();
-            if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-                storage = cg.getStorageController();
-            } else { // should not come here for sessions in Application
-                BlockObject parent = dbClient.queryObject(BlockObject.class, session.getParent());
-                storage = parent.getStorageController();
-            }
+            URI storage = session.getStorageController();
             String rgName = session.getReplicationGroupInstance();
             if (!storageRgToSession.contains(storage, rgName)) {
                 storageRgToSession.put(storage, rgName, session);

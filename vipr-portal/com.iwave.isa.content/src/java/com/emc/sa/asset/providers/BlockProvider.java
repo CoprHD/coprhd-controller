@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.SnapshotList;
@@ -2591,12 +2592,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             BlockSnapshotRestRep snapshot = (BlockSnapshotRestRep) blockObject;
             return getMessage("block.snapshot.label", snapshot.getName(), getBlockSnapshotParentVolumeName(volumeNames, snapshot));
         }
-        else if (blockObject instanceof BlockSnapshotSessionRestRep) {
-            BlockSnapshotSessionRestRep snapshotSession = (BlockSnapshotSessionRestRep) blockObject;
+        return blockObject.getName();
+    }
+
+    private static String getDataObjectLabel(ViPRCoreClient client, DataObjectRestRep dataObject, Map<URI, VolumeRestRep> volumeNames) {
+        if (dataObject instanceof BlockSnapshotSessionRestRep) {
+            BlockSnapshotSessionRestRep snapshotSession = (BlockSnapshotSessionRestRep) dataObject;
             return getMessage("block.snapshotsession.label", snapshotSession.getName(),
                     getBlockSnapshotSessionParentVolumeName(volumeNames, snapshotSession));
         }
-        return blockObject.getName();
+        return dataObject.getName();
     }
 
     private static String getBlockSnapshotLinkedLabel(BlockSnapshotRestRep snapshot, Map<URI, String> linkedSnapshotToSnapshotSessionMap) {
@@ -2683,7 +2688,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         Map<URI, VolumeRestRep> volumeNames = getProjectVolumeNames(client, project);
         for (BlockSnapshotSessionRestRep snapshotSession : snapshotSessions) {
-            options.add(new AssetOption(snapshotSession.getId(), getBlockObjectLabel(client, snapshotSession, volumeNames)));
+            options.add(new AssetOption(snapshotSession.getId(), getDataObjectLabel(client, snapshotSession, volumeNames)));
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;

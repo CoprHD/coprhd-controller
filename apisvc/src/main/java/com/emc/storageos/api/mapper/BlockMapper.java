@@ -71,6 +71,7 @@ import com.emc.storageos.model.block.tier.StorageTierRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 
@@ -127,6 +128,7 @@ public class BlockMapper {
             }
         }
         // Extra checks for VPLEX volumes
+        Volume srdfVolume = from;
         if (null != dbClient && null != from.getAssociatedVolumes() && !from.getAssociatedVolumes().isEmpty()) {
             // For snapshot session support of a VPLEX volume, we only need to check the SOURCE side of the
             // volume.
@@ -147,6 +149,12 @@ public class BlockMapper {
                     }
                 }
             }
+            // Get the SRDF underlying volume if present. That will be used to fill on the
+            // SrdfRestRep below.
+            srdfVolume = VPlexSrdfUtil.getSrdfVolumeFromVplexVolume(dbClient, from);
+            srdfVolume = (srdfVolume != null ? srdfVolume : from);
+            to.setAccessState(srdfVolume.getAccessState());
+            to.setLinkStatus(srdfVolume.getLinkStatus());
         }
 
         if (from.getPool() != null) {
@@ -216,22 +224,23 @@ public class BlockMapper {
             }
         }
 
-        // SRDF specific section
+        // SRDF specific section; uses srdfVolume which is a copy of from unless
+        // it's a vplex underlying srdf volume
         SRDFRestRep toSRDF = null;
-        if ((from.getSrdfTargets() != null) && (!from.getSrdfTargets().isEmpty())) {
+        if ((srdfVolume.getSrdfTargets() != null) && (!srdfVolume.getSrdfTargets().isEmpty())) {
             toSRDF = new SRDFRestRep();
             List<VirtualArrayRelatedResourceRep> targets = new ArrayList<VirtualArrayRelatedResourceRep>();
-            for (String target : from.getSrdfTargets()) {
+            for (String target : VPlexSrdfUtil.getSrdfOrVplexTargets(dbClient, srdfVolume)) {
                 targets.add(toTargetVolumeRelatedResource(ResourceTypeEnum.VOLUME, URI.create(target), getVarray(dbClient, target)));
             }
-            toSRDF.setPersonality(from.getPersonality());
+            toSRDF.setPersonality(srdfVolume.getPersonality());
             toSRDF.setSRDFTargetVolumes(targets);
-        } else if (!NullColumnValueGetter.isNullNamedURI(from.getSrdfParent())) {
+        } else if (!NullColumnValueGetter.isNullNamedURI(srdfVolume.getSrdfParent())) {
             toSRDF = new SRDFRestRep();
-            toSRDF.setPersonality(from.getPersonality());
-            toSRDF.setAssociatedSourceVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSrdfParent().getURI()));
-            toSRDF.setSrdfCopyMode(from.getSrdfCopyMode());
-            toSRDF.setSrdfGroup(from.getSrdfGroup());
+            toSRDF.setPersonality(srdfVolume.getPersonality());
+            toSRDF.setAssociatedSourceVolume(toRelatedResource(ResourceTypeEnum.VOLUME, srdfVolume.getSrdfParent().getURI()));
+            toSRDF.setSrdfCopyMode(srdfVolume.getSrdfCopyMode());
+            toSRDF.setSrdfGroup(srdfVolume.getSrdfGroup());
         }
 
         // Protection object encapsulates mirrors and RP

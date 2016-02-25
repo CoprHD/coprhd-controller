@@ -412,7 +412,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 VirtualPool vpool = recommendation.getVirtualPool();
                 int resourceCount = recommendation.getResourceCount();
 //<<<<<<< HEAD
-                List<VolumeDescriptor> varrayDescriptors = makeBackingVolumeDescriptors(recommendation, 
+                List<VolumeDescriptor> varrayDescriptors = makeBackendVolumeDescriptors(recommendation, 
                         project, vplexProject, volumeLabel, varrayCount, resourceCount, 
                         size, backendCG, vPoolCapabilities, createTask, task);
                 descriptors.addAll(varrayDescriptors);
@@ -3274,14 +3274,38 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolId));
                     if (null != assocVolume && !assocVolume.getInactive() && assocVolume.getNativeId() != null) {
                         if (assocVolume.isSRDFSource()) {
-                            VolumeDescriptor srdfDescriptor = 
-                                    new VolumeDescriptor(VolumeDescriptor.Type.SRDF_SOURCE, 
+                            // Loop through each of the targets adding them. If they are fronted by a Vplex vol,
+                            // add that volume also.
+                            for (String target : assocVolume.getSrdfTargets()) {
+                                Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                                if (null != targetVolume) {
+                                    // Look for a Vplex volume fronting the target. If so add it.
+                                    List<Volume> vplexTargetVolumes = CustomQueryUtility
+                                            .queryActiveResourcesByConstraint(_dbClient, Volume.class, 
+                                                    getVolumesByAssociatedId(targetVolume.getId().toString()));
+                                    for (Volume vplexTargetVolume : vplexTargetVolumes) {
+                                        // There should only be one volume in list, ie. target only associated with
+                                        // one Vplex volume
+                                        VolumeDescriptor vplexTargetDescriptor = new VolumeDescriptor(
+                                                VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
+                                                vplexTargetVolume.getStorageController(), vplexTargetVolume.getId(), 
+                                                null, null);
+                                        volumeDescriptors.add(vplexTargetDescriptor);
+                                    }
+                                }
+                            }
+                            // Let the SRDF code fill in it's own set of volume descriptors
+                            List<URI> srdfVolumeIds = new ArrayList<URI>();
+                            srdfVolumeIds.add(assocVolume.getId());
+                            SRDFBlockServiceApiImpl srdfApi = (SRDFBlockServiceApiImpl) BlockService.getBlockServiceImpl("srdf");
+                            List<VolumeDescriptor> srdfDescriptors = srdfApi.getDescriptorsForVolumesToBeDeleted(
+                                    assocVolume.getStorageController(), srdfVolumeIds, deletionType);
+                            volumeDescriptors.addAll(srdfDescriptors);
+                        } else {
+                            VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                                     assocVolume.getStorageController(), assocVolume.getId(), null, null);
-                            volumeDescriptors.add(srdfDescriptor);
+                            volumeDescriptors.add(assocDesc);
                         }
-                        VolumeDescriptor assocDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                                assocVolume.getStorageController(), assocVolume.getId(), null, null);
-                        volumeDescriptors.add(assocDesc);
                     }
                 }
                 // If there were any Vplex Mirrors, add a descriptors for them.
@@ -3555,7 +3579,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         return varrayRecommendationsMap;
     }
     
-    private List<VolumeDescriptor> makeBackingVolumeDescriptors(VPlexRecommendation recommendation, 
+    private List<VolumeDescriptor> makeBackendVolumeDescriptors(VPlexRecommendation recommendation, 
             Project project, Project vplexProject, 
             String volumeLabel, int varrayCount, int resourceCount, long size, 
             BlockConsistencyGroup backendCG, VirtualPoolCapabilityValuesWrapper vPoolCapabilities,
@@ -3603,6 +3627,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                                 VolumeDescriptor.Type.SRDF_EXISTING_SOURCE};
             }
             descriptors = VolumeDescriptor.filterByType(descriptors, types);
+            markVolumesInternal(descriptors);
             return descriptors;
         }
         
@@ -4069,6 +4094,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             }
         }
         return volumeURIs;
+    }
+    
+    private void markVolumesInternal(List<VolumeDescriptor> descriptors) {
+       for (VolumeDescriptor descriptor : descriptors) {
+           BlockObject blockObject = BlockObject.fetch(_dbClient, descriptor.getVolumeURI());
+           blockObject.addInternalFlags(DataObject.Flag.INTERNAL_OBJECT);
+           _dbClient.updateObject(blockObject);;
+       }
     }
     
 }

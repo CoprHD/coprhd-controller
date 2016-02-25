@@ -199,8 +199,12 @@ public class SmisJob extends Job implements Serializable
                             _status = JobStatus.FAILED;
                             _logger.error("SmisJob: {} failed; Details: {}", getJobName(), _errorDescription);
                             CIMArgument[] pOutputArguments = new CIMArgument[1];
+                            try {
                             Object errorReponse = wbemClient.invokeMethod(getCimJob(), "GetErrors", null, pOutputArguments);
                             _logger.error("GetErrors() response :{}", pOutputArguments);
+                            } catch (Exception ex) {
+                                _logger.error("Error retreiving errorResponse", ex);
+                            }
                         }
                     } else {
                         // reset status from previous possible transient error status

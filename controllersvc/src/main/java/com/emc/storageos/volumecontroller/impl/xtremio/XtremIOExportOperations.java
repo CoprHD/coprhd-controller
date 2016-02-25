@@ -793,7 +793,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
                 if (xtremIOVolume != null) {
                     _log.info("Volume lunMap details Found {}", xtremIOVolume.getLunMaps().toString());
-                    if (!xtremIOVolume.getWwn().isEmpty()) {
+                    if (!xtremIOVolume.getVolInfo().isEmpty()) {
                         blockObj.setWWN(xtremIOVolume.getVolInfo().get(0));
                         blockObj.setNativeId(xtremIOVolume.getVolInfo().get(0));
                         dbClient.updateObject(blockObj);

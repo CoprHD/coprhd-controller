@@ -146,7 +146,7 @@ class Project(object):
                         Project.URI_PROJECT_RESOURCES.format(project_uri), None)
         o = common.json_decode(s)
      
-        if(xml):
+        if xml:
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port, "GET",
                 Project.URI_PROJECT_RESOURCES.format(project_uri),

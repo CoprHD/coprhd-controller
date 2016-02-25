@@ -24,7 +24,7 @@ public class IPsecService {
 
 
     private static final String IPSEC_SERVICE_TYPE = "ipsec";
-    private static final String IPSEC_KEY = "ipsec_key";
+    private static final String IPSEC_STATUS = "ipsec_status";
     @Autowired
     private IPsecManager ipsecMgr;
 
@@ -48,7 +48,7 @@ public class IPsecService {
                 OperationTypeEnum.UPDATE_SYSTEM_PROPERTY,
                 System.currentTimeMillis(),
                 AuditLogManager.AUDITLOG_SUCCESS,
-                null, IPSEC_KEY);
+                null, "config_version=" + version);
 
         return version;
     }
@@ -86,7 +86,7 @@ public class IPsecService {
                 OperationTypeEnum.UPDATE_SYSTEM_PROPERTY,
                 System.currentTimeMillis(),
                 AuditLogManager.AUDITLOG_SUCCESS,
-                null, IPSEC_KEY);
+                null, IPSEC_STATUS + "=" + status);
 
         return result;
     }

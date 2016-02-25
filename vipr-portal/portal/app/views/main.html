@@ -138,6 +138,7 @@
             #{nav.item 'file.virtualPools', href: @arrays.FileVirtualPools.list()/}
             #{nav.item 'object.virtualPools', href: @arrays.ObjectVirtualPools.list()/}
             #{nav.item 'computeVirtualPools', href: @compute.ComputeVirtualPools.list()/}
+            #{nav.item 'mobilityGroups', href: @arrays.MobilityGroups.list()/}
           #{/license.ifController}
         #{/deadbolt.restrict}
         #{nav.item 'vdcs', href: @infra.VirtualDataCenters.list()/}
@@ -294,9 +295,9 @@
             	#{if !util.SetupUtils.isOssBuild()}
             		#{if isActiveSite }
                 		#{nav.item 'license', href: @infra.Licensing.index()/}
-                	#{/if}
-                	#{nav.separator/}
-               		#{nav.item 'supportRequest', href: @infra.SupportRequest.createSupportRequest()/}
+	                	#{nav.separator/}
+               			#{nav.item 'supportRequest', href: @infra.SupportRequest.createSupportRequest()/}
+               		#{/if}
             	#{/if}
         	#{/deadbolt.restrict}
         	 #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}  

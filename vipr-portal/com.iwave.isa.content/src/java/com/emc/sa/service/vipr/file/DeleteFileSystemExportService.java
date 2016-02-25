@@ -17,7 +17,7 @@ public class DeleteFileSystemExportService extends ViPRService {
     @Param(FILESYSTEMS)
     protected URI fileSystems;
 
-    @Param(SUBDIRECTORY)
+    @Param(value = SUBDIRECTORY, required = false)
     protected String subDirectory;
 
     @Param(ALLDDIRECTORY)

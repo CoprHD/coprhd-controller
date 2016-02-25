@@ -4,9 +4,13 @@
  */
 package com.emc.storageos.model.host;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.RelatedResourceRep;
@@ -31,6 +35,7 @@ public class HostRestRep extends ComputeSystemRestRep {
     private RelatedResourceRep vCenterDataCenter;
     private Boolean discoverable;
     private String provisioningJobStatus;
+    private List<RelatedResourceRep> volumeGroups;
 
     public HostRestRep() {
     }
@@ -204,6 +209,23 @@ public class HostRestRep extends ComputeSystemRestRep {
 
     public void setProvisioningJobStatus(String provisioningJobStatus) {
         this.provisioningJobStatus = provisioningJobStatus;
+    }
+
+    @XmlElementWrapper(name = "volume_groups")
+    /**
+     * List of applications that the host is assigned to.
+     * @valid none
+     */
+    @XmlElement(name = "volume_group")
+    public List<RelatedResourceRep> getVolumeGroups() {
+        if (volumeGroups == null) {
+            volumeGroups = new ArrayList<RelatedResourceRep>();
+        }
+        return volumeGroups;
+    }
+
+    public void setVolumeGroups(List<RelatedResourceRep> volumeGroups) {
+        this.volumeGroups = volumeGroups;
     }
 
 }

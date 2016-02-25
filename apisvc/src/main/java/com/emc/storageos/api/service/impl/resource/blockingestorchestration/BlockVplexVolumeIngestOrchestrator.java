@@ -502,7 +502,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // the BlockSnapshot instance and only the Volume would get created. So,
                 // we first move the snapshot to the created snapshots list before adding
                 // the volume to the created objects list.
-                Map<String, BlockObject> createdObjectMap = backendRequestContext.getObjectsToBeCreatedMap();
+                Map<String, BlockObject> createdObjectMap = backendRequestContext.getBlockObjectsToBeCreatedMap();
                 String blockObjectNativeGuid = blockObject.getNativeGuid();
                 if (createdObjectMap.containsKey(blockObjectNativeGuid)) {
                     BlockObject createdBlockObject = createdObjectMap.get(blockObjectNativeGuid);
@@ -581,7 +581,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             String createdObjectGuid = unManagedVolumeGUID.replace(
                     VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-            BlockObject processedBlockObject = backendRequestContext.getObjectsToBeCreatedMap().get(createdObjectGuid);
+            BlockObject processedBlockObject = backendRequestContext.getBlockObjectsToBeCreatedMap().get(createdObjectGuid);
 
             if (processedBlockObject == null) {
                 String reason = "The ingested block object is null. Skipping ingestion of export masks.";
@@ -835,7 +835,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
             if (!toUpdateList.isEmpty()) {
                 // Since I pulled this in from the database, we need to add it to the list of objects to update.
-                ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
+                ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getDataObjectsToBeUpdatedMap().put(
                         unManagedVolume.getNativeGuid(), toUpdateList);
             }
         }

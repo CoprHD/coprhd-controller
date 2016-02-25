@@ -3449,7 +3449,9 @@ public class FileService extends TaskResourceService {
      *            The URN of a ViPR file system
      * @param filePolicyUri
      *            The URN of a file policy schedule
-     * @return List snapshot created by a file policy
+     * @param timeout
+     *            Time limit in seconds to get the output .Default is 30 seconds
+     * @return List of snapshots created by a file policy
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -3457,7 +3459,7 @@ public class FileService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public ScheduleSnapshotList getFileSystemSchedulePolicySnapshots(@PathParam("id") URI id,
             @PathParam("filePolicyUri") URI filePolicyUri, @QueryParam("timeout") int timeout) {
-        // valid value of timout is 10 sec to 10 min
+        // valid value of timeout is 10 sec to 10 min
         if (timeout < 10 || timeout > 600) {
             timeout = 30;// default timeout value.
         }
@@ -3468,11 +3470,11 @@ public class FileService extends TaskResourceService {
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldUriType(filePolicyUri, SchedulePolicy.class, "filePolicyUri");
         ArgValidator.checkUri(filePolicyUri);
-        SchedulePolicy fp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
-        ArgValidator.checkEntityNotNull(fp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+        SchedulePolicy sp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
+        ArgValidator.checkEntityNotNull(sp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
 
         // verify the file system tenant is same as policy tenant
-        if (!fp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+        if (!sp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
             throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
         }
         // verify the schedule policy is associated with file system or not.
@@ -3485,18 +3487,18 @@ public class FileService extends TaskResourceService {
         FileController controller = getController(FileController.class, device.getSystemType());
         Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
                 task, ResourceOperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE);
-        op.setDescription("list snapshot created by a policy");
+        op.setDescription("list snapshots created by a policy");
 
         try {
 
-            _log.info("No Errors found proceeding further {}, {}, {}", new Object[] { _dbClient, fs, fp });
+            _log.info("No Errors found. Proceeding further {}, {}, {}", new Object[] { _dbClient, fs, sp });
 
-            controller.listSanpshotByPolicy(device.getId(), fs.getId(), fp.getId(), task);
+            controller.listSanpshotByPolicy(device.getId(), fs.getId(), sp.getId(), task);
             Task taskObject = null;
             auditOp(OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
-                    fs.getId().toString(), device.getId().toString(), fp.getId());
+                    fs.getId().toString(), device.getId().toString(), sp.getId());
             int timeoutCounter = 0;
-            // wait till timout or result from controler service ,whichever is erlier
+            // wait till timeout or result from controller service ,whichever is earlier
             do {
                 TimeUnit.SECONDS.sleep(1);
                 taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
@@ -3522,16 +3524,16 @@ public class FileService extends TaskResourceService {
 
             } else {
                 throw APIException.badRequests
-                        .unableToProcessRequest("Time out occurred, please increased timeout value, default is 30 sec");
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to timeout");
 
             }
 
         } catch (BadRequestException e) {
             op = _dbClient.error(FileShare.class, fs.getId(), task, e);
-            _log.error("Error getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
-            throw e;
+            _log.error("Error while getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         } catch (Exception e) {
-            _log.error("Error getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
+            _log.error("Error while getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
             throw APIException.badRequests.unableToProcessRequest(e.getMessage());
         }
         return list;

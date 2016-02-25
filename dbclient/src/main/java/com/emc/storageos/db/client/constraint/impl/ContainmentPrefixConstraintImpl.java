@@ -69,4 +69,9 @@ public class ContainmentPrefixConstraintImpl extends ConstraintImpl implements C
     public Class<? extends DataObject> getDataObjectType() {
         return _field.getDataObjectType();
     }
+    
+	@Override
+	public boolean isValid() {
+        return this._indexKey!=null && !this._indexKey.toString().isEmpty();
+	}
 }

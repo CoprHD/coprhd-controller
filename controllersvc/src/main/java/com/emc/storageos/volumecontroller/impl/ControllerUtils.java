@@ -67,7 +67,7 @@ import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEvent;
-import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
 import com.google.common.base.Joiner;
@@ -1250,7 +1250,7 @@ public class ControllerUtils {
      */
     public static boolean checkSnapshotsInConsistencyGroup(List<BlockSnapshot> snapshots, DbClient dbClient,
             TaskCompleter completer) {
-        BlockConsistencyGroup group = ConsistencyUtils.getSnapshotsConsistencyGroup(snapshots, dbClient);
+        BlockConsistencyGroup group = ConsistencyGroupUtils.getSnapshotsConsistencyGroup(snapshots, dbClient);
         if (group != null) {
             if (completer != null) {
                 completer.addConsistencyGroupId(group.getId());
@@ -1271,7 +1271,7 @@ public class ControllerUtils {
      * @return true/false dependent on the clone being part of a consistency group.
      */
     public static boolean checkCloneConsistencyGroup(URI clone, DbClient dbClient, TaskCompleter completer) {
-        BlockConsistencyGroup group = ConsistencyUtils.getCloneConsistencyGroup(clone, dbClient);
+        BlockConsistencyGroup group = ConsistencyGroupUtils.getCloneConsistencyGroup(clone, dbClient);
         if (group != null) {
             if (completer != null) {
                 completer.addConsistencyGroupId(group.getId());
@@ -1282,7 +1282,7 @@ public class ControllerUtils {
     }
 
     public static boolean checkSnapshotSessionConsistencyGroup(URI snapshotSession, DbClient dbClient, TaskCompleter completer) {
-        BlockConsistencyGroup group = ConsistencyUtils.getSnapshotSessionConsistencyGroup(snapshotSession, dbClient);
+        BlockConsistencyGroup group = ConsistencyGroupUtils.getSnapshotSessionConsistencyGroup(snapshotSession, dbClient);
         if (group != null) {
             if (completer != null) {
                 completer.addConsistencyGroupId(group.getId());
@@ -1301,7 +1301,7 @@ public class ControllerUtils {
      * @return true/false dependent on the clone being part of a consistency group.
      */
     public static boolean checkMirrorConsistencyGroup(List<URI> mirrors, DbClient dbClient, TaskCompleter completer) {
-        BlockConsistencyGroup group = ConsistencyUtils.getMirrorsConsistencyGroup(mirrors, dbClient);
+        BlockConsistencyGroup group = ConsistencyGroupUtils.getMirrorsConsistencyGroup(mirrors, dbClient);
         if (group != null) {
             if (completer != null) {
                 completer.addConsistencyGroupId(group.getId());

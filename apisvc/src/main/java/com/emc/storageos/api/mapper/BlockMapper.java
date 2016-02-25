@@ -412,6 +412,12 @@ public class BlockMapper {
             to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, projectURI.getURI()));
         }
 
+        // Map storage controller
+        URI storageURI = from.getStorageController();
+        if (storageURI != null) {
+            to.setStorageController(storageURI);
+        }
+
         // Map linked targets.
         StringSet linkedTargetIds = from.getLinkedTargets();
         if ((linkedTargetIds != null) && (!linkedTargetIds.isEmpty())) {

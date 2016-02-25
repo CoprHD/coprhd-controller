@@ -332,6 +332,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
 
         snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        snapSession.setStorageController(sourceObj.getStorageController());
 
         if (sourceObj.hasConsistencyGroup()) {
             snapSession.setConsistencyGroup(sourceObj.getConsistencyGroup());

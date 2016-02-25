@@ -2764,7 +2764,7 @@ public interface BadRequestExceptions {
     public BadRequestException duplicateCopySetName(String copySetName, String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNumberOfReplicas();
+    public BadRequestException invalidNumberOfReplicas(String replicaType);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotNotAllowedWhenBackendVolumeDoestHavingCG();

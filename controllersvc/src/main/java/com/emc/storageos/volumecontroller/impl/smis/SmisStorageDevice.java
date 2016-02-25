@@ -2197,6 +2197,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             newSession.setId(URIUtil.createId(BlockSnapshotSession.class));
             newSession.setConsistencyGroup(cg.getId());
             newSession.setProject(new NamedURI(templateSession.getProject().getURI(), templateSession.getProject().getName()));
+            newSession.setStorageController(storage.getId());
             newSession.setLabel(templateSession.getSessionLabel());
             newSession.setSessionLabel(templateSession.getSessionLabel());
             newSession.setReplicationGroupInstance(groupName);

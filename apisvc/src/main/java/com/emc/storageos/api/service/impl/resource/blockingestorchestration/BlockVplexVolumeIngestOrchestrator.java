@@ -465,11 +465,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     backendRequestContext.getVarray(associatedVolume), requestContext.getStorageSystem());
             String haClusterId = getClusterNameForVarray(
                     backendRequestContext.getHaVarray(associatedVolume), requestContext.getStorageSystem());
-            if (backendRequestContext.isDistributed() && (sourceClusterId != null)
-                    && (sourceClusterId.equals(haClusterId))) {
-                throw IngestionException.exceptions.vplexDistributedClusterIdsSame(
-                        sourceClusterId, associatedVolume.getLabel());
-            }
             _logger.info("the source cluster id is {} and the high availability cluster id is {}",
                     sourceClusterId, haClusterId);
             backendRequestContext.setHaClusterId(haClusterId);

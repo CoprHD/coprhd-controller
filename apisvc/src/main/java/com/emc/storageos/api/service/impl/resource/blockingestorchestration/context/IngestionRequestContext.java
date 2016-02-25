@@ -164,22 +164,7 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * 
      * @return a Map of native GUID Strings to BlockObjects
      */
-    public Map<String, BlockObject> getObjectsToBeCreatedMap();
-
-    /**
-     * Returns a Map of BlockConsistencyGroup created during ingestion
-     * as mapped by their label for the key.
-     * 
-     * @return a Map of Label Strings to BlockConistencyGroupss
-     */
-    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap();
-
-    /**
-     * Returns the list of UnManagedConsistencyGroup's to update.
-     * 
-     * @return a List of UnManagedConsistencyGroup.
-     */
-    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate();
+    public Map<String, BlockObject> getBlockObjectsToBeCreatedMap();
 
     /**
      * Returns a Map of a List of DataObjects updated by ingestion
@@ -189,7 +174,17 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return a Map of UnManagedVolume native GUID Strings to a
      *         List of associated updated DataObjects
      */
-    public Map<String, List<DataObject>> getObjectsToBeUpdatedMap();
+    public Map<String, List<DataObject>> getDataObjectsToBeUpdatedMap();
+
+    /**
+     * Returns a Map of a List of DataObjects created by ingestion
+     * as mapped to the native GUID of the UnManagedVolume Object
+     * for which they are set to be created at the end of ingestion.
+     * 
+     * @return a Map of UnManagedVolume native GUID Strings to a
+     *         List of associated newly created DataObjects
+     */
+    public Map<String, List<DataObject>> getDataObjectsToBeCreatedMap();
 
     /**
      * Returns a Map of UnManagedVolume native GUID Strings to
@@ -362,5 +357,35 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return a BlockObject for the native GUID on null if none found
      */
     public DataObject findInUpdatedObjects(URI uri);
-    
+
+    /**
+     * Find an UnManagedConsistencyGroup in the volume contexts associated
+     * with this IngestionRequestContext.
+     * 
+     * @param bcg the BlockConsistencyGroup whose label should be matched
+     * @return an UnManagedConsistencyGroup
+     */
+    public UnManagedConsistencyGroup findUnManagedConsistencyGroup(BlockConsistencyGroup bcg);
+
+    /**
+     * Adds a BlockObject to the blockObjectsToBeCreated Map by its native GUID.
+     * 
+     * @param blockObject the BlockObject to add for creation in the database
+     */
+    public void addBlockObjectToCreate(BlockObject blockObject);
+
+    /**
+     * Adds a DataObject to the dataObjectsToBeUpdated Map for the current UnManagedVolume.
+     * 
+     * @param dataObject the DataObject that needs to be updated in the database
+     */
+    public void addDataObjectToCreate(DataObject dataObject);
+
+    /**
+     * Adds a DataObject to the dataObjectsToBeCreated Map for the current UnManagedVolume.
+     * 
+     * @param dataObject the DataObject that needs to be created in the database
+     */
+    public void addDataObjectToUpdate(DataObject dataObject);
+
 }

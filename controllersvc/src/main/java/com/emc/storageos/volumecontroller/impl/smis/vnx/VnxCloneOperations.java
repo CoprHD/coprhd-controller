@@ -36,6 +36,7 @@ import com.emc.storageos.volumecontroller.impl.smis.AbstractCloneOperations;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVnxCreateCGCloneJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 /**
  * For VNX, clone would be smi-s mirror (Snapview clone)
@@ -76,7 +77,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
         try {
             final Volume first = _dbClient.queryObject(Volume.class, cloneList.get(0));
             Volume sourceVolume = _dbClient.queryObject(Volume.class, first.getAssociatedSourceVolume());
-            sourceGroupName = _helper.getSourceConsistencyGroupName(sourceVolume);
+            sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVolume, _dbClient);
 
             if (!ControllerUtils.isNotInRealVNXRG(sourceVolume, _dbClient)) {
                 // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
@@ -182,7 +183,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
     }
 
     /**
-     * This interface is for the clone activate in CG, for vnx, it is to fracture the mirror.
+     * This interface is for the clone activate in CG, for vnx, it is to Split (Consistent Fracture) the mirror.
      * 
      * @param storage [required] - StorageSystem object representing the array
      * @param clones [required] - clone URIs
@@ -192,7 +193,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
     public void activateGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter completer) {
         log.info("activateGroupClones operation START");
         try {
-            modifyGroupClones(storage, clones, SmisConstants.FRACTURE_VALUE);
+            modifyGroupClones(storage, clones, SmisConstants.SPLIT_VALUE);
             List<Volume> cloneVols = _dbClient.queryObject(Volume.class, clones);
             for (Volume clone : cloneVols) {
                 clone.setSyncActive(true);
@@ -220,7 +221,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
                 modifyGroupClones(storageSystem, clones, SmisConstants.RESYNC_VALUE);
             }
 
-            modifyGroupClones(storageSystem, clones, SmisConstants.FRACTURE_VALUE);
+            modifyGroupClones(storageSystem, clones, SmisConstants.SPLIT_VALUE);
             List<Volume> cloneVols = _dbClient.queryObject(Volume.class, clones);
             for (Volume clone : cloneVols) {
                 clone.setReplicaState(ReplicationState.SYNCHRONIZED.name());

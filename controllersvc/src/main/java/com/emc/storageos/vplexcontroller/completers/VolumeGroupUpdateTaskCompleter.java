@@ -5,6 +5,7 @@
 package com.emc.storageos.vplexcontroller.completers;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -57,6 +58,22 @@ public class VolumeGroupUpdateTaskCompleter extends ApplicationTaskCompleter {
                     dbClient.updateObject(backendVol);
                 }
             }
+        }
+        // handle clones
+        StringSet fullCopies = volume.getFullCopies();
+        List<Volume> fullCopiesToUpdate = new ArrayList<Volume>();
+        if (fullCopies != null && !fullCopies.isEmpty()) {
+            for (String fullCopyId : fullCopies) {
+                Volume fullCopy = dbClient.queryObject(Volume.class, URI.create(fullCopyId));
+                if (fullCopy != null && !fullCopy.getInactive()) {
+                    fullCopy.setFullCopySetName(NullColumnValueGetter.getNullStr());
+                    fullCopiesToUpdate.add(fullCopy);
+                }
+            }
+        }
+
+        if (!fullCopiesToUpdate.isEmpty()) {
+            dbClient.updateObject(fullCopiesToUpdate);
         }
     }
 }

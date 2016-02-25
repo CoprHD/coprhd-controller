@@ -36,7 +36,9 @@ public class AppSupportUtil {
     public static VolumeGroupRestRep createApplication(String name, String description, Set<String> roles){
         VolumeGroupCreateParam create = new VolumeGroupCreateParam();
         create.setName(name);
-        create.setDescription(description);
+        if (!description.isEmpty()) {
+            create.setDescription(description);
+        }
         create.setRoles(roles);
         return BourneUtil.getViprClient().application().createApplication(create);
     }

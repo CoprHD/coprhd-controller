@@ -1174,7 +1174,7 @@ public class VolumeGroupService extends TaskResourceService {
             String repGroupName = fullCopy.getReplicationGroupInstance();
             if (repGroupName == null && fullCopy.isVPlexVolume(_dbClient)) {
                 // get backend source volume to get RG name
-                Volume backedVol = VPlexUtil.getVPLEXBackendVolume(fullCopy, true, _dbClient);
+                Volume backedVol = VPlexUtil.getFullCopyBackendCloneVolume(fullCopy, _dbClient);
                 if (backedVol != null) {
                     repGroupName = backedVol.getReplicationGroupInstance();
                 }

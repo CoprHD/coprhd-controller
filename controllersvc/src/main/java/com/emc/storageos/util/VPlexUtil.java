@@ -172,13 +172,75 @@ public class VPlexUtil {
     }
 
     /**
-     * This method returns true if the mentioned varray(vararyId) has ports from the mentioned
-     * VPLEX storage system(vplexStorageSystemURI) from the mentioned VPLEX cluster(cluster)
+     * returns the backing volume for a full copy virtual volume that is not the clone
      * 
-     * @param vararyId The ID of the varray
-     * @param cluster The vplex cluster value (1 or 2)
-     * @param vplexStorageSystemURI The URI of the vplex storage system
-     * @param dbClient an instance of {@link DbClient}
+     * @param fullCopy
+     * @param dbClient
+     * @return
+     */
+    public static Volume getFullCopyBackendNonCloneVolume(Volume fullCopy, DbClient dbClient) {
+        return getVPLEXBackendVolume(fullCopy, isFullCopyOfHAVolume(fullCopy, dbClient), dbClient, true);
+    }
+
+    /**
+     * returns the clone backing volume for a full copy virtual volume
+     * 
+     * @param fullCopy
+     * @param dbClient
+     * @return
+     */
+    public static Volume getFullCopyBackendCloneVolume(Volume fullCopy, DbClient dbClient) {
+        return getFullCopyBackendCloneVolume(fullCopy, dbClient, true);
+    }
+
+    /**
+     * returns the clone backing volume for a full copy virtual volume
+     * 
+     * @param fullCopy
+     * @param dbClient
+     * @param errorIfNotFound
+     * @return
+     */
+    public static Volume getFullCopyBackendCloneVolume(Volume fullCopy, DbClient dbClient, boolean errorIfNotFound) {
+        return getVPLEXBackendVolume(fullCopy, !isFullCopyOfHAVolume(fullCopy, dbClient), dbClient, errorIfNotFound);
+    }
+
+    /**
+     * returns true if the full copy volume is a copy of the HA side of a vplex distributed volume otherwise returns false
+     * 
+     * @param fullCopy
+     * @param dbClient
+     * @return
+     */
+    private static boolean isFullCopyOfHAVolume(Volume fullCopy, DbClient dbClient) {
+        Volume cloneBackingVol = null;
+        if (fullCopy.getAssociatedVolumes() != null && fullCopy.getAssociatedVolumes().size() == 2) {
+            for (String backingId : fullCopy.getAssociatedVolumes()) {
+                Volume backingVol = dbClient.queryObject(Volume.class, URI.create(backingId));
+                if (!NullColumnValueGetter.isNullValue(backingVol.getReplicaState())) {
+                    cloneBackingVol = backingVol;
+                    break;
+                }
+            }
+            if (cloneBackingVol != null && !cloneBackingVol.getVirtualArray().equals(fullCopy.getVirtualArray())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * This method returns true if the mentioned varray(vararyId) has ports from the mentioned VPLEX storage system(vplexStorageSystemURI)
+     * from the mentioned VPLEX cluster(cluster)
+     * 
+     * @param vararyId
+     *            The ID of the varray
+     * @param cluster
+     *            The vplex cluster value (1 or 2)
+     * @param vplexStorageSystemURI
+     *            The URI of the vplex storage system
+     * @param dbClient
+     *            an instance of {@link DbClient}
      * 
      * @return true or false
      */

@@ -157,15 +157,12 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             Volume fullCopyVolume) {
         Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
 
-        // Get the source side backend volume of the VPLEX source Volume.
-        Volume sourceVolume = (Volume) fcSourceObj;
-        Volume srcBackendSrcVolume = VPlexUtil.getVPLEXBackendVolume(
-                sourceVolume, true, _dbClient, true);
-
         // Get the source side backend volume of the VPLEX volume copy.
         // This is the backend volume full copy.
-        Volume fcBackendSrcVolume = VPlexUtil.getVPLEXBackendVolume(
-                fullCopyVolume, true, _dbClient, true);
+        Volume fcBackendSrcVolume = VPlexUtil.getFullCopyBackendCloneVolume(fullCopyVolume, _dbClient);
+
+        // Get the source side backend volume of the VPLEX source Volume.
+        Volume srcBackendSrcVolume = _dbClient.queryObject(Volume.class, fcBackendSrcVolume.getAssociatedSourceVolume());
 
         // Get the backend full copy set.
         Map<URI, Volume> backendFullCopyMap = super.getFullCopySetMap(
@@ -352,7 +349,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             }
 
             // Get the capabilities
-            VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(vplexSrcPrimaryVolume, _dbClient);
+            VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
                     fcSourceObj, vpool, count);
 
@@ -389,8 +386,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // is copied is the backend volume in the same virtual array as the
                 // VPLEX volume i.e, the primary backend volume. Create
                 // descriptors for these prepared volumes and add them to the list.
-                vplexCopyPrimaryVolumes = prepareFullCopyPrimaryVolumes(copyName,
-                        count, vplexSrcPrimaryVolume, capabilities, volumeDescriptors, vpool);
+                VirtualPool srcVpool = _dbClient.queryObject(VirtualPool.class, vplexSrcPrimaryVolume.getVirtualPool());
+                vplexCopyPrimaryVolumes = prepareFullCopyPrimaryVolumes(copyName, count, vplexSrcPrimaryVolume, capabilities,
+                        volumeDescriptors, srcVpool);
             } else {
                 // Get the provisioned capacity of the snapshot
                 size = ((BlockSnapshot) fcSourceObj).getProvisionedCapacity();
@@ -425,9 +423,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 if (!vplexCopyHAVolumes.isEmpty()) {
                     vplexCopyHAVolume = vplexCopyHAVolumes.get(i);
                 }
-                Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, name, count, i, size,
-                        fcSourceObj, vplexSrcProject, varray, vpool,
-                        vplexSrcSystemId, vplexCopyPrimaryVolume, vplexCopyHAVolume, taskId,
+                Volume vplexCopyVolume = prepareFullCopyVPlexVolume(copyName, name, count, i, size, fcSourceObj, vplexSrcProject, varray,
+                        vpool, vplexSrcSystemId, vplexCopyPrimaryVolume, vplexCopyHAVolume, taskId,
                         volumeDescriptors);
                 vplexCopyVolumes.add(vplexCopyVolume);
 
@@ -442,7 +439,6 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         BlockObject fcSourceObj = fcSourceObjList.get(0);
         VolumeGroup volumeGroup = (fcSourceObj instanceof Volume)
                 ? ((Volume) fcSourceObj).getApplication(_dbClient) : null;
-        boolean useSource = true;
         if (volumeGroup != null &&
                 !ControllerUtils.checkVolumesForVolumeGroupPartialRequest(_dbClient, fcSourceObjList)) {
 
@@ -875,8 +871,7 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         // Get the native backend full copy volume for this VPLEX
         // full copy volume.
-        Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume,
-                true, _dbClient);
+        Volume nativeFullCopyVolume = VPlexUtil.getFullCopyBackendCloneVolume(fullCopyVolume, _dbClient);
 
         // Call super to check the progress of the backend full
         // copy volume.

@@ -7328,7 +7328,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (URI fullCopyURI : fullCopyURIs) {
                 Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
                 vplexFullCopyMap.put(fullCopyURI, fullCopyVolume);
-                Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                Volume nativeFullCopyVolume = VPlexUtil.getFullCopyBackendCloneVolume(fullCopyVolume, _dbClient);
                 nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
                 if (nativeSystemURI == null) {
                     nativeSystemURI = nativeFullCopyVolume.getStorageController();
@@ -7379,8 +7379,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // restore, we need to detach the HA mirror of the full copy
                     // source volume. So, determine the HA backend volume and
                     // create a workflow step to detach it.
-                    Volume haVolume = VPlexUtil.getVPLEXBackendVolume(
-                            fcSourceVolume, false, _dbClient);
+                    Volume haVolume = VPlexUtil.getFullCopyBackendNonCloneVolume(fcSourceVolume, _dbClient);
                     URI haVolumeURI = haVolume.getId();
                     String detachStepId = workflow.createStepId();
                     Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
@@ -7483,8 +7482,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         for (URI fullCopyVolumeURI : fullCopyVolumeURIs) {
             Volume fullCopyVolume = _dbClient.queryObject(Volume.class, fullCopyVolumeURI);
             if (fullCopyVolume != null) {
-                Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume,
-                        true, _dbClient, false);
+                Volume nativeFullCopyVolume = VPlexUtil.getFullCopyBackendCloneVolume(fullCopyVolume, _dbClient);
                 if (nativeFullCopyVolume != null) {
                     String nativeFCReplicaState = nativeFullCopyVolume.getReplicaState();
                     if (ReplicationState.DETACHED.name().equals(nativeFCReplicaState)) {
@@ -7901,7 +7899,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (URI fullCopyURI : fullCopyURIs) {
                 Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
                 vplexFullCopyMap.put(fullCopyURI, fullCopyVolume);
-                Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                Volume nativeFullCopyVolume = VPlexUtil.getFullCopyBackendCloneVolume(fullCopyVolume, _dbClient);
                 nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
                 if (nativeSystemURI == null) {
                     nativeSystemURI = nativeFullCopyVolume.getStorageController();
@@ -7947,8 +7945,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     // restore, we need to detach the HA mirror of the full copy
                     // volume. So, determine the HA backend volume and create a
                     // workflow step to detach it.
-                    Volume haVolume = VPlexUtil.getVPLEXBackendVolume(
-                            vplexFullCopyVolume, false, _dbClient);
+                    Volume haVolume = VPlexUtil.getFullCopyBackendNonCloneVolume(vplexFullCopyVolume, _dbClient);
                     URI haVolumeURI = haVolume.getId();
                     String detachStepId = workflow.createStepId();
                     Workflow.Method resyncVolumeRollbackMethod = createRestoreResyncRollbackMethod(
@@ -8068,7 +8065,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Map<URI, Volume> nativeFullCopyMap = new HashMap<URI, Volume>();
             for (URI fullCopyURI : fullCopyURIs) {
                 Volume fullCopyVolume = getDataObject(Volume.class, fullCopyURI, _dbClient);
-                Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                Volume nativeFullCopyVolume = VPlexUtil.getFullCopyBackendCloneVolume(fullCopyVolume, _dbClient);
                 nativeFullCopyMap.put(nativeFullCopyVolume.getId(), nativeFullCopyVolume);
                 if (nativeSystemURI == null) {
                     nativeSystemURI = nativeFullCopyVolume.getStorageController();
@@ -10513,7 +10510,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             _log.info("Created establish volume  and full copy group relation workflow with operation id {}", opId);
             // Get the VPLEX and backend full copy volumes.
             Volume fullCopyVolume = getDataObject(Volume.class, fullCopy, _dbClient);
-            Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+            Volume nativeFullCopyVolume = VPlexUtil.getFullCopyBackendCloneVolume(fullCopyVolume, _dbClient);
             URI nativeSourceVolumeURI = nativeFullCopyVolume.getAssociatedSourceVolume();
             URI nativeSystemURI = nativeFullCopyVolume.getStorageController();
             StorageSystem nativeSystem = getDataObject(StorageSystem.class, nativeSystemURI, _dbClient);

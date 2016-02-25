@@ -190,8 +190,8 @@ public class FileShareRestRep extends FileObjectRestRep {
     /**
      * Set of valid protocols.
      * Valid values:
-     *   CIFS = Common Interface File System 
-     *   NFS = Network File System
+     * CIFS = Common Interface File System
+     * NFS = Network File System
      */
     @XmlElement(name = "protocol")
     public Set<String> getProtocols() {
@@ -289,7 +289,8 @@ public class FileShareRestRep extends FileObjectRestRep {
         private String accessState;
         private RelatedResourceRep parentFileSystem;
         private List<VirtualArrayRelatedResourceRep> targetFileSystems;
-        private Long actualMaxRPO;
+        private Long maxRPO;
+        private Float minRPO;
 
         /**
          * SOURCE
@@ -345,13 +346,22 @@ public class FileShareRestRep extends FileObjectRestRep {
             this.targetFileSystems = targetFileSystems;
         }
 
-        public Long getActualMaxRPO() {
-            return actualMaxRPO;
+        @XmlElement(name = "maxRPO")
+        public Long getMaxRPO() {
+            return maxRPO;
         }
-        
-        @XmlElement(name = "actualMaxRPO")
-        public void setActualMaxRPO(Long actualMaxRPO) {
-            this.actualMaxRPO = actualMaxRPO;
+
+        public void setMaxRPO(Long maxRPO) {
+            this.maxRPO = maxRPO;
+        }
+
+        @XmlElement(name = "minRPO")
+        public Float getMinRPO() {
+            return minRPO;
+        }
+
+        public void setMinRPO(Float minRPO) {
+            this.minRPO = minRPO;
         }
     }
 

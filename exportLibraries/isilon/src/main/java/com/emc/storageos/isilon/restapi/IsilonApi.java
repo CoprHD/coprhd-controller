@@ -2047,7 +2047,7 @@ public class IsilonApi {
         }
         return licenseStatus;
     }
-
+    
     /**
      * Checks to see if the SnapshotIQ service is enabled on the isilon device
      * 

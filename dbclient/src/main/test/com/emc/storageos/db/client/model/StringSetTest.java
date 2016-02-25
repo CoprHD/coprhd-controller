@@ -13,6 +13,10 @@ import org.junit.Assert;
 import org.junit.Test;
 
 public class StringSetTest {
+	private static final String MAP_KEY = "dummyKey";
+	private static final String SET_VALUE_ONE = "setValue1";
+	private static final String SET_VALUE_TWO = "setValue2";
+	
     @Test
     // Remove a StringSet entry from a StringSetMap
             public
@@ -225,5 +229,37 @@ public class StringSetTest {
 
         Set<String> removedKeySet = map.getRemovedKeySet();
         Assert.assertEquals(3, removedKeySet.size());
+    }
+    
+    @Test
+    public void shouldRemoveAllOfStringSetWork() {
+    	StringSetMap setMap = new StringSetMap();
+    	String key = MAP_KEY;
+    	StringSet set = new StringSet();
+    	set.add(SET_VALUE_ONE);
+    	set.add(SET_VALUE_TWO);
+    	setMap.put(key, set);
+    	StringSet targetSet = setMap.get(key);
+    	Assert.assertTrue(!targetSet.isEmpty());
+    	targetSet.removeAll(set);
+    	
+    	Set<String> removedSet = setMap.get(key).getRemovedSet();
+    	Assert.assertTrue(!removedSet.isEmpty());
+    }
+    
+    @Test
+    public void shouldClearOfStringSetWork() {
+    	StringSetMap setMap = new StringSetMap();
+    	String key = MAP_KEY;
+    	StringSet set = new StringSet();
+    	set.add(SET_VALUE_ONE);
+    	set.add(SET_VALUE_TWO);
+    	setMap.put(key, set);
+    	StringSet targetSet = setMap.get(key);
+    	Assert.assertTrue(!targetSet.isEmpty());
+    	targetSet.clear();
+    	
+    	Set<String> removedSet = setMap.get(key).getRemovedSet();
+    	Assert.assertTrue(!removedSet.isEmpty());
     }
 }

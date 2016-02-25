@@ -110,7 +110,8 @@ public class StorageVolume extends StorageBlockObject {
 
     @Override
     public int hashCode() {
-        // We put volumes for the same parent in the same bucket
+        // We put volumes with the same display name in the same bucket. Different volumes with the same display name will fell
+        // in the same hash code bucket.
         return ("StorageVolume-"+storageSystemId+"-"+getDisplayName()).hashCode();
     }
 

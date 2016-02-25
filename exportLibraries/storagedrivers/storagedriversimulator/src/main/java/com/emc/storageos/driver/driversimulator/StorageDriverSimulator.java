@@ -1,7 +1,6 @@
 package com.emc.storageos.driver.driversimulator;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -10,7 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.emc.storageos.storagedriver.BlockStorageDriver;
-import com.emc.storageos.storagedriver.model.HostComponent;
+import com.emc.storageos.storagedriver.model.StorageHostComponent;
 import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
@@ -18,9 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.storagedriver.AbstractStorageDriver;
 import com.emc.storageos.storagedriver.DriverTask;
-import com.emc.storageos.storagedriver.LockManager;
 import com.emc.storageos.storagedriver.RegistrationData;
-import com.emc.storageos.storagedriver.Registry;
 import com.emc.storageos.storagedriver.model.ITL;
 import com.emc.storageos.storagedriver.model.Initiator;
 import com.emc.storageos.storagedriver.model.StorageObject;
@@ -552,7 +549,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
     }
 
     @Override
-    public DriverTask discoverHostComponents(StorageSystem storageSystem, List<HostComponent> embeddedHostComponents) {
+    public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedHostComponents) {
         return null;
     }
 

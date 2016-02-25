@@ -70,7 +70,9 @@ public class VolumeClone extends StorageBlockObject {
 
     @Override
     public int hashCode() {
-        // We put clones for the same parent in the same bucket
+        // We put clones for the same parent in the same bucket.
+        // Different clones with the same parent will fell
+        // in the same hash code bucket.
         return ("VolumeClone-"+storageSystemId+"-"+getParentId()).hashCode();
     }
 

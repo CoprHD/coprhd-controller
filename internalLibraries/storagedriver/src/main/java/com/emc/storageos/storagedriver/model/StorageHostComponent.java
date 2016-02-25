@@ -11,7 +11,7 @@ import java.util.Set;
  * Host component which is part of Storage System.
  * For example SDC host in scaleio cluster
  */
-public class HostComponent extends StorageObject {
+public class StorageHostComponent extends StorageObject {
 
     private String type;
     private String hostName;

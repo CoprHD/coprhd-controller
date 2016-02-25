@@ -68,7 +68,9 @@ public class VolumeSnapshot extends StorageBlockObject {
 
     @Override
     public int hashCode() {
-        // We put snaps for the same parent in the same bucket
+        // We put snaps for the same parent in the same bucket.
+        // Different snaps with the same parent will fell
+        // in the same hash code bucket.
         return ("VolumeSnapshot-"+storageSystemId+"-"+getParentId()).hashCode();
     }
 

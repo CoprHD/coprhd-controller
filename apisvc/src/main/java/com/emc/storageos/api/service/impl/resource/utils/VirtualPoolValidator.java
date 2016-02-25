@@ -21,7 +21,7 @@ import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
  * 
  */
 public abstract class VirtualPoolValidator<C extends VirtualPoolCommonParam, U extends VirtualPoolUpdateParam> {
-    protected StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
+    private StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
             getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
 
     protected Logger _logger = LoggerFactory.getLogger(VirtualPoolValidator.class);
@@ -112,4 +112,8 @@ public abstract class VirtualPoolValidator<C extends VirtualPoolCommonParam, U e
             C createParam, DbClient dbClient);
 
     protected abstract boolean isUpdateAttributeOn(U updateParam);
+
+    protected StorageDriverManager getStorageDriverManager() {
+        return storageDriverManager;
+    }
 }

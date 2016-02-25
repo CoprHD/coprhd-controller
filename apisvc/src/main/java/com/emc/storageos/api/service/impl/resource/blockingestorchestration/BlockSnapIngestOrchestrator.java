@@ -127,7 +127,15 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         if (null == deviceLabel || deviceLabel.trim().isEmpty()) {
             deviceLabel = nativeGuid;
         }
-        snapShot.setSnapsetLabel(deviceLabel);// TODO: shld revisit this
+        // In case of XIO snaps, the snapshots belong to a snapset which represents the snapshot CG. This will be
+        // populated in SNAPSHOT_CONSISTENCY_GROUP_NAME
+        String snapsetName = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(), unManagedVolumeInformation);
+        if (null == snapsetName || snapsetName.trim().isEmpty()) {
+            snapsetName = deviceLabel;
+        }
+        snapShot.setSnapsetLabel(snapsetName);
+
         snapShot.setStorageController(requestContext.getStorageSystem().getId());
         snapShot.setVirtualArray(requestContext.getVarray(unManagedVolume).getId());
         snapShot.setProject(new NamedURI(requestContext.getProject().getId(), snapShot.getLabel()));
@@ -165,7 +173,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         snapShot.setTechnologyType(techType);
         BlockConsistencyGroup cg = getConsistencyGroup(unManagedVolume, snapShot, requestContext, _dbClient);
         if (null != cg) {
-            requestContext.getCGObjectsToCreateMap().put(cg.getLabel(), cg);
+            requestContext.getVolumeContext().getCGObjectsToCreateMap().put(cg.getLabel(), cg);
             decorateCGInfoInVolumes(cg, snapShot, requestContext, unManagedVolume);
         }
 
@@ -180,7 +188,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
      * 3. When ingesting last regular volume in unmanaged CG, we will check whether CG already exists in DB for the same project & tenant.
      * If yes, we will reuse it.
      * Otherwise, we will create new BlockConsistencyGroup for the unmanaged consistencyGroup.
-     * 
+     *
      */
     @Override
     protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
@@ -188,7 +196,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
             return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, blockObj, context.getVpool(unManagedVolume),
                     context.getProject().getId(), context.getTenant().getId(), context.getVarray(unManagedVolume).getId(),
-                    context.getUmCGObjectsToUpdate(),
+                    context.getVolumeContext().getUmCGObjectsToUpdate(),
                     dbClient);
         }
         return null;
@@ -197,7 +205,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
     @Override
     protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject snapshot, IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume) {
-        UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroupFromContext(cg, requestContext);
+        UnManagedConsistencyGroup umcg = requestContext.findUnManagedConsistencyGroup(cg);
         List<DataObject> blockObjectsToUpdate = new ArrayList<DataObject>();
         if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
             for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
@@ -221,7 +229,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                 blockObject.setReplicationGroupInstance(cg.getLabel());
             }
             if (!blockObjectsToUpdate.isEmpty()) {
-                requestContext.getObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
+                requestContext.getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
             }
         }
         snapshot.setConsistencyGroup(cg.getId());

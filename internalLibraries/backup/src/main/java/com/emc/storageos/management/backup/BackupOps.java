@@ -346,7 +346,7 @@ public class BackupOps {
 
             if (filename.contains("_db_")) {
                 found_db_file = true;
-            }else if (filename.contains("_geodb_")) {
+            }else if (filename.contains(BackupType.geodb.toString()) || filename.contains(BackupType.geodbmultivdc.toString())) {
                 found_geodb_file = true;
             }
 

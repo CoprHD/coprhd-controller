@@ -246,7 +246,7 @@
           "baseService": "AssociateFilePolicyToFileSystem"
         },
         {
-          "image": "Service_Associate_File_Policy_File_System.png",
+          "image": "Service_Dissociate_File_Policy_File_System.png",
           "baseService": "DissociateFilePolicyFromFileSystem"
         },
         {
@@ -537,6 +537,18 @@
         {
           "image": "icon_VPLEX_data_migration.png",
           "baseService": "VplexDataMigration"
+        },
+        {
+          "image": "Service_MobilityGroupMigration.png",
+          "baseService": "MobilityGroupMigration"
+        },
+        {
+          "image": "Service_AddResourcesMobilityGroup.png",
+          "baseService": "AddResourcesToMobilityGroup"
+        },
+        {
+          "image": "Service_RemoveResourcesMobilityGroup.png",
+          "baseService": "RemoveResourcesFromMobilityGroup"
         }
       ]
     },

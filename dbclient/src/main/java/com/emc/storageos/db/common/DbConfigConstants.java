@@ -37,13 +37,6 @@ public abstract class DbConfigConstants {
     // The transport factory used to setup SSL connection used by Cassandra CliMain
     public static final String SSLTransportFactoryName = "org.apache.cassandra.thrift.SSLTransportFactory";
 
-    // The setting to override the num_tokens in .yaml file. The number in .yaml file is updated first, while this
-    // value in ZK keeps unchanged to allow dbsvc to start without token number change. This value is set to same
-    // as .yaml file after node is decommissioned.
-    public static final String NUM_TOKENS_KEY = "num_tokens";
-
-    // we change the token number from 256 to 16 in jedi, this will reduce db repair time.
-    public static final Integer DEFUALT_NUM_TOKENS = 16;
     public static final String DEFAULT_VDC_DB_VERSION = "2.2";
     public static final String VERSION_PART_SEPERATOR = ".";
 

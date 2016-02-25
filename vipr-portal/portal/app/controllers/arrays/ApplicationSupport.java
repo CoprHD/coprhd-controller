@@ -168,7 +168,7 @@ public class ApplicationSupport extends Controller {
                 if(oldApplication.getName().equals(name)) {
                     this.name = "";
                 }
-                if(oldApplication.getDescription() != null && oldApplication.getDescription().equals(description)) {
+                if (oldApplication.getDescription() != null && oldApplication.getDescription().equals(description)) {
                     this.description = "";
                 }
                 AppSupportUtil.updateApplication(name, description, id);

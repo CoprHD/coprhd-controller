@@ -2305,6 +2305,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 snapSession.setLabel(blockSnapshot.getLabel() + System.currentTimeMillis());
                 snapSession.setSessionLabel(snapSession.getLabel());
                 snapSession.setProject(blockSnapshot.getProject());
+                snapSession.setStorageController(storage);
                 snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
                 if (NullColumnValueGetter.isNullURI(cgURI)) {
                     snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));

@@ -970,7 +970,7 @@ public class BlockSnapshotSessionManager {
             List<Volume> cgSources = BlockConsistencyGroupUtils.getAllCGVolumes(cg, _dbClient);
             // return only those volumes belonging to session's RG
             return ControllerUtils.getAllVolumesForRGInCG(cgSources,
-                    snapSession.getReplicationGroupInstance(), _dbClient);
+                    snapSession.getReplicationGroupInstance(), snapSession.getStorageController(), _dbClient);
         } else {
             BlockObject snapSessionSourceObj = BlockSnapshotSessionUtils.querySnapshotSessionSource(snapSession.getParent().getURI(),
                     _uriInfo, true, _dbClient);

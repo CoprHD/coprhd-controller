@@ -10951,7 +10951,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
                 List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
                 List<BlockObject> allVplexVolumesInRG = ControllerUtils.getAllVolumesForRGInCG(allVplexVolumesInCG,
-                        snapSession.getReplicationGroupInstance(), _dbClient);
+                        snapSession.getReplicationGroupInstance(), snapSession.getStorageController(), _dbClient);
                 // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
                 // that are RP source volumes.
                 for (BlockObject vplexVolume : allVplexVolumesInRG) {

@@ -260,6 +260,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroupStep";
     private static final String CREATE_REPLICATION_GROUP_STEP = "createReplicationGroupStep";
     private static final String REMOVE_REPLICATION_GROUP_STEP = "removeReplicationGropuStep";
+    private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -312,6 +313,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESTORE_SNAP_SESSION_METHOD_NAME = "restoreSnapshotSession";
     private static final String REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME = "removeFromConsistencyGroup";
     private static final String ADD_TO_CONSISTENCY_GROUP_METHOD_NAME = "addToConsistencyGroup";
+    private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -494,10 +496,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (URI fullCopyURI : getIds()) {
                 if (URIUtil.isType(fullCopyURI, Volume.class)) {
                     Volume fullCopy = dbClient.queryObject(Volume.class, fullCopyURI);
-                    Volume source = dbClient.queryObject(Volume.class, fullCopy.getAssociatedSourceVolume());
-                    if (source != null && source.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
-                        source.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
-                        toUpdate.add(source);
+                    URI sourceId = fullCopy.getAssociatedSourceVolume();
+                    if (!NullColumnValueGetter.isNullURI(sourceId)) {
+                        Volume source = dbClient.queryObject(Volume.class, sourceId);
+                        if (source != null && source.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                            source.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+                            toUpdate.add(source);
+                        }
                     }
                 }
             }
@@ -11393,5 +11398,38 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     volume.getAllocatedCapacity());
         }
         return capabilities;
+    }
+    
+    /**
+     * Add steps to restore full copy
+     * @param workflow - the workflow the steps would be added to
+     * @param waitFor - the step would be waited before the added steps would be executed
+     * @param storage - the storage controller URI
+     * @param fullcopies - the full copies to restore
+     * @param opId 
+     * @param completer - the CloneRestoreCompleter
+     * @return the step id for the added step
+     * @throws InternalException
+     */
+    public String addStepsForRestoreFromFullcopy(Workflow workflow,
+            String waitFor, URI storage, List<URI> fullcopies, String opId,
+            CloneRestoreCompleter completer) throws InternalException {
+       
+        Volume firstFullCopy = getDataObject(Volume.class, fullcopies.get(0), _dbClient);
+        BlockObject firstSource = BlockObject.fetch(_dbClient, firstFullCopy.getAssociatedSourceVolume());
+        if (!NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {
+            completer.addConsistencyGroupId(firstSource.getConsistencyGroup());
+        }
+        StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, storage);
+
+        Workflow.Method restoreFromFullcopyMethod = new Workflow.Method(
+                RESTORE_FROM_FULLCOPY_METHOD_NAME, storage, fullcopies);
+        waitFor = workflow.createStep(RESTORE_FROM_FULLCOPY_STEP,
+                "Restore volumes from full copies", waitFor,
+                storage, vplexSystem.getSystemType(),
+                VPlexDeviceController.class, restoreFromFullcopyMethod, null, null);
+        _log.info("Created workflow step to restore VPLEX volume from full copies");
+
+        return waitFor;
     }
 }

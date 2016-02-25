@@ -36,6 +36,7 @@ import com.emc.storageos.volumecontroller.impl.smis.AbstractCloneOperations;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVnxCreateCGCloneJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 /**
  * For VNX, clone would be smi-s mirror (Snapview clone)
@@ -76,7 +77,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
         try {
             final Volume first = _dbClient.queryObject(Volume.class, cloneList.get(0));
             Volume sourceVolume = _dbClient.queryObject(Volume.class, first.getAssociatedSourceVolume());
-            sourceGroupName = _helper.getSourceConsistencyGroupName(sourceVolume);
+            sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVolume, _dbClient);
 
             if (!ControllerUtils.isNotInRealVNXRG(sourceVolume, _dbClient)) {
                 // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.

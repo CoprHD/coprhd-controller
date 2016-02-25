@@ -3693,7 +3693,7 @@ snapshots.createdDate=Date Created
 snapshots.lun=Lun
 snapshots.actions=Action
 snapshots.expires=Date Expires
-snapshots.createdDate=Date Created
+snapshots.created=Date Created
 
 exportGroups.name=Export Group Name
 exportGroups.type=Type
@@ -4399,7 +4399,7 @@ nfsAccessControlList.domain=Domain
 nfsAccessControlList.permissionType=Permissions Type
 nfs.subdirectory=Sub Directory
 
-schedule.filepolicy.snapshot=File Policy Snaphots
+schedule.filepolicy.snapshot=File Policy Snapshots
 
 
 

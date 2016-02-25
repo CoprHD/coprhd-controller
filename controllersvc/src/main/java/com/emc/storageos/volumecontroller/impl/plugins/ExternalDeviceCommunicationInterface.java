@@ -303,10 +303,28 @@ public class ExternalDeviceCommunicationInterface extends
                         pool.addProtocols(storagePool.getProtocols());
                         pool.setPoolServiceType(storagePool.getPoolServiceType());
                         pool.setCompatibilityStatus(storageSystem.getCompatibilityStatus());
-                        pool.setMaximumThickVolumeSize(storagePool.getMaximumThickVolumeSize());
-                        pool.setMinimumThickVolumeSize(storagePool.getMinimumThickVolumeSize());
-                        pool.setMaximumThinVolumeSize(storagePool.getMaximumThinVolumeSize());
-                        pool.setMinimumThinVolumeSize(storagePool.getMinimumThinVolumeSize());
+                        if (storagePool.getMaximumThickVolumeSize() != null) {
+                            pool.setMaximumThickVolumeSize(storagePool.getMaximumThickVolumeSize());
+                        } else {
+                            pool.setMaximumThickVolumeSize(Long.MAX_VALUE);
+                        }
+                        if (storagePool.getMinimumThickVolumeSize() != null) {
+                            pool.setMinimumThickVolumeSize(storagePool.getMinimumThickVolumeSize());
+                        } else {
+                            pool.setMinimumThickVolumeSize(0L);
+                        }
+
+                        if (storagePool.getMaximumThinVolumeSize() != null) {
+                            pool.setMaximumThinVolumeSize(storagePool.getMaximumThinVolumeSize());
+                        } else {
+                            pool.setMaximumThinVolumeSize(Long.MAX_VALUE);
+                        }
+                        if (storagePool.getMinimumThinVolumeSize() != null) {
+                            pool.setMinimumThinVolumeSize(storagePool.getMinimumThinVolumeSize());
+                        } else {
+                            pool.setMinimumThinVolumeSize(0L);
+                        }
+
                         pool.setSupportedResourceTypes(storagePool.getSupportedResourceType());
                         pool.setInactive(false);
                         pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());

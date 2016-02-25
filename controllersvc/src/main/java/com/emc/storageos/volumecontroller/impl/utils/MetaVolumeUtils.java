@@ -6,6 +6,8 @@ package com.emc.storageos.volumecontroller.impl.utils;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.services.util.StorageDriverManager;
+import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +25,14 @@ public class MetaVolumeUtils {
     private static final int GB_500kb = 500 * KB_TO_GB_CONVERTER;  // 500 GB in KB
     private static final int GB_1024kb = 1024 * KB_TO_GB_CONVERTER; // 1024 GB in KB
     private static final int GB_240kb = 240 * KB_TO_GB_CONVERTER;   // 240 GB in KB
+    private static StorageDriverManager driverManager = null;
+
+    public static StorageDriverManager getDriverManager() {
+        if (driverManager == null) {
+            driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        }
+        return driverManager;
+    }
 
     public static void prepareMetaVolumes(List<Volume> volumes, long metaMemberSize, long metaMemberCount, String metaType,
             DbClient dbClient) {
@@ -86,6 +96,15 @@ public class MetaVolumeUtils {
                         "fastExpansion: %s ", storageSystem.getSystemType(), capacity, isThinlyProvisioned, fastExpansion));
 
         MetaVolumeRecommendation recommendation = new MetaVolumeRecommendation();
+
+        // For driver managed system we use regular volumes.
+        if (getDriverManager().isDriverManaged(storageSystem.getSystemType())) {
+            recommendation.setCreateMetaVolumes(false);
+            _log.info(String.format("Volume Create Recommendation (system type: %s): Use meta volumes: %s", storageSystem.getSystemType(),
+                    recommendation.isCreateMetaVolumes()));
+            return recommendation;
+        }
+
         // When capabilities indicate that a volume is meta volume, create recommendation based on meta volume data in capabilities.
         // This is used to create srdf target with meta structure identical to the srdf source volume.
         if (capabilities != null && capabilities.getIsMetaVolume()) {
@@ -248,6 +267,13 @@ public class MetaVolumeUtils {
                         metaMemberSize, fastExpansion));
 
         MetaVolumeRecommendation recommendation = new MetaVolumeRecommendation();
+
+        if (getDriverManager().isDriverManaged(storageSystem.getSystemType())) {
+            recommendation.setCreateMetaVolumes(false);
+            _log.info(String.format("Volume Expand Recommendation (system type: %s): Use meta volumes: %s", storageSystem.getSystemType(),
+                    recommendation.isCreateMetaVolumes()));
+            return recommendation;
+        }
 
         if (storageSystem.checkIfVmax3()) {
             recommendation.setCreateMetaVolumes(false);

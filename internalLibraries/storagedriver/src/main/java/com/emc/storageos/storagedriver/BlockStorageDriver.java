@@ -50,9 +50,11 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Expand volume.
      * Before completion of the request, set all required data for expanded volume in "volume" parameter.
+     * This includes update for capacity properties based on the new volume size:
+     *                                         requestedCapacity, provisionedCapacity, allocatedCapacity.
      *
      * @param volume  Volume to expand. Type: Input/Output argument.
-     * @param newCapacity  Requested capacity. Type: input argument.
+     * @param newCapacity  Requested capacity in bytes. Type: input argument.
      * @return task
      */
     public DriverTask expandVolume(StorageVolume volume, long newCapacity);

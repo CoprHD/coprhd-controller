@@ -1655,7 +1655,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     storage.toString(), pool.toString(), volume.toString()));
         } catch (Exception e) {
             _log.error(String.format("expandVolume Failed - Array: %s Pool:%s Volume:%s",
-                    storage.toString(), pool.toString(), volume.toString()));
+                    storage.toString(), pool.toString(), volume.toString()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             List<URI> volumes = Arrays.asList(volume);
             doFailTask(Volume.class, volumes, opId, serviceError);

@@ -175,8 +175,50 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
     public void doExpandVolume(StorageSystem storageSystem, StoragePool storagePool,
                                Volume volume, Long size, TaskCompleter taskCompleter)
             throws DeviceControllerException {
-        throw DeviceControllerException.exceptions
-                .blockDeviceOperationNotSupported();
+
+        _log.info("Volume expand ..... Started");
+        BlockStorageDriver driver = getDriver(storageSystem.getSystemType());
+        DriverTask task = null;
+
+        try {
+            // Prepare driver volume
+            StorageVolume driverVolume = new StorageVolume();
+            driverVolume.setNativeId(volume.getNativeId());
+            driverVolume.setStorageSystemId(storageSystem.getNativeId());
+            driverVolume.setStoragePoolId(storagePool.getNativeId());
+            driverVolume.setRequestedCapacity(volume.getCapacity());
+            driverVolume.setThinlyProvisioned(volume.getThinlyProvisioned());
+            driverVolume.setDisplayName(volume.getLabel());
+            driverVolume.setAllocatedCapacity(volume.getAllocatedCapacity());
+            driverVolume.setProvisionedCapacity(volume.getProvisionedCapacity());
+            driverVolume.setWwn(volume.getWWN());
+
+            // call driver
+            task = driver.expandVolume(driverVolume, size);
+            // todo: need to implement support for async case.
+            if (task.getStatus() == DriverTask.TaskStatus.READY) {
+                volume.setCapacity(driverVolume.getRequestedCapacity());
+                volume.setProvisionedCapacity(driverVolume.getProvisionedCapacity());
+                volume.setAllocatedCapacity(driverVolume.getAllocatedCapacity());
+                dbClient.updateObject(volume);
+
+                String msg = String.format("doExpandVolume -- Expanded volume: %s .", task.getMessage());
+                _log.info(msg);
+                taskCompleter.ready(dbClient);
+            } else {
+                // operation failed
+                String errorMsg = String.format("doExpandVolume -- Failed to expand volume: %s .", task.getMessage());
+                _log.error(errorMsg);
+                ServiceError serviceError = ExternalDeviceException.errors.expandVolumeFailed("doExpandVolume", errorMsg);
+                taskCompleter.error(dbClient, serviceError);
+            }
+        } catch (Exception e) {
+            _log.error("doCreateVolumes -- Failed to expand volume. ", e);
+            ServiceError serviceError = ExternalDeviceException.errors.expandVolumeFailed("doExpandVolume", e.getMessage());
+            taskCompleter.error(dbClient, serviceError);
+        } finally {
+            storagePool.removeReservedCapacityForVolumes(Collections.singletonList(volume.getId().toString()));
+        }
     }
 
     /**

@@ -131,12 +131,12 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
                 pool.setStorageSystemId(storageSystem.getNativeId());
                 _log.info("Discovered Pool {}, storageSystem {}", pool.getNativeId(), pool.getStorageSystemId());
 
-                pool.setDeviceLabel("er-pool-1234577" + i+ storageSystem.getNativeId());
+                pool.setDeviceLabel("er-pool-1234577" + i + storageSystem.getNativeId());
                 pool.setPoolName(pool.getDeviceLabel());
                 Set<StoragePool.Protocols> protocols = new HashSet<>();
                 protocols.add(StoragePool.Protocols.FC);
                 protocols.add(StoragePool.Protocols.iSCSI);
-                protocols.add(StoragePool.Protocols.ScaleIO);
+                //protocols.add(StoragePool.Protocols.ScaleIO);
                 pool.setProtocols(protocols);
                 pool.setPoolServiceType(StoragePool.PoolServiceType.block);
                 pool.setMaximumThickVolumeSize(3000000L);
@@ -196,9 +196,9 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
 
             port.setDeviceLabel("er-port-1234577" + i + storageSystem.getNativeId());
             port.setPortName(port.getDeviceLabel());
-            //port.setNetworkId("er-network77"+ storageSystem.getNativeId());
-            port.setNetworkId("er-networkScaleIO");
-            port.setTransportType(StoragePort.TransportType.ScaleIO);
+            port.setNetworkId("er-network77"+ storageSystem.getNativeId());
+            //port.setNetworkId("er-networkScaleIO");
+            port.setTransportType(StoragePort.TransportType.FC);
             port.setPortNetworkId("6" + Integer.toHexString(index) + ":FE:FE:FE:FE:FE:FE:1" + i);
             port.setOperationalStatus(StoragePort.OperationalStatus.OK);
             port.setPortHAZone("zone-"+i);
@@ -241,7 +241,7 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         for (StorageVolume volume : volumes) {
             volume.setNativeId("driverSimulatorVolume" + UUID.randomUUID().toString());
             volume.setAccessStatus(StorageVolume.AccessStatus.READ_WRITE);
-            volume.setProvisionedCapacity(0L);
+            volume.setProvisionedCapacity(volume.getRequestedCapacity());
             volume.setAllocatedCapacity(volume.getRequestedCapacity());
             volume.setDeviceLabel(volume.getNativeId());
             volume.setWwn(String.format("%s%s", volume.getStorageSystemId(), volume.getNativeId()));
@@ -254,14 +254,27 @@ public class StorageDriverSimulator extends AbstractStorageDriver implements Blo
         DriverTask task = new DriverSimulatorTask(taskId);
         task.setStatus(DriverTask.TaskStatus.READY);
 
-        _log.info("StorageDriver: createVolumes information for storage system {}, volume nativeIds {} - end",
+        String msg = String.format("StorageDriver: createVolumes information for storage system %s, volume nativeIds %s - end",
                 volumes.get(0).getStorageSystemId(), newVolumes.toString());
+        _log.info(msg);
+        task.setMessage(msg);
         return task;
     }
 
     @Override
     public DriverTask expandVolume(StorageVolume volume, long newCapacity) {
-        return null;
+        String taskType = "expand-storage-volumes";
+        String taskId = String.format("%s+%s+%s", DRIVER_NAME, taskType, UUID.randomUUID().toString());
+        volume.setRequestedCapacity(newCapacity);
+        volume.setProvisionedCapacity(newCapacity);
+        volume.setAllocatedCapacity(newCapacity);
+        DriverTask task = new DriverSimulatorTask(taskId);
+        task.setStatus(DriverTask.TaskStatus.READY);
+
+        _log.info("StorageDriver: expandVolume information for storage system {}, volume nativeId {}," +
+                        " new capacity {} - end",
+                volume.getStorageSystemId(), volume.toString(), volume.getRequestedCapacity());
+        return task;
     }
 
     @Override

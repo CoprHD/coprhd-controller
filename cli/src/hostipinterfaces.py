@@ -74,10 +74,10 @@ class HostIPInterface(object):
     Returns the ip-interface URI for matching the name of the ip-interface
     '''
 
-    def query_by_ipaddress(self, ipInterfaceIp, hostName):
+    def query_by_ipaddress(self, ipInterfaceIp, hostName, tenant):
 
         # Get the list of ip-interfaces
-        hostUri = self.get_host_uri(hostName)
+        hostUri = self.get_host_uri(hostName, tenant)
         ipinterfaceList = self.get_host_object().list_ipinterfaces(hostUri)
 
         # Match the name and return uri
@@ -98,9 +98,9 @@ class HostIPInterface(object):
     """
 
     def create(self, hostlabel, protocol, ipAddress,
-               netMask, prefixLength, scopeId, name):
+               netMask, prefixLength, scopeId, name, tenant):
 
-        hostUri = self.get_host_uri(hostlabel)
+        hostUri = self.get_host_uri(hostlabel, tenant)
 
         request = {'protocol': protocol,
                    'ip_address': ipAddress,
@@ -135,9 +135,9 @@ class HostIPInterface(object):
     """
 
     def update(self, hostName, ipinterfaceAddress, newprotocol,
-               newipAddress, newNetMask, newPrefixLength, newScopeId):
+               newipAddress, newNetMask, newPrefixLength, newScopeId, tenant):
 
-        ipinterfaceUri = self.query_by_ipaddress(ipinterfaceAddress, hostName)
+        ipinterfaceUri = self.query_by_ipaddress(ipinterfaceAddress, hostName, tenant)
 
         request = dict()
 
@@ -169,9 +169,9 @@ class HostIPInterface(object):
     ipinterface delete operation
     """
 
-    def delete(self, hostName, interfaceAddress):
+    def delete(self, hostName, interfaceAddress, tenant):
 
-        ipinterfaceUri = self.query_by_ipaddress(interfaceAddress, hostName)
+        ipinterfaceUri = self.query_by_ipaddress(interfaceAddress, hostName, tenant)
 
         '''
         Makes a REST API call to delete a ipinterface by its UUID
@@ -344,15 +344,15 @@ class HostIPInterface(object):
     Given the name of the host, returns the hostUri/id
     '''
 
-    def get_host_uri(self, hostName):
-        return self.__hostObject.query_by_name(hostName)
+    def get_host_uri(self, hostName, tenant=None):
+        return self.__hostObject.query_by_name(hostName, tenant)
 
     def get_host_object(self):
         return self.__hostObject
 
-    def list_tasks(self, host_name, ipaddress, task_id=None):
+    def list_tasks(self, host_name, ipaddress, task_id=None, tenant=None):
 
-        ipinterfaceUri = self.query_by_ipaddress(ipaddress, host_name)
+        ipinterfaceUri = self.query_by_ipaddress(ipaddress, host_name, tenant)
 
         ipinterface = self.show_by_uri(ipinterfaceUri)
         if(ipinterface['ip_address'] == ipaddress):
@@ -420,6 +420,11 @@ def create_parser(subcommand_parsers, common_parser):
                                help='scope id of the ip-interface',
                                dest='scopeid',
                                metavar='<scopeid>')
+    
+    create_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>')
 
     mandatory_args.add_argument('-n', '-name',
                                help='name of the ip-interface',
@@ -445,7 +450,8 @@ def ipinterface_create(args):
             args.netmask,
             args.prefixlength,
             args.scopeid,
-            args.name)
+            args.name,
+            args.tenant)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create",
@@ -474,6 +480,10 @@ def list_parser(subcommand_parsers, common_parser):
                              choices=HostIPInterface.IPINTERFACE_PROTOCOL_LIST,
                              dest='protocol',
                              help='ip-interface protocol')
+    list_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>')
     list_parser.add_argument('-v', '-verbose',
                              dest='verbose',
                              action='store_true',
@@ -498,7 +508,7 @@ def ipinterface_list(args):
 
     try:
         if(args.hostlabel):
-            hostUri = ipinterfaceObj.get_host_uri(args.hostlabel)
+            hostUri = ipinterfaceObj.get_host_uri(args.hostlabel, args.tenant)
             ipinterfaceList = ipinterfaceObj.get_host_object(
             ).list_ipinterfaces(
                 hostUri)
@@ -564,6 +574,10 @@ def show_parser(subcommand_parsers, common_parser):
         metavar='<hostlabel>',
         help='Host for which ip-interfaces to be searched',
         required=True)
+    show_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>')
     show_parser.set_defaults(func=ipinterface_show)
 
 
@@ -574,7 +588,7 @@ def ipinterface_show(args):
         ipinterfaceObj = HostIPInterface(args.ip, args.port)
         interfaceUri = ipinterfaceObj.query_by_ipaddress(
             args.ipaddress,
-            args.hostlabel)
+            args.hostlabel, args.tenant)
         interfaceShow = ipinterfaceObj.show_by_uri(interfaceUri, args.xml)
 
         if(args.xml):
@@ -610,13 +624,17 @@ def delete_parser(subcommand_parsers, common_parser):
         metavar='<hostlabel>',
         help='Host for which ip-interface to be deleted',
         required=True)
+    delete_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>')
     delete_parser.set_defaults(func=ipinterface_delete)
 
 
 def ipinterface_delete(args):
     try:
         ipinterfaceObj = HostIPInterface(args.ip, args.port)
-        ipinterfaceObj.delete(args.hostlabel, args.ipaddress)
+        ipinterfaceObj.delete(args.hostlabel, args.ipaddress, args.tenant)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "delete",
@@ -674,6 +692,10 @@ def update_parser(subcommand_parsers, common_parser):
                                help='prefix length for the ip-interface',
                                dest='newprefixlength',
                                metavar='<newprefixlength>')
+    update_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>')
 
     update_parser.add_argument('-nsid', '-newscopeid',
                                help='scope id for the ip-interface',
@@ -709,7 +731,8 @@ def ipinterface_update(args):
             args.newipaddress,
             args.newnetmask,
             args.newprefixlength,
-            args.newscopeid)
+            args.newscopeid,
+            args.tenant)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "update",
@@ -745,6 +768,11 @@ def task_parser(subcommand_parsers, common_parser):
                              dest='id',
                              metavar='<id>',
                              help='Task ID')
+    
+    task_parser.add_argument('-tenantname', '-tn',
+                               help='Tenant Name',
+                               dest='tenant',
+                               metavar='<tenantname>')
 
     task_parser.add_argument('-v', '-verbose',
                              dest='verbose',
@@ -761,11 +789,11 @@ def host_ipinterface_list_tasks(args):
         # if(not args.tenant):
         #    args.tenant = ""
         if(args.id):
-            res = obj.list_tasks(args.hostlabel, args.ipaddress, args.id)
+            res = obj.list_tasks(args.hostlabel, args.ipaddress, args.id, args.tenant)
             if(res):
                 return common.format_json_object(res)
         elif(args.hostlabel):
-            res = obj.list_tasks(args.hostlabel, args.ipaddress)
+            res = obj.list_tasks(args.hostlabel, args.ipaddress, None, args.tenant)
             if(res and len(res) > 0):
                 if(args.verbose):
                     return common.format_json_object(res)

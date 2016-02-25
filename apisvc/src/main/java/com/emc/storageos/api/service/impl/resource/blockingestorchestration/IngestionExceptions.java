@@ -98,7 +98,10 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeIsNotVisible(String unManagedVolume, String taskStatus);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException unmanagedVolumeMasksNotIngested(String unManagedVolume, String messages);
+    public IngestionException unmanagedVolumeMasksNotIngested(String unManagedVolume);
+
+    @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
+    public IngestionException unmanagedVolumeMasksNotIngestedAdditionalInfo(String unManagedVolume, String messages);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException snapshotVpoolSpecifiesSrdf(String unManagedVolume);

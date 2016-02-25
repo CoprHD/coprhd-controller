@@ -22,6 +22,8 @@ public class VolumeGroupCreateParam {
     private String description;
     private Set<String> roles;
     private String parent;
+    private String migrationType;
+    private String migrationGroupBy;
 
     public VolumeGroupCreateParam() {
     }
@@ -91,6 +93,24 @@ public class VolumeGroupCreateParam {
      */
     public void setParent(String parent) {
         this.parent = parent;
+    }
+
+    @XmlElement(name = "migration_type")
+    public String getMigrationType() {
+        return migrationType;
+    }
+
+    public void setMigrationType(String migrationType) {
+        this.migrationType = migrationType;
+    }
+
+    @XmlElement(name = "migration_group_by")
+    public String getMigrationGroupBy() {
+        return migrationGroupBy;
+    }
+
+    public void setMigrationGroupBy(String migrationGroupBy) {
+        this.migrationGroupBy = migrationGroupBy;
     }
 
 }

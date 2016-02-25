@@ -195,8 +195,9 @@ public class MigrationService extends TaskResourceService {
         // Prepare the migration target.
         List<URI> migrationTgts = new ArrayList<URI>();
         Map<URI, URI> poolTgtMap = new HashMap<URI, URI>();
+        Long size = _vplexBlockServiceApi.getVolumeCapacity(migrationSrc);
         Volume migrationTgt = VPlexBlockServiceApiImpl.prepareVolumeForRequest(
-                migrationSrc.getCapacity(), migrationTgtProject, migrationTargetVarray,
+                size, migrationTgtProject, migrationTargetVarray,
                 migrationTgtCos, recommendedSystem, recommendedPool,
                 migrationSrc.getLabel(), ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
                 taskId, _dbClient);

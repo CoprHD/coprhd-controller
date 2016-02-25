@@ -2054,6 +2054,13 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             if (!exportMask.hasExactlyTheseInitiators(portNames)) {
                 partialMasks.add(exportMaskURI);
             }
+
+            // Determine which ExportMasks are equivalent in terms of attributes, other than
+            // the number of volumes that they contain. The preference is for the rules
+            // applicator (below) to choose, from equivalent masks, the one with the least
+            // volumes. But we'd like to still know which are equivalent in case the mask
+            // that is selected in the code here, is invalid in some higher level validation.
+            descriptor.addToEquivalentMasks(exportMask, policyCache.get(exportMaskURI));
         }
 
         // Populate the Volume URI to Volume HLU mapping. We will let the array decide the HLUs (i.e., set it to -1)
@@ -2128,6 +2135,16 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
 
                     // Fill in the descriptor to be used for VPlex backend placement
                     descriptor.placeVolumes(exportMaskURI, volumes);
+
+                    // https://coprhd.atlassian.net/browse/COP-20497
+                    // Fill in ExportMask place alternatives (if they exist). These alternative exports
+                    // could be used as a backup in case the ExportMask placed here is determined to
+                    // be invalid (by some higher-level validation).
+                    for (URI volumeURI : volumes.keySet()) {
+                        for (URI equivalentExport : descriptor.getEquivalentExportMasks(exportMaskURI)) {
+                            descriptor.addAsAlternativeExportForVolume(volumeURI, exportMaskURI);
+                        }
+                    }
                 }
             }
         } catch (Exception e) {

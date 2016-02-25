@@ -1826,6 +1826,9 @@ public interface BadRequestExceptions {
     public BadRequestException vPoolTargetVarraysNotCompatibleForCG(final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException vPoolRPCopyModeNotCompatibleForCG(final String cgName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotAddVolumesToSwappedCG(final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -2726,6 +2729,12 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeGroupWithVolumesCantBeDeleted(final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupWithHostsCantBeDeleted(final String volumeGroupName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException volumeGroupWithClustersCantBeDeleted(final String volumeGroupName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeGroupCantBeUpdated(final String volumeGroupName, final String reason);

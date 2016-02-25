@@ -4,15 +4,15 @@
  */
 package com.emc.storageos.coordinator.client.service;
 
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
+import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.*;
 
-public class DoubleDistributedBarrierTest extends CoordinatorTestBase {
-    private Logger log = LoggerFactory.getLogger(DoubleDistributedBarrierTest.class);
+public class DistributedDoubleBarrierTest extends CoordinatorTestBase {
+    private Logger log = LoggerFactory.getLogger(DistributedDoubleBarrierTest.class);
     private String barrierPath = "/barriers/test";
 
     /**
@@ -30,12 +30,14 @@ public class DoubleDistributedBarrierTest extends CoordinatorTestBase {
 
         while (true) {
             if (result1.isDone()) {
+                Assert.assertFalse("Work1 should return false since it leaves due to timeout", result1.get());
                 break;
             }
         }
 
         while (true) {
             if (result2.isDone()) {
+                Assert.assertFalse("Work2 should return false since work1 leaves with timeout", result2.get());
                 break;
             }
         }

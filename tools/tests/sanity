@@ -222,7 +222,7 @@ fi
 # COP-16713: Sometimes a linux ethernet interface is more than 9 characters
 #            However, ifconfig will only show the first 9.  If the name is 
 #            long, run "ip link show", which will give us the full name.
-if [ ${#ethdev} > 8 ] ; then
+if [ ${#ethdev} -gt 8 ] ; then
     ethdev=`ip link show | grep ${ethdev} | awk '{print $2}' | awk -F: '{print $1}'`
 fi
 

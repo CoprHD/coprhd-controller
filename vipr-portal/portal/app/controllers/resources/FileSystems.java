@@ -14,7 +14,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import models.datatable.FileSystemsDataTable;
+import models.datatable.NfsACLDataTable;
+import models.datatable.ShareACLDataTable;
+
 import org.apache.commons.lang.StringUtils;
+
+import play.data.binding.As;
+import play.data.validation.Required;
+import play.data.validation.Validation;
+import play.mvc.With;
+import util.BourneUtil;
+import util.FileUtils;
+import util.FileUtils.ExportRuleInfo;
+import util.MessagesUtils;
+import util.StringOption;
+import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -60,26 +75,13 @@ import controllers.Common;
 import controllers.security.Security;
 import controllers.util.FlashException;
 import controllers.util.Models;
-import models.datatable.FileSystemsDataTable;
-import models.datatable.NfsACLDataTable;
-import models.datatable.ShareACLDataTable;
-import play.data.binding.As;
-import play.data.validation.Required;
-import play.data.validation.Validation;
-import play.mvc.With;
-import util.BourneUtil;
-import util.FileUtils;
-import util.FileUtils.ExportRuleInfo;
-import util.MessagesUtils;
-import util.StringOption;
-import util.datatable.DataTablesSupport;
 
 @With(Common.class)
 public class FileSystems extends ResourceController {
     private static final String UNKNOWN = "resources.filesystems.unknown";
     protected static final String DELETED = "resources.filesystem.share.acl.deleted";
     protected static final String ADDED = "resources.filesystem.share.acl.added";
-    private static final String LOCAL_MIRROR = "LOCAL_MIRROR";
+    private static final String LOCAL_MIRROR="LOCAL_MIRROR";
 
     private static FileSystemsDataTable fileSystemsDataTable = new FileSystemsDataTable();
 
@@ -163,31 +165,33 @@ public class FileSystems extends ResourceController {
         renderArgs.put("permissionTypeOptions", Lists.newArrayList(FileShareExport.Permissions.values()));
         render(exports, exportsParam);
     }
-
+    
+    
     public static void fileSystemMirrors(String fileSystemId) {
         URI id = uri(fileSystemId);
         ViPRCoreClient client = BourneUtil.getViprClient();
         FileProtectionRestRep targetFileSystems = client.fileSystems().get(id).getProtection();
         List<FileShareRestRep> fileMirrors = new ArrayList<FileShareRestRep>();
-        for (VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()) {
+        for(VirtualArrayRelatedResourceRep virtualResource : targetFileSystems.getTargetFileSystems()){
             fileMirrors.add(client.fileSystems().get(virtualResource.getId()));
         }
-
-        String personality = targetFileSystems.getPersonality();
-
+        
+        String personality=targetFileSystems.getPersonality();
+        
         renderArgs.put("personality", personality);
-        renderArgs.put("fileMirrors", fileMirrors);
-        renderArgs.put("fileSystemId", fileSystemId);
-
+        renderArgs.put("fileMirrors",fileMirrors);
+        renderArgs.put("fileSystemId",fileSystemId);
+        
         render();
     }
+    
+	public static void fileSystemNfsACLs(String fileSystemId) {
+		ViPRCoreClient client = BourneUtil.getViprClient();
+		List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
+				uri(fileSystemId));
+		render(nfsAcls);
+	}
 
-    public static void fileSystemNfsACLs(String fileSystemId) {
-        ViPRCoreClient client = BourneUtil.getViprClient();
-        List<NfsACL> nfsAcls = client.fileSystems().getAllNfsACLs(
-                uri(fileSystemId));
-        render(nfsAcls);
-    }
 
     public static void listNfsAcl(String fileSystemId, String fsMountPath,
             String subDir) {
@@ -283,6 +287,8 @@ public class FileSystems extends ResourceController {
 
     @FlashException(referrer = { "fileSystem" })
     public static void saveNfsAce(NfsACLForm nfsACL) {
+        
+        
 
         String name = params.get("name");
         String type = params.get("type");
@@ -297,7 +303,8 @@ public class FileSystems extends ResourceController {
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-
+        
+        
         for (String permission : permissions) {
             strPer = strPer + permission.toLowerCase() + ",";
         }
@@ -520,26 +527,26 @@ public class FileSystems extends ResourceController {
         Copy copy = new Copy();
         copy.setType(LOCAL_MIRROR);
         FileReplicationParam param = new FileReplicationParam();
-        List<Copy> listCopy = new ArrayList();
+        List<Copy> listCopy= new ArrayList();
         listCopy.add(copy);
         param.setCopies(listCopy);
-
+        
         URI fileSystemUri = URI.create(fileSystemId);
-        if ("start".equalsIgnoreCase(mirrorOperation)) {
-            client.fileSystems().startFileContinuousCopies(fileSystemUri, param);
+        if("start".equalsIgnoreCase(mirrorOperation)){
+        client.fileSystems().startFileContinuousCopies(fileSystemUri, param);
         }
-        if ("stop".equalsIgnoreCase(mirrorOperation)) {
-            client.fileSystems().stopFileContinuousCopies(fileSystemUri, param);
+        if("stop".equalsIgnoreCase(mirrorOperation)){
+        client.fileSystems().stopFileContinuousCopies(fileSystemUri, param);
         }
-        if ("pause".equalsIgnoreCase(mirrorOperation)) {
-            client.fileSystems().pauseFileContinuousCopies(fileSystemUri, param);
+        if("pause".equalsIgnoreCase(mirrorOperation)){
+        client.fileSystems().pauseFileContinuousCopies(fileSystemUri, param);
         }
-        if ("resume".equalsIgnoreCase(mirrorOperation)) {
-            client.fileSystems().resumeContinousCopies(fileSystemUri, param);
+        if("resume".equalsIgnoreCase(mirrorOperation)){
+        client.fileSystems().resumeContinousCopies(fileSystemUri, param);
         }
         fileSystem(fileSystemId);
     }
-
+    
     public static void getScheculePolicies() {
         String tenantId = Models.currentAdminTenant();
         ViPRCoreClient client = BourneUtil.getViprClient();
@@ -907,8 +914,7 @@ public class FileSystems extends ResourceController {
                 type = "Group";
                 userOrGroup = shareAcl.getGroup();
             }
-            acl.add(new ShareACLDataTable.AclInfo(userOrGroup, type, shareAcl.getPermission(), fileSystem, shareName,
-                    shareAcl.getDomain()));
+            acl.add(new ShareACLDataTable.AclInfo(userOrGroup, type, shareAcl.getPermission(), fileSystem, shareName, shareAcl.getDomain()));
         }
 
         renderJSON(DataTablesSupport.createJSON(acl, params));
@@ -1224,9 +1230,6 @@ public class FileSystems extends ResourceController {
         private String securityStyle;
         private Boolean oplock;
         private String size;
-        private Integer softLimit;
-        private Integer notificationLimit;
-        private Integer softGrace;
 
         public String getName() {
             return name;
@@ -1258,30 +1261,6 @@ public class FileSystems extends ResourceController {
 
         public void setSize(String size) {
             this.size = size;
-        }
-
-        public Integer getSoftLimit() {
-            return softLimit;
-        }
-
-        public void setSoftLimit(Integer softLimit) {
-            this.softLimit = softLimit;
-        }
-
-        public Integer getNotificationLimit() {
-            return notificationLimit;
-        }
-
-        public void setNotificationLimit(Integer notificationLimit) {
-            this.notificationLimit = notificationLimit;
-        }
-
-        public Integer getSoftGrace() {
-            return softGrace;
-        }
-
-        public void setSoftGrace(Integer softGrace) {
-            this.softGrace = softGrace;
         }
 
     }

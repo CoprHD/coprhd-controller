@@ -6746,7 +6746,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     @Override
     public void createFullCopy(URI vplexURI, List<VolumeDescriptor> volumeDescriptors, boolean useSource,
             String opId) throws ControllerException {
-        _log.info("Copy volumes on xVPLEX", vplexURI);
+        _log.info("Copy volumes on VPLEX", vplexURI);
 
         // When we copy a VPLEX virtual volume we natively copy the primary backend
         // volume of the virtual volume. This primary copy is then imported to the

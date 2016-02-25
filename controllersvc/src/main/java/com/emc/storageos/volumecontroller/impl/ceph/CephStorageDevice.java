@@ -51,6 +51,7 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     private DbClient _dbClient;
     private CephClientFactory _cephClientFactory;
     private SnapshotOperations _snapshotOperations;
+    private CloneOperations _cloneOperations;
 
     private class RBDMappingOptions {
     	public String poolName = null;
@@ -90,6 +91,10 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
 
     public void setSnapshotOperations(SnapshotOperations snapshotOperations) {
         this._snapshotOperations = snapshotOperations;
+    }
+
+    public void setCloneOperations(CloneOperations cloneOperations) {
+        this._cloneOperations = cloneOperations;
     }
 
     @Override
@@ -302,6 +307,92 @@ public class CephStorageDevice extends DefaultBlockStorageDevice {
     public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask, Initiator initiator, List<URI> targets,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         doExportRemoveInitiators(storage, exportMask, asList(initiator), targets, taskCompleter);
+    }
+
+    @Override
+    public void doCreateClone(StorageSystem storage, URI sourceVolume, URI cloneVolume, Boolean createInactive,
+            TaskCompleter taskCompleter) {
+        if (ControllerUtils.checkCloneConsistencyGroup(cloneVolume, _dbClient, taskCompleter)) {
+            completeTaskAsUnsupported(taskCompleter);
+        } else {
+            _cloneOperations.createSingleClone(storage, sourceVolume, cloneVolume, createInactive, taskCompleter);
+        }
+    }
+
+    @Override
+    public void doDetachClone(StorageSystem storage, URI cloneVolume, TaskCompleter taskCompleter) {
+        if (ControllerUtils.checkCloneConsistencyGroup(cloneVolume, _dbClient, taskCompleter)) {
+            completeTaskAsUnsupported(taskCompleter);
+        } else {
+            _cloneOperations.detachSingleClone(storage, cloneVolume, taskCompleter);
+        }
+    }
+
+    @Override
+    public void doFractureClone(StorageSystem storageDevice, URI source, URI clone,
+            TaskCompleter taskCompleter) {
+        completeTaskAsUnsupported(taskCompleter);
+    }
+
+    @Override
+    public void doRestoreFromClone(StorageSystem storage, URI cloneVolume,
+            TaskCompleter taskCompleter) {
+        completeTaskAsUnsupported(taskCompleter);
+    }
+
+    @Override
+    public void doResyncClone(StorageSystem storage, URI cloneVolume,
+            TaskCompleter taskCompleter) {
+        completeTaskAsUnsupported(taskCompleter);
+    }
+
+    @Override
+    public void doCreateGroupClone(StorageSystem storageDevice, List<URI> clones,
+            Boolean createInactive, TaskCompleter taskCompleter) {
+        completeTaskAsUnsupported(taskCompleter);
+    }
+
+    @Override
+    public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolume,
+            TaskCompleter taskCompleter) {
+        completeTaskAsUnsupported(taskCompleter);
+    }
+
+    @Override
+    public void doRestoreFromGroupClone(StorageSystem storageSystem, List<URI> cloneVolume,
+            TaskCompleter taskCompleter) {
+        completeTaskAsUnsupported(taskCompleter);
+
+    }
+
+    @Override
+    public void doActivateGroupFullCopy(StorageSystem storageSystem,
+            List<URI> fullCopy, TaskCompleter completer) {
+        completeTaskAsUnsupported(completer);
+    }
+
+    @Override
+    public void doResyncGroupClone(StorageSystem storageDevice,
+            List<URI> clone, TaskCompleter completer) throws Exception {
+        completeTaskAsUnsupported(completer);
+    }
+
+    @Override
+    public Integer checkSyncProgress(URI storage, URI source, URI target) {
+        return null;
+    }
+
+    @Override
+    public void doWaitForSynchronized(Class<? extends BlockObject> clazz, StorageSystem storageObj, URI target, TaskCompleter completer) {
+        _log.info("Nothing to do here.  Ceph does not require a wait for synchronization");
+        completer.ready(_dbClient);
+    }
+
+    @Override
+    public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer)
+    {
+        _log.info("Nothing to do here.  Ceph does not require a wait for synchronization");
+        completer.ready(_dbClient);
     }
 
     /**

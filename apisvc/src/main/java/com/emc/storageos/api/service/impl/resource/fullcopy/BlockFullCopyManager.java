@@ -78,7 +78,7 @@ public class BlockFullCopyManager {
 
     // Enumeration specifying the valid keys for the full copy implementations map.
     private enum FullCopyImpl {
-        dflt, vmax, vmax3, vnx, vnxe, hds, openstack, scaleio, xtremio, xiv, rp, vplex
+        dflt, vmax, vmax3, vnx, vnxe, hds, openstack, scaleio, xtremio, xiv, rp, vplex, ceph
     }
 
     private static final int VMAX_MAX_FULLCOPY_COUNT = 8; // Applies for VMAX3 also
@@ -86,9 +86,11 @@ public class BlockFullCopyManager {
     private static final int SCALEIO_MAX_FULLCOPY_COUNT = 31;
     private static final int XIV_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit
     private static final int OPENSTACK_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit
+    private static final int CEPH_MAX_FULLCOPY_COUNT = Integer.MAX_VALUE; // No known limit;
 
     // Map of the values for maximum active full copy sessions for each block storage platform.
     public static Map<String, Integer> s_maxFullCopyMap = new HashMap<String, Integer>();
+
     static {
         s_maxFullCopyMap.put(DiscoveredDataObject.Type.vmax.name(), VMAX_MAX_FULLCOPY_COUNT);
         s_maxFullCopyMap.put(DiscoveredDataObject.Type.vnxblock.name(), VNX_MAX_FULLCOPY_COUNT);
@@ -98,6 +100,7 @@ public class BlockFullCopyManager {
         s_maxFullCopyMap.put(DiscoveredDataObject.Type.scaleio.name(), SCALEIO_MAX_FULLCOPY_COUNT);
         s_maxFullCopyMap.put(DiscoveredDataObject.Type.xtremio.name(), 0); // not supported
         s_maxFullCopyMap.put(DiscoveredDataObject.Type.ibmxiv.name(), XIV_MAX_FULLCOPY_COUNT);
+        s_maxFullCopyMap.put(DiscoveredDataObject.Type.ceph.name(), CEPH_MAX_FULLCOPY_COUNT);
     }
 
     // A reference to a database client.
@@ -188,6 +191,8 @@ public class BlockFullCopyManager {
                 _placementManager.getStorageScheduler(SchedulerType.vplex.name()), tenantsService, this));
         _fullCopyImpls.put(FullCopyImpl.rp.name(), new RPBlockFullCopyApiImpl(_dbClient, coordinator,
                 _placementManager.getStorageScheduler(SchedulerType.rp.name()), this));
+        _fullCopyImpls.put(FullCopyImpl.ceph.name(), new CephBlockFullCopyApiImpl(_dbClient, coordinator,
+                _placementManager.getStorageScheduler(SchedulerType.block.name()), this));
     }
 
     /**
@@ -220,6 +225,8 @@ public class BlockFullCopyManager {
             fullCopyApi = _fullCopyImpls.get(FullCopyImpl.xtremio.name());
         } else if (DiscoveredDataObject.Type.ibmxiv.name().equals(systemType)) {
             fullCopyApi = _fullCopyImpls.get(FullCopyImpl.xiv.name());
+        } else if (DiscoveredDataObject.Type.ceph.name().equals(systemType)) {
+            fullCopyApi = _fullCopyImpls.get(FullCopyImpl.ceph.name());
         } else {
             fullCopyApi = _fullCopyImpls.get(FullCopyImpl.dflt.name());
         }

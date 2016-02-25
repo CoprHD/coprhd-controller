@@ -42,6 +42,19 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
+    @Asset("consistencyGroupAll")
+    public List<AssetOption> getAllConsistencyGroup(AssetOptionsContext ctx) {
+        List<ProjectRestRep> projects = api(ctx).projects().getByTenant(ctx.getTenant());
+        List<BlockConsistencyGroupRestRep> cgs = Lists.newArrayList();
+
+        for (ProjectRestRep project : projects) {
+            cgs.addAll(api(ctx).blockConsistencyGroups().findByProject(project));
+        }
+
+        List<AssetOption> options = createBaseResourceOptions(cgs);
+        return options;
+    }
+
     @Asset("consistencyGroup")
     @AssetDependencies({ "project", "blockVirtualPool" })
     public List<AssetOption> getConsistencyGroups(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {

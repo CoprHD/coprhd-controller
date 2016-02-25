@@ -18,8 +18,10 @@
 	#{/DataTable.buttonBar}
   #{/if}
   #{else}
-	#{DataTable.crudButtonBar table:'disasterRecovery', deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
-	#{/DataTable.crudButtonBar}
+  	#{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
+		#{DataTable.crudButtonBar table:'disasterRecovery', deleteConfirm:messages.get('disasterRecovery.deleteConfirm')}
+		#{/DataTable.crudButtonBar}
+	#{/deadbolt.restrict}
   #{/else}
 #{/DataTable.baseCrudTable}
 #{DataTable.expandHtml @errorDetails(':id'), table:'disasterRecovery' /}

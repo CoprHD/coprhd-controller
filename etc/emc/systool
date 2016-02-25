@@ -481,24 +481,6 @@ _stop() {
 }
 
 #
-# Reconfigure coordinatorsvc mode. for standby only
-#
-# participant - disconnect from active site and exit observer mode. becomes writable
-# observer - reconnect active site and enter observer mode. becomes read-only
-#
-_reconfig_coordinator() {
-    if [ "$(_is_dr_standby)" = "true" ] ; then
-        exec /etc/genconfig "coordinator" << EOF
-$(_get_props)
-dr_coordinator_type=${1}
-EOF
-        _fatal     "Failed to exec /etc/genconfig coordinator"
-   else
-        _fatal     "Unsupported reconfig-coordinator operation"
-   fi
-}
-
-#
 # Restart services to apply config change in _reconfig_coordinator
 #
 _restart_coordinator() {

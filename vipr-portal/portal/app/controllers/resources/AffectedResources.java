@@ -592,6 +592,7 @@ public class AffectedResources extends Controller {
             super(resourceId, ResourceType.CONSISTENCY_GROUP);
             blockConsistencyGroup = getBlockConsistencyGroup(client, resourceId);
             volumes = getVolumes(client, blockConsistencyGroup);
+            snapshotSessionsCG = getSnapshotSessions();
         }
 
         public BlockConsistencyGroupDetails(ViPRCoreClient client, URI resourceId) {

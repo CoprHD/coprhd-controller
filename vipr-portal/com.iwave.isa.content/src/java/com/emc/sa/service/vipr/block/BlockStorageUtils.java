@@ -622,25 +622,27 @@ public class BlockStorageUtils {
                 removeContinuousCopiesForVolume(volumeId, type);
                 removeFullCopiesForVolume(volumeId, blockResourceIds, type);
             } else {
-                unexportReplicas(volumeId, blockResourceIds);
+                unexportReplicas(volumeId, blockResourceIds, type);
             }
         }
         deactivateBlockResources(blockResourceIds, type);
     }
 
-    public static void unexportReplicas(URI volumeId, Collection<URI> blockResourceIds) {
-        List<URI> snapshotIds = getActiveSnapshots(volumeId);
-        removeBlockResourcesFromExports(snapshotIds);
+    public static void unexportReplicas(URI volumeId, Collection<URI> blockResourceIds, VolumeDeleteTypeEnum type) {
+        if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
+            List<URI> snapshotIds = getActiveSnapshots(volumeId);
+            removeBlockResourcesFromExports(snapshotIds);
 
-        if (!ResourceType.isType(BLOCK_SNAPSHOT, volumeId)) {
-            Collection<URI> continuousCopyIds = getActiveContinuousCopies(volumeId);
-            removeBlockResourcesFromExports(continuousCopyIds);
+            if (!ResourceType.isType(BLOCK_SNAPSHOT, volumeId)) {
+                Collection<URI> continuousCopyIds = getActiveContinuousCopies(volumeId);
+                removeBlockResourcesFromExports(continuousCopyIds);
+            }
         }
 
         List<URI> fullCopyIds = getActiveFullCopies(volumeId);
         blockResourceIds.removeAll(fullCopyIds);
         for (URI fullCopyId : fullCopyIds) {
-            removeBlockResources(Collections.singletonList(fullCopyId), VolumeDeleteTypeEnum.FULL);
+            removeBlockResources(Collections.singletonList(fullCopyId), type);
         }
     }
 

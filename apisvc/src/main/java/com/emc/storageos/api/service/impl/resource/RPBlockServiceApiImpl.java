@@ -2421,7 +2421,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         for (Volume volume : volumes) {
-            if (RPHelper.isProtectionBasedSnapshot(volume, snapshotType)
+            if (RPHelper.isProtectionBasedSnapshot(volume, snapshotType, _dbClient)
                     && snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
                 // For protection-based snapshots, get the protection domains we
                 // need to create snapshots on
@@ -2484,7 +2484,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     isFormerTarget = true;
                 }
 
-                if (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex) {
+                VolumeGroup volumeGroup = volume.getApplication(_dbClient);
+                boolean isInApplication = volume != null && !volumeGroup.getInactive();
+
+                if (!isInApplication && (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex)) {
                     // For RP+Vplex targets (who are not former source volumes) and former target volumes,
                     // we do not want to create a backing array CG snap. To avoid doing this, we do not
                     // set the consistency group.
@@ -2550,6 +2553,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         snapshot.setSourceNativeId(volume.getNativeId());
         snapshot.setParent(new NamedURI(volume.getId(), snapshotName));
         String modifiedSnapshotName = snapshotName;
+
+        if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+            modifiedSnapshotName = modifiedSnapshotName + "-"  + volume.getReplicationGroupInstance();
+        }
 
         // We want snaps of targets to contain the varray label so we can distinguish multiple
         // targets from one another
@@ -2651,7 +2658,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             storageControllerURI = reqVolume.getStorageController();
         }
 
-        if (RPHelper.isProtectionBasedSnapshot(reqVolume, snapshotType)) {
+        if (RPHelper.isProtectionBasedSnapshot(reqVolume, snapshotType, _dbClient)) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
             RPController controller = getController(RPController.class, protectionSystem.getSystemType());
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);

@@ -208,7 +208,7 @@ public class LDAPsources extends ViprResourceController {
 
         public Boolean disable;
         
-        public Boolean autoRegisterOpenStackProjects;
+        public Boolean autoRegCoprHDNImportOSProjects;
 
         @Required
         public List<String> domains;
@@ -255,7 +255,7 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("groupObjectClassesString", StringUtils.join(this.groupObjectClasses, "\n"));
             renderArgs.put("groupMemberAttributesString", StringUtils.join(this.groupMemberAttributes, "\n"));
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
-            renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegisterOpenStackProjects);
+            renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
         }
 
         public boolean isNew() {
@@ -268,7 +268,7 @@ public class LDAPsources extends ViprResourceController {
             this.mode = ldapSources.getMode();
             this.description = ldapSources.getDescription();
             this.disable = ldapSources.getDisable();
-            this.autoRegisterOpenStackProjects = ldapSources.getAutoRegisterOpenStackProjects();
+            this.autoRegCoprHDNImportOSProjects = ldapSources.getAutoRegCoprHDNImportOSProjects();
             this.domains = Lists.newArrayList(ldapSources.getDomains());
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
@@ -299,7 +299,7 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
-            param.setAutoRegisterOpenStackProjects(this.autoRegisterOpenStackProjects);
+            param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
 
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(StringUtils.trimToNull(this.managerPassword));
@@ -394,7 +394,7 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
-            param.setAutoRegisterOpenStackProjects(this.autoRegisterOpenStackProjects);
+            param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
             param.setGroupAttribute(this.groupAttribute);
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(this.managerPassword);

@@ -30,7 +30,7 @@ public class AuthnProvider extends DataObject {
     private ProvidersType _mode;
     private String _description;
     private Boolean _disable;
-    private Boolean _autoRegisterOpenStackProjects;
+    private Boolean _autoRegCoprHDNImportOSProjects;
     private StringSet _serverUrls;
     private StringSet _domains;
     private String _serverCert;
@@ -102,18 +102,18 @@ public class AuthnProvider extends DataObject {
         setChanged("disable");
     }
 
-    @Name("autoRegisterOpenStackProjects")
-    public Boolean getAutoRegisterOpenStackProjects() {
-        if (null != _autoRegisterOpenStackProjects) {
-            return _autoRegisterOpenStackProjects;
+    @Name("autoRegCoprHDNImportOSProjects")
+    public Boolean getAutoRegCoprHDNImportOSProjects() {
+        if (null != _autoRegCoprHDNImportOSProjects) {
+            return _autoRegCoprHDNImportOSProjects;
         } else {
             return false;
         }
     }
 
-    public void setAutoRegisterOpenStackProjects(Boolean autoRegisterOpenStackProjects) {
-        _autoRegisterOpenStackProjects = autoRegisterOpenStackProjects;
-        setChanged("autoRegisterOpenStackProjects");
+    public void setAutoRegCoprHDNImportOSProjects(Boolean autoRegCoprHDNImportOSProjects) {
+        _autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
+        setChanged("autoRegCoprHDNImportOSProjects");
     }
 
     @Name("serverUrls")

@@ -66,7 +66,7 @@ public abstract class AuthnProviderBaseParam {
     /**
      * Specifies if there is OpenStack registration.
      */
-    private Boolean autoRegisterOpenStackProjects;
+    private Boolean autoRegCoprHDNImportOSProjects;
 
     /**
      * Distinguished Name for the bind user.
@@ -128,7 +128,7 @@ public abstract class AuthnProviderBaseParam {
     }
 
     public AuthnProviderBaseParam(String mode, String label,
-            String description, Boolean disable, Boolean autoRegisterOpenStackProjects, String serverCert,
+            String description, Boolean disable, Boolean autoRegCoprHDNImportOSProjects, String serverCert,
             String managerDn, String managerPassword, String searchBase,
             String searchFilter, String searchScope, String searchAttributeKey,
             String groupAttribute, Integer maxPageSize,
@@ -137,7 +137,7 @@ public abstract class AuthnProviderBaseParam {
         this.label = label;
         this.description = description;
         this.disable = disable;
-        this.autoRegisterOpenStackProjects = autoRegisterOpenStackProjects;
+        this.autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
         this.managerDn = managerDn;
         this.managerPassword = managerPassword;
         this.searchBase = searchBase;
@@ -185,13 +185,13 @@ public abstract class AuthnProviderBaseParam {
         this.disable = disable;
     }
 
-    @XmlElement(name = "autoRegisterOpenStackProjects", required = false, defaultValue = "false")
-    public Boolean getAutoRegisterOpenStackProjects() {
-        return autoRegisterOpenStackProjects;
+    @XmlElement(name = "autoRegCoprHDNImportOSProjects", required = false, defaultValue = "false")
+    public Boolean getAutoRegCoprHDNImportOSProjects() {
+        return autoRegCoprHDNImportOSProjects;
     }
 
-    public void setAutoRegisterOpenStackProjects(Boolean autoRegisterOpenStackProjects) {
-        this.autoRegisterOpenStackProjects = autoRegisterOpenStackProjects;
+    public void setAutoRegCoprHDNImportOSProjects(Boolean autoRegCoprHDNImportOSProjects) {
+        this.autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
     }
 
     @XmlElement(name = "manager_dn")
@@ -285,8 +285,8 @@ public abstract class AuthnProviderBaseParam {
         sb.append(description);
         sb.append(", disable=");
         sb.append(disable);
-        sb.append(", autoRegisterOpenStackProjects=");
-        sb.append(autoRegisterOpenStackProjects);
+        sb.append(", autoRegCoprHDNImportOSProjects=");
+        sb.append(autoRegCoprHDNImportOSProjects);
         sb.append(", manager_dn=");
         sb.append(managerDn);
         sb.append(", manager_password=");

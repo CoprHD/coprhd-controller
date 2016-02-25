@@ -39,7 +39,6 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.keystone.restapi.errorhandling.KeystoneApiException;
 import com.emc.storageos.keystone.restapi.model.response.*;
 import com.emc.storageos.keystone.restapi.utils.KeystoneUtils;
 import com.emc.storageos.model.project.ProjectElement;
@@ -225,7 +224,7 @@ public class AuthnConfigurationService extends TaggedResource {
             populateKeystoneToken(provider, null);
 
             // If the checkbox is checked, then register CoprHD.
-            if(provider.getAutoRegisterOpenStackProjects()){
+            if(provider.getAutoRegCoprHDNImportOSProjects()){
                 registerCoprhdInKeystone(provider);
             }
         } else {
@@ -245,8 +244,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
         // We have to create tenants and projects after the creation of AuthProvider.
         if (null != mode && AuthnProvider.ProvidersType.keystone.toString().equalsIgnoreCase(mode)) {
-            // If the checkbox is checked, then create Tenants and Projects for OS.
-            if(provider.getAutoRegisterOpenStackProjects()){
+            // If the checkbox is checked, then register CoprHD.
+            if (provider.getAutoRegCoprHDNImportOSProjects()){
                 createTenantAndProjectForAutomaticKeystoneRegistration(provider);
             }
         }
@@ -528,7 +527,7 @@ public class AuthnConfigurationService extends TaggedResource {
     private AuthnProviderRestRep updateKeystoneProvider(URI id, AuthnUpdateParam param,
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
-        boolean isAutoRegistered = provider.getAutoRegisterOpenStackProjects();
+        boolean isAutoRegistered = provider.getAutoRegCoprHDNImportOSProjects();
         overlayProvider(provider, param);
         if (!provider.getDisable()) {
             _log.debug("Validating provider before modification...");
@@ -543,7 +542,7 @@ public class AuthnConfigurationService extends TaggedResource {
         _log.debug("Saving to the DB the updated provider: {}", provider.toString());
         persistProfileAndNotifyChange(provider, false);
 
-        if (provider.getAutoRegisterOpenStackProjects() && !isAutoRegistered) {
+        if (provider.getAutoRegCoprHDNImportOSProjects() && !isAutoRegistered) {
             registerCoprhdInKeystone(provider);
             createTenantAndProjectForAutomaticKeystoneRegistration(provider);
         }
@@ -714,8 +713,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
         authn.setDisable(param.getDisable() != null ? param.getDisable() : authn.getDisable());
         
-        authn.setAutoRegisterOpenStackProjects(param.getAutoRegisterOpenStackProjects() != null ? param.getAutoRegisterOpenStackProjects()
-                : authn.getAutoRegisterOpenStackProjects());
+        authn.setAutoRegCoprHDNImportOSProjects(param.getAutoRegCoprHDNImportOSProjects() != null ? param.getAutoRegCoprHDNImportOSProjects()
+                : authn.getAutoRegCoprHDNImportOSProjects());
 
         authn.setMaxPageSize(param.getMaxPageSize());
 

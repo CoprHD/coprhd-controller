@@ -24,7 +24,6 @@
     <import resource="classpath:dbclient-conf.xml"/>
     <import resource="classpath:api-var.xml"/>
     <import resource="classpath:local-security-conf.xml" />
-    <import resource="classpath:security-common.xml" />
     <import resource="classpath:attr-matcher.xml"/>
     <import resource="classpath:jmx-conf.xml"/>
     <import resource="classpath:geoclient-conf.xml"/>

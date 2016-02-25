@@ -43,7 +43,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
 
     public void runReplicaPostProcessing(Map<String, LocalReplicaObject> volumeToReplicaMap, DbClient dbClient) {
         setSupportedVPoolsForReplicas(volumeToReplicaMap, dbClient);
-        filterNestedSnapshots(volumeToReplicaMap, dbClient);
+        filterUnsupportedSnapshots(volumeToReplicaMap, dbClient);
     }
 
     private void setSupportedVPoolsForReplicas(
@@ -131,27 +131,34 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
         }
     }
 
-    private void filterNestedSnapshots(
+    private void filterUnsupportedSnapshots(
             Map<String, LocalReplicaObject> volumeToReplicaMap, DbClient dbClient) {
         _logger.info("Post processing UnManagedVolumes filterNestedSnapshots");
         List<UnManagedVolume> modifiedUnManagedVolumes = new ArrayList<UnManagedVolume>();
 
         for (Entry<String, LocalReplicaObject> entry : volumeToReplicaMap.entrySet()) {
             String nativeGuid = entry.getKey();
-            // for each snapshot target, if it has its own snapshot targets, then the snapshot target and all its snapshot targets are non
-            // ingestable
             LocalReplicaObject obj = entry.getValue();
+            // Process each snapshot
             if (LocalReplicaObject.Types.BlockSnapshot.equals(obj.getType())) {
                 try {
                     UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(nativeGuid, dbClient);
-                    String syncAspect = obj.getSettingsInstance();
-                    if (Constants.NOT_INGESTABLE_SYNC_ASPECT.equals(syncAspect)) {
+
+                    // If the snapshot synchronization path indicates the snapshot target volume
+                    // is linked to an unsupported synchronization aspect, then the snapshot is not
+                    // ingestable.
+                    String syncAspectPath = obj.getSettingsInstance();
+                    if (Constants.NOT_INGESTABLE_SYNC_ASPECT.equals(syncAspectPath)) {
                         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(), FALSE);
                         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.name(),
-                                "There are multiple snapshots with the same name");
+                                "The snapshot cannot be ingested because the snapshot target volume is linked to an unsupported "
+                                        + "array snapshot whose name is used by multiple array snapshots for the same source volume. The "
+                                        + "storage system likely uses generation numbers to differentiate these snapshots, and ViPR does not "
+                                        + "currently support generation numbers.");
                         modifiedUnManagedVolumes.add(unManagedVolume);
                     } else {
-                        // check its snapshots
+                        // If a snapshot has its own snapshot targets, then the snapshot target and all its
+                        // snapshot targets are non ingestable
                         StringSet targets = obj.getSnapshots();
                         if (targets != null && !targets.isEmpty()) {
                             if (unManagedVolume != null) {

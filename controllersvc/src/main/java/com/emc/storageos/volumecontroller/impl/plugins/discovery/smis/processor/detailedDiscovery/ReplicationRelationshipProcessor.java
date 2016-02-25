@@ -50,7 +50,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
 
     private Map<String, LocalReplicaObject> _volumeToLocalReplicaMap;
     private Map<String, Map<String, String>> _syncAspectMap;
-    private Map<String, Set<String>> _duplicateElementNameMap;
+    private Map<String, Set<String>> _duplicateSyncAspectElementNameMap;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -61,7 +61,8 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                 .get(Constants.UN_VOLUME_LOCAL_REPLICA_MAP);
         _syncAspectMap = (Map<String, Map<String, String>>) keyMap
                 .get(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP);
-        _duplicateElementNameMap = (Map<String, Set<String>>) keyMap.get(Constants.DUPLICATE_ELEMENT_NAME_MAP);
+        _duplicateSyncAspectElementNameMap = (Map<String, Set<String>>) keyMap
+                .get(Constants.DUPLICATE_SYNC_ASPECT_ELEMENT_NAME_MAP);
 
         CIMInstance[] instances = (CIMInstance[]) getFromOutputArgs((CIMArgument[]) resultObj, SmisConstants.SYNCHRONIZATIONS);
         if (instances == null) {
@@ -146,9 +147,22 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                     replicaObj.setSyncActive(inSync);
                     replicaObj.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
 
+                    // We check to see if the snapshot target volume is linked to an unsupported
+                    // synchronization aspect. The unsupported synchronization aspects are those
+                    // aspects that share the same name, likely because they are VMAX3 SnapVx
+                    // aspects that utilize generation numbers to differentiate array snapshots
+                    // with the same name. The names of these aspects are in the duplicate
+                    // synchronization aspect element names map. If the snapshot relationship
+                    // name maps to a duplicate name, then we set the aspect path, i.e., the
+                    // settingsInstance to a value that indicates the snapshot is linked an invalid
+                    // aspect. In the volume discovery post processor, we will check this value
+                    // for each snapshot and if it is set to this specific invalid value, we will
+                    // mark the UnManagedVolume instance representing the snapshot as not ingestable.
                     String relationshipName = getCIMPropertyValue(instance, EMC_RELATIONSHIP_NAME);
-                    Set<String> duplicateElementNamesForSrc = _duplicateElementNameMap.get(srcNativeGuid);
+                    Set<String> duplicateElementNamesForSrc = _duplicateSyncAspectElementNameMap.get(srcNativeGuid);
                     if (duplicateElementNamesForSrc.contains(relationshipName)) {
+                        _logger.info("Processed snapshot {} linked to unsupported synchronization aspect with name {}",
+                                nativeGuid, relationshipName);
                         replicaObj.setSettingsInstance(Constants.NOT_INGESTABLE_SYNC_ASPECT);
                     } else {
                         Map<String, String> aspectsForSource = _syncAspectMap.get(srcNativeGuid);

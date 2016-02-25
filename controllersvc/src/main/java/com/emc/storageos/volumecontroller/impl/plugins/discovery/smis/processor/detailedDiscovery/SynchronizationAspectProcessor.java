@@ -34,7 +34,7 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
 
     private AccessProfile _profile;
     private Map<String, Map<String, String>> _syncAspectMap;
-    private Map<String, Set<String>> _duplicateElementNameMap;
+    private Map<String, Set<String>> _duplicateSyncAspectElementNameMap;
 
     @Override
     public void processResult(Operation operation, Object resultObj,
@@ -42,12 +42,12 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
         _logger.debug("Calling SynchronizationAspectProcessor");
         _profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
         _syncAspectMap = new HashMap<String, Map<String, String>>();
-        _duplicateElementNameMap = new HashMap<String, Set<String>>();
+        _duplicateSyncAspectElementNameMap = new HashMap<String, Set<String>>();
 
         processResultbyChunk(resultObj, keyMap);
 
         keyMap.put(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP, _syncAspectMap);
-        keyMap.put(Constants.DUPLICATE_ELEMENT_NAME_MAP, _duplicateElementNameMap);
+        keyMap.put(Constants.DUPLICATE_SYNC_ASPECT_ELEMENT_NAME_MAP, _duplicateSyncAspectElementNameMap);
     }
 
     /**
@@ -83,18 +83,33 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
                     continue;
                 }
 
+                // ViPR currently does not support SnapVx generation names. Generation
+                // names allow the user to use the same name for all array snapshots
+                // for a given source volume and assign a unique generation number to
+                // differentiate them. Therefore, if we encounter a synchronization aspect
+                // with the same element name this means this array snapshot is using
+                // generation names and we will not ingest it. In this case, make sure
+                // the aspect is not placed in the aspect map. This will prevent these
+                // aspects from being ingested as BlockSnapshotSession instances in ViPR.
+                // Also add the duplicate name to the duplicate aspect element name map.
+                // When the replication relationship processor runs we will use the
+                // duplicate names map to determine if a snapshot target volume is linked
+                // to an invalid aspect, which in turn will prevent that linked target
+                // from being ingested as a BlockSnapshot instance in ViPR.
                 String srcNativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(srcPath);
                 String elementName = getCIMPropertyValue(instance, Constants.ELEMENTNAME);
                 boolean isDuplicateElementNameForSrc = false;
                 if (processedNameMap.containsKey(srcNativeGuid)) {
                     Set<String> elementNamesForSrc = processedNameMap.get(srcNativeGuid);
                     if (elementNamesForSrc.contains(elementName)) {
+                        _logger.info("Processed duplicate synchronization aspect element name {} for source {}",
+                                elementName, srcNativeGuid);
                         Set<String> duplicateElementNamesForSrc;
-                        if (_duplicateElementNameMap.containsKey(srcNativeGuid)) {
-                            duplicateElementNamesForSrc = _duplicateElementNameMap.get(srcNativeGuid);
+                        if (_duplicateSyncAspectElementNameMap.containsKey(srcNativeGuid)) {
+                            duplicateElementNamesForSrc = _duplicateSyncAspectElementNameMap.get(srcNativeGuid);
                         } else {
                             duplicateElementNamesForSrc = new HashSet<String>();
-                            _duplicateElementNameMap.put(srcNativeGuid, duplicateElementNamesForSrc);
+                            _duplicateSyncAspectElementNameMap.put(srcNativeGuid, duplicateElementNamesForSrc);
                         }
                         duplicateElementNamesForSrc.add(elementName);
                         isDuplicateElementNameForSrc = true;
@@ -107,7 +122,7 @@ public class SynchronizationAspectProcessor extends StorageProcessor {
                     processedNameMap.put(srcNativeGuid, elementNamesForSrc);
                 }
 
-                Map<String, String> aspectsForSource = null;
+                Map<String, String> aspectsForSource;
                 String aspectKey = getSyncAspectMapKey(srcNativeGuid, elementName);
                 if (!isDuplicateElementNameForSrc) {
                     if (_syncAspectMap.containsKey(srcNativeGuid)) {

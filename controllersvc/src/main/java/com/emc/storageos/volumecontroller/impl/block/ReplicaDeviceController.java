@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkSnapshotSessionConsistencyGroup;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
@@ -38,25 +40,30 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockConsistencyGroupUpdateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 
 /**
  * Specific controller implementation to support block orchestration for handling replicas of volumes in a consistency group.
@@ -223,6 +230,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             if (firstVolumeDescriptor != null && cgURI != null) {
                 // find member volumes in the group
                 List<Volume> volumeList = ControllerUtils.getVolumesPartOfCG(cgURI, _dbClient);
+                URI storage = volumeList.get(0).getStorageController();
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
                 if (checkIfCGHasCloneReplica(volumeList)) {
                     log.info("Adding clone steps for create {} volumes", firstVolumeDescriptor.getType());
                     // create new clones for the newly created volumes
@@ -237,16 +246,85 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     waitFor = createMirrorSteps(workflow, waitFor, volumeDescriptors, volumeList, cgURI);
                 }
 
-                if (checkIfCGHasSnapshotReplica(volumeList)) {
-                    log.info("Adding snapshot steps for create {} volumes", firstVolumeDescriptor.getType());
-                    // create new snapshots for the newly created volumes
-                    // add the created snapshots to snapshot groups
-                    waitFor = createSnapshotSteps(workflow, waitFor, volumeDescriptors, volumeList, cgURI);
+                boolean isExistingCGSnapShotAvailable = checkIfCGHasSnapshotReplica(volumeList);
+
+                List<BlockSnapshotSession> sessions = getSnapSessionsOfCgVolumes(volumeList.get(0));
+
+                boolean isExistingCGSnapSessionAvailable = null != sessions && !sessions.isEmpty();
+
+                boolean isVMAX3ExistingVolume = ControllerUtils.isVmaxVolumeUsing803SMIS(volumeList.get(0), _dbClient);
+                List<URI> volumeListtoAdd = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+                List<Volume> volumes = new ArrayList<Volume>();
+                Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumeListtoAdd);
+                while (volumeIterator.hasNext()) {
+                    Volume volume = volumeIterator.next();
+                    if (volume != null && !volume.getInactive()) {
+                        volumes.add(volume);
+                    }
                 }
+
+                if (isVMAX3ExistingVolume) {
+                    if (isVMAX3VolumeHasSessionOnly(isExistingCGSnapSessionAvailable, isExistingCGSnapShotAvailable)) {
+                        // if given volumes doesn't have any sessions, then else
+                        // group volumes by RGs, and get sessions for each RG
+
+                        processSnapSessions(volumeList, workflow, waitFor, volumeListtoAdd);
+                    } else if (isVMAX3VolumeHasSnapshotOnly(isExistingCGSnapSessionAvailable, isExistingCGSnapShotAvailable)) {
+                        // if VMAX3 volume, then check whether #source volumes in CG !=
+                        log.info("Adding snapshot steps for adding volumes");
+                        // create new snapshots for the newly added volumes
+                        // add the created snapshots to snapshot groups
+                        Set<String> repGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(volumeList, _dbClient);
+                        for (String repGroupName : repGroupNames) {
+                            List<URI> repGroupVolumeUri = new ArrayList<URI>();
+                            URIQueryResultList queryResults = new URIQueryResultList();
+                            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                    .getVolumeReplicationGroupInstanceConstraint(repGroupName), queryResults);
+                            if (null != repGroupVolumeUri) {
+                                Volume repGroupVolume = _dbClient.queryObject(Volume.class, repGroupVolumeUri.get(0));
+                                storageSystem = _dbClient.queryObject(StorageSystem.class, repGroupVolume.getStorageController());
+                            }
+                            waitFor = addSnapshotsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes,
+                                    repGroupName, cgURI);
+                        }
+                    } else if (isVMAX3VolumeHasSessionAndSnapshot(isExistingCGSnapSessionAvailable, isExistingCGSnapShotAvailable)) {
+                        Set<String> repGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(volumeList, _dbClient);
+                        for (String repGroupName : repGroupNames) {
+                            processSnapSessionsAndLinkedTargets(volumeList, workflow, waitFor, volumeListtoAdd, repGroupName, cgURI);
+                        }
+
+                    }
+
+                } else if (isExistingCGSnapShotAvailable) {
+
+                    // if VMAX3 volume, then check whether #source volumes in CG !=
+                    log.info("Adding snapshot steps for adding volumes");
+                    // create new snapshots for the newly added volumes
+                    // add the created snapshots to snapshot groups
+                    Set<String> repGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(volumeList, _dbClient);
+                    for (String repGroupName : repGroupNames) {
+                        waitFor = addSnapshotsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes,
+                                repGroupName, cgURI);
+                    }
+                }
+                }
+
             }
-        }
+
 
         return waitFor;
+    }
+
+    private String createSnapshotSessionSteps(Workflow workflow,
+            String waitFor, List<Volume> volumes, BlockSnapshotSession session) {
+        log.info("START create snapshot session steps");
+
+        URI storage = volumes.get(0).getStorageController();
+        StorageSystem storageSystem = _dbClient.queryObject(
+                StorageSystem.class, storage);
+
+        // TODO Auto-generated method stub
+        return null;
     }
 
     /*
@@ -341,6 +419,196 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 _blockDeviceController.rollbackMethodNullMethod(), null);
         log.info(String.format("Step created for adding snapshot [%s] to group on device [%s]",
                 Joiner.on("\t").join(snapshotList), storage));
+
+        return waitFor;
+    }
+
+    public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel) {
+        BlockSnapshotSession snapSession = new BlockSnapshotSession();
+        Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
+
+        snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
+
+        snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+
+        if (sourceObj.hasConsistencyGroup()) {
+            snapSession.setConsistencyGroup(sourceObj.getConsistencyGroup());
+            snapSession.setSessionSetName(snapSessionLabel);
+            String rgName = sourceObj.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                snapSession.setReplicationGroupInstance(rgName);
+                // append RG name to user given label to uniquely identify sessions
+                // when there are multiple RGs in a CG
+                instanceLabel = String.format("%s-%s", instanceLabel, rgName);
+            }
+        } else {
+            snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
+        }
+
+        snapSession.setLabel(instanceLabel);
+        snapSession.setSessionLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(snapSessionLabel,
+                SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+
+        return snapSession;
+    }
+
+    public BlockSnapshotSession prepareSnapshotSession(BlockObject source, String snapSessionLabel, int newTargetCount,
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots) {
+
+        BlockSnapshotSession snapSession = prepareSnapshotSessionFromSource(source, snapSessionLabel, snapSessionLabel);
+
+        /*
+         * If linked targets are requested...
+         * 
+         * Non-CG case for source ["src"] with 2 targets named "linked":
+         * [
+         * ["linked-1"],
+         * ["linked-2"]
+         * ]
+         * 
+         * CG case for sources ["src-1", "src-2"] with 2 targets named "linked":
+         * [
+         * ["linked-1-1", "linked-1-2"],
+         * ["linked-2-1", "linked-2-2"]
+         * ]
+         * 
+         * i.e. treat non-CG single volumes as single member groups, then for however
+         * many target requests, copy each group.
+         */
+        if (newTargetCount > 0) {
+            // Create <newTargetCount> lists of targets
+            // Snapset labels use format <newTargetsName>-<currentTargetCount>
+            // Labels will look like <snapsetLabel>-<count>
+            for (int i = 0; i < newTargetCount; i++) {
+                int count = 0;
+                Map<URI, BlockSnapshot> targetMap = new HashMap<>();
+
+                // Generate label here
+                String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
+                String label = snapsetLabel;
+                String rgName = source.getReplicationGroupInstance();
+                if (source instanceof Volume && ((Volume) source).isVPlexVolume(_dbClient)) {
+                    // get RG name from back end volume
+                    Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) source, true, _dbClient);
+                    rgName = srcBEVolume.getReplicationGroupInstance();
+                }
+                if (NullColumnValueGetter.isNotNullValue(rgName)) {
+
+                    label = String.format("%s-%s", snapsetLabel, rgName);
+
+                }
+
+                BlockSnapshot blockSnapshot = prepareSnapshotForSession(source, snapsetLabel, label, snapSession);
+                targetMap.put(blockSnapshot.getId(), blockSnapshot);
+
+                snapSessionSnapshots.add(targetMap);
+            }
+        }
+
+        // Create and return the prepared snapshot session.
+        _dbClient.createObject(snapSession);
+        return snapSession;
+    }
+
+    public BlockSnapshot prepareSnapshotForSession(BlockObject sourceObj, String snapsetLabel, String label, BlockSnapshotSession session) {
+        BlockSnapshot snapshot = new BlockSnapshot();
+
+        snapshot.setId(URIUtil.createId(BlockSnapshot.class));
+        URI cgUri = sourceObj.getConsistencyGroup();
+        if (cgUri != null) {
+            snapshot.setConsistencyGroup(cgUri);
+        }
+        snapshot.setSourceNativeId(sourceObj.getNativeId());
+        snapshot.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
+        snapshot.setLabel(label);
+        snapshot.setStorageController(sourceObj.getStorageController());
+        snapshot.setVirtualArray(sourceObj.getVirtualArray());
+        snapshot.setProtocol(new StringSet());
+        snapshot.getProtocol().addAll(sourceObj.getProtocol());
+        Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
+        snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
+                snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+        snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
+
+        _dbClient.createObject(snapshot);
+        return snapshot;
+    }
+
+    public String createSnapshotSessionsStep(final Workflow workflow, String waitFor,
+            URI systemURI,
+            List<Volume> volumes,
+            String repGroupName, String sessionLabel) {
+        log.info("START create snapshot step");
+
+        for (Volume volume : volumes) {
+            BlockSnapshotSession session = prepareSnapshotSessionFromSource(volume, sessionLabel, "");
+
+            waitFor = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOT_SESSION_STEP_GROUP,
+                    String.format("Creating block snapshot session"),
+                    null, systemURI, _blockDeviceController.getDeviceType(systemURI), getClass(),
+                    _blockDeviceController.createBlockSnapshotSessionMethod(systemURI, session.getId(), repGroupName),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
+        }
+
+        return waitFor;
+    }
+
+    public String createSnapshotSessionAndLinkSessionStep(final Workflow workflow, String waitFor,
+            URI systemURI,
+            List<Volume> volumes,
+            String snapGroupName, String sessionLabel, String copyMode, URI cgURI) {
+        log.info("START create snapshot session and link session to targets step");
+
+        List<URI> snapshotList = new ArrayList<>();
+
+        List<List<URI>> sessionSnapshotURIs = new ArrayList<>();
+        List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
+
+        for (Map<URI, BlockSnapshot> snapshotMap : snapSessionSnapshots) {
+            Set<URI> uris = snapshotMap.keySet();
+            sessionSnapshotURIs.add(Lists.newArrayList(uris));
+        }
+
+        for (Volume volume : volumes) {
+            BlockSnapshotSession session = prepareSnapshotSession(volume, sessionLabel, 1, "TGT", snapSessionSnapshots);
+            waitFor = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOT_SESSION_STEP_GROUP,
+                    String.format("Creating block snapshot session"),
+                    null, systemURI, _blockDeviceController.getDeviceType(systemURI), getClass(),
+                    _blockDeviceController.createBlockSnapshotSessionMethod(systemURI, session.getId(), snapGroupName),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
+
+            // Add steps to create any new targets and link them to the session, if necessary
+            if ((sessionSnapshotURIs != null) && (!sessionSnapshotURIs.isEmpty())) {
+
+                for (List<URI> snapshotURIs : sessionSnapshotURIs) {
+                    if ((snapshotURIs != null) && (!snapshotURIs.isEmpty())) {
+                        for (URI snapshotURI : snapshotURIs) {
+                            waitFor = workflow.createStep(
+                                    BlockDeviceController.LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                                    String.format("Linking targets for snapshot session %s", session.getId()),
+                                    waitFor,
+                                    systemURI,
+                                    _blockDeviceController.getDeviceType(systemURI),
+                                    getClass(),
+                                    _blockDeviceController.linkBlockSnapshotSessionTargetMethod(systemURI, session.getId(), snapshotURI,
+                                            copyMode,
+                                            Boolean.FALSE),
+                                    _blockDeviceController.rollbackLinkBlockSnapshotSessionTargetMethod(systemURI, session.getId(),
+                                            snapshotURI), null);
+                        }
+
+                        waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                                String.format("Updating consistency group  %s", cgURI), waitFor, systemURI,
+                                _blockDeviceController.getDeviceType(systemURI), this.getClass(),
+                                addToReplicationGroupMethod(systemURI, cgURI, snapGroupName, snapshotList),
+                                _blockDeviceController.rollbackMethodNullMethod(), null);
+
+                    }
+                }
+
+            }
+        }
 
         return waitFor;
     }
@@ -688,17 +956,84 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return false;
     }
 
-    private boolean checkIfCGHasSnapshotSessions(List<Volume> volumes) {
-        for (BlockObject volume : volumes) {
-            List<BlockSnapshotSession> sessions =
-                    CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, BlockSnapshotSession.class,
-                            ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
-            if (!sessions.isEmpty()) {
-                return true;
+    private List<BlockSnapshotSession> getSnapSessionsOfCgVolumes(Volume volume) {
+
+        List<BlockSnapshotSession> sessionsList = CustomQueryUtility
+                .queryActiveResourcesByConstraint(_dbClient,
+                        BlockSnapshotSession.class,
+                        ContainmentConstraint.Factory
+                                .getParentSnapshotSessionConstraint(volume
+                                        .getId()));
+
+        return sessionsList;
+    }
+
+    private Map<String, List<Volume>> groupVolumesByRG(List<Volume> volumes) {
+
+        Map<String, List<Volume>> groupVolumesByRG = new HashMap<String, List<Volume>>();
+        for (Volume volume : volumes) {
+            if (groupVolumesByRG.get(volume.getReplicationGroupInstance()) == null) {
+                groupVolumesByRG.put(volume.getReplicationGroupInstance(), new ArrayList<Volume>());
+            }
+            groupVolumesByRG.get(volume.getReplicationGroupInstance()).add(volume);
+        }
+
+        return groupVolumesByRG;
+    }
+
+    private String processSnapSessions(List<Volume> existingVolumesInCG, Workflow workflow,
+            String waitFor, List<URI> volumesToAddUri) {
+        // Group volumes by RG, and loop thro each RG, find the # sessions and create session for every RG
+        Map<String, List<Volume>> groupVolumesByRG = groupVolumesByRG(existingVolumesInCG);
+
+        List<Volume> volumesToAdd = new ArrayList<Volume>();
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumesToAddUri);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumesToAdd.add(volume);
             }
         }
-        return false;
+        Map<String, List<Volume>> groupVolumesToAddByRG = groupVolumesByRG(volumesToAdd);
+        for (Entry<String, List<Volume>> entry : groupVolumesByRG.entrySet()) {
+            List<Volume> existingVolumeList = entry.getValue();
+            URI system = existingVolumeList.get(0).getStorageController();
+            List<BlockSnapshotSession> sessions = getSnapSessionsOfCgVolumes(existingVolumeList.get(0));
+            for (BlockSnapshotSession session : sessions) {
+                waitFor = createSnapshotSessionsStep(workflow, waitFor, system,
+                        groupVolumesToAddByRG.get(session.getReplicationGroupInstance()), entry.getKey(), session.getSessionLabel());
+            }
+        }
+        return waitFor;
     }
+
+    private String processSnapSessionsAndLinkedTargets(List<Volume> existingVolumesInCG, Workflow workflow,
+            String waitFor, List<URI> volumesToAddUri, String snapGroupName, URI cgUri) {
+        // Group volumes by RG, and loop thro each RG, find the # sessions and create session for every RG
+        Map<String, List<Volume>> groupVolumesByRG = groupVolumesByRG(existingVolumesInCG);
+
+        List<Volume> volumesToAdd = new ArrayList<Volume>();
+        Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class, volumesToAddUri);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumesToAdd.add(volume);
+            }
+        }
+        Map<String, List<Volume>> groupVolumesToAddByRG = groupVolumesByRG(volumesToAdd);
+        for (Entry<String, List<Volume>> entry : groupVolumesByRG.entrySet()) {
+            List<Volume> existingVolumeList = entry.getValue();
+            URI system = existingVolumeList.get(0).getStorageController();
+            List<BlockSnapshotSession> sessions = getSnapSessionsOfCgVolumes(existingVolumeList.get(0));
+            for (BlockSnapshotSession session : sessions) {
+                waitFor = createSnapshotSessionAndLinkSessionStep(workflow, waitFor,
+                        system, groupVolumesToAddByRG.get(session.getReplicationGroupInstance()), snapGroupName, session.getSessionLabel(),
+                        "NO_COPY", cgUri);
+            }
+        }
+        return waitFor;
+    }
+
 
     @Override
     public String addStepsForDeleteVolumes(Workflow workflow, String waitFor, List<VolumeDescriptor> volumes,
@@ -1098,7 +1433,48 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 }
             }
             
-            if (checkIfCGHasSnapshotReplica(rgVolumes)) {
+            boolean isExistingCGSnapShotAvailable = checkIfCGHasSnapshotReplica(rgVolumes);
+
+            List<BlockSnapshotSession> sessions = getSnapSessionsOfCgVolumes(rgVolumes.get(0));
+
+            boolean isExistingCGSnapSessionAvailable = null != sessions && !sessions.isEmpty();
+
+            boolean isVMAX3ExistingVolume = ControllerUtils.isVmaxVolumeUsing803SMIS(rgVolumes.get(0), _dbClient);
+
+            if (isVMAX3ExistingVolume) {
+                if (isVMAX3VolumeHasSessionOnly(isExistingCGSnapSessionAvailable, isExistingCGSnapShotAvailable)) {
+                    // if given volumes doesn't have any sessions, then else
+                    // group volumes by RGs, and get sessions for each RG
+                    processSnapSessions(rgVolumes, workflow, waitFor, volumeList);
+                } else if (isVMAX3VolumeHasSnapshotOnly(isExistingCGSnapSessionAvailable, isExistingCGSnapShotAvailable)) {
+                    // if VMAX3 volume, then check whether #source volumes in CG !=
+                    log.info("Adding snapshot steps for adding volumes");
+                    // create new snapshots for the newly added volumes
+                    // add the created snapshots to snapshot groups
+                    Set<String> repGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(rgVolumes, _dbClient);
+                    for (String repGroupName : repGroupNames) {
+                        List<URI> repGroupVolumeUri = new ArrayList<URI>();
+                        URIQueryResultList queryResults = new URIQueryResultList();
+                        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                                .getVolumeReplicationGroupInstanceConstraint(repGroupName), queryResults);
+                        if (null != repGroupVolumeUri) {
+                            Volume repGroupVolume = _dbClient.queryObject(Volume.class, repGroupVolumeUri.get(0));
+                            storageSystem = _dbClient.queryObject(StorageSystem.class, repGroupVolume.getStorageController());
+                        }
+                        waitFor = addSnapshotsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes,
+                                repGroupName, cgURI);
+                    }
+                } else if (isVMAX3VolumeHasSessionAndSnapshot(isExistingCGSnapSessionAvailable, isExistingCGSnapShotAvailable)) {
+                    Set<String> repGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(rgVolumes, _dbClient);
+                    for (String repGroupName : repGroupNames) {
+                        processSnapSessionsAndLinkedTargets(rgVolumes, workflow, waitFor, volumeList, repGroupName, cgURI);
+                    }
+
+                }
+
+            } else if (isExistingCGSnapShotAvailable) {
+
+                // if VMAX3 volume, then check whether #source volumes in CG !=
                 log.info("Adding snapshot steps for adding volumes");
                 // create new snapshots for the newly added volumes
                 // add the created snapshots to snapshot groups
@@ -1108,17 +1484,31 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                             repGroupName, cgURI);
                 }
             }
-
-            if (checkIfCGHasSnapshotSessions(volumes)) {
-                log.info("Adding snapshot session steps for adding volumes");
-                // Consolidate multiple snapshot sessions into one CG-based snapshot session
-                waitFor = addSnapshotSessionsToReplicationGroupStep(workflow, waitFor, storageSystem, volumes, cgURI);
             }
-        }
 
         return waitFor;
     }
     
+    private boolean isVMAX3VolumeHasSessionOnly(boolean isExistingCGSnapSessionAvailable, boolean isExistingCGSnapShotAvailable) {
+        if (!isExistingCGSnapSessionAvailable)
+            return false;
+        if (isExistingCGSnapShotAvailable)
+            return false;
+        return true;
+    }
+
+    private boolean isVMAX3VolumeHasSnapshotOnly(boolean isExistingCGSnapSessionAvailable, boolean isExistingCGSnapShotAvailable) {
+        if (!isExistingCGSnapShotAvailable)
+            return false;
+        if (isExistingCGSnapSessionAvailable)
+            return false;
+        return true;
+    }
+
+    private boolean isVMAX3VolumeHasSessionAndSnapshot(boolean isExistingCGSnapSessionAvailable, boolean isExistingCGSnapShotAvailable) {
+        return isExistingCGSnapSessionAvailable && isExistingCGSnapShotAvailable;
+    }
+
     /**
      * Adds the steps necessary for removing one or more volumes from replication groups to the given Workflow.
      * volume list could contain volumes from different storage systems and different replication groups
@@ -1280,8 +1670,14 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     Iterator<URI> it = list.iterator();
                     while (it.hasNext()) {
                         BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, it.next());
-                        if (snapshot != null && !snapshot.getInactive() && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
-                            String snapGroupName = snapshot.getReplicationGroupInstance();
+                        String snapGroupName = null;
+                        if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                            snapGroupName = snapshot.getReplicationGroupInstance();
+                        } else if (NullColumnValueGetter.isNotNullValue(snapshot.getSnapsetLabel())) {
+                            snapGroupName = snapshot.getSnapsetLabel();
+                        }
+
+                        if (snapGroupName != null) {
                             if (snapGroupCloneURIMap.get(snapGroupName) == null) {
                                 snapGroupCloneURIMap.put(snapGroupName, new ArrayList<URI>());
                             }

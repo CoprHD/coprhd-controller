@@ -97,32 +97,6 @@ public class KeystoneUtils {
     }
 
     /**
-     * Retrieves OpenStack tenant with given name.
-     *
-     * @param response Keystone response with tenants inside.
-     * @param tenantName Name of a tenant to look for.
-     * @return Tenant with given name.
-     */
-    public TenantV2 retrieveTenant(TenantResponse response, String tenantName) {
-        _log.debug("START - retrieveTenant");
-
-        if (tenantName == null) {
-            _log.error("tenantName is null");
-            throw APIException.internalServerErrors.targetIsNullOrEmpty("Tenant name");
-        }
-
-        for (TenantV2 tenant : response.getTenants()) {
-            if (tenant.getName().equals(tenantName)) {
-                _log.debug("END - retrieveTenant");
-                return tenant;
-            }
-        }
-        _log.warn("Tenant {} does not exist in OpenStack", tenantName);
-        // Return null if tenant is missing.
-        return null;
-    }
-
-    /**
      * Retrieves OpenStack service ID with given service name.
      *
      * @param keystoneApi Keystone Api client.

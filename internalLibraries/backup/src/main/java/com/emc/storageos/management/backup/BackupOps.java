@@ -664,12 +664,12 @@ public class BackupOps {
     }
 
     public File getBackupDir(String backupName, boolean isLocal) {
+        String name = backupName;
         if (backupName.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
-            backupName = FilenameUtils.removeExtension(backupName);
+            name = FilenameUtils.removeExtension(backupName);
         }
 
-        File backupDir = isLocal ? new File(getBackupDir(), backupName) : new File(BackupConstants.RESTORE_DIR, backupName);
-        return backupDir;
+        return isLocal ? new File(getBackupDir(), name) : new File(BackupConstants.RESTORE_DIR, name);
     }
 
     class CreateBackupCallable extends BackupCallable<Void> {

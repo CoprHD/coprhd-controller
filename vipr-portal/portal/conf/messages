@@ -659,27 +659,7 @@ VCenters.detachStorageConfirm=Are you sure you want to detach storage from the s
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
 
 #Application Support
-Application.list.title=Applications
-application.name=Application	
-application.description=Description	
-application.role=Role
-Application.deleteConfirm=Are you sure you want to delete the Application(s).
-ApplicationForm.create.title=Create Application
-
-ApplicationForm.edit.title=Edit Application
-application.create.description=Enter information needed for an Application
-applicationForm.name=Application Name
-applicationForm.description=Description
-applicationForm.roles=Roles
-application.volume=Volumes
-application.clones=Clones
-application.snapshot=Snapshots
-application.mirror=Mirrors
-application.save.success=Saved '%s'
-applications.deleted=Application(s) deleted successfully
-Application.unknown=Unknown Application with ID '%s'
-application.resources.title=Application
-application.copy.volumes=Copy Volumes
+applicationGroup.copy.volumes=Copy Volumes
 applicationGroup.list.title=Applications
 applicationGroup.name=Application Name
 applicationGroup.description=Description	

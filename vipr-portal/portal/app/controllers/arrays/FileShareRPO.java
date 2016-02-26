@@ -41,6 +41,8 @@ import controllers.util.ViprResourceController;
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class FileShareRPO extends ViprResourceController {
 
+    private static final String LOCAL_MIRROR="LOCAL_MIRROR";
+    private static final String REMOTE_MIRROR="REMOTE_MIRROR";
     public static void list() {
         FileShareDataTable dataTable = new FileShareDataTable();
         render(dataTable);
@@ -80,7 +82,12 @@ public class FileShareRPO extends ViprResourceController {
         FileReplicationParam param = new FileReplicationParam();
         List<Copy> copies = Lists.newArrayList();
         Copy copyFile = new Copy();
-        copyFile.setType(fileReplicationType);
+        if(fileReplicationType.toLowerCase().equals("remote")) {
+            copyFile.setType(REMOTE_MIRROR);
+        }
+        else {
+            copyFile.setType(LOCAL_MIRROR);
+        }
         copies.add(copyFile);
         param.setCopies(copies);
         ViPRCoreClient client = BourneUtil.getViprClient();

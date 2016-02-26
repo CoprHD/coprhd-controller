@@ -4279,6 +4279,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public void createSnapshot(URI protectionDevice, URI storageURI, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, String opId) throws InternalException {
         TaskCompleter completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
+        // if snapshot is part of a CG, add CG id to the completer
+        List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
+        ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, completer);
+
         Map<URI, Integer> snapshotMap = new HashMap<URI, Integer>();
         try {
             ProtectionSystem system = null;

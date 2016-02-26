@@ -216,6 +216,10 @@
         </property>
     </bean>
     
+    <bean id="remidiationService" class="com.emc.storageos.api.service.impl.resource.RemidiationService">
+         <property name="dbClient" ref="dbclient"/>
+    </bean>
+
     <bean id="bucketService" class="com.emc.storageos.api.service.impl.resource.BucketService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -482,6 +486,7 @@
                 </bean>
                 <ref bean="fileService"/>
                 <ref bean="bucketService"/>
+                <ref bean="remidiationService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.InternalFileResource">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>

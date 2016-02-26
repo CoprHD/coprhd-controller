@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @XmlRootElement(name = "external_backup_info")
-public class ExternalBackupInfo {
+public class BackupInfo {
     private static final Logger log = LoggerFactory.getLogger(BackupSets.class);
 
     private String fileName;
@@ -20,7 +20,7 @@ public class ExternalBackupInfo {
     private String version;
     private BackupRestoreStatus restoreStatus;
 
-    public ExternalBackupInfo() {
+    public BackupInfo() {
     }
 
     @XmlElement(name = "file_name")
@@ -73,6 +73,8 @@ public class ExternalBackupInfo {
         StringBuffer sb = new StringBuffer();
         sb.append("FileName:");
         sb.append(getFileName());
+        sb.append(", version:");
+        sb.append(getVersion());
         sb.append(", CreateTime:");
         sb.append(getCreateTime());
         sb.append(", FileSize:");

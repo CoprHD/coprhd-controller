@@ -35,7 +35,7 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 import com.emc.storageos.management.backup.util.FtpClient;
-import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.BackupInfo;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -1348,7 +1348,7 @@ public class BackupOps {
      * @return
      * @throws IOException
      */
-    public ExternalBackupInfo getBackupInfo(String backupName, String serverUri, String username, String password) throws IOException {
+    public BackupInfo getBackupInfo(String backupName, String serverUri, String username, String password) throws IOException {
         log.info("backup={} server={} user={} password={}", new Object[] {backupName, serverUri, username, password});
 
         File backupFolder= getDownloadDirectory(backupName);
@@ -1360,8 +1360,8 @@ public class BackupOps {
             // The backup has not been downloaded yet or is invalid, query from the server
         }
 
-        ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
-        externalBackupInfo.setFileName(backupName);
+        BackupInfo backupInfo = new BackupInfo();
+        backupInfo.setFileName(backupName);
 
         FtpClient client = new FtpClient(serverUri, username, password);
         InputStream in = client.download(backupName);
@@ -1371,7 +1371,7 @@ public class BackupOps {
         while (zentry != null) {
             if (isPropEntry(zentry)) {
                 log.info("Found the property file={}", zentry.getName());
-                setBackupInfo(zin, externalBackupInfo);
+                setBackupInfo(zin, backupInfo);
                 break;
             }
             zentry = zin.getNextEntry();
@@ -1386,14 +1386,14 @@ public class BackupOps {
             //it's safe to ignore this exception here.
         }
 
-        return externalBackupInfo;
+        return backupInfo;
     }
 
     private boolean isPropEntry(ZipEntry zentry) {
         return zentry.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
     }
 
-    private void setBackupInfo(ZipInputStream zin, ExternalBackupInfo backupInfo) throws IOException {
+    private void setBackupInfo(ZipInputStream zin, BackupInfo backupInfo) throws IOException {
         Properties properties = loadProperties(zin);
 
         backupInfo.setVersion(getBackupVersion(properties));
@@ -1406,7 +1406,7 @@ public class BackupOps {
      * @param backupFolder the folder of local backup
      * @return
      */
-    public ExternalBackupInfo getBackupInfo(File backupFolder, boolean isLocal) {
+    public BackupInfo getBackupInfo(File backupFolder, boolean isLocal) {
         File[] backupFiles = getBackupFiles(backupFolder);
 
         File propFile = null;
@@ -1420,7 +1420,7 @@ public class BackupOps {
             }
         }
 
-        ExternalBackupInfo backupInfo = new ExternalBackupInfo();
+        BackupInfo backupInfo = new BackupInfo();
 
         String backupName = backupFolder.getName();
         backupInfo.setFileName(backupName);

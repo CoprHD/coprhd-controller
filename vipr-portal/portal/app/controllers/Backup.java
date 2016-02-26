@@ -9,7 +9,7 @@ import static controllers.Common.flashException;
 import java.util.List;
 
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.BackupInfo;
 import models.datatable.BackupDataTable;
 import models.datatable.BackupDataTable.Type;
 
@@ -17,12 +17,10 @@ import org.apache.commons.lang.StringUtils;
 
 import play.data.binding.As;
 import play.data.validation.Required;
-import play.data.validation.Valid;
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.BackupUtils;
-import util.BourneUtil;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
@@ -85,7 +83,7 @@ public class Backup extends Controller {
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
-                    ExternalBackupInfo backupInfo = BackupUtils.getExternalBackup(id);
+                    BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
                     BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
                     if (backupInfo.getCreateTime() != 0) {
                         backup.creationtime = backupInfo.getCreateTime();

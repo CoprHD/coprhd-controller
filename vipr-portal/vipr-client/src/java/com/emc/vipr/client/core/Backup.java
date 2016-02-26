@@ -22,7 +22,7 @@ import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupSets.BackupSet;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
-import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.emc.vipr.model.sys.backup.ExternalBackups;
 
 public class Backup {
@@ -46,10 +46,10 @@ public class Backup {
         return client.get(ExternalBackups.class, BACKUP_EXTERNAL_URL);
     }
 
-    public ExternalBackupInfo getExternalBackup(String name) {
+    public BackupInfo getExternalBackup(String name) {
         UriBuilder builder = client.uriBuilder(BACKUP_INFO_URL);
         addQueryParam(builder, "name", name);
-        return client.getURI(ExternalBackupInfo.class, builder.build());
+        return client.getURI(BackupInfo.class, builder.build());
     }
 
     public void createBackup(String name, boolean force) {

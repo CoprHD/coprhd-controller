@@ -459,18 +459,18 @@ public class AuthnConfigurationService extends TaggedResource {
 
             userMappings.add(new UserMappingParam(provider.getDomains().iterator().next(), attributes, new ArrayList<String>()));
 
-            TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME + " " + tenant.getName(), userMappings);
+            TenantCreateParam param = new TenantCreateParam(CinderConstants.TENANT_NAME_PREFIX + " " + tenant.getName(), userMappings);
             if (tenant.getDescription() != null) {
                 param.setDescription(tenant.getDescription());
             } else {
-                param.setDescription(CinderConstants.TENANT_NAME);
+                param.setDescription(CinderConstants.TENANT_NAME_PREFIX);
             }
 
             // Create a tenant.
             TenantOrgRestRep tenantOrgRestRep = _tenantsService.createSubTenant(_permissionsHelper.getRootTenant().getId(), param);
 
             // Create a project.
-            ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME);
+            ProjectParam projectParam = new ProjectParam(tenant.getName() + CinderConstants.PROJECT_NAME_SUFFIX);
             ProjectElement projectElement = _tenantsService.createProject(tenantOrgRestRep.getId(), projectParam);
 
             // Tag project with OpenStack tenant_id

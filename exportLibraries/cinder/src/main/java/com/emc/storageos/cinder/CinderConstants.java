@@ -23,8 +23,8 @@ public interface CinderConstants {
 
     String COPRHD_URL_V2 = ":8776/v2/%(tenant_id)s";
     String COPRHD_URL_V1 = ":8776/v1/%(tenant_id)s";
-    String PROJECT_NAME = "Project"; // with appended OpenStack tenant name
-    String TENANT_NAME = "OpenStack"; // with appended OpenStack tenant name
+    String PROJECT_NAME_SUFFIX = "Project"; // with appended OpenStack tenant name
+    String TENANT_NAME_PREFIX = "OpenStack"; // with appended OpenStack tenant name
 
     String SERVICE_DESCRIPTION = "OpenStack Block Storage";
     String SERVICE_TYPE_VOLUME = "volume";

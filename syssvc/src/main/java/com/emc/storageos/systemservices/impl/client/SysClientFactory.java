@@ -181,8 +181,9 @@ public class SysClientFactory {
             }
             final int status = response.getStatus();
             if (!isSuccess(status)) {
+                _log.info("lbyd response={}", response);
                 throw SyssvcException.syssvcExceptions.sysClientError(
-                        MessageFormatter.arrayFormat("POST" +
+                        MessageFormatter.arrayFormat("POST " +
                                 "request on URI {} to node {} failed with status {}",
                                 new Object[] { postUri, _endpoint.toString(),
                                         status }).getMessage());

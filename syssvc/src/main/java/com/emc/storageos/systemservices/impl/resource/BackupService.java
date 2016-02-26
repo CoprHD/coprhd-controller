@@ -13,7 +13,6 @@ import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.net.URI;
@@ -27,7 +26,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -241,51 +239,32 @@ public class BackupService {
     @Path("external/backup/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ExternalBackupInfo queryExternalBackup(@QueryParam("name") String backupFileName) {
-        log.info("Received query backup on external server request, file name={}", backupFileName);
+    public ExternalBackupInfo queryBackupInfo(@QueryParam("name") String backupFileName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
+        log.info("Received query backup on external server request, file name={} isLocal={}", backupFileName, isLocal);
         try {
-            ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
-            externalBackupInfo.setFileName(backupFileName);
-            externalBackupInfo.setCreateTime(getBackupCreateTime(backupFileName));
-            externalBackupInfo.setRestoreStatus(queryRestoreStatus(backupFileName, false));
-            log.info("External Backup info: {}", externalBackupInfo);
-            return externalBackupInfo;
+            if (isLocal) {
+                //query info of a local backup
+                File localBackupFolder = backupOps.getBackupDir(backupFileName, true);
+                return backupOps.getBackupInfo(localBackupFolder, true);
+            }
+
+            SchedulerConfig cfg = backupScheduler.getCfg();
+            if (cfg.uploadUrl == null) {
+                cfg.reload();
+            }
+
+            String serverUri = cfg.getExternalServerUrl();
+            String username = cfg.getExternalServerUserName();
+            String password = cfg.getExternalServerPassword();
+            ExternalBackupInfo backupInfo =  backupOps.getBackupInfo(backupFileName, serverUri, username, password);
+            log.info("lby backupInfo={}", backupInfo);
+            return backupInfo;
         } catch (Exception e) {
             log.error("Failed to query external backup info", e);
             throw APIException.internalServerErrors.queryExternalBackupFailed(e);
         }
     }
 
-    private Long getBackupCreateTime(String backupName) {
-        if (backupName == null) {
-            log.error("Backup file name is empty");
-            throw new IllegalArgumentException("Backup file name is empty");
-        }
-        if (!backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
-            log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
-            throw new IllegalArgumentException("Invalid backup file name: " + backupName);
-        }
-
-        String[] nameSegs = backupName.split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
-        for (String segment : nameSegs) {
-            if (isTimeFormat(segment)) {
-                log.info("Backup({}) create time is: {}", backupName, segment);
-                return Long.parseLong(segment);
-            }
-        }
-        log.info("Could not get create time from backup name");
-        return null;
-    }
-
-    private boolean isTimeFormat(String nameSegment) {
-        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_DATE_REGEX_PATTERN,
-                BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
-        Pattern backupNamePattern = Pattern.compile(regex);
-        if (backupNamePattern.matcher(nameSegment).find()) {
-            return true;
-        }
-        return false;
-    }
 
     /**
      * Create a near Point-In-Time copy of DB & ZK data files on all controller nodes.
@@ -621,7 +600,7 @@ public class BackupService {
             //no return here
         }
 
-        File backupDir= getBackupDir(backupName, isLocal);
+        File backupDir= backupOps.getBackupDir(backupName, isLocal);
 
         String myNodeId = backupOps.getCurrentNodeId();
 
@@ -704,15 +683,6 @@ public class BackupService {
         return status;
     }
 
-    private File getBackupDir(String backupName, boolean isLocal) {
-        if (backupName.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
-            backupName = FilenameUtils.removeExtension(backupName);
-        }
-
-        File backupDir = isLocal ? new File(backupOps.getBackupDir(), backupName) : new File(BackupConstants.RESTORE_DIR, backupName);
-        return backupDir;
-    }
-
     /**
      * This method returns a list of files on each node to be downloaded for specified tag
      * 
@@ -785,6 +755,7 @@ public class BackupService {
                 backupScheduler.getUploadExecutor().setUploadStatus(null, Status.IN_PROGRESS, progress, null);
 
                 String fullFileName = backupTag + File.separator + fileName;
+                log.info("lbyd fullFilename={}", fullFileName);
                 InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
                 newZipEntry(zos, in, fileName);
                 collectFileCount++;
@@ -815,8 +786,12 @@ public class BackupService {
         List<String> nameList = new ArrayList<>();
 
         for (BackupFile file : files) {
-            nameList.add(file.info.getName());
-            nameList.add(file.info.getName() + ".md5");
+            String filename = file.info.getName();
+            if (filename.endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                continue;
+            }
+            nameList.add(filename);
+            nameList.add(filename + BackupConstants.MD5_SUFFIX);
         }
 
         Collections.sort(nameList, new Comparator<String>() {

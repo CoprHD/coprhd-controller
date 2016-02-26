@@ -77,7 +77,7 @@ public class BackupRestoreStatus {
      */
     @XmlType(name = "restore_Status")
     public enum Status {
-        NOT_STARTED (true, false, false, "Not Started"),
+        NOT_STARTED (true, false, false, "Ready"),
         DOWNLOADING (true, false, false, "Downloading"),
         DOWNLOAD_SUCCESS (false, false, true, "Download success"),
         DOWNLOAD_FAILED (false, true, true, "Download failed"),
@@ -119,12 +119,7 @@ public class BackupRestoreStatus {
 
         @Override
         public String toString() {
-            StringBuilder builder = new StringBuilder();
-            builder.append(name())
-                   .append(": ")
-                   .append(getMessage());
-
-            return builder.toString();
+            return getMessage();
         }
     }
 

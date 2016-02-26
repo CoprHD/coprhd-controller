@@ -9,6 +9,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -36,7 +38,7 @@ public class AppSupportUtil {
     public static VolumeGroupRestRep createApplication(String name, String description, Set<String> roles){
         VolumeGroupCreateParam create = new VolumeGroupCreateParam();
         create.setName(name);
-        if (!description.isEmpty()) {
+        if (!StringUtils.isBlank(description)) {
             create.setDescription(description);
         }
         create.setRoles(roles);

@@ -1330,6 +1330,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 _log.warn("Volume [{}] does not have PERSONALITY set. We will not be able to compare this volume.", volume.getLabel());
             }
         }
+        
+        // Flag to indicate that there are VMAX2 and VMAX3 storage
+        // systems in the request. Special handling will be required.
+        boolean vmax2Vmax3StorageCombo = false;
 
         // There should be at least 2 volumes to compare, Source and Target (if not more)
         if (!allVolumesToCompare.isEmpty() && (allVolumesToCompare.size() >= 2)) {
@@ -1352,8 +1356,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
 
                 storageSystem = volumeStorageSystemMap.get(volUri);
-
-                if (!storageSystemToCompare.getSystemType().equals(storageSystem.getSystemType())) {
+                vmax2Vmax3StorageCombo = checkVMAX2toVMAX3(storageSystemToCompare, storageSystem);
+                
+                if (!storageSystemToCompare.getSystemType().equals(storageSystem.getSystemType())
+                        || vmax2Vmax3StorageCombo) {
                     // The storage systems do not all match so we need to determine the allocated
                     // capacity on each system.
                     storageSystemsMatch = false;
@@ -1385,7 +1391,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 // Determine if the provisioning request requires storage systems
                 // which cannot allocate storage at the exact same amount
-                if (!capacitiesCanMatch(volumeStorageSystemMap)) {
+                if (!capacitiesCanMatch(volumeStorageSystemMap) || vmax2Vmax3StorageCombo) {
                     setUnMatchedCapacities(allVolumesToUpdateCapacity, associatedVolumePersonalityMap, isExpand,
                             capacityToUseInCalculation);
                 } else {
@@ -1406,13 +1412,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         tempVolumesList.clear();
                         tempVolumesList.addAll(allVolumesToCompare);
                         // Remove the current volume from the list and get a handle on it
-                        Volume currentVolume = tempVolumesList.remove(index);
+                        Volume currentVolume = tempVolumesList.remove(index);                        
+                        StorageSystem currentVolumeStorageSystem = _dbClient.queryObject(StorageSystem.class, currentVolume.getStorageController());
 
                         // Get the System Type for the current volume
                         String currentVolumeSystemType = volumeStorageSystemMap.get(currentVolume.getStorageController()).getSystemType();
                         // Calculate the capacity for the current volume based on the Storage System type to see if it can be adjusted
                         currentVolumeCapacity = capacityCalculatorFactory.getCapacityCalculator(currentVolumeSystemType)
-                                .calculateAllocatedCapacity(capacityToUseInCalculation);
+                                .calculateAllocatedCapacity(capacityToUseInCalculation, currentVolumeStorageSystem);
 
                         _log.info(String.format("Volume [%s] has a capacity of %s on storage system type %s. " +
                                 "The calculated capacity for this volume is %s.",
@@ -1434,10 +1441,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 continue;
                             }
 
+                            StorageSystem volumeToCompareStorageSystem = _dbClient.queryObject(StorageSystem.class, volumeToCompare.getStorageController());
+                            
                             // Calculate the capacity for the volume to compare based on the Storage System type to see if it can be
                             // adjusted
                             volumeToCompareCapacity = capacityCalculatorFactory.getCapacityCalculator(volumeToCompareSystemType)
-                                    .calculateAllocatedCapacity(currentVolumeCapacity);
+                                    .calculateAllocatedCapacity(currentVolumeCapacity, volumeToCompareStorageSystem);
 
                             // Check to see if the capacities match
                             if (!currentVolumeCapacity.equals(volumeToCompareCapacity)) {
@@ -1496,6 +1505,31 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         return capacity;
+    }
+
+    /**
+     * Checks to see if the two storage systems are VMAX and if so, then
+     * further check to see if one of them is a VMAX2 while the other is a
+     * VMAX3.
+     * 
+     * The capacity checks for these systems are slightly different so we
+     * need to ensure that they get calculated.
+     * 
+     * @param storageSystem1 First StorageSystem to check
+     * @param storageSystem2 Second StorageSystem to check
+     * @return true if we do have the case of a VMAX2 to VMAX3 
+     *         difference between the Storage Systems, false otherwise.
+     */
+    private boolean checkVMAX2toVMAX3(StorageSystem storageSystem1, StorageSystem storageSystem2) {
+        if (storageSystem1 != null && storageSystem2 != null) {
+            if (DiscoveredDataObject.Type.vmax.name().equals(storageSystem1.getSystemType())
+                    && DiscoveredDataObject.Type.vmax.name().equals(storageSystem2.getSystemType())
+                    && ((!storageSystem1.checkIfVmax3() && storageSystem2.checkIfVmax3())
+                            || (storageSystem1.checkIfVmax3() && !storageSystem2.checkIfVmax3()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2970,10 +3004,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         if (type == Volume.PersonalityTypes.SOURCE) {
             capacity = capacityCalculatorFactory.getCapacityCalculator(storageSystem.getSystemType())
-                    .calculateAllocatedCapacity(capacityToUseInCalculation);
+                    .calculateAllocatedCapacity(capacityToUseInCalculation, storageSystem);
         } else if (type == Volume.PersonalityTypes.TARGET) {
             capacity = capacityCalculatorFactory.getCapacityCalculator(storageSystem.getSystemType())
-                    .calculateAllocatedCapacity(capacityToUseInCalculation + 5242880L);
+                    .calculateAllocatedCapacity(capacityToUseInCalculation + 5242880L, storageSystem);
         }
 
         return capacity;

@@ -6,7 +6,7 @@ package com.emc.vipr.client.core;
 
 import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_CREATE_URL;
-import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_DETAIL_URL;
+import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_INFO_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_EXTERNAL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_CANCEL_URL;
 import static com.emc.vipr.client.system.impl.PathConstants.BACKUP_PULL_URL;
@@ -47,7 +47,7 @@ public class Backup {
     }
 
     public ExternalBackupInfo getExternalBackup(String name) {
-        UriBuilder builder = client.uriBuilder(BACKUP_EXTERNAL_DETAIL_URL);
+        UriBuilder builder = client.uriBuilder(BACKUP_INFO_URL);
         addQueryParam(builder, "name", name);
         return client.getURI(ExternalBackupInfo.class, builder.build());
     }

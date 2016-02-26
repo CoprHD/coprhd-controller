@@ -26,7 +26,7 @@ public class BackupRestoreStatus {
     private String backupName;
     private long backupSize = 0;
     private long downloadSize = 0;
-    private Status status = Status.NOT_STARTED;
+    private Status status = Status.READY;
     private int nodeCompleted = 0;
     private boolean isGeo = false;
 
@@ -77,7 +77,7 @@ public class BackupRestoreStatus {
      */
     @XmlType(name = "restore_Status")
     public enum Status {
-        NOT_STARTED (true, false, false, "Ready"),
+        READY (true, false, false, "Ready"),
         DOWNLOADING (true, false, false, "Downloading"),
         DOWNLOAD_SUCCESS (false, false, true, "Download success"),
         DOWNLOAD_FAILED (false, true, true, "Download failed"),

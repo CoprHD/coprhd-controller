@@ -232,11 +232,12 @@ public class BackupService {
      *
      * @brief Get a specific backup file info
      * @param backupFileName The name of backup file
+     * @param isLocal The backup is local or not, false by default
      * @prereq none
      * @return Info of a specific backup file
      */
     @GET
-    @Path("external/backup/")
+    @Path("backup/info/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ExternalBackupInfo queryBackupInfo(@QueryParam("name") String backupFileName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {

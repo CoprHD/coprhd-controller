@@ -175,7 +175,7 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
             List<Volume> cgSources = BlockConsistencyGroupUtils.getAllCGVolumes(cg, dbClient);
             // return only those volumes belonging to session's RG
             return ControllerUtils.getAllVolumesForRGInCG(cgSources,
-                    snapSession.getReplicationGroupInstance(), dbClient);
+                    snapSession.getReplicationGroupInstance(), snapSession.getStorageController(), dbClient);
         }
         return Lists.newArrayList(getSource(snapSession, dbClient));
     }

@@ -17,7 +17,7 @@ public class GetBlockSnapshotSessionList extends ViPRExecutionTask<BlockSnapshot
     public GetBlockSnapshotSessionList(URI applicationId, String copySet) {
         this.applicationId = applicationId;
         this.copySet = copySet;
-        provideDetailArgs(applicationId);
+        provideDetailArgs(applicationId, copySet);
     }
 
     @Override

@@ -17,7 +17,7 @@
     },
     
     linkedSnapshot:{
-      type:"assetType.vipr.linkedSnapshotsForVolume",
+      type:"assetType.vipr.linkedSnapshotsForApplicationSnapshotSessionLinkService",
       select: "many",
       required: "false"
     },

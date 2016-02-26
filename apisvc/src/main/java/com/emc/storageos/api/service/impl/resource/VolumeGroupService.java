@@ -1709,7 +1709,7 @@ public class VolumeGroupService extends TaskResourceService {
 
         // validate only one snapshot URI is provided for full request
         if (!param.getPartial() && param.getSnapshots().size() > 1) {
-            throw APIException.badRequests.invalidNumberOfReplicas();
+            throw APIException.badRequests.invalidNumberOfReplicas(ReplicaTypeEnum.SNAPSHOT.toString());
         }
 
         Map<String, List<BlockSnapshot>> snapsetToSnapshots = new HashMap<String, List<BlockSnapshot>>();
@@ -2266,6 +2266,11 @@ public class VolumeGroupService extends TaskResourceService {
 
         // validate that at least one snapshot URI is provided
         ArgValidator.checkFieldNotEmpty(param.getSnapshotSessions(), SNAPSHOT_SESSIONS_FIELD);
+
+        // validate only one snap session URI is provided for full request
+        if (!param.getPartial() && param.getSnapshotSessions().size() > 1) {
+            throw APIException.badRequests.invalidNumberOfReplicas(ReplicaTypeEnum.SNAPSHOT_SESSION.toString());
+        }
 
         List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
         Set<String> setNames = new HashSet<String>();

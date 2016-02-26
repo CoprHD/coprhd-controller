@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -36,10 +36,10 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     // The session label.
     private String sessionLabel;
 
-    // The replication group for which the session is created for.
+    // The source replication group for which the snapshot session is created for.
     private String replicationGroupInstance;
 
-    // The session set name to group all sessions created for replication groups in an Application.
+    // The session set name to group all snapshot sessions created for replication groups in an Application.
     private String sessionSetName;
 
     /**
@@ -100,7 +100,7 @@ public class BlockSnapshotSessionRestRep extends BlockObjectRestRep {
     }
 
     /**
-     * Replication Group name for which this session is created for.
+     * Source Replication Group name for which this session is created for.
      * 
      */
     @XmlElement(name = "replication_group_instance")

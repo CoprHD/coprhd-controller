@@ -1222,7 +1222,40 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    @Asset("linkedSnapshotsForVolume")
+    @Asset("linkedSnapshotsForApplicationSnapshotSessionLinkService")
+    @AssetDependencies({ "application", "applicationSnapshotSessionCopySets" })
+    public List<AssetOption> getLinkedSnapshotsForApplicationSnapshotSessionVolumeNew(AssetOptionsContext ctx, URI application,
+            String selectedCopySet) {
+        ViPRCoreClient client = api(ctx);
+        List<BlockSnapshotRestRep> snapshots = new ArrayList<BlockSnapshotRestRep>();
+
+        Set<String> replicationGroups = getReplicationGroupsForApplicationSnapshotSession(client, application, selectedCopySet);
+        Set<String> copySets = client.application().getVolumeGroupSnapsetSessionSets(application).getCopySets();
+        List<BlockSnapshotSessionRestRep> snapshotSessions = Lists.newArrayList();
+
+        for (String copySet : copySets) {
+            VolumeGroupCopySetParam param = new VolumeGroupCopySetParam();
+            param.setCopySetName(copySet);
+
+            BlockSnapshotSessionList snapshotSessionList = client.application().getVolumeGroupSnapshotSessionsByCopySet(application,
+                    param);
+            List<BlockSnapshotSessionRestRep> snapshotSessionsTmp = client.blockSnapshotSessions().getByRefs(
+                    snapshotSessionList.getSnapSessionRelatedResourceList());
+            snapshotSessions.addAll(snapshotSessionsTmp);
+            for (BlockSnapshotSessionRestRep session : snapshotSessionsTmp) {
+
+                if (replicationGroups.contains(session.getReplicationGroupInstance())) {
+                    for (RelatedResourceRep target : session.getLinkedTarget()) {
+                        BlockSnapshotRestRep blockSnapshot = client.blockSnapshots().get(target);
+                        snapshots.add(blockSnapshot);
+                    }
+                }
+            }
+        }
+        return constructSnapshotWithSnapshotSessionOptions(snapshots, snapshotSessions);
+    }
+
+    @Asset("linkedSnapshotsForApplicationSnapshotSession")
     @AssetDependencies({ "application", "applicationSnapshotSessionCopySets" })
     public List<AssetOption> getLinkedSnapshotsForApplicationSnapshotSessionVolume(AssetOptionsContext ctx, URI application,
             String copySet) {

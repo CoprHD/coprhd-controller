@@ -1202,13 +1202,10 @@ public class VPlexApiClient {
     }
 
     public VPlexVirtualVolumeInfo upgradeVirtualVolumeToDistributed(VPlexVirtualVolumeInfo virtualVolume,
-            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId,
+            String transferSize) throws VPlexApiException {
         return _virtualVolumeMgr.createDistributedVirtualVolume(
-                virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId);
-    }
-    
-    public void setTransferSize(String transferSize) throws VPlexApiException {
-    	_virtualVolumeMgr.setRebuildTransferSize(transferSize);
+                virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId, transferSize);
     }
 
     public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolume)

@@ -53,6 +53,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QosSpecification;
+import com.emc.storageos.db.client.model.QuotaOfCinder;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -799,6 +800,23 @@ public abstract class VirtualPoolService extends TaggedResource {
     protected Response deleteVirtualPool(VirtualPool.Type type, URI id) {
         ArgValidator.checkUri(id);
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, id);
+ 
+        //for block service cinder if there is QuotaOfCinder entries 
+        //we need to remove before the virtual pool removal
+        if(vpool.getType().equalsIgnoreCase(Type.block.name())){
+	        List<URI> quotas = _dbClient.queryByType(QuotaOfCinder.class, true);
+	        for (URI quota : quotas) {
+	            QuotaOfCinder quotaObj = _dbClient.queryObject(QuotaOfCinder.class, quota);
+	
+	            if ((quotaObj.getVpool() != null) &&
+	                    (quotaObj.getVpool().toString().equalsIgnoreCase(vpool.getId().toString()))) {
+	            	_log.debug("Deleting related Vpool for quota object {}.",vpool.getId().toString());
+	            	_dbClient.removeObject(quotaObj);            	
+	            }
+	        }
+        }
+        
+        
         ArgValidator.checkEntityNotNull(vpool, id, isIdEmbeddedInURL(id));
         if (!vpool.getType().equals(type.name())) {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();

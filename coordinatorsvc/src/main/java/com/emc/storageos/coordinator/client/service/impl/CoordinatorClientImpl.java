@@ -1740,7 +1740,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
         String targetVdcConfigVersion = String.valueOf(targetSiteInfo.getVdcConfigVersion());
         for (Map.Entry<Service, VdcConfigVersion> entry : vdcConfigVersions.entrySet()) {
-            if (StringUtils.equals(targetVdcConfigVersion, entry.getValue().getConfigVersion())) {
+            if (!StringUtils.equals(targetVdcConfigVersion, entry.getValue().getConfigVersion())) {
                 differentConfigVersions.add(entry.getKey().getId());
             }
         }

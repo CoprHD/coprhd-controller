@@ -48,6 +48,6 @@ public class VdcConfigVersion implements CoordinatorSerializable {
 
     @Override
     public CoordinatorClassInfo getCoordinatorClassInfo() {
-        return new CoordinatorClassInfo("global", "vdcconfigversion", "configVersion");
+        return new CoordinatorClassInfo("global", "upgradeconfigversion", "vdcconfigVersion");
     }
 }

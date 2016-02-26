@@ -1895,6 +1895,9 @@ public class VolumeGroupService extends TaskResourceService {
                                 }
                             }
                         }
+                    } else {
+                        URI storage = volToAdd.getStorageController();
+                        backendVolSystemCGMap.put(storage, cgURI);
                     }
                 }
                 if (volumesInReplicationGroup != null && !volumesInReplicationGroup.isEmpty()) {

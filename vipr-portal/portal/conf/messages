@@ -3685,7 +3685,7 @@ volumes.varray=Virtual Array
 volumes.protocols=Protocols
 volumes.consistencygroup=Consistency Group
 volumes.wwn=WWN
-volumes.replicationGroup=Replication Group
+volumes.replicationGroup=Sub Group
 volumes.associatedVolumeRG=Source Replication Group
 
 fileSystems.name=File System Name

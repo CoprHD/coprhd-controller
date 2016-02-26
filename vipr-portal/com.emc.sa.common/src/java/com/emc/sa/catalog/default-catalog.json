@@ -75,10 +75,6 @@
         {
           "image": "icon_consistency_group_add_volumes.png",
           "baseService": "AddVolumesToConsistencyGroup"
-        },
-        {
-          "image": "icon_consistency_group_add_volumes.png",
-          "baseService": "PowerPathMigrationEnabler"
         }
       ]
     },
@@ -316,6 +312,10 @@
         {
           "image": "icon_storage_linux_expand.png",
           "baseService": "Linux-ExpandBlockVolume"
+        },
+        {
+          "image": "icon_consistency_group_add_volumes.png",
+          "baseService": "PowerPathMigrationEnabler"
         }
       ]
     },

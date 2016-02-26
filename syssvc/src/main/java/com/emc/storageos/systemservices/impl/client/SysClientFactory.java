@@ -180,14 +180,14 @@ public class SysClientFactory {
                 throw e;
             }
             final int status = response.getStatus();
+
             if (!isSuccess(status)) {
-                _log.info("lbyd response={}", response);
+                _log.info("response={}", response);
                 throw SyssvcException.syssvcExceptions.sysClientError(
-                        MessageFormatter.arrayFormat("POST " +
-                                "request on URI {} to node {} failed with status {}",
-                                new Object[] { postUri, _endpoint.toString(),
-                                        status }).getMessage());
+                        MessageFormatter.arrayFormat("POST request on URI {} to node {} failed with status {}",
+                                new Object[] { postUri, _endpoint.toString(), status }).getMessage());
             }
+
             return returnType != null ? response.getEntity(returnType) : null;
         }
 
@@ -199,7 +199,7 @@ public class SysClientFactory {
          * @throws SysClientException
          */
         private void checkNodeStatus(URI uri, String uriCmd) throws SysClientException {
-            _log.info("Entering SysClientFacotry.checkNodeStatus()");
+            _log.info("Entering SysClientFactory.checkNodeStatus()");
             String nodeIP;
             try {
                 _log.info("Before InetAddress.getByName()");
@@ -207,14 +207,11 @@ public class SysClientFactory {
                 _log.info("after InetAddress.getByName()");
             } catch (UnknownHostException e) {
                 _log.info(" request on URI {} to node {} failed to get node IP address {}",
-                        new Object[] { uri, _endpoint.toString(),
-                                e.getMessage() });
+                        new Object[] { uri, _endpoint.toString(), e.getMessage() });
 
                 throw SyssvcException.syssvcExceptions.sysClientError(
-                        MessageFormatter.arrayFormat(uriCmd +
-                                " request on URI {} to node {} failed to get node IP address {}",
-                                new Object[] { uri, _endpoint.toString(),
-                                        e.getMessage() }).getMessage());
+                        MessageFormatter.arrayFormat(uriCmd + " request on URI {} to node {} failed to get node IP address {}",
+                                new Object[] { uri, _endpoint.toString(), e.getMessage() }).getMessage());
             }
 
             _log.info("out first try catch");
@@ -224,8 +221,7 @@ public class SysClientFactory {
             _log.info("Exec.Result");
             if (result.getExitValue() == _IPCHECKTOOL_IP_CONFLICT) {
                 _log.info(" request on URI {} to node {} failed due to IP conflict at {}",
-                        new Object[] { uri, _endpoint.toString(),
-                                nodeIP });
+                        new Object[] { uri, _endpoint.toString(), nodeIP });
 
                 throw SyssvcException.syssvcExceptions.sysClientError(
                         MessageFormatter.arrayFormat(uriCmd +

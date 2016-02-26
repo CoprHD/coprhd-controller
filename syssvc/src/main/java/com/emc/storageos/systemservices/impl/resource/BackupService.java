@@ -258,7 +258,7 @@ public class BackupService {
             String username = cfg.getExternalServerUserName();
             String password = cfg.getExternalServerPassword();
             ExternalBackupInfo backupInfo =  backupOps.getBackupInfo(backupFileName, serverUri, username, password);
-            log.info("lby backupInfo={}", backupInfo);
+            log.info("The backupInfo={}", backupInfo);
             return backupInfo;
         } catch (Exception e) {
             log.error("Failed to query external backup info", e);
@@ -756,7 +756,6 @@ public class BackupService {
                 backupScheduler.getUploadExecutor().setUploadStatus(null, Status.IN_PROGRESS, progress, null);
 
                 String fullFileName = backupTag + File.separator + fileName;
-                log.info("lbyd fullFilename={}", fullFileName);
                 InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
                 newZipEntry(zos, in, fileName);
                 collectFileCount++;

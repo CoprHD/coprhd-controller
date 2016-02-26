@@ -5,16 +5,12 @@
 
 package com.emc.storageos.management.backup;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Serializable;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class BackupSetInfo implements Serializable {
-    private static final Logger log = LoggerFactory.getLogger(BackupSetInfo.class);
 
     /** use serialVersionUID from JDK 1.0.2 for interoperability */
     private static final long serialVersionUID = 301077366599522567L;

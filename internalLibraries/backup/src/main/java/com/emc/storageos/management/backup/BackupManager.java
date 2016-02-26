@@ -4,12 +4,21 @@
  */
 package com.emc.storageos.management.backup;
 
-import com.emc.vipr.model.sys.healthmonitor.DataDiskStats;
-import com.emc.storageos.services.util.Exec;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.storageos.management.backup.util.ZipUtil;
-import com.emc.storageos.management.backup.exceptions.BackupException;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import com.google.common.base.Preconditions;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
@@ -17,26 +26,12 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.management.JMException;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.management.ManagementFactory;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import com.emc.vipr.model.sys.healthmonitor.DataDiskStats;
+import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.storageos.management.backup.util.ZipUtil;
+import com.emc.storageos.management.backup.exceptions.BackupException;
 
 public class BackupManager implements BackupManagerMBean {
     private static final Logger log = LoggerFactory.getLogger(BackupManager.class);
@@ -373,9 +368,7 @@ public class BackupManager implements BackupManagerMBean {
 
     @Override
     public void delete(final String backupTag) {
-        Preconditions.checkArgument(backupTag != null
-                        && !backupTag.trim().isEmpty()
-                        && backupTag.length() < 256,
+        Preconditions.checkArgument(backupTag != null && !backupTag.trim().isEmpty() && backupTag.length() < 256,
                 "Invalid backup name: %s", backupTag);
         checkBackupDir();
         File[] backupFiles = backupContext.getBackupDir().listFiles(new FilenameFilter() {

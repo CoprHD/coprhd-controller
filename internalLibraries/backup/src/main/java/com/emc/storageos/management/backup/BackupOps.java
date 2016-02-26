@@ -16,6 +16,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
+import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -71,7 +72,7 @@ public class BackupOps {
     private static final Logger log = LoggerFactory.getLogger(BackupOps.class);
     private static final String IP_ADDR_DELIMITER = ":";
     private static final String IP_ADDR_FORMAT = "%s" + IP_ADDR_DELIMITER + "%d";
-    private static final SimpleDateFormat FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
+    private static final Format FORMAT = new SimpleDateFormat("yyyyMMddHHmmss");
     private static final String BACKUP_FILE_PERMISSION = "644";
     private String serviceUrl = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     private Map<String, String> hosts;
@@ -1228,10 +1229,7 @@ public class BackupOps {
         long creationTime = 0;
         for (BackupFile file : filesForTag) {
             size += file.info.getSize();
-            /*
-            if (file.type == BackupType.zk) {
-            */
-            if (file.info.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+            if (file.type == BackupType.info) {
                 creationTime = file.info.getCreateTime();
             }
         }
@@ -1342,7 +1340,7 @@ public class BackupOps {
     }
 
     /**
-     * Query info of a remote backup, if the backup has been downloaded, get info from local directory
+     * Query info of a remote backup, if the backup has been downloaded, get info from local downloaded directory
      * @param backupName
      * @param serverUri
      * @param username
@@ -1359,7 +1357,7 @@ public class BackupOps {
             log.info("The backup {} for this node has already been downloaded", backupName);
             return getBackupInfo(backupFolder, true);
         } catch (Exception e) {
-            // The backup has not been downloaded yet
+            // The backup has not been downloaded yet or is invalid, query from the server
         }
 
         ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
@@ -1372,7 +1370,7 @@ public class BackupOps {
 
         while (zentry != null) {
             if (isPropEntry(zentry)) {
-                log.info("lbye found the property file={}", zentry.getName());
+                log.info("Found the property file={}", zentry.getName());
                 setBackupInfo(zin, externalBackupInfo);
                 break;
             }
@@ -1434,6 +1432,7 @@ public class BackupOps {
         }catch (IOException e) {
             log.error("Failed to get backup info from {} e=", propFile.getName(), e);
         }
+
         backupInfo.setFileSize(size);
         backupInfo.setRestoreStatus(queryBackupRestoreStatus(backupName, isLocal));
 
@@ -1445,17 +1444,21 @@ public class BackupOps {
     }
 
     private long getCreateTime(Properties properties, String backupName) {
-        String stime = properties.getProperty(BackupConstants.BACKUP_INFO_CREATE_TIME);
-        if (stime != null) {
-            return Long.parseLong(stime);
-        }
+        long time = getCreateTimeFromProperties(properties);
+        if ( time != 0 )
+            return time;
 
         //This can happen if the backup file is made before Yoda,
         // try to get the create time from the backup name
-        long time = getCreateTimeFromName(backupName);
+        time = getCreateTimeFromName(backupName);
 
         log.info("create time ={}", time);
         return time;
+    }
+
+    private long getCreateTimeFromProperties(Properties properties) {
+        String stime = properties.getProperty(BackupConstants.BACKUP_INFO_CREATE_TIME);
+        return stime == null ? 0 : Long.parseLong(stime);
     }
 
     public long getCreateTimeFromPropFile(File propFile) {
@@ -1463,10 +1466,7 @@ public class BackupOps {
 
         try (FileInputStream in = new FileInputStream(propFile)) {
             Properties properties = loadProperties(in);
-            String stime = properties.getProperty(BackupConstants.BACKUP_INFO_CREATE_TIME);
-            if (stime != null) {
-                time = Long.parseLong(stime);
-            }
+            time = getCreateTimeFromProperties(properties);
         }catch (IOException e) {
             log.error("Failed to get create time from prop file {} e=", propFile.getName(), e);
         }
@@ -1512,7 +1512,6 @@ public class BackupOps {
     private long convertTime(String stime) {
         long time = 0;
 
-        log.info("lbyf stime={}",stime);
         DateFormat df = new SimpleDateFormat(BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN);
         try {
             Date date = df.parse(stime);
@@ -1525,14 +1524,14 @@ public class BackupOps {
         log.info("time={}", time);
         return time;
     }
+
     private boolean isTimeFormat(String nameSegment) {
         String regex = String.format(BackupConstants.SCHEDULED_BACKUP_DATE_REGEX_PATTERN,
                 BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
+
         Pattern backupNamePattern = Pattern.compile(regex);
-        if (backupNamePattern.matcher(nameSegment).find()) {
-            return true;
-        }
-        return false;
+
+        return backupNamePattern.matcher(nameSegment).find();
     }
 
     public URI getFirstNodeURI() throws URISyntaxException {

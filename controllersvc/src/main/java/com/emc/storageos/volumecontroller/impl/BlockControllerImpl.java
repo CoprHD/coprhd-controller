@@ -515,4 +515,16 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
         blockRMI("deleteSnapshotSession", systemURI, snapSessionURI, opId);
     }
+    
+    /**
+     * PowerPath Migration Enabler
+     * passed BlockSnapshotSession instance.
+     * 
+     * @param systemURI The URI of the storage system.
+     * @param snapSessionURI The URI of the snapshot session.
+     * @param opId The unique task identifier.
+     */
+    public void powerPathMigrationEnabler(URI Host, String sourceWwn , String storagePools){
+        
+    }
 }

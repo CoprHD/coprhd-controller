@@ -1,0 +1,22 @@
+{
+  baseKey:"PowerPathMigrationEnabler.Block",
+  serviceId:"PowerPathMigrationEnabler",
+  items:{
+
+    Host:{
+      type:"assetType.vipr.virtualArray",
+      lockable: true
+    },
+    
+    SourceVolume:{
+      type:"assetType.vipr.blockVirtualPool",
+      lockable: true
+    },
+
+    vArray:{
+      type:"assetType.vipr.project",
+      lockable: true
+    }
+    
+  }
+}

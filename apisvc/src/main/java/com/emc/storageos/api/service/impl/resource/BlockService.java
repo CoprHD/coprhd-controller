@@ -5292,4 +5292,35 @@ public class BlockService extends TaskResourceService {
     private boolean isAddingSRDFProtection(Volume v, VirtualPool targetVPool) {
         return v.getSrdfTargets() == null && VirtualPool.vPoolSpecifiesSRDF(targetVPool);
     }
+    
+    
+    
+    /**
+     * Create an array snapshot of the volume with the passed Id. Creating a
+     * snapshot session simply creates and array snapshot point-in-time copy
+     * of the volume. It does not automatically create a single target volume
+     * and link it to the array snapshot as is done with the existing create
+     * snapshot API. It allows array snapshots to be created with out any linked
+     * target volumes, or multiple linked target volumes depending on the
+     * data passed in the request. This API is only supported on a limited
+     * number of platforms that support this capability.
+     *
+     * @brief Create volume snapshot session
+     *
+     * @prereq Virtual pool for the volume must specify non-zero value for max_snapshots
+     *
+     * @param id The URI of a ViPR Volume.
+     * @param param Volume snapshot parameters
+     *
+     * @return TaskList
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList powerPathMigrate(@PathParam("host") URI host, @PathParam("host") URI sourceVolume, @PathParam("vpool") URI vPool) {
+        return getSnapshotSessionManager().createSnapshotSession(id, param, getFullCopyManager());
+    }
+    
 }

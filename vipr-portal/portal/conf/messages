@@ -659,7 +659,7 @@ VCenters.detachStorageConfirm=Are you sure you want to detach storage from the s
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
 
 #Application Support
-application.copy.volumes=Copy Volumes
+applicationGroup.copy.volumes=Copy Volumes
 applicationGroup.list.title=Applications
 applicationGroup.name=Application Name
 applicationGroup.description=Description	

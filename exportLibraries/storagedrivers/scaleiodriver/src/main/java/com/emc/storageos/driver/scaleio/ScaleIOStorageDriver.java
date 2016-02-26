@@ -16,15 +16,6 @@
  */
 package com.emc.storageos.driver.scaleio;
 
-import java.util.*;
-
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.driver.scaleio.api.restapi.response.*;
@@ -35,6 +26,14 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
@@ -335,14 +334,16 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
     /**
      * Restore from clone.
+     * <p/>
+     * It is implementation responsibility to validate consistency of this operation
+     * when clones belong to consistency groups.
      *
-     * @param volume Type: Input/Output.
-     * @param clone Type: Input.
+     * @param clones Clones to restore from. Type: Input/Output.
      * @return task
      */
     @Override
-    public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone) {
-        return setUpNonSupportedTask(ScaleIOConstants.TaskType.CLONE_RESTORE);
+    public DriverTask restoreFromClone(List<VolumeClone> clones) {
+        return null;
     }
 
     /**
@@ -777,6 +778,9 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     @Override
     public DriverTask discoverStorageSystem(List<StorageSystem> storageSystems) {
         DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.DISCOVER_STORAGE_SYSTEM));
+        Set<StorageSystem.SupportedReplication> supportedReplications = new HashSet<>();
+        supportedReplications.add(StorageSystem.SupportedReplication.elementReplica);
+        supportedReplications.add(StorageSystem.SupportedReplication.groupReplica);
         for (StorageSystem storageSystem : storageSystems) {
             try {
                 log.info("StorageDriver: Discovery information for storage system {}, name {} - Start", storageSystem.getIpAddress(),
@@ -802,6 +806,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                             } else {
                                 storageSystem.setIsSupportedVersion(ScaleIOConstants.COMPATIBLE);
                             }
+                            storageSystem.setSupportedReplications(supportedReplications);
                             task.setStatus(DriverTask.TaskStatus.READY);
                             setConnInfoToRegistry(storageSystem.getNativeId(), storageSystem.getIpAddress(), storageSystem.getPortNumber(),
                                     storageSystem.getUsername(), storageSystem.getPassword());
@@ -949,6 +954,18 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
             task.setStatus(DriverTask.TaskStatus.ABORTED);
         }
         return task;
+    }
+
+    /**
+     * Discover host components which are part of storage system
+     *
+     * @param storageSystem                 Type: Input.
+     * @param embeddedStorageHostComponents Type: Output.
+     * @return
+     */
+    @Override
+    public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents) {
+        return null;
     }
 
     /**

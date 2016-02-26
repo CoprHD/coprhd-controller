@@ -160,7 +160,7 @@ public class ReplicationRelationshipProcessor extends StorageProcessor {
                     // mark the UnManagedVolume instance representing the snapshot as not ingestable.
                     String relationshipName = getCIMPropertyValue(instance, EMC_RELATIONSHIP_NAME);
                     Set<String> duplicateElementNamesForSrc = _duplicateSyncAspectElementNameMap.get(srcNativeGuid);
-                    if (duplicateElementNamesForSrc.contains(relationshipName)) {
+                    if ((duplicateElementNamesForSrc != null) && (duplicateElementNamesForSrc.contains(relationshipName))) {
                         _logger.info("Processed snapshot {} linked to unsupported synchronization aspect with name {}",
                                 nativeGuid, relationshipName);
                         replicaObj.setSettingsInstance(Constants.NOT_INGESTABLE_SYNC_ASPECT);

@@ -1834,7 +1834,7 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
 
-                // check to see if the volume in the request is already in a replication group that is different than the requested one
+                // check to see if the volume in the request is already in a replication group
                 if (param.getAddVolumesList().getReplicationGroupName() != null) {
                     String replicationGroupInstance = volume.getReplicationGroupInstance();
                     if (volume.isVPlexVolume(dbClient)) {

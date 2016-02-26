@@ -3607,7 +3607,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         String firstVolLabel = null;
         List<URI> addVolumeURIs = volumeList.getVolumes();
         int volumesNotInCGCount = 0;
-        String inputRGName = volumeList.getReplicationGroupName();
+        String groupName = volumeList.getReplicationGroupName();
         ApplicationAddVolumeList outVolumesList = new ApplicationAddVolumeList();
         URI cgUri = null;
         for (URI voluri : addVolumeURIs) {
@@ -3678,15 +3678,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             } else {
                 volumesNotInCGCount++;
             }
+
+            // its possible for the source volumes to be in a replication group but the target volumes are not
+            // in this case, we take the replication group name from the source volumes and apply that to the
+            // target (with the -RPTARGET suffix)
             if (NullColumnValueGetter.isNotNullValue(rgName)) {
-                inputRGName = rgName;
+                groupName = rgName;
             }
         }
-        outVolumesList.setReplicationGroupName(inputRGName);
+        outVolumesList.setReplicationGroupName(groupName);
         outVolumesList.setVolumes(addVolumeURIs);
-        if (volumesNotInCGCount > 0 && (inputRGName == null || inputRGName.isEmpty())) {
-            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
- "application sub group is not provided");
+        if (volumesNotInCGCount > 0 && (groupName == null || groupName.isEmpty())) {
+            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel, "application sub group is not provided");
         }
         validateAddVolumesToApplication(allVolumesToCheck, application);
         return outVolumesList;
@@ -3747,6 +3750,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             Map<URI, Volume> volumesToUpdate = new HashMap<URI, Volume>();
             boolean hasMirrors = false;
             StringSet mirrors = volume.getMirrors();
+            if (mirrors == null) {
+                if (volume.isVPlexVolume(_dbClient)) {
+                    Volume backingVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+                    if (backingVol != null && !backingVol.getInactive()) {
+                        mirrors = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient).getMirrors();
+                    }
+                }
+            }
             if (mirrors != null) {
                 for (String mirrorId : mirrors) {
                     BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorId));
@@ -3761,6 +3772,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
             StringSet fullCopyIds = volume.getFullCopies();
             boolean hasFullCopies = false;
+            // no need to check backing volumes for vplex virtual volumes because for full copies
+            // there will be a virtual volume for the clone
             if (fullCopyIds != null) {
                 for (String fullCopyId : fullCopyIds) {
                     Volume fullCopy = _dbClient.queryObject(Volume.class, URI.create(fullCopyId));

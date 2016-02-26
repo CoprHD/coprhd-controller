@@ -261,10 +261,6 @@ public class LocalRepository {
 
         final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_VDC_PROPS };
         String[] props = exec(prefix, MASK_IPSEC_KEY_PATTERN, cmd1);
-
-        // remove below redundant debug info, the props content already print
-        // in above exec method.
-        // _log.debug(prefix + "properties={}", Strings.repr(props));
         return new PropertyInfoExt(props);
     }
 

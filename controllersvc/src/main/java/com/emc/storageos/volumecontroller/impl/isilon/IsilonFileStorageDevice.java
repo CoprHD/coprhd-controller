@@ -2378,11 +2378,19 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer,
+            String devSpecificPolicyName) {
         if (devSpecificPolicyName == null) {
             devSpecificPolicyName = gerneratePolicyName(systemTarget, target);
         }
         mirrorOperations.failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
+    }
+
+    @Override
+    public void doTestFailoverLink(StorageSystem systemTarget, FileShare source, FileShare target, TaskCompleter completer) {
+        String policyName = gerneratePolicyName(systemTarget, target);
+
+        mirrorOperations.failoverTestMirrorFileShareLink(systemTarget, source, completer, policyName);
     }
 
     @Override

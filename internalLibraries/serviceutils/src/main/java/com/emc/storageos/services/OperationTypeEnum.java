@@ -171,6 +171,7 @@ public enum OperationTypeEnum {
     PAUSE_FILE_MIRROR("FileSystemMirrorPaused", "FileSystemMirrorPauseFailed", "FileSystemMirror Link Pause"),
     RESUME_FILE_MIRROR("FileSystemMirrorResumed", "FileSystemMirrorResumeFailed", "FileSystemMirror Resume"),
     FAILOVER_FILE_MIRROR("FileSystemMirrorFailover", "FileSystemMirrorFailOverFailed", "FileSystemMirror Fail Over"),
+    FAILOVER_TEST_FILE_MIRROR("FileSystemMirrorFailoverTest", "FileSystemMirrorFailOverTestFailed", "FileSystemMirror Fail Over Test"),
     FAILBACK_FILE_MIRROR("FileSystemMirrorFailback", "FileSystemMirrorFailbackFailed", "FileSystemMirror Fail Back"),
     STOP_FILE_MIRROR("FileSystemMirrorStop", "FileSystemMirrorStopFailed", "FileSystemMirror Stop"),
     START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),

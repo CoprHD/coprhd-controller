@@ -103,10 +103,14 @@ public class IsilonReplicationApiTest {
 
     public static void testReplicationPolicyReport() throws Exception {
         IsilonSyncPolicyReport policyReports = null;
+
         for (int i = 1; i <= 86; i++) {
-            String str = i + "-xyz_fs-target-varray_116";
+            String str = i + "-testFSRamya-target-varray_116";
+
             policyReports = _client.getReplicationPolicyReport(str);
-            System.out.println(policyReports.toString());
+            // System.out.println(policyReports.toString());
+            System.out.println((policyReports.getDuration() / 60.0F + 0.0F) / 2.0F);
+            // System.out.println(policyReports.getDuration() / 60.0F);
         }
     }
 

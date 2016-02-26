@@ -381,7 +381,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         } while (resumeToken != null);
 
-
         // create a list of access zone for which base dir is not same as system access zone.
         // we get all snapshot list at once. baseDirPaths list is used to
         // find snaphot belong to which access zone.
@@ -432,7 +431,6 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
                             totalFsCount++;
                             _log.info("Access zone base directory path: {}", accessZone.getPath());
-
 
                         }
                     }

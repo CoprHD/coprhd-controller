@@ -87,11 +87,14 @@ public class FileMapper {
         if (from.getAccessState() != null) {
             replication.setAccessState(from.getAccessState());
         }
-        if(from.getMaxRPO() !=null){
+        if (from.getMaxRPO() != null) {
             replication.setMaxRPO(from.getMaxRPO());
         }
-        if(from.getMinRPO() !=null){
-            replication.setMinRPO(from.getMinRPO()); 
+        if (from.getMinRPO() != null) {
+            replication.setMinRPO(from.getMinRPO());
+        }
+        if (from.getRTO() != null) {
+            replication.setRTO(from.getRTO());
         }
         to.setProtection(replication);
         return to;

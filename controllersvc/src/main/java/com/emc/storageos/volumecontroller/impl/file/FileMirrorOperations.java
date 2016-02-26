@@ -82,6 +82,17 @@ public interface FileMirrorOperations {
             throws DeviceControllerException;
 
     /**
+     * FailoverTest Mirror link
+     * 
+     * @param system
+     * @param source
+     * @param completer
+     * @throws DeviceControllerException
+     */
+    void failoverTestMirrorFileShareLink(StorageSystem system, FileShare source, TaskCompleter completer, String policyName)
+            throws DeviceControllerException;
+
+    /**
      * Resync the mirror link
      * 
      * @param primarySystem

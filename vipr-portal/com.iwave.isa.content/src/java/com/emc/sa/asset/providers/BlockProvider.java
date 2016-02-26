@@ -69,7 +69,6 @@ import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
-import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
@@ -2116,31 +2115,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<NamedRelatedResourceRep> volList = client.application().listVolumes(applicationId);
         List<AssetOption> options = new ArrayList<AssetOption>();
-        boolean isVplex = false;
         boolean isRP = false;
-        boolean isDistributed = false;
         URI sourceVarrayId = null;
-        URI haVarrayId = null;
         List<VolumeRestRep> allRPSourceVols = null;
 
         if (volList != null && !volList.isEmpty()) {
             VolumeRestRep vol = client.blockVolumes().get(volList.get(0));
-            StorageSystemRestRep sys = client.storageSystems().get(vol.getStorageController());
-            if (sys.getSystemType().equals("vplex")) {
-                isVplex = true;
-                sourceVarrayId = vol.getVirtualArray().getId();
-                List<RelatedResourceRep> assocVols = vol.getHaVolumes();
-                if (assocVols.size() > 1) {
-                    isDistributed = true;
-                    for (RelatedResourceRep backingVolRef : assocVols) {
-                        VolumeRestRep backingVol = client.blockVolumes().get(backingVolRef.getId());
-                        if (!backingVol.getVirtualArray().getId().equals(sourceVarrayId)) {
-                            haVarrayId = backingVol.getVirtualArray().getId();
-                            break;
-                        }
-                    }
-                }
-            }
             if (BlockProviderUtils.isVolumeRP(vol)) {
                 isRP = true;
                 allRPSourceVols = client.blockVolumes().getByRefs(volList, RecoverPointPersonalityFilter.SOURCE);
@@ -2153,21 +2133,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             return options;
         }
 
-        // if it's neither RP nor vplex, it's just a simple block volume application; site is not needed
-        if (!isVplex && !isRP) {
-            options.add(newAssetOption(URI.create("none"), "None"));
-        }
-
-        // if the volumes are vplex or RP display source as an option
-        if (isVplex || isRP) {
-            options.add(newAssetOption(sourceVarrayId, "protection.site.type.source"));
-        }
-        // if the volumes are vplex distributed display HA as an option
-        if (isVplex && isDistributed) {
-            options.add(newAssetOption(haVarrayId, "protection.site.type.ha"));
-        }
         // if the volumes are RP (vplex or not) add the RP targets as options
         if (isRP) {
+            options.add(newAssetOption(sourceVarrayId, "protection.site.type.source"));
             Set<URI> targetVarrayIds = new HashSet<URI>();
             List<AssetOption> targetOptions = new ArrayList<AssetOption>();
             List<VolumeRestRep> allRPTargetVols = client.blockVolumes().getByRefs(volList, RecoverPointPersonalityFilter.TARGET);

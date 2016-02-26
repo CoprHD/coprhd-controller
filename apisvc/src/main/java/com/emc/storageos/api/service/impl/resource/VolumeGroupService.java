@@ -1833,6 +1833,21 @@ public class VolumeGroupService extends TaskResourceService {
                         volume = dbClient.queryObject(Volume.class, volume.getId());
                     }
                 }
+
+                // check to see if the volume in the request is already in a replication group that is different than the requested one
+                if (param.getAddVolumesList().getReplicationGroupName() != null) {
+                    String replicationGroupInstance = volume.getReplicationGroupInstance();
+                    if (volume.isVPlexVolume(dbClient)) {
+                        replicationGroupInstance = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient).getReplicationGroupInstance();
+                    }
+                    if (NullColumnValueGetter.isNotNullValue(replicationGroupInstance)) {
+                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                                String.format(
+                                        "the volume is already a member of an array replication group: %s; Application Sub Group should be left blank",
+                                        replicationGroupInstance));
+                    }
+                }
+
                 volumes.add(volume);
                 impactedCGs.add(volume.getConsistencyGroup());
             }

@@ -22,7 +22,7 @@ db_repair() {
    for corrupted_host in ${CORRUPTED_HOST[@]}; do
        echo "Removing $corrupted_host from gossip ring.."
        for port in ${ports[@]}; do 
-           db_corrupted_hostid=`/opt/storageos/bin/nodetool -p ${port} status | grep ${corrupted_host} | awk -F ' ' '{print $7}'`
+           db_corrupted_hostid=$(/opt/storageos/bin/nodetool -p ${port} status | grep ${corrupted_host} | awk -F ' ' '{print $7}')
            /opt/storageos/bin/nodetool -p ${port} removenode ${db_corrupted_hostid} &>/dev/null
        done
    done
@@ -61,7 +61,7 @@ confirm_db_repair_finished() {
 }
 
 input_password() {
-    TMP_DIR="/data/test-`date +%s`"
+    TMP_DIR="/data/test-$(date +%s)"
     while true; do
         read -p "Please input cluster password for root user: " -s ROOT_PASSWORD; echo ""
         ssh_execute "$LOCAL_NODE" "mkdir -p $TMP_DIR"

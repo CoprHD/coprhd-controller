@@ -316,9 +316,11 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      */
     protected String getVplexCgName(Volume volume, URI cgURI) throws Exception {
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
+        String cgNameRaw = cg.getCgNameOnStorageSystem(volume.getStorageController());
+        String cgName = BlockConsistencyGroupUtils.fetchCgName(cgNameRaw);
 
         ClusterConsistencyGroupWrapper clusterConsistencyGroup =
-                getClusterConsistencyGroup(volume, cg.getLabel());
+                getClusterConsistencyGroup(volume, cgName);
 
         return clusterConsistencyGroup.getCgName();
     }
@@ -346,9 +348,10 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     public void removeVolumeFromCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean removeFromViPRCg) throws Exception {
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class,
                 cgURI, dbClient);
-        String cgName = cg.getLabel();
+        String cgNameRaw = cg.getCgNameOnStorageSystem(vplexVolume.getStorageController());
+        String cgName = BlockConsistencyGroupUtils.fetchCgName(cgNameRaw);
 
-        ClusterConsistencyGroupWrapper clusterCgWrapper =
+        ClusterConsistencyGroupWrapper clusterCgWrapper = 
                 this.getClusterConsistencyGroup(vplexVolume, cgName);
 
         log.info("Removing volumes from consistency group: " + clusterCgWrapper.getCgName());

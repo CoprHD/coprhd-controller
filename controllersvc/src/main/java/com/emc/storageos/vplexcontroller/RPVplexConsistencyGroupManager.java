@@ -45,6 +45,8 @@ import com.emc.storageos.workflow.WorkflowStepCompleter;
 
 public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupManager {
 
+    private static final String VPLEX_DIST_CG_SUFFIX = "-dist";
+    private static final String VPLEX_LOCAL_CG_CONCAT = "-";
     // logger reference.
     private static final Logger log = LoggerFactory
             .getLogger(RPVplexConsistencyGroupManager.class);
@@ -363,19 +365,29 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
         StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
         boolean distributed = false;
 
-        String vplexCgName = null;
+        log.info("getClusterConsistencyGroup vplexVolume is " + vplexVolume.forDisplay());
+        log.info("getClusterConsistencyGroup cgName is " + cgName);
+
+        String vplexCgName = cgName;
 
         // For RP+VPlex, a single BlockConsistencyGroup can map to local cluster and distributed cluster
         // VPlex CGs. So, for uniqueness, we must append '-dist' for distributed CGs and '-clusterName'
         // to non-distributed consistency groups.
         if (assocVolumes.size() > 1) {
             // Add '-dist' to the end of the CG name for distributed consistency groups.
-            vplexCgName = cgName + "-dist";
+            // TODO this endsWith business seems kind of dumb
+            if (!cgName.endsWith(VPLEX_DIST_CG_SUFFIX)) {
+                vplexCgName = cgName + VPLEX_DIST_CG_SUFFIX;
+            }
             distributed = true;
         } else {
-            vplexCgName = cgName + "-" + clusterName;
+            if (!cgName.endsWith(VPLEX_LOCAL_CG_CONCAT + clusterName)) {
+                vplexCgName = cgName + VPLEX_LOCAL_CG_CONCAT + clusterName;
+            }
         }
 
+        log.info("getClusterConsistencyGroup vplexCgName is " + vplexCgName);
+        
         ClusterConsistencyGroupWrapper clusterConsistencyGroup = new ClusterConsistencyGroupWrapper();
         clusterConsistencyGroup.setClusterName(clusterName);
         clusterConsistencyGroup.setCgName(vplexCgName);

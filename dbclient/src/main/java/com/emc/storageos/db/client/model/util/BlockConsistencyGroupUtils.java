@@ -59,10 +59,12 @@ public class BlockConsistencyGroupUtils {
      * @return The cg name.
      */
     public static String fetchCgName(String clusterCgName) {
-        String cgName = null;
+        String cgName = clusterCgName;
         if (clusterCgName != null && !clusterCgName.isEmpty()) {
             String[] tmp = clusterCgName.split(SPLITTER);
-            cgName = tmp[1];
+            if (tmp.length == 2) {
+                cgName = tmp[1];
+            }
         }
         return cgName;
     }

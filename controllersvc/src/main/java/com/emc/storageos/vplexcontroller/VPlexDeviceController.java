@@ -1469,9 +1469,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             cg = getDataObject(BlockConsistencyGroup.class, volume.getConsistencyGroup(), _dbClient);
                         }
                         if (cg != null) {
+                            String cgNameRaw = cg.getCgNameOnStorageSystem(vplexURI);
+                            String cgName = BlockConsistencyGroupUtils.fetchCgName(cgNameRaw);
                             // Call the appropriate ConsistencyGroupManager to delete the CG volume
                             ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(volume);
-                            consistencyGroupManager.deleteConsistencyGroupVolume(vplexURI, volume, cg.getLabel());
+                            consistencyGroupManager.deleteConsistencyGroupVolume(vplexURI, volume, cgName);
                         }
 
                         // Check to see if there are any entries in the doNotFullyDeleteVolumeList.

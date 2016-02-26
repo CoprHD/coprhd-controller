@@ -42,10 +42,6 @@ public class AddVolumesToApplicationService extends ViPRService {
             ExecutionUtils.fail("failTask.AddVolumesToApplicationService.subGroupUnique.precheck", new Object[] {});
         }
         replicationGroup = fieldIsPopulated(newApplicationSubGroup) ? newApplicationSubGroup : existingApplicationSubGroup;
-        // check for volumes
-        if (volumeIds == null || volumeIds.isEmpty()) {
-            ExecutionUtils.fail("failTask.AddVolumesToApplicationService.volumes.precheck", new Object[] {});
-        }
     }
 
     @Override

@@ -29,7 +29,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
     @Param(ServiceParams.NAME)
     private String name;
 
-    @Param(ServiceParams.APPLICATION_SITE)
+    @Param(value = ServiceParams.APPLICATION_SITE, required = false)
     private URI virtualArrayId;
 
     private URI virtualPoolId;

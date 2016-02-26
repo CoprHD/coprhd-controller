@@ -4,25 +4,10 @@
  */
 package com.emc.storageos.volumecontroller.impl;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.emc.storageos.db.client.model.Host;
-import com.iwave.ext.command.Command;
-import com.iwave.ext.command.CommandException;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
-import com.iwave.utility.ssh.SSHException;
-import com.iwave.utility.ssh.ShellCommandExecutor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,9 +16,7 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.exceptions.RetryableDatabaseException;
 import com.emc.storageos.exceptions.ClientControllerException;
@@ -52,13 +35,6 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.MonitorTas
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.ScanTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-import com.iwave.ext.command.Command;
-import com.iwave.utility.ssh.ShellCommandExecutor;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
 
 public class BlockControllerImpl extends AbstractDiscoveredSystemController implements BlockController {
     private static final Logger _log = LoggerFactory.getLogger(BlockControllerImpl.class);
@@ -538,59 +514,5 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     @Override
     public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
         blockRMI("deleteSnapshotSession", systemURI, snapSessionURI, opId);
-    }
-    
-    /**
-     * PowerPath Migration Enabler
-     * passed BlockSnapshotSession instance.
-     * 
-     * @param systemURI The URI of the storage system.
-     * @param snapSessionURI The URI of the snapshot session.
-     * @param opId The unique task identifier.
-     * @throws JSchException 
-     * @throws SftpException 
-     * @throws SSHException 
-     * @throws CommandException 
-     * @throws FileNotFoundException 
-     */
-    public void powerPathMigrationEnabler(URI hostURI, String sourceWWN , String targetWWN) throws JSchException, SftpException, IOException {
-    	
-    	Host host = _dbClient.queryObject(Host.class, hostURI);
-
-		Session session = null;
-		ChannelSftp channel = null;
-		
-		try{
-				
-			JSch jsch = new JSch();
-			
-			session = jsch.getSession(host.getUsername(),host.getHostName(),22);
-			session.setPassword(host.getPassword());
-			session.setConfig("StrictHostKeyChecking", "no");
-			session.connect();
-			channel = (ChannelSftp)session.openChannel("sftp");
-			channel.connect();
-			File localFile = new File("/opt/storageos/bin/migrate.sh");
-			channel.cd("/temp");
-			channel.put(new FileInputStream(localFile),localFile.getName());
-			channel.disconnect();
-			session.disconnect();
-			
-			Command command = new Command("/temp/migrate.sh", sourceWWN, targetWWN);
-			ShellCommandExecutor executor = new ShellCommandExecutor(host.getHostName(), host.getUsername(), host.getPassword());
-	        command.setCommandExecutor(executor);
-	        command.execute();
-	        executor.disconnect(); 
-	        
-		} finally {
-	        if (channel != null) {
-	        	channel.disconnect();
-	        }
-	        if (session != null) {
-	            session.disconnect();
-	        }
-	    }
-    	
-        
     }
 }

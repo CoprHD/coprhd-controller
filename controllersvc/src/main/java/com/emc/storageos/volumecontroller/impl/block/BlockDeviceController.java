@@ -168,8 +168,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 
 /**
  * Generic Block Controller Implementation that does all of the database
@@ -6365,12 +6363,5 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     rollbackMethodNullMethod(), null);
         }
         return waitFor;
-    }
-
-    @Override
-    public void powerPathMigrationEnabler(URI HostURI, String sourceWwn, String targetWWN)
-            throws JSchException, SftpException, IOException {
-        // TODO Auto-generated method stub
-        
     }
 }

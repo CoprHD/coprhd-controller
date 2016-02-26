@@ -18,7 +18,6 @@ import static com.google.common.collect.Collections2.transform;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -166,7 +165,6 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
-import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
@@ -174,8 +172,6 @@ import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.SftpException;
 
 @Path("/block/volumes")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
@@ -5295,54 +5291,5 @@ public class BlockService extends TaskResourceService {
 
     private boolean isAddingSRDFProtection(Volume v, VirtualPool targetVPool) {
         return v.getSrdfTargets() == null && VirtualPool.vPoolSpecifiesSRDF(targetVPool);
-    }
-    
-    
-    
-    /**
-     * Create an array snapshot of the volume with the passed Id. Creating a
-     * snapshot session simply creates and array snapshot point-in-time copy
-     * of the volume. It does not automatically create a single target volume
-     * and link it to the array snapshot as is done with the existing create
-     * snapshot API. It allows array snapshots to be created with out any linked
-     * target volumes, or multiple linked target volumes depending on the
-     * data passed in the request. This API is only supported on a limited
-     * number of platforms that support this capability.
-     *
-     * @brief Create volume snapshot session
-     *
-     * @prereq Virtual pool for the volume must specify non-zero value for max_snapshots
-     *
-     * @param id The URI of a ViPR Volume.
-     * @param param Volume snapshot parameters
-     *
-     * @return TaskList
-     */
-    @POST
-    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/ppmigrate")
-    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep powerPathMigrate(@PathParam("host") URI host, @PathParam("sourcevolume") URI sourceVolume, @PathParam("targetVolume") URI targetVolme)throws JSchException, SftpException, IOException {
-        
-        
-        Volume volume = _dbClient.queryObject(Volume.class, sourceVolume);
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
-        BlockController controller = getController(BlockController.class,
-                storageSystem.getSystemType());
-        
-        String sourceWwn;
-        String targetWWN;
-        
-        sourceWwn = volume.getWWN();
-        targetWWN = _dbClient.queryObject(Volume.class, sourceVolume).getWWN();
-        String task = UUID.randomUUID().toString();
-        
-        controller.powerPathMigrationEnabler(host, sourceWwn, targetWWN);
-        
-        
-        return null;
-        
-        
     }
 }

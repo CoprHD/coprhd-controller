@@ -53,6 +53,10 @@ public class BlockConsistencyGroupUtils {
 
     /**
      * Parses out the consistency group name from the combined cluster/cg name.
+     * If the name comes in in a splittable format (e.g. "cluster-1:TestCG-cluster-1"),
+     * then the latter half will be returned (e.g. "TestCG-cluster-1"). If the 
+     * incoming clusterCgName is not splittable, then the clusterCgName will
+     * be returned unchanged.
      * 
      * @param clusterCgName The combined cluster/cg name from which to extract
      *            the cg name.

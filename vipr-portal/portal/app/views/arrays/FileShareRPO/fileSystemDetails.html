@@ -8,6 +8,7 @@
       <th>&{'virtualPools.minRpo'}</th>
       <th>&{'virtualPools.mirrorStatus'}</th>
       <th>&{'virtualPools.Status'}</th>
+      <th>&{'resources.actions'}</th>
     </tr>
   </thead>
   <tbody>  
@@ -25,6 +26,10 @@
         <img class="glyphicon glyphicon-ok" src="/public/img/Ready.png"><span></span>
         #{/else}
         </td>
+        <td><a href="@{forceFailover(fileSystem.id, fileReplicationType)}" 
+				                  class='btn-xs btn-success'
+				                  onclick="return confirm('&{'resources.fileSystem.test.failover'}')"
+				                >&{'fileSystem.updateRTO'}</a></td>
       </tr>
     #{/list}
   </tbody>

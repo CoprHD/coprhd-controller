@@ -89,6 +89,9 @@ public class StorageProviderUtils {
         	update.setPassword(secondaryPassword);
         	update.setSecondaryUsername(null);
         	update.setSecondaryPassword(null);
+        } else if (StorageProviderTypes.isCeph(interfaceType)) {
+            update.setPassword(secretKey);
+            update.setSecretKey(null);
         }
         return getViprClient().storageProviders().create(update);
     }
@@ -113,6 +116,9 @@ public class StorageProviderUtils {
         	update.setPassword(secondaryPassword);
         	update.setSecondaryUsername(null);
         	update.setSecondaryPassword(null);
+        } else if (StorageProviderTypes.isCeph(interfaceType)) {
+            update.setPassword(secretKey);
+            update.setSecretKey(null);
         }
         return getViprClient().storageProviders().update(id, update);
     }

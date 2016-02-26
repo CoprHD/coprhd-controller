@@ -238,6 +238,10 @@ public class StorageProviders extends ViprResourceController {
             return StorageProviderTypes.isScaleIOApi(interfaceType);
         }
 
+        public boolean isCeph() {
+            return StorageProviderTypes.isCeph(interfaceType);
+        }
+
         public void readFrom(StorageProviderRestRep storageProvider) {
             this.id = storageProvider.getId().toString();
             this.name = storageProvider.getName();
@@ -285,15 +289,15 @@ public class StorageProviders extends ViprResourceController {
             if (isScaleIOApi() ) {
             	Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
             	Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
+            } else if (isCeph()) {
+            	Validation.required(fieldName + ".userName", this.userName);
+        	   	Validation.required(fieldName + ".secretKey", this.secretKey);
+            } else if (isNew()) {
+            	Validation.required(fieldName + ".userName", this.userName);
+        	   	Validation.required(fieldName + ".password", this.password);
+            	Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
             }
             
-            if (isNew() && !isScaleIOApi()) {
-            	Validation.required(fieldName + ".userName", this.userName);
-            	   	Validation.required(fieldName + ".password", this.password);
-                	Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
-                }
-            
-
             if (!StringUtils.equals(StringUtils.trim(password), StringUtils.trim(confirmPassword))) {
                 Validation.addError(fieldName + ".confirmPassword",
                         MessagesUtils.get("smisProvider.confirmPassword.not.match"));

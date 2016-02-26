@@ -279,13 +279,23 @@
                     $('#storageArray_secondaryPasswordControlGroup').show();
                     $('#storageArray_secondaryPasswordConfirmControlGroup').show();
                 } else if ($('#storageArray_type').val() == '${scaleIOApiStorageSystemType}') {              	
-                	
                 	$('#storageArray_userNameControlGroup').hide();
                 	$('#storageArray_userPasswordControlGroup').hide();
                 	$('#storageArray_confirmPasswordControlGroup').hide();
                 	$('#storageArray_secondaryUsernameControlGroup').show();
                     $('#storageArray_secondaryPasswordControlGroup').show();
                     $('#storageArray_secondaryPasswordConfirmControlGroup').show();
+                    $('#storageArray_elementManagerURLControlGroup').hide();
+                } else if ($('#storageArray_type').val() == '${cephStorageSystemType}') {
+                    $('#storageArray_userNameControlGroup').show();
+                	$('#storageArray_secretKeyControlGroup').show().attr('required', true);
+                    $('#storageArray_useSSLControlGroup').hide().attr('required', false);
+                    $('#storageArray_portNumberControlGroup').hide().attr('required', false);
+                    $('#storageArray_userPasswordControlGroup').hide().attr('required', false);
+                    $('#storageArray_confirmPasswordControlGroup').hide().attr('required', false);
+                    $('#storageArray_secondaryUsernameControlGroup').hide().attr('required', false);
+                    $('#storageArray_secondaryPasswordControlGroup').hide().attr('required', false);
+                    $('#storageArray_secondaryPasswordConfirmControlGroup').hide().attr('required', false);
                     $('#storageArray_elementManagerURLControlGroup').hide();
                 } else {
                 	$('#storageArray_userNameControlGroup').show();
@@ -301,12 +311,20 @@
                 $('#storageArray_secondaryPasswordConfirmControlGroup').hide();
                 $('#storageArray_elementManagerURLControlGroup').hide();
                 $('#storageArray_secretKeyControlGroup').hide().attr('required', false);
+                if ($('#storageArray_type').val() == '${cephStorageSystemType}') {
+                    $('#storageArray_useSSLControlGroup').hide().attr('required', false);
+                    $('#storageArray_portNumberControlGroup').hide().attr('required', false);
+                    $('#storageArray_userPasswordControlGroup').hide().attr('required', false);
+                    $('#storageArray_confirmPasswordControlGroup').hide().attr('required', false);
+                }
             }
             
             $('fieldset.onboardSmisProvider').hide();            
     	
 	  		if ( !editMode ) {
-	  			$('#storageArray_useSSL').trigger('change'); // trigger change 
+	  			if ($('#storageArray_type').val() != '${cephStorageSystemType}') {
+	  			    $('#storageArray_useSSL').trigger('change'); // trigger change
+	  			}
 	  		} else {
 	  		    // if it is a smis managed storage system, hide all but name field for editing purpose
 	  		    $('#storageArray_useSSLControlGroup').hide();

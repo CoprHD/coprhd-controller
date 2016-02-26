@@ -818,6 +818,10 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setPassword(secondaryPassword);
             }
 
+            if (isCeph()) {
+                storageArray.setPassword(StringUtils.trimToNull(secretKey));
+            }
+
             return StorageSystemUtils.update(id, storageArray);
         }
 
@@ -886,7 +890,10 @@ public class StorageSystems extends ViprResourceController {
             }
 
             if (isNew()) {
-                if (isScaleIOApi()) {
+                if (isCeph()) {
+                    Validation.required(fieldName + ".userName", this.userName);
+                    Validation.required(fieldName + ".secretKey", this.secretKey);
+                } else if (isScaleIOApi()) {
                     Validation.required(fieldName + ".secondaryUsername", this.secondaryUsername);
                     Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
                     Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
@@ -953,6 +960,10 @@ public class StorageSystems extends ViprResourceController {
 
         private boolean isIsilon() {
             return StorageSystemTypes.isIsilon(type);
+        }
+
+        private boolean isCeph() {
+            return StorageSystemTypes.isCeph(type);
         }
     }
 

@@ -11,7 +11,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class BackupSetInfo implements Serializable {
-
     /** use serialVersionUID from JDK 1.0.2 for interoperability */
     private static final long serialVersionUID = 301077366599522567L;
 

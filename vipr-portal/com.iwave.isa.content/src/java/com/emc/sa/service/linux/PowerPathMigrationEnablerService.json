@@ -4,18 +4,18 @@
   items:{
 
     Host:{
-      type:"assetType.vipr.virtualArray",
-      lockable: true
+      type:"text",
+      
     },
     
     SourceVolume:{
-      type:"assetType.vipr.blockVirtualPool",
-      lockable: true
+      type:"text",
+      
     },
 
     vArray:{
-      type:"assetType.vipr.project",
-      lockable: true
+      type:"text",
+      
     }
     
   }

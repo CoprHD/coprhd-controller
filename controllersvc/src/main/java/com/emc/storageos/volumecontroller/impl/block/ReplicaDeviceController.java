@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
-import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
@@ -391,12 +390,12 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 	public BlockSnapshotSession prepareSnapshotSessionFromSource(
 			BlockObject sourceObj, String snapSessionLabel, String instanceLabel) {
 		BlockSnapshotSession snapSession = new BlockSnapshotSession();
-		Project sourceProject = BlockSnapshotSessionUtils
+        URI sourceProject = ControllerUtils
 				.querySnapshotSessionSourceProject(sourceObj, _dbClient);
 
 		snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
 
-		snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj
+        snapSession.setProject(new NamedURI(sourceProject, sourceObj
 				.getLabel()));
 
 		snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj
@@ -483,8 +482,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         snapshot.setVirtualArray(sourceObj.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(sourceObj.getProtocol());
-        Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
-        snapshot.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        URI sourceProject = ControllerUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
+        snapshot.setProject(new NamedURI(sourceProject, sourceObj.getLabel()));
         snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
                 snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
         snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());

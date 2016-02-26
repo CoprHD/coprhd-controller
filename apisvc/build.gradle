@@ -36,6 +36,7 @@ dependencies {
 
     testRuntime library(log4j)
     testRuntime library(commons_logging)
+    compile files('src/main/resources/snmp4j-2.4.2-20160123.125215-1.jar')
 }
 
 test {

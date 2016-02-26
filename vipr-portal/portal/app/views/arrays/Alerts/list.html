@@ -1,0 +1,52 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.remediation'] /}
+
+#{DataTable.header titleKey:'alerts.list.title'/}
+
+#{DataTable.table id:'alerts', 
+                  dataTable:dataTable,
+                  source:@listJson() /}
+
+
+<script id="inlineActions.html" type="text/ng-template">
+    <div class="btn-group-nas">
+        <a class="btn btn-default btn-xs" ng-show="isFixRequired" role="button" href="{{serviceCatalogUrl}}">{{'Expand' | t}}</a>
+    </div>
+</script>                  
+                  
+<script type="text/javascript">
+
+
+
+angular.module('tags').directive({
+	actions: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineActions.html",
+         link: function(scope, elem, attrs) {
+        	 scope.isFixRequired = false;
+        	 var cap = 10;
+        	 var threshold = 90;
+             if(cap < threshold){
+             	scope.isFixRequired = true;
+             	var catId = 'urn:storageos:CatalogService:a2952b41-f3aa-43e0-b40a-158dbe942e7c:vdc1';
+             	scope.serviceCatalogUrl = routes.ServiceCatalog_showService({serviceId: catId});
+             }
+            
+         }
+     }
+ },
+ url: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineLink.html"
+     }
+ }
+});
+
+function renderButtonBar(o,val) {
+    return "<actions></actions>";
+    
+}
+</script>
+                  

@@ -65,9 +65,7 @@ public class FileShareRPO extends ViprResourceController {
         List<URI> fsIds = ids.getIds();
         for (URI fsId : fsIds) {
             FileShareRestRep fileSystem = client.fileSystems().get(fsId);
-            Boolean value = !fileSystem.getProtection().getMirrorStatus().equals("UNKNOWN")
-                    && !fileSystem.getProtection().getMirrorStatus().equals("FAILED_OVER")
-                    && !fileSystem.getProtection().getMirrorStatus().equals("DETACHED");
+            Boolean value = !fileSystem.getProtection().getMirrorStatus().equals("FAILED_OVER");
             if (fileSystem.getVirtualPool().getId().toString().equals(id) && !fileSystem.getProtection().getPersonality().equals("TARGET") && value) {
                 fileSystems.add(fileSystem);
             }

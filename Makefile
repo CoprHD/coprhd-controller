@@ -28,7 +28,9 @@ all clean::
 # Local installation and building RPM, OVF and ISO packages
 #
 .PHONY: _install rpm ovf ova vsphere hyperv iso docker svt controller devkit
-_install rpm ovf ova vsphere hyperv iso docker svt controller devkit: all
+_install rpm ovf ova vsphere hyperv iso docker svt controller: all
+	$(ATSIGN)$(MAKE) -C packaging $(@)
+devkit:
 	$(ATSIGN)$(MAKE) -C packaging $(@)
 
 # Top level clobber: delete everything in the build directory

@@ -162,7 +162,7 @@ public class UpgradeService {
 
         auditUpgrade(OperationTypeEnum.UPDATE_VERSION,
                 AuditLogManager.AUDITLOG_SUCCESS,
-                null, targetVersion.toString());
+                null, targetVersion.toString(), FORCE.equals(forceUpgrade));
 
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {

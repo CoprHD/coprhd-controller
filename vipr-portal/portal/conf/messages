@@ -3394,6 +3394,7 @@ resources.filesystem.softLimit=Soft Limit (%%)
 resources.filesystem.softGrace=Grace Period (Days)
 resources.filesystem.notificationLimit=Advisory Limit (%%)
 resources.filesystem.softLimitExeeded=Capacity exceeded
+resources.fileSystem.test.failover=Are you sure you want to test failover? This is a risky operation.
 
 
 resources.filesystem.storagesystem=Storage System
@@ -3680,7 +3681,7 @@ fileSystems.vpool=Virtual Pool
 fileSystems.varray=Virtual Array
 fileSystems.protocols=Protocols
 fileSystems.status=Status
-
+fileSystem.updateRTO=Update RTO
 
 blockStorageTable.name=Name
 blockStorageTable.size=Size

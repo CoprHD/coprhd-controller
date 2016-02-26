@@ -674,6 +674,9 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         return postTasks(input, getContinuousCopiesUrl() + "/failover", id);
     }
 
+    public Tasks<FileShareRestRep> failoverTest(URI id, FileReplicationParam input) {
+        return postTasks(input, getContinuousCopiesUrl() +"/failover-test",id);
+    }
     /**
      * Changes the virtual pool for the given file system.
      * <p>

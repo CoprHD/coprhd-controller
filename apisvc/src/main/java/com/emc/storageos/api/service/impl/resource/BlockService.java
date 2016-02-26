@@ -165,6 +165,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.ExportPathUpdater;
@@ -5317,10 +5318,24 @@ public class BlockService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/protection/snapshot-sessions")
+    @Path("/{id}/ppmigrate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList powerPathMigrate(@PathParam("host") URI host, @PathParam("host") URI sourceVolume, @PathParam("vpool") URI vPool) {
+    public TaskList powerPathMigrate(@PathParam("host") URI host, @PathParam("sourcevolume") URI sourceVolume, @PathParam("vpool") URI vPool) {
+        
+        Volume volume = _dbClient.queryObject(Volume.class, sourceVolume);
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
+        BlockController controller = getController(BlockController.class,
+                storageSystem.getSystemType());
+        
+        String sourceWwn;
+        String targetWWN;
+        
+        sourceWwn = volume.getWWN();
+        targetWWN = _dbClient.queryObject(Volume.class, sourceVolume).getWWN();
+        String task = UUID.randomUUID().toString();
+        
+        controller.powerPathMigrationEnabler(host, sourceWwn, targetWWN);
+        
         return getSnapshotSessionManager().createSnapshotSession(id, param, getFullCopyManager());
     }
-    
 }

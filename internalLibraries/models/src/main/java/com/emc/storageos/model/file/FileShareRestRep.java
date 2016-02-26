@@ -291,6 +291,7 @@ public class FileShareRestRep extends FileObjectRestRep {
         private List<VirtualArrayRelatedResourceRep> targetFileSystems;
         private Long maxRPO;
         private Float minRPO;
+        private Integer RTO;
 
         /**
          * SOURCE
@@ -362,6 +363,15 @@ public class FileShareRestRep extends FileObjectRestRep {
 
         public void setMinRPO(Float minRPO) {
             this.minRPO = minRPO;
+        }
+
+        @XmlElement(name = "RTO")
+        public Integer getRTO() {
+            return RTO;
+        }
+
+        public void setRTO(Integer rTO) {
+            this.RTO = rTO;
         }
     }
 

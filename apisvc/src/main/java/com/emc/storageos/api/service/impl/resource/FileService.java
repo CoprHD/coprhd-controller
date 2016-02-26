@@ -231,6 +231,7 @@ public class FileService extends TaskResourceService {
     // Protection operations that are allowed with /file/filesystems/{id}/protection/continuous-copies/
     public static enum ProtectionOp {
         FAILOVER("failover", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER),
+        FAILOVER_TEST("failover-test", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILOVER_TEST),
         FAILBACK("failback", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_FAILBACK),
         START("start", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_START),
         STOP("stop", ResourceOperationTypeEnum.FILE_PROTECTION_ACTION_STOP),
@@ -2997,6 +2998,40 @@ public class FileService extends TaskResourceService {
 
     /**
      * 
+     * Request to failover-test the protection link associated with the param.copyID.
+     * 
+     * NOTE: This is an asynchronous operation.
+     * 
+     * @prereq none
+     * 
+     * @param id
+     *            the URN of a ViPR Source fileshare
+     * @param param
+     *            FileReplicationParam to failover to
+     * 
+     * @brief Test failover the fileShare protection link
+     * @return TaskList
+     * 
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/failover-test")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList testFailoverProtection(@PathParam("id") URI id, FileReplicationParam param) throws ControllerException {
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        Copy copy = param.getCopies().get(0);
+        if (copy.getType().equalsIgnoreCase(FileTechnologyType.REMOTE_MIRROR.name())) {
+            return performFileProtectionAction(param, id, ProtectionOp.FAILOVER_TEST.getRestOp());
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
+        }
+
+    }
+
+    /**
+     * 
      * Request to fail Back the protection link associated with the param.copyID.
      * 
      * NOTE: This is an asynchronous operation.
@@ -3637,6 +3672,13 @@ public class FileService extends TaskResourceService {
                     isSupported = true;
                 break;
 
+            // Failover Test can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
+            case "failover-test":
+                if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
+                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                    isSupported = true;
+
+                break;
             // Fail back can be performed only if Mirror status is FAILED_OVER.
             case "failback":
                 if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString()))

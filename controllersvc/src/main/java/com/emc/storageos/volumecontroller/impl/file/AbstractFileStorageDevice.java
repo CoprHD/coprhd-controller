@@ -81,6 +81,11 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
     }
 
     @Override
+    public void doTestFailoverLink(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
+
+    @Override
     public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare Target, TaskCompleter completer,
             String policyName) {
         throw DeviceControllerException.exceptions.operationNotSupported();

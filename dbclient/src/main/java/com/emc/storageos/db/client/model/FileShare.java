@@ -67,18 +67,18 @@ public class FileShare extends FileObject implements ProjectResource {
     private URI _originalProject;
 
     private URI virtualNAS;
-    
+
     private Long softLimit;
-    
+
     private Boolean softLimitExceeded;
-    
+
     private Integer softGracePeriod;
-    
+
     private Long notificationLimit;
-    
-    //mirror related attributes
-    
-    //mirror target fileshares
+
+    // mirror related attributes
+
+    // mirror target fileshares
     private StringSet _mirrorfsTargets;
 
     // source file share
@@ -104,6 +104,8 @@ public class FileShare extends FileObject implements ProjectResource {
 
     private Float minRPO;
 
+    private Integer RTO;
+
     public enum MirrorStatus {
         UNKNOWN("0"),
         FAILED_OVER("1"),
@@ -115,7 +117,7 @@ public class FileShare extends FileObject implements ProjectResource {
         OTHER("7"),
         SYNCHRONIZED("8"),
         ERROR("9");
-        
+
         private final String status;
 
         MirrorStatus(String status) {
@@ -403,9 +405,9 @@ public class FileShare extends FileObject implements ProjectResource {
     }
 
     @Name("virtualNAS")
-	public URI getVirtualNAS() {
-		return virtualNAS;
-	}
+    public URI getVirtualNAS() {
+        return virtualNAS;
+    }
 
     public void setVirtualNAS(URI vituralNAS) {
         this.virtualNAS = vituralNAS;
@@ -454,7 +456,7 @@ public class FileShare extends FileObject implements ProjectResource {
         this.softGracePeriod = softGracePeriod;
         setChanged("softGracePeriod");
     }
-    
+
     @Name("notificationLimit")
     public Long getNotificationLimit() {
         return notificationLimit;
@@ -493,6 +495,16 @@ public class FileShare extends FileObject implements ProjectResource {
     public void setMinRPO(Float minRPO) {
         this.minRPO = minRPO;
         setChanged("minRPO");
+    }
+
+    @Name("RTO")
+    public Integer getRTO() {
+        return RTO;
+    }
+
+    public void setRTO(Integer rTO) {
+        RTO = rTO;
+        setChanged("RTO");
     }
 
 }

@@ -7,7 +7,7 @@ package com.emc.storageos.isilon.restapi;
 public class IsilonSyncTargetPolicy extends IsilonSyncPolicy {
 
     public static enum FOFB_STATES {
-        writes_disabled, enabling_writes, writes_enabled, disabling_writes, creating_resync_policy, resync_policy_created
+        writes_disabled, enabling_writes, writes_enabled, disabling_writes, creating_resync_policy, resync_policy_created, allow_write
     }
 
     private FOFB_STATES failover_failback_state;

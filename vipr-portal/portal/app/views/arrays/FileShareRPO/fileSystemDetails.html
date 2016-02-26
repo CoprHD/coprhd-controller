@@ -4,7 +4,9 @@
   <thead>
     <tr>    
       <th>&{'virtualPools.fileSystems'}</th>
-      <th>&{'virtualPools.rpo'}</th>
+      <th>&{'virtualPools.maxRpo'}</th>
+      <th>&{'virtualPools.minRpo'}</th>
+      <th>&{'virtualPools.mirrorStatus'}</th>
       <th>&{'virtualPools.Status'}</th>
     </tr>
   </thead>
@@ -12,9 +14,11 @@
     #{list items:fileSystems, as:'fileSystem'}
       <tr>
         <td>${fileSystem.name}</td>
-        <td>${fileSystem.protection.actualMaxRPO} ${rpoType}</td>
+        <td>${fileSystem.protection.maxRPO} ${rpoType}</td>
+        <td>${fileSystem.protection.minRPO} ${rpoType}</td>
+        <td>${fileSystem.protection.mirrorStatus}</td>
         <td>
-        #{if fileSystem.protection.actualMaxRPO != rpo}
+        #{if fileSystem.protection.maxRPO != rpo}
         <img class="glyphicon glyphicon-remove" src="/public/img/Critical.png"><span></span>
         #{/if}
         #{else}

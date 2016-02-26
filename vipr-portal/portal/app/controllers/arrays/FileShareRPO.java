@@ -76,6 +76,8 @@ public class FileShareRPO extends ViprResourceController {
     public static class FileShareDataTable extends DataTable {
         public FileShareDataTable() {
             addColumn("name");
+            addColumn("replicationType");
+            addColumn("replicationMode");
             addColumn("rpo");
         }
 
@@ -85,6 +87,8 @@ public class FileShareRPO extends ViprResourceController {
             private String rpo;
             private String name;
             private String id;
+            private String replicationType;
+            private String replicationMode;
 
             public FileShareInfo(FileVirtualPoolRestRep pool) {
                 FileReplicationPolicy protection = pool.getProtection().getReplicationParam().getSourcePolicy();
@@ -93,6 +97,8 @@ public class FileShareRPO extends ViprResourceController {
                 this.rpoType = protection.getRpoType().toLowerCase();
                 this.rpoValue = protection.getRpoValue();
                 this.rpo = rpoValue + " " + rpoType;
+                this.replicationType = pool.getFileReplicationType();
+                this.replicationMode = protection.getCopyMode();
 
             }
 

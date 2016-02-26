@@ -187,11 +187,17 @@ public class RestoreManager {
                         && name.endsWith(BackupConstants.COMPRESS_SUFFIX);
             }
         });
-        String errorMessage = String.format("Need db, geodb and zk backup files under folder");
+        String errorMessage = String.format("Need db, geodb and zk backup files under folder %s", backupPath);
         if (backupFiles == null) {
             throw new IllegalArgumentException(errorMessage);
         }
-        if (!onlyRestoreSiteId && backupFiles.length < BackupType.values().length - 1) {
+
+        for (File f : backupFiles) {
+            log.info("lby file={}", f.getAbsolutePath());
+        }
+
+        log.info("lby backupFiles.length={} BackupType values={}", backupFiles.length, BackupType.values().length);
+        if (!onlyRestoreSiteId && backupFiles.length < BackupType.values().length - 2) {
             throw new IllegalArgumentException(errorMessage);
         }
 
@@ -229,7 +235,7 @@ public class RestoreManager {
 
         // When restoring 5-node cluster using 3-node backup, should only restore site id on vipr4 and vipr5.
         // There's no need to validate backup files on nodes where only site id will be restored, so skip it.
-        if (!onlyRestoreSiteId && matched != BackupType.values().length - 1) {
+        if (!onlyRestoreSiteId && matched != BackupType.values().length - 2) {
             throw new IllegalArgumentException(errorMessage);
         }
 

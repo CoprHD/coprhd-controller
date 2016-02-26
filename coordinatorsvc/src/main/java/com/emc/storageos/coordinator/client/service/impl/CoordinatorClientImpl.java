@@ -1724,10 +1724,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     /**
      * Common method to compare vdcConfigVersions with target's vdcConfigVersion
      * 
-     * @param targetPropertiesGiven
-     *            target property
-     * @param configVersions
-     *            nodes' configVersions
+     * @param vdcConfigVersions
+     *            nodes' vdcConfigVersions
      * @return list of nodes which configVersions are different from the target's
      */
     private List<String> getDifferentVdcConfigVersionCommon(

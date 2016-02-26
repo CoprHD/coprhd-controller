@@ -1214,7 +1214,7 @@ public abstract class VdcOpHandler {
             } else {
                 log.warn("Only Part of nodes entered within {} seconds at path {}", timeout, barrierPath);
                 // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
-                barrier.leave(); 
+                barrier.leave(timeout, TimeUnit.SECONDS); 
                 throw new Exception("Only Part of nodes entered within timeout");
             }
         }

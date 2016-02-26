@@ -1125,16 +1125,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
                 volume = client.blockVolumes().get(volume.getHaVolumes().get(0).getId());
             }
-            if (!BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
-                if (isTarget) {
-                    if (volume.getVirtualArray().getId().equals(virtualArray)) {
-                        subGroups.add(volume.getReplicationGroupInstance());
-                    }
-                } else {
-                    if (volume.getProtection() == null || volume.getProtection().getRpRep() == null
-                            || volume.getProtection().getRpRep().getPersonality() == null
-                            || volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
-
+            if (isTarget) {
+                if (volume.getVirtualArray().getId().equals(virtualArray)
+                        && BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
+                    subGroups.add(volume.getReplicationGroupInstance());
+                }
+            } else {
+                if (volume.getProtection() == null || volume.getProtection().getRpRep() == null
+                        || volume.getProtection().getRpRep().getPersonality() == null
+                        || volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
+                    if (!BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
                         subGroups.add(volume.getReplicationGroupInstance());
                     }
                 }

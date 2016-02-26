@@ -192,11 +192,6 @@ public class RestoreManager {
             throw new IllegalArgumentException(errorMessage);
         }
 
-        for (File f : backupFiles) {
-            log.info("lby file={}", f.getAbsolutePath());
-        }
-
-        log.info("lby backupFiles.length={} BackupType values={}", backupFiles.length, BackupType.values().length);
         if (!onlyRestoreSiteId && backupFiles.length < BackupType.values().length - 2) {
             throw new IllegalArgumentException(errorMessage);
         }
@@ -205,7 +200,7 @@ public class RestoreManager {
         boolean backupInMultiVdc = false;
         for (File backupFile : backupFiles) {
             String backupFileName = backupFile.getName();
-            log.debug("Checking backup file: {}", backupFileName);
+            log.info("Checking backup file: {}", backupFileName);
             if (!backupFileName.contains(nodeId)
                     && !backupFileName.contains(BackupType.zk.name())) {
                 continue;
@@ -227,10 +222,10 @@ public class RestoreManager {
                     backupInMultiVdc = true;
                 }
             } else {
-                log.debug("Invalid backup file: {}", backupFile.getName());
+                log.info("Invalid backup file: {}", backupFile.getName());
                 continue;
             }
-            log.debug("Found backup file: {}", backupFile.getName());
+            log.info("Found backup file: {}", backupFile.getName());
         }
 
         // When restoring 5-node cluster using 3-node backup, should only restore site id on vipr4 and vipr5.

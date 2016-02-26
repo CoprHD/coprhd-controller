@@ -381,6 +381,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         } while (resumeToken != null);
 
+
         // create a list of access zone for which base dir is not same as system access zone.
         // we get all snapshot list at once. baseDirPaths list is used to
         // find snaphot belong to which access zone.
@@ -431,6 +432,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
                             totalProvCap = totalProvCap + Long.valueOf(isilonSnap.getSize());
                             totalFsCount++;
                             _log.info("Access zone base directory path: {}", accessZone.getPath());
+
 
                         }
                     }
@@ -957,8 +959,7 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
             _log.info("discoverPools for storage system {} - start", storageSystemId);
 
             IsilonApi isilonApi = getIsilonDevice(storageSystem);
-            boolean isNfsV4Enabled = false;
-            // isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
+            boolean isNfsV4Enabled = isilonApi.nfsv4Enabled(storageSystem.getFirmwareVersion());
             boolean syncLicenseValid = isValidLicense(isilonApi.getReplicationLicenseInfo(), storageSystem);
             boolean snapLicenseValid = isValidLicense(isilonApi.snapshotIQLicenseInfo(), storageSystem);
 
@@ -3147,24 +3148,30 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         switch (rpoType) {
 
             case "MINUTES":
-                if (fs.getActualMaxRPO() == null) {
-                    fs.setActualMaxRPO((report.getDuration()) / 60 + vpool.getFrRpoValue());
+                if (fs.getMaxRPO() == null && fs.getMinRPO() == null) {
+                    fs.setMinRPO(report.getDuration() / 60.0F);
+                    fs.setMaxRPO((report.getDuration()) / 60 + vpool.getFrRpoValue());
                 } else {
-                    fs.setActualMaxRPO(((report.getDuration()) / 60 + vpool.getFrRpoValue() + fs.getActualMaxRPO()) / 2);
+                    fs.setMinRPO((report.getDuration() / 60.0F + fs.getMinRPO()) / 2.0F);
+                    fs.setMaxRPO(((report.getDuration()) / 60 + vpool.getFrRpoValue() + fs.getMaxRPO()) / 2);
                 }
                 break;
             case "HOURS":
-                if (fs.getActualMaxRPO() == null) {
-                    fs.setActualMaxRPO((report.getDuration()) / 36000 + vpool.getFrRpoValue());
+                if (fs.getMaxRPO() == null && fs.getMinRPO() == null) {
+                    fs.setMinRPO(report.getDuration() / 3600.0F);
+                    fs.setMaxRPO((report.getDuration()) / 36000 + vpool.getFrRpoValue());
                 } else {
-                    fs.setActualMaxRPO(((report.getDuration()) / 3600 + vpool.getFrRpoValue() + fs.getActualMaxRPO()) / 2);
+                    fs.setMinRPO((report.getDuration() / 3600.0F + fs.getMinRPO()) / 2.0F);
+                    fs.setMaxRPO(((report.getDuration()) / 3600 + vpool.getFrRpoValue() + fs.getMaxRPO()) / 2);
                 }
                 break;
             case "DAYS":
-                if (fs.getActualMaxRPO() == null) {
-                    fs.setActualMaxRPO((report.getDuration()) / 86400 + vpool.getFrRpoValue());
+                if (fs.getMaxRPO() == null && fs.getMinRPO() == null) {
+                    fs.setMinRPO(report.getDuration() / 86400.0F);
+                    fs.setMaxRPO((report.getDuration()) / 86400 + vpool.getFrRpoValue());
                 } else {
-                    fs.setActualMaxRPO(((report.getDuration()) / 86400 + vpool.getFrRpoValue() + fs.getActualMaxRPO()) / 2);
+                    fs.setMinRPO((report.getDuration() / 86400.0F + fs.getMinRPO()) / 2.0F);
+                    fs.setMaxRPO(((report.getDuration()) / 86400 + vpool.getFrRpoValue() + fs.getMaxRPO()) / 2);
                 }
                 break;
         }
@@ -3190,24 +3197,24 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
         switch (rpoType) {
 
             case "MINUTES":
-                if (fs.getActualMaxRPO() == null) {
-                    fs.setActualMaxRPO(currentRPO / 60);
+                if (fs.getMaxRPO() == null) {
+                    fs.setMaxRPO(currentRPO / 60);
                 } else {
-                    fs.setActualMaxRPO(((currentRPO / 60) + fs.getActualMaxRPO()) / 2);
+                    fs.setMaxRPO(((currentRPO / 60) + fs.getMaxRPO()) / 2);
                 }
                 break;
             case "HOURS":
-                if (fs.getActualMaxRPO() == null) {
-                    fs.setActualMaxRPO(currentRPO / 3600);
+                if (fs.getMaxRPO() == null) {
+                    fs.setMaxRPO(currentRPO / 3600);
                 } else {
-                    fs.setActualMaxRPO(((currentRPO / 3600) + fs.getActualMaxRPO()) / 2);
+                    fs.setMaxRPO(((currentRPO / 3600) + fs.getMaxRPO()) / 2);
                 }
                 break;
             case "DAYS":
-                if (fs.getActualMaxRPO() == null) {
-                    fs.setActualMaxRPO(currentRPO / 86400);
+                if (fs.getMaxRPO() == null) {
+                    fs.setMaxRPO(currentRPO / 86400);
                 } else {
-                    fs.setActualMaxRPO(((currentRPO / 86400) + fs.getActualMaxRPO()) / 2);
+                    fs.setMaxRPO(((currentRPO / 86400) + fs.getMaxRPO()) / 2);
                 }
                 break;
         }

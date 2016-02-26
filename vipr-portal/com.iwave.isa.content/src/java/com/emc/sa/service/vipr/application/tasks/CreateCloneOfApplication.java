@@ -17,14 +17,12 @@ public class CreateCloneOfApplication extends WaitForTasks<TaskResourceRep> {
     private final String name;
     private final URI virtualArrayId;
     private final URI virtualPoolId;
-    private final Integer count;
 
-    public CreateCloneOfApplication(URI applicationId, String name, URI virtualArrayId, URI virtualPoolId, Integer count) {
+    public CreateCloneOfApplication(URI applicationId, String name, URI virtualArrayId, URI virtualPoolId) {
         this.applicationId = applicationId;
         this.name = name;
         this.virtualArrayId = virtualArrayId;
         this.virtualPoolId = virtualPoolId;
-        this.count = count;
         provideDetailArgs(applicationId, name);
     }
 
@@ -34,7 +32,6 @@ public class CreateCloneOfApplication extends WaitForTasks<TaskResourceRep> {
         input.setName(name);
         input.setVarrayId(virtualArrayId);
         input.setVpoolId(virtualPoolId);
-        input.setCount(count);
         input.setCreateInactive(false);
         input.setPartial(false);
         TaskList taskList = getClient().application().createFullCopyOfApplication(applicationId, input);

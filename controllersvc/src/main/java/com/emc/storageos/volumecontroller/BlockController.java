@@ -5,12 +5,18 @@
 
 package com.emc.storageos.volumecontroller;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.iwave.ext.command.CommandException;
+import com.iwave.utility.ssh.SSHException;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
 
 /**
  * Main block volume controller interfaces.
@@ -558,7 +564,12 @@ public interface BlockController extends BlockStorageManagementController {
      * @param systemURI The URI of the storage system.
      * @param snapSessionURI The URI of the snapshot session.
      * @param opId The unique task identifier.
+     * @throws JSchException 
+     * @throws SftpException 
+     * @throws SSHException 
+     * @throws CommandException 
+     * @throws FileNotFoundException 
      */
-    public void powerPathMigrationEnabler(URI Host, String sourceWwn , String storagePools);
+    public void powerPathMigrationEnabler(URI HostURI, String sourceWwn , String targetWWN) throws JSchException, SftpException, IOException;
     
 }

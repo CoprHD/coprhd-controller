@@ -9,15 +9,6 @@ usage() {
     echo "NOTE: This script could just be used in minority node corrupted scenario"
 }
 
-NODE_COUNT=`sudo /etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
-LOCAL_NODE=`sudo /etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
-PRODUCT_VERSION=`cat /opt/storageos/etc/product`
-CORRUPTED_HOST=($@)
-if [ ${#} -eq 0 -o ${#} -gt $[ $NODE_COUNT / 2 ] ] ; then
-    usage
-    exit 2
-fi
-
 purge_data() {
     for corrupted_host in ${CORRUPTED_HOST[@]}; do
         echo "Purging data of $corrupted_host"
@@ -88,6 +79,14 @@ ssh_execute() {
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@${host} "echo '${ROOT_PASSWORD}' | sudo -S $command" &>/dev/null
 }
 
+NODE_COUNT=$(sudo /etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}')
+LOCAL_NODE=$(sudo /etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}')
+PRODUCT_VERSION=$(cat /opt/storageos/etc/product)
+CORRUPTED_HOST=($@)
+if [ ${#} -eq 0 -o ${#} -gt $[ $NODE_COUNT / 2 ] ] ; then
+    usage
+    exit 2
+fi
 
 comands=(input_password purge_data db_repair clean_tracker_info rebuild_data)
 for cmd in ${comands[@]}

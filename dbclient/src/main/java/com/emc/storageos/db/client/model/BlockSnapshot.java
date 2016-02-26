@@ -92,6 +92,16 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
 
     // This value is an indicator if the snapshot is read only or writable
     private Boolean _isReadOnly;
+    //Mode used to create this snapshot. 
+    //NO_COPY - for VMAX2,VNX, VMAX3 sessions
+    //COPY - supported only on VMAX3 sessions
+    private String copyMode = CopyMode.nocopy.toString();
+    
+ // Enum defines copy modes for array snapshot sessions.
+    public enum CopyMode {
+        copy,
+        nocopy
+    }
 
     public enum TechnologyType {
         NATIVE,
@@ -395,5 +405,15 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
         return exportGroupURIs.iterator().hasNext();
+    }
+
+    @Name("copyMode")
+    public String getCopyMode() {
+        return copyMode;
+    }
+
+    public void setCopyMode(String copyMode) {
+        this.copyMode = copyMode;
+        setChanged("copyMode");
     }
 }

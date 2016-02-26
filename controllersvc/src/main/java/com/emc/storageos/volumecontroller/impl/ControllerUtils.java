@@ -1211,6 +1211,19 @@ public class ControllerUtils {
 
         return groupNames;
     }
+    
+    /**
+     * Gets snapshot replication group names from source volumes in CG.
+     * 
+     * @param volumes
+     * @param dbClient
+     * @return
+     */
+    public static String getCopyModeFromSnapshotGroup(String snapGroupName, URI storage,  DbClient dbClient) {
+       List<BlockSnapshot> snapshots =  getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);
+       return snapshots.get(0).getCopyMode();
+       
+    }
 
     /**
      * Gets clone replication group names from clones of all volumes in CG.

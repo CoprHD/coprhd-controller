@@ -65,9 +65,7 @@ public class FileShareRPO extends ViprResourceController {
         List<URI> fsIds = ids.getIds();
         for (URI fsId : fsIds) {
             FileShareRestRep fileSystem = client.fileSystems().get(fsId);
-            Boolean value = !fileSystem.getProtection().getMirrorStatus().equals("UNKNOWN")
-                    && !fileSystem.getProtection().getMirrorStatus().equals("FAILED_OVER")
-                    && !fileSystem.getProtection().getMirrorStatus().equals("DETACHED");
+            Boolean value = !fileSystem.getProtection().getMirrorStatus().equals("FAILED_OVER");
             if (fileSystem.getVirtualPool().getId().toString().equals(id) && !fileSystem.getProtection().getPersonality().equals("TARGET") && value) {
                 fileSystems.add(fileSystem);
             }
@@ -78,6 +76,8 @@ public class FileShareRPO extends ViprResourceController {
     public static class FileShareDataTable extends DataTable {
         public FileShareDataTable() {
             addColumn("name");
+            addColumn("replicationType");
+            addColumn("replicationMode");
             addColumn("rpo");
         }
 
@@ -87,6 +87,8 @@ public class FileShareRPO extends ViprResourceController {
             private String rpo;
             private String name;
             private String id;
+            private String replicationType;
+            private String replicationMode;
 
             public FileShareInfo(FileVirtualPoolRestRep pool) {
                 FileReplicationPolicy protection = pool.getProtection().getReplicationParam().getSourcePolicy();
@@ -95,6 +97,8 @@ public class FileShareRPO extends ViprResourceController {
                 this.rpoType = protection.getRpoType().toLowerCase();
                 this.rpoValue = protection.getRpoValue();
                 this.rpo = rpoValue + " " + rpoType;
+                this.replicationType = pool.getFileReplicationType();
+                this.replicationMode = protection.getCopyMode();
 
             }
 

@@ -185,6 +185,7 @@
         #{nav.item 'file.filesystems', href: @resources.FileSystems.fileSystems()/}
         #{nav.item 'file.snapshots', href: @resources.FileSnapshots.snapshots()/}
          #{nav.item 'file.vnasservers', href: @resources.VirtualNasServers.vNasServers()/}
+         #{nav.item 'fileShareRPO', href:@arrays.FileShareRPO.list()/}
         #{nav.separator/}
         #{nav.item 'object.buckets', href: @resources.ObjectBuckets.buckets()/}
         #{nav.separator /}
@@ -307,8 +308,6 @@
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}
               #{nav.item 'auditLog', href: @infra.AuditLog.list()/}
             #{/deadbolt.restrict}
-            #{nav.separator/}
-            #{nav.item 'fileShareRPO', href:@arrays.FileShareRPO.list()/}
       #{/nav.menuSection} 
     #{/nav.menu}
   #{/deadbolt.restrict}

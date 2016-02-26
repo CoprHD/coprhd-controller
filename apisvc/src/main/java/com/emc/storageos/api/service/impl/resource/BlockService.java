@@ -18,6 +18,7 @@ import static com.google.common.collect.Collections2.transform;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -173,6 +174,8 @@ import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.SftpException;
 
 @Path("/block/volumes")
 @DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
@@ -5320,7 +5323,8 @@ public class BlockService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/ppmigrate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList powerPathMigrate(@PathParam("host") URI host, @PathParam("sourcevolume") URI sourceVolume, @PathParam("vpool") URI vPool) {
+    public TaskResourceRep powerPathMigrate(@PathParam("host") URI host, @PathParam("sourcevolume") URI sourceVolume, @PathParam("targetVolume") URI targetVolme)throws JSchException, SftpException, IOException {
+        
         
         Volume volume = _dbClient.queryObject(Volume.class, sourceVolume);
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
@@ -5336,6 +5340,9 @@ public class BlockService extends TaskResourceService {
         
         controller.powerPathMigrationEnabler(host, sourceWwn, targetWWN);
         
-        return getSnapshotSessionManager().createSnapshotSession(id, param, getFullCopyManager());
+        
+        return null;
+        
+        
     }
 }

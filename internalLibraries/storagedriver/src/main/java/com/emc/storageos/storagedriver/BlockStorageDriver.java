@@ -50,9 +50,11 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Expand volume.
      * Before completion of the request, set all required data for expanded volume in "volume" parameter.
+     * This includes update for capacity properties based on the new volume size:
+     *                                         requestedCapacity, provisionedCapacity, allocatedCapacity.
      *
      * @param volume  Volume to expand. Type: Input/Output argument.
-     * @param newCapacity  Requested capacity. Type: input argument.
+     * @param newCapacity  Requested capacity in bytes. Type: input argument.
      * @return task
      */
     public DriverTask expandVolume(StorageVolume volume, long newCapacity);
@@ -77,6 +79,10 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Restore volume to snapshot state.
+     * Implementation should check if the volume is part of consistency group and restore
+     * all volumes in the consistency group to the same consistency group snapshot (as defined
+     * by the snapshot parameter).
+     * If the volume is not part of consistency group, restore this volume to the snapshot.
      *
      * @param volume Type: Input/Output.
      * @param snapshot  Type: Input.
@@ -104,6 +110,8 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Detach volume clones.
+     * It is implementation responsibility to validate consistency of this operation
+     * when clones belong to consistency groups.
      *
      * @param clones Type: Input/Output.
      * @return task
@@ -113,11 +121,13 @@ public interface BlockStorageDriver extends StorageDriver {
     /**
      * Restore from clone.
      *
-     * @param volume  Type: Input/Output.
-     * @param clone   Type: Input.
+     * It is implementation responsibility to validate consistency of this operation
+     * when clones belong to consistency groups.
+     *
+     * @param clones   Clones to restore from. Type: Input/Output.
      * @return task
      */
-    public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone);
+    public DriverTask restoreFromClone(List<VolumeClone> clones);
 
     /**
      * Delete volume clones.
@@ -245,6 +255,8 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Create clone of consistency group.
+     * It is implementation responsibility to validate consistency of this group operation.
+     *
      * @param consistencyGroup input/output
      * @param clones output
      * @param capabilities Capabilities of clones. Type: Input.
@@ -255,6 +267,8 @@ public interface BlockStorageDriver extends StorageDriver {
 
     /**
      * Delete consistency group clone
+     * It is implementation responsibility to validate consistency of this group operation.
+     *
      * @param clones  output
      * @return
      */

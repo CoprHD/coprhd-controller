@@ -1911,8 +1911,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("application")
     public List<AssetOption> getApplications(AssetOptionsContext ctx) {
         final ViPRCoreClient client = api(ctx);
-        VolumeGroupList applications = client.application().getApplications();
-        return createNamedResourceOptions(applications.getVolumeGroups());
+        List<VolumeGroupRestRep> volumeGroups = client.application().getApplications(new DefaultResourceFilter<VolumeGroupRestRep>() {
+            @Override
+            public boolean accept(VolumeGroupRestRep volumeGroup) {
+                if (volumeGroup.getRoles() != null && volumeGroup.getRoles().contains(VolumeGroup.VolumeGroupRole.COPY.name())) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        });
+        return createBaseResourceOptions(volumeGroups);
     }
 
     private List<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {

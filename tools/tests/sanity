@@ -7531,7 +7531,7 @@ dr_multisite_tests()
 
     
     echo "---WAIT FOR SYNC $standby_site_b---"
-    dr waitforstate $standby_site_b STANDBY_SYNCED 30 600
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
 
     echo "---WAIT 1m FOR $standby_site_b TO BOOTSTRAP---"
@@ -7606,7 +7606,7 @@ dr_multisite_tests()
 
 
     echo "---WAIT FOR SYNC $standby_site_c---"
-    dr waitforstate $standby_site_c STANDBY_SYNCED 30 600
+    dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
 
     echo "---WAIT 1m FOR $standby_site_c TO BOOTSTRAP---"

@@ -2420,6 +2420,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             String snapshotName, List<URI> snapshotURIs, String taskId) {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        int index = 1;
         for (Volume volume : volumes) {
             if (RPHelper.isProtectionBasedSnapshot(volume, snapshotType)
                     && snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
@@ -2427,7 +2428,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // need to create snapshots on
                 for (String targetVolumeStr : volume.getRpTargets()) {
                     Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetVolumeStr));
-                    BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, targetVolume);
+                    BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, targetVolume, 0);
                     snapshot.setOpStatus(new OpStatusMap());
                     snapshot.setEmName(snapshotName);
                     snapshot.setEmInternalSiteName(targetVolume.getInternalSiteName());
@@ -2449,7 +2450,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     isRPTarget = true;
                 }
 
-                BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null));
+                BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null), index++);
                 snapshot.setTechnologyType(snapshotType);
 
                 // Check to see if the RP Copy Name of this volume contains any of the RP Source
@@ -2484,7 +2485,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     isFormerTarget = true;
                 }
 
-                if (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex) {
+                VolumeGroup volumeGroup = volume.getApplication(_dbClient);
+                boolean isInApplication = volume != null && !volumeGroup.getInactive();
+
+                if (!isInApplication && (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex)) {
                     // For RP+Vplex targets (who are not former source volumes) and former target volumes,
                     // we do not want to create a backing array CG snap. To avoid doing this, we do not
                     // set the consistency group.
@@ -2522,10 +2526,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      *
      * @param volume The volume for which the snapshot is being created.
      * @param snapshotName The name to be given the snapshot
+     * @param index Integer to make snapshot label unique in a group
      *
      * @return A reference to the new BlockSnapshot instance.
      */
-    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapshotName, Volume targetVolume) {
+    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapshotName, Volume targetVolume, int index) {
         BlockSnapshot snapshot = new BlockSnapshot();
         snapshot.setId(URIUtil.createId(BlockSnapshot.class));
         URI cgUri = null;
@@ -2550,6 +2555,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         snapshot.setSourceNativeId(volume.getNativeId());
         snapshot.setParent(new NamedURI(volume.getId(), snapshotName));
         String modifiedSnapshotName = snapshotName;
+
+        if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+            modifiedSnapshotName = modifiedSnapshotName + "-"  + volume.getReplicationGroupInstance() + "-" + index;
+        }
 
         // We want snaps of targets to contain the varray label so we can distinguish multiple
         // targets from one another

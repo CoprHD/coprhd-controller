@@ -7,10 +7,10 @@ package com.emc.storageos.storagedriver.model;
 
 public class VolumeSnapshot extends StorageBlockObject {
 
-    // volume Id this snapshot is associated with. Type: Input.
+    // volume native Id this snapshot is associated with. Type: Input.
     private String parentId;
 
-    // storage system of this volume. Type: Input.
+    // storage system native id of this snapshot. Type: Input.
     private String storageSystemId;
 
     // timestamp. Type: Input/Output.
@@ -40,5 +40,42 @@ public class VolumeSnapshot extends StorageBlockObject {
 
     public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
+    }
+
+    @Override
+    public boolean equals(Object snapshot) {
+        if (snapshot != null && (snapshot instanceof VolumeSnapshot) && storageSystemId.equals(((VolumeSnapshot) snapshot).getStorageSystemId())) {
+            if (getNativeId() != null && ((VolumeSnapshot) snapshot).getNativeId() != null ) {
+                // nativeId is not set before snapshot is created by driver. Need to account for this.
+                if (getNativeId().equals(((VolumeSnapshot) snapshot).getNativeId())) {
+                    return true;
+                } else {
+                    return false;
+                }
+            } else {
+                // if nativeId is not set we will compare parent source volumes for snaps
+                if (getParentId() != null && ((VolumeSnapshot) snapshot).getParentId() != null &&
+                        getParentId().equals(((VolumeSnapshot) snapshot).getParentId())) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        // We put snaps for the same parent in the same bucket.
+        // Different snaps with the same parent will fell
+        // in the same hash code bucket.
+        return ("VolumeSnapshot-"+storageSystemId+"-"+getParentId()).hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "VolumeSnapshot-"+storageSystemId+"-" + getParentId()+"-"+getNativeId();
     }
 }

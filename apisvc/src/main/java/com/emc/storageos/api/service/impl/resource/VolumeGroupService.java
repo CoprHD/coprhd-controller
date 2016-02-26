@@ -729,7 +729,7 @@ public class VolumeGroupService extends TaskResourceService {
                         continue;
                     }
                     String setName = fullCopyVolume.getFullCopySetName();
-                    if (setName == null) {  // This should not happen
+                    if (NullColumnValueGetter.isNullValue(setName)) {  // This should not happen
                         log.warn(String.format("skipping volume %s becuase fullCopySetName is null", fullCopyVolume.getLabel()));
                         continue;
                     }

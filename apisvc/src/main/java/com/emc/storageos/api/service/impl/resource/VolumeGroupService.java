@@ -1785,8 +1785,13 @@ public class VolumeGroupService extends TaskResourceService {
                 }
 
                 // check mirrors
-                StringSet mirrors = volume.getMirrors();
-                if (mirrors != null && !mirrors.isEmpty()) {
+                Map<URI, Volume> volumesToUpdate = new HashMap<URI, Volume>();
+                boolean hasMirrors = hasMirrors(dbClient, volume, volumesToUpdate);
+                // clean up stale mirror entries
+                if (!volumesToUpdate.isEmpty()) {
+                    dbClient.updateObject(volumesToUpdate.values());
+                }
+                if (hasMirrors) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "Volume has mirror");
                 }
@@ -1944,6 +1949,38 @@ public class VolumeGroupService extends TaskResourceService {
             }
 
             return volumes;
+        }
+
+        /**
+         * @param dbClient
+         * @param volume
+         * @param volumesToUpdate
+         * @return
+         */
+        private boolean hasMirrors(DbClient dbClient, Volume volume, Map<URI, Volume> volumesToUpdate) {
+            boolean hasMirrors = false;
+            StringSet mirrors = volume.getMirrors();
+            if (mirrors == null) {
+                if (volume.isVPlexVolume(dbClient)) {
+                    Volume backingVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
+                    if (backingVol != null && !backingVol.getInactive()) {
+                        mirrors = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient).getMirrors();
+                    }
+                }
+            }
+            if (mirrors != null) {
+                for (String mirrorId : mirrors) {
+                    BlockMirror mirror = dbClient.queryObject(BlockMirror.class, URI.create(mirrorId));
+                    if (mirror != null && !mirror.getInactive()) {
+                        hasMirrors = true;
+                        break;
+                    } else {
+                        volume.getMirrors().remove(mirrorId);
+                        volumesToUpdate.put(volume.getId(), volume);
+                    }
+                }
+            }
+            return hasMirrors;
         }
 
         /**

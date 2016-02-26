@@ -47,7 +47,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
@@ -3647,7 +3646,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<Volume> allVolumesToCheck = new ArrayList<Volume> ();
         for (URI volumeUri : allVolumes) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
-            allVolumesToCheck.add(volume);
             String rgName = volume.getReplicationGroupInstance();
             boolean vplex = RPHelper.isVPlexVolume(volume);
             if (vplex) {
@@ -3683,6 +3681,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // in this case, we take the replication group name from the source volumes and apply that to the
             // target (with the -RPTARGET suffix)
             if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                // later we will validate that any volume not in a replication group should not have any
+                // snapshots or clones
+                allVolumesToCheck.add(volume);
                 groupName = rgName;
             }
         }
@@ -3748,28 +3749,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 hasSnap = true;
             }
             Map<URI, Volume> volumesToUpdate = new HashMap<URI, Volume>();
-            boolean hasMirrors = false;
-            StringSet mirrors = volume.getMirrors();
-            if (mirrors == null) {
-                if (volume.isVPlexVolume(_dbClient)) {
-                    Volume backingVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
-                    if (backingVol != null && !backingVol.getInactive()) {
-                        mirrors = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient).getMirrors();
-                    }
-                }
-            }
-            if (mirrors != null) {
-                for (String mirrorId : mirrors) {
-                    BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorId));
-                    if (mirror != null && !mirror.getInactive()) {
-                        hasMirrors = true;
-                        break;
-                    } else {
-                        volume.getMirrors().remove(mirrorId);
-                        volumesToUpdate.put(volume.getId(), volume);
-                    }
-                }
-            }
             StringSet fullCopyIds = volume.getFullCopies();
             boolean hasFullCopies = false;
             // no need to check backing volumes for vplex virtual volumes because for full copies
@@ -3790,7 +3769,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (!volumesToUpdate.isEmpty()) {
                 _dbClient.updateObject(volumesToUpdate.values());
             }
-            if (hasSnap || hasMirrors || hasFullCopies) {
+            if (hasSnap || hasFullCopies) {
                 throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
                         String.format("the volumes %s has replica. please remove all replicas from the volume", volume.getLabel()));
             }

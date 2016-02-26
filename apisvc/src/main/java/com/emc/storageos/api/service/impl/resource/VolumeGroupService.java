@@ -98,6 +98,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.google.common.collect.Sets;
 
 /**
  * APIs to view, create, modify and remove volume groups
@@ -1432,6 +1433,40 @@ public class VolumeGroupService extends TaskResourceService {
 
     private static class MobilityVolumeGroupUtils extends VolumeGroupUtils {
 
+        protected void validateSameCG(DbClient dbClient, VolumeGroup volumeGroup, List<Volume> volumes) {
+            Set<URI> consistencyGroups = Sets.newHashSet();
+            // Get list of all consistency groups for these volumes
+            if (volumes != null && volumes.size() > 0) {
+                for (Volume volume : volumes) {
+                    if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+                        consistencyGroups.add(volume.getConsistencyGroup());
+                    }
+                }
+            }
+
+            Volume firstVol = volumes.get(0);
+            BlockServiceApi blockService = CopyVolumeGroupUtils.getBlockService(dbClient, firstVol);
+
+            for (URI consistencyGroupId : consistencyGroups) {
+                BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+                List<Volume> cgVolumes = blockService.getActiveCGVolumes(consistencyGroup);
+
+                // make sure all volumes in 'cgVolumes' are also in 'volumes'
+                for (Volume cgVolume : cgVolumes) {
+                    boolean found = false;
+                    for (Volume volume : volumes) {
+                        if (cgVolume.getId().equals(volume.getId())) {
+                            found = true;
+                        }
+                    }
+                    if (!found) {
+                        throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
+                                String.format("a consistency group %s does not contain all of its volumes", consistencyGroup.getLabel()));
+                    }
+                }
+            }
+        }
+
         /*
          * (non-Javadoc)
          * 
@@ -1452,12 +1487,14 @@ public class VolumeGroupService extends TaskResourceService {
                 while (addVolItr.hasNext()) {
                     addVols.add(addVolItr.next());
                 }
+                validateSameCG(dbClient, volumeGroup, addVols);
             }
             if (param.hasVolumesToRemove()) {
                 Iterator<Volume> remVolItr = dbClient.queryIterativeObjects(Volume.class, param.getRemoveVolumesList().getVolumes());
                 while (remVolItr.hasNext()) {
                     removeVols.add(remVolItr.next());
                 }
+                validateSameCG(dbClient, volumeGroup, removeVols);
             }
 
             List<Host> removeHosts = new ArrayList<Host>();

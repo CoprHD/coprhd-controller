@@ -1355,7 +1355,7 @@ public class BackupOps {
         try {
             checkBackup(backupFolder);
             log.info("The backup {} for this node has already been downloaded", backupName);
-            return getBackupInfo(backupFolder, true);
+            return getBackupInfo(backupFolder, false);
         } catch (Exception e) {
             // The backup has not been downloaded yet or is invalid, query from the server
         }

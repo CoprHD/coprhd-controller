@@ -250,14 +250,13 @@ public class BackupService {
             }
 
             SchedulerConfig cfg = backupScheduler.getCfg();
-            if (cfg.uploadUrl == null) {
-                cfg.reload();
-            }
 
             String serverUri = cfg.getExternalServerUrl();
             String username = cfg.getExternalServerUserName();
             String password = cfg.getExternalServerPassword();
+
             ExternalBackupInfo backupInfo =  backupOps.getBackupInfo(backupFileName, serverUri, username, password);
+
             log.info("The backupInfo={}", backupInfo);
             return backupInfo;
         } catch (Exception e) {

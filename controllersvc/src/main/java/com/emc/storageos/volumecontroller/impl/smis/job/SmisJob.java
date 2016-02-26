@@ -191,7 +191,7 @@ public class SmisJob extends Job implements Serializable
                                 }
                             }
                         }
-                        if (_status != JobStatus.SUCCESS) {
+                        if ((_status != JobStatus.SUCCESS) || _status != JobStatus.IN_PROGRESS) {
                             // parse ErrorDescription
                             CIMProperty<String> errorDescription =
                                     (CIMProperty<String>) jobPathInstance.getProperty(JOB_PROPERTY_KEY_ERROR_DESC);
@@ -209,10 +209,11 @@ public class SmisJob extends Job implements Serializable
                 }
             }
         } catch (WBEMException we) {
-            if (we.getID() == WBEMException.CIM_ERR_NOT_FOUND) {
+            if ((we.getID() == WBEMException.CIM_ERR_NOT_FOUND) || (we.getID() == WBEMException.CIM_ERR_FAILED)) {
                 _status = JobStatus.FAILED;
                 _errorDescription = we.getMessage();
-                _logger.error(String.format("SMI-S job not found. Marking as failed as we cannot determine status. " +
+                _logger.error(String.format(
+                        "SMI-S job not found or GetErrors() did not report the error. Marking as failed as we cannot determine status. " +
                         "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
                         getJobName(), instanceID.getValue().toString(), _errorDescription), we);
             } else {

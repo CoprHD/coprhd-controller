@@ -2358,7 +2358,8 @@ public class VolumeGroupService extends TaskResourceService {
                     case RELINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
                         oprEnum = ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS;
                         SnapshotSessionRelinkTargetsParam relinkParam = new SnapshotSessionRelinkTargetsParam(
-                                getRelinkTargetIdsForSession((VolumeGroupSnapshotSessionRelinkTargetsParam) param, session));
+                                getRelinkTargetIdsForSession((VolumeGroupSnapshotSessionRelinkTargetsParam) param, session,
+                                        snapSessions.size()));
                         taskList.getTaskList().addAll(
                                 _blockConsistencyGroupService.relinkTargetVolumes(cgUri, sessionUri, relinkParam)
                                         .getTaskList());
@@ -2396,19 +2397,34 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @param param the VolumeGroupSnapshotSessionRelinkTargetsParam
      * @param session the snap session
+     * @param numberOfRequestedSessions the number of requested sessions
      * @return the relink target ids for session
      */
     private List<URI> getRelinkTargetIdsForSession(final VolumeGroupSnapshotSessionRelinkTargetsParam param,
-            BlockSnapshotSession session) {
+            BlockSnapshotSession session, int numberOfRequestedSessions) {
         List<URI> targetIds = new ArrayList<URI>();
-        StringSet sessionTargets = session.getLinkedTargets();
-        for (URI snapURI : param.getLinkedTargetIds()) {
-            // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
-            ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
-            BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
-            ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
-            if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
-                targetIds.add(snapURI);
+        if (numberOfRequestedSessions == 1) {
+            /**
+             * It could be a request from user to re-link targets to different snap sessions.
+             * So, don't filter given targets based on snap session.
+             * 
+             * Re-linking different targets to a snap session can be done for only one
+             * Replication group at a time.
+             */
+            targetIds = param.getLinkedTargetIds();
+        } else {
+            /**
+             * Re-link to same linked targets
+             */
+            StringSet sessionTargets = session.getLinkedTargets();
+            for (URI snapURI : param.getLinkedTargetIds()) {
+                // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
+                ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
+                BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
+                ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
+                if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
+                    targetIds.add(snapURI);
+                }
             }
         }
         log.info(String.format("Target ids for snapshot session %s : %s",

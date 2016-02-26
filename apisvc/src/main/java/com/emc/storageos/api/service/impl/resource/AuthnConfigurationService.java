@@ -278,6 +278,9 @@ public class AuthnConfigurationService extends TaggedResource {
             ServiceV2 service = prepareNewCinderService(true);
             CreateServiceResponse response = keystoneApi.createKeystoneService(service);
             cinderv2ServiceId = response.getService().getId();
+        } else {
+            // Delete old endpoint for cinderv2 service.
+            _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderv2ServiceId);
         }
 
         // Create service when cinder service is missing.
@@ -285,6 +288,9 @@ public class AuthnConfigurationService extends TaggedResource {
             ServiceV2 service = prepareNewCinderService(false);
             CreateServiceResponse response = keystoneApi.createKeystoneService(service);
             cinderServiceId = response.getService().getId();
+        } else {
+            // Delete old endpoint for cinderv1 service.
+            _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderServiceId);
         }
 
         // Get region name for a cinderv2 service.
@@ -295,10 +301,6 @@ public class AuthnConfigurationService extends TaggedResource {
             region = KeystoneUtils.OPENSTACK_DEFAULT_REGION;
         }
 
-        // Delete old endpoint for cinderv2 service.
-        _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderv2ServiceId);
-        // Delete old endpoint for cinderv1 service.
-        _keystoneUtils.deleteKeystoneEndpoint(keystoneApi, cinderServiceId);
         // Prepare new endpoint for cinderv2 service.
         EndpointV2 newEndpointV2 = prepareNewCinderEndpoint(region, cinderv2ServiceId, true);
         // Prepare new endpoint for cinderv1 service.

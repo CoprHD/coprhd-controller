@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
@@ -81,5 +82,11 @@ public class BlockOrchestrationControllerImpl implements BlockOrchestrationContr
 
     public void setDbClient(DbClient dbClient) {
         this._dbClient = dbClient;
+    }
+
+    @Override
+    public void restoreFromFullCopy(URI storage, List<URI> fullCopyURIs, String opId) throws InternalException {
+        execOrchestration("restoreFromFullCopy", storage, fullCopyURIs, opId);
+        
     }
 }

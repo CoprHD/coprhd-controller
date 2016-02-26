@@ -8,8 +8,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
-import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonSyncPolicy.JobState;
+import com.emc.storageos.isilon.restapi.IsilonSyncTargetPolicy.FOFB_STATES;
 import com.emc.storageos.services.util.EnvConfig;
 
 /*
@@ -115,10 +115,17 @@ public class IsilonReplicationApiTest {
     }
 
     public static void testTargetGetReplicationPolicyReport() throws Exception {
-        // System.out.println(" Replication Policy : " + _client.getReplicationPolicyTargetReport("vasutestrepl").toString());
-        IsilonList<IsilonSyncPolicyReport> reports = _client.getTargetReplicationPolicyReports("mudit_policy");
-        // String err[] = report.getErrors();
-        // System.out.println(err[0]);
+        Integer duration = 0;
+        List<IsilonSyncPolicyReport> policyReports = _client.getTargetReplicationPolicyReports("mudit_FS_test24-target-varray_116")
+                .getList();
+        for (IsilonSyncPolicyReport report : policyReports) {
+            if (report.getAction().toString().equals(FOFB_STATES.allow_write.toString())) {
+                duration = duration + report.getDuration();
+                System.out.println(duration);
+            } else {
+                continue;
+            }
+        }
 
     }
 
@@ -134,6 +141,7 @@ public class IsilonReplicationApiTest {
         // IsilonReplicationApiTest.testGetTargetPolicy();
         // IsilonReplicationApiTest.testGetReplicationPolicyReport();
         // IsilonReplicationApiTest.teststartReplicationJob();
-        IsilonReplicationApiTest.testReplicationPolicyReport();
+        // IsilonReplicationApiTest.testReplicationPolicyReport();
+        IsilonReplicationApiTest.testTargetGetReplicationPolicyReport();
     }
 }

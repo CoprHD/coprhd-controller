@@ -1,14 +1,25 @@
 package com.emc.storageos.isilon.restapi;
 
-public class IsilonSyncPolicyReport extends IsilonSyncPolicy {
+public class IsilonSyncPolicyReport {
     private String error;
     private String[] errors;
     private String id;
     private String policy_name;
-    private JobState state;
+    private IsilonSyncPolicy.JobState state;
     private IsilonSyncPolicy policy;
     private Integer duration;
     private Integer end_time;
+    private Action action;
+
+    public static enum Action {
+        resync_prep,
+        allow_write,
+        allow_write_revert,
+        test,
+        run
+        // writes_disabled, enabling_writes, writes_enabled, disabling_writes, creating_resync_policy, resync_policy_created, allow_write
+
+    }
 
     /**
      * Determines if the replication policy will start any scheduled replication jobs after encountering an error. If set
@@ -69,7 +80,7 @@ public class IsilonSyncPolicyReport extends IsilonSyncPolicy {
         return policy_name;
     }
 
-    public JobState getState() {
+    public IsilonSyncPolicy.JobState getState() {
         return state;
     }
 
@@ -225,6 +236,14 @@ public class IsilonSyncPolicyReport extends IsilonSyncPolicy {
                 + ", file_unlinked=" + file_unlinked + ", new_files_replicated=" + new_files_replicated + ", num_retransmitted_files="
                 + num_retransmitted_files + ", source_files_deleted=" + source_files_deleted + ", target_files_deleted="
                 + target_files_deleted + ", total_files=" + total_files + "]";
+    }
+
+    public Action getAction() {
+        return action;
+    }
+
+    public void setaction(Action action) {
+        this.action = action;
     }
 
 }

@@ -3144,33 +3144,17 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         String rpoType = vpool.getFrRpoType();
         switch (rpoType) {
-
             case "MINUTES":
-                if (fs.getMaxRPO() == null && fs.getMinRPO() == null) {
-                    fs.setMinRPO(report.getDuration() / 60.0F);
-                    fs.setMaxRPO((report.getDuration()) / 60 + vpool.getFrRpoValue());
-                } else {
-                    fs.setMinRPO((report.getDuration() / 60.0F + fs.getMinRPO()) / 2.0F);
-                    fs.setMaxRPO(((report.getDuration()) / 60 + vpool.getFrRpoValue() + fs.getMaxRPO()) / 2);
-                }
+                fs.setMinRPO(report.getDuration() / 60.0F);
+                fs.setMaxRPO((report.getDuration()) / 60 + vpool.getFrRpoValue());
                 break;
             case "HOURS":
-                if (fs.getMaxRPO() == null && fs.getMinRPO() == null) {
-                    fs.setMinRPO(report.getDuration() / 3600.0F);
-                    fs.setMaxRPO((report.getDuration()) / 36000 + vpool.getFrRpoValue());
-                } else {
-                    fs.setMinRPO((report.getDuration() / 3600.0F + fs.getMinRPO()) / 2.0F);
-                    fs.setMaxRPO(((report.getDuration()) / 3600 + vpool.getFrRpoValue() + fs.getMaxRPO()) / 2);
-                }
+                fs.setMinRPO(report.getDuration() / 3600.0F);
+                fs.setMaxRPO((report.getDuration()) / 36000 + vpool.getFrRpoValue());
                 break;
             case "DAYS":
-                if (fs.getMaxRPO() == null && fs.getMinRPO() == null) {
-                    fs.setMinRPO(report.getDuration() / 86400.0F);
-                    fs.setMaxRPO((report.getDuration()) / 86400 + vpool.getFrRpoValue());
-                } else {
-                    fs.setMinRPO((report.getDuration() / 86400.0F + fs.getMinRPO()) / 2.0F);
-                    fs.setMaxRPO(((report.getDuration()) / 86400 + vpool.getFrRpoValue() + fs.getMaxRPO()) / 2);
-                }
+                fs.setMinRPO(report.getDuration() / 86400.0F);
+                fs.setMaxRPO((report.getDuration()) / 86400 + vpool.getFrRpoValue());
                 break;
         }
     }
@@ -3193,27 +3177,14 @@ public class IsilonCommunicationInterface extends ExtendedCommunicationInterface
 
         String rpoType = vpool.getFrRpoType();
         switch (rpoType) {
-
             case "MINUTES":
-                if (fs.getMaxRPO() == null) {
-                    fs.setMaxRPO(currentRPO / 60);
-                } else {
-                    fs.setMaxRPO(((currentRPO / 60) + fs.getMaxRPO()) / 2);
-                }
+                fs.setMaxRPO(currentRPO / 60);
                 break;
             case "HOURS":
-                if (fs.getMaxRPO() == null) {
-                    fs.setMaxRPO(currentRPO / 3600);
-                } else {
-                    fs.setMaxRPO(((currentRPO / 3600) + fs.getMaxRPO()) / 2);
-                }
+                fs.setMaxRPO(currentRPO / 3600);
                 break;
             case "DAYS":
-                if (fs.getMaxRPO() == null) {
-                    fs.setMaxRPO(currentRPO / 86400);
-                } else {
-                    fs.setMaxRPO(((currentRPO / 86400) + fs.getMaxRPO()) / 2);
-                }
+                fs.setMaxRPO(currentRPO / 86400);
                 break;
         }
     }

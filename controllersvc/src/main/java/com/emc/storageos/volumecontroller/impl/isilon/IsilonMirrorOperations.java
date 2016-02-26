@@ -613,17 +613,18 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 job.setAction(Action.allow_write);
 
                 isi.modifyReplicationJob(job);
+                Thread.sleep(5000);
 
                 JobState jobState = isi.getTargetReplicationPolicy(policyName).getLastJobState();
-                while (jobState.equals(JobState.running) && jobState.equals(FOFB_STATES.enabling_writes)) {
+                while (jobState.toString().equals(JobState.running.toString())) {
                     Thread.sleep(5000);
                     jobState = isi.getTargetReplicationPolicy(policyName).getLastJobState();
                 }
-                if (jobState.equals(JobState.finished) && jobState.equals(FOFB_STATES.writes_enabled)) {
+                if (jobState.toString().equals(JobState.finished.toString())) {
                     List<IsilonSyncPolicyReport> policyReports = isi.getTargetReplicationPolicyReports(policyName).getList();
                     for (IsilonSyncPolicyReport report : policyReports) {
-                        if (report.getAction().equals(FOFB_STATES.allow_write)) {
-                            duration = duration + report.getDuration();
+                        if (report.getAction().toString().equals(IsilonSyncPolicyReport.Action.allow_write.toString())) {
+                            duration = (duration + report.getDuration()) / 2;
                         } else {
                             continue;
                         }

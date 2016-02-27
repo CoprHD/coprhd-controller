@@ -450,7 +450,7 @@ public class CustomNameResolver extends CustomConfigResolver {
     }
 
     /**
-     * Routine determines if the value looks invalid, like having too many parenthesis or not enough.
+     * Routine determines if the value looks invalid, like having too many parentheses or not enough.
      * 
      * @param value [IN] - Configuration value to validate
      */

@@ -18,7 +18,7 @@ public class Remediation extends AbstractResources<AlertsCreateResponse>{
     }
     
     public AlertsBulkResponse getBulkResponse(BulkIdParam bulkIds){
-        return client.post(AlertsBulkResponse.class, "/object/remidiation/bulk", bulkIds);
+        return client.post(AlertsBulkResponse.class, "/object/remidiation/bulk", bulkIds.getIds());
     }
     
 

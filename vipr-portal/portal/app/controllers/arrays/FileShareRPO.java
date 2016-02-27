@@ -28,6 +28,7 @@ import models.datatable.VirtualPoolDataTable.VirtualPoolInfo;
 import models.virtualpool.FileVirtualPoolForm;
 import play.mvc.With;
 import util.BourneUtil;
+import util.MessagesUtils;
 import util.VirtualPoolUtils;
 import util.datatable.DataTable;
 import util.datatable.DataTablesSupport;
@@ -92,6 +93,8 @@ public class FileShareRPO extends ViprResourceController {
         param.setCopies(copies);
         ViPRCoreClient client = BourneUtil.getViprClient();
         Tasks<FileShareRestRep> tasks = client.fileSystems().failoverTest(uri(id), param);
+        flash.put("info", MessagesUtils.get("resources.fileSystem.failover.task", id));
+        list();
     }
     
     public static class FileShareDataTable extends DataTable {

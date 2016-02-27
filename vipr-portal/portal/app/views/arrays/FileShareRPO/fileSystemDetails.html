@@ -9,6 +9,7 @@
       <th>&{'virtualPools.mirrorStatus'}</th>
       <th>&{'virtualPools.Status'}</th>
       <th>&{'resources.actions'}</th>
+      <th>&{'virtualPools.RTO'}</th>
     </tr>
   </thead>
   <tbody>  
@@ -30,6 +31,7 @@
 				                  class='btn-xs btn-success'
 				                  onclick="return confirm('&{'resources.fileSystem.test.failover'}')"
 				                >&{'fileSystem.updateRTO'}</a></td>
+		<td>${fileSystem.protection.RTO} ${rpoType}</td>
       </tr>
     #{/list}
   </tbody>

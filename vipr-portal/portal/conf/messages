@@ -2142,6 +2142,7 @@ virtualPools.numResources=Resources
 virtualPools.rpo=RPO
 virtualPools.maxRpo=Max RPO
 virtualPools.minRpo=Min RPO
+virtualPools.RTO=RTO
 virtualPools.mirrorStatus=Mirror Status
 virtualPools.replicationType=Replication Type
 virtualPools.replicationMode=Replication Mode
@@ -3395,6 +3396,7 @@ resources.filesystem.softGrace=Grace Period (Days)
 resources.filesystem.notificationLimit=Advisory Limit (%%)
 resources.filesystem.softLimitExeeded=Capacity exceeded
 resources.fileSystem.test.failover=Are you sure you want to test failover? This is a risky operation.
+resources.fileSystem.failover.task=Task created to test failover on file system %s. Please check task list for an updated status.
 
 
 resources.filesystem.storagesystem=Storage System

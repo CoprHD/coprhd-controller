@@ -72,8 +72,10 @@ public  class SNMPTrapReceiver extends TaskResourceService implements CommandRes
             threadPool = ThreadPool.create("Trap", 10);
             dispatcher = new MultiThreadedMessageDispatcher(threadPool,
                         new MessageDispatcherImpl());
+		_log.info("Starting snmp listener");
             listenAddress = GenericAddress.parse(System.getProperty(
                         "snmp4j.listenAddress", "udp:0.0.0.0/9000"));
+		_log.info("SNMP listener started at : " + listenAddress.toString());
             TransportMapping<?> transport;
             if (listenAddress instanceof UdpAddress) {
                   transport = new DefaultUdpTransportMapping(
@@ -103,8 +105,13 @@ public  class SNMPTrapReceiver extends TaskResourceService implements CommandRes
       }
 
       public void processPdu(CommandResponderEvent event) {
+    	  String severity = null;
+    	  String eventName = null;
     	  String affectedResourceId = null;
+    	  String partType = null;
     	  String problemDescription = null;
+    	  String state = null;
+	  String affectedResourceName = null;
             if (start < 0) {
                   start = System.currentTimeMillis() - 1;
             }
@@ -121,28 +128,44 @@ public  class SNMPTrapReceiver extends TaskResourceService implements CommandRes
             Vector<? extends VariableBinding> varBinds = event.getPDU()
                         .getVariableBindings();
             if (varBinds != null && !varBinds.isEmpty()) {
-            //    Iterator<? extends VariableBinding> varIter = varBinds.iterator();
-            //    while (varIter.hasNext()) {
-                  OID partOid = new OID("1.3.6.1.4.1.11970.1.1.2.7");
-                  affectedResourceId = event.getPDU().getBindingList(partOid).get(0).getVariable().toString();
-                  OID msgOid = new OID("1.3.6.1.4.1.11970.1.1.2.12");
+                  OID eventNameOid = new OID("1.3.6.1.4.1.11970.1.1.2.8");
+                  eventName = event.getPDU().getBindingList(eventNameOid).get(0).getVariable().toString();
+                   _log.info("Checking the evenName " + eventName); 
+                  if (eventName.equals("1208")) {
                   
-                  msg.append(event.getPDU().getBindingList(msgOid).get(0).getVariable());
-                  problemDescription = event.getPDU().getBindingList(msgOid).get(0).getVariable().toString();
-              //    }
+                      OID severityOid = new OID("1.3.6.1.4.1.11970.1.1.2.30");
+                      severity = event.getPDU().getBindingList(severityOid).get(0).getVariable().toString();
+                      OID partOid = new OID("1.3.6.1.4.1.11970.1.1.2.7");
+                      affectedResourceName = event.getPDU().getBindingList(partOid).get(0).getVariable().toString();
+		     
+		      OID resOid = new OID("1.3.6.1.4.1.11970.1.1.2.1");
+                      affectedResourceId = event.getPDU().getBindingList(resOid).get(0).getVariable().toString();
+
+                      OID partTypeOid = new OID("1.3.6.1.4.1.11970.1.1.2.6");
+                      partType = event.getPDU().getBindingList(partTypeOid).get(0).getVariable().toString();
+                      OID msgOid = new OID("1.3.6.1.4.1.11970.1.1.2.12");
+                      problemDescription = event.getPDU().getBindingList(msgOid).get(0).getVariable().toString();
+                      OID stateOid = new OID("1.3.6.1.4.1.11970.1.1.2.4");
+                      state = event.getPDU().getBindingList(stateOid).get(0).getVariable().toString();
+                      msg.append("Severity:"+severity+"\naffectedResourceId:"+affectedResourceId+"\ndeviceType:LUN\nproblemDescription:"+problemDescription+"\nstate:"+state);
+                      _log.info("Details:\n" + msg.toString());
+                      Alerts trapInfo = new Alerts();
+                      trapInfo.setId(URIUtil.createId(Alerts.class));
+                      trapInfo.setSeverity(severity);
+                      trapInfo.setAffectedResourceId(affectedResourceId);
+                      trapInfo.setDeviceType("Array");
+		      trapInfo.setAffectedResourceType("LUN");
+		      trapInfo.setAffectedResourceName(affectedResourceName);
+                      trapInfo.setProblemDescription(problemDescription);
+                      trapInfo.setState(state);
+                      _log.info("Before persisting to Db");
+            
+                      _dbClient.createObject(trapInfo);
+            
+                      _log.info("Persisted to Db");
+                  
+                  }
             }
-            System.out.println("Details: " + msg.toString());
-            _log.info("Details: " + msg.toString() + "\n");
-            Alerts trapInfo = new Alerts();
-            trapInfo.setId(URIUtil.createId(Alerts.class));
-            trapInfo.setAffectedResourceId(affectedResourceId);
-            trapInfo.setProblemDescription(problemDescription);
-            _log.info("Before persisting to Db");
-            
-            _dbClient.createObject(trapInfo);
-            
-           
-            _log.info("Persisted to Db");
             
             //OID oid = new OID("1.3.6.1.6.3.1.1.4.1.0");
             //System.out.println("Trap oid:" + event.getPDU().getBindingList(oid).get(0).getVariable());

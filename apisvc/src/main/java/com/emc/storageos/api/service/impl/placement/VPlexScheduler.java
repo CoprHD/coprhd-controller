@@ -599,8 +599,14 @@ public class VPlexScheduler implements Scheduler {
        
         _log.info("Getting all matching pools for HA varray {}", haVarray.getId());
         URI haStorageSystem = null;
+        
+        VirtualPoolCapabilityValuesWrapper haCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
+        // Don't look for SRDF in the HA side.
+        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, null);
+        // We don't require that the HA side have the same storage controller.
+        haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);;
         List<StoragePool> allMatchingPoolsForHaVarray = getMatchingPools(
-                haVarray, haStorageSystem, haVpool, capabilities);
+                haVarray, haStorageSystem, haVpool, haCapabilities);
         _log.info("Found {} matching pools for HA varray", allMatchingPoolsForHaVarray.size());
 
         // Sort the matching pools for the HA varray by VPLEX system.

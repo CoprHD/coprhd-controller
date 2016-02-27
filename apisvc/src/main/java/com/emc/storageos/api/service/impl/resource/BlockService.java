@@ -20,6 +20,7 @@ import static java.lang.Boolean.parseBoolean;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,6 +43,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.httpclient.URIException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,6 +145,7 @@ import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
 import com.emc.storageos.model.block.export.ITLBulkRep;
 import com.emc.storageos.model.block.export.ITLRestRepList;
+import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.model.protection.ProtectionSetRestRep;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
@@ -5321,10 +5324,9 @@ public class BlockService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/ppmigrate")
+    @Path("/{id}/ppmigrate/{host}/{sourceVolume}/{targetVolume}")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep powerPathMigrate(@PathParam("host") URI host, @PathParam("sourcevolume") URI sourceVolume, @PathParam("targetVolume") URI targetVolme)throws JSchException, SftpException, IOException {
-        
+    public TaskResourceRep powerPathMigrate(@PathParam("host") URI host, @PathParam("sourceVolume") URI sourceVolume, @PathParam("targetVolume") URI targetVolme)throws JSchException, SftpException, IOException {
         
         Volume volume = _dbClient.queryObject(Volume.class, sourceVolume);
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
@@ -5335,7 +5337,7 @@ public class BlockService extends TaskResourceService {
         String targetWWN;
         
         sourceWwn = volume.getWWN();
-        targetWWN = _dbClient.queryObject(Volume.class, sourceVolume).getWWN();
+        targetWWN = _dbClient.queryObject(Volume.class, targetVolme).getWWN();
         String task = UUID.randomUUID().toString();
         
         controller.powerPathMigrationEnabler(host, sourceWwn, targetWWN);
@@ -5344,5 +5346,69 @@ public class BlockService extends TaskResourceService {
         return null;
         
         
+    }
+    
+
+    
+    /**
+    * Start migration 
+     * @throws URISyntaxException 
+     * @brief Create volume snapshot session
+     *
+//     * @prereq Virtual pool for the volume must specify non-zero value for max_snapshots
+//     *
+//     * @param id The URI of a ViPR Volume.
+//     * @param param Volume snapshot parameters
+//     *
+//     * @return TaskList
+//     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/startMigrate/{host}/{virtualPool}")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList startPathMigrate(@PathParam("id") URI id,@PathParam("host") URI host, @PathParam("virtualPool") URI virtualPoolId)throws JSchException, SftpException,IOException, URISyntaxException {
+        
+        
+        Volume sourceVolume = _dbClient.queryObject(Volume.class, id);
+        String task = UUID.randomUUID().toString();
+        
+        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, virtualPoolId);
+        
+        StringSet vaIds = virtualPool.getVirtualArrays();
+        VirtualArray varray=  _dbClient.queryObject(VirtualArray.class, new URI((String)vaIds.toArray()[0]));        
+        Project project = _dbClient.queryObject(Project.class, sourceVolume.getProject());        
+        
+        BlockConsistencyGroup tempCG = new BlockConsistencyGroup();  
+        
+        TaskList taskList = createVolumeTaskList(sourceVolume.getCapacity().toString(), project, varray, virtualPool, sourceVolume.getAlternateName()+"aa", task, new Integer(1));
+        
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sourceVolume.getCapacity());
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
+        VirtualPoolUtil.getThinVolumePreAllocationSize(virtualPool.getThinVolumePreAllocationPercentage(), sourceVolume.getCapacity()));
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+
+        ArrayList<String>requestedTypes = getRequestedTypes(virtualPool);
+        
+        BlockServiceApi blockServiceImpl = getBlockServiceImpl(virtualPool, _dbClient);
+        VolumeCreate param = new VolumeCreate();
+        
+        param.setComputeResource(host);
+        param.setConsistencyGroup(tempCG.getId());
+        param.setCount(new Integer(1));
+        param.setName(sourceVolume.getAlternateName());
+        param.setProject(project.getId());
+        param.setSize(sourceVolume.getCapacity().toString());
+        param.setVarray(varray.getId());
+        param.setVpool(virtualPool.getId());
+        
+        // call thread that does the work.
+        CreateVolumeSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, varray,
+                project, virtualPool, capabilities, taskList, task,
+                tempCG, requestedTypes, param, blockServiceImpl);
+        
+        return taskList;
     }
 }

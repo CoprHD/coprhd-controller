@@ -576,12 +576,18 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
 			channel.disconnect();
 			session.disconnect();
 			
-			Command command = new Command("/temp/migrate.sh", sourceWWN, targetWWN);
-			ShellCommandExecutor executor = new ShellCommandExecutor(host.getHostName(), host.getUsername(), host.getPassword());
-	        command.setCommandExecutor(executor);
-	        command.execute();
-	        executor.disconnect(); 
-	        
+			Command command1 = new Command("chmod", "777", "/temp/migrate.sh");
+            ShellCommandExecutor executor1 = new ShellCommandExecutor(host.getHostName(), host.getUsername(), host.getPassword());
+            command1.setCommandExecutor(executor1);
+            command1.execute();
+            executor1.disconnect(); 
+            
+            Command command = new Command("/temp/migrate.sh", sourceWWN, targetWWN);
+            ShellCommandExecutor executor = new ShellCommandExecutor(host.getHostName(), host.getUsername(), host.getPassword());
+            command.setCommandExecutor(executor);
+            command.execute();
+            executor.disconnect();  
+            
 		} finally {
 	        if (channel != null) {
 	        	channel.disconnect();

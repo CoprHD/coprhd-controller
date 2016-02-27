@@ -38,8 +38,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -260,8 +258,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId) {
         // Create a single snap session based on a sample volume in the CG
         BlockObject source = sourceObjList.get(0);
-        BlockSnapshotSession snapSession =
-                prepareSnapshotSessionFromSource(source, snapSessionLabel, snapSessionLabel, taskId);
+        BlockSnapshotSession snapSession = prepareSnapshotSessionFromSource(source, snapSessionLabel, snapSessionLabel, taskId);
 
         /*
          * If linked targets are requested...
@@ -366,7 +363,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sourceCount, int newTargetCount,
-                                                                    String newTargetsName) {
+            String newTargetsName) {
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
 
         for (int i = 0; i < newTargetCount; i++) {
@@ -425,7 +422,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-                                                      List<List<URI>> snapshotURIs, String copyMode, String taskId) {
+            List<List<URI>> snapshotURIs, String copyMode, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
 
@@ -483,9 +480,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         // All targets to be re-linked are linked to an active block snapshot
         // session of the same source. Now make sure target snapshot session
         // has this same source.
-        URI tgtSnapSessionSourceURI =
-                tgtSnapSession.hasConsistencyGroup() ?
-                        tgtSnapSession.getConsistencyGroup() : tgtSnapSession.getParent().getURI();
+        URI tgtSnapSessionSourceURI = tgtSnapSession.hasConsistencyGroup() ? tgtSnapSession.getConsistencyGroup()
+                : tgtSnapSession.getParent().getURI();
         if (!tgtSnapSessionSourceURI.equals(currentSnapSessionSourceURI)) {
             throw APIException.badRequests.relinkTgtSnapshotSessionHasDifferentSource(currentSnapSessionSourceURI.toString());
         }
@@ -505,7 +501,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void validateUnlinkSnapshotSessionTargets(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, Project project,
-            Set<URI> snapshotURIs, UriInfo uriInfo) {
+            Map<URI, Boolean> targetMap, UriInfo uriInfo) {
 
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
@@ -516,6 +512,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 BlockServiceUtils.getUserFromContext(_securityContext), _permissionsHelper);
 
         // Validate targets are for the passed session.
+        Set<URI> snapshotURIs = targetMap.keySet();
         BlockSnapshotSessionUtils.validateSnapshotSessionTargets(snapSession, snapshotURIs, uriInfo, _dbClient);
 
         // Targets cannot be unlinked if they are exported as this
@@ -621,7 +618,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId, String deleteType) {
+    public void deleteSnapshotSession(BlockSnapshotSession snapSession, BlockObject snapSessionSourceObj, String taskId,
+            String deleteType) {
         throw APIException.methodNotAllowed.notSupported();
     }
 

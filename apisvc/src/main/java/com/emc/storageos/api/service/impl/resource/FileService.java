@@ -145,6 +145,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileController;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
@@ -1602,10 +1603,15 @@ public class FileService extends TaskResourceService {
         if (!param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
             if (!fs.getFilePolicies().isEmpty()) {
-
                 throw APIException.badRequests
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
+        }
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        // Verify the file system is having any active replication targets!!
+        if (filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(), param.getForceDelete())) {
+            throw APIException.badRequests
+                    .resourceCannotBeDeleted(notSuppReasonBuff.toString());
         }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
@@ -2707,6 +2713,15 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
+        if (param.getCopyName() != null && !param.getCopyName().isEmpty()) {
+            // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
+            // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
+            String convertedName = param.getCopyName().replaceAll("[^\\dA-Za-z\\_]", "");
+            _log.info("Original copy name {} and converted copy name {}", param.getCopyName(), convertedName);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_TARGET_COPY_NAME, convertedName);
+
+        }
+
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
 
         try {
@@ -3549,7 +3564,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3592,7 +3607,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3627,7 +3642,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -3669,5 +3684,44 @@ public class FileService extends TaskResourceService {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Checks to see if the file replication change is supported.
+     * 
+     * @param fs
+     * @param notSuppReasonBuff
+     *            the not supported reason string buffer
+     * @return
+     */
+    private boolean filesystemHasActiveReplication(FileShare fs, StringBuffer notSuppReasonBuff,
+            String deleteType, boolean forceDelete) {
+
+        // File system should not be the target file system..
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return true;
+        }
+
+        // File system should not have active replication targets!!
+        // For resource delete (forceDelete=false)
+        // For VIPR_ONLY type, till we support ingestion of replication file systems
+        // avoid deleting file systems if it has active mirrors!!
+        if (forceDelete == false || FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)) {
+            if (fs.getMirrorfsTargets() != null
+                    && !fs.getMirrorfsTargets().isEmpty()) {
+                notSuppReasonBuff
+                        .append(String
+                                .format("File system %s given in request has active target file systems.",
+                                        fs.getLabel()));
+                _log.info(notSuppReasonBuff.toString());
+                return true;
+
+            }
+        }
+
+        return false;
     }
 }

@@ -1,0 +1,20 @@
+{
+  baseKey:"RestoreApplicationFullCopy.Application",
+  serviceId:"RestoreApplicationFullCopy",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+    copyName:{
+      type:"assetType.vipr.restoreFullCopyName",
+      required:"true"
+    },
+    
+    applicationSubGroup:{
+      type:"assetType.vipr.copyReplicationGroup",
+      select: "many"
+    }
+  }
+}

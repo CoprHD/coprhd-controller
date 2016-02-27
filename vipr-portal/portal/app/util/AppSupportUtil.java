@@ -8,13 +8,19 @@ package util;
 import java.net.URI;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.commons.lang.StringUtils;
+
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.application.VolumeGroupCopySetList;
+import com.emc.storageos.model.application.VolumeGroupCopySetParam;
 import com.emc.storageos.model.application.VolumeGroupCreateParam;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
+import com.emc.storageos.model.block.NamedVolumesList;
 
 
 /**
@@ -32,7 +38,9 @@ public class AppSupportUtil {
     public static VolumeGroupRestRep createApplication(String name, String description, Set<String> roles){
         VolumeGroupCreateParam create = new VolumeGroupCreateParam();
         create.setName(name);
-        create.setDescription(description);
+        if (!StringUtils.isBlank(description)) {
+            create.setDescription(description);
+        }
         create.setRoles(roles);
         return BourneUtil.getViprClient().application().createApplication(create);
     }
@@ -58,5 +66,19 @@ public class AppSupportUtil {
     
     public static List<NamedRelatedResourceRep> getVolumesByApplication(String id) {
         return BourneUtil.getViprClient().application().getVolumeByApplication(uri(id)).getVolumes();
+    }
+    
+    public static List<NamedRelatedResourceRep> getFullCopiesByApplication(String id) {
+    	return BourneUtil.getViprClient().application().getClonesByApplication(uri(id)).getVolumes();
+    }
+    
+    public static Set<String> getFullCopySetsByApplication(String id) {
+        return BourneUtil.getViprClient().application().getFullCopySetsByApplication(uri(id)).getCopySets();
+    }
+    
+    public static List<NamedRelatedResourceRep> getVolumeGroupFullCopiesForSet(String id, String copySets) {
+        VolumeGroupCopySetParam getSetsForCopies = new VolumeGroupCopySetParam();
+        getSetsForCopies.setCopySetName(copySets);
+        return BourneUtil.getViprClient().application().getVolumeGroupFullCopiesForSet(uri(id), getSetsForCopies).getVolumes();
     }
 }

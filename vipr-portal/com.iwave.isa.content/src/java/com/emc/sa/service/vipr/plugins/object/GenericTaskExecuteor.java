@@ -61,7 +61,7 @@ public class GenericTaskExecuteor extends WaitForTask<GenericRestRep>  {
 	}
 
 	public Task<GenericRestRep> doPreLaunch() throws Exception {
-     	genericExtensionTask.executeExternal(params.getExternalParam());
+     	genericExtensionTask.preLaunch(params.getExternalParam());
      	System.out.println("Vipr External Taskinfo doPreLaunch Return");;
     	TaskInfo taskInfo = new TaskInfo();
 		taskInfo.setProgress(100);

@@ -25,13 +25,13 @@ import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 
 
-public class CustomSample implements ExternalTaskApdapterInterface {
+public class CustomSampleTest implements ExternalTaskApdapterInterface {
 	String host = "localhost";
     Integer port = 4443;
     String user = "root";
     String password = "ChangeMe1!";
     
-    public CustomSample(){
+    public CustomSampleTest(){
     	
     }
 
@@ -76,12 +76,12 @@ public class CustomSample implements ExternalTaskApdapterInterface {
     public VolumeCreationResult[] createVolume(String externalTaskParam) throws Exception {
     	VolumesCreationInfo volumesCreationResult = new VolumesCreationInfo();
     	ViPRClientFactory.getViprClient("10.247.142.203", 4443, "root", "ChangeMe1!");
-        String projectID = TaskParamParser.getJsonXpathPropert(externalTaskParam, "Project_ID", String.class);
-        String varrayID = TaskParamParser.getJsonXpathPropert(externalTaskParam, "Virtual_Array_ID", String.class);
-        String vpoolID = TaskParamParser.getJsonXpathPropert(externalTaskParam, "Block_Virtual_Pool_ID", String.class);
-        String volumeName = TaskParamParser.getJsonXpathPropert(externalTaskParam, "Volume_Name", String.class);
-        String volumeSize = TaskParamParser.getJsonXpathPropert(externalTaskParam, "Volume_Size", String.class);
-        String count = TaskParamParser.getJsonXpathPropert(externalTaskParam, "Count", String.class);       
+        String projectID = "urn:storageos:Project:d1ebe4ef-b7a0-4ae2-a923-11819acd7476:global";//TaskParamParser.getJsonXpathPropert(externalTaskParam, "Project_ID", String.class);
+        String varrayID = "urn:storageos:VirtualArray:f0938660-5007-4294-8b29-763e4ff800e1:vdc1";//TaskParamParser.getJsonXpathPropert(externalTaskParam, "Virtual_Array_ID", String.class);
+        String vpoolID = "urn:storageos:VirtualPool:1aca7df3-546a-48fd-8ae0-e0b2d8431e55:vdc1";//TaskParamParser.getJsonXpathPropert(externalTaskParam, "Block_Virtual_Pool_ID", String.class);
+        String volumeName = "MANOJ-2";//TaskParamParser.getJsonXpathPropert(externalTaskParam, "Volume_Name", String.class);
+        String volumeSize = "2";//TaskParamParser.getJsonXpathPropert(externalTaskParam, "Volume_Size", String.class);
+        String count = "1";//TaskParamParser.getJsonXpathPropert(externalTaskParam, "Count", String.class);       
 
         String consistencyGroupId = null;
 
@@ -172,7 +172,7 @@ public class CustomSample implements ExternalTaskApdapterInterface {
 	
 	
 	public static void main(String[] args) throws Exception {
-		CustomSample customSample = new CustomSample();
+		CustomSampleTest customSample = new CustomSampleTest();
 		String extenalTaskParam=null;
 		customSample.createVolume(null);
 	}

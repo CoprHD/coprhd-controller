@@ -7,14 +7,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.commons.io.IOUtils;
 
 import com.emc.sa.service.vipr.plugins.tasks.ApprovalTaskParam.NameValueParam;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -46,6 +44,12 @@ public class TaskParamParser {
 	    	jsonMap = (Map<String, Object>)GSON.fromJson(json, jsonMap.getClass());
 	    	
 	    	Object xpathObj = jsonMap.get(xpath);
+	    	if(classz.equals(String.class)) {
+	    		String jsonValue = (String) xpathObj;
+	    		if(jsonValue.startsWith("\"") && jsonValue.endsWith("\"")) {
+	    			xpathObj = jsonValue.substring(1, jsonValue.length()-1);
+	    		}
+	    	}
 	    	return classz.cast(xpathObj);
 
 	    }

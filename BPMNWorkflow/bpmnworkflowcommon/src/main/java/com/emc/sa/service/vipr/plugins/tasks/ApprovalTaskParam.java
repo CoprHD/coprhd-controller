@@ -7,15 +7,10 @@ import java.util.List;
 
 import org.apache.commons.io.IOUtils;
 
+import com.emc.storageosplugin.model.vce.ViPRClientFactory;
+import com.emc.storageosplugin.model.vce.ViPRClientUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
-/*
-
-
- String inputNew = "{ \"processDefinitionKey\":\"simpleApprovalProcess\", \"variables\": [{\"name\":\"mailcontent\",\"value\":\"Hello Administrator,A new request for provisioning has arrived.Please view the request and take action.<a href=\\\"http://lglbv240.lss.emc.com:9090/activiti-explorer/#tasks?category=inbox\\\">View and Approve</a>\"},{\"name\":\"to\",\"value\":\"manoj.jain@emc.com\"}]}";
-
- */
 
 public class ApprovalTaskParam extends ViPRTaskParam {
 
@@ -23,54 +18,80 @@ public class ApprovalTaskParam extends ViPRTaskParam {
 	public List<NameValueParam> variables = new ArrayList<NameValueParam>();
 
 	public void configurePreLaunchParams(String externalTaskParam) {
+		System.out.println("Configuring pre launch parameters...");
 		fillCommonParameters(externalTaskParam);
-		processDefinitionKey = "createVolumePrelaunchFlow";
 		StringBuilder requestBuilder = approvalMailContent();
 
 		NameValueParam mailContentParam = new NameValueParam("mailcontent",
 				requestBuilder.toString());
 		addVariable(mailContentParam);
 		
-		NameValueParam receipientParam = new NameValueParam("to",
-				"santoshkumar.kavadimatti@emc.com");
-		addVariable(receipientParam);
+		try {
+			processDefinitionKey = TaskParamParser.getJsonXpathPropert(
+					externalTaskParam, "preLaunchProcessDefinitionKey", String.class);
+			
+			String recipient = TaskParamParser.getJsonXpathPropert(
+					externalTaskParam, "Recipient", String.class);
+			
+			NameValueParam receipientParam = new NameValueParam("to",
+					recipient);
+			addVariable(receipientParam);
+		} catch (Exception e) {
+			// Ignore for now
+			e.printStackTrace();
+		}
 	}
 
 	public void configurePostLaunchParameters(String externalTaskParam) {
 		fillCommonParameters(externalTaskParam);
-		processDefinitionKey = "createVolumePostlaunchFlow";
+		
 		StringBuilder requestBuilder = verificationMailContent();
 
 		NameValueParam mailContentParam = new NameValueParam("mailcontent",
 				requestBuilder.toString());
 		addVariable(mailContentParam);
 		
-		NameValueParam receipientParam = new NameValueParam("to",
-				"santoshkumar.kavadimatti@emc.com");
-		addVariable(receipientParam);
+		try {
+			processDefinitionKey = TaskParamParser.getJsonXpathPropert(
+					externalTaskParam, "postLaunchProcessDefinitionKey", String.class);
+			
+			String recipient = TaskParamParser.getJsonXpathPropert(
+					externalTaskParam, "Recipient", String.class);
+			
+			NameValueParam receipientParam = new NameValueParam("to",
+					recipient);
+			addVariable(receipientParam);
+		} catch (Exception e) {
+			// Ignore for now
+			e.printStackTrace();
+		}
 	}
 
 	private void fillCommonParameters(String externalTaskParam) {
-		externalTaskParam = "{\"virtualArray\":\"\\\"urn:storageos:VirtualArray:bf8cd0ff-5746-433b-a817-dd45c9f72633:vdc1\\\"\",\"virtualPool\":\"\\\"urn:storageos:VirtualPool:757bb977-8a5b-4e26-9b06-4e6787520c0e:vdc1\\\"\",\"project\":\"\\\"urn:storageos:Project:047dde9b-3049-45ec-8599-0101e10fff7c:global\\\"\",\"name\":\"\\\"MYVOLEXT-21-1\\\"\",\"size\":\"\\\"1\\\"\",\"numberOfVolumes\":\"\\\"1\\\"\",\"consistencyGroup\":\"\\\"\\\"\",\"externalParam\":\"externalParam\"}";
 		InputStream inStream = null;
+		
+		
+		
 		try {
+			ViPRClientFactory.getViprClient("localhost", 4443, "root", "ChangeMe1!");
+			
 			inStream = IOUtils.toInputStream(externalTaskParam, "UTF-8");
 
 			String virtualArray = TaskParamParser.getJsonXpathPropert(
 					externalTaskParam, "virtualArray", String.class);
 			NameValueParam virtualArrayParam = new NameValueParam(
-					"Virtual Array", virtualArray);
+					"Virtual Array", ViPRClientUtils.getVirtualArray(virtualArray).getName());
 			addVariable(virtualArrayParam);
 
 			String virtualPool = TaskParamParser.getJsonXpathPropert(
 					externalTaskParam, "virtualPool", String.class);
 			NameValueParam virtualPoolParam = new NameValueParam(
-					"Virtual Pool", virtualPool);
+					"Virtual Pool", ViPRClientUtils.getBlockVirtualPoolById(virtualPool).getName());
 			addVariable(virtualPoolParam);
 
 			String project = TaskParamParser.getJsonXpathPropert(
 					externalTaskParam, "project", String.class);
-			NameValueParam projectParam = new NameValueParam("Project", project);
+			NameValueParam projectParam = new NameValueParam("Project", ViPRClientUtils.getProject(project).getName());
 			addVariable(projectParam);
 
 			String name = TaskParamParser.getJsonXpathPropert(
@@ -94,6 +115,12 @@ public class ApprovalTaskParam extends ViPRTaskParam {
 			NameValueParam consistencyGroupParam = new NameValueParam(
 					"Consistency Group", consistencyGroup);
 			addVariable(consistencyGroupParam);
+			
+			String message = TaskParamParser.getJsonXpathPropert(
+					externalTaskParam, "Message", String.class);
+			NameValueParam messageParam = new NameValueParam(
+					"Message", message);
+			addVariable(messageParam);
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -121,7 +148,7 @@ public class ApprovalTaskParam extends ViPRTaskParam {
 
 		requestBuilder.append("<\\/table>");
 		requestBuilder
-				.append("<br><br><table align=\"center\"> <tr><td style=\"background-color: #428bca;border-color: border-color: #357ebd;border: 2px solid #45b7af;padding: 10px;text-align: center;\"> <a style=\"display: block;color: #ffffff;font-size: 12px;text-decoration: none;\" href=\"http://localhost:8080/activiti-explorer/#tasks?category=inbox\">Approve Request<\\/a><\\/td><\\/tr></table><\\/body><\\/html>");
+				.append("<br><br><table align=\"center\"> <tr><td style=\"background-color: #428bca;border-color: border-color: #357ebd;border: 2px solid #45b7af;padding: 10px;text-align: center;\"> <a style=\"display: block;color: #ffffff;font-size: 12px;text-decoration: none;\" href=\"http://lglbv240.lss.emc.com:9090/activiti-explorer/#tasks?category=inbox\">Approve Request<\\/a><\\/td><\\/tr></table><\\/body><\\/html>");
 		return requestBuilder;
 	}
 
@@ -140,7 +167,7 @@ public class ApprovalTaskParam extends ViPRTaskParam {
 
 		requestBuilder.append("<\\/table>");
 		requestBuilder
-				.append("<br><br><table align=\"center\"> <tr><td style=\"background-color: #428bca;border-color: border-color: #357ebd;border: 2px solid #45b7af;padding: 10px;text-align: center;\"> <a style=\"display: block;color: #ffffff;font-size: 12px;text-decoration: none;\" href=\"http://localhost:8080/activiti-explorer/#tasks?category=inbox\">Confirm<\\/a><\\/td><\\/tr></table><\\/body><\\/html>");
+				.append("<br><br><table align=\"center\"> <tr><td style=\"background-color: #428bca;border-color: border-color: #357ebd;border: 2px solid #45b7af;padding: 10px;text-align: center;\"> <a style=\"display: block;color: #ffffff;font-size: 12px;text-decoration: none;\" href=\"http://lglbv240.lss.emc.com:9090/activiti-explorer/#tasks?category=inbox\">Confirm<\\/a><\\/td><\\/tr></table><\\/body><\\/html>");
 		return requestBuilder;
 	}
 

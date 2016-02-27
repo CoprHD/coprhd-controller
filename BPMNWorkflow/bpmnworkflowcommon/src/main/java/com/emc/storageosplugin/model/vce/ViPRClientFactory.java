@@ -110,14 +110,15 @@ public class ViPRClientFactory {
 	
 	public static void main(String[] args) throws Exception {
 		
-		String host = "lglbv239.lss.emc.com";
+		String host = "10.247.142.203";
 		Integer port = 4443;
 		String user ="root";
-		String password ="Dangerous@123";
+		String password ="ChangeMe1!";
 
 		
 		ViPRCoreClient viprClient = ViPRClientFactory.getViprClient(host, port, user, password);
 		viprClient.getUserTenant();
+		
 		
 		
     	

@@ -1,0 +1,43 @@
+{
+    baseKey:"CreateVolumeExtension.Block",
+    serviceId:"CreateVolumeExtension",
+    isExtended:"true",
+    extendedServiceId:"CreateVolume",
+    fields:{
+        externalParam:{
+            type:"hidden",
+            required: false,
+            initialValue: "ExtendedParams"           
+        },
+        extendClass:{
+           	type:"hidden",
+           	required: false,
+           	initialValue: "com.emc.sa.service.vipr.block.tasks.CreateBlockVolume"
+        },
+        extendMethods:{
+           	type:"hidden",
+           	required: false,
+           	initialValue: "preLaunch,postLaunch"
+         },
+         Recipient:{
+           	type:"text",
+           	required: true,
+           	initialValue: "Enter recipient's Mail ID here..."
+         },
+         Message:{
+           	type:"text",
+           	required: true,
+           	initialValue: "Enter message for approver here..."
+         },
+         preLaunchProcessDefinitionKey:{
+           	type:"text",
+           	required: true,
+           	initialValue: "createVolumePrelaunchFlow"
+         },
+         postLaunchProcessDefinitionKey:{
+           	type:"text",
+           	required: true,
+           	initialValue: "createVolumePostlaunchFlow"
+         }
+     }
+}

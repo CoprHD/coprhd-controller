@@ -800,7 +800,8 @@ public abstract class VirtualPoolService extends TaggedResource {
     protected Response deleteVirtualPool(VirtualPool.Type type, URI id) {
         ArgValidator.checkUri(id);
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, id);
- 
+        ArgValidator.checkEntityNotNull(vpool, id, isIdEmbeddedInURL(id));
+
         //for block service cinder if there is QuotaOfCinder entries 
         //we need to remove before the virtual pool removal
         if(vpool.getType().equalsIgnoreCase(Type.block.name())){
@@ -815,9 +816,7 @@ public abstract class VirtualPoolService extends TaggedResource {
 	            }
 	        }
         }
-        
-        
-        ArgValidator.checkEntityNotNull(vpool, id, isIdEmbeddedInURL(id));
+
         if (!vpool.getType().equals(type.name())) {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }

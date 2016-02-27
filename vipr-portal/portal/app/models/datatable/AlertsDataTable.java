@@ -8,7 +8,7 @@ public class AlertsDataTable extends DataTable {
         addColumn("severity");
         addColumn("name");
         addColumn("description");
-        addColumn("category");
+        addColumn("deviceType");
         addColumn("state");
         addColumn("actions").setRenderFunction("renderButtonBar");
         sortAllExcept("actions");
@@ -19,13 +19,17 @@ public class AlertsDataTable extends DataTable {
         public String id;
         public String name;
         public String description;
-        public String category;
+        public String deviceType;
+        public String severity;
+        public String state;
         
-        public Alerts(String id, String name, String description, String category) {
+        public Alerts(String id, String name, String description, String deviceType, String severity, String state) {
             this.id = id;
             this.name = name;
             this.description = description;
-            this.category = category;
+            this.deviceType = deviceType;
+            this.severity = severity;
+            this.state = state;
         }
     }
 

@@ -44,6 +44,7 @@ import com.emc.vipr.client.core.ObjectVirtualPools;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
+import com.emc.vipr.client.core.Remediation;
 import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StoragePools;
@@ -415,5 +416,9 @@ public class ViPRCoreClient {
     
     public ObjectNamespaces objectNamespace() {
         return new ObjectNamespaces(this, client);
+    }
+    
+    public Remediation remediation(){
+        return new Remediation(client);
     }
 }

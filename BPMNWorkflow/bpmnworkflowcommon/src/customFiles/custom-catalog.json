@@ -1,0 +1,24 @@
+{
+      "title": "customservice.title",
+      "image": "icon_data_services.png",
+      "description": "customservice.description",
+      "services": [
+        {
+          "image": "icon_db_create.png",
+          "baseService": "CreateVolumeExtension"
+        },
+        {
+          "image": "icon_create_bucket.png",
+          "baseService": "CustomSample@Extension"
+        },
+        {
+          "image": "icon_edit_bucket.png",
+          "baseService": "CustomSample@Extension"
+        },
+        {
+          "image": "icon_delete_bucket.png",
+          "baseService": "CustomSample@Extension"
+        }
+      ]
+}
+

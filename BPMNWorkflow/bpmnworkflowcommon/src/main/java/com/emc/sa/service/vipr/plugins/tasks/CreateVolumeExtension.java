@@ -21,7 +21,7 @@ import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 
 	String inputNew = "{ \"processDefinitionKey\":\"simpleApprovalProcess\", \"variables\": [{\"name\":\"mailcontent\",\"value\":\"Hello Administrator,A new request for provisioning has arrived.Please view the request and take action.<a href=\\\"http://lglbv240.lss.emc.com:9090/activiti-explorer/#tasks?category=inbox\\\">View and Approve</a>\"},{\"name\":\"to\",\"value\":\"manoj.jain@emc.com\"}]}";
-	String REST_URL = "http://localhost:8080/activiti-rest/service/runtime/process-instances";
+	String REST_URL = "http://lglbv240.lss.emc.com:9090/activiti-rest/service/runtime/process-instances";
 	Client client = Client.create();
 	HTTPBasicAuthFilter filter = new HTTPBasicAuthFilter("kermit", "kermit");
 	
@@ -49,7 +49,6 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 		String uglyJsonString = uglyJson.toJson(approvalTaskParam);
 		sendApprovalMail(uglyJsonString);
 		System.out.println("Custom Service pre launch complete!");
-		
 	}
 
 
@@ -67,6 +66,7 @@ public class CreateVolumeExtension implements ExternalTaskApdapterInterface {
 
 	@Override
 	public void postLaunch(String extenalTaskParam) throws Exception {
+		System.out.println("External Task Param for post launch : \n" + extenalTaskParam);
 		ApprovalTaskParam approvalTaskParam = new ApprovalTaskParam();
 		approvalTaskParam.configurePostLaunchParameters(extenalTaskParam);
 		Gson uglyJson = new Gson();

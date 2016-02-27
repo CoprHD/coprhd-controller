@@ -1,22 +1,21 @@
 package com.emc.storageos.model.alerts;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.codehaus.jackson.annotate.JsonProperty;
-
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.RelatedResourceRep;
 
 @XmlRootElement(name="notification")
 public class AlertsCreateResponse extends DataObjectRestRep {
     
-    private String affectedResourceID;
-    private String problemDescription;
+
+    protected String affectedResourceName;
+    protected String affectedResourceID;
+    protected String problemDescription;
+    protected String affectedResourceType;
+    protected String severity;
+    protected String deviceType;
+    protected String state;
     
     public String getAffectedResourceID() {
 		return affectedResourceID;
@@ -34,4 +33,48 @@ public class AlertsCreateResponse extends DataObjectRestRep {
     public void setProblemDescription(String problemDescription) {
         this.problemDescription = problemDescription;
     }
- }
+
+    @XmlElement
+    public String getAffectedResourceName() {
+        return affectedResourceName;
+    }
+
+    public void setAffectedResourceName(String affectedResourceName) {
+        this.affectedResourceName = affectedResourceName;
+    }
+    
+    @XmlElement
+    public String getAffectedResourceType() {
+        return affectedResourceName;
+    }
+
+    public void setAffectedResourceType(String affectedResourceType) {
+        this.affectedResourceType = affectedResourceType;
+    }
+
+    @XmlElement
+    public String getSeverity() {
+        return severity;
+    }
+
+    public void setSeverity(String severity) {
+        this.severity = severity;
+    }
+    
+    @XmlElement
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+    @XmlElement
+    public String getDeviceType() {
+        return deviceType;
+    }
+
+    public void setDeviceType(String deviceType) {
+        this.deviceType = deviceType;
+    }
+}

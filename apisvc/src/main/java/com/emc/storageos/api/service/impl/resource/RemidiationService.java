@@ -26,6 +26,7 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.alerts.AlertsBulkResponse;
 import com.emc.storageos.model.alerts.AlertsCreateResponse;
+import com.emc.storageos.model.object.BucketBulkRep;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -49,7 +50,6 @@ public class RemidiationService extends TaskResourceService {
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/newbulk")
     public BulkIdParam getNotification() {
         List<URI> storageContainerUris = _dbClient.queryByType(Alerts.class, true);
         List<Alerts> alerts = _dbClient.queryObject(Alerts.class, storageContainerUris);
@@ -63,39 +63,38 @@ public class RemidiationService extends TaskResourceService {
         }
         return bulkIdParam;
     }
-    
+
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{notificationID}")
-    public AlertsCreateResponse getStorageContainerDetail(@PathParam("notificationID") URI storageContainerId){
-        if(null != storageContainerId){
+    public AlertsCreateResponse getStorageContainerDetail(@PathParam("notificationID") URI storageContainerId) {
+        if (null != storageContainerId) {
             Alerts storageContainer = _dbClient.queryObject(Alerts.class, storageContainerId);
-            if(storageContainer != null){
-                return toStorageContainer(storageContainer);
+            if (storageContainer != null) {
+                return toAlerts(storageContainer);
             }
         }
         return null;
     }
-        
+
     @Override
     public AlertsBulkResponse queryBulkResourceReps(List<URI> ids) {
         AlertsBulkResponse storageContainerBulkResponse = new AlertsBulkResponse();
         if (!ids.iterator().hasNext()) {
             return storageContainerBulkResponse;
         } else {
-            return getBulkStorageContainerResponse(storageContainerBulkResponse, ids);
+            return getBulkAlertsResponse(storageContainerBulkResponse, ids);
         }
     }
-    
-    private AlertsBulkResponse getBulkStorageContainerResponse(AlertsBulkResponse storageContainerBulkResponse, List<URI> ids){
+
+    private AlertsBulkResponse getBulkAlertsResponse(AlertsBulkResponse alertsBulkResponse, List<URI> ids) {
         try {
             List<Alerts> storageContainers = _dbClient
                     .queryObject(Alerts.class, ids);
             if (null != storageContainers) {
-                for (Alerts storageContainer : storageContainers) {
-                    if (null != storageContainer) {
-                        storageContainerBulkResponse.getStorageContainers()
-                                .add(toStorageContainer(storageContainer));
+                for (Alerts alert : storageContainers) {
+                    if (null != alert) {
+                        alertsBulkResponse.getAlerts().add(toAlerts(alert));
                     }
                 }
             }
@@ -103,7 +102,7 @@ public class RemidiationService extends TaskResourceService {
             throw APIException.internalServerErrors.genericApisvcError(
                     "error retrieving storage container", ex);
         }
-        return storageContainerBulkResponse;
+        return alertsBulkResponse;
     }
 
     @Override
@@ -123,16 +122,37 @@ public class RemidiationService extends TaskResourceService {
         // TODO Auto-generated method stub
         return null;
     }
-    
-    public static AlertsCreateResponse toStorageContainer(Alerts from) {
+
+    public static AlertsCreateResponse toAlerts(Alerts from) {
         if (from == null) {
             return null;
         }
         AlertsCreateResponse to = new AlertsCreateResponse();
 
-        to.setAffectedResourceID(from.getAffectedResourceId());
-        to.setProblemDescription(from.getProblemDescription());
+        if(null!=from.getAffectedResourceId())
+            to.setAffectedResourceID(from.getAffectedResourceId());
+        if(null!=from.getProblemDescription())
+            to.setProblemDescription(from.getProblemDescription());
+        if(null!=from.getAffectedResourceName())
+            to.setAffectedResourceName(from.getAffectedResourceName());
+        if(null!=from.getAffectedResourceType())
+            to.setAffectedResourceType(from.getAffectedResourceType());
+        if(null!=from.getSeverity())
+            to.setSeverity(from.getSeverity());
+        if(null!=from.getState())
+            to.setState(from.getState());
+        if(null!=from.getDeviceType())
+            to.setDeviceType(from.getDeviceType());
 
         return to;
+    }
+
+    @POST
+    @Path("/bulk")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Override
+    public AlertsBulkResponse getBulkResources(BulkIdParam param) {
+        return (AlertsBulkResponse) super.getBulkResources(param);
     }
 }

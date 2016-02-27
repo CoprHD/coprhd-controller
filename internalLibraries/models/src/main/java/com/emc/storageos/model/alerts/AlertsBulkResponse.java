@@ -8,20 +8,20 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.BulkRestRep;
 
-@XmlRootElement(name = "bulk_storage_container")
+@XmlRootElement(name = "bulk_notifications")
 public class AlertsBulkResponse extends BulkRestRep{
 
-    private List<AlertsCreateResponse> storageContainers;
+    private List<AlertsCreateResponse> alerts;
 
-    @XmlElement(name="storage_container")
-    public List<AlertsCreateResponse> getStorageContainers() {
-        if(null == storageContainers){
-            storageContainers = new ArrayList<AlertsCreateResponse>();
+    @XmlElement(name="notification")
+    public List<AlertsCreateResponse> getAlerts() {
+        if(null == alerts){
+            alerts = new ArrayList<AlertsCreateResponse>();
         }
-        return storageContainers;
+        return alerts;
     }
 
-    public void setStorageContainers(List<AlertsCreateResponse> storageContainers) {
-        this.storageContainers = storageContainers;
+    public void setAlerts(List<AlertsCreateResponse> alerts) {
+        this.alerts = alerts;
     } 
 }

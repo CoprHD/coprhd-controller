@@ -8,7 +8,7 @@ public class Alerts extends DataObject{
     protected String problemDescription;
     protected String affectedResourceType;
     protected String severity;
-    protected String problemType;
+    protected String deviceType;
     protected String state;
    
     
@@ -53,12 +53,12 @@ public class Alerts extends DataObject{
         this.severity = severity;
         setChanged("severity");
     }
-    @Name("problemType")
-    public String getProblemType() {
-        return problemType;
+    @Name("deviceType")
+    public String getDeviceType() {
+        return deviceType;
     }
-    public void setProblemType(String problemType) {
-        this.problemType = problemType;
+    public void setDeviceType(String problemType) {
+        this.deviceType = problemType;
         setChanged("problemType");
     }
     @Name("state")

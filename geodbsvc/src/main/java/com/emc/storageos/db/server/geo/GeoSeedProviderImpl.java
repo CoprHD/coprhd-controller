@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +25,8 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
@@ -112,7 +115,8 @@ public class GeoSeedProviderImpl implements SeedProvider {
         client.start();
         
         DrUtil drUtil = new DrUtil(client);
-        isDrActiveSite = drUtil.isActiveSite();
+        Site localSite = drUtil.getLocalSite();
+        isDrActiveSite = Arrays.asList(SiteState.ACTIVE, SiteState.STANDBY_FAILING_OVER, SiteState.STANDBY_SWITCHING_OVER, SiteState.ACTIVE_DEGRADED).contains(localSite.getState()) ;
         
         coordinator = client;
     }

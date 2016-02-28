@@ -7363,6 +7363,9 @@ dr_basic_tests()
     echo "Project id of ${PROJECT_NEW} is ${projectid_new}."
 
     echo "---RESUME SITE $standby_site---"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
+    BOURNE_IPADDR="${DR_SITE_A_IP}"
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr resume $standby_site || { echo "resume dr standby site failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site---"
@@ -7450,9 +7453,8 @@ dr_basic_tests()
 
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    echo "Sleep 800s to wait standby adding done ..."
-    sleep 800
-    dr waitforstate $standby_site STANDBY_SYNCED 30 600
+    echo "Wait standby adding done ..."
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
 
     # NOTE: after switchover and failover (then readd old active), site A is active and site B is standby
 

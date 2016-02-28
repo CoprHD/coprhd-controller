@@ -57,8 +57,6 @@ public class VdcManager extends AbstractManager {
     @Autowired
     private IPsecManager ipsecMgr;
     @Autowired
-    private UpgradeManager upgradeManager;
-    @Autowired
     private AuditLogManager auditMgr;
     @Autowired
     DbClient dbClient;
@@ -170,7 +168,7 @@ public class VdcManager extends AbstractManager {
             try {
                 hasLock = hasRebootLock(svcId);
             } catch (Exception e) {
-                log.info("Step1: Failed to verify if the current node has the reboot lock ", e);
+                log.info("Step0: Failed to verify if the current node has the reboot lock ", e);
                 retrySleep();
                 continue;
             }
@@ -193,7 +191,7 @@ public class VdcManager extends AbstractManager {
             try {
                 initializeLocalAndTargetInfo();
             } catch (Exception e) {
-                log.info("Step1b failed and will be retried:", e);
+                log.info("Step1 failed and will be retried:", e);
                 retrySleep();
                 continue;
             }
@@ -249,7 +247,7 @@ public class VdcManager extends AbstractManager {
                     }
                 }
             } catch (Exception ex) {
-                log.error("Step5: Failed to set back compat yoda upgrade. {}", ex);
+                log.error("Step6: Failed to set back compat yoda upgrade. {}", ex);
                 continue;
             }
 
@@ -310,7 +308,7 @@ public class VdcManager extends AbstractManager {
         if (targetPowerOffState == null) {
             // only control node can set target
             try {
-                // Set the updated propperty info in coordinator
+                // Set the updated property info in coordinator
                 coordinator.setTargetInfo(new PowerOffState(PowerOffState.State.NONE));
                 targetPowerOffState = coordinator.getTargetInfo(PowerOffState.class);
                 log.info("Step1b: Target poweroff state set to: {}", PowerOffState.State.NONE);
@@ -335,7 +333,7 @@ public class VdcManager extends AbstractManager {
         // as they need be protected by double barrier to make sure they be changed and
         // synced to all nodes at the SAME time, or else the quorum of zk and db will be
         // broken. This is why we don't put them in system property.
-        targetVdcPropInfo.addProperty(Constants.IPSEC_STATUS,ipsecConfig.getIpsecStatus());
+        targetVdcPropInfo.addProperty(Constants.IPSEC_STATUS, ipsecConfig.getIpsecStatus());
         targetVdcPropInfo.addProperty(Constants.IPSEC_KEY, ipsecConfig.getPreSharedKey());
         return targetVdcPropInfo;
     }

@@ -58,7 +58,8 @@ addProjects(
         "vipr-portal/sanity",
         "tools/apidiff",
         "tools/apidocs",
-        "runtime"
+        "runtime",
+	"viprrest"
 )
 
 

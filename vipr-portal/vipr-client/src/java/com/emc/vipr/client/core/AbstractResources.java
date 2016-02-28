@@ -96,6 +96,10 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
         return String.format(DEACTIVATE_URL_FORMAT, baseUrl);
     }
 
+    protected String getMigrateUrl() {
+        return String.format(MIGRATE_URL_FORMAT, baseUrl);
+    }
+
     /**
      * Gets the URL for registering a resource by ID: <tt><i>baseUrl</i>/{id}/register</tt>
      * 
@@ -491,7 +495,7 @@ public abstract class AbstractResources<T extends DataObjectRestRep> implements 
         TaskList tasks = client.post(TaskList.class, request, path, args);
         return new Tasks<T>(client, tasks.getTaskList(), resourceClass);
     }
-
+        
     /**
      * Performs a POST with a request that will return multiple tasks as a response.
      * 

@@ -139,6 +139,7 @@ import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeExpandParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.model.block.VolumeMigrate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeSnapshotParam;
 import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
@@ -5324,11 +5325,11 @@ public class BlockService extends TaskResourceService {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}/ppmigrate/{host}/{sourceVolume}/{targetVolume}")
+    @Path("/{id}/migrate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep powerPathMigrate(@PathParam("host") URI host, @PathParam("sourceVolume") URI sourceVolume, @PathParam("targetVolume") URI targetVolme)throws JSchException, SftpException, IOException {
+    public TaskResourceRep powerPathMigrate(VolumeMigrate migrate)throws JSchException, SftpException, IOException {
         
-        Volume volume = _dbClient.queryObject(Volume.class, sourceVolume);
+        Volume volume = _dbClient.queryObject(Volume.class, migrate.getSourceVolumeURI());
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, volume.getStorageController());
         BlockController controller = getController(BlockController.class,
                 storageSystem.getSystemType());
@@ -5337,13 +5338,13 @@ public class BlockService extends TaskResourceService {
         String targetWWN;
         
         sourceWwn = volume.getWWN();
-        targetWWN = _dbClient.queryObject(Volume.class, targetVolme).getWWN();
+        targetWWN = _dbClient.queryObject(Volume.class, migrate.getTargetVolumeURI()).getWWN();
         String task = UUID.randomUUID().toString();
         
-        controller.powerPathMigrationEnabler(host, sourceWwn, targetWWN);
+        controller.powerPathMigrationEnabler(migrate.getHostURI(), sourceWwn, targetWWN);
         
         
-        return null;
+        return new TaskResourceRep();
         
         
     }
@@ -5381,7 +5382,7 @@ public class BlockService extends TaskResourceService {
         
         BlockConsistencyGroup tempCG = new BlockConsistencyGroup();  
         
-        TaskList taskList = createVolumeTaskList(sourceVolume.getCapacity().toString(), project, varray, virtualPool, sourceVolume.getAlternateName()+"aa", task, new Integer(1));
+        TaskList taskList = createVolumeTaskList(sourceVolume.getCapacity().toString(), project, varray, virtualPool, "PPTestTGTVol", task, new Integer(1));
         
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));

@@ -7,6 +7,7 @@ package com.emc.vipr.client.core.impl;
 public class PathConstants {
     public static final String ID_URL_FORMAT = "%s/{id}";
     public static final String DEACTIVATE_URL_FORMAT = ID_URL_FORMAT + "/deactivate";
+    public static final String MIGRATE_URL_FORMAT = ID_URL_FORMAT + "/migrate";
     public static final String REGISTER_URL_FORMAT = ID_URL_FORMAT + "/register";
     public static final String DEREGISTER_URL_FORMAT = ID_URL_FORMAT + "/deregister";
     public static final String DISCONNECT_URL_FORMAT = ID_URL_FORMAT + "/disconnect";

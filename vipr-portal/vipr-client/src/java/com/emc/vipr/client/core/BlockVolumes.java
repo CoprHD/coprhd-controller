@@ -32,6 +32,7 @@ import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeExpandParam;
 import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.model.block.VolumeMigrate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.VolumeVirtualArrayChangeParam;
 import com.emc.storageos.model.block.VolumeVirtualPoolChangeParam;
@@ -125,6 +126,11 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      */
     public Tasks<VolumeRestRep> create(VolumeCreate create) {
         return postTasks(create, baseUrl);
+    }
+    
+    public Tasks<VolumeRestRep> migrate(URI id, VolumeMigrate migrate) {
+    	
+        return postTasks(migrate, client.uriBuilder(getMigrateUrl()).build(id).toString());
     }
 
     /**

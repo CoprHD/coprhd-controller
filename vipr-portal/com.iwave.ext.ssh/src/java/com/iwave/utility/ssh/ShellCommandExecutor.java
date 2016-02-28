@@ -34,7 +34,7 @@ import com.jcraft.jsch.Session;
 public class ShellCommandExecutor implements CommandExecutor {
     private static final Logger LOG = Logger.getLogger(ShellCommandExecutor.class);
     private static final Pattern PROMPT = Pattern.compile("[$#>] ");
-    private static final int TIMEOUT = 30;
+    private static final int TIMEOUT = 600;
     private static final String ENTER = "\r";
     private static final String EXIT = "exit";
 

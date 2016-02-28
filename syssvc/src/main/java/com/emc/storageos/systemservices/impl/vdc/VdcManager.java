@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.security.geo.GeoClientCacheManager;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 
 import org.apache.commons.lang3.StringUtils;
@@ -80,7 +79,6 @@ public class VdcManager extends AbstractManager {
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int REMOVE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    private static final int BACK_UPGRADE_RETRY_MILLIS = 30 * 1000; // 30 seconds
     public static final int FAILOVER_STANDBY_SITE_TIMEOUT_MILLIS = 40 * 60 * 1000; // 40 minutes
     public static final int FAILOVER_ACTIVE_SITE_TIMEOUT_MILLIS = 40 * 60 * 1000; // 40 minutes
     
@@ -279,6 +277,9 @@ public class VdcManager extends AbstractManager {
 
         // Initialize vdc prop info
         localVdcPropInfo = localRepository.getVdcPropertyInfo();
+        String localConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION);
+        coordinator.setNodeSessionScopeInfo(new VdcConfigVersion(localConfigVersion));
+        
         // ipsec key is a vdc property as well and saved in ZK.
         // targetVdcPropInfo = loadVdcConfigFromDatabase();
         targetVdcPropInfo = loadVdcConfig();

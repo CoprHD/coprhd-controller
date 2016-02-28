@@ -79,7 +79,7 @@ public class ViperCaller {
     
     public boolean migrate(URI hostURI, URI sourceVolumeURI, URI targetVolumeURI){
     	
-    	return client.blockVolumes().migrate(sourceVolumeURI, new VolumeMigrate(hostURI, sourceVolumeURI, targetVolumeURI));
+    	return client.blockVolumes().ppmigrate(sourceVolumeURI, new VolumeMigrate(hostURI, sourceVolumeURI, targetVolumeURI));
     }
 
 }

@@ -268,7 +268,7 @@ public class OrderManagerImpl implements OrderManager {
                     dataObject = client.findById(QuotaDirectory.class, id);
                     break;
                 case VIRTUAL_ARRAY:
-                    dataObject = client.findById(VirtualArray.class, id);
+                    dataObject = client.findById(VirtualArray.class, getTargetVirtualArray(id));
                     break;
                 case VIRTUAL_POOL:
                     dataObject = client.findById(VirtualPool.class, id);
@@ -336,6 +336,14 @@ public class OrderManagerImpl implements OrderManager {
             return augmentDataObjectName(dataObject);
         } else {
             return resourceId;
+        }
+    }
+
+    private URI getTargetVirtualArray(URI id) {
+        if (StringUtils.split(id.toString(), ':')[0].equals("tgt")) {
+            return URI.create(StringUtils.substringAfter(id.toString(), ":"));
+        } else {
+            return id;
         }
     }
 

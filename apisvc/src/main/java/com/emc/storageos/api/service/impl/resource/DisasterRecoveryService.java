@@ -1442,7 +1442,7 @@ public class DisasterRecoveryService {
             throw new IllegalStateException("Operation is allowed on acitve site only");
         }
         if (!isClusterStable()) {
-            throw new IllegalStateException("Cluster is not stable");
+            throw new IllegalStateException("Active site cluster state is not stable");
         }
 
         for (Site site : drUtil.listStandbySites()) {

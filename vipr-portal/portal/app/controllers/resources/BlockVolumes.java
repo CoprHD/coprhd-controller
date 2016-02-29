@@ -11,8 +11,10 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,6 +58,12 @@ import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.watch4net.apg.remote.databaseaccessorservice.Aggregation;
+import com.watch4net.apg.remote.databaseaccessorservice.Aggregations;
+import com.watch4net.apg.remote.databaseaccessorservice.DatabaseAccessorService;
+import com.watch4net.apg.remote.databaseaccessorservice.DistinctPropertyValues;
+import com.watch4net.apg.remote.databaseaccessorservice.Exception_Exception;
+import com.watch4net.apg.remote.databaseaccessorservice.TimeSerie;
 
 import controllers.Common;
 import controllers.util.FlashException;
@@ -435,5 +443,29 @@ public class BlockVolumes extends ResourceController {
 
         }
         return application;
+    }
+    
+    public static void analyze() throws Exception_Exception {
+    	Aggregations aggregations = new Aggregations();
+		aggregations.setCount(Aggregation.AVG);
+		DatabaseAccessorService service = new DatabaseAccessorService();
+		List<TimeSerie> timeseries = service.getDatabaseAccessorPort().
+								getAggregatedData("devtype='Host' & device='lgloh041' & name='CurrentUtilization' & parttype='FileSystem' & part='/opt'",
+											new ArrayList<String>(), 1456423942,
+											1456424842, null, null, 600, aggregations);
+		
+		
+		List<String> props = new ArrayList<String>();
+		props.add("device");  
+		List<DistinctPropertyValues> result = service.getDatabaseAccessorPort().getDistinctPropertyValues("devtype='Host'", null, null, null, null, null, props, null);
+		for (DistinctPropertyValues ts : result) {
+			System.out.println(ts.getValue());			
+		}
+		
+		for (Iterator iterator = timeseries.iterator(); iterator.hasNext();) {
+			TimeSerie timeSerie = (TimeSerie) iterator.next();
+			System.out.println(timeSerie.getFields());
+		}
+		flash.success("response");
     }
 }

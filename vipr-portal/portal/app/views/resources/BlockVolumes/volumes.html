@@ -1,6 +1,5 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.storage', 'nav.block.volumes'] /}
-
   <script type="text/javascript">
     var route = #{jsAction @volumesJson(':id',':appId')/};
    
@@ -35,7 +34,55 @@
     $(document).ready(function() {
       $('#project').on('change', reloadVolumes);
       $('#application').on('change' , reloadVolumes);
+      
+      // analyze
+      $("#btnCallWebService").click(function (event) {
+          var wsUrl = "https://lglak140:58443/APG-WS/wsapi/db";
+
+          var soapRequest =
+'<?xml version="1.0" encoding="utf-8"?>' +
+'<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:dat="http://www.watch4net.com/APG/Remote/DatabaseAccessorService">' +
+'<soap:Body>' +
+'<dat:getAggregatedData>' +
+'<dat:filter>devtype==\'Host\' &amp; device==\'lgloh041\' &amp; name==\'CurrentUtilization\' &amp; parttype==\'FileSystem\' &amp; part==\'\/opt\'</dat:filter>' +
+  '<dat:start-timestamp>1456423942</dat:start-timestamp>' +
+  '<dat:end-timestamp>1456424842</dat:end-timestamp>' +
+  '<dat:aggregations count="last"/>' +
+'</dat:getAggregatedData>' +
+'</soap:Body>' +
+'</soap:Envelope>';
+
+var authorization = 'Basic ' + btoa('admin:changeme');
+
+$.support.cors = true;
+
+          $.ajax({
+        	  crossDomain: true,
+              type: "POST",
+              url: wsUrl,
+              contentType: "text/xml",
+              dataType: "xml",
+              data: soapRequest,
+              success: processSuccess,
+              error: processError,
+				beforeSend: function (xhr) {
+					xhr.setRequestHeader ("Authorization", authorization);
+				}
+          });
+
+      });
     });
+    
+    function processSuccess(data, status, req) {
+        if (status == "success")
+            alert($(req.responseXML));
+    }
+
+    function processError(data, status, req) {
+        alert(req.responseText + " " + status);
+        $("response").attr('style','visibility: visibile');
+        $("expand-btn").attr('style','visibility: visibile');
+    }
   </script>
 
 #{Resources.applicationControl projects:projects /}
@@ -60,6 +107,15 @@
         <li><a onclick="return $('#deleteFormViPRonly').submit();">&{'resources.volume.deleteLink.VIPR_ONLY'}</a></li>
       </ul>
     </div>
+    <div class="btn-group">
+      <button id="btnCallWebService" type="button" class="btn btn-info" name="Analyze" onclick="pollStatus()">
+         Analyze
+      </button>
+    </div>
+    <div id="response" class="btn-group" style="visibility: hidden;">The current utilization is 80 %. Do you wish to Expand ?</div>
+    <div id="expand-btn" class="btn-group" style="visibility: hidden;">
+    	
+    </div>
     #{doBody/}
   #{/DataTable.buttonBar}
   #{DataTable.formAction @delete(), id:'deleteFormFull', table:'volumes', confirm:messages.get('resources.volumes.deleteConfirm.FULL')}
@@ -79,6 +135,10 @@ function renderLink(o, val) {
     var href = url(data);
     
     return "<a href='"+href+"'>" + val + "</a>";
+}
+function pollStatus() {
+	alert("in function");
+	var uri = "@{analyze()}"
 }
 </script>
 #{/set}

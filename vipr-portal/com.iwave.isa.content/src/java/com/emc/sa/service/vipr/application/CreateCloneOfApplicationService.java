@@ -29,9 +29,6 @@ public class CreateCloneOfApplicationService extends ViPRService {
     @Param(ServiceParams.NAME)
     private String name;
 
-    @Param(ServiceParams.COUNT)
-    private Integer count;
-
     @Param(ServiceParams.APPLICATION_SITE)
     private URI virtualArrayId;
 
@@ -40,7 +37,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
     @Override
     public void execute() throws Exception {
         Tasks<? extends DataObjectRestRep> tasks = execute(
-                new CreateCloneOfApplication(applicationId, name, virtualArrayId, virtualPoolId, count));
+                new CreateCloneOfApplication(applicationId, name, virtualArrayId, virtualPoolId));
         addAffectedResources(tasks);
     }
     

@@ -100,7 +100,6 @@ import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRestorePara
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionUnlinkTargetsParam;
-import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
@@ -113,8 +112,6 @@ import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
-import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -732,7 +729,7 @@ public class VolumeGroupService extends TaskResourceService {
                         continue;
                     }
                     String setName = fullCopyVolume.getFullCopySetName();
-                    if (setName == null) {  // This should not happen
+                    if (NullColumnValueGetter.isNullValue(setName)) {  // This should not happen
                         log.warn(String.format("skipping volume %s becuase fullCopySetName is null", fullCopyVolume.getLabel()));
                         continue;
                     }

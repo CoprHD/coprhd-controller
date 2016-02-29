@@ -63,6 +63,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
@@ -1771,6 +1772,24 @@ public class ControllerUtils {
         }
 
         return false;
+    }
+
+    /**
+     * Returns the project for the snapshot session source.
+     * 
+     * @param sourceObj A reference to the Volume or BlockSnapshot instance.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return A reference to the project for the snapshot session source.
+     */
+    public static URI querySnapshotSessionSourceProject(BlockObject sourceObj, DbClient dbClient) {
+        URI projectURI = null;
+        if (sourceObj instanceof Volume) {
+            projectURI = ((Volume) sourceObj).getProject().getURI();
+        } else if (sourceObj instanceof BlockSnapshot) {
+            projectURI = ((BlockSnapshot) sourceObj).getProject().getURI();
+        }
+        return projectURI;
     }
 
     /*

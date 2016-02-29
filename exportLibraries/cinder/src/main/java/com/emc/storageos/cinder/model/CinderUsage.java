@@ -14,5 +14,13 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 @JsonRootName(value="quota_set")
 @XmlRootElement(name="quota_set")
 public class CinderUsage {	
-		public Map<String, UsageAndLimits> quota_set = new HashMap<String, UsageAndLimits>();    	    		
+		private Map<String, UsageAndLimits> quota_set = new HashMap<String, UsageAndLimits>();
+
+		public Map<String, UsageAndLimits> getQuota_set() {
+			return quota_set;
+		}
+
+		public void setQuota_set(Map<String, UsageAndLimits> quota_set) {
+			this.quota_set = quota_set;
+		}    	    		
 }

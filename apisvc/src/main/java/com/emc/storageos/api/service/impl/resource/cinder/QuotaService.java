@@ -164,9 +164,10 @@ public class QuotaService extends TaskResourceService {
             }
         }
 
-        if(usage.equals("True")){
+        
+        if( (usage!=null) && (usage.equals("True")) ){
         	CinderUsage objUsage = getQuotaHelper().getUsageStatistics(URI.create(openstackTargetTenantId) , 
-        																(HashMap<String,String>)respCinderQuota.quota_set, project );
+        																(HashMap<String,String>)respCinderQuota.getQuota_set(), project );
         	return getQuotaUsageFormat(header, objUsage);
         }
         
@@ -377,12 +378,24 @@ public class QuotaService extends TaskResourceService {
     // internal function
     /**
      *Depending on mediatype either xml/json Quota details response is returned 
+   
      */
-    private Response getQuotaDetailFormat(HttpHeaders header, CinderQuotaDetails respCinderQuota) {
+    private Response getQuotaDetailFormat(HttpHeaders header, CinderQuotaDetails respCinderQuota){
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
-            return CinderApiUtils.getCinderResponse(CinderApiUtils
-                    .convertMapToXML(respCinderQuota.quota_set, "quota_set"),
-                    header, false);
+            try {
+				return CinderApiUtils.getCinderResponse(CinderApiUtils
+				        .convertMapToXML(respCinderQuota.quota_set, "quota_set"),
+				        header, false);
+			} catch (DOMException e) {
+				_log.info("DOM exception occured during converting Map to XML");
+				return Response.status(500).build();
+			} catch (IllegalArgumentException e) { 
+				_log.info("Illegal argument exception occured during converting Map to XML");
+				return Response.status(500).build();
+			} catch (IllegalAccessException e) { 				
+				_log.info("Illegal access exception occured during converting Map to XML");
+				return Response.status(500).build();
+			}
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
             return CinderApiUtils.getCinderResponse(respCinderQuota, header, false);
         } else {
@@ -399,7 +412,7 @@ public class QuotaService extends TaskResourceService {
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
             try {
 				return CinderApiUtils.getCinderResponse(CinderApiUtils
-				        .convertObjectMapToXML(respCinderUsage.quota_set, "quota_set"),
+				        .convertMapToXML(respCinderUsage.getQuota_set(), "quota_set"),
 				        header, false);
 			} catch (IllegalAccessException e) {
 				_log.info("Illegal access exception encountered while converting Usage details to XML format");
@@ -413,23 +426,6 @@ public class QuotaService extends TaskResourceService {
         }
     }
     
-    
-    /**
-     *Depending on mediatype either xml/json Quota class details response is returned 
-     */
-    private Response getQuotaClassDetailFormat(HttpHeaders header, CinderQuotaClassDetails respCinderClassQuota) {
-        if (CinderApiUtils.getMediaType(header).equals("xml")) {
-            return CinderApiUtils.getCinderResponse(CinderApiUtils
-                    .convertMapToXML(respCinderClassQuota.quota_class_set, "quota_set"),
-                    header, false);
-        } else if (CinderApiUtils.getMediaType(header).equals("json")) {
-            return CinderApiUtils.getCinderResponse(respCinderClassQuota, header, false);
-        } else {
-            return Response.status(415).entity("Unsupported Media Type")
-                    .build();
-        }
-
-    }
     
     /**
      *This function will return true, if the user is updating the quota of a vpool w.r.t a project

@@ -135,8 +135,11 @@ public class CinderApiUtils {
      * @param map Hash Map
      * @param root root Element Name
      * @return XML object in String form
+     * @throws IllegalAccessException 
+     * @throws IllegalArgumentException 
+     * @throws DOMException 
      */
-    public static Object convertMapToXML(Map<String, String> map, String root) {
+    public static Object convertMapToXML(Map<String, ? extends Object> map, String root) throws DOMException, IllegalArgumentException, IllegalAccessException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder;
         Document document = null;
@@ -147,9 +150,32 @@ public class CinderApiUtils {
             Element rootElement = document.createElement(root);
             if (null != rootElement) {
                 document.appendChild(rootElement);
-                for (Entry<String, String> entry : map.entrySet()) {
+                for (Entry<String, ? extends Object> entry : map.entrySet()) {
                     Element mapElement = document.createElement(entry.getKey());
-                    mapElement.setTextContent(entry.getValue());
+                    
+                    if(entry.getValue() instanceof String){
+                    	mapElement.setTextContent(entry.getValue().toString());	
+                    }
+                    else{
+                    	UsageAndLimits obj = (UsageAndLimits)entry.getValue();
+	                    Field[] fields = obj.getClass().getDeclaredFields();
+	                    
+	                	for ( Field field : fields  ) {	                		
+	                		Element subElement = document.createElement(field.getName());
+	                		if(field.getName().equals("reserved")){
+	                			subElement.setTextContent(String.valueOf(obj.getReserved()));
+	                		}
+	                		else if(field.getName().equals("in_use")){
+	                			subElement.setTextContent(String.valueOf(obj.getIn_use()));
+	                		}
+	                		else if(field.getName().equals("limit")){
+	                			subElement.setTextContent(String.valueOf(obj.getLimit()));
+	                		}
+	                			                			                		
+	                		mapElement.appendChild(subElement);
+	                	}    
+                    }
+                	                    
                     rootElement.appendChild(mapElement);
                 }
             }

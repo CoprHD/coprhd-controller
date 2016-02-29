@@ -23,6 +23,7 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.DOMException;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
@@ -216,9 +217,20 @@ public class QuotaClassService extends TaskResourceService {
      */
     private Response getQuotaClassDetailFormat(HttpHeaders header, CinderQuotaClassDetails respCinderClassQuota) {
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
+        	try {
             return CinderApiUtils.getCinderResponse(CinderApiUtils
                     .convertMapToXML(respCinderClassQuota.quota_class_set, "quota_set"),
                     header, false);
+        	}catch (DOMException e) {
+				_log.info("DOM exception occured during converting Map to XML");
+				return Response.status(500).build();
+			} catch (IllegalArgumentException e) { 
+				_log.info("Illegal argument exception occured during converting Map to XML");
+				return Response.status(500).build();
+			} catch (IllegalAccessException e) { 				
+				_log.info("Illegal access exception occured during converting Map to XML");
+				return Response.status(500).build();
+			}
         } else if (CinderApiUtils.getMediaType(header).equals("json")) {
             return CinderApiUtils.getCinderResponse(respCinderClassQuota, header, false);
         } else {

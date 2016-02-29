@@ -468,48 +468,42 @@ public class QuotaHelper {
             if (pool != null && pool.getType().equalsIgnoreCase(VirtualPool.Type.block.name())) {
                 if (_permissionsHelper.tenantHasUsageACL(tenantId, pool)) {
                 		UsageStats stats = getStorageStats(pool.getId(), proj.getId());
-                		UsageAndLimits objSpaceUsage = new UsageAndLimits();
-                		objSpaceUsage.reserved = 0;
-                		objSpaceUsage.in_use = stats.spaceUsed;
-                		objSpaceUsage.limit = Long.parseLong(quotaMap.get("gigabytes" + "_" + pool.getLabel()));
+                		UsageAndLimits objSpaceUsage = new UsageAndLimits();                		
+                		objSpaceUsage.setIn_use(stats.spaceUsed);
+                		objSpaceUsage.setLimit(Long.parseLong(quotaMap.get("gigabytes" + "_" + pool.getLabel())));
                 		                		
-                		UsageAndLimits objVolsUsage = new UsageAndLimits();
-                		objVolsUsage.reserved = 0;
-                		objVolsUsage.in_use = stats.volumes;
-                		objVolsUsage.limit = Long.parseLong(quotaMap.get("volumes" + "_" + pool.getLabel()));
+                		UsageAndLimits objVolsUsage = new UsageAndLimits();                		
+                		objVolsUsage.setIn_use(stats.volumes);
+                		objVolsUsage.setLimit(Long.parseLong(quotaMap.get("volumes" + "_" + pool.getLabel())));
                 		
-                		UsageAndLimits objSnapsUsage = new UsageAndLimits();
-                		objSnapsUsage.reserved = 0;
-                		objSnapsUsage.in_use = stats.snapshots;
-                		objSnapsUsage.limit = Long.parseLong(quotaMap.get("snapshots" + "_" + pool.getLabel()));
+                		UsageAndLimits objSnapsUsage = new UsageAndLimits();                		
+                		objSnapsUsage.setIn_use(stats.snapshots);
+                		objSnapsUsage.setLimit(Long.parseLong(quotaMap.get("snapshots" + "_" + pool.getLabel())));
                 		
-                		objCinderUsage.quota_set.put("gigabytes" + "_" + pool.getLabel(),objSpaceUsage);
-                		objCinderUsage.quota_set.put("snapshots" + "_" + pool.getLabel(),objSnapsUsage);
-                		objCinderUsage.quota_set.put("volumes" + "_" + pool.getLabel(), objVolsUsage);                   
+                		objCinderUsage.getQuota_set().put("gigabytes" + "_" + pool.getLabel(),objSpaceUsage);
+                		objCinderUsage.getQuota_set().put("snapshots" + "_" + pool.getLabel(),objSnapsUsage);
+                		objCinderUsage.getQuota_set().put("volumes" + "_" + pool.getLabel(), objVolsUsage);                   
                 }
             }
         }
         
         //now get the usage information for the project
         UsageStats stats = getStorageStats(null, proj.getId());
-        UsageAndLimits objSpaceUsage = new UsageAndLimits();
-		objSpaceUsage.reserved = 0;
-		objSpaceUsage.in_use = stats.spaceUsed;
-		objSpaceUsage.limit = Long.parseLong(quotaMap.get("gigabytes"));
+        UsageAndLimits objSpaceUsage = new UsageAndLimits();		
+		objSpaceUsage.setIn_use(stats.spaceUsed);
+		objSpaceUsage.setLimit(Long.parseLong(quotaMap.get("gigabytes")));
 		                		
-		UsageAndLimits objVolsUsage = new UsageAndLimits();
-		objVolsUsage.reserved = 0;
-		objVolsUsage.in_use = stats.volumes;
-		objVolsUsage.limit = Long.parseLong(quotaMap.get("volumes"));
+		UsageAndLimits objVolsUsage = new UsageAndLimits();		
+		objVolsUsage.setIn_use(stats.volumes);
+		objVolsUsage.setLimit(Long.parseLong(quotaMap.get("volumes")));
 		
-		UsageAndLimits objSnapsUsage = new UsageAndLimits();
-		objSnapsUsage.reserved = 0;
-		objSnapsUsage.in_use = stats.snapshots;
-		objSnapsUsage.limit = Long.parseLong(quotaMap.get("snapshots"));
+		UsageAndLimits objSnapsUsage = new UsageAndLimits();		
+		objSnapsUsage.setIn_use(stats.snapshots);
+		objSnapsUsage.setLimit(Long.parseLong(quotaMap.get("snapshots")));
 		
-		objCinderUsage.quota_set.put("gigabytes",objSpaceUsage);
-		objCinderUsage.quota_set.put("snapshots",objSnapsUsage);
-		objCinderUsage.quota_set.put("volumes", objVolsUsage);  
+		objCinderUsage.getQuota_set().put("gigabytes",objSpaceUsage);
+		objCinderUsage.getQuota_set().put("snapshots",objSnapsUsage);
+		objCinderUsage.getQuota_set().put("volumes", objVolsUsage);  
 		
 		return objCinderUsage;
     }

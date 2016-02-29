@@ -45,13 +45,6 @@ _fatal() {
     exit 1
 }
 
-_fatal2() {
-    local code=${1:-1} ; shift
-    set +Ex
-    echo "$0: Error: $*" >&2
-    exit ${code}
-}
-
 _err_handler() {
     set +E
     _fatal "Line ${LINENO}: $(eval echo \"${BASH_COMMAND}\")"

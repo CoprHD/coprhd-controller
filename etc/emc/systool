@@ -495,8 +495,10 @@ _restart_coordinator() {
         _stop coordinatorsvc
         if [ "${1}" = "participant" ]; then
             /etc/datatool --create-snapshot /data/zk/version-2
+            rm -fR /data/zk/myid
         else
             /etc/datatool --revert-snapshot /data/zk/version-2
+            rm -fR /data/zk/myid
         fi
 
         for svc in coordinatorsvc dbsvc geodbsvc authsvc apisvc geosvc portalsvc syssvc; do

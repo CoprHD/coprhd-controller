@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.Site.NetworkHealth;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
@@ -33,6 +34,7 @@ import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
+import com.emc.storageos.systemservices.exceptions.SysClientException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
@@ -1126,13 +1128,20 @@ public abstract class VdcOpHandler {
 
     protected void poweroffRemoteSite(Site site) {
         String siteId = site.getUuid();
-        if (!drUtil.isSiteUp(siteId)) {
-            log.info("Site {} is down. no need to poweroff it", site.getUuid());
+        if (!drUtil.isSiteUp(siteId) || site.getNetworkHealth() == NetworkHealth.BROKEN) {
+            log.info("Site {} is down or network health is broken. no need to poweroff it", site.getUuid());
             return;
         }
-        // all syssvc shares same port
-        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
-        SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
+        
+        try {
+            // all syssvc shares same port
+            String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
+            SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
+        } catch (SysClientException e) {
+            log.warn("Failed to power off remote site", e);
+            return;
+        }
+        
         log.info("Powering off site {}", siteId);
         while(drUtil.isSiteUp(siteId)) {
             log.info("Short sleep and will check site status later");

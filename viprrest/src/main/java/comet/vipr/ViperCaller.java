@@ -1,15 +1,15 @@
 package comet.vipr;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeMigrate;
 import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.storageos.model.block.export.ExportBlockParam;
-import com.emc.storageos.model.block.export.ExportGroupRestRep;
-import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.block.export.ExportCreateParam;
+import com.emc.storageos.model.block.export.VolumeParam;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -55,7 +55,7 @@ public class ViperCaller {
     	
     }
     
-    public boolean exportVolumeURI (URI hostURI, URI targetVolumeURI){
+  /*  public boolean exportVolumeURI (URI hostURI, URI targetVolumeURI){
         HostRestRep host = client.hosts().get(hostURI);
         VolumeRestRep volume = client.blockVolumes().get(targetVolumeURI);
         RelatedResourceRep project = volume.getProject();
@@ -84,11 +84,25 @@ public class ViperCaller {
     			client.blockExports().get(export)export.setVolumes(volumes);
     			return true;
     		}
-    	}*/
+    	}
     	return false;
     	
     }
+    */
     
+    public boolean exportVolumeURI (URI hostURI, URI targetVolumeURI){
+        
+        URI project = client.blockVolumes().get(targetVolumeURI).getProject().getId();
+        URI vArray = client.blockVolumes().get(targetVolumeURI).getVirtualArray().getId();
+        
+        List<URI> hosts = new ArrayList<URI>();
+        List<VolumeParam> volumes = new ArrayList<VolumeParam>();
+        volumes.add(new VolumeParam(targetVolumeURI));
+        hosts.add(hostURI);
+        client.blockExports().create(new ExportCreateParam(project, vArray, "sampleExport", "Host", volumes ,null, hosts, null)); 
+        return true;
+        
+    } 
     
     public boolean doExport(URI sourceVolumeURI, URI hostURI, URI targetVirtualPoolId){
         

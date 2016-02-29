@@ -19,7 +19,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +90,8 @@ public class LocalRepository {
     private static final String _SYSTOOL_REMOTE_SYSTOOL = "--remote-systool";
     private static final String _SYSTOOL_RESTART_COORDINATOR = "--restart-coordinator";
 
-    private static final String _IPSECTOOL_CMD="/etc/ipsectool";
+    private static final String _IPSECTOOL_CMD = "/etc/ipsectool";
+    private static final String MASK_IPSEC_KEY_PATTERN = "ipsec_key=.*?\\n";
 
     // inject value from spring config.
     private String cmdZkutils;
@@ -259,9 +262,7 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_VDC_PROPS };
-        String[] props = exec(prefix, cmd1);
-
-        _log.debug(prefix + "properties={}", Strings.repr(props));
+        String[] props = exec(prefix, MASK_IPSEC_KEY_PATTERN, cmd1);
         return new PropertyInfoExt(props);
     }
 
@@ -417,7 +418,6 @@ public class LocalRepository {
      * Restart a service on remote node
      *
      * @param nodeId
-     * @param serviceName service name
      * @throws LocalRepositoryException
      */
     public void remoteRestartCoordinator(String nodeId, String type) throws LocalRepositoryException {
@@ -605,9 +605,8 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd = { _IPSECTOOL_CMD, IPSEC_GET_PROPS, ip };
-        String[] props = exec(prefix, cmd);
+        String[] props = exec(prefix, MASK_IPSEC_KEY_PATTERN, cmd);
 
-        _log.debug(prefix + "properties={}", Strings.repr(props));
         return PropertyInfoUtil.splitKeyValue(props);
     }
 
@@ -690,8 +689,19 @@ public class LocalRepository {
         _log.info(prefix + "Success!");
     }
 
+
+
     private static String[] exec(final String prefix, String[] cmd) throws LocalRepositoryException {
-        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        return exec(prefix, null, cmd);
+    }
+
+    private static String[] exec(final String prefix, String outputMaskPatternStr, String[] cmd) throws LocalRepositoryException {
+        Pattern maskFilter = null;
+        if (!StringUtils.isEmpty(outputMaskPatternStr)) {
+            maskFilter = Pattern.compile(outputMaskPatternStr);
+        }
+
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, maskFilter, cmd);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             _log.info(prefix + "Command failed. Result exit value: " + result.getExitValue());
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Command failed: " + result);

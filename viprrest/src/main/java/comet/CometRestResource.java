@@ -47,9 +47,12 @@ public class CometRestResource {
     @Produces(MediaType.TEXT_XML)
     public Tasks<VolumeRestRep> migrateVolume() throws Exception {
         ViperCaller vipr = new ViperCaller();
-        URI hostURI=new URI("");
-        URI sourceVolumeURI=new URI("");
-        URI targetVolumeURI=new URI("");
+        String host="urn:storageos:Host:b9e30eed-4fe0-440f-8f28-e701443707bb:vdc1";
+        String sourceVolume="urn:storageos:Volume:008b7951-3afb-40c3-a84e-a26c2518d503:vdc1";
+        String targetVolume="";
+        URI hostURI=new URI(host);
+        URI sourceVolumeURI=new URI(sourceVolume);
+        URI targetVolumeURI=new URI(targetVolume);
         
        return vipr.migrate(hostURI, sourceVolumeURI, targetVolumeURI);
         

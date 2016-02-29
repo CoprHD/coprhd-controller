@@ -139,6 +139,7 @@ fi
 /etc/gentmpl
 /etc/systool
 /etc/diagtool
+/etc/datatool
 /etc/powerofftool
 /etc/ipsectool
 /etc/diskresizetool

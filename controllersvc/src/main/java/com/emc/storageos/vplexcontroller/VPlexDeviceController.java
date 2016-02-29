@@ -1471,7 +1471,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         if (cg != null) {
                             // Call the appropriate ConsistencyGroupManager to delete the CG volume
                             ConsistencyGroupManager consistencyGroupManager = getConsistencyGroupManager(volume);
-                            consistencyGroupManager.deleteConsistencyGroupVolume(vplexURI, volume, cg.getLabel());
+                            consistencyGroupManager.deleteConsistencyGroupVolume(vplexURI, volume, cg);
                         }
 
                         // Check to see if there are any entries in the doNotFullyDeleteVolumeList.

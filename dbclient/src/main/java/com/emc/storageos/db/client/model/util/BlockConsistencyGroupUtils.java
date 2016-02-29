@@ -34,6 +34,8 @@ public class BlockConsistencyGroupUtils {
      * group name.
      */
     private static final String SPLITTER = ":";
+    public static final String CLUSTER_1 = "cluster1";
+    public static final String CLUSTER_2 = "cluster2";
 
     /**
      * Parses out the cluster name from the combined cluster/cg name.

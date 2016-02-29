@@ -739,7 +739,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     /**
      * Following steps are performed as part of this method execution.
-     * 1. Checks whether unManagedVolume is protected by RP, if yes we willn't create CG for VPLEX VirtualVolumes.
+     * 1. Checks whether unManagedVolume is protected by RP, if yes we will not create CG for VPLEX VirtualVolumes.
      * 2. When ingesting vplex virtual volume in CG, we will check whether CG already exists in DB for the same project & tenant.
      * If yes, we will reuse it.
      * Otherwise, we will create new BlockConsistencyGroup for the unmanaged consistencyGroup.

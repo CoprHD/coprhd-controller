@@ -40,9 +40,11 @@ public class ViperCaller {
     	String sourceVolumeName = client.blockVolumes().get(sourceVolumeURI).getName();
     	String size = client.blockVolumes().get(sourceVolumeURI).getCapacity();
     	
-    	RelatedResourceRep vArray = ((RelatedResourceRep[]) client.blockVpools().get(targetVirtualPoolId).getVirtualArrays().toArray())[0];
+    	List<RelatedResourceRep> resourceList = client.blockVpools().get(targetVirtualPoolId).getVirtualArrays();
     	
-    	VolumeCreate create = new VolumeCreate(sourceVolumeName+"Target", size, 1, targetVirtualPoolId, vArray.getId(), project);
+    	RelatedResourceRep vArray=resourceList.get(0);
+    	
+    	VolumeCreate create = new VolumeCreate(sourceVolumeName+"Target_2", size, 1, targetVirtualPoolId, vArray.getId(), project);
     	
     	return client.blockVolumes().create(create);
     	

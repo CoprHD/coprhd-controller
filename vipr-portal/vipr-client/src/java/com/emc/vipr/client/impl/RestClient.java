@@ -150,6 +150,12 @@ public class RestClient {
 
     public WebResource.Builder resource(String path, Object... args) {
         URI uri = uriBuilder(path).build(args);
+//        URI uri=null;
+//        try{
+//           uri= new URI(path);}
+//        catch(Exception e){
+//            e.printStackTrace();
+//        }
         return resource(uri);
     }
 

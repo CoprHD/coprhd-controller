@@ -129,8 +129,10 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
     }
     
     public Tasks<VolumeRestRep> ppmigrate(URI id, VolumeMigrate migrate) {
-    	
-        return postTasks(migrate, client.uriBuilder(getMigrateUrl()).build(id).toString());
+//        String url = getMigrateUrl()
+//    	String url = client.uriBuilder(getMigrateUrl()).build(id).toString();
+        return postTasks(migrate, getMigrateUrl(),id);
+        
     }
 
     /**

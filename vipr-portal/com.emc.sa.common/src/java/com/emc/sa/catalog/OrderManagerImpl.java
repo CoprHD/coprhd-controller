@@ -340,7 +340,7 @@ public class OrderManagerImpl implements OrderManager {
     }
 
     private URI getTargetVirtualArray(URI id) {
-        if (StringUtils.split(id.toString(), ':')[0].equals("tgt")) {
+        if (id.toString().startsWith("tgt:")) {
             return URI.create(StringUtils.substringAfter(id.toString(), ":"));
         } else {
             return id;

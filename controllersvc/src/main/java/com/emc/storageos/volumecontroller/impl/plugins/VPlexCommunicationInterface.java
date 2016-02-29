@@ -1961,10 +1961,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
-        initializeContext(accessProfile);
-        _statsCollector.collect(accessProfile, _keyMap);
-        dumpStatRecords();
-        injectStats();
+        // https://coprhd.atlassian.net/browse/COP-18616. This code is commented out on purpose for the
+        // time being. The ancillary code to support metrics collection is there, but we just don't want
+        // this to be enabled until there is adequate time to test VPlex frontent port allocations based
+        // on port metrics. Once there's a time available to testing, this comment should be removed and
+        // the commented code below should be uncommented.
+
+        // initializeContext(accessProfile);
+        // _statsCollector.collect(accessProfile, _keyMap);
+        // dumpStatRecords();
+        // injectStats();
     }
 
     /**

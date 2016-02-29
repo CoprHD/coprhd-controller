@@ -746,6 +746,29 @@ public class BackupService {
         boolean propertiesFileFound = false;
         int collectFileCount = 0;
         int totalFileCount = files.size() * 2;
+
+        //upload *_info.properties file first
+        for (final NodeInfo node : nodes) {
+            String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
+                    node.getIpAddress(), node.getPort());
+            SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
+                    URI.create(baseNodeURL));
+            try {
+                String fileName = backupTag + BackupConstants.BACKUP_INFO_SUFFIX;
+                String fullFileName = backupTag + File.separator + fileName;
+                InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
+                newZipEntry(zos, in, fileName);
+                propertiesFileFound = true;
+                break;
+            } catch (SysClientException ex) {
+                log.info("info.properties file is not found on node {}, exception {}", node.getId(), ex.getMessage());
+            }
+        }
+
+        if (!propertiesFileFound) {
+            throw new FileNotFoundException(String.format("No live node contains %s%s", backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
+        }
+
         for (final NodeInfo node : nodes) {
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
                     node.getIpAddress(), node.getPort());
@@ -760,20 +783,6 @@ public class BackupService {
                 newZipEntry(zos, in, fileName);
                 collectFileCount++;
             }
-
-            try {
-                String fileName = backupTag + BackupConstants.BACKUP_INFO_SUFFIX;
-                String fullFileName = backupTag + File.separator + fileName;
-                InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
-                newZipEntry(zos, in, fileName);
-                propertiesFileFound = true;
-            } catch (SysClientException ex) {
-                log.info("info.properties file is not found on node {}, exception {}", node.getId(), ex.getMessage());
-            }
-        }
-
-        if (!propertiesFileFound) {
-            throw new FileNotFoundException(String.format("No live node contains %s%s", backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
         }
 
         // We only close ZIP stream when everything is OK, or the package will be extractable but missing files.

@@ -49,6 +49,7 @@ import com.emc.storageos.model.tenant.UserMappingAttributeParam;
 import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authorization.*;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.vipr.model.sys.ipreconfig.ClusterIpv4Setting;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,6 +105,8 @@ public class AuthnConfigurationService extends TaggedResource {
 
     private KeystoneUtils _keystoneUtils;
 
+    private Properties _ovfProperties;
+
     private static final String EVENT_SERVICE_TYPE = "authconfig";
 
     @Override
@@ -117,6 +120,10 @@ public class AuthnConfigurationService extends TaggedResource {
 
     public void setKeystoneUtils(KeystoneUtils keystoneUtils) {
         this._keystoneUtils = keystoneUtils;
+    }
+
+    public void setOvfProperties(Properties ovfProps) {
+        _ovfProperties = ovfProps;
     }
 
     /**
@@ -361,21 +368,20 @@ public class AuthnConfigurationService extends TaggedResource {
     private EndpointV2 prepareNewCinderEndpoint(String region, String serviceId, Boolean isCinderv2) {
 
         String url = "";
-        String localAddress;
-        String localIP;
 
-        try {
-            localAddress = InetAddress.getLocalHost().toString();
-            localIP = localAddress.split("/")[1];
-            // Checks whether url should point to cinderv2 or to cinder service.
-            if(isCinderv2){
-                url = CinderConstants.HTTP_URL + localIP + CinderConstants.COPRHD_URL_V2;
-            }else{
-                url = CinderConstants.HTTP_URL + localIP + CinderConstants.COPRHD_URL_V1;
-            }
-        } catch (UnknownHostException | NullPointerException e) {
-            _log.error("Unable to retrieve CoprHD IP - {}", e.getMessage());
-            throw APIException.internalServerErrors.unableToRetrieveIP();
+        // Get cluster Virtual IP.
+        Map<String, String> ovfprops = (Map) _ovfProperties;
+        ClusterIpv4Setting ipv4Setting = new ClusterIpv4Setting();
+        ipv4Setting.loadFromPropertyMap(ovfprops);
+        String clusterVIP = ipv4Setting.getNetworkVip();
+
+        _log.debug("Cluster VIP: {}", clusterVIP);
+
+        // Checks whether url should point to cinderv2 or to cinder service.
+        if(isCinderv2){
+            url = CinderConstants.HTTP_URL + clusterVIP + CinderConstants.COPRHD_URL_V2;
+        }else{
+            url = CinderConstants.HTTP_URL + clusterVIP + CinderConstants.COPRHD_URL_V1;
         }
 
         EndpointV2 endpoint = new EndpointV2();

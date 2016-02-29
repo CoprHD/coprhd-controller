@@ -314,7 +314,7 @@ public abstract class VdcOpHandler {
                     return;
                 } else {
                     log.info("Waiting for completion of site removal from acitve site");
-                    while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
+                    while (drUtil.hasSiteInState(SiteState.ACTIVE) && drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
                         log.info("Waiting for completion of site removal from acitve site");
                         retrySleep();
                     }
@@ -1133,16 +1133,11 @@ public abstract class VdcOpHandler {
             return;
         }
         
-        try {
-            // all syssvc shares same port
-            String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
-            SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
-        } catch (SysClientException e) {
-            log.warn("Failed to power off remote site", e);
-            return;
-        }
-        
+        // all syssvc shares same port
+        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
+        SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
         log.info("Powering off site {}", siteId);
+        
         while(drUtil.isSiteUp(siteId)) {
             log.info("Short sleep and will check site status later");
             retrySleep();

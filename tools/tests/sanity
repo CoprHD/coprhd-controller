@@ -218,11 +218,10 @@ ethdev=`/sbin/ifconfig | grep Ethernet | head -1 | awk '{print $1}'`
 if [ "$ethdev" = "" ] ; then
    ethdev=eth0
 fi
-
 # COP-16713: Sometimes a linux ethernet interface is more than 9 characters
 #            However, ifconfig will only show the first 9.  If the name is 
 #            long, run "ip link show", which will give us the full name.
-if [ ${#ethdev} > 8 ] ; then
+if [ ${#ethdev} -gt 8 ] ; then
     ethdev=`ip link show | grep ${ethdev} | awk '{print $2}' | awk -F: '{print $1}'`
 fi
 
@@ -7228,30 +7227,6 @@ wait_for_site_stable()
     BOURNE_IPADDR=$old_bourne_ipaddr
 }
 
-get_nodes() {
-    if [ ! $1 ]; then
-        echo 'Virtual IP not specified'
-        exit 1
-    fi
-    SSH $1 "cat /etc/ovfenv.properties" | awk '/^network_._ipaddr=/ {print substr($1,18)}'
-}
-
-stop_vipr() {
-    for ip in $(get_nodes $1)
-    do
-        echo "Stopping ViPR service of ${ip} ..."
-        SSH $ip "/etc/storageos/storageos stop"
-    done
-}
-
-start_vipr() {
-    for ip in $(get_nodes $1)
-    do
-        echo "Starting ViPR service of ${ip} ..."
-        SSH $ip "/etc/storageos/storageos start"
-    done
-}
-
 dr_tests()
 {
     if [ -z "$DR_SITE_C_IP" ]; then
@@ -7363,6 +7338,9 @@ dr_basic_tests()
     echo "Project id of ${PROJECT_NEW} is ${projectid_new}."
 
     echo "---RESUME SITE $standby_site---"
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
+    BOURNE_IPADDR="${DR_SITE_A_IP}"
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr resume $standby_site || { echo "resume dr standby site failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site---"
@@ -7406,7 +7384,7 @@ dr_basic_tests()
 
     # failover test part
     echo "Stopping active site $DR_SITE_B_NAME services to prepare for failover test ..."
-    stop_vipr $DR_SITE_B_IP
+    stop_vdc_services $DR_SITE_B_IP
     echo "Sleep 400 seconds to wait standby site (VIP: ${DR_SITE_A_IP}) ZK switch to participant"
     sleep 400
     echo "Wait for site ${DR_SITE_A_NAME} to be stable ..."
@@ -7429,9 +7407,9 @@ dr_basic_tests()
 
     # failback test part
     echo "Starting old active site $DR_SITE_B_NAME services ..."
-    start_vipr $DR_SITE_B_IP
+    start_vdc_services $DR_SITE_B_IP
     echo "Sleep 400 seconds to wait old site to become ACTIVE_DEGRADED ..."
-    sleep 400
+    sleep 600
     BOURNE_IPADDR=$DR_SITE_B_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable --ip "${DR_SITE_B_IP}" 10 600
@@ -7450,9 +7428,8 @@ dr_basic_tests()
 
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    echo "Sleep 800s to wait standby adding done ..."
-    sleep 800
-    dr waitforstate $standby_site STANDBY_SYNCED 30 600
+    echo "Wait standby adding done ..."
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
 
     # NOTE: after switchover and failover (then readd old active), site A is active and site B is standby
 
@@ -7755,7 +7732,7 @@ dr_multisite_tests()
 
     # failover test part
     echo "Stopping active site $DR_SITE_A_NAME services to prepare for failover test ..."
-    stop_vipr $DR_SITE_A_IP
+    stop_vdc_services $DR_SITE_A_IP
 
     echo "Sleep 400 seconds to wait standby ZK switch to participant"
     sleep 400
@@ -7781,7 +7758,7 @@ dr_multisite_tests()
 
     # failback test part
     echo "Starting old active site $DR_SITE_A_NAME services ..."
-    start_vipr $DR_SITE_A_IP
+    start_vdc_services $DR_SITE_A_IP
     echo "Sleep 400 seconds to wait old site to become ACTIVE_DEGRADED ..."
     sleep 400
     BOURNE_IPADDR=$DR_SITE_A_IP

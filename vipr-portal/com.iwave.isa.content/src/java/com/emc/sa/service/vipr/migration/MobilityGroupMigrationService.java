@@ -72,6 +72,7 @@ public class MobilityGroupMigrationService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+        boolean migrationTasksFailed = false;
 
         if (mobilityGroupMethod != null && mobilityGroupMethod.equalsIgnoreCase(BlockProvider.INGEST_AND_MIGRATE_OPTION_KEY)) {
             ingestVolumes();
@@ -99,7 +100,11 @@ public class MobilityGroupMigrationService extends ViPRService {
                 ExecutionUtils.currentContext().logError("mobilityGroupMigration.changeVirtualPool.failure",
                         failedTask.getResource().getName(), errorMessage);
                 tasks.remove(failedTask);
+                migrationTasksFailed = true;
             }
+        }
+        if (migrationTasksFailed) {
+            ExecutionUtils.fail("failTask.MobilityGroupMigration.migrationsFailed", new Object[] {}, new Object[] {});
         }
     }
 

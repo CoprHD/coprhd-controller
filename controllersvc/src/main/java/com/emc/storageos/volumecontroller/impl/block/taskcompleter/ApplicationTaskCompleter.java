@@ -19,6 +19,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -125,7 +126,7 @@ public class ApplicationTaskCompleter extends TaskCompleter{
         if (fullCopies != null && !fullCopies.isEmpty()) {
             for (String fullCopyId : fullCopies) {
                 Volume fullCopy = dbClient.queryObject(Volume.class, URI.create(fullCopyId));
-                if (fullCopy != null) {
+                if (fullCopy != null && NullColumnValueGetter.isNullValue(fullCopy.getFullCopySetName())) {
                     fullCopy.setFullCopySetName(fullCopy.getReplicationGroupInstance());
                     fullCopiesToUpdate.add(fullCopy);
                 }

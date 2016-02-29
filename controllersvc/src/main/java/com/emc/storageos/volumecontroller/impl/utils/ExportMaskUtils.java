@@ -580,8 +580,12 @@ public class ExportMaskUtils {
             List<Initiator> userAddedInis, DbClient dbClient,
             Map<String, Integer> wwnToHluMap)
                     throws Exception {
-        ExportMask exportMask = ExportMaskUtils.createExportMask(dbClient, exportGroup,
-                storage.getId(), maskName);
+
+        ExportMask exportMask = new ExportMask();
+        exportMask.setId(URIUtil.createId(ExportMask.class));
+        exportMask.setMaskName(maskName);
+        exportMask.setStorageDevice(storage.getId());
+
         String resourceRef;
         if (exportGroup.getType() != null) {
             if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
@@ -629,7 +633,6 @@ public class ExportMaskUtils {
         // need to sync up all remaining existing volumes
         exportMask.addToExistingVolumesIfAbsent(wwnToHluMap);
 
-        dbClient.updateAndReindexObject(exportMask);
         // Update the FCZoneReferences if zoning is enables for the varray
         updateFCZoneReferences(exportGroup, volume, zoneInfoMap, initiators, dbClient);
         return exportMask;
@@ -1183,5 +1186,33 @@ public class ExportMaskUtils {
             }
         }
         return volumesToAdd;
+    }
+
+    /**
+     * Routine returns the ExportMask by name from the DB that is associated with the StorageSystem.
+     * Inactive ExportMasks are ignored.
+     *
+     * @param dbClient [IN] - DbClient to access DB
+     * @param storageSystemId [IN] - StorageSystem URI against which to search the ExportMask name
+     * @param name [IN] - Name of ExportMask to lookup
+     * @return ExportMask object where its storageDevice = storageSystemId and maskName = name.
+     *         Returns null if not found.
+     */
+    public static ExportMask getExportMaskByName(DbClient dbClient, URI storageSystemId, String name) {
+        ExportMask exportMask = null;
+        URIQueryResultList uriQueryList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getExportMaskByNameConstraint(name), uriQueryList);
+        while (uriQueryList.iterator().hasNext()) {
+            URI uri = uriQueryList.iterator().next();
+            exportMask = dbClient.queryObject(ExportMask.class, uri);
+            if (exportMask != null && !exportMask.getInactive() &&
+                    exportMask.getStorageDevice().equals(storageSystemId)) {
+                // We're expecting there to be only one export mask of a
+                // given name for any storage array.
+                break;
+            }
+        }
+        return exportMask;
     }
 }

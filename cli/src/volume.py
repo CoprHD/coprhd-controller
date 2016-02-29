@@ -447,7 +447,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type, sync)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type, sync)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -467,7 +467,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -487,7 +487,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -507,7 +507,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
@@ -560,7 +560,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -581,7 +581,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,

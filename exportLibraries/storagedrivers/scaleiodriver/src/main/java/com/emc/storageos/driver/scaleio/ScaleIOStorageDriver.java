@@ -26,6 +26,7 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import org.apache.commons.lang.mutable.MutableBoolean;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -329,16 +330,9 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 		return null;
 	}
 
-	/**
-	 * Restore from clone.
-	 *
-	 * @param volume Type: Input/Output.
-	 * @param clone  Type: Input.
-	 * @return task
-	 */
 	@Override
-	public DriverTask restoreFromClone(StorageVolume volume, VolumeClone clone) {
-		return setUpNonSupportedTask(ScaleIOConstants.TaskType.CLONE_RESTORE);
+	public DriverTask restoreFromClone(List<VolumeClone> clones) {
+		return null;
 	}
 
 	/**
@@ -418,6 +412,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 	 */
 	@Override
 	public List<ITL> getITL(StorageSystem storageSystem, List<Initiator> initiators) {
+		return null;
+	}
+
+	@Override
+	public DriverTask exportVolumesToInitiators(List<Initiator> initiators, List<StorageVolume> volumes, Map<String, String> volumeToHLUMap, List<StoragePort> recommendedPorts, List<StoragePort> availablePorts, StorageCapabilities capabilities, MutableBoolean usedRecommendedPorts, List<StoragePort> selectedPorts) {
 		return null;
 	}
 
@@ -790,6 +789,47 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 		return task;
 	}
 
+	@Override
+	public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents) {
+		DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.DISCOVER_STORAGE_HOSTS));
+		try {
+			log.info("StorageDriver: Discovery of storage hosts for storage system {}, name {} - Start", storageSystem.getNativeId(),
+					storageSystem.getSystemName());
+			ScaleIORestClient scaleIOHandle = getConnInfoFromRegistry(storageSystem);
+			if (scaleIOHandle != null) {
+				List<ScaleIOSDC> allSDCs = scaleIOHandle.queryAllSDC();
+				for (ScaleIOSDC sdc : allSDCs) {
+					StorageHostComponent host;
+					if(sdc != null ) {
+						host = new StorageHostComponent();
+						host.setNativeId(sdc.getSdcIp());
+						host.setHostName(sdc.getSdcIp());
+						host.setDisplayName(sdc.getMdmConnectionState());
+						Initiator initiator = new Initiator();
+						initiator.setPort(sdc.getId());
+						initiator.setProtocol(Initiator.Protocol.ScaleIO);
+						Set<Initiator> iniSet = new HashSet<>();
+						iniSet.add(initiator);
+						host.setInitiators(iniSet);
+						embeddedStorageHostComponents.add(host);
+					}
+				}
+				task.setStatus(DriverTask.TaskStatus.READY);
+				log.info("StorageDriver: Discovery of storage hosts for storage system {}, name {} - End", storageSystem.getIpAddress(),
+						storageSystem.getSystemName());
+			} else {
+				log.info("StorageDriver: Failed to get an handle for the storage system {}, name {}", storageSystem.getIpAddress(),
+						storageSystem.getSystemName());
+				task.setStatus(DriverTask.TaskStatus.FAILED);
+			}
+		} catch (Exception e) {
+			log.error("StorageDriver: Discovery of storage hosts failed for the storage system {}, name {}", storageSystem.getIpAddress(),
+					storageSystem.getSystemName());
+			task.setStatus(DriverTask.TaskStatus.ABORTED);
+		}
+		return task;
+	}
+
 	/**
 	 * Discover storage volumes
 	 *
@@ -832,7 +872,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 	 * @param objectId        object native id
 	 * @param type            class instance
 	 * @return storage object or null if does not exist
-	 * <p/>
+	 * <p>
 	 * Example of usage: StorageVolume volume = StorageDriver.getStorageObject("vmax-12345", "volume-1234", StorageVolume.class);
 	 */
 	@Override

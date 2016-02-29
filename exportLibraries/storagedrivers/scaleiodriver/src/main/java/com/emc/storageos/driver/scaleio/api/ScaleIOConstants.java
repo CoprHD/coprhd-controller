@@ -50,6 +50,7 @@ public class ScaleIOConstants {
         DISCOVER_STORAGE_SYSTEM,
         DISCOVER_STORAGE_POOLS,
         DISCOVER_STORAGE_PORTS,
+        DISCOVER_STORAGE_HOSTS,
 
         VOLUME_CREATE,
         VOLUME_EXPAND,

@@ -53,20 +53,21 @@ public class KeystoneUtils {
     public void deleteKeystoneEndpoint(KeystoneApiClient keystoneApi, String serviceId) {
         _log.debug("START - deleteKeystoneEndpoint");
 
-        if (serviceId == null) {
+        if (serviceId != null) {
+
+            // Get Keystone endpoints from Keystone API.
+            EndpointResponse endpoints = keystoneApi.getKeystoneEndpoints();
+            // Find endpoint to delete.
+            EndpointV2 endpointToDelete = findEndpoint(endpoints, serviceId);
+            // Do not execute delete call when endpoint does not exist.
+            if (endpointToDelete != null) {
+                // Delete endpoint using Keystone API.
+                keystoneApi.deleteKeystoneEndpoint(endpointToDelete.getId());
+            }
+        } else {
             _log.error("serviceId is null");
-            throw APIException.internalServerErrors.targetIsNullOrEmpty("Service id");
         }
 
-        // Get Keystone endpoints from Keystone API.
-        EndpointResponse endpoints = keystoneApi.getKeystoneEndpoints();
-        // Find endpoint to delete.
-        EndpointV2 endpointToDelete = findEndpoint(endpoints, serviceId);
-        // Do not execute delete call when endpoint does not exist.
-        if (endpointToDelete != null) {
-            // Delete endpoint using Keystone API.
-            keystoneApi.deleteKeystoneEndpoint(endpointToDelete.getId());
-        }
         _log.debug("END - deleteKeystoneEndpoint");
     }
 

@@ -29,7 +29,6 @@ public class Site {
     private static final String KEY_LAST_LOST_QUORUM_TIME = "lastLostQuorumTime";
     private static final String KEY_LASTSTATE = "lastState";
     private static final String KEY_SITE_STATE = "state";
-    private static final String KEY_PING = "networkLatencyInMs";
     private static final String KEY_NETWORK_HEALTH = "networkHealth";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
@@ -59,7 +58,6 @@ public class Site {
     private long lastStateUpdateTime;
     private long lastLostQuorumTime;
 
-    private double networkLatencyInMs;
     private NetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private SiteState lastState;
@@ -170,14 +168,6 @@ public class Site {
         this.creationTime = creationTime;
     }
 
-    public double getNetworkLatencyInMs() {
-        return networkLatencyInMs;
-    }
-
-    public void setNetworkLatencyInMs(double networkLatencyInMs) {
-        this.networkLatencyInMs = networkLatencyInMs;
-    }
-
     public long getLastLostQuorumTime() {
         return lastLostQuorumTime;
     }
@@ -268,9 +258,6 @@ public class Site {
         if (lastLostQuorumTime != 0L) {
             config.setConfig(KEY_LAST_LOST_QUORUM_TIME, String.valueOf(lastLostQuorumTime));
         }
-        if (networkLatencyInMs != 0D) {
-            config.setConfig(KEY_PING, String.valueOf(networkLatencyInMs));
-        }
         if (networkHealth != null) {
             config.setConfig(KEY_NETWORK_HEALTH, networkHealth.toString());
         }
@@ -332,11 +319,6 @@ public class Site {
                 lastState = SiteState.valueOf(config.getConfig(KEY_LASTSTATE));
             }
 
-            s = config.getConfig(KEY_PING);
-            if (s != null) {
-                this.networkLatencyInMs = Double.valueOf(s);
-            }
-
             s = config.getConfig(KEY_SITE_STATE);
             if (s != null) {
                 state = SiteState.valueOf(config.getConfig(KEY_SITE_STATE));
@@ -389,8 +371,6 @@ public class Site {
         builder.append(siteShortId);
         builder.append(", creationTime=");
         builder.append(creationTime);
-        builder.append(", networkLatencyInMs=");
-        builder.append(networkLatencyInMs);
         builder.append(", networkHealth=");
         builder.append(networkHealth);
         builder.append("]");

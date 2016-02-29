@@ -1396,7 +1396,7 @@ public class DisasterRecoveryService {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
-            standbyDetails.setNetworkLatencyInMs(standby.getNetworkLatencyInMs());
+            standbyDetails.setNetworkLatencyInMs(drUtil.getSiteNetworkLatency(uuid));
             Date lastSyncTime = getLastSyncTime(standby);
             if (lastSyncTime != null) {
                 standbyDetails.setLastSyncTime(lastSyncTime);

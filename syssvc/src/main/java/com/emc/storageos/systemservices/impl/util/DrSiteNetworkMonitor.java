@@ -6,12 +6,16 @@
 package com.emc.storageos.systemservices.impl.util;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.Site.NetworkHealth;
+import com.emc.storageos.coordinator.client.model.SiteNetworkLatency;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.services.util.AlertsLogger;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,10 +100,12 @@ public class DrSiteNetworkMonitor implements Runnable{
         }
 
         Site active = drUtil.getActiveSite();
-        if (!Site.NetworkHealth.GOOD.equals(active.getNetworkHealth()) || active.getNetworkLatencyInMs() != 0) {
-            active.setNetworkHealth(Site.NetworkHealth.GOOD);
-            active.setNetworkLatencyInMs(0);
-            coordinatorClient.persistServiceConfiguration(active.toConfiguration());
+        SiteNetworkLatency activeLatency = coordinatorClient.getTargetInfo(active.getUuid(), SiteNetworkLatency.class);
+        if (!NetworkHealth.GOOD.equals(active.getNetworkHealth()) || activeLatency.getNetworkLatencyInMs() != 0) {
+
+            activeLatency.setNetworkLatencyInMs(0);
+            coordinatorClient.setTargetInfo(active.getUuid(), activeLatency);
+            updateNetworkHealth(active.getUuid(),NetworkHealth.GOOD);
         }
 
         for (Site site : drUtil.listStandbySites()){
@@ -107,8 +113,8 @@ public class DrSiteNetworkMonitor implements Runnable{
                 _log.info("Skip site {} for network health check", site.getSiteShortId());
                 continue;
             }
-            
-            Site.NetworkHealth previousState = site.getNetworkHealth();
+            SiteNetworkLatency siteLatency = coordinatorClient.getTargetInfo(site.getUuid(), SiteNetworkLatency.class);
+            NetworkHealth previousState = site.getNetworkHealth();
             String host = site.getVipEndPoint();
             double ping = drUtil.testPing(host, SOCKET_TEST_PORT, NETWORK_TIMEOUT);
 
@@ -121,29 +127,58 @@ public class DrSiteNetworkMonitor implements Runnable{
             }
 
             _log.info("Ping: "+ping);
-            site.setNetworkLatencyInMs(ping);
+            siteLatency.setNetworkLatencyInMs(ping);
             if (ping > NETWORK_SLOW_THRESHOLD) {
-                site.setNetworkHealth(Site.NetworkHealth.SLOW);
+                site.setNetworkHealth(NetworkHealth.SLOW);
                 _log.warn("Network for standby {} is slow",site.getName());
                 AlertsLogger.getAlertsLogger().warn(String.format("Network for standby {} is Broken:" +
                         "Latency was reported as {} ms",site.getName(),ping));
             }
             else if (ping < 0) {
-                site.setNetworkHealth(Site.NetworkHealth.BROKEN);
+                site.setNetworkHealth(NetworkHealth.BROKEN);
                 _log.error("Network for standby {} is broken",site.getName());
                 AlertsLogger.getAlertsLogger().error(String.format("Network for standby {} is Broken:" +
                         "Latency was reported as {} ms",site.getName(),ping));
             }
             else {
-                site.setNetworkHealth(Site.NetworkHealth.GOOD);
+                site.setNetworkHealth(NetworkHealth.GOOD);
             }
 
-            coordinatorClient.persistServiceConfiguration(site.toConfiguration());
+            coordinatorClient.setTargetInfo(site.getUuid(), siteLatency);
 
-            if (!Site.NetworkHealth.BROKEN.equals(previousState)
-                    && Site.NetworkHealth.BROKEN.equals(site.getNetworkHealth())){
+            if (!previousState.equals(site.getNetworkHealth())){
+                updateNetworkHealth(site.getUuid(),site.getNetworkHealth());
+            }
+
+            if (!NetworkHealth.BROKEN.equals(previousState)
+                    && NetworkHealth.BROKEN.equals(site.getNetworkHealth())){
                 //send email alert
                 mailHandler.sendSiteNetworkBrokenMail(site);
+            }
+        }
+    }
+
+    private void updateNetworkHealth(String siteId, NetworkHealth networkHealth){
+        //Network state changed, Acquire lock for changing network state in Site
+        InterProcessLock lock;
+        try {
+            lock = drUtil.getDROperationLock();
+        } catch (APIException e) {
+            _log.warn("There are ongoing dr operations. Try again later.");
+            return;
+        }
+
+        try {
+            Site siteUpdate = drUtil.getSiteFromLocalVdc(siteId);
+            siteUpdate.setNetworkHealth(networkHealth);
+            coordinatorClient.persistServiceConfiguration(siteUpdate.toConfiguration());
+        } catch (Exception e) {
+            _log.error("Failed to update network information for site. Try again later", e);
+        } finally {
+            try {
+                lock.release();
+            } catch (Exception e) {
+                _log.error("Failed to release the dr operation lock", e);
             }
         }
     }

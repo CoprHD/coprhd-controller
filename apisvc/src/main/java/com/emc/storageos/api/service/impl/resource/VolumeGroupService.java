@@ -3134,8 +3134,13 @@ public class VolumeGroupService extends TaskResourceService {
                 }
 
                 // check mirrors
-                StringSet mirrors = volume.getMirrors();
-                if (mirrors != null && !mirrors.isEmpty()) {
+                Map<URI, Volume> volumesToUpdate = new HashMap<URI, Volume>();
+                boolean hasMirrors = hasMirrors(dbClient, volume, volumesToUpdate);
+                // clean up stale mirror entries
+                if (!volumesToUpdate.isEmpty()) {
+                    dbClient.updateObject(volumesToUpdate.values());
+                }
+                if (hasMirrors) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "Volume has mirror");
                 }
@@ -3182,6 +3187,21 @@ public class VolumeGroupService extends TaskResourceService {
                         volume = dbClient.queryObject(Volume.class, volume.getId());
                     }
                 }
+
+                // check to see if the volume in the request is already in a replication group
+                if (param.getAddVolumesList().getReplicationGroupName() != null) {
+                    String replicationGroupInstance = volume.getReplicationGroupInstance();
+                    if (volume.isVPlexVolume(dbClient)) {
+                        replicationGroupInstance = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient).getReplicationGroupInstance();
+                    }
+                    if (NullColumnValueGetter.isNotNullValue(replicationGroupInstance)) {
+                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                                String.format(
+                                        "the volume is already a member of an array replication group: %s; Application Sub Group should be left blank",
+                                        replicationGroupInstance));
+                    }
+                }
+
                 volumes.add(volume);
                 impactedCGs.add(volume.getConsistencyGroup());
             }
@@ -3229,6 +3249,9 @@ public class VolumeGroupService extends TaskResourceService {
                                 }
                             }
                         }
+                    } else {
+                        URI storage = volToAdd.getStorageController();
+                        backendVolSystemCGMap.put(storage, cgURI);
                     }
                 }
                 if (volumesInReplicationGroup != null && !volumesInReplicationGroup.isEmpty()) {
@@ -3275,6 +3298,38 @@ public class VolumeGroupService extends TaskResourceService {
             }
 
             return volumes;
+        }
+
+        /**
+         * @param dbClient
+         * @param volume
+         * @param volumesToUpdate
+         * @return
+         */
+        private boolean hasMirrors(DbClient dbClient, Volume volume, Map<URI, Volume> volumesToUpdate) {
+            boolean hasMirrors = false;
+            StringSet mirrors = volume.getMirrors();
+            if (mirrors == null) {
+                if (volume.isVPlexVolume(dbClient)) {
+                    Volume backingVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
+                    if (backingVol != null && !backingVol.getInactive()) {
+                        mirrors = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient).getMirrors();
+                    }
+                }
+            }
+            if (mirrors != null) {
+                for (String mirrorId : mirrors) {
+                    BlockMirror mirror = dbClient.queryObject(BlockMirror.class, URI.create(mirrorId));
+                    if (mirror != null && !mirror.getInactive()) {
+                        hasMirrors = true;
+                        break;
+                    } else {
+                        volume.getMirrors().remove(mirrorId);
+                        volumesToUpdate.put(volume.getId(), volume);
+                    }
+                }
+            }
+            return hasMirrors;
         }
 
         /**

@@ -15,7 +15,6 @@ import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.AddVolumesToApplication;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
 
 @Service("AddVolumesToApplication")
@@ -42,18 +41,7 @@ public class AddVolumesToApplicationService extends ViPRService {
                 && BlockProviderUtils.getApplicationReplicationGroupNames(getClient(), applicationId).contains(newApplicationSubGroup)) {
             ExecutionUtils.fail("failTask.AddVolumesToApplicationService.subGroupUnique.precheck", new Object[] {});
         }
-        // if volumes in application are either vplex or RP, application sub group is mandatory
-        if (volumeIds != null && !volumeIds.isEmpty()) {
-            VolumeRestRep vol = getClient().blockVolumes().get(URI.create(volumeIds.iterator().next()));
-            if (BlockProviderUtils.isVolumeRP(vol) || BlockProviderUtils.isVolumeVPLEX(vol)) {
-                replicationGroup = fieldIsPopulated(newApplicationSubGroup) ? newApplicationSubGroup : existingApplicationSubGroup;
-                if (replicationGroup == null || replicationGroup.isEmpty()) {
-                    ExecutionUtils.fail("failTask.AddVolumesToApplicationService.subGroupRequired.precheck", new Object[] {});
-                }
-            }
-        } else {
-            ExecutionUtils.fail("failTask.AddVolumesToApplicationService.volumes.precheck", new Object[] {});
-        }
+        replicationGroup = fieldIsPopulated(newApplicationSubGroup) ? newApplicationSubGroup : existingApplicationSubGroup;
     }
 
     @Override

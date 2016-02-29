@@ -64,7 +64,6 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfo;
@@ -119,7 +118,8 @@ public class CoordinatorClientExt {
     private volatile boolean stopCoordinatorSvcMonitor; // default to false
     
     private DbServiceStatusChecker statusChecker = null;
-
+    private boolean backCompatPreYoda = true;
+    
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
     }
@@ -155,6 +155,10 @@ public class CoordinatorClientExt {
         return this.drUtil;
     }
 
+    public void setBackCompatPreYoda(Boolean backCompat) {
+        backCompatPreYoda = backCompat;
+    }
+    
     /**
      * Get property
      * 
@@ -628,9 +632,18 @@ public class CoordinatorClientExt {
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(ConfigVersion.class,
                     CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             Site site = drUtil.getSiteFromLocalVdc(siteId);
-            final ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId,
+            ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId,
                     site.getNodeCount());
 
+            // if backCompatPreYoda flag is true, it's still in the middle of yoda upgrade. Probably it is 
+            // rotating ipsec key. We should report upgrade in progress on UI
+            if (backCompatPreYoda && ClusterInfo.ClusterState.STABLE.equals(controlNodesState)) {
+                if (!drUtil.isMultivdc()) {
+                    _log.info("Back compat flag for preyoda is true. ");
+                    controlNodesState = ClusterInfo.ClusterState.UPDATING;
+                }
+            }
+            
             // construct cluster information by both control nodes and extra nodes.
             // cluster state is determined both by control nodes' state and extra nodes
             return toClusterInfo(controlNodesState, controlNodesInfo, controlNodesConfigVersions, targetRepository,

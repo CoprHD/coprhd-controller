@@ -77,6 +77,14 @@ _set_traps() {
      if [ -n "${*}" ] ; then set "${@}" ; fi
 }
 
+lock_file=/tmp/${0##*/}.lock
+lock_timeout=${lock_timeout:-30}
+
+_x() {
+    ( _set_traps -E && flock -x -w "${lock_timeout}" 200 && "${@}"  ) 200>${lock_file}
+}
+
+
 _get_version() {
     local dir=$(readlink ${1})
     local dirname=$(basename ${dir})
@@ -260,16 +268,16 @@ _rebase_snapshot() {
 #_set_traps -E
 case ${#} in
     2)  case ${1} in
-            --list)                   _list "${2}" ;;
-            --create-snapshot)        _create_snapshot      "${2}" ;;
-            --revert-snapshot)        _revert_snapshot      "${2}" ;;
-            --rebase-snapshot)        _rebase_snapshot      "${2}" ;;
-            --purge-unused-versions)  _purge_unused_versions "${2}" ;;
+            --list)                   _x _list "${2}" ;;
+            --create-snapshot)        _x _create_snapshot      "${2}" ;;
+            --revert-snapshot)        _x _revert_snapshot      "${2}" ;;
+            --rebase-snapshot)        _x _rebase_snapshot      "${2}" ;;
+            --purge-unused-versions)  _x _purge_unused_versions "${2}" ;;
             *)                        _usage
         esac;;
     3)  case ${1} in 
-            --create-version)          _create_version  "${2}" "${3}" ;;
-            --set-version)             _create_version  "${2}" "${3}" ;;
+            --create-version)          _x _create_version  "${2}" "${3}" ;;
+            --set-version)             _x _create_version  "${2}" "${3}" ;;
             *)                        _usage
         esac;;
     *)  _usage

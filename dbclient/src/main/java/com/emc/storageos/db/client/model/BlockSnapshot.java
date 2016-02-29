@@ -92,12 +92,13 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
 
     // This value is an indicator if the snapshot is read only or writable
     private Boolean _isReadOnly;
-    //Mode used to create this snapshot. 
-    //NO_COPY - for VMAX2,VNX, VMAX3 sessions
-    //COPY - supported only on VMAX3 sessions
+
+    // Mode used to create this snapshot.
+    // NO_COPY - for VMAX2, VNX, VMAX3 sessions
+    // COPY - supported only on VMAX3 sessions
     private String copyMode = CopyMode.nocopy.toString();
     
- // Enum defines copy modes for array snapshot sessions.
+    // Enum defines copy modes for array snapshot sessions.
     public enum CopyMode {
         copy,
         nocopy

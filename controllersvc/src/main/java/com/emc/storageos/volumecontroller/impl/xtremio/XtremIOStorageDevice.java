@@ -423,6 +423,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     private boolean checkIfVolumeExistsInCG(List<List<Object>> volList, Volume volume) {
         for (List<Object> vols : volList) {
             if (null != vols.get(1)) {
+                // vols contains 3 volume related elements. The second element is the device
+                // name, which we will use to match against the provided volume's label.
                 String cgVolLabel = vols.get(1).toString();
                 if (cgVolLabel.equalsIgnoreCase(volume.getLabel())) {
                     return true;

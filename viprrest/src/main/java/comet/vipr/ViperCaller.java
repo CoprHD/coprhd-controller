@@ -29,8 +29,14 @@ public class ViperCaller {
         
     }
     
-    public List<URI> getHosts(){
-        return client.hosts().listBulkIds();
+    public List<String> getHosts(){
+    	List<URI> hostURILists = client.hosts().listBulkIds();
+    	List<String> hostNameList = null;
+    	for( URI hostURI:hostURILists ) {
+    		hostNameList.add(hostURI.getHost());
+    		
+    	}
+    	return hostNameList;
     }
     
     public Tasks<VolumeRestRep> createVolume(URI sourceVolumeURI, URI targetVirtualPoolId){
@@ -39,11 +45,8 @@ public class ViperCaller {
     	URI project = client.blockVolumes().get(sourceVolumeURI).getProject().getId();
     	String sourceVolumeName = client.blockVolumes().get(sourceVolumeURI).getName();
     	String size = client.blockVolumes().get(sourceVolumeURI).getCapacity();
-    	
     	List<RelatedResourceRep> resourceList = client.blockVpools().get(targetVirtualPoolId).getVirtualArrays();
-    	
     	RelatedResourceRep vArray=resourceList.get(0);
-    	
     	VolumeCreate create = new VolumeCreate(sourceVolumeName+"Target_2", size, 1, targetVirtualPoolId, vArray.getId(), project);
     	
     	return client.blockVolumes().create(create);
@@ -61,7 +64,8 @@ public class ViperCaller {
     		for(ExportGroupRestRep export:hostExportGroupList ) {
     			List<ExportBlockParam> volumes = client.blockExports().get(export.getId()).getVolumes();
     			volumes.add(new ExportBlockParam(targetVolumeURI, null));
-    			client.blockExports().get(export.getId());
+
+    			client.blockExports().get(export.getId()).setVolumes(volumes);
     			export.setVolumes(volumes);
     			return true;
     		}
@@ -79,6 +83,7 @@ public class ViperCaller {
     	}*/
     	return false;
     	
+>>>>>>> 9597067ed399e1fb97ae9bc24aae5ba99d3ffb6f
     }
     
     public Tasks<VolumeRestRep> migrate(URI hostURI, URI sourceVolumeURI, URI targetVolumeURI){

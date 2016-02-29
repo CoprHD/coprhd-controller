@@ -16,6 +16,15 @@
  */
 package com.emc.storageos.driver.scaleio;
 
+import java.util.*;
+
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.driver.scaleio.api.restapi.response.*;
@@ -26,14 +35,6 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
-import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
@@ -979,7 +980,43 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask discoverStorageHostComponents(StorageSystem storageSystem, List<StorageHostComponent> embeddedStorageHostComponents) {
-        return null;
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.DISCOVER_STORAGE_HOSTS));
+        try {
+            log.info("StorageDriver: Discovery of storage hosts for storage system {}, name {} - Start", storageSystem.getNativeId(),
+                    storageSystem.getSystemName());
+            ScaleIORestClient scaleIOHandle = getConnInfoFromRegistry(storageSystem);
+            if (scaleIOHandle != null) {
+                List<ScaleIOSDC> allSDCs = scaleIOHandle.queryAllSDC();
+                for (ScaleIOSDC sdc : allSDCs) {
+                    StorageHostComponent host;
+                    if (sdc != null) {
+                        host = new StorageHostComponent();
+                        host.setNativeId(sdc.getSdcIp());
+                        host.setHostName(sdc.getSdcIp());
+                        host.setDisplayName(sdc.getMdmConnectionState());
+                        Initiator initiator = new Initiator();
+                        initiator.setPort(sdc.getId());
+                        initiator.setProtocol(Initiator.Protocol.ScaleIO);
+                        Set<Initiator> iniSet = new HashSet<>();
+                        iniSet.add(initiator);
+                        host.setInitiators(iniSet);
+                        embeddedStorageHostComponents.add(host);
+                    }
+                }
+                task.setStatus(DriverTask.TaskStatus.READY);
+                log.info("StorageDriver: Discovery of storage hosts for storage system {}, name {} - End", storageSystem.getIpAddress(),
+                        storageSystem.getSystemName());
+            } else {
+                log.info("StorageDriver: Failed to get an handle for the storage system {}, name {}", storageSystem.getIpAddress(),
+                        storageSystem.getSystemName());
+                task.setStatus(DriverTask.TaskStatus.FAILED);
+            }
+        } catch (Exception e) {
+            log.error("StorageDriver: Discovery of storage hosts failed for the storage system {}, name {}", storageSystem.getIpAddress(),
+                    storageSystem.getSystemName());
+            task.setStatus(DriverTask.TaskStatus.ABORTED);
+        }
+        return task;
     }
 
     /**
@@ -1214,4 +1251,5 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
             return null;
         }
     }
+
 }

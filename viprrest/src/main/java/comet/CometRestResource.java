@@ -35,7 +35,7 @@ public class CometRestResource {
     @GET
     @Path("hosts")
     @Produces(MediaType.TEXT_XML)
-    public List<URI> getHosts() {
+    public List<String> getHosts() {
         ViperCaller vipr = new ViperCaller();
         
        return vipr.getHosts();
@@ -44,7 +44,7 @@ public class CometRestResource {
     
     @GET
     @Path("migrate")
-    @Produces(MediaType.TEXT_XML)
+    @Produces(MediaType.APPLICATION_XML)
     public Tasks<VolumeRestRep> migrateVolume() throws Exception {
         
         System.out.println(" called migrate");

@@ -9,6 +9,7 @@ import com.emc.storageos.model.block.VolumeMigrate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
+import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -55,11 +56,14 @@ public class ViperCaller {
     }
     
     public boolean exportVolumeURI (URI hostURI, URI targetVolumeURI){
-    	
-    	List<ExportGroupRestRep> hostExportGroupList = client.blockExports().findByHost(hostURI, client.hosts().get(hostURI).getProject().getId(), 
-    															client.blockVolumes().get(targetVolumeURI).getVirtualArray().getId());
+        HostRestRep host = client.hosts().get(hostURI);
+        VolumeRestRep volume = client.blockVolumes().get(targetVolumeURI);
+        RelatedResourceRep project = volume.getProject();
+    	URI projectUri=project.getId();
+    	URI vArray = client.blockVolumes().get(targetVolumeURI).getVirtualArray().getId();
+    	        
+    	List<ExportGroupRestRep> hostExportGroupList = client.blockExports().findByHost(hostURI,projectUri ,vArray);
     	if(hostExportGroupList != null) {
-    		
     		
     		for(ExportGroupRestRep export:hostExportGroupList ) {
     			List<ExportBlockParam> volumes = client.blockExports().get(export.getId()).getVolumes();
@@ -83,7 +87,22 @@ public class ViperCaller {
     	}*/
     	return false;
     	
->>>>>>> 9597067ed399e1fb97ae9bc24aae5ba99d3ffb6f
+    }
+    
+    
+    public boolean doExport(URI sourceVolumeURI, URI hostURI, URI targetVirtualPoolId){
+        
+        
+        boolean result =false;
+        Tasks<VolumeRestRep> volumeTask = createVolume(sourceVolumeURI, targetVirtualPoolId);
+        
+        List<VolumeRestRep> volumeList= volumeTask.get();
+        
+        URI targetVolumeURI = volumeList.get(0).getId();
+        
+        result = exportVolumeURI (hostURI, targetVolumeURI);
+        
+        return result;
     }
     
     public Tasks<VolumeRestRep> migrate(URI hostURI, URI sourceVolumeURI, URI targetVolumeURI){

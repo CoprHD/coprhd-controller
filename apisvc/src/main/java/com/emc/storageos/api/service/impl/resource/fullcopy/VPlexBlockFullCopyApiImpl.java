@@ -29,6 +29,7 @@ import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
 import com.emc.storageos.api.service.impl.resource.TenantsService;
 import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
+import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -800,8 +801,8 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // Invoke the controller.
         try {
-            VPlexController controller = getController(VPlexController.class,
-                    DiscoveredDataObject.Type.vplex.toString());
+            BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
             controller.restoreFromFullCopy(sourceSystemURI, new ArrayList<URI>(
                     fullCopyURIs), taskId);
         } catch (InternalException ie) {

@@ -14,7 +14,6 @@ import org.apache.curator.framework.recipes.barriers.DistributedBarrier;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.curator.framework.recipes.barriers.DistributedDoubleBarrier;
 
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
@@ -22,6 +21,7 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.Service;
@@ -30,12 +30,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
-import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
-import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 
@@ -675,8 +673,8 @@ public abstract class VdcOpHandler {
                 waitForOldActiveZKLeaderDown(oldActiveSite);
                 
                 flushVdcConfigToLocal();
-                proccessSingleNodeSiteCase();
                 refreshCoordinator();
+                proccessSingleNodeSiteCase();
                 
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE, site.getNodeCount());
             } else {
@@ -1216,7 +1214,7 @@ public abstract class VdcOpHandler {
             } else {
                 log.warn("Only Part of nodes entered within {} seconds at path {}", timeout, barrierPath);
                 // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
-                barrier.leave(); 
+                barrier.leave(timeout, TimeUnit.SECONDS); 
                 throw new Exception("Only Part of nodes entered within timeout");
             }
         }

@@ -2358,8 +2358,8 @@
     },
     {
         key : "backup_scheduler_copies_to_keep",
-        label : "Backup Retention Number",
-        description : "Maximum number of scheduled backups",
+        label : "Backup Max Copies",
+        description : "The maximum number of scheduled backup copies to save on the ViPR nodes. Once this is reached, older scheduled backup copies are deleted from the nodes so that newer ones can be saved",
         type : "uint32",
         allowedValues : ( "0", "1", "2", "3", "4", "5" ),
         tag : "Backup",
@@ -2402,7 +2402,7 @@
     {
         key : "backup_max_manual_copies",
         label : "Backup Max Copies",
-        description : "Maximum number of manually created backup copies, kept on system",
+        description : "The maximum number of manually created backup copies to save on the ViPR nodes. Once this is reached, no copies can be created until you manually delete the older manually created copies from the nodes",
         type : "uint32",
         allowedValues : ( "0", "1", "2", "3", "4", "5" ),
         tag : "Backup",

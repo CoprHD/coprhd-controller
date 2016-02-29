@@ -22,6 +22,10 @@ public class VolumeMigrate {
     private URI sourceVolumeURI;
     private URI targetVolumeURI;
     
+    public VolumeMigrate() {
+    	
+    }
+    
     public VolumeMigrate(URI hostURI, URI sourceVolumeURI, URI targetVolumeURI) {
 		
 		this.hostURI = hostURI;

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="../../assets/ico/favicon.ico">
+	<title>ViPR Servers/Networks</title>
+	
+	<!--------------------------------------------------------------------------------------------------->
+    <!-- CSS Includes
+    <!--------------------------------------------------------------------------------------------------->
+    <!-- Twitter Bootstrap core CSS -->
+    <link href="./bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./bootstrap/css/fun.css" rel="stylesheet">
+</head>
+<body>
+	<div class="container-fluid">
+		<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+				<div class="container-fluid">
+					<div class="navbar-header">
+						<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+							<span class="sr-only">Toggle navigation</span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+						</button>
+						<a class="navbar-brand" href="#">ViPR Infrastructure Servers/Network IP addresses</a>
+					</div>
+				</div>
+		</div>
+		<ul class="nav nav-tabs network-tabs">
+			<li class="active"><a href="#Network" data-toggle="tab">Network Details</a></li>
+			<li><a href="#contacts" data-toggle="tab">Contacts</a></li>
+			<li><a href="#smtp" data-toggle="tab">SMTP</a></li>
+			<li><a href="#viprIP" data-toggle="tab">IP addresses</a></li>
+		</ul>
+		
+		<div class="tab-content">
+			<div class="tab-pane fade in active col-md-6 form-horizontal vipr-network" id="Network">
+				
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR Network Mask"> Network Mask</label>
+						</div>
+						<div class="col-md-8 dropdown">
+							<input type="text" id="ViPR-network-mask" class="form-control" placeholder="Enter the ViPR instance Networking mask">
+						
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="Gateway"> Gateway</label>
+						</div>
+						<div class="col-md-8 dropdown">
+							<input type="text" id="ViPR-gateway" class="form-control" placeholder="Enter the ViPR instance Gateway IP">
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR IPV6 prefix length"> IPV6 prefix length</label>
+						</div>
+						<div class="col-md-8 dropdown">
+							<input type="text" id="ViPR-ipv6" class="form-control" placeholder="Enter the ViPR ipv6 prefix length">
+						</div>
+						
+					</div>
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance DNS server"> ViPR Primary DNS server</label>
+						</div>
+						<div class="col-md-8">
+							<input type="text" id="ViPR-p-DNS-server" class="form-control" placeholder="Enter the ViPR instance primary DNS server">
+						</div>
+					</div>	
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance DNS server"> ViPR Secondary DNS server</label>
+						</div>
+						<div class="col-md-8">
+							<input type="text" id="ViPR-s-DNS-server" class="form-control" placeholder="Enter the ViPR instance Secondary DNS server">
+						</div>
+					</div>		
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance NTP server"> ViPR Primary NTP server</label>
+						</div>
+						<div class="col-md-8">
+							<input type="text" id="ViPR-p-NTP-server" class="form-control" placeholder="Enter the ViPR instance primary NTP server">
+						</div>
+					</div>	
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance NTP server"> ViPR Secondary NTP server</label>
+						</div>
+						<div class="col-md-8">
+							<input type="text" id="ViPR-s-NTP-server" class="form-control" placeholder="Enter the ViPR instance Secondary NTP server">
+						</div>
+					</div>	
+				</div>
+				
+				<div class="tab-pane fade col-md-12 form-horizontal contact" id="contacts">
+					<div class="container-fluid col-md-6">					
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="EMC encrytion"> Connect EMC encryption</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="EMCencryption" class="form-control" placeholder="Enter the details to connect EMC encryption">
+							</div>
+						</div>	
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="EMC transport"> Connect EMC transport</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="EMCtransport" class="form-control" placeholder="Enter the details to connect EMC transport">
+							</div>
+						</div>		
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="FTPS host name"> FTPS Hostname</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="FTPS" class="form-control" placeholder="Enter the FTPS hostname">
+							</div>
+						</div>	
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="SMTP mail notification"> SMTP mail notificationr</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="SMTP" class="form-control" placeholder="SMTP mail notification">
+							</div>
+						</div>	
+					</div>
+					
+					
+				</div>
+				<div class="tab-pane fade col-md-12 form-horizontal smtp" id="smtp">
+					<div class="container-fluid col-md-6">					
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="mail server">SMTP Mail server</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="SMTPserver" class="form-control" placeholder="Enter the SMTP server detail">
+							</div>
+						</div>	
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="TSL/SSL"> TSL/SS(Y/N)</label>
+							</div>
+							<div class="col-md-8">
+								<Select class="form-control">
+									<option>Yes</option>
+									<option>No</option>
+								</Select>
+							</div>
+						</div>		
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="SMTP-authentication"> SMTP authentication</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="FTPS" class="form-control" placeholder="Enter the Authentication type for connecting to SMTP server">
+							</div>
+						</div>	
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="SMTP username"> SMTP username</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="SMTP" class="form-control" placeholder="Enter the SMTP username">
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="SMTP From address"> SMTP From Address</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="SMTP" class="form-control" placeholder="Enter the From email address for sending email messages">
+							</div>
+						</div>	
+					</div>
+					
+					
+				</div>
+				<div class="tab-pane fade col-md-12 form-horizontal VIPR-IP" id="viprIP">
+					<div class="container-fluid col-md-6">					
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="Public ViPR Virtual IP">Public ViPR Virtual IP</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="PublicViPRIP" class="form-control" placeholder="Enter the Public ViPR Virtual IP"">
+							</div>
+						</div>	
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="ViPR Controller IP1"> ViPR Controller IP1</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="ViPRcntrlIP1" class="form-control" placeholder="Enter the ViPR Controller IP1"">
+							</div>
+						</div>		
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="ViPR Controller IP2"> SMTP ViPR Controller IP2</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="ViPRcntrlIP2" class="form-control" placeholder="Enter the ViPR Controller IP2">
+							</div>
+						</div>	
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="ViPR Controller IP3">ViPR Controller IP3</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="ViPRcntrlIP3" class="form-control" placeholder="Enter the SViPR Controller IP3">
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="ViPR Controller IP4"> ViPR Controller IP4</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="ViPRcntrlIP4" class="form-control" placeholder="Enter the ViPR Controller IP4">
+							</div>
+						</div>	
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="ViPR Controller IP5"> ViPR Controller IP5</label>
+							</div>
+							<div class="col-md-8">
+								<input type="text" id="ViPRcntrlIP5" class="form-control" placeholder="Enter the ViPR Controller IP5">
+							</div>
+						</div>
+					</div>
+					
+					
+				</div>
+				
+			
+		</div>
+		
+		
+	</div>
+	
+	<script src="./bootstrap/js/jquery.js"></script>
+
+	<!-- Twitter Bootstrap -->
+	<script src="./bootstrap/js/bootstrap.min.js"></script>
+</body>
+</html>

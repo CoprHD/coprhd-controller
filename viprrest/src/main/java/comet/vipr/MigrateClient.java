@@ -9,9 +9,9 @@ public class MigrateClient {
     private static ViPRCoreClient viprCoreClient;
     private static MigrateClient clientObj;
     
-    private final String VIPR_IP = "";
-    private final String VIPR_USER= "";
-    private final String VIPR_PASSWORD = "";
+    private final String VIPR_IP = "lglbv223.lss.emc.com";
+    private final String VIPR_USER= "root";
+    private final String VIPR_PASSWORD = "ChangeMe1!";
     
     
     private MigrateClient(){

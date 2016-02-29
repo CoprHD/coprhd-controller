@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="ISO-8859-1">
+	<title>Define ViPR VDC</title>
+
+
+	<link rel="shortcut icon" href="../../assets/ico/favicon.ico">
+	 
+	
+	
+	<!-- Twitter Bootstrap core CSS -->
+    <link href="./bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./bootstrap/css/fun.css" rel="stylesheet">
+</head>
+<body>
+	<script src="./bootstrap/js/ViPR.js"></script>
+	<div class="container-fluid">
+		<div class="navbar navbar-inverse navbar-fixed-top">
+				<div class="container-fluid">
+					<div class="navbar-header">
+						<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+							<span class="sr-only">Toggle navigation</span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+						</button>
+						<a class="navbar-brand" href="#">Defining ABC INCs ViPR Starter Pack Virtual Data Center`</a>
+					</div>
+				</div>
+		</div>
+		<h1> Please Enter your ViPR Virtual Data center Details</h1>
+		
+		<form class="form-horizontal viprvdc jumbotron  " >
+			<div class="container-fluid col-md-6 viprvdc1">
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="version of ESXi or hyper-v on which vipr will be installed">1. Version of ESX,ESXi or Hyper-v for ViPR installation </label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control ESxiVersion" id="version1">
+							<option> 5.0 </option>
+							<option> 5.1 </option>
+							<option> 5.5 </option>
+							<option> VMFS 5 </option>
+							<option> Hyper_v_server2012R2</option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="VIPR nodes">2. ViPR controller HA options </label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control viprNodes" id="viprNodes1">
+							<option>  </option>
+							<option> 2+1 </option>
+							<option> 3+2 </option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="will ViPR sol pack added to ViPR SRm">3. Will ViPR Solution pack added to ViPR SRM server</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control ViPRSolPak" id="ViPRSolPak1">
+							<option> NO </option>
+							<option> Yes </option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="how many arrays manages by ViPR">4. Number of arrays to be managed by ViPR</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control ViPRArrays" id="ViPRArrays1">
+							<option> 0 </option>
+							<option> 1 </option>
+							<option> 2 </option>
+							<option> 3 </option>
+							<option> 4 </option>								
+						</select>
+					</div>
+				</div>	
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="will ViPR manage VMAX or VNX">5. Will ViPR manage VMAX or VNX arrays</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control VMAXVNX" id="VMAXVNX1">
+							<option> NO </option>
+							<option> Yes </option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="will ViPR manage IBMXIV aray">6. Will ViPR manage IBMXIV arrays</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control IBMXIV" id="IBMXIV1">
+							<option> NO </option>
+							<option> Yes </option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="will ViPR manage scaleIO">7. Will ViPR manage scaleIO</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control scaleIO" id="scaleIO1">
+							<option> NO </option>
+							<option> Yes </option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="how many servers vipr manage">8. Number of servers ViPR will manage</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control NumberofServers" id="NumberofServers1">
+							<option> 0 </option>
+							<option> 1 </option>
+							<option> 2 </option>
+							<option> 3 </option>
+							<option> 4 </option>
+						</select>
+					</div>
+				</div>
+			</div>
+			<div class="container-fluid col-md-6 viprvdc1">
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="Number of vCenters managed by ViPR">9. Number of vCenter servers to be managed by ViPR </label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control vcenters" id="vcenters1">
+							<option> 0 </option>
+							<option> 1 </option>						
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="VIPR nodes">10. Number of Fabrics managed by ViPR</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control Fabrics" id="Fabrics1">
+							<option> 0 </option>
+							<option> 1 </option>
+							<option> 2 </option>
+							<option> 3 </option>
+							<option> 4 </option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="will ViPR sol pack added to ViPR SRm">11. Will ViPR manage Brocade or cisco fabric</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control brocadeCisco" id="brocadeCisco1">
+							<option> Brocade </option>
+							<option> Cisco </option>
+							<option> Brocade & Cisco </option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="how many arrays manages by ViPR">12. ViPR containing vplex-environment</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control vplex" id="vplex1">
+							<option>  </option>
+							<option> No VPLEX </option>
+							<option> VPLEX Local Greenfield </option>
+							<option> VPLEX Local Brownfield </option>								
+						</select>
+					</div>
+				</div>	
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="Number of filesystems managed by ViPR">13. Number of filesystems managed by ViPR </label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control filesytems" id="filesytems1">
+						<option> 0 </option>
+							<option> 1 </option>
+							<option> 2 </option>
+							<option> 3 </option>
+							<option> 4 </option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="Number of NFS managed by ViPR">14. Number of NFS managed by ViPR</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control NFS" id="NFS1">
+							<option> 0 </option>
+							<option> 1 </option>
+							<option> 2 </option>
+							<option> 3 </option>
+							<option> 4 </option>
+						</select>
+					</div>
+				</div>
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="Number of CIFS managed by ViPR">15. Number of CIFS managed by ViPR</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control scaleIO" id="CIFS1">
+							<option> 0 </option>
+							<option> 1 </option>
+							<option> 2 </option>
+							<option> 3 </option>
+							<option> 4 </option>
+						</select>
+					</div>
+				</div>
+				
+			
+			</div>
+			<div class="btn-save" >
+				<button type="button" class="btn btn-primary btn-lg" onclick="collectInformation()"> SAVE </button>
+			</div>
+			
+		</form>	
+		<div class="next-button">
+			<button type="button" class="btn btn-primary btn-lg" id="VDCnext" data-toggle="modal" data-target="#Infrastructure" >NEXT</button>
+		</div>	
+		
+	</div>
+	
+	<div class="container-fluid modal fade Physical" id="Infrastructure" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<div class="navbar navbar-inverse navbar-fixed-top">
+						<div class="container-fluid">
+							<div class="navbar-header">
+								<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+									<span class="sr-only">Toggle navigation</span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+								</button>
+								<a class="navbar-brand" href="#">ViPR Sites and GEO VDC Sites</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-body form-horizontal  ">
+					<ul class="nav nav-tabs my-tabs">
+						<li class="active"><a href="#servers2" data-toggle="tab">Array Selection</a></li>
+						<li><a href="#serversSelection2" data-toggle="tab" >Server Selection</a></li>
+						<li><a href="#fabricsSelection2" data-toggle="tab" >FC SAN Selection</a></li>
+					</ul>
+					<div class="tab-content " id="tabcontentFull">	
+						<div class=" tab-pane fade in active container-fluid form-horizontal col-md-12 " id="servers2">				
+							<div class="form-group col-md-6 servers" id="servers1">
+								
+							
+							</div>						
+					
+							<div class="container -fluid col-md-6 form horizontal versions" id="supportedVersions"> 
+						
+						
+							</div>
+							
+						</div>
+						<div class="tab-pane fade container-fluid form-horizontal col-md-12 serverSelectionBody" id="serversSelection2">
+							<div class="form-group col-md-6 serversSelection" id="serversSelection1">
+								
+							
+							
+							</div>
+							<div class="container -fluid col-md-6 form horizontal serverVersions" id="serverSupportedVersions"> 
+						
+						
+							</div>											
+						</div>
+						<div class="tab-pane fade container-fluid form-horizontal col-md-12 FabricSelectionBody" id="fabricsSelection2">
+							<div class="form-group col-md-6 fabricsSelection" id="fabricsSelection1">
+								
+							
+							
+							</div>
+							<div class="container -fluid col-md-6 form horizontal fabricVersions" id="FabricSupportedVersions"> 
+						
+						
+							</div>		
+							<div class ="SaveButton col-md-12" id="AllSaveButton">
+								<button type="button" class="btn btn-primary btn-lg" id="AllSave" data-toggle="modal" data-target="#ConsolidatedData" >SAVE</button>
+							</div>							
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>	
+		
+	</div>
+	
+	<div class="container-fluid modal fade Physical1" id="ConsolidatedData" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<div class="navbar navbar-inverse navbar-fixed-top">
+						<div class="container-fluid">
+							<div class="navbar-header">
+								<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+									<span class="sr-only">Toggle navigation</span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+								</button>
+								<a class="navbar-brand" href="#">Consolidated Data</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-body form-horizontal jumbotronstart">
+					<div  id="paragraphId">
+						
+					</div>
+					<div class="print-button">
+						<button type="button" class="btn btn-primary btn-lg" onclick="printContent()" id="printData">Print</button>
+					</div>
+				</div>
+			</div>			
+		</div>
+	</div>
+	
+	<script src="./bootstrap/js/jquery.js"></script>
+	<script src="./bootstrap/js/jquery.slimscroll.min.js"></script>
+	<!-- Twitter Bootstrap -->
+	<script src="./bootstrap/js/bootstrap.min.js"></script>
+	
+ 	
+</body>
+</html>

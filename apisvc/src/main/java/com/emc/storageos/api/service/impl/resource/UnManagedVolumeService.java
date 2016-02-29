@@ -479,6 +479,8 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.getProcessedUnManagedVolumeMap().put(
                         unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
 
+                requestContext.getVolumeContext().commit();
+
             } catch (APIException ex) {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class,
@@ -576,8 +578,6 @@ public class UnManagedVolumeService extends TaskResourceService {
 
                 // If there is a CG involved in the ingestion, organize, pollenate, and commit.
                 commitIngestedCG(requestContext, volumeContext.getUnmanagedVolume());
-
-                volumeContext.commit();
 
             } catch (APIException ex) {
                 _logger.warn(ex.getLocalizedMessage(), ex);

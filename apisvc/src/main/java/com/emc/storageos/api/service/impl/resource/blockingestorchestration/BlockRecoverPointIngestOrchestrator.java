@@ -182,7 +182,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
                 // Once we have a proper managed consistency group and protection set, we need to
                 // sprinkle those references over the managed volumes.
-                decorateVolumeInformationFinalIngest(volumeContext);
+                decorateVolumeInformationFinalIngest(volumeContext, unManagedVolume);
             } else {
                 volume.addInternalFlags(INTERNAL_VOLUME_FLAGS); // Add internal flags
             }
@@ -242,7 +242,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         rpVolumeContext.setManagedBlockObject(volume);
         if (null != _dbClient.queryObject(Volume.class, volume.getId())) {
-            rpVolumeContext.addDataObjectToUpdate(volume);
+            rpVolumeContext.addDataObjectToUpdate(volume, unManagedVolume);
         } else {
             rpVolumeContext.addBlockObjectToCreate(volume);
         }
@@ -543,7 +543,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         }
 
         // Set up the unmanaged protection set object to be updated
-        volumeContext.addDataObjectToUpdate(umpset);
+        volumeContext.addDataObjectToUpdate(umpset, unManagedVolume);
     }
 
     /**
@@ -555,8 +555,9 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * references within the Volume object so it will act like a native CoprHD-created RP volume.
      *
      * @param volumeContext the RecoverPointVolumeIngestionContext for the volume currently being ingested
+     * @param unManagedVolume the currently ingesting UnManagedVolume
      */
-    private void decorateVolumeInformationFinalIngest(IngestionRequestContext requestContext) {
+    private void decorateVolumeInformationFinalIngest(IngestionRequestContext requestContext, UnManagedVolume unManagedVolume) {
 
         RecoverPointVolumeIngestionContext volumeContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext();
         ProtectionSet pset = volumeContext.getManagedProtectionSet();
@@ -590,7 +591,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 continue;
             } else {
                 // add all volumes except the newly ingested one to the update list
-                volumeContext.addDataObjectToUpdate(volume);
+                volumeContext.addDataObjectToUpdate(volume, unManagedVolume);
             }
         }
     }

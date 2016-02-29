@@ -1720,7 +1720,11 @@ public class VolumeIngestionUtil {
 
         // Do not add the block object to the export group if it is partially ingested
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
+            _logger.info("adding volume {} to export group {}", volume.forDisplay(), exportGroup.forDisplay());
             exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
+        } else {
+            _logger.info("volume {} is partially ingested, so not adding to export group {}", 
+                    volume.forDisplay(), exportGroup.forDisplay());
         }
 
         if (volume instanceof Volume) {

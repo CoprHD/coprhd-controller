@@ -378,14 +378,16 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * Adds a DataObject to the dataObjectsToBeUpdated Map for the current UnManagedVolume.
      * 
      * @param dataObject the DataObject that needs to be updated in the database
+     * @param unManagedVolume the UnManagedVolume associatd with the DataObject
      */
-    public void addDataObjectToCreate(DataObject dataObject);
+    public void addDataObjectToCreate(DataObject dataObject, UnManagedVolume unManagedVolume);
 
     /**
      * Adds a DataObject to the dataObjectsToBeCreated Map for the current UnManagedVolume.
      * 
      * @param dataObject the DataObject that needs to be created in the database
+     * @param unManagedVolume the UnManagedVolume associatd with the DataObject
      */
-    public void addDataObjectToUpdate(DataObject dataObject);
+    public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume);
 
 }

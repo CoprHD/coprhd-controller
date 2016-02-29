@@ -207,7 +207,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     exportMask.setZoningMap(zoneMap);
                 }
 
-                requestContext.addDataObjectToUpdate(exportMask);
+                requestContext.addDataObjectToUpdate(exportMask, unManagedVolume);
                 ExportMaskUtils.updateFCZoneReferences(exportGroup, blockObject, unManagedExportMask.getZoningMap(), initiators,
                         _dbClient);
 
@@ -230,7 +230,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         unManagedExportMask.getMaskName());
                 itr.remove();
 
-                requestContext.addDataObjectToUpdate(exportMask);
+                requestContext.addDataObjectToUpdate(exportMask, unManagedVolume);
             }
 
             _logger.info("{} unmanaged mask(s) remaining to process", unManagedMasks.size());
@@ -344,11 +344,11 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             }
 
             for (UnManagedExportMask uem : uemsToPersist) {
-                requestContext.addDataObjectToUpdate(uem);
+                requestContext.addDataObjectToUpdate(uem, unManagedVolume);
             }
 
             for (ExportMask exportMaskToCreate : exportMasksToCreate) {
-                requestContext.addDataObjectToCreate(exportMaskToCreate);
+                requestContext.addDataObjectToCreate(exportMaskToCreate, unManagedVolume);
                 exportGroup.addExportMask(exportMaskToCreate.getId());
             }
         } catch (IngestionException e) {

@@ -2470,9 +2470,13 @@ public class VPlexApiDiscoveryManager {
                 URI.create(uriBuilder.toString()));
         s_logger.info("Get consistency groups request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+                   
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
+        
+        s_logger.info("BBB: REMOVE 1 {}", response.toString());
+        s_logger.info("BBB: REMOVE 2 {}", responseStr);
 
         if (status == VPlexApiConstants.SUCCESS_STATUS) {
             try {
@@ -2539,6 +2543,8 @@ public class VPlexApiDiscoveryManager {
                         if (info.getName().equals(cgName)) {
                             cgInfo = info;
                             cgInfo.setClusterName(clusterInfo.getName());
+                            s_logger.info("BBB VISIBILITY: {}", info.getVisibility());
+                            cgInfo.setVisibility(info.getVisibility());
                             break;
                         }
                     }

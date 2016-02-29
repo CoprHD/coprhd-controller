@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 
 /**
  * This Decorator is responsible for decorating CG with the VPLEX Volume properties.
@@ -78,8 +79,24 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             if (!found) {
                 logger.info(String.format("Adding BlockObject %s/%s in CG %s", blockObj.getNativeGuid(),
                         blockObj.getReplicationGroupInstance(), cg.getLabel()));
-                cg.addSystemConsistencyGroup(blockObj.getStorageController().toString(),
-                        blockObj.getReplicationGroupInstance());
+                if (blockObj instanceof Volume) {
+                    Volume volume = (Volume) blockObj;
+                    if (volume.getAssociatedVolumes() != null 
+                            && !volume.getAssociatedVolumes().isEmpty()
+                            && volume.getAssociatedVolumes().size() > 1) {                        
+                        // Since this is a distributed volume, ensure there is a CG entry for each cluster
+                        String cgName = BlockConsistencyGroupUtils.fetchCgName(volume.getReplicationGroupInstance());
+                        cg.addSystemConsistencyGroup(volume.getStorageController().toString(),
+                                BlockConsistencyGroupUtils.buildClusterCgName(BlockConsistencyGroupUtils.CLUSTER_1, cgName));
+                        cg.addSystemConsistencyGroup(volume.getStorageController().toString(),
+                                BlockConsistencyGroupUtils.buildClusterCgName(BlockConsistencyGroupUtils.CLUSTER_2, cgName));
+                        logger.info(String.format("Found BlockObject [%s] is a Distributed VPLEX volume. "
+                                + "Adding cg entry [%s] for both cluster1 and cluster2.", blockObj.getNativeGuid(), cgName));
+                    } else {
+                        cg.addSystemConsistencyGroup(blockObj.getStorageController().toString(),
+                                blockObj.getReplicationGroupInstance());
+                    }
+                }
             }
 
             if (!cg.getTypes().contains(Types.VPLEX.toString())) {

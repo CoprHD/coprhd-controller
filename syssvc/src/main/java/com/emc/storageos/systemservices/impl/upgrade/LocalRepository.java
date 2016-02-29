@@ -73,6 +73,8 @@ public class LocalRepository {
     private static final String _SYSTOOL_SET_SSL_PROPS = "--setsslprops";
     private static final String _SYSTOOL_SET_DATA_REVISION = "--set-data-revision";
     private static final String _SYSTOOL_GET_DATA_REVISION = "--get-data-revision";
+    private static final String _SYSTOOL_PURGE_DATA_REVISION = "--purge-data-revision";
+    private static final String _SYSTOOL_REBASE_ZK_SNAPSHOT = "--rebase-zk-snapshot";
 
     private static final String _SYSTOOL_REBOOT = "--reboot";
     private static final String _SYSTOOL_POWEROFF = "--poweroff";
@@ -498,9 +500,10 @@ public class LocalRepository {
      *
      * @param revisionTag
      * @param committed 
+     * @param vdcConfigVersion
      * @throws LocalRepositoryException
      */
-    public void setDataRevision(String revisionTag, boolean committed) throws LocalRepositoryException {
+    public void setDataRevision(String revisionTag, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
         final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , revisionTag, committed);
         _log.debug(prefix);
 
@@ -513,6 +516,11 @@ public class LocalRepository {
         s.append(KEY_DATA_REVISION_COMMITTED);
         s.append(PropertyInfoExt.ENCODING_EQUAL);
         s.append(String.valueOf(committed));
+        s.append(PropertyInfoExt.ENCODING_NEWLINE);
+        s.append(KEY_VDC_CONFIG_VERSION);
+        s.append(PropertyInfoExt.ENCODING_EQUAL);
+        s.append(String.valueOf(vdcConfigVersion));
+        
         createTmpFile(tmpFilePath, s.toString(), prefix);
 
         try {
@@ -546,6 +554,29 @@ public class LocalRepository {
         return SiteInfo.DEFAULT_TARGET_VERSION;
     }
 
+    /***
+     * Purge old data revisions from local
+     * 
+     */
+    public void purgeDataRevision() throws LocalRepositoryException {
+        final String prefix = "purgeDataRevision(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_PURGE_DATA_REVISION };
+        exec(prefix, cmd);
+    }
+    
+    /***
+     * Use current zk snapshot as base for future operations
+     */
+    public void rebaseZkSnapshot() throws LocalRepositoryException {
+        final String prefix = "rebase zk snapshot(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REBASE_ZK_SNAPSHOT };
+        exec(prefix, cmd);
+    }
+    
     /**
      * check ipsec connections between local machine and other nodes in vipr
      *

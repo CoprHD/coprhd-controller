@@ -201,8 +201,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startNewVersionCheck();
             startUpgradeManager();
             startSecretsManager();
-            startPropertyManager();
-            startVdcManager();
             startIpReconfigManager();
             
             //config cassandra as client mode to avoid load yaml file
@@ -214,7 +212,10 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
                 startSystemAudit(_dbClient);
             }
             _svcBeacon.start();
-
+            // start property manager and vdc manager after beacon is registered
+            // since they would update beacon
+            startPropertyManager();
+            startVdcManager();
 
             if (drUtil.isActiveSite()) {
                 startNetworkMonitor();

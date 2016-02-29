@@ -29,6 +29,7 @@ import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -189,6 +190,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private WorkflowService _workflowService;
     private SRDFDeviceController srdfDeviceController;
     private ReplicaDeviceController _replicaDeviceController;
+    private StorageDriverManager driverManager = null;
 
     private static final String ATTACH_MIRRORS_WF_NAME = "ATTACH_MIRRORS_WORKFLOW";
     private static final String DETACH_MIRRORS_WF_NAME = "DETACH_MIRRORS_WORKFLOW";
@@ -260,6 +262,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void setReplicaDeviceController(ReplicaDeviceController replicaDeviceController) {
         _replicaDeviceController = replicaDeviceController;
+    }
+
+    public synchronized StorageDriverManager getDriverManager() {
+        if (driverManager == null) {
+            driverManager = (StorageDriverManager) ControllerServiceImpl.getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        }
+        return driverManager;
     }
 
     public BlockStorageDevice getDevice(String deviceType) {
@@ -1646,7 +1655,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     storage.toString(), pool.toString(), volume.toString()));
         } catch (Exception e) {
             _log.error(String.format("expandVolume Failed - Array: %s Pool:%s Volume:%s",
-                    storage.toString(), pool.toString(), volume.toString()));
+                    storage.toString(), pool.toString(), volume.toString()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             List<URI> volumes = Arrays.asList(volume);
             doFailTask(Volume.class, volumes, opId, serviceError);
@@ -3197,7 +3206,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             // Check if already created, if not create, if so just complete.
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
-            String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null);
+            String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null, _dbClient);
             if (!cg.created(storage, groupName)) {
                 getDevice(storageObj.getSystemType()).doCreateConsistencyGroup(storageObj, consistencyGroup, groupName, completer);
             } else {
@@ -3427,7 +3436,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     workflow.createStep(FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", null, storage,
                             storageSystem.getSystemType(), getClass(), createMethod,
                             rollbackMethod, null);
-                    if (!createInactive) {
+                    // For driver managed arrays, we rely on drivers to complete synchronization if needed and to set clone state.
+                    if (!createInactive && !getDriverManager().isDriverManaged(storageSystem.getSystemType())) {
                         // After all full copies have been created, wait for synchronization to complete
                         Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage, Arrays.asList(uri), isCG);
                         String waitForSyncStep = workflow.createStep(FULL_COPY_WFS_STEP_GROUP,
@@ -4302,7 +4312,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             if (addVolumesList != null && !addVolumesList.isEmpty()) {
-                String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null);
+                String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Adding volumes to consistency group %s", consistencyGroup),
                         waitFor, storage, storageSystem.getSystemType(),

@@ -8,6 +8,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.vipr.client.Tasks;
+
 import comet.vipr.ViperCaller;
 
 /**
@@ -36,6 +39,19 @@ public class CometRestResource {
         ViperCaller vipr = new ViperCaller();
         
        return vipr.getHosts();
+        
+    }
+    
+    @GET
+    @Path("migrate")
+    @Produces(MediaType.TEXT_XML)
+    public Tasks<VolumeRestRep> migrateVolume() throws Exception {
+        ViperCaller vipr = new ViperCaller();
+        URI hostURI=new URI("");
+        URI sourceVolumeURI=new URI("");
+        URI targetVolumeURI=new URI("");
+        
+       return vipr.migrate(hostURI, sourceVolumeURI, targetVolumeURI);
         
     }
     

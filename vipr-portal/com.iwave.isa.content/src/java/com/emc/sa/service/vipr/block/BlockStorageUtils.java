@@ -1039,14 +1039,19 @@ public class BlockStorageUtils {
         return map;
     }
 
-    public static List<URI> getSingleVolumePerSubGroup(NamedVolumesList volList, List<String> subGroups) {
+    public static List<URI> getSingleVolumePerSubGroupAndStorageSystem(NamedVolumesList volList, List<String> subGroups) {
         List<URI> volumeIds = Lists.newArrayList();
         for (String subGroup : subGroups) {
+            Set<URI> storageSystems = Sets.newHashSet();
             for (NamedRelatedResourceRep vol : volList.getVolumes()) {
-                VolumeRestRep v = execute(new GetBlockVolume(vol.getId()));
-                if (v.getReplicationGroupInstance() != null && v.getReplicationGroupInstance().equals(subGroup)) {
-                    volumeIds.add(v.getId());
-                    break;
+                VolumeRestRep volume = execute(new GetBlockVolume(vol.getId()));
+                if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
+                    volume = execute(new GetBlockVolume(volume.getHaVolumes().get(0).getId()));
+                }
+                if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equals(subGroup)
+                        && !storageSystems.contains(volume.getStorageController())) {
+                    volumeIds.add(volume.getId());
+                    storageSystems.add(volume.getStorageController());
                 }
             }
         }

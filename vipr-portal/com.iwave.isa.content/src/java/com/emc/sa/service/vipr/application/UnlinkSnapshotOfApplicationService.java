@@ -41,7 +41,8 @@ public class UnlinkSnapshotOfApplicationService extends ViPRService {
     @Override
     public void execute() throws Exception {
         NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
-        List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, applicationCopySet,
+        List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroupAndStorageSystem(applicationId,
+                applicationCopySet,
                 volList, subGroups);
         Tasks<? extends DataObjectRestRep> tasks = execute(new UnlinkSnapshotSessionForApplication(applicationId, snapshotSessionIds,
                 existingLinkedSnapshotIds, deleteTarget));

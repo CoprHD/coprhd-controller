@@ -80,7 +80,7 @@ public class LinkSnapshotOfApplicationService extends ViPRService {
     @Override
     public void execute() throws Exception {
         NamedVolumesList volList = getClient().application().getVolumeByApplication(applicationId);
-        List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, copySet,
+        List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroupAndStorageSystem(applicationId, copySet,
                 volList, subGroups);
         Tasks<? extends DataObjectRestRep> tasks = execute(new LinkSnapshotSessionForApplication(applicationId, snapshotSessionIds,
                 existingLinkedSnapshotIds, linkedSnapshotCopyMode, linkedSnapshotCount, linkedSnapshotName));

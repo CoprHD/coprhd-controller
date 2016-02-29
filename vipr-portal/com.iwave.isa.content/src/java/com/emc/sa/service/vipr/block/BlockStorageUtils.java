@@ -1058,33 +1058,38 @@ public class BlockStorageUtils {
         return volumeIds;
     }
 
-    public static List<URI> getSingleSnapshotPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
+    public static List<URI> getSingleSnapshotPerSubGroupAndStorageSystem(URI applicationId, String copySet, NamedVolumesList volList,
             List<String> subGroups) {
         List<URI> snapshotIds = Lists.newArrayList();
         SnapshotList snapshotList = execute(new GetBlockSnapshotSet(applicationId, copySet));
         for (String subGroup : subGroups) {
+            Set<URI> storageSystems = Sets.newHashSet();
             for (NamedRelatedResourceRep snapshotRep : snapshotList.getSnapList()) {
                 BlockSnapshotRestRep snapshot = execute(new GetBlockSnapshot(snapshotRep.getId()));
                 VolumeRestRep parentVolume = execute(new GetBlockVolume(snapshot.getParent().getId()));
-                if (parentVolume.getReplicationGroupInstance() != null && parentVolume.getReplicationGroupInstance().equals(subGroup)) {
+                if (parentVolume.getReplicationGroupInstance() != null && parentVolume.getReplicationGroupInstance().equals(subGroup)
+                        && !storageSystems.contains(snapshot.getStorageController())) {
                     snapshotIds.add(snapshot.getId());
-                    break;
+                    storageSystems.add(snapshot.getStorageController());
                 }
             }
         }
         return snapshotIds;
     }
 
-    public static List<URI> getSingleSnapshotSessionPerSubGroup(URI applicationId, String copySet, NamedVolumesList volList,
+    public static List<URI> getSingleSnapshotSessionPerSubGroupAndStorageSystem(URI applicationId, String copySet,
+            NamedVolumesList volList,
             List<String> subGroups) {
         List<URI> snapshotSessionIds = Lists.newArrayList();
         BlockSnapshotSessionList snapSessionList = execute(new GetBlockSnapshotSessionList(applicationId, copySet));
         for (String subGroup : subGroups) {
+            Set<URI> storageSystems = Sets.newHashSet();
             for (NamedRelatedResourceRep snap : snapSessionList.getSnapSessionRelatedResourceList()) {
                 BlockSnapshotSessionRestRep session = execute(new GetBlockSnapshotSession(snap.getId()));
-                if (session.getReplicationGroupInstance() != null && session.getReplicationGroupInstance().equals(subGroup)) {
+                if (session.getReplicationGroupInstance() != null && session.getReplicationGroupInstance().equals(subGroup)
+                        && !storageSystems.contains(session.getStorageController())) {
                     snapshotSessionIds.add(session.getId());
-                    break;
+                    storageSystems.add(session.getStorageController());
                 }
             }
         }

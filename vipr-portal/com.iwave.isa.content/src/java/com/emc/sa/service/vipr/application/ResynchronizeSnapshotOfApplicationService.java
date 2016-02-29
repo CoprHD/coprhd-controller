@@ -35,7 +35,7 @@ public class ResynchronizeSnapshotOfApplicationService extends ViPRService {
         // get list of volumes in application
         NamedVolumesList applicationVolumes = getClient().application().getVolumeByApplication(applicationId);
 
-        List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, applicationVolumes,
+        List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroupAndStorageSystem(applicationId, applicationCopySet, applicationVolumes,
                 subGroups);
         Tasks<? extends DataObjectRestRep> tasks = execute(new ResynchronizeSnapshotForApplication(applicationId, snapshotIds));
 

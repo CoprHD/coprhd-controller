@@ -42,11 +42,13 @@ public class RestoreSnapshotOfApplicationService extends ViPRService {
         Tasks<? extends DataObjectRestRep> tasks = null;
 
         if (snapshotType != null && snapshotType.equalsIgnoreCase(BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE)) {
-            List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, applicationCopySet,
+            List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroupAndStorageSystem(applicationId,
+                    applicationCopySet,
                     applicationVolumes, subGroups);
             tasks = execute(new RestoreSnapshotSessionForApplication(applicationId, snapshotSessionIds));
         } else {
-            List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, applicationVolumes,
+            List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroupAndStorageSystem(applicationId, applicationCopySet,
+                    applicationVolumes,
                     subGroups);
             tasks = execute(new RestoreSnapshotForApplication(applicationId, snapshotIds));
         }

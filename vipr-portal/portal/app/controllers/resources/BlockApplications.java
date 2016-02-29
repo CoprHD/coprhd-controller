@@ -93,7 +93,7 @@ public class BlockApplications extends ResourceController {
             public String associatedVolumeRG;
 
             public VolumeApplication(VolumeRestRep volume) {
-                super(volume, virtualArrays, virtualArrays);
+                super(volume, virtualArrays, virtualPools);
                 if (volume.getProtection() != null && volume.getProtection().getFullCopyRep() != null) {
                     associatedSourceVolume = volume.getProtection().getFullCopyRep().getAssociatedSourceVolume();
                 }

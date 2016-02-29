@@ -92,8 +92,8 @@ public class KeystoneApiClient extends StandardRestClient {
 
         // invoke the API to authenticate
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_TOKENS));
-        ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON)
-                .post(ClientResponse.class, body);
+
+        ClientResponse response = post(requestURI, body);
 
         if (response.getClientResponseStatus() != ClientResponse.Status.OK
                 && response.getClientResponseStatus() != ClientResponse.Status.CREATED) {
@@ -115,13 +115,10 @@ public class KeystoneApiClient extends StandardRestClient {
 
         log.debug("START - getKeystoneEndpoints");
 
-        // Authenticate user.
-        authenticate_keystone();
-
         // Send a request to Keystone API.
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_ENDPOINTS));
-        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON)
-                .header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
+
+        ClientResponse response = get(requestURI);
 
         // Throw an exception when response code is other than OK
         if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
@@ -151,13 +148,10 @@ public class KeystoneApiClient extends StandardRestClient {
 
         log.debug("START - getKeystoneServices");
 
-        // Authenticate user.
-        authenticate_keystone();
-
         // Send a request to Keystone API.
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_SERVICES));
-        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON)
-                .header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
+
+        ClientResponse response = get(requestURI);
 
         // Throw an exception when response code is other than OK.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
@@ -192,15 +186,12 @@ public class KeystoneApiClient extends StandardRestClient {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Endpoint id");
         }
 
-        // Authenticate user.
-        authenticate_keystone();
-
         // Create correct delete URI.
         String uri = KeystoneConstants.URI_ENDPOINTS + "/" + endpointId;
         URI requestURI = _base.resolve(URI.create(uri));
+
         // Send a delete request to Keystone API.
-        ClientResponse response = _client.resource(requestURI).header(KeystoneConstants.AUTH_TOKEN, _authToken)
-                .delete(ClientResponse.class);
+        ClientResponse response = delete(requestURI);
 
         // Throw an exception when response code is other than NO_CONTENT.
         if (response.getClientResponseStatus() != ClientResponse.Status.NO_CONTENT) {
@@ -225,9 +216,6 @@ public class KeystoneApiClient extends StandardRestClient {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Endpoint object");
         }
 
-        // Authenticate user.
-        authenticate_keystone();
-
         // Construct the Java pojo request object
         CreateEndpointRequest endpointRequest = new CreateEndpointRequest();
         endpointRequest.setEndpoint(endpoint);
@@ -245,8 +233,7 @@ public class KeystoneApiClient extends StandardRestClient {
         URI requestURI = _base.resolve(URI.create(uri));
 
         // Send a create request to Keystone API.
-        ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-                .header(KeystoneConstants.AUTH_TOKEN, _authToken).post(ClientResponse.class, body);
+        ClientResponse response = post(requestURI, body);
 
         // Throw an exception when response code is other than OK or CREATED.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK
@@ -283,9 +270,6 @@ public class KeystoneApiClient extends StandardRestClient {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Service object");
         }
 
-        // Authenticate user.
-        authenticate_keystone();
-
         // Construct the Java pojo request object
         CreateServiceResponse serviceResponse = new CreateServiceResponse();
         serviceResponse.setService(service);
@@ -303,8 +287,7 @@ public class KeystoneApiClient extends StandardRestClient {
         URI requestURI = _base.resolve(URI.create(uri));
 
         // Send a create request to Keystone API.
-        ClientResponse response = _client.resource(requestURI).type(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-                .header(KeystoneConstants.AUTH_TOKEN, _authToken).post(ClientResponse.class, body);
+        ClientResponse response = post(requestURI, body);
 
         // Throw an exception when response code is other than OK or CREATED.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK
@@ -335,13 +318,10 @@ public class KeystoneApiClient extends StandardRestClient {
 
         log.debug("START - getKeystoneTenants");
 
-        // Authenticate user.
-        authenticate_keystone();
-
         // Send a request to Keystone API.
         URI requestURI = _base.resolve(URI.create(KeystoneConstants.URI_TENANTS));
-        ClientResponse response = _client.resource(requestURI).accept(MediaType.APPLICATION_JSON)
-                .header(KeystoneConstants.AUTH_TOKEN, _authToken).get(ClientResponse.class);
+
+        ClientResponse response = get(requestURI);
 
         // Throw an exception when response code is other than OK.
         if (response.getClientResponseStatus() != ClientResponse.Status.OK) {

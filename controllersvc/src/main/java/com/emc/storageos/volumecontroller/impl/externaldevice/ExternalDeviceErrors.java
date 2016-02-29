@@ -35,6 +35,10 @@ public interface ExternalDeviceErrors {
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_SNAPSHOT_ERROR)
     public ServiceError deleteSnapshotFailed(String method, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_RESTORE_FROM_SNAPSHOT_ERROR)
+    public ServiceError restoreFromSnapshotFailed(String method, String errorMsg);
+
+
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_EXPORT_MASK_ERROR)
     public ServiceError createExportMaskFailed(String method, String errorMsg);
 
@@ -46,4 +50,20 @@ public interface ExternalDeviceErrors {
 
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DELETE_EXPORT_MASK_ERROR)
     public ServiceError deleteExportMaskFailed(String method, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_VOLUME_CLONE_ERROR)
+    public ServiceError createVolumeCloneFailed(String method, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_CREATE_GROUP_CLONE_ERROR)
+    public ServiceError createGroupCloneFailed(String method, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_DETACH_CLONE_ERROR)
+    public ServiceError detachVolumeCloneFailed(String method, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_RESTORE_CLONES_ERROR)
+    public ServiceError restoreVolumesFromClonesFailed(String method, String errorMsg);
+
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_EXPAND_VOLUME_ERROR)
+    public ServiceError expandVolumeFailed(String method, String errorMsg);
+
 }

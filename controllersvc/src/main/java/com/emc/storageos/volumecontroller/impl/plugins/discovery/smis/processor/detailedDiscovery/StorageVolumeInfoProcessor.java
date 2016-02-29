@@ -1146,7 +1146,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     private String isVolumeIngestable(CIMInstance volumeInstance, String isBound, String usageProp) {
         String usage = getCIMPropertyValue(volumeInstance, usageProp);
         if (!Boolean.valueOf(isBound)) {
-            return "The volume is not ingestable because it is not bound and ViPR only supports bound volumes";
+            return "The volume is not ingestable because it is not bound and the controller only supports bound volumes";
         }
 
         if ((TWO.equalsIgnoreCase(usage) || NINE.equalsIgnoreCase(usage)
@@ -1157,7 +1157,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 || USAGE_LOCAL_REPLICA_SOURCE_OR_TARGET.equalsIgnoreCase(usage))) {
             return null;
         } else {
-            return "The volume is not ingestable because it has a usage that is not supported by ViPR";
+            return "The volume is not ingestable because it has a usage that is not supported by the controller";
         }
     }
 

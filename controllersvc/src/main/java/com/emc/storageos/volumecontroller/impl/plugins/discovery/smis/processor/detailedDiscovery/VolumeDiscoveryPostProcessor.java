@@ -153,8 +153,8 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.name(),
                                 "The snapshot cannot be ingested because the snapshot target volume is linked to an unsupported "
                                         + "array snapshot whose name is used by multiple array snapshots for the same source volume. The "
-                                        + "storage system likely uses generation numbers to differentiate these snapshots, and ViPR does not "
-                                        + "currently support generation numbers");
+                                        + "storage system likely uses generation numbers to differentiate these snapshots, and the controller "
+                                        + "does not currently support generation numbers");
                         modifiedUnManagedVolumes.add(unManagedVolume);
                     } else {
                         // If a snapshot has its own snapshot targets, then the snapshot target and all its
@@ -168,7 +168,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                                 unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_INGESTABLE.name(), FALSE);
                                 unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.name(),
                                         "The snapshot cannot be ingested because the snapshot is the source for a cascaded snapshot, "
-                                                + "which is not currently supported by ViPR");
+                                                + "which is not currently supported by the controller");
                                 modifiedUnManagedVolumes.add(unManagedVolume);
                             } else {
                                 _logger.warn("No UnManagedVolume found for {}", nativeGuid);
@@ -186,7 +186,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                                     tgtUnManagedVolume.getVolumeCharacterstics().put(
                                             SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.name(),
                                             "The snapshot cannot be ingested because it is a cascaded snapshot which is not currently "
-                                                    + "supported by ViPR");
+                                                    + "supported by the controller");
 
                                     modifiedUnManagedVolumes.add(tgtUnManagedVolume);
                                 } else {

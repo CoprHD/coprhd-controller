@@ -1330,6 +1330,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 _log.warn("Volume [{}] does not have PERSONALITY set. We will not be able to compare this volume.", volume.getLabel());
             }
         }
+        
+        // Flag to indicate that there are VMAX2 and VMAX3 storage
+        // systems in the request. Special handling will be required.
+        boolean vmax2Vmax3StorageCombo = false;
 
         // There should be at least 2 volumes to compare, Source and Target (if not more)
         if (!allVolumesToCompare.isEmpty() && (allVolumesToCompare.size() >= 2)) {
@@ -1352,8 +1356,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
 
                 storageSystem = volumeStorageSystemMap.get(volUri);
-
-                if (!storageSystemToCompare.getSystemType().equals(storageSystem.getSystemType())) {
+                vmax2Vmax3StorageCombo = checkVMAX2toVMAX3(storageSystemToCompare, storageSystem);
+                
+                if (!storageSystemToCompare.getSystemType().equals(storageSystem.getSystemType())
+                        || vmax2Vmax3StorageCombo) {
                     // The storage systems do not all match so we need to determine the allocated
                     // capacity on each system.
                     storageSystemsMatch = false;
@@ -1385,7 +1391,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                 // Determine if the provisioning request requires storage systems
                 // which cannot allocate storage at the exact same amount
-                if (!capacitiesCanMatch(volumeStorageSystemMap)) {
+                if (!capacitiesCanMatch(volumeStorageSystemMap) || vmax2Vmax3StorageCombo) {
                     setUnMatchedCapacities(allVolumesToUpdateCapacity, associatedVolumePersonalityMap, isExpand,
                             capacityToUseInCalculation);
                 } else {
@@ -1406,13 +1412,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         tempVolumesList.clear();
                         tempVolumesList.addAll(allVolumesToCompare);
                         // Remove the current volume from the list and get a handle on it
-                        Volume currentVolume = tempVolumesList.remove(index);
+                        Volume currentVolume = tempVolumesList.remove(index);                        
+                        StorageSystem currentVolumeStorageSystem = _dbClient.queryObject(StorageSystem.class, currentVolume.getStorageController());
 
                         // Get the System Type for the current volume
                         String currentVolumeSystemType = volumeStorageSystemMap.get(currentVolume.getStorageController()).getSystemType();
                         // Calculate the capacity for the current volume based on the Storage System type to see if it can be adjusted
                         currentVolumeCapacity = capacityCalculatorFactory.getCapacityCalculator(currentVolumeSystemType)
-                                .calculateAllocatedCapacity(capacityToUseInCalculation);
+                                .calculateAllocatedCapacity(capacityToUseInCalculation, currentVolumeStorageSystem);
 
                         _log.info(String.format("Volume [%s] has a capacity of %s on storage system type %s. " +
                                 "The calculated capacity for this volume is %s.",
@@ -1434,10 +1441,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 continue;
                             }
 
+                            StorageSystem volumeToCompareStorageSystem = _dbClient.queryObject(StorageSystem.class, volumeToCompare.getStorageController());
+                            
                             // Calculate the capacity for the volume to compare based on the Storage System type to see if it can be
                             // adjusted
                             volumeToCompareCapacity = capacityCalculatorFactory.getCapacityCalculator(volumeToCompareSystemType)
-                                    .calculateAllocatedCapacity(currentVolumeCapacity);
+                                    .calculateAllocatedCapacity(currentVolumeCapacity, volumeToCompareStorageSystem);
 
                             // Check to see if the capacities match
                             if (!currentVolumeCapacity.equals(volumeToCompareCapacity)) {
@@ -1496,6 +1505,31 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         return capacity;
+    }
+
+    /**
+     * Checks to see if the two storage systems are VMAX and if so, then
+     * further check to see if one of them is a VMAX2 while the other is a
+     * VMAX3.
+     * 
+     * The capacity checks for these systems are slightly different so we
+     * need to ensure that they get calculated.
+     * 
+     * @param storageSystem1 First StorageSystem to check
+     * @param storageSystem2 Second StorageSystem to check
+     * @return true if we do have the case of a VMAX2 to VMAX3 
+     *         difference between the Storage Systems, false otherwise.
+     */
+    private boolean checkVMAX2toVMAX3(StorageSystem storageSystem1, StorageSystem storageSystem2) {
+        if (storageSystem1 != null && storageSystem2 != null) {
+            if (DiscoveredDataObject.Type.vmax.name().equals(storageSystem1.getSystemType())
+                    && DiscoveredDataObject.Type.vmax.name().equals(storageSystem2.getSystemType())
+                    && ((!storageSystem1.checkIfVmax3() && storageSystem2.checkIfVmax3())
+                            || (storageSystem1.checkIfVmax3() && !storageSystem2.checkIfVmax3()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -2970,10 +3004,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         if (type == Volume.PersonalityTypes.SOURCE) {
             capacity = capacityCalculatorFactory.getCapacityCalculator(storageSystem.getSystemType())
-                    .calculateAllocatedCapacity(capacityToUseInCalculation);
+                    .calculateAllocatedCapacity(capacityToUseInCalculation, storageSystem);
         } else if (type == Volume.PersonalityTypes.TARGET) {
             capacity = capacityCalculatorFactory.getCapacityCalculator(storageSystem.getSystemType())
-                    .calculateAllocatedCapacity(capacityToUseInCalculation + 5242880L);
+                    .calculateAllocatedCapacity(capacityToUseInCalculation + 5242880L, storageSystem);
         }
 
         return capacity;
@@ -3606,9 +3640,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         String firstVolLabel = null;
         List<URI> addVolumeURIs = volumeList.getVolumes();
         int volumesNotInCGCount = 0;
-        String inputRGName = volumeList.getReplicationGroupName();
+        String groupName = volumeList.getReplicationGroupName();
         ApplicationAddVolumeList outVolumesList = new ApplicationAddVolumeList();
-        outVolumesList.setReplicationGroupName(inputRGName);
         URI cgUri = null;
         for (URI voluri : addVolumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
@@ -3633,10 +3666,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(), 
                         "the RecoverPoint volumes being added are not associated with a consistency group");
             }
-            
-            if (firstVolLabel == null) {
-                firstVolLabel = volume.getLabel();
-            }
            
         }
         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
@@ -3651,12 +3680,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<Volume> allVolumesToCheck = new ArrayList<Volume> ();
         for (URI volumeUri : allVolumes) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
-            allVolumesToCheck.add(volume);
+            String rgName = volume.getReplicationGroupInstance();
             boolean vplex = RPHelper.isVPlexVolume(volume);
             if (vplex) {
                 // get the backend volume
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
-                String rgName = backendVol.getReplicationGroupInstance();
+                rgName = backendVol.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(rgName)) {
                     // the backend volume is in a replication group. make sure all source volumes in the same replication group is in the add list
                     URI storageSystemUri = backendVol.getStorageController();
@@ -3681,11 +3710,21 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             } else {
                 volumesNotInCGCount++;
             }
+
+            // its possible for the source volumes to be in a replication group but the target volumes are not
+            // in this case, we take the replication group name from the source volumes and apply that to the
+            // target (with the -RPTARGET suffix)
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                // later we will validate that any volume not in a replication group should not have any
+                // snapshots or clones
+                allVolumesToCheck.add(volume);
+                groupName = rgName;
+            }
         }
+        outVolumesList.setReplicationGroupName(groupName);
         outVolumesList.setVolumes(addVolumeURIs);
-        if (volumesNotInCGCount > 0 && (inputRGName == null || inputRGName.isEmpty())) {
-            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
-                    "replication group name is not provided");
+        if (volumesNotInCGCount > 0 && (groupName == null || groupName.isEmpty())) {
+            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel, "application sub group is not provided");
         }
         validateAddVolumesToApplication(allVolumesToCheck, application);
         return outVolumesList;
@@ -3743,10 +3782,28 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (it.hasNext()) {
                 hasSnap = true;
             }
-            StringSet mirrors = volume.getMirrors();
+            Map<URI, Volume> volumesToUpdate = new HashMap<URI, Volume>();
             StringSet fullCopyIds = volume.getFullCopies();
-            if (hasSnap || (mirrors != null && !mirrors.isEmpty())
-                    || (fullCopyIds != null && !fullCopyIds.isEmpty())) {
+            boolean hasFullCopies = false;
+            // no need to check backing volumes for vplex virtual volumes because for full copies
+            // there will be a virtual volume for the clone
+            if (fullCopyIds != null) {
+                for (String fullCopyId : fullCopyIds) {
+                    Volume fullCopy = _dbClient.queryObject(Volume.class, URI.create(fullCopyId));
+                    if (fullCopy != null && !fullCopy.getInactive()) {
+                        hasFullCopies = true;
+                        break;
+                    } else {
+                        volume.getFullCopies().remove(fullCopyId);
+                        volumesToUpdate.put(volume.getId(), volume);
+                    }
+                }
+            }
+            // clean up stale replica entries
+            if (!volumesToUpdate.isEmpty()) {
+                _dbClient.updateObject(volumesToUpdate.values());
+            }
+            if (hasSnap || hasFullCopies) {
                 throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
                         String.format("the volumes %s has replica. please remove all replicas from the volume", volume.getLabel()));
             }

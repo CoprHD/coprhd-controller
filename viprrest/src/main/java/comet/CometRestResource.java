@@ -16,7 +16,7 @@ import comet.vipr.ViperCaller;
 /**
  * Root resource (exposed at "myresource" path)
  */
-@Path("cometmigrate")
+@Path("powermigrate")
 public class CometRestResource {
 
     /**

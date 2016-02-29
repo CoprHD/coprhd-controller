@@ -1133,9 +1133,14 @@ public abstract class VdcOpHandler {
             return;
         }
         
-        // all syssvc shares same port
-        String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
-        SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
+        try {
+            // all syssvc shares same port
+            String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
+            SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
+        } catch (SysClientException e) {
+            log.warn("Can't power off remote site", e);
+            return;
+        }
         log.info("Powering off site {}", siteId);
         
         while(drUtil.isSiteUp(siteId)) {

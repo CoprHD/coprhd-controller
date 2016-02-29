@@ -534,8 +534,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
         XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
         if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
-                && null != sourceVolume
-                && !sourceVolume.checkForRp()) {
+                && null != sourceVolume) {
             snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, readOnly, taskCompleter);
         } else {
             for (URI snapshotURI : snapshotList) {
@@ -554,8 +553,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
         XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
         if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
-                && null != sourceVolume
-                && !sourceVolume.checkForRp()) {
+                && null != sourceVolume) {
             snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
             snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -571,8 +569,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
         XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
         if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
-                && null != sourceVolume
-                && !sourceVolume.checkForRp()) {
+                && null != sourceVolume) {
             snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
@@ -588,8 +585,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
         Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
         XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
         if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
-                && null != sourceVolume
-                && !sourceVolume.checkForRp()) {
+                && null != sourceVolume) {
             snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);

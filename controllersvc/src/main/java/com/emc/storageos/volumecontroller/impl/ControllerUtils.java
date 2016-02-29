@@ -1397,7 +1397,7 @@ public class ControllerUtils {
 
         // Check to see if there's already a groupName associated with the existing volumes
         // Get all of the volumes associated with this consistency group, look for your storage system
-        // If the replicationGroupInstace is filled-in, go with that.
+        // If the replicationGroupInstance is filled-in, go with that.
         List<Volume> volumes = RPHelper.getAllCgVolumes(cg.getId(), dbClient);
         for (Volume volume : volumes) {
             if (volume.getStorageController().equals(storage.getId())) {

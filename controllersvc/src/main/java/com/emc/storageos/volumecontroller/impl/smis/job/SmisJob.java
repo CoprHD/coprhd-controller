@@ -191,7 +191,7 @@ public class SmisJob extends Job implements Serializable
                                 }
                             }
                         }
-                        if ((_status != JobStatus.SUCCESS) || _status != JobStatus.IN_PROGRESS) {
+                        if ((_status != JobStatus.SUCCESS) && (_status != JobStatus.IN_PROGRESS)) {
                             // parse ErrorDescription
                             CIMProperty<String> errorDescription =
                                     (CIMProperty<String>) jobPathInstance.getProperty(JOB_PROPERTY_KEY_ERROR_DESC);

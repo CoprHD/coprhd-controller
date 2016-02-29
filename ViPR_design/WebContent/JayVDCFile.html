@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="ISO-8859-1">
+	<title>Define ViPR VDC</title>
+
+
+	<link rel="shortcut icon" href="../../assets/ico/favicon.ico">
+	 
+	
+	
+	<!-- Twitter Bootstrap core CSS -->
+    <link href="./bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./bootstrap/css/Jayfun.css" rel="stylesheet">
+</head>
+<body>
+	<script src="./bootstrap/js/JayViPR.js"></script>
+	<div class="container-fluid">
+		<div class="navbar navbar-inverse navbar-fixed-top">
+				<div class="container-fluid">
+					<div class="navbar-header">
+						<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+							<span class="sr-only">Toggle navigation</span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+						</button>
+						<a class="navbar-brand" href="#">Tool to automate Zoning configurations on SAN Fabrics</a>
+					</div>
+				</div>
+		</div>
+		<h1> Please Enter your Fabric Details</h1>
+		
+		<form class="form-horizontal viprvdc jumbotron  " >
+			<div class="container-fluid col-md-6 viprvdc1">
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="version of ESXi or hyper-v on which vipr will be installed">Type of Fabric in the Environment </label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control ESxiVersion" id="vendor">
+							<option> Cisco </option>
+							<option> Brocade </option>
+							
+						</select>
+					</div>
+				</div>				
+			</div>
+			<div class="container-fluid col-md-6 viprvdc1">
+				<div class="form-group">
+					<div class="col-md-5">
+						<label for="Number of vCenters managed by ViPR">      Number of Fabrics</label>
+					</div>
+					<div class="col-md-7">
+						<select class="form-control vcenters" id="NumberFabrics">
+							<option> 0 </option>
+							<option> 1 </option>
+							<option> 2 </option>
+							<option> 3 </option>												
+						</select>
+					</div>
+				</div>			
+			</div>
+			<div class="btn-save" >
+				<button type="button" class="btn btn-primary btn-lg" onclick="collectInformation()"> SAVE </button>
+			</div>
+			
+		</form>	
+		<div class="next-button">
+			<button type="button" class="btn btn-primary btn-lg" id="VDCnext" data-toggle="modal" data-target="#Infrastructure" >NEXT</button>
+		</div>	
+		
+	</div>
+	
+	<div class="container-fluid modal fade Physical" id="Infrastructure" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<div class="navbar navbar-inverse navbar-fixed-top">
+						<div class="container-fluid">
+							<div class="navbar-header">
+								<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+									<span class="sr-only">Toggle navigation</span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+								</button>
+								<a class="navbar-brand" href="#">Fabric Parameters</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-body form-horizontal  ">
+					<ul class="nav nav-tabs my-tabs" id="fabrics1">
+						<!--  <li class="active"><a href="#servers2" data-toggle="tab">Fabric details</a></li> -->
+						
+					</ul>
+					<div class="tab-content " id="tabcontentFull">	
+						<!-- <div class=" tab-pane fade in active container-fluid form-horizontal col-md-12 " id="Fabric"> -->
+					
+					</div>
+				</div>
+			</div>
+		</div>	
+		
+	</div>
+	
+	<div class="container-fluid modal fade Physical1" id="ConsolidatedData" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<div class="navbar navbar-inverse navbar-fixed-top">
+						<div class="container-fluid">
+							<div class="navbar-header">
+								<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+									<span class="sr-only">Toggle navigation</span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+								</button>
+								<a class="navbar-brand" href="#">Consolidated Data</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-body form-horizontal jumbotronstart">
+					<div  id="paragraphId">
+						
+					</div>
+					<div class="print-button">
+						<button type="button" class="btn btn-primary btn-lg" onclick="printContent()" id="printData">Print</button>
+					</div>
+				</div>
+			</div>			
+		</div>
+	</div>
+	
+	<script src="./bootstrap/js/jquery.js"></script>
+	<script src="./bootstrap/js/jquery.slimscroll.min.js"></script>
+	<!-- Twitter Bootstrap -->
+	<script src="./bootstrap/js/bootstrap.min.js"></script>
+	<!-- <script>
+		
+		$("")
+	
+	
+	
+	</script> -->
+ 	
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="ISO-8859-1">
+	<title>Define ViPR VDC</title>
+
+
+	<link rel="shortcut icon" href="../../assets/ico/favicon.ico">
+	 
+	
+	
+	<!-- Twitter Bootstrap core CSS -->
+    <link href="./bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./bootstrap/css/Hackathon_fun.css" rel="stylesheet">
+	<title>Insert title here</title>
+</head>
+<body>
+
+	<script src="./bootstrap/js/hackathon_fun_js.js"></script>
+	<div class="container-fluid">
+		<div class="navbar navbar-inverse navbar-fixed-top">
+				<div class="container-fluid">
+					<div class="navbar-header">
+						<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+							<span class="sr-only">Toggle navigation</span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+						</button>
+						<a class="navbar-brand" href="#">Power Migration Tool</a>
+					</div>
+				</div>
+		</div>
+		<h1> Please Enter your ViPR Details</h1>
+		
+		<form class="form-horizontal viprvdc jumbotron  " >
+			<div class="container-fluid col-md-12 viprvdc1">
+				<div class="form-group col-md-6">
+					<div class="col-md-5">
+						<label for="ViPR Instance IP"><h4>Enter the ViPR IP</h4> </label>
+					</div>
+					<div class="col-md-7">
+						<input type="text" class="form-control" id="ViPR_IP"><br>
+					</div>
+				</div>				
+			</div>
+			<div class="container-fluid col-md-12 viprvdc1">
+				<div class="form-group col-md-6">
+					
+					<div class="col-md-5">
+						<label for="Username of ViPR"><h4>Enter the username of ViPR</h4></label>
+					</div>
+					<div class="col-md-7">
+						<input type="text" class="form-control" id="ViPR_user">
+					</div>
+						
+				</div>
+				<div class="form-group col-md-6">
+					
+					<div class="col-md-5">
+						<label for="Password of ViPR"><h4>Enter the password of ViPR</h4></label>
+					</div>
+					<div class="col-md-7">
+						<input type="text" class="form-control" id="ViPR_pass">
+					</div>
+						
+				</div>
+						
+			</div>
+			<div class="btn-save" >
+				<button type="button" class="btn btn-primary btn-lg" onclick="collectInformation()"> SAVE </button>
+			</div>
+			
+		</form>	
+		<div class="next-button">
+			<button type="button" class="btn btn-primary btn-lg" id="VDCnext" data-toggle="modal" data-target="#Infrastructure" >NEXT</button>
+		</div>	
+		
+	</div>
+	
+	<div class="container-fluid modal fade Physical" id="Infrastructure" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<div class="navbar navbar-inverse navbar-fixed-top">
+						<div class="container-fluid">
+							<div class="navbar-header">
+								<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+									<span class="sr-only">Toggle navigation</span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+								</button>
+								<a class="navbar-brand" href="#">ViPR Power Migrate</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-body form-horizontal  ">
+					
+					<form class="form-horizontal viprvdc jumbotron  " >
+						<div class="container-fluid col-md-12 hostvdc">
+							<div class="form-group col-md-6">
+								<div class="col-md-5">
+									<label for="Host IP"><h4>List of Hosts in ViPR</h4> </label>
+								</div>
+								<div class="col-md-7">
+									<select class="form-control hosts" id="HostsLists">
+											<option> Host1 </option>
+											<option> Host2 </option>
+											<option> Host3 </option>
+											<option> Host5 </option>
+											<option> Hyper_v_server2012R2</option>									
+									</select>
+								</div>
+							</div>				
+						</div>
+						<div class="container-fluid col-md-12 hostvdc">
+							<div class="form-group col-md-6">
+					
+								<div class="col-md-5">
+									<label for="Source Volume"><h4>Select the source volume</h4></label>
+								</div>
+								<div class="col-md-7">
+									<select class="form-control vols" id="source_vol">
+											<option> volume1 </option>
+											<option> volume2 </option>
+											<option> volume3 </option>
+											<option> volume5 </option>
+											<option> volume6</option>										
+									</select>
+								</div>
+						
+							</div>
+							<div class="form-group col-md-6">
+					
+								<div class="col-md-5">
+									<label for="Target Array"><h4>Select the target Array</h4></label>
+								</div>
+								<div class="col-md-7">
+									<select class="form-control tar_vols" id="targetarray">
+											<option> VNX </option>
+											<option> VMAX </option>
+											<option> xtreme IO </option>
+											<option> isilon </option>
+																						
+									</select>
+								</div>
+						
+							</div>
+						
+						</div>
+						<div class="btn-save" >
+							<button type="button" class="btn btn-primary btn-lg" onclick="Migrate()"> Migrate </button>
+						</div>
+			
+					</form>	
+						
+						
+					
+					<div class="tab-content " id="tabcontentFull">	
+						<!-- <div class=" tab-pane fade in active container-fluid form-horizontal col-md-12 " id="Fabric"> -->
+					
+					</div>
+				</div>
+			</div>
+		</div>	
+		
+	</div>
+	
+	<div class="container-fluid modal fade Physical1" id="ConsolidatedData" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<div class="navbar navbar-inverse navbar-fixed-top">
+						<div class="container-fluid">
+							<div class="navbar-header">
+								<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+									<span class="sr-only">Toggle navigation</span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+								</button>
+								<a class="navbar-brand" href="#">Consolidated Data</a>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-body form-horizontal jumbotronstart">
+					<div  id="paragraphId">
+						
+					</div>
+					<div class="print-button">
+						<button type="button" class="btn btn-primary btn-lg" onclick="printContent()" id="printData">Print</button>
+					</div>
+				</div>
+			</div>			
+		</div>
+	</div>
+	
+	<script src="./bootstrap/js/jquery.js"></script>
+	<script src="./bootstrap/js/jquery.slimscroll.min.js"></script>
+	<!-- Twitter Bootstrap -->
+	<script src="./bootstrap/js/bootstrap.min.js"></script>
+
+
+
+
+
+</body>
+</html>

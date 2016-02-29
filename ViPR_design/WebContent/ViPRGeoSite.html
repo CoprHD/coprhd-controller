@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+	
+	<meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="../../assets/ico/favicon.ico">
+	<title>ViPR Geo Site Info</title>
+	
+	<!--------------------------------------------------------------------------------------------------->
+    <!-- CSS Includes
+    <!--------------------------------------------------------------------------------------------------->
+    <!-- Twitter Bootstrap core CSS -->
+    <link href="./bootstrap/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="./bootstrap/css/fun.css" rel="stylesheet">
+</head>
+<body>
+	
+	<div class="container-fluid">
+		<div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+				<div class="container-fluid">
+					<div class="navbar-header">
+						<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+							<span class="sr-only">Toggle navigation</span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+						</button>
+						<a class="navbar-brand" href="#">ViPR Sites and GEO VDC Sites</a>
+					</div>
+				</div>
+		</div>
+		<ul class="nav nav-tabs my-tabs">
+			<li class="active"><a href="#ViPR-Geo" data-toggle="tab">ViPR-Geo</a></li>
+			<li><a href="#Bandwidth" data-toggle="tab" >Bandwidth</a></li>
+		</ul>
+		<div class="tab-content">
+			<div class="tab-pane fade in active" id="ViPR-Geo">
+				<div class="container-fluid col-md-6 form-horizontal vipr-site">
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance Site name"> ViPR Site Name</label>
+						</div>
+						<div class="col-md-8 dropdown">
+							<input type="text" id="ViPR-site-name" class="form-control" placeholder="Enter the ViPR instance SiteName for this design">
+						
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="Geo Site"> Geo Site </label>
+						</div>
+						<div class="col-md-8">
+							<select class="form-control">
+								<option> yes </option>
+								<option> No </option>
+							</select>
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance Site name"> Site Location</label>
+						</div>
+						<div class="col-md-8">
+							<select class="form-control">
+								<option> Primary </option>
+								<option> Secondary </option>
+							</select>
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance Site name"> ViPR Virtual IP address</label>
+						</div>
+						<div class="col-md-8">
+							<input type="text" id="ViPR-site-name" class="form-control" placeholder="Enter the ViPR instance Virtual IP address">
+						</div>
+					</div>			
+				
+				</div>
+				<div class="container-fluid col-md-6 form-horizontal vipr-geo">
+			
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance Site name"> ViPR Geo Name</label>
+						</div>
+						<div class="col-md-8 dropdown">
+							<input type="text" id="ViPR-site-name" class="form-control" placeholder="Enter the ViPR instance SiteName for this design">
+						
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="Geo Site"> Geo Site </label>
+						</div>
+						<div class="col-md-8">
+							<select class="form-control">
+								<option> yes </option>
+								<option> No </option>
+							</select>
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance Site name"> Primary/Secondary</label>
+						</div>
+						<div class="col-md-8">
+							<select class="form-control">
+								<option> Primary </option>
+								<option> Secondary </option>
+							</select>
+						</div>
+					</div>
+					<div class="form-group">
+						<div class="col-md-4">
+							<label for="ViPR instance Site name"> ViPR Virtual IP address</label>
+						</div>
+						<div class="col-md-8">
+							<input type="text" id="ViPR-site-name" class="form-control" placeholder="Enter the ViPR instance Virtual IP address">
+						</div>
+					</div>
+					<div class="Geo-Save">
+						<button class="btn btn-primary" type="submit">Save</button>
+					</div>
+							
+				</div>
+				
+				<div class=" col-md-8 Geo-table">
+					<table class="table table-hover ">
+						<caption><strong><h2>Geo VDC sites</h2></strong></caption>
+						<thead>
+							<tr>
+								<th>Geo Site</th>
+								<th>Primary/Secondary</th>
+								<th>ViPR virtual IP</th>
+							</tr>
+						</thead>
+						<tbody>
+							
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="container-fluid col-md-12 tab-pane fade" id="Bandwidth">
+				<div class="formula">
+	
+					<h1> Formula to determine the bandwidth</h1>
+					<div class="col-md-1">
+						<p><h1 class="text-right font-alter">((</h1></p>
+					</div>
+					<div class="col-md-2">
+						<p>The Number of Volumes monitored by the Provider (smi-s)</p>
+					</div>
+					<div class="col-md-1">
+						<p><h1 class="text-center font-alter">*</h1></p>
+					</div>
+					<div class="col-md-2">
+						<p> Network pay Load for one volume is 8kbps per metering cycle</p>
+					</div>
+					<div class="col-md-1">
+						<p><h1 class="text-center font-alter">)/(</h1></p>
+					</div>
+					<div class="col-md-2">
+						<p> SMI-S Metering Cycles in minutes</p>
+					</div>
+					<div class="col-md-1">
+						<p><h1 class="text-center font-alter">*60))/</h1></p>
+					</div>
+					<div class="col-md-2">
+						<p> <h1 class="text-center font-alter">1024</h1></p>
+					</div>
+				</div>
+				<div class="container-fluid form-horizontal formula-cal">
+					<H1>Determine the Bandwidth</H1>
+					<div class="calculation col-md-6">
+						<div class="form-group ">
+							<div class="col-md-4">
+								<label for="No of volumes monitored">Enter the Number of Volumes monitored by the Provider (smi-s)</label>
+							</div>
+							<div class="col-md-8 dropdown">
+								<input type="text" id="vol-monitored" class="form-control" placeholder="Number of Volumes monitored by the Provider">
+							
+							</div>
+						</div>
+						<div class="form-group">
+							<div class="col-md-4">
+								<label for="SMI-S metering cycles">Enter SMI-S Metering Cycles in minutes(default is 60)</label>
+							</div>
+							<div class="col-md-8 dropdown">
+								<input type="text" id="smi-metering" class="form-control" placeholder="SMI-S Metering Cycles in minutes">
+							
+							</div>
+						</div>
+						<div class="calculate">
+							<button class="btn btn-primary" type="submit">Calculate</button>
+						</div>
+					</div>
+						
+				</div>
+				
+			</div>
+
+		</div>
+	</div>
+	
+	<script src="./bootstrap/js/jquery.js"></script>
+
+	<!-- Twitter Bootstrap -->
+	<script src="./bootstrap/js/bootstrap.min.js"></script>
+	
+	
+	
+	
+</body>
+</html>

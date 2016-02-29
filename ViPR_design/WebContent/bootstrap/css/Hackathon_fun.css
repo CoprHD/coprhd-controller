@@ -1,0 +1,172 @@
+@CHARSET "ISO-8859-1";
+
+/* Move down content because we have a fixed navbar that is 50px tall */
+body {
+  padding-top: 60px;
+}
+
+.btn-login{
+padding-top: 50px;
+}
+
+
+
+.LoginPage{
+background-image: url(../image/vipr_power.jpg);
+padding-top: 410px;
+padding-right:770px;
+
+}
+
+.pass{
+padding-top: 30px;
+}
+
+.details{
+padding-top:150px;
+	
+}
+
+.heading{
+padding-bottom:40px;	
+	
+}
+
+.buttonSaveContact{
+padding-left:250px;	
+}
+
+.buttonNextContact{
+padding-right:100px;
+}
+
+.btn-cntctsave{
+padding-left:510px;
+}
+
+.EMCCntct{
+padding-top:100px;
+}
+
+.image{
+padding-left:100px;
+}
+
+.button-next{
+padding-left:1200px;
+padding-top:30px;
+}
+
+.vdc{
+padding-left:50px;
+}
+
+.vipr-geo{
+padding-top:20px;
+}
+.vipr-site{
+padding-top:20px;
+}
+
+.font-alter{
+font-size:50px;
+padding-bottom:50px;
+}
+.calculation{
+padding-top:20px;
+}
+.calculate{
+padding-left:500px;
+padding-top:10px;
+}
+.Geo-table{
+padding-top:50px;
+}
+.Geo-Save{
+padding-left:550px;
+padding-top:10px;
+}
+.vipr-network{
+padding-top:50px;
+}
+.contact{
+padding-top:50px;
+}
+.smtp{
+padding-top:50px;
+}
+.VIPR-IP{
+padding-top:50px;
+}
+.viprvdc{
+padding-top:30px;
+}
+.btn-save{
+padding-left:50px;
+}
+.next-button{
+padding-left:1200px;
+}
+.modal-dialog {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+}
+
+.modal-content {
+  height: 100%;
+  border-radius: 0;
+  overflow-y: scroll;
+}
+.servers{
+padding-top:30px;
+}
+
+.versions{
+padding-top:30px;
+}
+
+.array{
+border-radius:10px 10px 10px 10px;
+background-color: #f5f5f5;
+}
+.serversSelection{
+padding-top:50px;
+}
+
+.serverVersions{
+padding-top:10px;
+}
+
+.fabricsSelection{
+padding-top:60px;
+}
+.fabricVersions{
+padding-top:10px;
+}
+.AllSaveButton{
+padding-left:1250px;
+}
+.SaveButton{
+padding-left:1250px;
+}
+.jumbotronstart{
+padding-top:50px;
+}
+.print-button{
+padding-left:1200px;
+}
+
+.Fabric1{
+padding-top:50px;
+}
+
+.serverSelectionBody2{
+padding-top:50px;
+}
+.serverSelectionBody3{
+padding-top:50px;
+}
+
+
+

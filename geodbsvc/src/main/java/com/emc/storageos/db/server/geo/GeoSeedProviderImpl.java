@@ -46,7 +46,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
-    private boolean isDrActiveSite;
+    private boolean useSeedsInLocalSite;
     /**
      * 
      * @param args
@@ -115,8 +115,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
         client.start();
         
         DrUtil drUtil = new DrUtil(client);
-        Site localSite = drUtil.getLocalSite();
-        isDrActiveSite = Arrays.asList(SiteState.ACTIVE, SiteState.STANDBY_FAILING_OVER, SiteState.STANDBY_SWITCHING_OVER, SiteState.ACTIVE_DEGRADED).contains(localSite.getState()) ;
+        useSeedsInLocalSite = drUtil.isActiveSite() ||  SiteState.ACTIVE_DEGRADED.equals(drUtil.getLocalSite().getState());
         
         coordinator = client;
     }
@@ -148,7 +147,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
         }
         // On DR standby site, only use seeds from active site. On active site
         // we use local seeds
-        if (isDrActiveSite) {
+        if (useSeedsInLocalSite) {
             // add local seed(s):
             // -For fresh install and upgraded system from 1.1,
             // get the first started node via the AUTOBOOT flag.

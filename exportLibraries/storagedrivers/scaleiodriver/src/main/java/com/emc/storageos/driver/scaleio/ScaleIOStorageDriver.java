@@ -70,7 +70,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     try {
 
                         result = restClient.addVolume(volume.getStorageSystemId(), volume.getStoragePoolId(),
-                                volume.getDisplayName(), capacity);
+                                volume.getDisplayName(), capacity,volume.getThinlyProvisioned());
 
                         if (result != null) {
                             volume.setNativeId(result.getId());
@@ -616,7 +616,12 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask createConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-        return setUpNonSupportedTask(ScaleIOConstants.TaskType.CG_CREATE);
+        log.info("create consistency group: ");
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_CREATE));
+        consistencyGroup.setNativeId(consistencyGroup.getDisplayName());
+        task.setStatus(DriverTask.TaskStatus.READY);
+        task.setMessage("Set Fake native ID");
+        return task;
     }
 
     /**
@@ -1038,6 +1043,15 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
         }
     }
 
+    /**
+     * Store information into Registry
+     * @param SystemNativeId
+     * @param attributeKey
+     * @param attributeValue
+     */
+    private void setInfoToRegistry(String SystemNativeId,String attributeKey,String attributeValue){
+        
+    }
     /**
      * Set connection information to registry
      *

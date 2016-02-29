@@ -34,7 +34,7 @@ public class CometRestResource {
     
     @GET
     @Path("hosts")
-    @Produces(MediaType.TEXT_XML)
+    @Produces(MediaType.TEXT_PLAIN)
     public List<String> getHosts() {
         ViperCaller vipr = new ViperCaller();
         

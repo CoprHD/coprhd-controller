@@ -26,18 +26,15 @@ public class clientMain {
         URI targetVolumeURI=new URI(targetVolume);
         URI targetVpoolId  = new URI(tragetVPool);
 //       vipr.migrate(hostURI, sourceVolumeURI, targetVolumeURI);
-        
 //        Tasks<VolumeRestRep> volumeRestRep=vipr.createVolume(sourceVolumeURI, targetVpoolId);
 //        List<VolumeRestRep> restRep = volumeRestRep.get(); 
 //        URI volume= ((VolumeRestRep)restRep.get(0)).getId();
 //        vipr.exportVolumeURI(hostURI,volume);
-        
 //        Tasks<VolumeRestRep> volumeRestRep=vipr.createVolume(sourceVolumeURI, targetVpoolId);
 //        List<VolumeRestRep> volumeList= volumeRestRep.get();
         
-        
-        
-        boolean result = vipr.exportVolumeURI(hostURI, targetVolumeURI);
+//        boolean result = vipr.exportVolumeURI(hostURI, targetVolumeURI);
+        boolean result = vipr.doExport(sourceVolumeURI, hostURI, targetVpoolId);
         
         System.out.println(" volume " +result);
        

@@ -70,7 +70,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                     try {
 
                         result = restClient.addVolume(volume.getStorageSystemId(), volume.getStoragePoolId(),
-                                volume.getDisplayName(), capacity,volume.getThinlyProvisioned());
+                                volume.getDisplayName(), capacity, volume.getThinlyProvisioned());
 
                         if (result != null) {
                             volume.setNativeId(result.getId());
@@ -335,8 +335,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     /**
      * Restore from clone.
      * <p/>
-     * It is implementation responsibility to validate consistency of this operation
-     * when clones belong to consistency groups.
+     * It is implementation responsibility to validate consistency of this operation when clones belong to consistency groups.
      *
      * @param clones Clones to restore from. Type: Input/Output.
      * @return task
@@ -632,7 +631,11 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     @Override
     public DriverTask deleteConsistencyGroup(VolumeConsistencyGroup consistencyGroup) {
-        return setUpNonSupportedTask(ScaleIOConstants.TaskType.CG_DELETE);
+        log.info("Delete consistency group: ");
+        DriverTask task = new DriverTaskImpl(ScaleIOHelper.getTaskId(ScaleIOConstants.TaskType.CG_DELETE));
+        task.setStatus(DriverTask.TaskStatus.READY);
+        return task;
+
     }
 
     /**
@@ -680,7 +683,10 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
                                 snapshot.setTimestamp(currentTime);
                                 snapshot.setAccessStatus(StorageObject.AccessStatus.READ_WRITE);
                                 snapshot.setDeviceLabel(snapInfo.getName());
-                                snapshot.setConsistencyGroup(result.getSnapshotGroupId());
+                                // map real CG id with fake CG id
+                                setInfoToRegistry(snapshot.getStorageSystemId(), consistencyGroup.getDisplayName(),
+                                        result.getSnapshotGroupId());
+                                snapshot.setConsistencyGroup(consistencyGroup.getDisplayName());
                                 countSucc++;
                             }
                         }
@@ -721,7 +727,10 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
             if (client != null) {
                 try {
                     log.info("Rest Client Got! delete consistency group snapshot - Start:");
-                    client.removeConsistencyGroupSnapshot(snapshots.get(0).getConsistencyGroup());
+                    List<String> cgIds = getInfoFromRegistry(systemId, snapshots.get(0).getConsistencyGroup());
+                    for (String cgId : cgIds) {
+                        client.removeConsistencyGroupSnapshot(cgId);
+                    }
                     task.setStatus(DriverTask.TaskStatus.READY);
                     log.info("Successfully delete consistency group snapshot - End:");
                 } catch (Exception e) {
@@ -964,7 +973,7 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     /**
      * Discover host components which are part of storage system
      *
-     * @param storageSystem                 Type: Input.
+     * @param storageSystem Type: Input.
      * @param embeddedStorageHostComponents Type: Output.
      * @return
      */
@@ -1024,34 +1033,81 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
     }
 
     /**
-     * Get connection info from registry
-     *
-     * @param systemNativeId
-     * @param attrName use string constants in the scaleioConstants.java. e.g. ScaleIOConstants.IP_ADDRESS
-     * @return Ip_address, port, username or password for given systemId and attribute name
+     * Get info from registry
+     * 
+     * @param systemNativeId system Native Id
+     * @param attrName attribute name
+     * @return List of values
      */
-    public String getConnInfoFromRegistry(String systemNativeId, String attrName) {
+    public List<String> getInfoFromRegistry(String systemNativeId, String attrName) {
         Map<String, List<String>> attributes = this.driverRegistry.getDriverAttributesForKey(ScaleIOConstants.DRIVER_NAME, systemNativeId);
         if (attributes == null) {
-            log.info("Connection info for " + systemNativeId + " is not set up in the registry");
+            log.info("There is no attribute set up for " + systemNativeId + " in the registry");
             return null;
         } else if (attributes.get(attrName) == null) {
             log.info(attrName + "is not found in the registry");
             return null;
         } else {
-            return attributes.get(attrName).get(0);
+            return attributes.get(attrName);
         }
     }
 
     /**
+     * Get connection information from Registry
+     * 
+     * @param systemNativeId
+     * @param attrName
+     * @return
+     */
+    public String getConnInfoFromRegistry(String systemNativeId, String attrName) {
+        List<String> values = getInfoFromRegistry(systemNativeId, attrName);
+        if (values != null) {
+            return values.get(0);
+        }
+        return null;
+    }
+
+    /**
      * Store information into Registry
-     * @param SystemNativeId
+     * 
+     * @param systemNativeId
      * @param attributeKey
      * @param attributeValue
      */
-    private void setInfoToRegistry(String SystemNativeId,String attributeKey,String attributeValue){
-        
+    public void setInfoToRegistry(String systemNativeId, String attributeKey, String attributeValue) {
+        Map<String, List<String>> attributes = this.driverRegistry.getDriverAttributesForKey(ScaleIOConstants.DRIVER_NAME, systemNativeId);
+        List<String> values = new ArrayList<>();
+        if (attributes != null) {
+            if (attributes.get(attributeKey) != null) {
+                values.addAll(attributes.get(attributeKey));
+                if (!values.contains(attributeValue)) {
+                    values.add(attributeValue);
+                }
+            } else {
+                values.add(attributeValue);
+            }
+        } else {
+            values.add(attributeValue);
+        }
+
+        this.driverRegistry.addDriverAttributeForKey(ScaleIOConstants.DRIVER_NAME, systemNativeId, attributeKey, values);
     }
+
+    /**
+     * Create attribute to store in Registry
+     * 
+     * @param key key for attribute
+     * @param value value for attribute
+     * @return attribute
+     */
+    private Map<String, List<String>> createAttributesForRegistry(String key, String value) {
+        Map<String, List<String>> attribute = new HashMap<>();
+        List<String> valueList = new ArrayList<>();
+        valueList.add(value);
+        attribute.put(key, valueList);
+        return attribute;
+    }
+
     /**
      * Set connection information to registry
      *
@@ -1063,19 +1119,10 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
      */
     public void setConnInfoToRegistry(String systemNativeId, String ipAddress, int port, String username, String password) {
         Map<String, List<String>> attributes = new HashMap<>();
-        List<String> listIP = new ArrayList<>();
-        List<String> listPort = new ArrayList<>();
-        List<String> listUserName = new ArrayList<>();
-        List<String> listPwd = new ArrayList<>();
-
-        listIP.add(ipAddress);
-        attributes.put(ScaleIOConstants.IP_ADDRESS, listIP);
-        listPort.add(Integer.toString(port));
-        attributes.put(ScaleIOConstants.PORT_NUMBER, listPort);
-        listUserName.add(username);
-        attributes.put(ScaleIOConstants.USER_NAME, listUserName);
-        listPwd.add(password);
-        attributes.put(ScaleIOConstants.PASSWORD, listPwd);
+        attributes.putAll(createAttributesForRegistry(ScaleIOConstants.IP_ADDRESS, ipAddress));
+        attributes.putAll(createAttributesForRegistry(ScaleIOConstants.PORT_NUMBER, Integer.toString(port)));
+        attributes.putAll(createAttributesForRegistry(ScaleIOConstants.USER_NAME, username));
+        attributes.putAll(createAttributesForRegistry(ScaleIOConstants.PASSWORD, password));
 
         this.driverRegistry.setDriverAttributesForKey(ScaleIOConstants.DRIVER_NAME, systemNativeId, attributes);
     }

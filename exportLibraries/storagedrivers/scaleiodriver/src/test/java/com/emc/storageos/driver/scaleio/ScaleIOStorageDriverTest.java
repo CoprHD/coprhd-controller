@@ -38,8 +38,8 @@ import java.util.Random;
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
 
-    String SYS_NATIVE_ID_A = "6ee6d94e5a3517b8";
-    String SYS_NATIVE_ID_B = "3eb4708d2b3ea454";
+    String SYS_NATIVE_ID_A = "1c865e9900000000";
+    String SYS_NATIVE_ID_B = "08af5d6100000000";
     String SYS_NATIVE_ID_C = "1c865e9900000000";
     String POOL_ID_C = "45306a6b00000000";
     String IP_ADDRESS_A = "10.193.17.97";
@@ -48,11 +48,11 @@ public class ScaleIOStorageDriverTest {
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
-    String VOLUME_ID_1A = "d584cb0c00000029";
-    String VOLUME_ID_2A = "d584cb0d0000002a";
-    String SNAPSHOT_OF_1A = "d584cb1900000000";
-    String VOLUME_ID_1B = "83f1771b00000000";
-    String VOLUME_ID_2B = "83f1771000000001";
+    String VOLUME_ID_1A = "08bee36300000007";
+    String VOLUME_ID_2A = "08bee3a900000002";
+    String SNAPSHOT_OF_1A = "08bee3ab00000008";
+    String VOLUME_ID_1B = "83f1779000000000";
+    String VOLUME_ID_2B = "83f177bf00000001";
     String INVALID_VOLUME_ID_1 = "83f177070000000";
 
     private ScaleIOStorageDriver driver;
@@ -319,10 +319,19 @@ public class ScaleIOStorageDriverTest {
     @Test
     public void testGetConnInfoFromRegistry() throws Exception {
         driver.setConnInfoToRegistry(SYS_NATIVE_ID_A, IP_ADDRESS_A, PORT_NUMBER, USER_NAME, PASSWORD);
+        String CG_NAME="test-cg-name";
+        String CG_ID_1="test-cg-id";
+        String CG_ID_2="test-cg-id-1";
+        driver.setInfoToRegistry(SYS_NATIVE_ID_A,CG_NAME,CG_ID_1);
+        driver.setInfoToRegistry(SYS_NATIVE_ID_A,CG_NAME,CG_ID_2);
+
         Assert.assertEquals(IP_ADDRESS_A, driver.getConnInfoFromRegistry(SYS_NATIVE_ID_A, ScaleIOConstants.IP_ADDRESS));
         Assert.assertEquals(Integer.toString(PORT_NUMBER), driver.getConnInfoFromRegistry(SYS_NATIVE_ID_A, ScaleIOConstants.PORT_NUMBER));
         Assert.assertEquals(USER_NAME, driver.getConnInfoFromRegistry(SYS_NATIVE_ID_A, ScaleIOConstants.USER_NAME));
         Assert.assertEquals(PASSWORD, driver.getConnInfoFromRegistry(SYS_NATIVE_ID_A, ScaleIOConstants.PASSWORD));
+        List<String> cg_ids= driver.getInfoFromRegistry(SYS_NATIVE_ID_A,CG_NAME);
+        Assert.assertTrue(cg_ids.contains(CG_ID_1));
+        Assert.assertTrue(cg_ids.contains(CG_ID_2));
     }
 
     @Test
@@ -498,7 +507,6 @@ public class ScaleIOStorageDriverTest {
         List<VolumeSnapshot> snapshots = new LinkedList<>();
         snapshots.add(initializeSnapshot(null, VOLUME_ID_1A, SYS_NATIVE_ID_A));
         snapshots.add(initializeSnapshot(null, SNAPSHOT_OF_1A, SYS_NATIVE_ID_A));
-        snapshots.add(initializeSnapshot(null, VOLUME_ID_2A, SYS_NATIVE_ID_A));
         if (withInvalid) {
             snapshots.add(initializeSnapshot(null, INVALID_VOLUME_ID_1, SYS_NATIVE_ID_A));
         }
@@ -547,6 +555,7 @@ public class ScaleIOStorageDriverTest {
     private List<VolumeSnapshot> createSnapListSameCG(boolean withInvalid) {
         List<VolumeSnapshot> snapshots = this.createSnapListSameSys(withInvalid);
         VolumeConsistencyGroup cg = new VolumeConsistencyGroup();
+        cg.setDisplayName("ut-cg1");
         driver.createConsistencyGroupSnapshot(cg, snapshots, null);
         return snapshots;
     }

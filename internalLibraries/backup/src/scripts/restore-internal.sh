@@ -117,7 +117,7 @@ restore_data() {
             restore_node "${viprNode}" "onlysiteid"
         fi
         if [ $? != 0 ]; then
-            echo -n "failed on ${viprNode}.."
+            echo "Failed on ${viprNode}.."
             RESTORE_RESULT="failed"
         fi
     done

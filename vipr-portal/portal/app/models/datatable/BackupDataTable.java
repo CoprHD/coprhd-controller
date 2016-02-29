@@ -8,7 +8,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.List;
 
-import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
 import play.Logger;
 import util.BackupUtils;
 import util.datatable.DataTable;

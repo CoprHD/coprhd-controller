@@ -1,0 +1,284 @@
+#!/bin/bash -e
+#
+# Copyright (c) 2016 EMC Corporation
+# All Rights Reserved
+#
+# /etc/datatool
+# 
+# Manage data versioning for DR standby site, where we need maintain multiple 
+# data copies. A data copy starts from scratch(an empty folder). A unique 
+# number is used to identify the data copy version. Its content is fetched
+# from active site. Based on an existing data copy, a rw snapshot could be 
+# created. Creating/reverting sanpshot are supported. Currently we only use
+# snapshot for zk.
+#
+# Data revision and snapshot number combinedly together can be used to
+# identify a data version. A version which is actively used and linked to 
+# main dir as soft link. 
+
+
+export PATH=/bin:/bin:/sbin:/usr/bin:/usr/sbin
+
+_usage() {
+    set +Ex
+    echo "Usage: $0 --list"             >&2
+    echo "   or: $0 --create-version datadir version"      >&2
+    echo "   or: $0 --set-version datadir version"             >&2
+    echo "   or: $0 --create-snapshot datadir" >&2
+    echo "   or: $0 --revert-sanpshot datadir"   >&2
+    echo "   or: $0 --rebase-sanpshot datadir"   >&2
+    echo "   or: $0 --purge-unused-versions datadir"     >&2
+    exit 2
+}
+
+_info() {
+    echo "$0: Info: $*" >&2
+}
+
+_warn() {
+    echo "$0: Warning: $*" >&2
+}
+
+_fatal() {
+    set +Ex
+    echo "$0: Error: $*" >&2
+    exit 1
+}
+
+_err_handler() {
+    set +E
+    _fatal "Line ${LINENO}: $(eval echo \"${BASH_COMMAND}\")"
+}
+
+_exit_handler() {
+    set +E
+    for action in "${on_exit_actions[@]}" ; do
+        eval "${action}"
+    done
+}
+
+_set_on_exit() {
+    on_exit_actions=( "${@}" "${on_exit_actions[@]}" )
+}
+
+_exit_handler() {
+     set +E
+     for action in "${on_exit_actions[@]}" ; do 
+         eval "${action}"
+     done
+}
+
+_set_traps() {
+     declare -a on_exit_actions
+     trap '' SIGINT
+     trap '' SIGTERM
+     trap _exit_handler EXIT
+     trap 'set +Ex ; _fatal "Line ${LINENO}: $(eval echo \"${BASH_COMMAND}\")"' ERR
+     if [ -n "${*}" ] ; then set "${@}" ; fi
+}
+
+lock_file=/tmp/${0##*/}.lock
+lock_timeout=${lock_timeout:-30}
+
+_x() {
+    ( _set_traps -E && flock -x -w "${lock_timeout}" 200 && "${@}"  ) 200>${lock_file}
+}
+
+
+_get_version() {
+    local dir=$(readlink ${1})
+    local dirname=$(basename ${dir})
+    local ver=$(echo ${dirname} | cut -d. -f1)
+    echo ${ver}
+}
+
+_get_snapshot_number() {
+    dir=$(readlink ${1})
+    dirname=$(basename ${dir})
+    local sn=$(echo ${dirname} | cut -d. -f2)
+    echo ${sn}
+}
+
+_get_base_snapshot_number() {
+    local basedir=$(dirname $1)
+    if [ ! -L $1 ] ; then
+        _info "Versioning not supported for $1"
+        return
+    fi
+
+    local curver=$(_get_version $1)
+    local cursn=$(_get_snapshot_number $1)
+    local basesn=${cursn}
+    for i in $(ls ${basedir}); do
+        local dir=${basedir}/${i}
+        [ -L ${dir} ] && continue;
+	[ -f ${dir} ] && continue;
+        local ver=$(echo ${i} | cut -d. -f1)
+        [ "${ver}" != "${curver}" ] && continue;
+        local sn=$(echo ${i} | cut -d. -f2)
+        if [ "${sn}" -lt "${basesn}" ] ; then
+            basesn=${sn}
+        fi
+    done
+    echo "${basesn}"
+}
+
+_list() {
+    local basedir=$(dirname $1)
+    if [ ! -L $1 ] ; then
+        _info "Versioning not supported for $1"
+        return
+    fi
+
+    local curver=$(_get_version $1)
+    for i in $(ls ${basedir}); do
+        local dir=${basedir}/${i}
+        [ -L ${dir} ] && continue;
+	[ -f ${dir} ] && continue;
+        local ver=$(echo ${i} | cut -d. -f1)
+        [ -z "${ver}" ] && continue;
+        local sn=$(echo ${i} | cut -d. -f2)
+        if [ "${curver}" == "${ver}" ] ; then
+            _info "ACTIVE - Version(${ver}), Snapshot number(${sn})"
+        else
+            _info "UNUSED - Version(${ver}), Snapshot number(${sn})"
+        fi
+    done
+}
+
+_create_version() {
+    local basedir=$(dirname $1)
+
+    # check if version matched
+    if [ -L $1 ] ; then
+        local ver=$(_get_version $1)
+        if [ "$2" == "${ver}" ] ; then
+            # nothing to do if the pointer is linked to expected revision
+            return
+        fi
+	unlink $1
+    else
+        # convert dir to softlink
+        mv $1 ${basedir}/0.0
+    fi
+
+    # create target revision dir if it does not exist
+    # sn always starts from zero
+    local datadir="${basedir}/${2}.0"
+    if [ ! -d "${datadir}" ] ; then
+        mkdir ${datadir}
+        chown storageos:storageos ${datadir}
+    fi
+
+    # change the pointer to target revision. 
+    ln -s ${datadir} $1
+    chown -h storageos:storageos $1
+}
+
+_purge_unused_versions() {
+    local basedir=$(dirname $1)
+    if [ ! -L $1 ] ; then
+        # mutliple data reversion not supported yet
+        return
+    fi
+
+    local curver=$(_get_version $1)
+    for i in $(ls ${basedir}); do
+        local dir=${basedir}/${i}
+        [ -L ${dir} ] && continue;
+	[ -f ${dir} ] && continue;
+        local ver=$(echo ${i} | cut -d. -f1)
+        [ -z "${ver}" ] && continue;
+        if [ "${ver}" != "${curver}" ] ; then
+            _info "Purging unused data dir ${i}"
+	    rm -fR ${dir}
+        fi
+    done
+}
+
+# create a snapshot from base
+_create_snapshot() {
+    local basedir=$(dirname $1)	
+    if [ ! -L $1 ]; then
+        # convert dir to softlink
+        mv $1 ${basedir}/0.0
+        ln -s ${basedir}/0.0 $1
+    fi
+ 
+    local ver=$(_get_version $1)
+    local sn=$(_get_snapshot_number $1)
+    local nextsn=$((sn + 1))
+    local basesn=$(_get_base_snapshot_number $1)
+
+    # save off a golden zk copy
+    cp -rp ${basedir}/${ver}.${basesn} ${basedir}/${ver}.${nextsn}
+    unlink $1
+    ln -s ${basedir}/${ver}.${nextsn} $1
+    chown -h storageos:storageos ${1}
+    if [ "${sn}" != "${basesn}" ]; then
+       rm -fR ${basedir}/${ver}.${sn}
+    fi
+}
+
+# discard snapshot and revert to base
+_revert_snapshot() {
+    local basedir=$(dirname $1)
+    local ver=$(_get_version $1)
+    local sn=$(_get_snapshot_number $1)
+    local basesn=$(_get_base_snapshot_number $1)
+    if [ "${sn}" == "${basesn}" ]; then
+        _fatal "Failed to revert snapshot for $1: only single base snapshot ${basesn}"
+    fi
+    if [ ! -d ${basedir}/${ver}.${basesn} ]; then
+        _fatal "Failed to revert snapshot for $1: base snapshot ${basesn} missing"
+    fi    
+
+    unlink $1
+    ln -s ${basedir}/${ver}.${basesn} $1
+    chown -h storageos:storageos ${1}
+    rm -fR ${basedir}/${ver}.${sn}
+}
+
+# set current snapshot as base version
+_rebase_snapshot() {
+    local basedir=$(dirname $1)
+    if [ ! -L $1 ] ; then
+        # mutliple data reversion not supported yet
+        return
+    fi
+
+    local curver=$(_get_version $1)
+    local cursn=$(_get_snapshot_number $1)
+    for i in $(ls ${basedir}); do
+        local dir=${basedir}/${i}
+        [ -L ${dir} ] && continue;
+	[ -f ${dir} ] && continue;
+        local ver=$(echo ${i} | cut -d. -f1)
+        local sn=$(echo ${i} | cut -d. -f2)
+	# skip other versions
+        [ "${ver}" != "${curver}" ] && continue; 
+        if [ "${sn}" -lt "${cursn}" ] ; then
+            _info "Purging unused data dir ${i}"
+	    rm -fR ${dir}
+        fi
+    done
+}
+
+# Parse options
+#_set_traps -E
+case ${#} in
+    2)  case ${1} in
+            --list)                   _x _list "${2}" ;;
+            --create-snapshot)        _x _create_snapshot      "${2}" ;;
+            --revert-snapshot)        _x _revert_snapshot      "${2}" ;;
+            --rebase-snapshot)        _x _rebase_snapshot      "${2}" ;;
+            --purge-unused-versions)  _x _purge_unused_versions "${2}" ;;
+            *)                        _usage
+        esac;;
+    3)  case ${1} in 
+            --create-version)          _x _create_version  "${2}" "${3}" ;;
+            --set-version)             _x _create_version  "${2}" "${3}" ;;
+            *)                        _usage
+        esac;;
+    *)  _usage
+esac

@@ -2431,7 +2431,7 @@ public class VolumeGroupService extends TaskResourceService {
                 session.getLabel(), Joiner.on(',').join(targetIds)));
         if (targetIds.isEmpty()) {
             // None of the provided target belong to this snapshot session.
-            throw APIException.badRequests.snapshotSessionDoesNotHaveAnyTargets(session.getId().toString());
+            throw APIException.badRequests.snapshotSessionDoesNotHaveAnyTargetsInGivenList(session.getId().toString());
         }
         return targetIds;
     }

@@ -10,47 +10,52 @@
             <map>
                 <entry key="metering" value-ref="collectMetering"/>
             </map>
-        </property>
-    </bean>
-    <!-- List of operations for this performance namespace -->
-    <bean id="collectMetering"
-          class="com.emc.storageos.plugins.common.domainmodel.Namespace">
-        <property name="operations">
-            <list>
-                <ref bean="system"/>
-                <ref bean="blockStatisticsService"/>
-                <ref bean="blockStatisticsCapabilities"/>
-                <ref bean="queryStatisticsCollection"/>
-                <!-- beans to get statistics for Volume -->
-                <ref bean="checkIfManifestCollectionExists"/>
-                <ref bean="createManifestCollection"/>
-                <ref bean="addVolumeManifest"/>
-                <ref bean="getVolumeMetricSequence"/>
-                <ref bean="getVolumeStatistics"/>
+		</property>
+	</bean>
+	<!-- List of operations for this performance namespace -->
+	<bean id="collectMetering"
+		class="com.emc.storageos.plugins.common.domainmodel.Namespace">
+		<property name="operations">
+			<list>
+                <ref bean="start" />
+                <!-- All processors after this -->
 
+				<ref bean="system" />
+				<ref bean="blockStatisticsService" />
+				<ref bean="blockStatisticsCapabilities" />
+				<ref bean="queryStatisticsCollection" />
+				<!-- beans to get statistics for Volume -->
+				<ref bean="checkIfManifestCollectionExists" />
+				<ref bean="createManifestCollection" />
+				<ref bean="addVolumeManifest" />
+				<ref bean="getVolumeMetricSequence" />
+				<ref bean="getVolumeStatistics" />
+				
+				
+				<!-- beans to get Statistics for Array -->
+				<ref bean="addArrayManifest" />
+				<ref bean="getArrayMetricsSequence" />
+				<ref bean="getArrayStatistics" />
 
-                <!-- beans to get Statistics for Array -->
-                <ref bean="addArrayManifest"/>
-                <ref bean="getArrayMetricsSequence"/>
-                <ref bean="getArrayStatistics"/>
+				<!-- beans to get Statistics for FEAdapt; do this before FEPort -->
+				<ref bean="addFEAdaptManifest" />
+				<ref bean="getFEAdaptMetricsSequence" />
+				<ref bean="getFEAdaptStatistics" />
+				
+				<!-- beans to get Statistics for FEPort -->
+				<ref bean="addFEPortManifest" />
+				<ref bean="getFEPortMetricsSequence" />
+				<ref bean="getFEPortStatistics" />
+				
+				<ref bean="getStoragePools" />
+				<ref bean="getVolumeCapacity" />
+				<ref bean="getVolumeCapacityFor8x"/>
 
-                <!-- beans to get Statistics for FEAdapt; do this before FEPort -->
-                <ref bean="addFEAdaptManifest"/>
-                <ref bean="getFEAdaptMetricsSequence"/>
-                <ref bean="getFEAdaptStatistics"/>
-
-                <!-- beans to get Statistics for FEPort -->
-                <ref bean="addFEPortManifest"/>
-                <ref bean="getFEPortMetricsSequence"/>
-                <ref bean="getFEPortStatistics"/>
-
-                <ref bean="getStoragePools"/>
-                <ref bean="getVolumeCapacity"/>
-                <ref bean="getVolumeCapacityFor8x"/>
-
-            </list>
-        </property>
-    </bean>
+                <!-- "complete" should be the last step. All new steps above this -->
+                <ref bean="complete" />
+			</list>
+		</property>
+	</bean>
 
     <!-- SMI Call to get CIMObject Path for the System -->
     <bean id="system"
@@ -529,15 +534,52 @@
         <property name="name" value="prvcList"/>
     </bean>
 
+	<bean id="start" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="accessProfile"/>
+				<ref bean="dbclient"/>
+			</list>
+		</property>
+		<property name="instance" ref="connectionManagerUtils"/>
+		<property name="method" value="disallowReaping"/>
+		<property name="message" value="Setting keep alive for CIM Connections"/>
+	</bean>
 
-    <!-- cimClient -->
-    <bean id="cimClient"
-          class="com.emc.storageos.plugins.common.domainmodel.Argument">
-        <property name="creator" ref="argscreator"/>
-        <property name="method" value="getReferenceValue"/>
-        <property name="value" value="cimClient"/>
-    </bean>
+	<bean id="complete" class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="arguments">
+			<list>
+				<ref bean="accessProfile"/>
+				<ref bean="dbclient"/>
+			</list>
+		</property>
+		<property name="instance" ref="connectionManagerUtils"/>
+		<property name="method" value="allowReaping"/>
+		<property name="message" value="Allow CIM connections for provider to be cleaned up"/>
+	</bean>
 
+	<bean id="connectionManagerUtils" class="com.emc.storageos.volumecontroller.impl.utils.ConnectionManagerUtils"/>
+
+	<bean id="accessProfile" class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="accessProfile" />
+	</bean>
+
+	<!-- cimClient -->
+	 <bean id="cimClient"
+		class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="cimClient" />
+	</bean>
+
+	<bean id="dbclient"
+		  class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="getReferenceValue" />
+		<property name="value" value="dbClient" />
+	</bean>
 
     <!-- Processors -->
     <bean id="cimpathprocessor"

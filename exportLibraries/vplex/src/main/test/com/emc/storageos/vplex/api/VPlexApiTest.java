@@ -777,7 +777,7 @@ public class VPlexApiTest {
             for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
                 migrationNames.add(migrationInfo.getName());
             }
-            migrationInfoList = _client.commitMigrations(migrationNames, true, true);
+            migrationInfoList = _client.commitMigrations(migrationNames, true, true, true);
             Assert.assertEquals(migrationInfoList.size(), 1);
 
             // Clean up the virtual volume.
@@ -861,7 +861,7 @@ public class VPlexApiTest {
             for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
                 migrationNames.add(migrationInfo.getName());
             }
-            migrationInfoList = _client.commitMigrations(migrationNames, true, true);
+            migrationInfoList = _client.commitMigrations(migrationNames, true, true, true);
             Assert.assertEquals(migrationInfoList.size(), 2);
 
             // Clean up the virtual volume. Use the second one as it will have the

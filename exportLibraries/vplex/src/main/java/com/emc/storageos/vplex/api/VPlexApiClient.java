@@ -288,7 +288,8 @@ public class VPlexApiClient {
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
-            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = _discoveryMgr.getVirtualVolumesForCluster(clusterId);
+            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = 
+                    _discoveryMgr.getVirtualVolumesForCluster(clusterId);
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);
                 String virtualVolumeName = virtualVolumeInfo.getName();
@@ -396,7 +397,7 @@ public class VPlexApiClient {
             List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
             boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList,
             boolean findVirtualVolume)
-                    throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
                 discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume);
@@ -433,7 +434,7 @@ public class VPlexApiClient {
      */
     public VPlexDeviceInfo createDeviceAndAttachAsMirror(VPlexVirtualVolumeInfo virtualVolume,
             List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired, boolean preserveData)
-                    throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request for mirror creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createDeviceAndAttachAsMirror(virtualVolume, nativeVolumeInfoList, discoveryRequired, preserveData);
     }
@@ -533,7 +534,7 @@ public class VPlexApiClient {
      */
     public VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName,
             int expansionStatusRetryCount, long expansionStatusSleepTime)
-                    throws VPlexApiException {
+            throws VPlexApiException {
         s_logger.info("Request for virtual volume expansion on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.expandVirtualVolume(virtualVolumeName, expansionStatusRetryCount,
                 expansionStatusSleepTime);
@@ -619,6 +620,7 @@ public class VPlexApiClient {
      * @param migrationNames The names of the migrations.
      * @param cleanup true to automatically cleanup after the commit.
      * @param remove true to automatically remove the migration record.
+     * @param rename true to rename the volumes after committing the migration.
      * 
      * @return A list of VPlexMigrationInfo instances for the committed
      *         migrations each of which contains a reference to the
@@ -629,9 +631,9 @@ public class VPlexApiClient {
      * @throws VPlexApiException When an error occurs committing the migrations.
      */
     public List<VPlexMigrationInfo> commitMigrations(List<String> migrationNames,
-            boolean cleanup, boolean remove) throws VPlexApiException {
+            boolean cleanup, boolean remove, boolean rename) throws VPlexApiException {
         s_logger.info("Request to commit migrations on VPlex at {}", _baseURI);
-        return _migrationMgr.commitMigrations(migrationNames, cleanup, remove);
+        return _migrationMgr.commitMigrations(migrationNames, cleanup, remove, rename);
     }
 
     /**
@@ -1699,10 +1701,6 @@ public class VPlexApiClient {
      */
     public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
         return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
-    }
-
-    public VPlexVirtualVolumeInfo renameMigratedVolumeResource(String volumeName, Map<String, List<Object>> migrationInfo) {
-        return _virtualVolumeMgr.renameMigratedVolumeResource(volumeName, migrationInfo);
     }
 
 }

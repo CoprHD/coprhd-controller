@@ -382,7 +382,7 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
         // Keep a reference to the VPLEX
         URI vplexURI = vplexVolume.getStorageController();
         
-        log.info(String.format("Find correct VPLEX CG for VPLEX %s volume [%s](%s) at cluster-%s on VPLEX (%s)", 
+        log.info(String.format("Find correct VPLEX CG for VPLEX %s volume [%s](%s) at cluster [%s] on VPLEX (%s)", 
                 (distributed ? "distribitued" : "local"), vplexVolume.getLabel(), 
                 vplexVolume.getId(), vplexCluster, vplexURI));
                                 

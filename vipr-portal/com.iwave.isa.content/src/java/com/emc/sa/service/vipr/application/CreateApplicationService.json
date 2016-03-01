@@ -1,0 +1,15 @@
+{
+  baseKey:"AddVolumesToApplication.Application",
+  serviceId:"AddVolumesToApplication",
+  fields:{
+  
+    name:{
+     type:"text"
+    },
+    
+    description:{
+     type:"text",
+     required:false
+    }
+  }
+}

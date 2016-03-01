@@ -577,8 +577,16 @@
       "description": "applicationservices.description",
       "services": [
         {
+          "image": "icon_application_create_application.png",
+          "baseService": "CreateApplication"
+        },
+        {
           "image": "icon_application_add_volumes.png",
           "baseService": "AddVolumesToApplication"
+        },
+        {
+          "image": "icon_application_delete_application.png",
+          "baseService": "DeleteApplication"
         },
         {
           "image": "icon_application_remove_volumes.png",

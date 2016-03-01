@@ -34,6 +34,7 @@ serviceExec="/sbin/service"
 chownExec="/usr/bin/chown"
 chmodExec="/usr/bin/chmod"
 openstackExec="/usr/bin/openstack"
+rabbitmqExec="/usr/sbin/rabbitmqctl"
 
 # Files
 logFile="/opt/ADG/firstboot/logs/ViPROpenStackConfig.log"
@@ -70,6 +71,16 @@ LogMessage()
     $echoExec "$fullTime [$prefix]: $message"
   fi
 }
+
+#######################################################
+# Configure Firewall ports
+#######################################################
+
+$sedExec -i 's/FW_SERVICES_EXT_TCP=".*"/FW_SERVICES_EXT_TCP="ssh 8776 5000 35357"/' /etc/sysconfig/SuSEfirewall2
+$serviceExec SuSEfirewall2 restart
+if [ $? -ne 0 ]; then
+  LogMessage "ERROR" "Failed to start SuSEfirewall2 service"
+fi
 
 ######################################################
 # Start the required services
@@ -328,6 +339,21 @@ if [ $? -ne 0 ]; then
 fi
 
 #################################################################
+# Add openstack user to rabbitmq
+#################################################################
+$rabbitmqExec add_user openstack password
+if [ $? -ne 0 ]; then
+  LogMessage "ERROR" "Failed to add openstack user to rabbitmq"
+  exit 1
+fi
+
+$rabbitmqExec set_permissions openstack ".*" ".*" ".*"
+if [ $? -ne 0 ]; then
+  LogMessage "ERROR" "Failed to set permissions for openstack user"
+  exit 1
+fi
+
+#################################################################
 # Verify Keystone Installation
 #################################################################
 LogMessage "INFO" "Verify Keystone Installation"
@@ -359,6 +385,7 @@ export OS_USERNAME=admin
 export OS_PASSWORD=password
 export OS_AUTH_URL=http://$hostName:35357/v2.0
 export OS_IDENTITY_API_VERSION=2
+export OS_VOLUME_API_VERSION=2
 EOF
 $chmodExec 700 $adminOpenrcFile
 
@@ -432,6 +459,21 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+########################################################
+# Sourcing the ovf.properties file to read the VM values
+########################################################
+if [ -f /opt/ADG/conf/ovf.properties ]; then
+  source /opt/ADG/conf/ovf.properties
+else
+  LogMessage "ERROR" "Unable to determine the VM values"
+  exit 1
+fi
+
+LogMessage "INFO" "Updating cinder conf with host IP address: $network_ipv40_ViPROpenStack"
+$sedExec -i "s/__CONTROLLER__/$network_ipv40_ViPROpenStack/" $cinderConfFile
+if [ $? -ne 0 ]; then
+  LogMessage "ERROR" "Failed to update cinder.conf file with the ip address"
+fi
 #######################################################
 # Populate the Block Storage database
 LogMessage "INFO" "Populate the Block Storage database"

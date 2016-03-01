@@ -81,8 +81,7 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
                         blockObj.getReplicationGroupInstance(), cg.getLabel()));
                 if (blockObj instanceof Volume) {
                     Volume volume = (Volume) blockObj;
-                    if (volume.getAssociatedVolumes() != null 
-                            && !volume.getAssociatedVolumes().isEmpty()
+                    if (volume.getAssociatedVolumes() != null                             
                             && volume.getAssociatedVolumes().size() > 1) {                        
                         // Since this is a distributed volume, ensure there is a CG entry for each cluster
                         String cgName = BlockConsistencyGroupUtils.fetchCgName(volume.getReplicationGroupInstance());
@@ -93,8 +92,8 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
                         logger.info(String.format("Found BlockObject [%s] is a Distributed VPLEX volume. "
                                 + "Adding cg entry [%s] for both cluster1 and cluster2.", blockObj.getNativeGuid(), cgName));
                     } else {
-                        cg.addSystemConsistencyGroup(blockObj.getStorageController().toString(),
-                                blockObj.getReplicationGroupInstance());
+                        cg.addSystemConsistencyGroup(volume.getStorageController().toString(),
+                                volume.getReplicationGroupInstance());
                     }
                 }
             }

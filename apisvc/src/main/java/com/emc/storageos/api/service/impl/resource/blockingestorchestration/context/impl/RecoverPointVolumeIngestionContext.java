@@ -893,7 +893,17 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public List<ExportMask> findAllNewExportMasks() {
-        return _parentRequestContext.findAllNewExportMasks();
+        List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
+        
+        for (List<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
+            for (DataObject createdObject : createdObjects) {
+                if (createdObject instanceof ExportMask) {
+                    newExportMasks.add((ExportMask) createdObject);
+                }
+            }
+        }
+
+        return newExportMasks;
     }
 
     /* (non-Javadoc)

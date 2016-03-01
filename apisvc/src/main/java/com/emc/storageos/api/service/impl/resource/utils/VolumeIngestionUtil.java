@@ -626,7 +626,7 @@ public class VolumeIngestionUtil {
      * @return boolean indicating if the resource is part of a consistency group
      */
     public static boolean checkUnManagedResourceAddedToConsistencyGroup(UnManagedVolume unManagedVolume) {
-        _logger.info("Determining if the unmanaged volume {} is belongs to an unmanaged consistency group", unManagedVolume.getLabel());
+        _logger.info("Determining if the unmanaged volume {} belongs to an unmanaged consistency group", unManagedVolume.getLabel());
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isVolumeAddedToConsistencyGroup = unManagedVolumeCharacteristics
                 .get(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());

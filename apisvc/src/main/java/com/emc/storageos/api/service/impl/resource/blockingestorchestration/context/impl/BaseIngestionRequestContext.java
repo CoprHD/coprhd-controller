@@ -892,18 +892,11 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
         for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
             if (volumeContext instanceof IngestionRequestContext) {
-                for (List<DataObject> createdObjects : 
-                    ((IngestionRequestContext) volumeContext).getDataObjectsToBeCreatedMap().values()) {
-                    for (DataObject createdObject : createdObjects) {
-                        if (createdObject instanceof ExportMask) {
-                            newExportMasks.add((ExportMask) createdObject);
-                        }
-                    }
-                }
+                newExportMasks.addAll(((IngestionRequestContext) volumeContext).findAllNewExportMasks());
             }
         }
 
-        _logger.info("found {} new ExportMask(s): " + newExportMasks);
+        _logger.info("found {} new ExportMask(s)", newExportMasks.size());
         return newExportMasks;
     }
 

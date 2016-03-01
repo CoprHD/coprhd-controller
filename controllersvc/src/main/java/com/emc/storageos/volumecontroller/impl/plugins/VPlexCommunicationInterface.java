@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.emc.storageos.db.client.model.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,12 +45,12 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -70,6 +71,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.vplex.VPlexStatsCollector;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
@@ -123,6 +125,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     // PartitionManager used for batch database persistence.
     private PartitionManager _partitionManager;
 
+    // Statistics collection implementation
+    private VPlexStatsCollector _statsCollector;
+
     /**
      * Public constructor for Spring bean creation.
      */
@@ -146,6 +151,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     @Override
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
+    }
+
+    /**
+     * Setter for statistics collector
+     */
+    public void setStatsCollector(VPlexStatsCollector statsCollector) {
+        _statsCollector = statsCollector;
     }
 
     /**
@@ -1949,6 +1961,16 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws BaseCollectionException {
+        // https://coprhd.atlassian.net/browse/COP-18616. This code is commented out on purpose for the
+        // time being. The ancillary code to support metrics collection is there, but we just don't want
+        // this to be enabled until there is adequate time to test VPlex frontent port allocations based
+        // on port metrics. Once there's a time available to testing, this comment should be removed and
+        // the commented code below should be uncommented.
+
+        // initializeContext(accessProfile);
+        // _statsCollector.collect(accessProfile, _keyMap);
+        // dumpStatRecords();
+        // injectStats();
     }
 
     /**
@@ -2280,5 +2302,19 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             return sortedMap;
         }
+    }
+
+    private void initializeContext(AccessProfile accessProfile) {
+        _keyMap.put(Constants._serialID, accessProfile.getserialID());
+        _keyMap.put(Constants.dbClient, _dbClient);
+        if (_networkDeviceController != null) {
+            _keyMap.put(Constants.networkDeviceController, _networkDeviceController);
+        }
+        _keyMap.put(Constants._nativeGUIDs, Sets.newHashSet());
+        _keyMap.put(Constants._Stats, new LinkedList<Stat>());
+        _keyMap.put(Constants.ACCESSPROFILE, accessProfile);
+        _keyMap.put(Constants.PROPS, accessProfile.getProps());
+        _keyMap.put(Constants._Stats, new LinkedList<Stat>());
+        _keyMap.put(Constants._TimeCollected, accessProfile.getCurrentSampleTime());
     }
 }

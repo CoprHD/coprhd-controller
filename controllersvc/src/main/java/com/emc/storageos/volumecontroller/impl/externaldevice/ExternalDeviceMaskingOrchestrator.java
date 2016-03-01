@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -202,7 +203,7 @@ public class ExternalDeviceMaskingOrchestrator extends AbstractMaskingFirstOrche
                     // Have to add volumes to user created volumes set in the mask since
                     // generateExportMaskAddVolumesWorkflow() call below does not do this.
                     for (URI volumeUri : volumeMap.keySet()) {
-                        Volume volume = (Volume) _dbClient.queryObject(volumeUri);
+                        BlockObject volume = (BlockObject) _dbClient.queryObject(volumeUri);
                         exportMask.addToUserCreatedVolumes(volume);
                     }
                     _dbClient.updateObject(exportMask);

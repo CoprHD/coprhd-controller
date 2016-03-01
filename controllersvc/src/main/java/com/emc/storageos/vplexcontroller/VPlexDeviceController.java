@@ -4861,6 +4861,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
+    private static final String RENAME_VIRTUAL_VOLUME_METHOD = "renameVirtualVolume";
+    private static final String RENAME_VIRTUAL_VOLUME_STEP = "renameVirtualVolumeStep";
+
     /**
      * Deprecating this for now, should be using the migrateVolumes call with the WF passed in from
      * the BlockOrchestrator.
@@ -4950,6 +4953,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Once the migrations complete, we will commit the migrations.
             // So, now we create the steps to commit the migrations.
+            Boolean rename = Boolean.TRUE;
             String waitForStep = MIGRATION_CREATE_STEP;
             List<URI> migrationSources = new ArrayList<URI>();
             Iterator<URI> migrationsIter = migrationsMap.values().iterator();
@@ -4963,7 +4967,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // ingested volume and we will not want to do any renaming
                 // after the commit as we do when migration ViPR create volumes,
                 // which adhere to a standard naming convention.
-                Boolean rename = Boolean.TRUE;
                 if (migration.getSource() != null) {
                     migrationSources.add(migration.getSource());
                 } else {
@@ -4974,7 +4977,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Commit operation id is {}", stepId);
                 Workflow.Method vplexExecuteMethod = new Workflow.Method(
                         COMMIT_MIGRATION_METHOD_NAME, vplexURI, virtualVolumeURI,
-                        migrationURI, rename);
+                        migrationURI);
                 Workflow.Method vplexRollbackMethod = new Workflow.Method(
                         RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, stepId);
                 _log.info("Creating workflow step to commit migration");
@@ -4986,6 +4989,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vplexSystem.getSystemType(), getClass(), vplexExecuteMethod,
                         vplexRollbackMethod, stepId);
                 _log.info("Created workflow step to commit migration");
+            }
+
+            // Once the migrations have been committed rename.
+            // TBD remote migrations don't rename
+            // TBD commits can now be parallel
+            waitForStep = MIGRATION_COMMIT_STEP;
+            if (rename) {
+                Workflow.Method vplexExecuteMethod = new Workflow.Method(
+                        RENAME_VIRTUAL_VOLUME_METHOD, vplexURI, virtualVolumeURI);
+                waitForStep = workflow.createStep(
+                        RENAME_VIRTUAL_VOLUME_STEP,
+                        "VPlex volume being renamed after migration",
+                        waitForStep, vplexSystem.getId(),
+                        vplexSystem.getSystemType(), getClass(), vplexExecuteMethod,
+                        rollbackMethodNullMethod(), null);
             }
 
             // Create a step that creates a sub workflow to delete the old
@@ -5000,7 +5018,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     newCoSURI, newNhURI, migrationSources);
             workflow.createStep(DELETE_MIGRATION_SOURCES_STEP,
                     String.format("Creating workflow to delete migration sources"),
-                    MIGRATION_COMMIT_STEP, vplexSystem.getId(), vplexSystem.getSystemType(),
+                    waitForStep, vplexSystem.getId(), vplexSystem.getSystemType(),
                     getClass(), vplexExecuteMethod, null, stepId);
             _log.info("Created workflow step to create sub workflow for source deletion");
 
@@ -5100,6 +5118,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Once the migrations complete, we will commit the migrations.
             // So, now we create the steps to commit the migrations.
+            Boolean rename = Boolean.TRUE;
+            String renameStepId = workflow.createStepId();
             String waitForStep = MIGRATION_CREATE_STEP;
             List<URI> migrationURIs = new ArrayList<URI>(migrationsMap.values());
             List<URI> migrationSources = new ArrayList<URI>();
@@ -5114,7 +5134,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // ingested volume and we will not want to do any renaming
                 // after the commit as we do when migration ViPR create volumes,
                 // which adhere to a standard naming convention.
-                Boolean rename = Boolean.TRUE;
                 if (migration.getSource() != null) {
                     migrationSources.add(migration.getSource());
                 } else {
@@ -5125,7 +5144,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 _log.info("Commit operation id is {}", stepId);
                 Workflow.Method vplexExecuteMethod = new Workflow.Method(
                         COMMIT_MIGRATION_METHOD_NAME, vplexURI, virtualVolumeURI,
-                        migrationURI, rename);
+                        migrationURI, renameStepId);
                 Workflow.Method vplexRollbackMethod = new Workflow.Method(
                         RB_COMMIT_MIGRATION_METHOD_NAME, migrationURIs, stepId);
                 _log.info("Creating workflow step to commit migration");
@@ -5137,6 +5156,21 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vplexSystem.getSystemType(), getClass(), vplexExecuteMethod,
                         vplexRollbackMethod, stepId);
                 _log.info("Created workflow step to commit migration");
+            }
+
+            // Once the migrations have been committed rename.
+            // TBD remote migrations don't rename
+            // TBD commits can now be parallel
+            waitForStep = MIGRATION_COMMIT_STEP;
+            if (rename) {
+                Workflow.Method vplexExecuteMethod = new Workflow.Method(
+                        RENAME_VIRTUAL_VOLUME_METHOD, vplexURI, virtualVolumeURI);
+                waitForStep = workflow.createStep(
+                        RENAME_VIRTUAL_VOLUME_STEP,
+                        "VPlex volume being renamed after migration",
+                        waitForStep, vplexSystem.getId(),
+                        vplexSystem.getSystemType(), getClass(), vplexExecuteMethod,
+                        rollbackMethodNullMethod(), renameStepId);
             }
 
             // Create a step that creates a sub workflow to delete the old
@@ -5228,7 +5262,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             migrationNameBuilder.append(dateFormatter.format(new Date()));
             String migrationName = migrationNameBuilder.toString();
             migration.setLabel(migrationName);
-            _dbClient.persistObject(migration);
+            _dbClient.updateObject(migration);
             _log.info("Migration name is {}", migrationName);
 
             // Get the VPlex API client.
@@ -5270,7 +5304,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     .getStatusValue());
             migration.setPercentDone("0");
             migration.setStartTime(migrationInfo.getStartTime());
-            _dbClient.persistObject(migration);
+            _dbClient.updateObject(migration);
             _log.info("Update migration info");
 
             // Create a migration task completer and queue a job to monitor
@@ -5359,14 +5393,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param vplexURI The URI of the VPlex storage system.
      * @param virtualVolumeURI The URI of the virtual volume.
      * @param migrationURI The URI of the data migration.
-     * @param rename Indicates if the volume should be renamed after commit to
-     *            conform to ViPR standard naming conventions.
      * @param stepId The workflow step identifier.
      *
      * @throws WorkflowException
      */
-    public void commitMigration(URI vplexURI, URI virtualVolumeURI, URI migrationURI,
-            Boolean rename, String stepId) throws WorkflowException {
+    public void commitMigration(URI vplexURI, URI virtualVolumeURI, URI migrationURI, String renameStepId, String stepId)
+            throws WorkflowException {
         _log.info("Committing migration {}", migrationURI);
         try {
             // Update step state to executing.
@@ -5387,33 +5419,31 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Make a call to the VPlex API client to commit the migration.
                 // Note that for ingested VPLEX volumes created outside ViPR, we
                 // don't want to update the name.
-                List<VPlexMigrationInfo> migrationInfoList = client.commitMigrations(
-                        Arrays.asList(migration.getLabel()), true, true, rename.booleanValue());
+                List<VPlexMigrationInfo> migrationInfos = client.commitMigrations(Arrays.asList(migration.getLabel()), true, true);
                 _log.info("Committed migration {}", migration.getLabel());
+
+                // Add data for rename step.
+                VPlexMigrationInfo migrationInfo = migrationInfos.get(0);
+                Map<String, List<Object>> stepData = (Map<String, List<Object>>) _workflowService.loadStepData(renameStepId);
+                if (stepData == null) {
+                    stepData = new HashMap<String, List<Object>>();
+                }
+                List<Object> sourceData = new ArrayList<Object>();
+                sourceData.add(migrationInfo.getTarget());
+                sourceData.add(new Boolean(migrationInfo.getIsDeviceMigration()));
+                stepData.put(migrationInfo.getSource(), sourceData);
+                _workflowService.storeStepData(renameStepId, stepData);
 
                 // Initialize the migration info in the database.
                 migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.COMMITTED
                         .getStatusValue());
-                _dbClient.persistObject(migration);
+                _dbClient.updateObject(migration);
                 _log.info("Update migration status to committed");
 
-                // Update the virtual volume native id and associated
-                // volumes. Note that we don't update CoS until all
-                // commits are successful.
+                // Update the virtual volume associated volumes. Note that we don't update CoS
+                // until all commits are successful. Also for ingested volumes, there may be no
+                // associated volumes at first.
                 Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
-                VPlexVirtualVolumeInfo updatedVirtualVolumeInfo = migrationInfoList
-                        .get(0).getVirtualVolumeInfo();
-                // Will be non-null if the VPLEX volume was manually
-                // renamed after commit.
-                if (updatedVirtualVolumeInfo != null) {
-                    _log.info("New virtual volume native id is {}",
-                            updatedVirtualVolumeInfo.getName());
-                    virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
-                    virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
-                    virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
-                }
-                // Note that for ingested volumes, there will be no associated volumes
-                // at first.
                 StringSet assocVolumes = virtualVolume.getAssociatedVolumes();
                 if ((assocVolumes != null) && (!assocVolumes.isEmpty())) {
                     // For a distributed volume, there could be multiple
@@ -5432,7 +5462,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     assocVolumes.add(migration.getTarget().toString());
                     virtualVolume.setAssociatedVolumes(assocVolumes);
                 }
-                _dbClient.persistObject(virtualVolume);
+                _dbClient.updateObject(virtualVolume);
                 _log.info("Updated virtual volume.");
             } else {
                 _log.info("The migration is already committed.");
@@ -5455,7 +5485,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     assocVolumes.add(migration.getTarget().toString());
                     virtualVolume.setAssociatedVolumes(assocVolumes);
                 }
-                _dbClient.persistObject(virtualVolume);
+                _dbClient.updateObject(virtualVolume);
                 _log.info("Updated virtual volume.");
             }
 
@@ -5519,6 +5549,48 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         } else {
             _log.info("No Migrations are not committed");
             WorkflowStepCompleter.stepSucceded(stepId);
+        }
+    }
+
+    public void renameVirtualVolume(URI vplexURI, URI virtualVolumeURI, String stepId) throws WorkflowException {
+        try {
+            // Update step state to executing.
+            WorkflowStepCompleter.stepExecuting(stepId);
+
+            // Get the VPLEX volume.
+            Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
+            String deviceLabel = virtualVolume.getDeviceLabel();
+
+            // Get the VPlex API client.
+            StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
+            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
+            _log.info("Got VPlex API client for system {}", vplexURI);
+
+            // get migration info from step data
+            Map<String, List<Object>> migrationInfo = (Map<String, List<Object>>) _workflowService.loadStepData(stepId);
+
+            // Rename the volume and update the ViPR volume in the database.
+            VPlexVirtualVolumeInfo updatedVirtualVolumeInfo = client.renameMigratedVolumeResource(deviceLabel, migrationInfo);
+
+            // Will be non-null if the VPLEX volume was manually
+            // renamed after commit.
+            if (updatedVirtualVolumeInfo != null) {
+                _log.info("New virtual volume native id is {}", updatedVirtualVolumeInfo.getName());
+                virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
+                virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
+                virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
+            }
+
+            WorkflowStepCompleter.stepSucceded(stepId);
+            _log.info("Updated workflow step state to success");
+        } catch (VPlexApiException vae) {
+            _log.error("Exception renamining volume after migration: " + vae.getMessage(), vae);
+            WorkflowStepCompleter.stepFailed(stepId, vae);
+        } catch (Exception ex) {
+            _log.error("Exception renamining volume after migration: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.RENAME_VOLUME_AFTER_MIGRATION.getName();
+            ServiceError serviceError = VPlexApiException.errors.commitMigrationFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
         }
     }
 
@@ -5798,7 +5870,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vplexSystem.getSystemType(), null);
                 _log.info("Migration speed is {}", speed);
                 transferSize = mgirationSpeedToTransferSizeMap.get(speed);
-            }            
+            }
 
             // Now make a Step to create the VPlex Virtual volumes.
             // This will be done from this controller.
@@ -5827,7 +5899,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     VPLEX_STEP,
                     String.format("VPlex %s creating virtual volume",
                             vplexSystem.getId().toString()),
-                            EXPORT_STEP, vplexURI,
+                    EXPORT_STEP, vplexURI,
                     vplexSystem.getSystemType(), this.getClass(), vplexExecuteMethod,
                     vplexRollbackMethod, stepId);
 
@@ -5987,7 +6059,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vplexURI, vplexVolumeURI, existingVolumeURI, newVolumeURI,
                 vplexSystemProject, vplexSystemTenant, newCosURI, newLabel, transferSize);
     }
-
 
     /**
      * Create a Virtual Volume from an Imported Volume.
@@ -11399,14 +11470,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         return capabilities;
     }
-    
+
     /**
      * Add steps to restore full copy
+     * 
      * @param workflow - the workflow the steps would be added to
      * @param waitFor - the step would be waited before the added steps would be executed
      * @param storage - the storage controller URI
      * @param fullcopies - the full copies to restore
-     * @param opId 
+     * @param opId
      * @param completer - the CloneRestoreCompleter
      * @return the step id for the added step
      * @throws InternalException
@@ -11414,7 +11486,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public String addStepsForRestoreFromFullcopy(Workflow workflow,
             String waitFor, URI storage, List<URI> fullcopies, String opId,
             CloneRestoreCompleter completer) throws InternalException {
-       
+
         Volume firstFullCopy = getDataObject(Volume.class, fullcopies.get(0), _dbClient);
         BlockObject firstSource = BlockObject.fetch(_dbClient, firstFullCopy.getAssociatedSourceVolume());
         if (!NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {

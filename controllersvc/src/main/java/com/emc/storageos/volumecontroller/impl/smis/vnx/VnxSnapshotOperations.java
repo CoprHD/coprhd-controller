@@ -40,6 +40,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.workflow.WorkflowException;
 
 public class VnxSnapshotOperations extends AbstractSnapshotOperations {
@@ -125,7 +126,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             }
 
             // Check if the consistency group exists
-            String consistencyGroupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             storage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
 
             if (storage == null) {
@@ -143,7 +144,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                     _cimPath.getControllerReplicationSvcPath(storage);
             _helper.invokeMethod(storage, replicationSvcPath,
                     SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
-            snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(), _dbClient);
+            snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
             setIsSyncActive(snapshots, true);
             // Get the settings object and apply it to all the snap objects
             CIMObjectPath settingsPath = (CIMObjectPath) outArgs[0].getValue();
@@ -234,7 +235,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             URI snapshot = snapshotList.get(0);
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
-            if (ControllerUtils.isInVNXVirtualRG(volume, _dbClient)) {
+            if (ControllerUtils.isNotInRealVNXRG(volume, _dbClient)) {
                 throw DeviceControllerException.exceptions.groupSnapshotNotSupported(volume.getReplicationGroupInstance());
             }
 
@@ -245,7 +246,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             String snapLabelToUse =
                     _nameGenerator.generate(tenantName, snapshotObj.getLabel(),
                             snapshot.toString(), '-', SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
-            String groupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             CIMArgument[] inArgs = _helper.getCreateGroupReplicaInputArgumentsForVNX(storage, cgPath,
@@ -286,7 +287,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             BlockSnapshot snapshotObj = snapshots.get(0);
 
             // Check if the consistency group exists
-            String consistencyGroupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             StorageSystem newStorage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
 
             if (newStorage == null) {
@@ -307,8 +308,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
 
             // Individually delete each snap in the snapshot group
             boolean hadDeleteFailure = false;
-            List<BlockSnapshot> snaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(),
-                    _dbClient);
+            List<BlockSnapshot> snaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
             if (snapshotGroupExists) {
                 for (BlockSnapshot snap : snaps) {
                     _log.info(String.format("vnxDeleteGroupSnapshots -- deleting snapshot %s", snap.getId().toString()));
@@ -414,7 +414,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             final BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
 
             // Check if the consistency group exists
-            final String consistencyGroupName = _helper.getSourceConsistencyGroupName(snapshotObj);
+            final String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, _dbClient);
             storage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
 
             if (storage == null) {
@@ -426,8 +426,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             final String snapshotGroupName = snapshotObj.getReplicationGroupInstance();
             final CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             final CIMInstance groupSynchronizedInstance = _helper.checkExists(storage, groupSynchronized, false, false);
-            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(),
-                    _dbClient);
+            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
             if (groupSynchronizedInstance != null) {
                 // Check if the snapshot requires a copy-to-target. This is essentially
                 // the operation that would make the snapshot 'active', though it's

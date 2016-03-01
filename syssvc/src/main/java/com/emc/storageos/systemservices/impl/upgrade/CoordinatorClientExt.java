@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
-import com.emc.storageos.model.property.PropertyConstants;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -65,7 +64,6 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfo;
@@ -120,7 +118,8 @@ public class CoordinatorClientExt {
     private volatile boolean stopCoordinatorSvcMonitor; // default to false
     
     private DbServiceStatusChecker statusChecker = null;
-
+    private boolean backCompatPreYoda = true;
+    
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
     }
@@ -156,6 +155,10 @@ public class CoordinatorClientExt {
         return this.drUtil;
     }
 
+    public void setBackCompatPreYoda(Boolean backCompat) {
+        backCompatPreYoda = backCompat;
+    }
+    
     /**
      * Get property
      * 
@@ -629,9 +632,18 @@ public class CoordinatorClientExt {
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(ConfigVersion.class,
                     CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             Site site = drUtil.getSiteFromLocalVdc(siteId);
-            final ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId,
+            ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId,
                     site.getNodeCount());
 
+            // if backCompatPreYoda flag is true, it's still in the middle of yoda upgrade. Probably it is 
+            // rotating ipsec key. We should report upgrade in progress on UI
+            if (backCompatPreYoda && ClusterInfo.ClusterState.STABLE.equals(controlNodesState)) {
+                if (!drUtil.isMultivdc()) {
+                    _log.info("Back compat flag for preyoda is true. ");
+                    controlNodesState = ClusterInfo.ClusterState.UPDATING;
+                }
+            }
+            
             // construct cluster information by both control nodes and extra nodes.
             // cluster state is determined both by control nodes' state and extra nodes
             return toClusterInfo(controlNodesState, controlNodesInfo, controlNodesConfigVersions, targetRepository,
@@ -1381,34 +1393,6 @@ public class CoordinatorClientExt {
             }
         }
         return false;
-    }
-
-    /**
-     * Check if the dbsvc on current node has completed its adjustNumTokens() call.
-     * If not, it's UpgradeManager's responsibility to call it through DbManager's MBean interface.
-     * 
-     * @return
-     */
-    public boolean isLocalNodeTokenAdjusted() {
-        if (this.getNodeCount() == 1) {
-            _log.info("single node cluster, skip adjust token");
-            return true;
-        }
-        String dbSvcId = "db" + this.mySvcId.substring(this.mySvcId.lastIndexOf("-"));
-
-        Configuration config = this._coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_CONFIG, dbSvcId);
-        if (config == null) {
-            _log.warn("dbconfig not initialized");
-            return true;
-        }
-
-        String numToken = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
-        if (numToken == null) {
-            _log.info("Did not found {} for {}, treating as not adjusted", DbConfigConstants.NUM_TOKENS_KEY, dbSvcId);
-            return false;
-        }
-
-        return Integer.valueOf(numToken).equals(DbConfigConstants.DEFUALT_NUM_TOKENS);
     }
 
     public boolean isDBMigrationDone() {

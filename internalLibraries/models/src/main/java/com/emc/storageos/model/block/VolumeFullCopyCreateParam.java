@@ -4,8 +4,11 @@
  */
 package com.emc.storageos.model.block;
 
+import java.net.URI;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+
 import com.emc.storageos.model.vpool.ProtectionType;
 
 @XmlRootElement(name = "volume_full_copy_create")
@@ -16,6 +19,14 @@ public class VolumeFullCopyCreateParam {
     private String name;
     private Integer count;
     private Boolean createInactive;
+
+    // flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes
+    // By default, create copy on source back end side
+    private Boolean copyOnHighAvailabilitySide = Boolean.FALSE;
+
+    // varray tells us source or target for RP or source or HA for vplex
+    private URI varrayId;
+    private URI vpoolId;
 
     public VolumeFullCopyCreateParam() {
     }
@@ -88,4 +99,46 @@ public class VolumeFullCopyCreateParam {
         this.createInactive = createInactive;
     }
 
+    /**
+     * @return the varrayId
+     */
+    @XmlElement(required = false)
+    public URI getVarrayId() {
+        return varrayId;
+    }
+
+    /**
+     * @param varrayId the varrayId to set
+     */
+    public void setVarrayId(URI varrayId) {
+        this.varrayId = varrayId;
+    }
+
+    /**
+     * @return the vpoolId
+     */
+    @XmlElement(required = false)
+    public URI getVpoolId() {
+        return vpoolId;
+    }
+
+    /**
+     * @param vpoolId the vpoolId to set
+     */
+    public void setVpoolId(URI vpoolId) {
+        this.vpoolId = vpoolId;
+    }
+
+    /**
+     * Flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes.
+     * By default, it is considered as false which means copy is requested on source backend side.
+     */
+    @XmlElement(name = "copy_on_high_availability_side", defaultValue = "false")
+    public Boolean getCopyOnHighAvailabilitySide() {
+        return copyOnHighAvailabilitySide;
+    }
+
+    public void setCopyOnHighAvailabilitySide(Boolean copyOnHighAvailabilitySide) {
+        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
+    }
 }

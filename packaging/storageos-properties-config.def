@@ -1540,9 +1540,9 @@
     {
         key : "controller_vplex_volume_discovery_mode",
         label : "VPLEX backend volume discovery mode",
-        description : "'Only During Discovery' mode will collect all VPLEX backend volume data during Unmanaged Volume discovery (this mode is the default and is recommended for ingesting large numbers of volumes at once, and full ingestion will fail on an individual volume if any data is missing from the database). 'Only During Ingestion' mode will delay discovery of backend volumes until ingestion time (this mode is recommended for ingesting a few specific volumes at once so that discovery will run faster).  'During Discovery and Ingestion' will attempt to collect as much data as possible during discovery, and will check again during ingestion if any needed backend volume data is missing from the database (this mode is the most flexible, but may exhibit somewhat unpredictable performance).",
+        description : "'Only During Discovery' mode will collect all VPLEX backend volume data during Unmanaged Volume discovery (this mode is the default and is recommended for ingesting large numbers of volumes at once, and full ingestion will fail on an individual volume if any data is missing from the database). 'Only During Ingestion' mode will delay discovery of backend volumes until ingestion time (this mode is recommended for ingesting a few specific volumes at once so that discovery will run faster).  'During Discovery and Ingestion' will attempt to collect as much data as possible during discovery, and will check again during ingestion if any needed backend volume data is missing from the database (this mode is the most flexible, but may exhibit somewhat unpredictable performance). 'Only Use Database' is a flag that can be used to indicate that no direct queries of the VPLEX should be attempted, and that the code should rely only on what is in the database already.",
         type : "string",
-        allowedValues : ( "Only During Discovery", "Only During Ingestion", "During Discovery and Ingestion" ),
+        allowedValues : ( "Only During Discovery", "Only During Ingestion", "During Discovery and Ingestion", "Only Use Database" ),
         userConfigurable : false,
         userMutable : true,
         hidden : true,
@@ -2358,8 +2358,8 @@
     },
     {
         key : "backup_scheduler_copies_to_keep",
-        label : "Backup Retention Number",
-        description : "Maximum number of scheduled backups",
+        label : "Backup Max Copies",
+        description : "The maximum number of scheduled backup copies to save on the ViPR nodes. Once this is reached, older scheduled backup copies are deleted from the nodes so that newer ones can be saved",
         type : "uint32",
         allowedValues : ( "0", "1", "2", "3", "4", "5" ),
         tag : "Backup",
@@ -2402,7 +2402,7 @@
     {
         key : "backup_max_manual_copies",
         label : "Backup Max Copies",
-        description : "Maximum number of manually created backup copies, kept on system",
+        description : "The maximum number of manually created backup copies to save on the ViPR nodes. Once this is reached, no copies can be created until you manually delete the older manually created copies from the nodes",
         type : "uint32",
         allowedValues : ( "0", "1", "2", "3", "4", "5" ),
         tag : "Backup",

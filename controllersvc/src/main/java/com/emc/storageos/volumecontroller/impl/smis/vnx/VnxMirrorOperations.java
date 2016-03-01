@@ -16,6 +16,9 @@ import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.SynchronizationState;
@@ -27,15 +30,13 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.AbstractMirrorOperations;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVnxCreateCGMirrorJob;
-
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 
 /*
  * Modified based on VnxCloneOperations.java. For VNX, group clones and group mirrors are the same.
@@ -69,9 +70,9 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
             mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
             BlockMirror firstMirror = mirrors.get(0);
             Volume sourceVolume = _dbClient.queryObject(Volume.class, firstMirror.getSource());
-            String sourceGroupName = _helper.getSourceConsistencyGroupName(sourceVolume);
+            String sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVolume, _dbClient);
 
-            if (!StringUtils.startsWith(sourceGroupName, SmisConstants.VNX_VIRTUAL_RG)) {
+            if (!ControllerUtils.isNotInRealVNXRG(sourceVolume, _dbClient)) {
                 // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
                 ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);
             }

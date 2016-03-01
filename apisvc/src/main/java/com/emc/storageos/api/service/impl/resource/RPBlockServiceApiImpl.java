@@ -2520,7 +2520,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
 
                 VolumeGroup volumeGroup = volume.getApplication(_dbClient);
-                boolean isInApplication = volume != null && !volumeGroup.getInactive();
+                boolean isInApplication = volumeGroup != null && !volumeGroup.getInactive();
 
                 if (!isInApplication && (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex)) {
                     // For RP+Vplex targets (who are not former source volumes) and former target volumes,

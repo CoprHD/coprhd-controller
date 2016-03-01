@@ -212,10 +212,17 @@ public class SmisJob extends Job implements Serializable
             if ((we.getID() == WBEMException.CIM_ERR_NOT_FOUND) || (we.getID() == WBEMException.CIM_ERR_FAILED)) {
                 _status = JobStatus.FAILED;
                 _errorDescription = we.getMessage();
-                _logger.error(String.format(
-                        "SMI-S job not found or GetErrors() did not report the error. Marking as failed as we cannot determine status. " +
-                        "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
-                        getJobName(), instanceID.getValue().toString(), _errorDescription), we);
+                if (we.getID() == WBEMException.CIM_ERR_NOT_FOUND) {
+                    _logger.error(String.format(
+                            "SMI-S job not found. Marking as failed as we cannot determine status. " +
+                                    "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
+                            getJobName(), instanceID.getValue().toString(), _errorDescription), we);
+                } else { // CIM_ERR_FAILED
+                    _logger.error(String.format(
+                            "Job failed but GetErrors() did not report the actual error. " +
+                                    "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
+                            getJobName(), instanceID.getValue().toString(), _errorDescription), we);
+                }
             } else {
                 processTransientError(instanceID.getValue().toString(), trackingPeriodInMillis, we.getMessage(), we);
             }

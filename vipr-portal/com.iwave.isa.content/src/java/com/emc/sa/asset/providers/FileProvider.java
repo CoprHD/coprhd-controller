@@ -603,14 +603,15 @@ public class FileProvider extends BaseAssetOptionsProvider {
     }
     
     /**
-     * Predicate for filtering out mounted filesystems
+     * Predicate for filtering out mounted filesystems and target filesystems
      */
     private class NoTargetFilesytemsPredicate implements Predicate {
 
         @Override
         public boolean evaluate(Object object) {
             FileShareRestRep filesystem = getFilesystem(object);
-            return !(filesystem.getProtection() != null && filesystem.getProtection().getParentFileSystem() != null);
+            return !MachineTagUtils.hasDatastores(filesystem) && 
+            		!(filesystem.getProtection() != null && filesystem.getProtection().getParentFileSystem() != null);
         }
 
     }

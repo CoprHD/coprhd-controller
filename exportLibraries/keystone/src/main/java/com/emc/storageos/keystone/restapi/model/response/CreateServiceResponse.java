@@ -1,5 +1,4 @@
 /*
- * Copyright 2015 EMC Corporation
  * Copyright 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,18 +14,24 @@
  * limitations under the License.
  *
  */
-package com.emc.storageos.keystone;
 
-public class KeystoneConstants {
+package com.emc.storageos.keystone.restapi.model.response;
 
-    public static String KEYSTONE = "keystone";
-    public static String AUTH_TOKEN = "X-Auth-Token";
+import com.google.gson.annotations.SerializedName;
 
-    public static String BASE_URI_V2 = "/v2.0/";
-    public static String URI_TOKENS = BASE_URI_V2 + "tokens";
-    public static String URI_ENDPOINTS = BASE_URI_V2 + "endpoints";
-    public static String URI_TENANTS = BASE_URI_V2 + "tenants";
-    public static String URI_SERVICES = BASE_URI_V2 + "OS-KSADM/services";
-    public static String VALIDATE_TOKEN = URI_TOKENS + "/%1$s";
+/**
+ * Keystone API Create service response class.
+ */
+public class CreateServiceResponse {
 
+    @SerializedName("OS-KSADM:service")
+    ServiceV2 service;
+
+    public ServiceV2 getService() {
+        return service;
+    }
+
+    public void setService(ServiceV2 service) {
+        this.service = service;
+    }
 }

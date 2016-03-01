@@ -9,6 +9,10 @@ package com.emc.storageos.systemservices.impl.security;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.impl.DbClientImpl;
+import com.emc.storageos.geomodel.VdcIpsecPropertiesResponse;
+import com.emc.storageos.security.geo.GeoClientCacheManager;
+import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.security.ipsec.IpUtils;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.apache.commons.lang3.StringUtils;
@@ -19,6 +23,7 @@ import org.springframework.context.ApplicationContext;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 
@@ -31,10 +36,15 @@ public class IPSecMonitor implements Runnable {
     public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
     public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
 
+    private static final int NUMBER_OF_CHAR_IN_IPSEC_KEY_WITHOUT_MASK = 5;
+    private static final String MASKED_IPSEC_KEY = "*********";
+
     public ScheduledExecutorService scheduledExecutorService;
     private static ApplicationContext appCtx;
     
     private DbClient dbClient;
+
+    private GeoClientCacheManager geoClientManager;
 
     public void start() {
         log.info("start IPSecMonitor.");
@@ -44,6 +54,7 @@ public class IPSecMonitor implements Runnable {
                 IPSEC_CHECK_INITIAL_DELAY,
                 IPSEC_CHECK_INTERVAL,
                 TimeUnit.MINUTES);
+        GeoServiceClient.setMaxRetries(3);
         log.info("scheduled IPSecMonitor.");
     }
 
@@ -58,12 +69,28 @@ public class IPSecMonitor implements Runnable {
     public static ApplicationContext getApplicationContext() {
         return appCtx;
     }
-    
+
+    private DbClient getDbClient() {
+        if (dbClient == null) {
+            dbClient = (DbClient)appCtx.getBean("dbclient");
+        }
+
+        return dbClient;
+    }
+
+    private GeoClientCacheManager getGeoClientManager() {
+        if (geoClientManager == null) {
+            geoClientManager = (GeoClientCacheManager)appCtx.getBean("geoClientCache");
+        }
+
+        return geoClientManager;
+    }
+
     @Override
     public void run() {
         try {
             // geo checking
-            log.info("the dbclient instance is {}", appCtx.getBean("dbclient"));
+            log.info("the dbclient instance is {}", getDbClient());
 
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
@@ -80,15 +107,13 @@ public class IPSecMonitor implements Runnable {
                 log.info("no latest ipsec properties found, skip following check steps");
                 return;
             }
-            log.info("latest ipsec properties: " + latest.toString());
-
 
             log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
             if (isSyncNeeded(latest)) {
                 String latestKey = latest.get(Constants.IPSEC_KEY);
                 String latestStatus = latest.get(Constants.IPSEC_STATUS);
                 LocalRepository localRepository = LocalRepository.getInstance();
-                log.info("syncing latest properties to local: key=" + latestKey + ", status=" + latestStatus);
+                log.info("syncing latest properties to local: key=" + maskIpsecKey(latestKey) + ", status=" + latestStatus);
                 localRepository.syncIpsecKeyToLocal(latestKey);
                 localRepository.syncIpsecStatusToLocal(latestStatus);
                 log.info("reloading ipsec");
@@ -140,9 +165,9 @@ public class IPSecMonitor implements Runnable {
                 }
 
                 log.info("checking " + node + ": " + " configVersion=" + configVersion
-                    + ", ipsecKey=" + props.get(Constants.IPSEC_KEY)
+                    + ", ipsecKey=" + maskIpsecKey(props.get(Constants.IPSEC_KEY))
                     + ", ipsecStatus=" + props.get(Constants.IPSEC_STATUS)
-                    + ", latestKey=" + latest.get(Constants.IPSEC_KEY)
+                    + ", latestKey=" + maskIpsecKey(latest.get(Constants.IPSEC_KEY))
                     + ", latestStatus=" + latest.get(Constants.IPSEC_STATUS));
             }
         }
@@ -160,20 +185,10 @@ public class IPSecMonitor implements Runnable {
     private boolean isSameVdcAsLocalNode(String node) {
         PropertyInfoExt vdcProps = LocalRepository.getInstance().getVdcPropertyInfo();
         String myVdcId = vdcProps.getProperty("vdc_myid");
-        String nodeKey = null;
-        for (String key : vdcProps.getAllProperties().keySet()) {
-            String value = vdcProps.getProperty(key);
-            if (key.contains("ipaddr6")) {
-                value = IpUtils.decompressIpv6Address(value);
-            }
 
-            if (value !=null && value.toLowerCase().equals(node.toLowerCase())) {
-                nodeKey = key;
-                break;
-            }
-        }
+        String vdcShortId = getVdcShortIdByIp(node);
 
-        if (nodeKey != null && nodeKey.contains(myVdcId)) {
+        if (vdcShortId != null && vdcShortId.equals(myVdcId)) {
             log.info(node + " is in the same vdc as localhost");
             return true;
         }
@@ -182,8 +197,55 @@ public class IPSecMonitor implements Runnable {
         return false;
     }
 
+    private String getVdcShortIdByIp(String nodeIp) {
+        PropertyInfoExt vdcProps = LocalRepository.getInstance().getVdcPropertyInfo();
+        String nodeKey = null;
+        for (String key : vdcProps.getAllProperties().keySet()) {
+            String value = vdcProps.getProperty(key);
+            if (key.contains("ipaddr6")) {
+                value = IpUtils.decompressIpv6Address(value);
+            }
+
+            if (value !=null && value.toLowerCase().equals(nodeIp.toLowerCase())) {
+                nodeKey = key;
+                break;
+            }
+        }
+
+        String vdcShortId = null;
+        if (nodeKey != null && nodeKey.startsWith("vdc_vd")) {
+            vdcShortId = nodeKey.split("_")[1];
+        }
+        return vdcShortId;
+    }
+
     private Map<String, String>  getIpsecPropsThroughHTTPS(String node) {
-        return null;
+        Map<String, String> props = new HashMap<String, String>();
+
+        try {
+            GeoClientCacheManager geoClientMgr = getGeoClientManager();
+            if (geoClientMgr != null) {
+                GeoServiceClient geoClient = geoClientMgr.getGeoClient(getVdcShortIdByIp(node));
+                String version = geoClient.getViPRVersion();
+                if (version.compareTo("vipr-2.5") < 0) {
+                    log.info("remote vdc version is less than 2.5, skip getting ipsec properties");
+                    return props;
+                }
+
+                VdcIpsecPropertiesResponse ipsecProperties = geoClient.getIpsecProperties();
+                if (ipsecProperties != null) {
+                    props.put(IPSEC_KEY, ipsecProperties.getIpsecKey());
+                    props.put(VDC_CONFIG_VERSION, ipsecProperties.getVdcConfigVersion());
+                    props.put(IPSEC_STATUS, ipsecProperties.getIpsecStatus());
+                }
+            } else {
+                log.warn("GeoClientCacheManager is null, skip getting ipsec properties from " + node);
+            }
+        } catch (Exception e) {
+            log.warn("can't get ipsec properties from remote vdc: " + node, e);
+        }
+
+        return props;
     }
 
     /**
@@ -199,16 +261,21 @@ public class IPSecMonitor implements Runnable {
             return false;
         }
 
-        String localIP = getLocalIPAddress();
+        String localIP = IpUtils.getLocalIPAddress();
         Map<String, String> localIpsecProp = LocalRepository.getInstance().getIpsecProperties(localIP);
         String localKey = localIpsecProp.get(IPSEC_KEY);
         String localStatus = localIpsecProp.get(IPSEC_STATUS);
-        log.info("local ipsec properties: ipsecKey=" + localKey
+        log.info("local ipsec properties: ipsecKey=" + maskIpsecKey(localKey)
                 + ", ipsecStatus=" + localStatus
                 + ", vdcConfigVersion=" + localIpsecProp.get(VDC_CONFIG_VERSION));
 
         boolean bKeyEqual = false;
         boolean bStatusEqual = false;
+        
+        if (StringUtils.isEmpty(props.get(IPSEC_KEY))) {
+            log.info("remote nodes' latest ipsec_key is empty, skip sync");
+            return false;
+        }
 
         if (localKey == null && props.get(IPSEC_KEY) == null) {
             bKeyEqual = true;
@@ -240,26 +307,6 @@ public class IPSecMonitor implements Runnable {
     }
 
     /**
-     * get local ip address
-     *
-     * @return local ip string
-     */
-    private String getLocalIPAddress() {
-        try {
-            InetAddress IP = InetAddress.getLocalHost();
-            String localIP = IP.getHostAddress();
-            if(IP instanceof Inet6Address) {
-                localIP = IpUtils.decompressIpv6Address(localIP);
-            }
-            log.info("IP of my system is : " + localIP);
-            return localIP;
-        } catch (Exception ex) {
-            log.warn("error in getting local ip: " + ex.getMessage());
-            return null;
-        }
-    }
-
-    /**
      * compare vdc config version
      * @param left
      * @param right
@@ -280,5 +327,19 @@ public class IPSecMonitor implements Runnable {
         }
 
         return (int)(Long.parseLong(left) - Long.parseLong(right));
+    }
+
+    private String maskIpsecKey(String key) {
+        if (!StringUtils.isEmpty(key)) {
+            String maskedKey = "";
+            if (key.length() > NUMBER_OF_CHAR_IN_IPSEC_KEY_WITHOUT_MASK) {
+                maskedKey = key.substring(0, NUMBER_OF_CHAR_IN_IPSEC_KEY_WITHOUT_MASK - 1) + MASKED_IPSEC_KEY;
+            } else {
+                maskedKey = MASKED_IPSEC_KEY;
+            }
+            return maskedKey;
+        } else {
+            return key;
+        }
     }
 }

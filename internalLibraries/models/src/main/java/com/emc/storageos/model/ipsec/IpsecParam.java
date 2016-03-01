@@ -11,6 +11,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class IpsecParam {
     private String ipsecKey;
     private long vdcConfigVersion;
+    private String ipsecStatus;
 
     @XmlElement(name="ipsec_key")
     public String getIpsecKey() {
@@ -28,5 +29,14 @@ public class IpsecParam {
 
     public void setVdcConfigVersion(long vdcConfigVersion) {
         this.vdcConfigVersion = vdcConfigVersion;
+    }
+
+    @XmlElement(name="ipsec_status")
+    public String getIpsecStatus() {
+        return ipsecStatus;
+    }
+
+    public void setIpsecStatus(String ipsecStatus) {
+        this.ipsecStatus = ipsecStatus;
     }
 }

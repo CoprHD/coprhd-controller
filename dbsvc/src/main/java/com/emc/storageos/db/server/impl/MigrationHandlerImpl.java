@@ -7,6 +7,7 @@ package com.emc.storageos.db.server.impl;
 import java.io.BufferedReader;
 import java.io.StringReader;
 import java.lang.annotation.Annotation;
+import java.net.URI;
 import java.util.*;
 
 import com.emc.storageos.db.common.*;
@@ -27,9 +28,11 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.model.UpgradeFailureInfo;
 import com.emc.storageos.coordinator.exceptions.FatalCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.impl.DbClientContext;
 import com.emc.storageos.db.client.model.SchemaRecord;
 import com.emc.storageos.db.client.model.UpgradeAllowed;
+import com.emc.storageos.db.client.model.VdcVersion;
 import com.emc.storageos.db.common.diff.DbSchemasDiff;
 import com.emc.storageos.db.common.schema.AnnotationType;
 import com.emc.storageos.db.common.schema.AnnotationValue;
@@ -150,12 +153,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
      */
     @Override
     public boolean run() throws DatabaseException {
-        if (schemaUtil.isStandby()) {
-            // no migration on standby site
-            log.info("Migration does not run on standby");
-            return true;
-        } 
-        
         Date startTime = new Date();
         // set state to migration_init and wait for all nodes to reach this state
         setDbConfig(DbConfigConstants.MIGRATION_INIT);
@@ -166,21 +163,33 @@ public class MigrationHandlerImpl implements MigrationHandler {
         // dbsvc will wait for all dbsvc, and geodbsvc waits for all geodbsvc.
         statusChecker.waitForAllNodesMigrationInit();
 
+        if (schemaUtil.isStandby()) {
+            String currentSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+            if (!StringUtils.equals(currentSchemaVersion, targetVersion)) {
+                // no migration on standby site
+                log.info("Migration does not run on standby. Change current version to {}", targetVersion);
+                schemaUtil.setCurrentVersion(targetVersion);
+            }
+            return true;
+        } 
+        
         if (schemaUtil.isGeoDbsvc()) {
+            boolean schemaVersionChanged = isDbSchemaVersionChanged();
+
             // scan and update cassandra schema
-            checkDbSchema();
+            checkGeoDbSchema();
             
             // no migration procedure for geosvc, just wait till migration is done on one of the
             // dbsvcs
             log.warn("Migration is not supported for Geodbsvc. Wait till migration is done");
             statusChecker.waitForMigrationDone();
+            
+            // Update vdc version
+            if (schemaVersionChanged) {
+                schemaUtil.insertOrUpdateVdcVersion(dbClient, true);
+            }
             return true;
         } else {
-            // We support adjusting num_tokens for dbsvc, have to wait for it to complete before continue.
-            // geodbsvc is not supported to adjust num_tokens, yet, if it's enabled in UpgradeManager,
-            // move this to common code path in both dbsvc and geodbsvc.
-            statusChecker.waitForAllNodesNumTokenAdjusted();
-
             // for dbsvc, we have to wait till all geodbsvc becomes migration_init since we might
             // need to copy geo-replicated resources from local to geo db.
             statusChecker.waitForAllNodesMigrationInit(Constants.GEODBSVC_NAME);
@@ -267,10 +276,11 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
                     persistSchema(targetVersion, DbSchemaChecker.marshalSchemas(currentSchema,
                             null));
+                    
+                    schemaUtil.dropUnusedCfsIfExists();
                     // set current version in zk
                     schemaUtil.setCurrentVersion(targetVersion);
                     log.info("current schema version is updated to {}", targetVersion);
-                    schemaUtil.dropUnusedCfsIfExists();
                 }
                 schemaUtil.setMigrationStatus(MigrationStatus.DONE);
                 // Remove migration checkpoint after done
@@ -340,7 +350,7 @@ public class MigrationHandlerImpl implements MigrationHandler {
             errMsg += " (The failing callback is " + failedCallbackName + ").";
         }
 
-        errMsg += " Please contract the EMC support team.";
+        errMsg += " Please contact the EMC support team.";
 
         alertLog.error(errMsg);
         if (e != null) {
@@ -694,11 +704,23 @@ public class MigrationHandlerImpl implements MigrationHandler {
         log.info("Finish dumping changes");
     }
     
-    private void checkDbSchema() {
+    private boolean isDbSchemaVersionChanged() {
+        String targetVersion = service.getVersion();
+        String currentSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+        return !targetVersion.equals(currentSchemaVersion);
+    }
+    
+    private void checkGeoDbSchema() {
+        String targetVersion = service.getVersion();
+        if (isDbSchemaVersionChanged() && !VdcUtil.checkGeoCompatibleOfOtherVdcs(targetVersion)){
+            log.info("Not all vdc are upgraded. Skip geodb schema change until all vdc are upgraded");
+            return;
+        }
+        
         log.info("Start scanning and creating new column families");
         InterProcessLock lock = null;
         try {
-            String lockName = schemaUtil.isGeoDbsvc() ? DbConfigConstants.GEODB_SCHEMA_LOCK : DbConfigConstants.DB_SCHEMA_LOCK;
+            String lockName = DbConfigConstants.GEODB_SCHEMA_LOCK ;
             // grab global lock for migration
             lock = getLock(lockName);
             schemaUtil.checkCf();
@@ -715,4 +737,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
             }
         }
     }
+    
+
 }

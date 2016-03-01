@@ -19,6 +19,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
@@ -35,6 +36,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -54,6 +56,12 @@ import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
  */
 public class VplexVolumeIngestionContext extends VplexBackendIngestionContext implements VolumeIngestionContext, IngestionRequestContext {
 
+    private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
+    private Map<String, BlockObject> _blockObjectsToBeCreatedMap;
+    private Map<String, List<DataObject>> _dataObjectsToBeUpdatedMap;
+    private Map<String, List<DataObject>> _dataObjectsToBeCreatedMap;
+    private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
+
     private IngestionRequestContext _parentRequestContext;
     private VolumeIngestionContext _currentBackendVolumeIngestionContext;
     private Iterator<UnManagedVolume> _backendVolumeUrisToProcessIterator;
@@ -66,6 +74,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private boolean _exportGroupCreated = false;
     private ExportGroup _exportGroup;
     private List<Initiator> _deviceInitiators;
+    private List<BlockObject> _objectsIngestedByExportProcessing;
+
+    private Map<String, BlockConsistencyGroup> _cgsToCreateMap;
+    private List<UnManagedConsistencyGroup> _umCGsToUpdate;
 
     /**
      * Constructor.
@@ -112,15 +124,27 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         _dbClient.createObject(getCreatedVplexMirrors());
 
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
-        _dbClient.createObject(getObjectsToBeCreatedMap().values());
+        _dbClient.createObject(getBlockObjectsToBeCreatedMap().values());
         _dbClient.createObject(getCreatedSnapshotMap().values());
 
-        for (List<DataObject> dos : getObjectsToBeUpdatedMap().values()) {
+        for (List<DataObject> dos : getDataObjectsToBeCreatedMap().values()) {
+            _dbClient.createObject(dos);
+        }
+        for (List<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
             _dbClient.updateObject(dos);
         }
 
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
-        _logger.info(toStringDebug());
+
+        // commit the UnmanagedConsistencyGroups and CGs to create
+        _dbClient.updateObject(getUmCGObjectsToUpdate());
+        _dbClient.updateObject(getCGObjectsToCreateMap().values());
+
+        if (isExportGroupCreated()) {
+            _dbClient.createObject(getExportGroup());
+        } else {
+            _dbClient.updateObject(getExportGroup());
+        }
     }
 
     /*
@@ -131,11 +155,14 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public void rollback() {
         getObjectsIngestedByExportProcessing().clear();
-        getObjectsToBeCreatedMap().clear();
+        getBlockObjectsToBeCreatedMap().clear();
         getCreatedSnapshotMap().clear();
-        getObjectsToBeUpdatedMap().clear();
+        getDataObjectsToBeCreatedMap().clear();
+        getDataObjectsToBeUpdatedMap().clear();
         getUnManagedVolumesToBeDeleted().clear();
         getCreatedVplexMirrors().clear();
+        getUmCGObjectsToUpdate().clear();
+        getCGObjectsToCreateMap().clear();
     }
 
     /*
@@ -143,6 +170,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext#getErrorMessages()
      */
+    @Override
     public List<String> getErrorMessages() {
         if (null == _errorMessages) {
             _errorMessages = new ArrayList<String>();
@@ -251,7 +279,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public VolumeIngestionContext getVolumeContext(String unmanagedVolumeGuid) {
-        return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
+        if (getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid) != null) {
+            return getProcessedUnManagedVolumeMap().get(unmanagedVolumeGuid);
+        }
+        return getVolumeContext();
     }
 
     /*
@@ -277,10 +308,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * 
      * @return the high availability VirtualPool
      */
-    public VirtualPool getHaVpool() {
+    public VirtualPool getHaVpool(UnManagedVolume unmanagedVolume) {
 
         VirtualPool haVpool = null;
-        StringMap haVarrayVpoolMap = _parentRequestContext.getVpool().getHaVarrayVpoolMap();
+        StringMap haVarrayVpoolMap = _parentRequestContext.getVpool(unmanagedVolume).getHaVarrayVpoolMap();
 
         if (haVarrayVpoolMap != null && !haVarrayVpoolMap.isEmpty()) {
             String haVarrayStr = haVarrayVpoolMap.keySet().iterator().next();
@@ -299,10 +330,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * 
      * @return the high availability VirtualArray
      */
-    public VirtualArray getHaVarray() {
+    public VirtualArray getHaVarray(UnManagedVolume unmanagedVolume) {
 
         VirtualArray haVarray = null;
-        StringMap haVarrayVpoolMap = _parentRequestContext.getVpool().getHaVarrayVpoolMap();
+        StringMap haVarrayVpoolMap = _parentRequestContext.getVpool(unmanagedVolume).getHaVarrayVpoolMap();
         if (haVarrayVpoolMap != null && !haVarrayVpoolMap.isEmpty()) {
             String haVarrayStr = haVarrayVpoolMap.keySet().iterator().next();
             if (haVarrayStr != null && !(haVarrayStr.equals(NullColumnValueGetter.getNullURI().toString()))) {
@@ -328,25 +359,25 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVpool()
      */
     @Override
-    public VirtualPool getVpool() {
-        UnManagedVolume associatedVolume = getCurrentUnmanagedVolume();
-        VirtualPool vpoolForThisVolume = _parentRequestContext.getVpool();
+    public VirtualPool getVpool(UnManagedVolume unmanagedVolume) {
+
+        VirtualPool vpoolForThisVolume = _parentRequestContext.getVpool(unmanagedVolume);
 
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
-                associatedVolume.getVolumeInformation());
-        _logger.info("backend cluster id is " + backendClusterId);
+                unmanagedVolume.getVolumeInformation());
         if (null != backendClusterId && null != _haClusterId
                 && backendClusterId.equals(_haClusterId)) {
-            if (null != getHaVpool()) {
-                _logger.info("using high availability vpool " + getHaVpool().getLabel());
-                vpoolForThisVolume = getHaVpool();
+            if (null != getHaVpool(unmanagedVolume)) {
+                _logger.info("using high availability vpool " + getHaVpool(unmanagedVolume).getLabel());
+                vpoolForThisVolume = getHaVpool(unmanagedVolume);
             }
         }
 
         // finally, double check for a separate mirror / continuous copies vpool
-        if (getUnmanagedVplexMirrors().keySet().contains(associatedVolume)
+        // TODO: verify separate mirror vpool
+        if (getUnmanagedVplexMirrors().keySet().contains(unmanagedVolume)
                 && vpoolForThisVolume.getMirrorVirtualPool() != null) {
             _logger.info("this associated volume is a mirror and separate mirror vpool is defined");
             VirtualPool mirrorVpool = _dbClient.queryObject(
@@ -364,20 +395,18 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVarray()
      */
     @Override
-    public VirtualArray getVarray() {
+    public VirtualArray getVarray(UnManagedVolume unmanagedVolume) {
 
-        UnManagedVolume associatedVolume = getCurrentUnmanagedVolume();
-        VirtualArray varrayForThisVolume = _parentRequestContext.getVarray();
+        VirtualArray varrayForThisVolume = _parentRequestContext.getVarray(unmanagedVolume);
 
         // get the backend volume cluster id
         String backendClusterId = VplexBackendIngestionContext.extractValueFromStringSet(
                 SupportedVolumeInformation.VPLEX_BACKEND_CLUSTER_ID.toString(),
-                associatedVolume.getVolumeInformation());
-        _logger.info("backend cluster id is " + backendClusterId);
+                unmanagedVolume.getVolumeInformation());
         if (null != backendClusterId && null != _haClusterId
                 && backendClusterId.equals(_haClusterId)) {
-            _logger.info("using high availability varray " + getHaVarray().getLabel());
-            varrayForThisVolume = getHaVarray();
+            _logger.info("using high availability varray " + getHaVarray(unmanagedVolume).getLabel());
+            varrayForThisVolume = getHaVarray(unmanagedVolume);
         }
 
         return varrayForThisVolume;
@@ -458,7 +487,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public List<UnManagedVolume> getUnManagedVolumesToBeDeleted() {
-        return _parentRequestContext.getUnManagedVolumesToBeDeleted();
+        if (null == _unManagedVolumesToBeDeleted) {
+            _unManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
+        }
+
+        return _unManagedVolumesToBeDeleted;
     }
 
     /*
@@ -480,7 +513,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public Map<String, VolumeIngestionContext> getProcessedUnManagedVolumeMap() {
-        return _parentRequestContext.getProcessedUnManagedVolumeMap();
+        if (null == _processedUnManagedVolumeMap) {
+            _processedUnManagedVolumeMap = new HashMap<String, VolumeIngestionContext>();
+        }
+
+        return _processedUnManagedVolumeMap;
     }
 
     /*
@@ -510,7 +547,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
         String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-        return getObjectsToBeCreatedMap().get(objectGUID);
+        return getBlockObjectsToBeCreatedMap().get(objectGUID);
     }
 
     /*
@@ -547,7 +584,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public List<BlockObject> getObjectsIngestedByExportProcessing() {
-        return _parentRequestContext.getObjectsIngestedByExportProcessing();
+        if (null == _objectsIngestedByExportProcessing) {
+            _objectsIngestedByExportProcessing = new ArrayList<BlockObject>();
+        }
+
+        return _objectsIngestedByExportProcessing;
     }
 
     /*
@@ -663,8 +704,24 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeCreatedMap()
      */
     @Override
-    public Map<String, BlockObject> getObjectsToBeCreatedMap() {
-        return _parentRequestContext.getObjectsToBeCreatedMap();
+    public Map<String, BlockObject> getBlockObjectsToBeCreatedMap() {
+        if (null == _blockObjectsToBeCreatedMap) {
+            _blockObjectsToBeCreatedMap = new HashMap<String, BlockObject>();
+        }
+
+        return _blockObjectsToBeCreatedMap;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getDataObjectsToBeCreatedMap()
+     */
+    @Override
+    public Map<String, List<DataObject>> getDataObjectsToBeCreatedMap() {
+        if (null == _dataObjectsToBeCreatedMap) {
+            _dataObjectsToBeCreatedMap = new HashMap<String, List<DataObject>>();
+        }
+
+        return _dataObjectsToBeCreatedMap;
     }
 
     /*
@@ -673,8 +730,12 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeUpdatedMap()
      */
     @Override
-    public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
-        return _parentRequestContext.getObjectsToBeUpdatedMap();
+    public Map<String, List<DataObject>> getDataObjectsToBeUpdatedMap() {
+        if (null == _dataObjectsToBeUpdatedMap) {
+            _dataObjectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
+        }
+
+        return _dataObjectsToBeUpdatedMap;
     }
 
     /**
@@ -684,8 +745,9 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     private void setFlags() {
         // set internal object flag on any backend volumes
-        for (BlockObject o : getObjectsToBeCreatedMap().values()) {
+        for (BlockObject o : getBlockObjectsToBeCreatedMap().values()) {
             if (getBackendVolumeGuids().contains(o.getNativeGuid())) {
+                o.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
                 _logger.info("setting INTERNAL_OBJECT flag on " + o.getLabel());
                 o.addInternalFlags(Flag.INTERNAL_OBJECT);
             }
@@ -733,7 +795,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
             _logger.info("creating VplexMirror object for virtual volume " + virtualVolume.getLabel());
             for (Entry<UnManagedVolume, String> entry : getUnmanagedVplexMirrors().entrySet()) {
                 // find mirror and create a VplexMirror object
-                BlockObject mirror = getObjectsToBeCreatedMap().get(entry.getKey().getNativeGuid()
+                BlockObject mirror = getBlockObjectsToBeCreatedMap().get(entry.getKey().getNativeGuid()
                         .replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                                 VolumeIngestionUtil.VOLUME));
                 if (null != mirror) {
@@ -772,10 +834,10 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
                         // update flags on mirror volume
                         List<DataObject> updatedObjects =
-                                getObjectsToBeUpdatedMap().get(mirrorVolume.getNativeGuid());
+                                getDataObjectsToBeUpdatedMap().get(mirrorVolume.getNativeGuid());
                         if (updatedObjects == null) {
                             updatedObjects = new ArrayList<DataObject>();
-                            getObjectsToBeUpdatedMap().put(mirrorVolume.getNativeGuid(), updatedObjects);
+                            getDataObjectsToBeUpdatedMap().put(mirrorVolume.getNativeGuid(), updatedObjects);
                         }
                         VolumeIngestionUtil.clearInternalFlags(mirrorVolume, updatedObjects, _dbClient);
                         // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
@@ -812,9 +874,9 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public BlockObject findCreatedBlockObject(String nativeGuid) {
 
-        BlockObject blockObject = getObjectsToBeCreatedMap().get(nativeGuid);
+        BlockObject blockObject = getBlockObjectsToBeCreatedMap().get(nativeGuid);
         if (blockObject == null) {
-            blockObject = _parentRequestContext.getObjectsToBeCreatedMap().get(nativeGuid);
+            blockObject = _parentRequestContext.findCreatedBlockObject(nativeGuid);
         }
 
         return blockObject;
@@ -835,16 +897,16 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         s.append("unmanaged backend only clones: ").append(this.getUnmanagedBackendOnlyClones()).append(" \n\t ");
         s.append("unmanaged mirrors: ").append(this.getUnmanagedVplexMirrors()).append(" \n\t ");
         s.append("ingested objects: ").append(this.getObjectsIngestedByExportProcessing()).append(" \n\t ");
-        s.append("created objects map: ").append(this.getObjectsToBeCreatedMap()).append(" \n\t ");
+        s.append("created objects map: ").append(this.getBlockObjectsToBeCreatedMap()).append(" \n\t ");
         s.append("updated objects map: ");
-        for (Entry<String, List<DataObject>> e : this.getObjectsToBeUpdatedMap().entrySet()) {
+        for (Entry<String, List<DataObject>> e : this.getDataObjectsToBeUpdatedMap().entrySet()) {
             s.append(e.getKey()).append(": ");
             for (DataObject o : e.getValue()) {
                 s.append(o.getLabel()).append("; ");
             }
         }
         s.append(" \n\t ");
-        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap()).append("\n");
+        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap()).append("\n\n");
         return s.toString();
     }
 
@@ -857,4 +919,116 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         return super.toString();
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllUnManagedVolumesToBeDeleted()
+     */
+    @Override
+    public List<UnManagedVolume> findAllUnManagedVolumesToBeDeleted() {
+        return _parentRequestContext.findAllUnManagedVolumesToBeDeleted();
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.URI)
+     */
+    @Override
+    public DataObject findInUpdatedObjects(URI uri) {
+
+        if (!URIUtil.isValid(uri)) {
+            _logger.warn("URI ({}) for findCreatedBlockObject is null or invalid", uri);
+            return null;
+        }
+
+        for (List<DataObject> objectsToBeUpdated : this.getDataObjectsToBeUpdatedMap().values()) {
+            for (DataObject o : objectsToBeUpdated) {
+                if (o.getId().equals(uri)) {
+                    _logger.info("\tfound data object in vplex request context: " + o.forDisplay());
+                    return o;
+                }
+            }
+        }
+
+        return _parentRequestContext.findInUpdatedObjects(uri);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.net.URI)
+     */
+    @Override
+    public BlockObject findCreatedBlockObject(URI uri) {
+
+        if (!URIUtil.isValid(uri)) {
+            _logger.warn("URI ({}) for findCreatedBlockObject is null or invalid", uri);
+            return null;
+        }
+
+        for (BlockObject bo : getBlockObjectsToBeCreatedMap().values()) {
+            if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
+                _logger.info("\tfound block object in vplex request context: " + bo.forDisplay());
+                return bo;
+            }
+        }
+
+        return _parentRequestContext.findCreatedBlockObject(uri);
+    }
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getCGObjectsToCreateMap()
+     */
+    @Override
+    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
+        if (null == _cgsToCreateMap) {
+            _cgsToCreateMap = new HashMap<String, BlockConsistencyGroup>();
+        }
+
+        return _cgsToCreateMap;
+    }
+
+    @Override
+    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
+        if (null == _umCGsToUpdate) {
+            _umCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
+        }
+
+        return _umCGsToUpdate;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findUnManagedConsistencyGroup(com.emc.storageos.db.client.model.BlockConsistencyGroup)
+     */
+    @Override
+    public UnManagedConsistencyGroup findUnManagedConsistencyGroup(BlockConsistencyGroup bcg) {
+        return _parentRequestContext.findUnManagedConsistencyGroup(bcg);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToCreate(com.emc.storageos.db.client.model.BlockObject)
+     */
+    @Override
+    public void addBlockObjectToCreate(BlockObject blockObject) {
+        getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToUpdate(com.emc.storageos.db.client.model.DataObject)
+     */
+    @Override
+    public void addDataObjectToUpdate(DataObject dataObject) {
+        if (null == getDataObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid())) {
+            getDataObjectsToBeUpdatedMap().put(getCurrentUnmanagedVolume().getNativeGuid(), new ArrayList<DataObject>());
+        }
+        getDataObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid()).add(dataObject);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addDataObjectToCreate(com.emc.storageos.db.client.model.DataObject)
+     */
+    @Override
+    public void addDataObjectToCreate(DataObject dataObject) {
+        if (null == getDataObjectsToBeCreatedMap().get(getCurrentUnmanagedVolume().getNativeGuid())) {
+            getDataObjectsToBeCreatedMap().put(getCurrentUnmanagedVolume().getNativeGuid(), new ArrayList<DataObject>());
+        }
+        getDataObjectsToBeCreatedMap().get(getCurrentUnmanagedVolume().getNativeGuid()).add(dataObject);
+    }
 }

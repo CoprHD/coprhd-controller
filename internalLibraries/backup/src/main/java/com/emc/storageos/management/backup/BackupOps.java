@@ -5,14 +5,17 @@
 package com.emc.storageos.management.backup;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.text.DateFormat;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -20,6 +23,8 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.management.JMX;
 import javax.management.MBeanServerConnection;
@@ -29,6 +34,9 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import com.emc.storageos.management.backup.util.FtpClient;
+import com.emc.vipr.model.sys.backup.BackupInfo;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -345,7 +353,7 @@ public class BackupOps {
 
             if (filename.contains("_db_")) {
                 found_db_file = true;
-            }else if (filename.contains("_geodb_")) {
+            }else if (filename.contains(BackupType.geodb.toString()) || filename.contains(BackupType.geodbmultivdc.toString())) {
                 found_geodb_file = true;
             }
 
@@ -660,6 +668,15 @@ public class BackupOps {
         }
     }
 
+    public File getBackupDir(String backupName, boolean isLocal) {
+        String name = backupName;
+        if (backupName.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
+            name = FilenameUtils.removeExtension(backupName);
+        }
+
+        return isLocal ? new File(getBackupDir(), name) : new File(BackupConstants.RESTORE_DIR, name);
+    }
+
     class CreateBackupCallable extends BackupCallable<Void> {
         @Override
         public Void sendRequest() throws Exception {
@@ -839,10 +856,12 @@ public class BackupOps {
             return;
         }
         File infoFile = new File(targetDir, backupTag + BackupConstants.BACKUP_INFO_SUFFIX);
+        Date now = new Date();
         try (OutputStream fos = new FileOutputStream(infoFile)) {
             Properties properties = new Properties();
             properties.setProperty(BackupConstants.BACKUP_INFO_VERSION, getCurrentVersion());
             properties.setProperty(BackupConstants.BACKUP_INFO_HOSTS, getHostsWithDualInetAddrs().values().toString());
+            properties.setProperty(BackupConstants.BACKUP_INFO_CREATE_TIME, Long.toString(now.getTime()));
             properties.store(fos, null);
             // Guarantee ower/group owner/permissions of infoFile is consistent with other backup files
             FileUtils.chown(infoFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
@@ -1115,8 +1134,7 @@ public class BackupOps {
                 try {
                     List<BackupSetInfo> nodeBackupFileList = (List<BackupSetInfo>) task.getResponse().getFuture().get();
                     clusterBackupFiles.addAll(nodeBackupFileList, task.getRequest().getNode());
-                    log.info("List backup on node({})success",
-                            task.getRequest().getHost());
+                    log.info("List backup on node({})success", task.getRequest().getHost());
                 } catch (CancellationException e) {
                     log.warn("The task of listing backup on node({}) was canceled",
                             task.getRequest().getHost(), e);
@@ -1216,7 +1234,7 @@ public class BackupOps {
         long creationTime = 0;
         for (BackupFile file : filesForTag) {
             size += file.info.getSize();
-            if (file.type == BackupType.zk) {
+            if (file.type == BackupType.info) {
                 creationTime = file.info.getCreateTime();
             }
         }
@@ -1312,7 +1330,7 @@ public class BackupOps {
         util.setCoordinator(coordinatorClient);
         Site localSite = util.getLocalSite();
         Map<String, String> addresses = localSite.getHostIPv4AddressMap();
-        if (addresses.isEmpty()) {
+        if (!localSite.isUsingIpv4()) {
             addresses = localSite.getHostIPv6AddressMap();
         }
 
@@ -1324,6 +1342,201 @@ public class BackupOps {
         }
 
         return nodesInfo;
+    }
+
+    /**
+     * Query info of a remote backup, if the backup has been downloaded, get info from local downloaded directory
+     * @param backupName
+     * @param serverUri
+     * @param username
+     * @param password
+     * @return
+     * @throws IOException
+     */
+    public BackupInfo getBackupInfo(String backupName, String serverUri, String username, String password) throws IOException {
+        log.info("backup={} server={} user={} password={}", new Object[] {backupName, serverUri, username, password});
+
+        File backupFolder= getDownloadDirectory(backupName);
+        try {
+            checkBackup(backupFolder);
+            log.info("The backup {} for this node has already been downloaded", backupName);
+            return getBackupInfo(backupFolder, false);
+        } catch (Exception e) {
+            // The backup has not been downloaded yet or is invalid, query from the server
+        }
+
+        BackupInfo backupInfo = new BackupInfo();
+        backupInfo.setFileName(backupName);
+
+        FtpClient client = new FtpClient(serverUri, username, password);
+        InputStream in = client.download(backupName);
+        ZipInputStream zin = new ZipInputStream(in);
+        ZipEntry zentry = zin.getNextEntry();
+
+        while (zentry != null) {
+            if (isPropEntry(zentry)) {
+                log.info("Found the property file={}", zentry.getName());
+                setBackupInfo(zin, backupInfo);
+                break;
+            }
+            zentry = zin.getNextEntry();
+        }
+
+        try {
+            zin.closeEntry();
+            zin.close();
+        }catch (IOException e) {
+            log.debug("Failed to close the stream e", e);
+            // it's a known issue to use curl
+            //it's safe to ignore this exception here.
+        }
+
+        return backupInfo;
+    }
+
+    private boolean isPropEntry(ZipEntry zentry) {
+        return zentry.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
+    }
+
+    private void setBackupInfo(ZipInputStream zin, BackupInfo backupInfo) throws IOException {
+        Properties properties = loadProperties(zin);
+
+        backupInfo.setVersion(getBackupVersion(properties));
+        backupInfo.setCreateTime(getCreateTime(properties, backupInfo.getFileName()));
+        backupInfo.setRestoreStatus(queryBackupRestoreStatus(backupInfo.getFileName(), false));
+    }
+
+    /**
+     * Get backup info from local disk, it could be the local backup or the downloaded remote backup
+     * @param backupFolder the folder of local backup
+     * @return
+     */
+    public BackupInfo getBackupInfo(File backupFolder, boolean isLocal) {
+        File[] backupFiles = getBackupFiles(backupFolder);
+
+        File propFile = null;
+        long size = 0;
+
+        for (File backupFile : backupFiles) {
+            size += backupFile.length();
+
+            if (backupFile.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                propFile = backupFile;
+            }
+        }
+
+        BackupInfo backupInfo = new BackupInfo();
+
+        String backupName = backupFolder.getName();
+        backupInfo.setFileName(backupName);
+
+        try (FileInputStream in = new FileInputStream(propFile)) {
+            Properties properties = loadProperties(in);
+            backupInfo.setVersion(getBackupVersion(properties));
+            backupInfo.setCreateTime(getCreateTime(properties, backupName));
+        }catch (IOException e) {
+            log.error("Failed to get backup info from {} e=", propFile.getName(), e);
+        }
+
+        backupInfo.setFileSize(size);
+        backupInfo.setRestoreStatus(queryBackupRestoreStatus(backupName, isLocal));
+
+        return backupInfo;
+    }
+
+    private String getBackupVersion(Properties properties) {
+        return properties.getProperty(BackupConstants.BACKUP_INFO_VERSION);
+    }
+
+    private long getCreateTime(Properties properties, String backupName) {
+        long time = getCreateTimeFromProperties(properties);
+        if ( time != 0 )
+            return time;
+
+        //This can happen if the backup file is made before Yoda,
+        // try to get the create time from the backup name
+        time = getCreateTimeFromName(backupName);
+
+        log.info("create time ={}", time);
+        return time;
+    }
+
+    private long getCreateTimeFromProperties(Properties properties) {
+        String stime = properties.getProperty(BackupConstants.BACKUP_INFO_CREATE_TIME);
+        return stime == null ? 0 : Long.parseLong(stime);
+    }
+
+    public long getCreateTimeFromPropFile(File propFile) {
+        long time = 0;
+
+        try (FileInputStream in = new FileInputStream(propFile)) {
+            Properties properties = loadProperties(in);
+            time = getCreateTimeFromProperties(properties);
+        }catch (IOException e) {
+            log.error("Failed to get create time from prop file {} e=", propFile.getName(), e);
+        }
+
+        return time;
+    }
+
+    private Properties loadProperties(InputStream in) {
+        Properties properties = new Properties();
+        try {
+            properties.load(in);
+        }catch(IOException e) {
+            log.error("Failed to load properties e=", e);
+        }
+
+        return properties;
+    }
+
+    private long getCreateTimeFromName(String backupName) {
+        if (backupName == null) {
+            log.error("Backup file name is empty");
+            throw new IllegalArgumentException("Backup file name is empty");
+        }
+
+        if (!backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
+            log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
+            throw new IllegalArgumentException("Invalid backup file name: " + backupName);
+        }
+
+        String[] nameSegs = backupName.split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
+
+        for (String segment : nameSegs) {
+            if (isTimeFormat(segment)) {
+                log.info("Backup({}) create time is: {}", backupName, segment);
+                return convertTime(segment);
+            }
+        }
+
+        log.info("Could not get create time from backup name");
+        return 0;
+    }
+
+    private long convertTime(String stime) {
+        long time = 0;
+
+        DateFormat df = new SimpleDateFormat(BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN);
+        try {
+            Date date = df.parse(stime);
+            time = date.getTime();
+        }catch (Exception e) {
+            log.error("Failed to parse time {} e=", stime, e);
+            time= 0;
+        }
+
+        log.info("time={}", time);
+        return time;
+    }
+
+    private boolean isTimeFormat(String nameSegment) {
+        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_DATE_REGEX_PATTERN,
+                BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
+
+        Pattern backupNamePattern = Pattern.compile(regex);
+
+        return backupNamePattern.matcher(nameSegment).find();
     }
 
     public URI getFirstNodeURI() throws URISyntaxException {

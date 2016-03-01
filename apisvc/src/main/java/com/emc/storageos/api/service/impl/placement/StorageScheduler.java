@@ -6,7 +6,6 @@
 package com.emc.storageos.api.service.impl.placement;
 
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -207,7 +206,7 @@ public class StorageScheduler implements Scheduler {
             if (matchedPools == null || matchedPools.isEmpty()) {
                 // TODO fix message and throw service code exception
                 _log.warn("VArray {} does not have storage pools which match VPool {}.", vArray.getId(), vPool.getId());
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vPool.getId(), vArray.getId());
+                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vPool.getLabel(), vArray.getLabel());
             }
 
             // place all mirrors for this storage system in the matched pools
@@ -277,7 +276,7 @@ public class StorageScheduler implements Scheduler {
         if (matchedPools == null || matchedPools.isEmpty()) {
             _log.warn("VArray {} does not have storage pools which match VPool {} to clone volume {}.", new Object[] { vArray.getId(),
                     vPool.getId(), blockObject.getId() });
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarrayForClones(vPool.getId(), vArray.getId(),
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarrayForClones(vPool.getLabel(), vArray.getLabel(),
                     blockObject.getId());
         }
 
@@ -450,7 +449,7 @@ public class StorageScheduler implements Scheduler {
                             } else {
                                 _log.warn("vPool {} does not have required IBM XIV storage pool in vArray {}.",
                                         vpool.getId(), varray.getId());
-                                throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getId(), vpool.getId());
+                                throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getLabel(), vpool.getLabel());
                             }
                         }
                     }
@@ -530,7 +529,7 @@ public class StorageScheduler implements Scheduler {
         if (matchedPools == null || matchedPools.isEmpty()) {
             _log.warn("vPool {} does not have active storage pools in vArray  {} .",
                     vpool.getId(), varray.getId());
-            throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getId(), vpool.getId());
+            throw APIException.badRequests.noStoragePoolsForVpoolInVarray(varray.getLabel(), vpool.getLabel());
         }
 
         // Matches the pools against the VolumeParams.
@@ -1229,13 +1228,18 @@ public class StorageScheduler implements Scheduler {
         if (consistencyGroup != null) {
             volume.setConsistencyGroup(consistencyGroup.getId());
             if (!consistencyGroup.isProtectedCG()) {
-                volume.setReplicationGroupInstance(consistencyGroup.getLabel());
-
-                // if other volumes in the same CG are in an application, add this volume to the same application
-                VolumeGroup volumeGroup = getApplicationForCG(dbClient, consistencyGroup, volume.getReplicationGroupInstance());
-                if (volumeGroup != null) {
-                    volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                String rgName = consistencyGroup.getCgNameOnStorageSystem(volume.getStorageController());
+                if (rgName == null) {
+                    rgName = consistencyGroup.getLabel(); // for new CG
+                } else {
+                    // if other volumes in the same CG are in an application, add this volume to the same application
+                    VolumeGroup volumeGroup = ControllerUtils.getApplicationForCG(dbClient, consistencyGroup, rgName);
+                    if (volumeGroup != null) {
+                        volume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                    }
                 }
+
+                volume.setReplicationGroupInstance(rgName);
             }
         }
 
@@ -1257,34 +1261,6 @@ public class StorageScheduler implements Scheduler {
     }
 
     /**
-     * gets the application volume group for this CG and group name if it exists
-     *
-     * @param dbClient
-     *            dbClient to query objects from db
-     * @param consistencyGroup
-     *            consistency group object
-     * @param cgNameOnArray
-     *            cg name to check
-     * @return a VolumeGroup object or null if this CG and group name are not associated with an application
-     */
-    private static VolumeGroup getApplicationForCG(DbClient dbClient, BlockConsistencyGroup consistencyGroup, String cgNameOnArray) {
-        VolumeGroup volumeGroup = null;
-        URIQueryResultList uriQueryResultList = new URIQueryResultList();
-        dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
-        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
-        while (volumeIterator.hasNext()) {
-            Volume volume = volumeIterator.next();
-            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
-                volumeGroup = volume.getApplication(dbClient);
-                if (volumeGroup != null) {
-                    break;
-                }
-            }
-        }
-        return volumeGroup;
-    }
-
-    /**
      * Get the AutoTierPolicy URI for a given StoragePool and auto tier policy name.
      *
      * @param pool
@@ -1295,6 +1271,9 @@ public class StorageScheduler implements Scheduler {
      * @return URI of AutoTierPolicy, null if not found
      */
     public static URI getAutoTierPolicy(URI pool, String policyName, DbClient dbClient) {
+        if (pool == null || policyName == null || dbClient == null) {
+            return null;
+        }
         URIQueryResultList result = new URIQueryResultList();
         // check if pool fast policy name is not
         dbClient.queryByConstraint(

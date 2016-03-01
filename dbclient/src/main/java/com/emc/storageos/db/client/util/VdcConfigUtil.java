@@ -58,6 +58,7 @@ public class VdcConfigUtil {
     public static final String VDC_SITE_IPADDR6_PTN = "vdc_%s_%s_network_%d_ipaddr6";
     public static final String VDC_SITE_IPADDR_PTN = "vdc_%s_%s_network_%d_ipaddr";
     public static final String VDC_SITE_VIP_PTN = "vdc_%s_%s_network_vip";
+    public static final String VDC_SITE_VIP6_PTN = "vdc_%s_%s_network_vip6";
     public static final String SITE_IS_STANDBY="site_is_standby";
     public static final String SITE_MY_UUID="site_my_uuid";
     public static final String SITE_MYID="site_myid";
@@ -120,7 +121,7 @@ public class VdcConfigUtil {
     private void genSiteProperties(Map<String, String> vdcConfig, String vdcShortId, List<Site> sites) {
         String activeSiteId = null;
         try {
-            activeSiteId = drUtil.getActiveSiteId(vdcShortId);
+            activeSiteId = drUtil.getActiveSite().getUuid();
         } catch (RetryableCoordinatorException e) {
             log.warn("Failed to find active site id from ZK, go on since it maybe switchover case");
         }
@@ -130,10 +131,6 @@ public class VdcConfigUtil {
         
         if (StringUtils.isEmpty(activeSiteId) && SiteInfo.DR_OP_SWITCHOVER.equals(siteInfo.getActionRequired())) {
             activeSiteId = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID()).getUuid();
-        }
-        
-        if (StringUtils.isEmpty(activeSiteId)) {
-            throw new IllegalStateException("No valid active site UUID found");
         }
         
         Collections.sort(sites, new Comparator<Site>() {
@@ -153,13 +150,13 @@ public class VdcConfigUtil {
 
             // exclude the paused sites from the standby site list on every site except the paused site
             // this will make it easier to resume the data replication.
-            if (!drUtil.isLocalSite(site)) {
-                if (site.getState().equals(SiteState.STANDBY_PAUSING)
-                        || site.getState().equals(SiteState.STANDBY_PAUSED)
-                        || site.getState().equals(SiteState.STANDBY_REMOVING)
-                        || site.getState().equals(SiteState.ACTIVE_FAILING_OVER)) {
-                    continue;
-                }
+            if (!drUtil.isLocalSite(site)
+                    && (site.getState().equals(SiteState.STANDBY_PAUSING)
+                    || site.getState().equals(SiteState.STANDBY_PAUSED)
+                    || site.getState().equals(SiteState.STANDBY_REMOVING)
+                    || site.getState().equals(SiteState.ACTIVE_FAILING_OVER))) {
+
+                continue;
             }
             
             int siteNodeCnt = 0;
@@ -188,6 +185,7 @@ public class VdcConfigUtil {
                     String.valueOf(siteNodeCnt));
 
             vdcConfig.put(String.format(VDC_SITE_VIP_PTN, vdcShortId, siteShortId), site.getVip());
+            vdcConfig.put(String.format(VDC_SITE_VIP6_PTN, vdcShortId, siteShortId), site.getVip6());
 
             if (drUtil.isLocalSite(site)) {
                 vdcConfig.put(SITE_MYID, siteShortId);

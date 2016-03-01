@@ -244,6 +244,10 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_ACTIVATE   = URI_BLOCK_CONSISTENCY_GROUP_SN
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_DEACTIVATE = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/deactivate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/restore"
 
+URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/snapshot-sessions"
+URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_CREATE     = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_BASE
+URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_LIST       = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_BASE
+
 URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/continuous-copies"
 URI_BLOCK_CONSISTENCY_GROUP_SWAP                  = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
 URI_BLOCK_CONSISTENCY_GROUP_FAILOVER              = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
@@ -3734,13 +3738,16 @@ class Bourne:
         result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
         return result
 
-    def volume_change_link(self, uri, operation, copy_uri, type):
+    def volume_change_link(self, uri, operation, copy_uri, type, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
 
         copy['copyID'] = copy_uri
         copy['type'] = type
+
+        if (pit):
+            copy['pointInTime'] = pit
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
@@ -4184,13 +4191,17 @@ class Bourne:
 
         return s
 
-    def block_consistency_group_failover(self, group, copyType, targetVarray):
+    def block_consistency_group_failover(self, group, copyType, targetVarray, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
 
         copy['type'] = copyType
         copy['copyID'] = targetVarray
+
+        if (pit):
+            copy['pointInTime'] = pit
+
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
         
@@ -8433,8 +8444,12 @@ class Bourne:
         results = self.un_managed_volume_search(name)
         resources = results['resource']
         for resource in resources:
-             if (resource['match'] == name):
-                 return resource['id']
+	    # Look for exact match
+	    if (resource['match'] == name):
+		return resource['id']
+	    # Look for exact "startsWith" match (as in VPlex)
+	    if (resource['match'].startswith(name + " (")):
+		return resource['id']
         raise Exception('bad volume name ' + name)
 
     def un_managed_volume_search(self, name):
@@ -8623,7 +8638,7 @@ class Bourne:
 
     def block_snapshot_session_delete(self, session_uri):
         tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
-        
+
         self.assert_is_dict(tasklist)
         tasks = tasklist['task']
         session_uri = ''
@@ -8652,9 +8667,20 @@ class Bourne:
             target_info['copy_mode'] = copy_mode
         params = dict()
         params['new_linked_targets'] = target_info
-        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS.format(session_uri), params)
-        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
-        return task
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS.format(session_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
 
     def block_snapshot_session_unlink_target(self, session_uri, target_uri, delete_target):
         target_info = dict()
@@ -8672,6 +8698,145 @@ class Bourne:
         target_info.append(target_uri)
         params = dict()
         params['ids'] = target_info
-        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_RELINK_TARGETS.format(session_uri), params)
-        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
-        return task
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_RELINK_TARGETS.format(session_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
+
+	# Consistency group snapshot session operations
+    def block_consistency_group_snapshot_session_create(self, group_uri, name, target_count, target_name, target_copymode):
+        params = dict()
+        params['name'] = name
+        if (target_count) :
+            target_params = dict()
+            params['new_linked_targets'] = target_params
+            target_params['count'] = target_count
+            target_params['target_name'] = target_name
+            if (target_copymode) :
+                target_params['copy_mode'] = target_copymode
+        tasklist = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_CREATE.format(group_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
+
+    def block_consistency_group_snapshot_session_list(self, group_uri):
+        group_uri = group_uri.strip()
+        sessions_list = self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_LIST.format(group_uri))
+        self.assert_is_dict(sessions_list)
+        source_sessions = sessions_list['snapshot_session']
+        source_session_uris = []
+        if (type(source_sessions) != list):
+            source_sessions = [source_sessions]
+        for source_session in source_sessions:
+            source_session_uris.append(source_session.get('id'))
+        return source_session_uris
+
+    def block_consistency_group_snapshot_session_show(self, session_uri):
+        return self.api('GET', URI_BLOCK_SNAPSHOT_SESSION.format(session_uri))
+
+    def block_snapshot_session_consistency_group_query(self, group_session_name):
+        if (self.__is_uri(group_session_name)):
+            return group_session_name
+
+        (group_name, session_name) = group_session_name.rsplit('/', 1)
+        group_uri = self.block_consistency_group_snapshot_session_query(group_name, session_name)
+        group_uri = group_uri.strip()
+
+        session_uris = self.block_snapshot_session_list(source_uri)
+        for session_uri in session_uris:
+            session = self.block_snapshot_session_show(session_uri)
+            if (session['name'] == session_name):
+                return session['id']
+        raise Exception('Invalid snapshot session name')
+
+    def block_consistency_group_snapshot_session_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        (group_name, session_name) = name.rsplit('/', 1)
+
+        return (self.block_consistency_group_snapshot_session_get_id_by_name(group_name, session_name))
+        raise Exception('bad consistency group snapshot name')
+
+    def block_consistency_group_snapshot_session_get_id_by_name(self, group, name):
+        groupid = self.block_consistency_group_query(group)
+        groupid = groupid.strip()
+        o = self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_LIST.format(groupid))
+        self.assert_is_dict(o)
+        sessions = o['snapshot_session']
+        ids = []
+        if (not o):
+            return {}
+        else :
+           if (type(sessions) != list):
+              sessions = [sessions]
+           print 'The requested consistency group snapshot session name : ' + name
+           for session in sessions:
+              if(name == session.get('name')):
+                print 'The selected id : ' + session.get('id')
+                return session.get('id')
+
+    def block_consistency_group_snapshot_session_link_targets(self, session_uri, count, name, copy_mode):
+        target_info = dict()
+        target_info['count'] = count
+        target_info['target_name'] = name
+        if (copy_mode):
+            target_info['copy_mode'] = copy_mode
+        params = dict()
+        params['new_linked_targets'] = target_info
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS.format(session_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
+
+    def block_consistency_group_snapshot_session_unlink_target(self, session_uri, target_uri, delete_target):
+        target_info = dict()
+        target_info['id'] = target_uri
+        if (delete_target):
+            target_info['delete_target'] = delete_target
+        params = dict()
+        params['linked_targets'] = [target_info]
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_UNLINK_TARGETS.format(session_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])

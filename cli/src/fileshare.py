@@ -17,6 +17,7 @@ import commands
 from common import SOSError
 from threading import Timer
 import schedulepolicy
+import virtualpool
 
 
 class Fileshare(object):
@@ -62,6 +63,10 @@ class Fileshare(object):
     URI_CONTINUOS_COPIES_STOP = '/file/filesystems/{0}/protection/continuous-copies/stop'
     URI_CONTINUOS_COPIES_FAILOVER = '/file/filesystems/{0}/protection/continuous-copies/failover'
     URI_CONTINUOS_COPIES_FAILBACK = '/file/filesystems/{0}/protection/continuous-copies/failback'
+    URI_CONTINUOS_COPIES_CREATE = '/file/filesystems/{0}/protection/continuous-copies/create'
+    URI_CONTINUOS_COPIES_DEACTIVATE = '/file/filesystems/{0}/protection/continuous-copies/deactivate'
+    URI_CONTINUOS_COPIES_REFRESH = '/file/filesystems/{0}/protection/continuous-copies/refresh'
+    URI_VPOOL_CHANGE = '/file/filesystems/{0}/vpool-change'
 
     isTimeout = False
     timeout = 300
@@ -272,7 +277,7 @@ class Fileshare(object):
         return o
 
     # Creates a fileshare given label, project, vpool, size and id for vnx file
-    def create(self, project, label, size, varray, vpool, id, protocol, sync, advlim, softlim, grace):
+    def create(self, project, label, size, varray, vpool, id, protocol, sync, advlim, softlim, grace,synctimeout):
         '''
         Makes REST API call to create fileshare under a project
         Parameters:
@@ -325,7 +330,7 @@ class Fileshare(object):
             o = common.json_decode(s)
             if(sync):
                 #fileshare = self.show(name, True)
-                return self.check_for_sync(o, sync)
+                return self.check_for_sync(o, sync,synctimeout)
             
             else:
                 return o
@@ -354,30 +359,28 @@ class Fileshare(object):
                              fileshare_uri, add, remove)
         )
 
-    # Update a fileshare information
-    def update(self, name, label, vpool):
+    #Update a fileshare information
+    def update(self, name, advlim, softlim, grace):
         '''
         Makes REST API call to update a fileshare information
         Parameters:
             name: name of the fileshare to be updated
-            label: new name of the fileshare
-            vpool: name of vpool
         Returns
             Created task details in JSON response payload
         '''
+        
         fileshare_uri = self.fileshare_query(name)
 
-        from virtualpool import VirtualPool
+        parms = dict()
 
-        vpool_obj = VirtualPool(self.__ipAddr, self.__port)
-        vpool_uri = vpool_obj.vpool_query(vpool, "file")
-
-        body = json.dumps({'share':
-                           {
-                               'label': label,
-                               'vpool': {"id": vpool_uri}
-                           }
-                           })
+        if advlim is not None :
+            parms['notification_limit'] = advlim
+        if softlim is not None :
+            parms['soft_limit'] = softlim
+        if grace is not None :
+            parms['soft_grace'] = grace
+            
+        body = json.dumps(parms)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "PUT",
@@ -389,7 +392,7 @@ class Fileshare(object):
     def export(
             self, name, security_type, permission, root_user,
             endpoints, protocol, share_name, share_description,
-            permission_type, sub_dir, sync):
+            permission_type, sub_dir, sync,synctimeout):
         '''
         Makes REST API call to export fileshare to a host
         Parameters:
@@ -449,7 +452,7 @@ class Fileshare(object):
                 return None
             o = common.json_decode(s)
             if(sync):
-                return self.check_for_sync(o, sync)
+                return self.check_for_sync(o, sync,synctimeout)
             else:
                 return o
         except SOSError as e:
@@ -461,7 +464,7 @@ class Fileshare(object):
 
     # Unexports a fileshare from a host given a fileshare name, type of
     # security and permission
-    def unexport(self, name, protocol, share_name, sub_dir, all_dir, sync):
+    def unexport(self, name, protocol, share_name, sub_dir, all_dir, sync,synctimeout):
         '''
         Makes REST API call to unexport fileshare from a host
         Parameters:
@@ -494,7 +497,7 @@ class Fileshare(object):
             return None
         o = common.json_decode(s)
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync(o, sync,synctimeout)
         else:
             return o
 
@@ -535,14 +538,14 @@ class Fileshare(object):
 
 
     # Deletes a fileshare given a fileshare name
-    def delete(self, name, forceDelete=False, delete_type='FULL', sync=False):
+    def delete(self, name, forceDelete=False, delete_type='FULL', sync=False,synctimeout=0):
         '''
         Deletes a fileshare based on fileshare name
         Parameters:
             name: name of fileshare
         '''
         fileshare_uri = self.fileshare_query(name)
-        return self.delete_by_uri(fileshare_uri, forceDelete, delete_type, sync)
+        return self.delete_by_uri(fileshare_uri, forceDelete, delete_type, sync,synctimeout)
     
         # Deletes a fileshare given a fileshare name
     def delete_acl(self, name, sharename):
@@ -700,7 +703,7 @@ class Fileshare(object):
 
 
     # Deletes a fileshare given a fileshare uri
-    def delete_by_uri(self, uri, forceDelete=False, delete_type='FULL', sync=False):
+    def delete_by_uri(self, uri, forceDelete=False, delete_type='FULL', sync=False,synctimeout=0):
         '''
         Deletes a fileshare based on fileshare uri
         Parameters:
@@ -717,7 +720,7 @@ class Fileshare(object):
             return None
         o = common.json_decode(s)
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync(o, sync,synctimeout)
         return o
 
     def get_exports_by_uri(self, uri, subDir=None, allDir=None):
@@ -848,14 +851,14 @@ class Fileshare(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync):
+    def check_for_sync(self, result, sync,synctimeout):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]
                 return (
                     common.block_until_complete("fileshare", resource["id"],
                                                 result["id"], self.__ipAddr,
-                                                self.__port)
+                                                self.__port,synctimeout)
                 )
             else:
                 raise SOSError(
@@ -871,7 +874,7 @@ class Fileshare(object):
                               project_name, fileshare_name, task_id)
         )
     
-    def expand(self, name, new_size, sync=False):
+    def expand(self, name, new_size, sync=False,synctimeout=0):
 
         fileshare_detail = self.show(name)
         current_size = float(fileshare_detail["capacity_gb"])
@@ -896,7 +899,7 @@ class Fileshare(object):
             return None
         o = common.json_decode(s)
         if(sync):
-            return self.check_for_sync(o, sync)
+            return self.check_for_sync(o, sync,synctimeout)
         return o
     
     def assign_policy(self, filesharename, policyname, tenantname, policyid):
@@ -1066,8 +1069,72 @@ class Fileshare(object):
             body)
 
         return
+    
+    def continous_copies_create(self, filesharename):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+        parms = {
+                     'type' : "REMOTE_MIRROR"}
+
+        body = json.dumps(parms)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Fileshare.URI_CONTINUOS_COPIES_CREATE.format(fsid),
+            body)
+
+        return
+    
+    def continous_copies_deactivate(self, filesharename):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+        parms = {
+                     'delete_type' : "REMOTE_MIRROR"}
+
+        body = json.dumps(parms)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Fileshare.URI_CONTINUOS_COPIES_DEACTIVATE.format(fsid),
+            body)
+
+        return
+    
+    def continous_copies_refresh(self, filesharename):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+        copy_dict = {
+                     'type' : "REMOTE_MIRROR"}
+        copy_list = []
+        copy_list.append(copy_dict)
+        parms = {
+                 'copy' : copy_list}
+
+        body = json.dumps(parms)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Fileshare.URI_CONTINUOS_COPIES_REFRESH.format(fsid),
+            body)
+
+        return
+    
+    def change_vpool(self, filesharename, vpoolid):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+         
+        parms = {
+                 'vpool' : vpoolid}
         
 
+        body = json.dumps(parms)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "PUT",
+            Fileshare.URI_VPOOL_CHANGE.format(fsid),
+            body)
+
+        return
 
 # Fileshare Create routines
 
@@ -1118,11 +1185,11 @@ def create_parser(subcommand_parsers, common_parser):
                                 required=False)
     create_parser.add_argument('-advisorylimit', '-advlmt',
                                dest='advlim',
-                               help='Advisory limit in % for the filesystem',
+                               help='Advisory limit in percentage for the filesystem',
                                metavar='<advisorylimit>')
     create_parser.add_argument('-softlimit', '-softlmt',
                                dest='softlim',
-                               help='Soft limit in % for the filesystem',
+                               help='Soft limit in percentage for the filesystem',
                                metavar='<softlimit>')
     create_parser.add_argument('-graceperiod', '-grace',
                                dest='grace',
@@ -1132,11 +1199,19 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    
+    create_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
+    
     create_parser.set_defaults(func=fileshare_create)
 
 
 def fileshare_create(args):
-
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     size = common.to_bytes(args.size)
     if not size:
         raise SOSError(SOSError.CMD_LINE_ERR,
@@ -1155,7 +1230,7 @@ def fileshare_create(args):
                          args.sync,
                          args.advlim,
                          args.softlim,
-                         args.grace)
+                         args.grace,args.synctimeout)
 #        if(args.sync == False):
 #            return common.format_json_object(res)
     except SOSError as e:
@@ -1168,7 +1243,7 @@ def fileshare_create(args):
 # fileshare Update routines
 
 
-def update_parser(subcommand_parsers, common_parser):
+'''def update_parser(subcommand_parsers, common_parser):
     update_parser = subcommand_parsers.add_parser(
         'update',
         description='ViPR Filesystem Update CLI usage.',
@@ -1217,7 +1292,64 @@ def fileshare_update(args):
         if (e.err_code == SOSError.NOT_FOUND_ERR):
             raise SOSError(e.err_code, "Update failed: " + e.err_text)
         else:
-            raise e
+            raise e'''
+       
+       
+
+def update_parser(subcommand_parsers, common_parser):
+    update_parser = subcommand_parsers.add_parser(
+        'update',
+        description='ViPR Filesystem Update CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Update a filesystem')
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    update_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    update_parser.add_argument('-advisorylimit', '-advlmt',
+                               dest='advlim',
+                               help='Advisory limit in percentage for the filesystem',
+                               metavar='<advisorylimit>')
+    update_parser.add_argument('-softlimit', '-softlmt',
+                               dest='softlim',
+                               help='Soft limit in percentage for the filesystem',
+                               metavar='<softlimit>')
+    update_parser.add_argument('-graceperiod', '-grace',
+                               dest='grace',
+                               help='Grace period in days for soft limit',
+                               metavar='<graceperiod>')
+    
+    update_parser.set_defaults(func=fileshare_update)
+
+
+def fileshare_update(args):
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        obj = Fileshare(args.ip, args.port)
+        res = obj.update(args.tenant + "/" + args.project + "/" + args.name,
+                         args.advlim,
+                         args.softlim,
+                         args.grace)
+    except SOSError as e:
+        if (e.err_code == SOSError.NOT_FOUND_ERR):
+            raise SOSError(e.err_code, "Update failed: " + e.err_text)
+        else:
+            raise e       
+
 
 
 # Fileshare Delete routines
@@ -1248,6 +1380,11 @@ def delete_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    delete_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     delete_parser.add_argument(
         '-forceDelete', '-fd',
         metavar='<forceDelete>',
@@ -1265,13 +1402,15 @@ def delete_parser(subcommand_parsers, common_parser):
 
 
 def fileshare_delete(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     if(not args.tenant):
         args.tenant = ""
     obj = Fileshare(args.ip, args.port)
     try:
         obj.delete(
             args.tenant + "/" + args.project + "/" + args.name,
-            args.forceDelete, args.delete_type, args.sync)
+            args.forceDelete, args.delete_type, args.sync,args.synctimeout)
     except SOSError as e:
         common.format_err_msg_and_raise("delete", "filesystem",
                                         e.err_text, e.err_code)
@@ -1683,7 +1822,7 @@ def export_parser(subcommand_parsers, common_parser):
         help='Endpoints: host names, IP addresses, or netgroups')
     mandatory_args.add_argument('-protocol', '-pl',
                                 help='Protocol',
-                                choices=["NFS", "NFSv4", "CIFS"],
+                                choices=["NFS", "CIFS"],
                                 dest='protocol',
                                 required=True)
     export_parser.add_argument('-share', '-sh',
@@ -1704,10 +1843,17 @@ def export_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    export_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     export_parser.set_defaults(func=fileshare_export)
 
 
 def fileshare_export(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
 
     try:
         if(args.protocol == "CIFS"):
@@ -1748,7 +1894,7 @@ def fileshare_export(args):
             args.tenant + "/" + args.project + "/" + args.name,
             args.security, args.permission, args.root_user, args.endpoint,
             args.protocol, args.share, args.desc,
-            args.permission_type, args.subdir, args.sync)
+            args.permission_type, args.subdir, args.sync,args.synctimeout)
 
 #        if(args.sync == False):
 #            return common.format_json_object(res)
@@ -1804,10 +1950,17 @@ def unexport_parser(subcommand_parsers, common_parser):
                                  dest='sync',
                                  help='Execute in synchronous mode',
                                  action='store_true')
+    unexport_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     unexport_parser.set_defaults(func=fileshare_unexport)
 
 
 def fileshare_unexport(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     try:
 
         if(args.protocol == "CIFS"):
@@ -1818,7 +1971,7 @@ def fileshare_unexport(args):
         obj = Fileshare(args.ip, args.port)
         if(not args.tenant):
             args.tenant = ""
-        res = obj.unexport(args.tenant + "/" + args.project + "/" + args.name, args.protocol, args.share, args.subdir, args.alldir, args.sync)
+        res = obj.unexport(args.tenant + "/" + args.project + "/" + args.name, args.protocol, args.share, args.subdir, args.alldir, args.sync,args.synctimeout)
 #        if(args.sync == False):
 #            return common.format_json_object(res)
 
@@ -2343,10 +2496,18 @@ def expand_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    
+    expand_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     expand_parser.set_defaults(func=fileshare_expand)
 
 
 def fileshare_expand(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     size = common.to_bytes(args.size)
     if(not size):
         raise SOSError(SOSError.CMD_LINE_ERR, 'error: Invalid input for -size')
@@ -2357,7 +2518,7 @@ def fileshare_expand(args):
             args.tenant = ""
 
         res = obj.expand(args.tenant + "/" + args.project +
-                         "/" + args.name, size, args.sync)
+                         "/" + args.name, size, args.sync,args.synctimeout)
     except SOSError as e:
         raise e
 
@@ -2544,7 +2705,7 @@ def policy_list(args):
 def continous_copies_start_parser(subcommand_parsers, common_parser):
     # start continous copies command parser
     continous_copies_start_parser = subcommand_parsers.add_parser(
-        'continous-copies-start',
+        'continuous-copies-start',
         description='ViPR fileshare continous copies start cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2580,7 +2741,7 @@ def continous_copies_start(args):
 def continous_copies_pause_parser(subcommand_parsers, common_parser):
     # pause continous copies command parser
     continous_copies_pause_parser = subcommand_parsers.add_parser(
-        'continous-copies-pause',
+        'continuous-copies-pause',
         description='ViPR fileshare continous copies pause cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2617,7 +2778,7 @@ def continous_copies_pause(args):
 def continous_copies_resume_parser(subcommand_parsers, common_parser):
     # resume continous copies command parser
     continous_copies_resume_parser = subcommand_parsers.add_parser(
-        'continous-copies-resume',
+        'continuous-copies-resume',
         description='ViPR fileshare continous copies resume cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2653,7 +2814,7 @@ def continous_copies_resume(args):
 def continous_copies_stop_parser(subcommand_parsers, common_parser):
     # stop continous copies command parser
     continous_copies_stop_parser = subcommand_parsers.add_parser(
-        'continous-copies-stop',
+        'continuous-copies-stop',
         description='ViPR fileshare continous copies stop cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2691,7 +2852,7 @@ def continous_copies_stop(args):
 def continous_copies_failover_parser(subcommand_parsers, common_parser):
     # failover continous copies command parser
     continous_copies_failover_parser = subcommand_parsers.add_parser(
-        'continous-copies-failover',
+        'continuous-copies-failover',
         description='ViPR fileshare continous copies failover cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2727,7 +2888,7 @@ def continous_copies_failover(args):
 def continous_copies_failback_parser(subcommand_parsers, common_parser):
     # failback continous copies command parser
     continous_copies_failback_parser = subcommand_parsers.add_parser(
-        'continous-copies-failover',
+        'continuous-copies-failback',
         description='ViPR fileshare continous copies failback cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2759,6 +2920,165 @@ def continous_copies_failback(args):
         return
     except SOSError as e:
         raise e
+    
+def continous_copies_create_parser(subcommand_parsers, common_parser):
+    # create continous copies command parser
+    continous_copies_create_parser = subcommand_parsers.add_parser(
+        'continuous-copies-create',
+        description='Create the replication copies for existing file system',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Create the replication copies for existing file system')
+    mandatory_args = continous_copies_create_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    continous_copies_create_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    continous_copies_create_parser.set_defaults(func=continous_copies_create)
+
+
+def continous_copies_create(args):
+    obj = Fileshare(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.continous_copies_create(args.tenant + "/" + args.project + "/" + args.name)
+        return
+    except SOSError as e:
+        raise e
+    
+    
+def continous_copies_deactivate_parser(subcommand_parsers, common_parser):
+    # deactivate continous copies command parser
+    continous_copies_deactivate_parser = subcommand_parsers.add_parser(
+        'continuous-copies-deactivate',
+        description='Deactivate the replication copies of file system',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Deactivate the replication copies of file system')
+    mandatory_args = continous_copies_deactivate_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    continous_copies_deactivate_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    continous_copies_deactivate_parser.set_defaults(func=continous_copies_deactivate)
+
+
+def continous_copies_deactivate(args):
+    obj = Fileshare(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.continous_copies_deactivate(args.tenant + "/" + args.project + "/" + args.name)
+        return
+    except SOSError as e:
+        raise e
+    
+
+def continous_copies_refresh_parser(subcommand_parsers, common_parser):
+    # refresh continous copies command parser
+    continous_copies_refresh_parser = subcommand_parsers.add_parser(
+        'continuous-copies-refresh',
+        description='ViPR fileshare continous copies refresh cli usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Refresh the replication session')
+    mandatory_args = continous_copies_refresh_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    continous_copies_refresh_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    continous_copies_refresh_parser.set_defaults(func=continous_copies_refresh)
+
+
+def continous_copies_refresh(args):
+    obj = Fileshare(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.continous_copies_refresh(args.tenant + "/" + args.project + "/" + args.name)
+        return
+    except SOSError as e:
+        raise e
+    
+    
+def change_vpool_parser(subcommand_parsers, common_parser):
+    # change vpool command parser
+    change_vpool_parser = subcommand_parsers.add_parser(
+        'change-vpool',
+        description='ViPR fileshare change vpool cli usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Change vpool of the fileshare')
+    mandatory_args = change_vpool_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    change_vpool_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-vpool', '-vp',
+                                help='Name of the target vpool',
+                                metavar='<vpool>',
+                                dest='vpool',
+                                required=True)
+    change_vpool_parser.set_defaults(func=change_vpool)
+
+
+def change_vpool(args):
+    obj = Fileshare(args.ip, args.port)
+    from virtualpool import VirtualPool
+    vpool_obj = VirtualPool(args.ip, args.port)
+    vpoolid = vpool_obj.vpool_query(args.vpool, "file")
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.change_vpool(args.tenant + "/" + args.project + "/" + args.name, vpoolid)
+        return
+    except SOSError as e:
+        raise e
+    
+    
+    
+
 
 #
 # Fileshare Main parser routine
@@ -2778,7 +3098,7 @@ def fileshare_parser(parent_subparser, common_parser):
     create_parser(subcommand_parsers, common_parser)
 
     # update command parser
-    # update_parser(subcommand_parsers, common_parser)
+    update_parser(subcommand_parsers, common_parser)
 
     # delete command parser
     delete_parser(subcommand_parsers, common_parser)
@@ -2865,3 +3185,15 @@ def fileshare_parser(parent_subparser, common_parser):
     
     #CONTINOUS COPIES FAILBACK PARSER
     continous_copies_failback_parser(subcommand_parsers, common_parser)
+    
+    #CONTINOUS COPIES CREATE PARSER
+    continous_copies_create_parser(subcommand_parsers, common_parser)
+    
+    #CONTINOUS COPIES DEACTIVATE PARSER
+    continous_copies_deactivate_parser(subcommand_parsers, common_parser)
+    
+    #CONTINOUS COPIES REFRESH PARSER
+    continous_copies_refresh_parser(subcommand_parsers, common_parser)
+    
+    #change vpool command parser
+    change_vpool_parser(subcommand_parsers, common_parser)

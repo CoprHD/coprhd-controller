@@ -9,6 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -18,6 +20,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -88,16 +91,18 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     /**
      * Returns the VirtualPool for the UnManagedVolume currently being processed.
      * 
+     * @param unmanagedVolume the UnManagedVolume to find the vpool for
      * @return the VirtualPool for the UnManagedVolume currently being processed
      */
-    public VirtualPool getVpool();
+    public VirtualPool getVpool(UnManagedVolume unmanagedVolume);
 
     /**
      * Returns the VirtualArray for the UnManagedVolume currently being processed.
      * 
+     * @param unmanagedVolume the UnManagedVolume to find the varray for
      * @return the VirtualArray for the UnManagedVolume currently being processed
      */
-    public VirtualArray getVarray();
+    public VirtualArray getVarray(UnManagedVolume unmanagedVolume);
 
     /**
      * Returns the Project for the UnManagedVolume currently being processed.
@@ -159,7 +164,7 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * 
      * @return a Map of native GUID Strings to BlockObjects
      */
-    public Map<String, BlockObject> getObjectsToBeCreatedMap();
+    public Map<String, BlockObject> getBlockObjectsToBeCreatedMap();
 
     /**
      * Returns a Map of a List of DataObjects updated by ingestion
@@ -169,7 +174,17 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return a Map of UnManagedVolume native GUID Strings to a
      *         List of associated updated DataObjects
      */
-    public Map<String, List<DataObject>> getObjectsToBeUpdatedMap();
+    public Map<String, List<DataObject>> getDataObjectsToBeUpdatedMap();
+
+    /**
+     * Returns a Map of a List of DataObjects created by ingestion
+     * as mapped to the native GUID of the UnManagedVolume Object
+     * for which they are set to be created at the end of ingestion.
+     * 
+     * @return a Map of UnManagedVolume native GUID Strings to a
+     *         List of associated newly created DataObjects
+     */
+    public Map<String, List<DataObject>> getDataObjectsToBeCreatedMap();
 
     /**
      * Returns a Map of UnManagedVolume native GUID Strings to
@@ -216,6 +231,14 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return a VolumeIngestionContext
      */
     public VolumeIngestionContext getProcessedVolumeContext(String nativeGuid);
+
+    /**
+     * Returns all the currently-known UnManagedVolumes that have been
+     * successfully processed and should be deleted at the end of ingestion.
+     * 
+     * @return a List of UnManagedVolumes to be deleted
+     */
+    public List<UnManagedVolume> findAllUnManagedVolumesToBeDeleted();
 
     /**
      * Returns the error messages collection for the given nativeGuid,
@@ -310,12 +333,59 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public void setDeviceInitiators(List<Initiator> deviceInitiators);
 
     /**
-     * Finds a BlockObject by native GUID by first looking in the database,
-     * then in the context's createdObjectMap (or parent contexts, if needed).
+     * Finds a BlockObject by native GUID in the currently-existing 
+     * ingestion request contexts and volume contexts.
      * 
      * @param nativeGuid the BlockObject native GUID to look for
      * @return a BlockObject for the native GUID on null if none found
      */
     public BlockObject findCreatedBlockObject(String nativeGuid);
+
+    /**
+     * Finds a BlockObject by URI in the currently-existing 
+     * ingestion request contexts and volume contexts.
+     * 
+     * @param nativeGuid the BlockObject URI to look for
+     * @return a BlockObject for the URI on null if none found
+     */
+    public BlockObject findCreatedBlockObject(URI uri);
+
+    /**
+     * Finds a DataObject by looking in all the updated objects lists.
+     * 
+     * @param nativeGuid the DataObject URI to look for
+     * @return a BlockObject for the native GUID on null if none found
+     */
+    public DataObject findInUpdatedObjects(URI uri);
+
+    /**
+     * Find an UnManagedConsistencyGroup in the volume contexts associated
+     * with this IngestionRequestContext.
+     * 
+     * @param bcg the BlockConsistencyGroup whose label should be matched
+     * @return an UnManagedConsistencyGroup
+     */
+    public UnManagedConsistencyGroup findUnManagedConsistencyGroup(BlockConsistencyGroup bcg);
+
+    /**
+     * Adds a BlockObject to the blockObjectsToBeCreated Map by its native GUID.
+     * 
+     * @param blockObject the BlockObject to add for creation in the database
+     */
+    public void addBlockObjectToCreate(BlockObject blockObject);
+
+    /**
+     * Adds a DataObject to the dataObjectsToBeUpdated Map for the current UnManagedVolume.
+     * 
+     * @param dataObject the DataObject that needs to be updated in the database
+     */
+    public void addDataObjectToCreate(DataObject dataObject);
+
+    /**
+     * Adds a DataObject to the dataObjectsToBeCreated Map for the current UnManagedVolume.
+     * 
+     * @param dataObject the DataObject that needs to be created in the database
+     */
+    public void addDataObjectToUpdate(DataObject dataObject);
 
 }

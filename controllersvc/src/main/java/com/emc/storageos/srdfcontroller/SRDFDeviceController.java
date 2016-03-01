@@ -381,6 +381,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     .getNativeGuid());
         }
 
+        if (!group.getVolumes().isEmpty()) {
+            // Make sure that the Active volumes in this group are not created outside the ViPR Controller
+            // ViPR Controller should not attempt to suspend them
+            try {
+                // The below call will return an error if there is a single volume in the group that does not have an associated Volume URI
+                List<Volume> volumes = utils.getAssociatedVolumesForSRDFGroup(system, group);
+            } catch (Exception e) {
+                log.info("RDF Group {} has devices created outside ViPRController", group.getNativeGuid());
+                clearSourceAndTargetVolumes(sourceDescriptors, targetDescriptors);
+                throw DeviceControllerException.exceptions.rdfGroupHasPairsCreatedOutsideViPR(group
+                        .getNativeGuid());
+            }
+        }
+
         String createSrdfPairStep = null;
         if (volumesInRDFGroupsOnProvider.isEmpty() && SupportedCopyModes.ALL.toString().equalsIgnoreCase(group.getSupportedCopyMode())) {
             log.info("RA Group {} was empty", group.getId());
@@ -657,22 +671,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         /**
          * If R1/R2 has group snap/clone/mirror, add pair to group is not supported unless we provide force flag.
-         * Step-1: In such a case, provide force flag.
-         * When force flag is provided, existing volume-replica group relation becomes INVALID.
-         * Step-2: Create new snap/clone/mirror for new R1/R2 volumes,
+         * Force flag is implemented by default
+         * Create new snap/clone/mirror for new R1/R2 volumes,
          * add them to DeviceMaskingGroup (DMG) which is equivalent to its ReplicationGroup (RG)
          * (adding new devices to existing RG is not supported. As a workaround, add them to DMG)
          * 
          * Note: This is supported from SMI-S 8.0.3.11 onwards.
-         * Step-2 will be called from API to create replica objects for new volumes and add them to DMG.
+         * It will be called from API to create replica objects for new volumes and add them to DMG.
          */
-        boolean forceAdd = utils.checkIfR1OrR2HasReplica(group);
 
         /*
          * 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1
          */
 
-        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri, forceAdd);
+        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIs, false);
         String addVolumestoCgStep = workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
@@ -723,7 +735,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     null);
         }
         /* 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1 */
-        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null, false);
+        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIS, false);
         workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
@@ -910,6 +922,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Map<URI, RemoteDirectorGroup> srdfGroupMap = new HashMap<URI, RemoteDirectorGroup>();
         Map<URI, List<URI>> srdfGroupToSourceVolumeMap = new HashMap<URI, List<URI>>();
         Map<URI, List<URI>> srdfGroupToTargetVolumeMap = new HashMap<URI, List<URI>>();
+        Map<URI, String> srdfGroupToTargetVolumeAccessState = new HashMap<URI, String>();
         Map<URI, String> srdfGroupToLastWaitFor = new HashMap<URI, String>();
         // invoke deletion of volume within CG
         for (Volume source : sourcesVolumeMap.values()) {
@@ -961,6 +974,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         srdfGroupToSourceVolumeMap.get(groupId).add(source.getId());
                         srdfGroupToTargetVolumeMap.get(groupId).add(targetURI);
                         srdfGroupToLastWaitFor.put(groupId, waitFor);
+                        srdfGroupToTargetVolumeAccessState.put(groupId, target.getAccessState());
                     }
 
                 } else {
@@ -998,6 +1012,10 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
             // Add step to resume each Active SRDF group
             for (URI srdfGroupURI : srdfGroupMap.keySet()) {
                 RemoteDirectorGroup group = srdfGroupMap.get(srdfGroupURI);
+                if(srdfGroupToTargetVolumeAccessState.get(srdfGroupURI).equals(Volume.VolumeAccessState.NOT_READY.name())){
+                    log.info("Srdf group {} {} was already in a suspended state hence skipping resume on this group.", srdfGroupURI, group.getNativeGuid());
+                    continue;
+                }
                 List<URI> sourceVolumes = srdfGroupToSourceVolumeMap.get(srdfGroupURI);
                 List<URI> targetVolumes = srdfGroupToTargetVolumeMap.get(srdfGroupURI);
                 String lastWaitFor = srdfGroupToLastWaitFor.get(srdfGroupURI);
@@ -1605,20 +1623,19 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
-    private Method addVolumePairsToCgMethod(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri,
-            boolean forceAdd) {
-        return new Workflow.Method(ADD_SYNC_VOLUME_PAIRS_METHOD, systemURI, sourceURIs, remoteDirectorGroupURI, vpoolChangeUri, forceAdd);
+    private Method addVolumePairsToCgMethod(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri) {
+        return new Workflow.Method(ADD_SYNC_VOLUME_PAIRS_METHOD, systemURI, sourceURIs, remoteDirectorGroupURI, vpoolChangeUri);
     }
 
     public boolean addVolumePairsToCgMethodStep(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri,
-            boolean forceAdd, String opId) {
+            String opId) {
         log.info("START Add VolumePair to CG");
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             completer = new SRDFAddPairToGroupCompleter(sourceURIs, vpoolChangeUri, opId);
-            getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, forceAdd, completer);
+            getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
@@ -2034,7 +2051,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
 
                             Workflow.Method addSyncPairMethod = addVolumePairsToCgMethod(system.getId(),
-                                    sourceUris, group.getId(), null, false);
+                                    sourceUris, group.getId(), null);
 
                             String removeAsyncPairStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     removePairFromGroupWorkflowDesc, waitFor, system.getId(),

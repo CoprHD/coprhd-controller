@@ -57,12 +57,15 @@
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
         <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
 
+        <entry key="Discovery-externaldevice-all" value="discovery-externaldevice-context.xml" />
+
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
         <entry key="Discovery-rp-unmanaged_cgs" value="discovery-recoverpoint-context.xml" />
         <entry key="Metering-block" value="metering-block-context.xml" />
         <entry key="Metering-vnxfile" value="metering-vnxfile-context.xml" />
         <entry key="Metering-isilon" value="metering-block-context.xml" />
         <entry key="Metering-netapp" value="metering-block-context.xml" />
+        <entry key="Metering-netappc" value="metering-block-context.xml" />
         <entry key="Metering-vplex" value="metering-block-context.xml" />
         <entry key="Metering-datadomain" value="discovery-datadomain-context.xml" />
 
@@ -108,6 +111,7 @@
         <entry key="enable-metering" value="${controller_enable_metering}" />
         <entry key="enable-autodiscovery" value="${controller_enable_autodiscovery}" />
         <entry key="enable-autoscan" value="${controller_enable_autoscan}" />
+        <entry key="cim-connection-max-inactive-time" value="${cim_connection_max_inactive_time}" />
     </util:map>
 
     <bean id="enablemonitoring" class="java.lang.Boolean">

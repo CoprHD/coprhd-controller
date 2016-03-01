@@ -6,6 +6,9 @@
 package com.emc.storageos.systemservices.impl.ipreconfig;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
@@ -21,6 +24,7 @@ import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ipreconfig.*;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
 import org.slf4j.Logger;
@@ -40,6 +44,7 @@ public class IpReconfigManager implements Runnable {
     private static Charset UTF_8 = Charset.forName("UTF-8");
     private static final long IPRECONFIG_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours timeout for the procedure
     private static final long POLL_INTERVAL = 10 * 1000; // 10 second polling interval
+    private static final String UPDATE_ZKIP_LOCK = "update_zkip";
 
     // ipreconfig entry in ZK
     Configuration config = null;
@@ -50,6 +55,7 @@ public class IpReconfigManager implements Runnable {
     private Integer nodeCount;
     private long expiration_time = 0L;         // ipreconfig would fail if not finished at this time
 
+
     @Autowired
     private CoordinatorClientExt _coordinator;
 
@@ -59,6 +65,11 @@ public class IpReconfigManager implements Runnable {
     private ThreadPoolExecutor _pollExecutor;
 
     private IpReconfigListener ipReconfigListener = null;
+
+    private DrUtil drUtil;
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
 
     private Properties ovfProperties;    // local ovfenv properties
 
@@ -139,6 +150,7 @@ public class IpReconfigManager implements Runnable {
      */
     @Override
     public void run() {
+        init();
         while (true) {
             try {
                 handleIpReconfig();
@@ -161,10 +173,12 @@ public class IpReconfigManager implements Runnable {
         config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
         if (config == null) {
             log.info("no ipreconfig request coming in yet.");
+            assureIPConsistent();
             return;
         }
 
         if (isRollback()) {
+            assureIPConsistent();
             return;
         }
 
@@ -290,6 +304,7 @@ public class IpReconfigManager implements Runnable {
                     // New IP has taken effect in local node, set total status to "Succeed" when all nodes are "Local_Succeed".
                     target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTER_SUCCEED;
                     if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
+                        assureIPConsistent();
                         setSucceed();
                     }
                     break;
@@ -658,6 +673,10 @@ public class IpReconfigManager implements Runnable {
             log.info("Platform(VApp) is unsupported for ip reconfiguraiton");
             throw new UnsupportedOperationException("VApp is unsupported for ip reconfiguration");
         }
+        if (PlatformUtils.hasMultipleSites()) {
+            log.info("Multiple sites env is unsupported for ip reconfiguraiton");
+            throw new UnsupportedOperationException("Multiple sites env is unsupported for ip reconfiguration");
+        }
     }
 
     /**
@@ -747,4 +766,71 @@ public class IpReconfigManager implements Runnable {
         return localIpinfo;
     }
 
+    /**
+     * Assure local site IP info is consistent with that in ZK.
+     * (DR/GEO procedures store IP info in ZK even for single site since Yoda.)
+     */
+    void assureIPConsistent() {
+        InterProcessLock lock = null;
+        try {
+            log.info("Assuring local site IPs are consistent with ZK ...");
+            lock = _coordinator.getCoordinatorClient().getLock(UPDATE_ZKIP_LOCK);
+            lock.acquire();
+            log.info("Got lock for updating local site IPs into ZK ...");
+
+            Site site = drUtil.getLocalSite();
+            if (localIpinfo.weakEqual(site.getVip(), site.getVip6(), site.getHostIPv4AddressMap(), site.getHostIPv6AddressMap())) {
+                log.info("local site IPs are consistent with ZK, no need to update.");
+                return;
+            } else {
+                log.info("local site IPs are not consistent with ZK, updating.");
+                log.info("    local ipinfo:{}", localIpinfo.toString());
+                log.info("    zk ipinfo: vip={}", site.getVip());
+                log.info("    zk ipinfo: vip6={}", site.getVip6());
+                SortedSet<String> nodeIds = new TreeSet<String>(site.getHostIPv4AddressMap().keySet());
+                for (String nodeId : nodeIds) {
+                    log.info("    {}: ipv4={}", nodeId, site.getHostIPv4AddressMap().get(nodeId));
+                    log.info("    {}: ipv6={}", nodeId, site.getHostIPv6AddressMap().get(nodeId));
+                }
+            }
+            
+            site.setVip6(localIpinfo.getIpv6Setting().getNetworkVip6());
+            site.setVip(localIpinfo.getIpv4Setting().getNetworkVip());
+            
+            Map<String, String> ipv4Addresses = new HashMap<>();
+            Map<String, String> ipv6Addresses = new HashMap<>();
+            int nodeIndex = 1;
+            for (String nodeip : localIpinfo.getIpv4Setting().getNetworkAddrs()) {
+                String nodeId;
+                nodeId = IpReconfigConstants.VDC_NODE_PREFIX + nodeIndex++;
+                ipv4Addresses.put(nodeId, nodeip);
+            }
+            nodeIndex = 1;
+            for (String nodeip : localIpinfo.getIpv6Setting().getNetworkAddrs()) {
+                String nodeId;
+                nodeId = IpReconfigConstants.VDC_NODE_PREFIX + nodeIndex++;
+                ipv6Addresses.put(nodeId, nodeip);
+            }
+            site.setHostIPv4AddressMap(ipv4Addresses);
+            site.setHostIPv6AddressMap(ipv6Addresses);
+            site.setNodeCount(localIpinfo.getNodeCount());
+
+            _coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+
+            // wake up syssvc to regenerate configurations
+            drUtil.updateVdcTargetVersion(_coordinator.getCoordinatorClient().getSiteId(), SiteInfo.IP_OP_CHANGE, System.currentTimeMillis());
+
+            log.info("Finished update local site IPs into ZK");
+        } catch (Exception e) {
+            log.warn("Unexpected exception during updating local site IPs into ZK", e);
+        } finally {
+            if (lock != null) {
+                try {
+                    lock.release();
+                } catch (Exception e) {
+                    log.warn("Unexpected exception during unlocking update_zkip lock", e);
+                }
+            }
+        }
+    }
 }

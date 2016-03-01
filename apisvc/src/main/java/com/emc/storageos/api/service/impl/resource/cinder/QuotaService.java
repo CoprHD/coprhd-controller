@@ -35,6 +35,7 @@ import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.model.CinderQuotaClassDetails;
 import com.emc.storageos.cinder.model.CinderQuotaDetails;
 import com.emc.storageos.cinder.model.CinderUsage;
+import com.emc.storageos.cinder.model.UsageAndLimits;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.QuotaClassOfCinder;
@@ -384,7 +385,7 @@ public class QuotaService extends TaskResourceService {
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
             try {
 				return CinderApiUtils.getCinderResponse(CinderApiUtils
-				        .convertMapToXML(respCinderQuota.quota_set, "quota_set"),
+				        .convertMapToXML(respCinderQuota.quota_set, "quota_set", String.class),
 				        header, false);
 			} catch (DOMException e) {
 				_log.info("DOM exception occured during converting Map to XML");
@@ -412,7 +413,7 @@ public class QuotaService extends TaskResourceService {
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
             try {
 				return CinderApiUtils.getCinderResponse(CinderApiUtils
-				        .convertMapToXML(respCinderUsage.getQuota_set(), "quota_set"),
+				        .convertMapToXML(respCinderUsage.getQuota_set(), "quota_set", UsageAndLimits.class),
 				        header, false);
 			} catch (IllegalAccessException e) {
 				_log.info("Illegal access exception encountered while converting Usage details to XML format");

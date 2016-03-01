@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.impl.resource.utils;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -139,7 +140,7 @@ public class CinderApiUtils {
      * @throws IllegalArgumentException 
      * @throws DOMException 
      */
-    public static Object convertMapToXML(Map<String, ? extends Object> map, String root) throws DOMException, IllegalArgumentException, IllegalAccessException {
+    public static Object convertMapToXML(Map<String, ? extends Object> map, String root,Class<?> clazz) throws DOMException, IllegalArgumentException, IllegalAccessException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder;
         Document document = null;
@@ -156,22 +157,26 @@ public class CinderApiUtils {
                     if(entry.getValue() instanceof String){
                     	mapElement.setTextContent(entry.getValue().toString());	
                     }
-                    else{
-                    	UsageAndLimits obj = (UsageAndLimits)entry.getValue();
-	                    Field[] fields = obj.getClass().getDeclaredFields();
-	                    
+                    else{                    	
+	                    Field[] fields = clazz.getDeclaredFields();
+	                    	                    	                   
 	                	for ( Field field : fields  ) {	                		
 	                		Element subElement = document.createElement(field.getName());
-	                		if(field.getName().equals("reserved")){
-	                			subElement.setTextContent(String.valueOf(obj.getReserved()));
-	                		}
-	                		else if(field.getName().equals("in_use")){
-	                			subElement.setTextContent(String.valueOf(obj.getIn_use()));
-	                		}
-	                		else if(field.getName().equals("limit")){
-	                			subElement.setTextContent(String.valueOf(obj.getLimit()));
-	                		}
-	                			                			                		
+	                		String fieldName = field.getName().toString();
+	                		String methodName = "get" + fieldName.toUpperCase().substring(0,1);
+	                		methodName = methodName + fieldName.substring(1);
+	                		
+	                		try {	                			
+								Method getterMethod = clazz.getMethod(methodName);
+								subElement.setTextContent(String.valueOf(getterMethod.invoke(clazz.cast(entry.getValue()))));
+							}catch (NoSuchMethodException e) {
+								_log.info("The getter method {} for the field does not exist {}", methodName , field.getName());
+							} catch (SecurityException e) {
+								_log.info("The getter method {} for the field led to security exception {}", methodName , field.getName());
+							}catch (Exception e) {
+								_log.info("The getter method {} for the field failed with exception {}", methodName, e.toString());
+							}
+	                				                			                		
 	                		mapElement.appendChild(subElement);
 	                	}    
                     }
@@ -190,56 +195,7 @@ public class CinderApiUtils {
 
     }
 
-    
-    
-    
-    /**
-     * This function converts Map of string, object to xml format
-     * 
-     * @param map Hash Map
-     * @param root root Element Name
-     * @return XML object in String form
-     * @throws IllegalAccessException 
-     * @throws IllegalArgumentException 
-     * @throws DOMException,IllegalArgumentException, IllegalAccessException
-     */
-    public static Object convertObjectMapToXML(Map<String, UsageAndLimits> map, String root) throws DOMException, IllegalArgumentException, IllegalAccessException {
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder documentBuilder;
-        Document document = null;
-        LSSerializer lsSerializer = null;
-        try {
-            documentBuilder = documentBuilderFactory.newDocumentBuilder();
-            document = documentBuilder.newDocument();
-            Element rootElement = document.createElement(root);
-            if (null != rootElement) {
-                document.appendChild(rootElement);
-                for (Entry<String, UsageAndLimits> entry : map.entrySet()) {
-                    Element mapElement = document.createElement(entry.getKey());
-                    
-                	Field[] fields = entry.getValue().getClass().getDeclaredFields();
-                	for ( Field field : fields  ) {
-                		Element subElement = document.createElement(field.getName());	
-                		subElement.setTextContent(field.get(field).toString());
-                		mapElement.appendChild(subElement);
-                	}                    	                    	                    	
-                
-                    rootElement.appendChild(mapElement);
-                }
-            }
-            DOMImplementationLS domImplementation = (DOMImplementationLS) document
-                    .getImplementation();
-            lsSerializer = domImplementation.createLSSerializer();
-        } catch (ParserConfigurationException e) {
-            throw APIException.internalServerErrors.ioWriteError(root);
-        }
-
-        return lsSerializer.writeToString(document);
-
-    }
-
-    
-    
+      
     
     /**
      * Create error message according to OpenStack environment in JSON

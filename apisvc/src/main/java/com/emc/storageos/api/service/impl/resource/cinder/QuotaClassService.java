@@ -219,7 +219,7 @@ public class QuotaClassService extends TaskResourceService {
         if (CinderApiUtils.getMediaType(header).equals("xml")) {
         	try {
             return CinderApiUtils.getCinderResponse(CinderApiUtils
-                    .convertMapToXML(respCinderClassQuota.quota_class_set, "quota_set"),
+                    .convertMapToXML(respCinderClassQuota.quota_class_set, "quota_set",String.class),
                     header, false);
         	}catch (DOMException e) {
 				_log.info("DOM exception occured during converting Map to XML");

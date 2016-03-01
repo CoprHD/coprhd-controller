@@ -474,10 +474,6 @@ public class BackupService {
         checkExternalServer();
 
         if (backupOps.isDownloadInProgress()) {
-            /*
-            Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
-            String curBackupName = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
-            */
             String curBackupName = backupOps.getCurrentBackupName();
             if (!backupName.equals(curBackupName)) {
                 String errmsg = curBackupName + " is downloading";

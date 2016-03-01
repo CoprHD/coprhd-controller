@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.beans.Transient;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Calendar;
 import java.util.List;
@@ -59,7 +61,7 @@ public class Task extends DataObject {
     public Task() {
     }
 
-    @NamedRelationIndex(cf = "TaskResource")
+    @NamedRelationIndex(cf = "TaskResource", types={Volume.class, VirtualPool.class})
     @Name("resource")
     public NamedURI getResource() {
         return resource;

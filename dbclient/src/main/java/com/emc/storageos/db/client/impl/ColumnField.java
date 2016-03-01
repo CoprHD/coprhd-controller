@@ -743,7 +743,7 @@ public class ColumnField {
             } else if (a instanceof RelationIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(
                         ((RelationIndex) a).cf(), StringSerializer.get(), IndexColumnNameSerializer.get());
-                _indexRefType = ((RelationIndex) a).type().equals(DataObject.class) ? null : ((RelationIndex) a).type();
+                _indexRefType = ((RelationIndex) a).type();
                 deactivateIfEmpty = ((RelationIndex) a).deactivateIfEmpty();
                 _index = new RelationDbIndex(indexCF);
             } else if (a instanceof AlternateId) {
@@ -753,7 +753,7 @@ public class ColumnField {
             } else if (a instanceof NamedRelationIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((NamedRelationIndex) a).cf(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());
-                _indexRefType = ((NamedRelationIndex) a).type().equals(DataObject.class) ? null : ((NamedRelationIndex) a).type();
+                _indexRefType = ((NamedRelationIndex) a).type();
                 _index = new NamedRelationDbIndex(indexCF);
             } else if (a instanceof PrefixIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(((PrefixIndex) a).cf(), StringSerializer.get(),
@@ -907,5 +907,4 @@ public class ColumnField {
     public boolean isIndexByKey() {
         return _indexByKey;
     }
-
 }

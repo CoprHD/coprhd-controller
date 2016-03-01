@@ -16,7 +16,7 @@ Usage()
 {
     echo 'Usage: sanity <configuration_file> <bourne_ip>|<[bourne_ipv6]> {all | snapvx | isilon | vplex | vplexexport | vplexsnap | vnxblock | ingestblock | vnxblock_flex_varray | netapp | netappc | recoverpoint | xtremio | srdf |
  vnxfile | datadomainfile | vnxfile_flex_varray | vmaxblock | hds | vmaxblock_flex_varray | combined_block | blocksnapshot | blockmirror | full_copy | blockconsistencygroup | init | quick |
- errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec} [local|ldap] [<timeslot>] | sanzoning | application'
+ errorhandling | vnxe | security | syssvc | audit | monitor | vdc | catalog | recovery | backuprestore backupserver-uri username password | dr | ipsec | ceph} [local|ldap] [<timeslot>] | sanzoning | application'
     echo 'E.g.:  sanity conf/sanity.conf 137.69.169.21 all'
     echo 'E.g.:  sanity ~/.sanity/sanity.conf 137.69.169.21 isilon'
     echo 'Note: IPv6 needs to be square bracket surrounded. E.g.:  sanity [2620:0:170:2842::180] security'
@@ -156,7 +156,7 @@ done
 
 case $SS in
 
-    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem)
+    all|snapvx|isilon|vplex|vplexexport|vplexsnap|netapp|netappc|recoverpoint|srdf|vnxfile|datadomainfile|vnxfile_flex_varray|vnxblock|vnxblock_flex_varray|hds|xtremio|vmaxblock|ingestblock|vmaxblock_flex_varray|combined_block|syssvc|blocksnapshot|blockmirror|full_copy|blockconsistencygroup|security|monitor|audit|ui|init|quick|errorhandling|vdc|vnxe|recovery|backuprestore|sanzoning|dr|ipsec|application|driversystem|ceph)
     ;;
 
     # These tests are handled by sanity integration tests written with the code
@@ -449,6 +449,15 @@ NETAPPCF_SMBSNAPSHARE2=smbsnapshare2$(date +%Y%m%d%H%M%S)
 VNXE_DEV=vnxe_device
 VNXE_NATIVEGUID=VNXE+$VNXE_SN
 VNXE_SMBFILESHARE1=cifs1$(date +%Y%m%d%H%M%S) 
+
+#
+# Ceph cluster configuration
+#
+CEPH_PROVIDER=ceph_test_cluster
+CEPH_CLIENT_HOST_NAME=ceph_client
+CEPH_COS=ceph_vpool
+CEPH_VOLNAME=EXPCephTest${RANDOM}
+CEPH_EXPORT_GROUP_NAME=EXPCephGroup${RANDOM}
 
 #
 # DataDomain file device configuration
@@ -8942,6 +8951,129 @@ snapvx_single_tests()
     # Delete the snapshot session source volume.
     secho "Deleting the VMAX3 source volume"
     volume delete $PROJECT/$VOLUME_NAME --wait
+}
+
+ceph_setup()
+{
+    secho "Ceph setup"
+    storageprovider show $CEPH_PROVIDER  &> /dev/null && return $?
+    run storageprovider create $CEPH_PROVIDER $CEPH_IP 22 $CEPH_USER "$CEPH_SECRET_KEY" ceph
+    run storagedevice discover_all
+    storagedevice list
+
+    storage_device=`storagedevice list | awk '/ceph/ {print($2)}'`
+    storage_port=`storageport list $storage_device | grep -o 'CEPH.*PORT+-'`
+    run transportzone add $IP_ZONE "$storage_port"
+
+    run cos create block $CEPH_COS true --description='Ceph-VPool' --protocols=RBD --provisionType='Thin' --max_snapshots=8 --neighborhoods="$NH" --expandable true --systemtype ceph
+    run cos allow $CEPH_COS block $TENANT
+
+    run hosts create "$CEPH_CLIENT_HOST_NAME" "$TENANT" Linux "$CEPH_CLIENT_HOST" --port 22 --username $CEPH_CLIENT_HOST_USER --password $CEPH_CLIENT_HOST_PASSWORD --discoverable true
+    sleep 10
+    port=`initiator list $CEPH_CLIENT_HOST_NAME | awk '/^rbd:/ {print($1)}'`
+    run transportzone add $IP_ZONE "$port"
+
+    secho "Ceph setup completed"
+}
+
+ceph_test_volume_capacity() {
+    local volname=$1
+    local expected_display_size=$2
+
+    local requested_capacity_gb=`volume show $volname | awk '/"requested_capacity_gb"/ {print($2)}' | sed "s/[\"',]//g"`
+    secho "Compare volume size $requested_capacity_gb with requested $display_size"
+    test "$requested_capacity_gb" = "$expected_display_size"
+}
+
+ceph_test_volumes() {
+    local size=$1
+    local display_size=$2
+
+    secho "${FUNCNAME} Begins: create/list/delete volumes"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $size
+    local volname=$PROJECT/$CEPH_VOLNAME
+
+    run volume show $volname
+    ceph_test_volume_capacity $volname $display_size
+
+    run volume delete $volname --wait
+}
+
+ceph_test_expand_volume() {
+    local initial_size=$1
+    local new_size=$2
+    local display_new_size=$3
+
+    secho "${FUNCNAME} Begins: Expand volume"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $initial_size
+    local volname=$PROJECT/$CEPH_VOLNAME
+
+    run volume expand $volname $new_size
+
+    ceph_test_volume_capacity $volname $display_new_size
+
+    run volume delete $volname --wait
+}
+
+ceph_test_full_copy() {
+    local initial_size=$1
+    local display_size=$2
+
+    secho "${FUNCNAME} Begins: Full copy volume"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $initial_size
+    local volname=$PROJECT/$CEPH_VOLNAME
+
+    local fullcopy_name=FullCopy-"$CEPH_VOLNAME"
+    run volume full_copy $fullcopy_name $volname
+    local fcvolname=$PROJECT/$fullcopy_name
+
+    run volume show $fcvolname
+    ceph_test_volume_capacity $fcvolname $display_size
+
+    run volume delete $volname --wait
+    run volume delete $fcvolname --wait
+}
+
+ceph_test_snapshot() {
+    secho "${FUNCNAME} Begins: create/list/delete snapshot"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $BLK_SIZE
+    local volname=$PROJECT/$CEPH_VOLNAME
+
+    local snap_name=Snap-"$VOLNAME"
+    run blocksnapshot create $volname $snap_name
+    local snapname=$volname/$snap_name
+
+    run blocksnapshot show $snapname
+
+    run blocksnapshot delete $snapname
+    run volume delete $volname --wait
+}
+
+ceph_test_export() {
+    secho "${FUNCNAME} Begins: Export/unexport volume"
+    run volume create $CEPH_VOLNAME $PROJECT $NH $CEPH_COS $BLK_SIZE
+    local volname=$PROJECT/$CEPH_VOLNAME
+    local snap_name=Snap-"$CEPH_VOLNAME"
+    run blocksnapshot create $volname $snap_name
+    local snapname=$volname/$snap_name
+
+    run export_group create $PROJECT $CEPH_EXPORT_GROUP_NAME $NH --type Host --volspec $volname --hosts "$CEPH_CLIENT_HOST_NAME"
+    local egname=$PROJECT/$CEPH_EXPORT_GROUP_NAME
+    run export_group update $egname --addVolspec $snapname
+
+    run export_group delete $egname
+    run blocksnapshot delete $snapname
+    run volume delete $volname --wait
+}
+
+ceph_tests()
+{
+    secho "Ceph tests"
+    ceph_test_volumes 1GB 1.00
+    ceph_test_expand_volume 1GB 2GB 2.00
+    ceph_test_full_copy 1GB 1.00
+    ceph_test_snapshot
+    ceph_test_export
 }
 
 ${SS}_setup

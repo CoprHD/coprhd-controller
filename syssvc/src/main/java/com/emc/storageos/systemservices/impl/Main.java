@@ -39,7 +39,7 @@ public class Main {
 
             // start initial ipsec key rotation
             IPSecInitialRotate initialRotate = (IPSecInitialRotate) ctx.getBean(IPSEC_ROTATE_BEAN);
-            initialRotate.run();
+            new Thread(initialRotate).start();
         } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);
             System.exit(1);

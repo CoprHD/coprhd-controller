@@ -10,8 +10,8 @@ import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceUnavailableException;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.jsoup.helper.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,19 +21,15 @@ public class IPSecInitialRotate implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(IPSecInitialRotate.class);
 
     private IPsecManager ipsecMgr;
-
     private CoordinatorClientExt coordinator;
-
     private IPsecConfig ipsecConfig;
 
     private int IPSEC_ROTATION_RETRY_INTERVAL = 5;  //seconds
 
     @Override
     public void run() {
-        boolean bIpsecRotationDone = false;
 
-
-        while (!bIpsecRotationDone) {
+        while (true) {
             try {
                 InterProcessLock lock = null;
                 try {
@@ -44,7 +40,7 @@ public class IPSecInitialRotate implements Runnable {
                     ipsecMgr.verifyClusterIsStable();
 
                     String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
-                    if (StringUtil.isBlank(preSharedKey)) {
+                    if (StringUtils.isBlank(preSharedKey)) {
                         log.info("No pre shared key in zk, generate a new key");
                         ipsecMgr.rotateKey(true);
                         return;

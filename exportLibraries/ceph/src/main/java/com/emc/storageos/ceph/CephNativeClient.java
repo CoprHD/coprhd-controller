@@ -76,16 +76,12 @@ public class CephNativeClient implements CephClient {
 
     private <T> T doCall(final String pool, final RbdOperationT<T> rbdOp, final String errorMsg, final Object... errorMsgArgs) {
         RadosOperationT<T> op = () -> {
-                IoCTX ioCtx = null;
+                IoCTX ioCtx = rados.ioCtxCreate(pool);
                 try {
-                    ioCtx = rados.ioCtxCreate(pool);
                     Rbd rbd = new Rbd(ioCtx);
                     return rbdOp.call(rbd);
                 } finally {
-                    if (ioCtx != null) {
-                        rados.ioCtxDestroy(ioCtx);
-                        ioCtx = null;
-                    }
+                    rados.ioCtxDestroy(ioCtx);
                 }
             };
         return doCall(op, errorMsg, errorMsgArgs);
@@ -102,9 +98,8 @@ public class CephNativeClient implements CephClient {
     private <T> T doCall(final String pool, final String imageName, final RbdImageOperationT<T> rbdImageOp, final String errorMsg,
             final Object... errorMsgArgs) {
         RbdOperationT<T> op = (Rbd rbd) -> {
-                RbdImage image = null;
+                RbdImage image = rbd.open(imageName);
                 try {
-                    image = rbd.open(imageName);
                     return rbdImageOp.call(image);
                 } finally {
                     rbd.close(image);
@@ -184,15 +179,13 @@ public class CephNativeClient implements CephClient {
     @Override
     public void cloneSnap(final String pool, final String parentImage, final String parentSnap, final String childName) {
         RbdOperation op = (Rbd rbd) -> {
-            IoCTX childIOCtx = null;
+            IoCTX childIOCtx = rados.ioCtxCreate(pool);
             try {
-                childIOCtx = rados.ioCtxCreate(pool);
                 long features = LAYERING;
                 int order = 0;
                 rbd.clone(parentImage, parentSnap, childIOCtx, childName, features, order);
             } finally {
-                if (childIOCtx != null)
-                    rados.ioCtxDestroy(childIOCtx);
+                rados.ioCtxDestroy(childIOCtx);
             }
         };
         doCall(pool, op,

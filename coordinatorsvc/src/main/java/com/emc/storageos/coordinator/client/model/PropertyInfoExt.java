@@ -51,7 +51,8 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
             "storageos_id_ecdsa",
             "svcuser_id_rsa",
             "svcuser_id_dsa",
-            "svcuser_id_ecdsa"
+            "svcuser_id_ecdsa",
+            "ipsec_key"
             ));
 
     public PropertyInfoExt() {

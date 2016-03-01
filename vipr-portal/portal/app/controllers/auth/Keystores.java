@@ -71,10 +71,15 @@ public class Keystores extends ViprResourceController {
                 handleError(keystore);
             }
 
-            KeyAndCertificateChain keyAndCertChain = new KeyAndCertificateChain();
-            keyAndCertChain.setCertificateChain(cert);
-            keyAndCertChain.setPrivateKey(key);
-            new UpdateCertificateJob(api(), keyAndCertChain).in(3);
+            try {
+                KeyAndCertificateChain keyAndCertChain = new KeyAndCertificateChain();
+                keyAndCertChain.setCertificateChain(cert);
+                keyAndCertChain.setPrivateKey(key);
+                new UpdateCertificateJob(api(), keyAndCertChain).in(3);
+            } catch (Exception e) {
+                flash.error(e.getMessage());
+                handleError(keystore);
+            }
         }
 
         flash.success(MessagesUtils.get("keystore.saved.reboot"));

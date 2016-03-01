@@ -155,7 +155,7 @@ public class BlockConsistencyGroupUtils {
      * @param vplexSystem The VPlex storage system.
      * @param clusterName The VPlex cluster name.
      * @param cgName The consistency group name.
-     * @param isDistributed True if the check if for a Dist CG.
+     * @param isDistributed True if the check is for a distributed CG.
      * @return true if the VPlex consistency group has been created, false otherwise.
      */
     public static boolean isVplexCgCreated(BlockConsistencyGroup cg, String vplexSystem, String clusterName, String cgName, boolean isDistributed) {

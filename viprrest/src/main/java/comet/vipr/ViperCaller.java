@@ -2,7 +2,9 @@ package comet.vipr;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -25,6 +27,24 @@ public class ViperCaller {
        return client.blockVolumes().listBulkIds();
     }
     
+    public Map<String, URI>  getVolumeMap(){
+        
+        List<URI> volumes= client.blockVolumes().listBulkIds();
+        
+        Map<String,URI> volumeMap= new HashMap<String,URI>();
+        for(URI volume : volumes){
+            System.out.println("Calling Volume"+volume);
+            String vol =client.blockVolumes().get(volume).getName();
+            System.out.println(" Volume : "+vol+" URI "+volume);
+            volumeMap.put(vol,volume);
+            
+        }
+        return volumeMap;
+     }
+
+    
+    
+    
     public List<NamedRelatedVirtualPoolRep> getVpools(){
        return client.blockVpools().list();
         
@@ -32,13 +52,32 @@ public class ViperCaller {
     
     public List<String> getHosts(){
        List<URI> hostURILists = client.hosts().listBulkIds();
-       List<String> hostNameList = null;
+       System.out.println(" Value reached "+hostURILists);
+       List<String> hostNameList = new ArrayList<String>();
        for( URI hostURI:hostURILists ) {
-              hostNameList.add(hostURI.getHost());
+              hostNameList.add(hostURI.toString());
               
        }
+       
+       System.out.println(" Value reached "+hostNameList);
        return hostNameList;
     }
+    
+    
+    public Map<String,String> getHostsMap(){
+        List<URI> hostURILists = client.hosts().listBulkIds();
+        System.out.println(" Value reached "+hostURILists);
+         Map<String,String> hostNameMap = new HashMap<String,String>();
+         String name;
+         
+        for( URI hostURI:hostURILists ) {
+            name = client.hosts().get(hostURI).getHostName();
+            hostNameMap.put(name, hostURI.toString());
+        }
+        
+        System.out.println(" Value reached "+hostNameMap);
+        return hostNameMap;
+     }
     
     public Tasks<VolumeRestRep> createVolume(URI sourceVolumeURI, URI targetVirtualPoolId){
        

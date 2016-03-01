@@ -89,6 +89,7 @@ public class DataObjectScanner extends PackageScanner {
 
         this.modelClasses = getModelClasses(Cf.class);
         scan(Cf.class);
+
         _dependencyTracker.buildDependencyLevels();
         _log.info("DependencyTracker - state: {}", _dependencyTracker.toString());
     }

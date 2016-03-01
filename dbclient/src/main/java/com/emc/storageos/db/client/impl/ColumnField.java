@@ -907,4 +907,5 @@ public class ColumnField {
     public boolean isIndexByKey() {
         return _indexByKey;
     }
+
 }

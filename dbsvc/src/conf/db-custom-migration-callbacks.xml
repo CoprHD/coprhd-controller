@@ -112,10 +112,12 @@
         </entry>
         <entry key="2.4.1">
             <list>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.QualityOfServiceMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.BackupSchedulerConfigMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VolumesInCGMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VdcConfigMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VirtualNASMultipleProjectsAssociationMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.XtremioBlockSnapshotReplicationGroupInstanceMigration"/>
             </list>
         </entry>
     </util:map>

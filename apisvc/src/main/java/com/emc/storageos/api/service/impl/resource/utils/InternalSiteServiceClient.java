@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
 import com.emc.storageos.model.dr.SiteConfigParam;
+import com.emc.storageos.model.dr.SiteErrorResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.security.helpers.BaseServiceClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -28,6 +29,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
     private static final String INTERNAL_SITE_INIT_STANDBY = INTERNAL_SITE_ROOT + "/initstandby";
     private static final String SITE_INTERNAL_FAILOVER = INTERNAL_SITE_ROOT + "/failover?newActiveSiteUUid=%s&oldActiveSiteUUid=%s&vdcVersion=%d";
     private static final String SITE_INTERNAL_FAILOVERPRECHECK = INTERNAL_SITE_ROOT + "/failoverprecheck";
+    private static final String SITE_INTERNAL_RESUMEPRECHECK = INTERNAL_SITE_ROOT + "/resumeprecheck";
     private static final String SITE_INTERNAL_SWITCHOVERPRECHECK = INTERNAL_SITE_ROOT + "/switchoverprecheck";
     private static final String SITE_INTERNAL_SWITCHOVER = INTERNAL_SITE_ROOT + "/switchover?newActiveSiteUUid=%s&vdcVersion=%d";
     private static final String SITE_INTERNAL_LIST = INTERNAL_SITE_ROOT + "/list";
@@ -103,7 +105,7 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         
         FailoverPrecheckResponse response = resp.getEntity(FailoverPrecheckResponse.class);
         
-        if (FailoverPrecheckResponse.isErrorResponse(response)) {
+        if (response != null && response.isErrorResponse()) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(site.getName(), response.getErrorMessage());
         }
         
@@ -131,14 +133,34 @@ public class InternalSiteServiceClient extends BaseServiceClient {
         SiteList response = resp.getEntity(SiteList.class);
         return response;
     }
+
+    public void resumePrecheck() {
+        WebResource rRoot = createRequest(SITE_INTERNAL_RESUMEPRECHECK);
+
+        SiteErrorResponse response;
+        try {
+            response = addSignature(rRoot).post(SiteErrorResponse.class);
+        } catch (Exception e) {
+            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(site.getName(), e.getMessage());
+        }
+
+        if (response != null && response.isErrorResponse()) {
+            throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(site.getName(), response.getErrorMessage());
+        }
+    }
     
     public void switchoverPrecheck() {
         WebResource rRoot = createRequest(SITE_INTERNAL_SWITCHOVERPRECHECK);
-        
+
+        SiteErrorResponse response;
         try {
-            addSignature(rRoot).post(ClientResponse.class);
+            response = addSignature(rRoot).post(SiteErrorResponse.class);
         } catch (Exception e) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(), e.getMessage());
+        }
+
+        if (response != null && response.isErrorResponse()) {
+            throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(), response.getErrorMessage());
         }
     }
     

@@ -122,6 +122,9 @@ GET     /networks/edit/{id}                     arrays.Networks.edit
 GET     /blockvirtualpools/edit/{id}            arrays.BlockVirtualPools.edit
 *       /blockvirtualpools/{action}             arrays.BlockVirtualPools.{action}
 
+GET     /mobilitygroups/edit/{id}               arrays.MobilityGroups.edit
+*       /mobilitygroups/{action}                arrays.MobilityGroups.{action}
+
 GET     /filevirtualpools/edit/{id}             arrays.FileVirtualPools.edit
 *       /filevirtualpools/{action}              arrays.FileVirtualPools.{action}
 

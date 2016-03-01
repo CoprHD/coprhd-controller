@@ -1549,20 +1549,24 @@ public class VmaxExportOperations implements ExportMaskOperations {
         Map<URI, ExportMask> maskMap = new HashMap<>();
         CloseableIterator<CIMInstance> maskInstanceItr = null;
         try {
-
+            // Get a mapping of the initiator port names to their CIMObjectPaths on the provider
             WBEMClient client = _helper.getConnection(storage).getCimClient();
             HashMap<String, CIMObjectPath> initiatorPathsMap = _cimPath.getInitiatorToInitiatorPath(storage, initiatorNames);
 
+            // 'maskNames' will be used to do one-time operations against the ExportMask
             List<String> maskNames = new ArrayList<String>();
+
+            // Iterate through each port name ...
             for (String initiatorName : initiatorPathsMap.keySet()) {
                 CIMObjectPath initiatorPath = initiatorPathsMap.get(initiatorName);
 
+                // Find out if there is a MaskingView associated with the initiator ...
                 maskInstanceItr = _helper.getAssociatorInstances(storage, initiatorPath, null, SmisConstants.SYMM_LUN_MASKING_VIEW, null,
                         null, SmisConstants.PS_LUN_MASKING_CNTRL_NAME_AND_ROLE);
                 while (maskInstanceItr.hasNext()) {
+                    // Found a MaskingView ...
                     CIMInstance instance = maskInstanceItr.next();
-                    String systemName = CIMPropertyFactory.getPropertyValue(instance,
-                            SmisConstants.CP_SYSTEM_NAME);
+                    String systemName = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_SYSTEM_NAME);
 
                     if (!systemName.contains(storage.getSerialNumber())) {
                         // We're interested in the specific StorageSystem's masks.
@@ -1577,22 +1581,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                             .getKey(SmisConstants.CP_DEVICE_ID);
 
                     // Look up ExportMask by deviceId/name and storage URI
-                    boolean foundMaskInDb = false;
-                    ExportMask exportMask = null;
-                    URIQueryResultList uriQueryList = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getExportMaskByNameConstraint(name), uriQueryList);
-                    while (uriQueryList.iterator().hasNext()) {
-                        URI uri = uriQueryList.iterator().next();
-                        exportMask = _dbClient.queryObject(ExportMask.class, uri);
-                        if (exportMask != null && !exportMask.getInactive() &&
-                                exportMask.getStorageDevice().equals(storage.getId())) {
-                            foundMaskInDb = true;
-                            // We're expecting there to be only one export mask of a
-                            // given name for any storage array.
-                            break;
-                        }
-                    }
+                    ExportMask exportMask = ExportMaskUtils.getExportMaskByName(_dbClient, storage.getId(), name);
+                    boolean foundMaskInDb = (exportMask != null);
 
                     // If there was no export group found in the database,
                     // then create a new one
@@ -1605,37 +1595,32 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         exportMask.setCreatedBySystem(false);
                     }
 
+                    // Do some one-time updates for the ExportMask
                     if (!maskNames.contains(name)) {
+                        // https://coprhd.atlassian.net/browse/COP-20149
+                        // Find all the initiators associated with the MaskingView and add them
+                        List<String> portNames = _helper.getInitiatorsFromLunMaskingInstance(client, instance);
+                        Set<Initiator> allInitiators = ExportUtils.getInitiators(portNames, _dbClient);
+                        exportMask.addToExistingInitiatorsIfAbsent(portNames);
+                        exportMask.addInitiators(allInitiators);
+
                         // Update the tracking containers
-                        Map<String, Integer> volumeWWNs =
-                                _helper.getVolumesFromLunMaskingInstance(client, instance);
+                        Map<String, Integer> volumeWWNs = _helper.getVolumesFromLunMaskingInstance(client, instance);
                         exportMask.addToExistingVolumesIfAbsent(volumeWWNs);
 
                         // Grab the storage ports that have been allocated for this
                         // existing mask and add them.
-                        List<String> storagePorts =
-                                _helper.getStoragePortsFromLunMaskingInstance(client,
-                                        instance);
-                        List<String> storagePortURIs =
-                                ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts);
+                        List<String> storagePorts = _helper.getStoragePortsFromLunMaskingInstance(client,
+                                instance);
+                        List<String> storagePortURIs = ExportUtils.storagePortNamesToURIs(_dbClient, storagePorts);
                         exportMask.setStoragePorts(storagePortURIs);
                         // Add the mask name to the list for which volumes are already updated
-                        maskNames.add(name);                        
+                        maskNames.add(name);
                     }
-                    exportMask.addToExistingInitiatorsIfAbsent(initiatorName);
 
-                    Initiator existingInitiator = ExportUtils.getInitiator(Initiator.toPortNetworkId(initiatorName), _dbClient);
-                    if (existingInitiator == null) {
-                        _log.warn(String
-                                .format("Found that port %s is associated to MaskingView %s through SMI-S, but the port is not in the database",
-                                        initiatorName, name));
-                        continue;
-                    }
-                    exportMask.addInitiator(existingInitiator);    
-                    
-                    // Update the maskMap with the latest in-memory exportMask reference. 
+                    // Update the maskMap with the latest in-memory exportMask reference.
                     maskMap.put(exportMask.getId(), exportMask);
-                    
+
                     if (foundMaskInDb) {
                         ExportMaskUtils.sanitizeExportMaskContainers(_dbClient, exportMask);
                         _dbClient.updateObject(exportMask);
@@ -1643,6 +1628,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         _dbClient.createObject(exportMask);
                     }
 
+                    // Update our results map
                     Set<URI> maskURIs = matchingMasks.get(initiatorName);
                     if (maskURIs == null) {
                         maskURIs = new HashSet<>();
@@ -1676,7 +1662,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
                         maskURIs.removeAll(masksNotContainingAllInitiators);
                         // If all the ExportMask keys are cleared out, then we need to remove the whole entry
                         if (maskURIs.isEmpty()) {
-                           matchingMapEntryIterator.remove();
+                            matchingMapEntryIterator.remove();
                         }
                     }
                 }
@@ -1777,16 +1763,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
                 removeInitiators = !initiatorsToRemove.isEmpty() || !initiatorIdsToRemove.isEmpty();
 
                 // Check the volumes and update the lists as necessary
-                boolean addVolumes = false;
-                Map<String, Integer> volumesToAdd = new HashMap<String, Integer>();
-                for (Map.Entry<String, Integer> entry : discoveredVolumes.entrySet()) {
-                    String normalizedWWN = BlockObject.normalizeWWN(entry.getKey());
-                    if (!mask.hasExistingVolume(normalizedWWN) &&
-                            !mask.hasUserCreatedVolume(normalizedWWN)) {
-                        volumesToAdd.put(normalizedWWN, entry.getValue());
-                        addVolumes = true;
-                    }
-                }
+                Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
+                boolean addVolumes = !volumesToAdd.isEmpty();
 
                 boolean removeVolumes = false;
                 List<String> volumesToRemove = new ArrayList<String>();

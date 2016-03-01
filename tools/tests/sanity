@@ -2699,7 +2699,7 @@ rp_port_setup()
     fi
 
     if [ "${RPXIO_TESTS}" = "1" ]; then
-        run storageport update $RECOVERPOINT_XTREMIO_GUID FC --addvarrays $RECOVERPOINT_VARRAY1
+        run storageport update $RECOVERPOINT_XTREMIO_GUID FC --addvarrays $RECOVERPOINT_VARRAY1528
     fi
 
 }
@@ -3606,7 +3606,7 @@ recoverpoint_setup()
             recoverpoint_simulator_setup
         else
 	    # This is intentionally a local-only execution for now.  Regular sanity for RP should always have RP_RUN_SETUP turned on.
-            RP_SANITY_RANDOM=`/opt/storageos/bin/dbutils list UnManagedVolume | grep label | awk '{print $3}' | cut -c10-11 | head -1`
+            RP_SANITY_RANDOM=`/opt/storageos/bin/dbutils list UnManagedVolume | grep label | awk '{print $3}' | cut -c10-12 | head -1`
             secho "Determine existing volume label uses random value: ${RP_SANITY_RANDOM}"
         fi
     elif [ "$RP_RUN_SETUP" = "1" ]; then

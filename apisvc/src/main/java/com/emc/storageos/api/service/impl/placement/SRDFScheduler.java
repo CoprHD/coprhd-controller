@@ -770,12 +770,24 @@ public class SRDFScheduler implements Scheduler {
         _log.info(String.format("Target storage pool %s max volume size limit %s Kb. Source storage pool max volume size limit %s Kb.",
                 targetPool.getNativeId(), targetMaxVolumeSizeLimitKb, sourceMaxVolumeSizeLimitKb));
 
+        // Keeping the below information as it will be handy
+        StorageSystem targetStorageSystem = destPoolStorageMap.get(targetPool);
+        MetaVolumeRecommendation targetVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(targetStorageSystem, targetPool, size,
+                isThinlyProvisioned,
+                fastExpansion, null);
+
         if (vpoolChangeVolume != null) {
             // This is path to upgrade existing volume to srdf protected volume
             if (vpoolChangeVolume.getIsComposite()) {
-                // Existing volume is composite volume. Make sure that the target pool will allow to create meta members of required size.
+                // Existing volume is composite volume.
+                // Make sure that the target pool will allow to create META MEMBERS of required size if it is a VMAX2 Array.
+                // If it is a VMAX3 Array, make sure that the target Pool will allow creation of the a SINGLE VOLUME
                 long capacity = vpoolChangeVolume.getMetaMemberSize();
                 long capacityKb = (capacity % BYTESCONVERTER == 0) ? capacity / BYTESCONVERTER : capacity / BYTESCONVERTER + 1;
+                if (targetStorageSystem.checkIfVmax3()) {
+                    // recompute the capacity for checks
+                    capacityKb = capacityKb * vpoolChangeVolume.getMetaMemberCount();
+                }
                 if (capacityKb > targetMaxVolumeSizeLimitKb) {
                     // this target pool does not match --- does not support meta members of the required size
                     _log.debug(String
@@ -787,10 +799,18 @@ public class SRDFScheduler implements Scheduler {
                     return false;
                 }
             } else {
-                // Existing volume is a regular volume. Check that the target pool will allow to create regular volume of the same size.
+                // Existing volume is a regular volume.
+                // Check that the target pool will allow to create regular volume of the same size or META MEMBERS if
+                // the target volume is going to be a META
                 long capacity = vpoolChangeVolume.getCapacity();
+                if (targetVolumeRecommendation.isCreateMetaVolumes() &&
+                        (sourcePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString()))) {
+                    // recompute the capacity for checks
+                    capacity = targetVolumeRecommendation.getMetaMemberSize();
+                }
                 long capacityKb = (capacity % BYTESCONVERTER == 0) ? capacity / BYTESCONVERTER : capacity / BYTESCONVERTER + 1;
                 if (capacityKb > targetMaxVolumeSizeLimitKb) {
+
                     // this target pool does not match --- does not support regular volumes of the required size
                     _log.debug(String
                             .format(
@@ -803,11 +823,7 @@ public class SRDFScheduler implements Scheduler {
             }
         } else {
             // This is path to create a new srdf protected volume
-            // Run meta volume recommendation for target pool and check if we get the same volume spec as for the source volume.
-            StorageSystem targetStorageSystem = destPoolStorageMap.get(targetPool);
-            MetaVolumeRecommendation targetVolumeRecommendation =
-                    MetaVolumeUtils.getCreateRecommendation(targetStorageSystem, targetPool, size, isThinlyProvisioned,
-                            fastExpansion, null);
+            // Verify meta volume recommendation for target pool and check if we get the same volume spec as for the source volume.
             return validateMetaRecommednationsForSRDF(sourcePool, targetPool, sourceVolumeRecommendation, targetVolumeRecommendation);
         }
         return true;

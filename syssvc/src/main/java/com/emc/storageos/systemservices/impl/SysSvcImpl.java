@@ -50,6 +50,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _propertyManagerThread = null;
     private Thread _vdcManagerThread = null;
     private Thread _ipreconfigManagerThread = null;
+    private Thread _drNetworkMonitorThread = null;
     private int _timeout;
     private SoftwareUpdate _softwareUpdate;
 
@@ -177,9 +178,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     private void startNetworkMonitor() {
-        _ipreconfigManagerThread = new Thread(_drSiteNetworkMonitor);
-        _ipreconfigManagerThread.setName("DrSiteNetworkMonitor");
-        _ipreconfigManagerThread.start();
+        _drNetworkMonitorThread = new Thread(_drSiteNetworkMonitor);
+        _drNetworkMonitorThread.setName("DrSiteNetworkMonitor");
+        _drNetworkMonitorThread.start();
     }
 
     @Override
@@ -200,8 +201,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startNewVersionCheck();
             startUpgradeManager();
             startSecretsManager();
-            startPropertyManager();
-            startVdcManager();
             startIpReconfigManager();
             
             //config cassandra as client mode to avoid load yaml file
@@ -213,7 +212,10 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
                 startSystemAudit(_dbClient);
             }
             _svcBeacon.start();
-
+            // start property manager and vdc manager after beacon is registered
+            // since they would update beacon
+            startPropertyManager();
+            startVdcManager();
 
             if (drUtil.isActiveSite()) {
                 startNetworkMonitor();

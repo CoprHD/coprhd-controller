@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionUnlinkTargetCompleter;
@@ -154,7 +155,9 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
                     volume.setOpStatus(new OpStatusMap());
                     volume.setConsistencyGroup(cgId);
                     String repGrpInstance = snapshot.getReplicationGroupInstance();
-                    volume.setReplicationGroupInstance(repGrpInstance.substring(repGrpInstance.indexOf("+") + 1));
+                    if (!NullColumnValueGetter.isNullValue(repGrpInstance)) {
+                        volume.setReplicationGroupInstance(repGrpInstance.substring(repGrpInstance.indexOf("+") + 1));
+                    }
                     dbClient.createObject(volume);
                 }
             }
@@ -197,7 +200,7 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
             StringSetMap map = new StringSetMap();
             map.put(snapshot.getStorageController().toString(), new StringSet(Arrays.asList(repGrpName)));
             cg.setSystemConsistencyGroups(map);
-            
+
             StringSet types = new StringSet();
             types.add(BlockConsistencyGroup.Types.LOCAL.name());
             cg.setTypes(types);

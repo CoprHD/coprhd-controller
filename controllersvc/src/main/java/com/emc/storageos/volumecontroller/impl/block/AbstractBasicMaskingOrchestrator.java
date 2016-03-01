@@ -1447,7 +1447,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             Workflow storageWorkflow, String token) throws Exception {
         TaskCompleter taskCompleter = null;
         try {
-            _log.info(String.format("exportGroupUpdate start - Array: %s ExportMask: %s",
+            _log.info(String.format("exportGroupUpdate start - Array: %s ExportGroup: %s",
                     storageURI.toString(), exportGroupURI.toString()));
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
@@ -1515,7 +1515,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     @Override
     public void increaseMaxPaths(Workflow workflow, StorageSystem storageSystem,
             ExportGroup exportGroup, ExportMask exportMask, List<URI> newInitiators, String token)
-                    throws Exception {
+            throws Exception {
         // Increases the MaxPaths for a given ExportMask if it has Initiators that are not
         // currently zoned to ports. The method generateExportMaskAddInitiatorsWorkflow will
         // allocate additional ports for the newInitiators to be processed.

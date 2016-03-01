@@ -14,6 +14,7 @@ import java.io.Serializable;
 public class GetVolumeResponse implements Serializable {
     private String internalSiteName;
     private boolean production;
+    private boolean productionStandby;
     private String wwn;
     private String rpCopyName;
 
@@ -31,6 +32,14 @@ public class GetVolumeResponse implements Serializable {
 
     public void setProduction(boolean production) {
         this.production = production;
+    }
+    
+    public boolean isProductionStandby() {
+        return productionStandby;
+    }
+
+    public void setProductionStandby(boolean productionStandby) {
+        this.productionStandby = productionStandby;
     }
 
     public String getWwn() {
@@ -54,8 +63,9 @@ public class GetVolumeResponse implements Serializable {
         StringBuffer sb = new StringBuffer();
         sb.append("\n\tinternalSiteName: " + internalSiteName);
         sb.append("\n\tproduction:       " + production);
+        sb.append("\n\tproductionStandby:       " + productionStandby);
         sb.append("\n\twwn:              " + wwn);
         sb.append("\n\trpCopyName:       " + rpCopyName);
         return sb.toString();
-    }
+    }    
 }

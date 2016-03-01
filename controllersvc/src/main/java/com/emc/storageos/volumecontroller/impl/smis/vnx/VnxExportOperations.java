@@ -37,7 +37,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -333,22 +332,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                         Joiner.on(',').join(volumeWWNs.keySet())));
                 if (!matchingInitiators.isEmpty()) {
                     // Look up ExportMask by deviceId/name and storage URI
-                    boolean foundMaskInDb = false;
-                    ExportMask exportMask = null;
-                    URIQueryResultList uriQueryList = new URIQueryResultList();
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                            .getExportMaskByNameConstraint(name), uriQueryList);
-                    while (uriQueryList.iterator().hasNext()) {
-                        URI uri = uriQueryList.iterator().next();
-                        exportMask = _dbClient.queryObject(ExportMask.class, uri);
-                        if (exportMask != null && !exportMask.getInactive() &&
-                                exportMask.getStorageDevice().equals(storage.getId())) {
-                            foundMaskInDb = true;
-                            // We're expecting there to be only one export mask of a
-                            // given name for any storage array.
-                            break;
-                        }
-                    }
+                    ExportMask exportMask = ExportMaskUtils.getExportMaskByName(_dbClient, storage.getId(), name);
+                    boolean foundMaskInDb = (exportMask != null);
+
                     // If there was no export mask found in the database,
                     // then create a new one
                     if (!foundMaskInDb) {
@@ -503,16 +489,8 @@ public class VnxExportOperations implements ExportMaskOperations {
                 }
 
                 // Check the volumes and update the lists as necessary
-                boolean addVolumes = false;
-                Map<String, Integer> volumesToAdd = new HashMap<String, Integer>();
-                for (Map.Entry<String, Integer> entry : discoveredVolumes.entrySet()) {
-                    String normalizedWWN = BlockObject.normalizeWWN(entry.getKey());
-                    if (!mask.hasExistingVolume(normalizedWWN) &&
-                            !mask.hasUserCreatedVolume(normalizedWWN)) {
-                        volumesToAdd.put(normalizedWWN, entry.getValue());
-                        addVolumes = true;
-                    }
-                }
+                Map<String, Integer> volumesToAdd = ExportMaskUtils.diffAndFindNewVolumes(mask, discoveredVolumes);
+                boolean addVolumes = !volumesToAdd.isEmpty();
 
                 boolean removeVolumes = false;
                 List<String> volumesToRemove = new ArrayList<String>();

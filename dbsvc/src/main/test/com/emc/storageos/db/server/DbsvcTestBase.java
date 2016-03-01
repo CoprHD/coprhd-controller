@@ -331,7 +331,7 @@ public class DbsvcTestBase {
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
         dbClient.setLocalContext(localCtx);
-
+        dbClient.setDrUtil(new DrUtil(_coordinator));
         VdcUtil.setDbClient(dbClient);
 
         return dbClient;

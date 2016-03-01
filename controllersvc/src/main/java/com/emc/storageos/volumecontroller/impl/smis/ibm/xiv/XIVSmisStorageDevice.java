@@ -723,7 +723,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doCreateConsistencyGroup(final StorageSystem storage,
-            final URI consistencyGroupId, final TaskCompleter taskCompleter)
+            final URI consistencyGroupId, String replicationGroupName, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         // cannot create CG here, as there is no way to specify storage pool
         // need to create CG with member volumes in addVolumesToCG
@@ -764,7 +764,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(final StorageSystem storage,
-            final URI consistencyGroupId, Boolean markInactive, final TaskCompleter taskCompleter)
+            final URI consistencyGroupId, String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter)
             throws DeviceControllerException {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
                 BlockConsistencyGroup.class, consistencyGroupId);
@@ -814,7 +814,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doAddToConsistencyGroup(final StorageSystem storage,
-            final URI consistencyGroupId, final List<URI> blockObjects,
+            final URI consistencyGroupId, String replicationGroupName, final List<URI> blockObjects,
             final TaskCompleter taskCompleter) throws DeviceControllerException {
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(
                 BlockConsistencyGroup.class, consistencyGroupId);

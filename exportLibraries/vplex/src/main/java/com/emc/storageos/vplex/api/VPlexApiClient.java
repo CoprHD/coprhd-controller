@@ -1202,9 +1202,10 @@ public class VPlexApiClient {
     }
 
     public VPlexVirtualVolumeInfo upgradeVirtualVolumeToDistributed(VPlexVirtualVolumeInfo virtualVolume,
-            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId,
+            String transferSize) throws VPlexApiException {
         return _virtualVolumeMgr.createDistributedVirtualVolume(
-                virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId);
+                virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId, transferSize);
     }
 
     public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolume)
@@ -1389,23 +1390,6 @@ public class VPlexApiClient {
     ClientResponse post(URI resourceURI, String postData, String jsonFormat) {
         ClientResponse response = _client.post(resourceURI, postData, _vplexSessionId, jsonFormat);
         updateVPLEXSessionId(response);
-
-        // We add a sleep here to workaround an issue with the VPLEX API.
-        // When a new VPLEX artifact is successfully created (response status 200),
-        // and we subsequently make a request to GET all such artifacts, VPLEX
-        // on occasion does not return the artifact that was just successfully
-        // created. This is because the VPLEX is still asynchronously persisting
-        // the new object when it returns success and the subsequent GET, which
-        // occurs over a new connection (with a new VPLEX session) will not
-        // return the newly created object. My understanding is that we would
-        // have to make the GET request using the same VPLEX session id, which
-        // means we would have to get in the business of managing VPLEX session
-        // ids, which we really don't want to do. So, for now we add a small
-        // sleep interval after making POST requests (which are used to
-        // make configuration changes on the VPLEX) to allow the VPLEX time
-        // to persist changes completely and cause this issue to be far less
-        // likely to occur.
-        VPlexApiUtils.pauseThread(5000);
         return response;
     }
 

@@ -217,7 +217,11 @@
         {
           "image": "Service_Remove_File_Quota_Dir.png",
           "baseService": "RemoveFileSystemQuotaDirectory"
-        }        
+        },
+        {
+          "image": "Service_Change_File_Virtual_Pool.png",
+          "baseService": "ChangeFileVirtualPool"
+        }    
       ]
     },
     {
@@ -238,6 +242,14 @@
           "baseService": "RemoveFileSnapshot"
         },
         {
+          "image": "Service_Associate_File_Policy_File_System.png",
+          "baseService": "AssociateFilePolicyToFileSystem"
+        },
+        {
+          "image": "Service_Dissociate_File_Policy_File_System.png",
+          "baseService": "DissociateFilePolicyFromFileSystem"
+        },
+        {
           "image": "icon_folder_CIFS_add.png",
           "baseService": "ShareFileSnapshot"
         },
@@ -252,6 +264,19 @@
         {
           "image": "icon_folder_NFS_remove.png",
           "baseService": "DeleteFileSnapshotExport"
+        },
+        {
+          "image": "Service_Create_File_Continuous_Copy.png",
+          "baseService": "CreateFileContinuousCopy"
+        }
+        ,
+        {
+          "image": "Service_Remove_File_Continuous_Copy.png",
+          "baseService": "RemoveFileContinuousCopy"
+        },
+        {
+          "image": "Service_Failover_File_System.png",
+          "baseService": "FailoverFileSystem"
         }
       ]
     },
@@ -512,6 +537,18 @@
         {
           "image": "icon_VPLEX_data_migration.png",
           "baseService": "VplexDataMigration"
+        },
+        {
+          "image": "Service_MobilityGroupMigration.png",
+          "baseService": "MobilityGroupMigration"
+        },
+        {
+          "image": "Service_AddResourcesMobilityGroup.png",
+          "baseService": "AddResourcesToMobilityGroup"
+        },
+        {
+          "image": "Service_RemoveResourcesMobilityGroup.png",
+          "baseService": "RemoveResourcesFromMobilityGroup"
         }
       ]
     },
@@ -531,6 +568,41 @@
         {
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
+        }
+      ]
+    },
+    {
+      "title": "applicationservices.title",
+      "image": "icon_application.png",
+      "description": "applicationservices.description",
+      "services": [
+        {
+          "image": "icon_application_add_volumes.png",
+          "baseService": "AddVolumesToApplication"
+        },
+        {
+          "image": "icon_application_remove_volumes.png",
+          "baseService": "RemoveVolumesFromApplication"
+        },
+        {
+          "image": "icon_application_create_full_copy.png",
+          "baseService": "CreateCloneOfApplication"
+        },
+        {
+          "image": "icon_application_remove_full_copy.png",
+          "baseService": "RemoveApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_detach_full_copy.png",
+          "baseService": "DetachApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_restore_full_copy.png",
+          "baseService": "RestoreApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_resych_full_copy.png",
+          "baseService": "ResynchronizeApplicationFullCopy"
         }
       ]
     }

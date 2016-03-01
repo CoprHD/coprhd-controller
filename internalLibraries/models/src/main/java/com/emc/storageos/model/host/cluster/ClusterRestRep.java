@@ -4,10 +4,15 @@
  */
 package com.emc.storageos.model.host.cluster;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.host.TenantResourceRestRep;
 
@@ -20,6 +25,7 @@ public class ClusterRestRep extends TenantResourceRestRep {
     private RelatedResourceRep project;
     private RelatedResourceRep VcenterDataCenter;
     private Boolean autoExportEnabled;
+    private List<RelatedResourceRep> volumeGroups;
 
     public ClusterRestRep() {
     }
@@ -33,7 +39,6 @@ public class ClusterRestRep extends TenantResourceRestRep {
     /**
      * The project to which the cluster is assigned.
      * 
-     * @valid none
      * @return the project to which the cluster is assigned.
      */
     @XmlElement(name = "project")
@@ -48,7 +53,6 @@ public class ClusterRestRep extends TenantResourceRestRep {
     /**
      * The name of the data center in vCenter where this cluster resides
      * 
-     * @valid none
      * @return the name of the data center in vCenter where this cluster resides
      */
     @XmlElement(name = "vcenter_data_center")
@@ -72,5 +76,22 @@ public class ClusterRestRep extends TenantResourceRestRep {
 
     public void setAutoExportEnabled(Boolean autoExportEnabled) {
         this.autoExportEnabled = autoExportEnabled;
+    }
+
+    @XmlElementWrapper(name = "volume_groups")
+    /**
+     * List of applications that the cluster is assigned to.
+     * @valid none
+     */
+    @XmlElement(name = "volume_group")
+    public List<RelatedResourceRep> getVolumeGroups() {
+        if (volumeGroups == null) {
+            volumeGroups = new ArrayList<RelatedResourceRep>();
+        }
+        return volumeGroups;
+    }
+
+    public void setVolumeGroups(List<RelatedResourceRep> volumeGroups) {
+        this.volumeGroups = volumeGroups;
     }
 }

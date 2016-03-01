@@ -27,7 +27,7 @@
         <property name="siteIdFile" value="/data/zk/siteid"/>
     </bean>
 
-    <context:property-placeholder location="classpath:syssvc-info.properties" />
+    <context:property-placeholder location="classpath:syssvc-info.properties" ignore-unresolvable="true"/>
 
     <bean id="coordinator" class="com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl" init-method="start">
         <property name="zkConnection" ref="zkconn"/>
@@ -35,7 +35,8 @@
         <property name="sysSvcVersion" value="${syssvc.version}"/>
         <property name="nodeCount" ref="nodeCount"/>
         <property name="vdcShortId" value="vdc1"/>
-        <property name="vdcEndpoint" value="localhost"/>
+        <property name="vip" value="localhost"/>
+        <property name="vip6" value=""/>
         <property name="inetAddessLookupMap" ref="inetAddessLookupMap"/>
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>                                                    

@@ -10,15 +10,21 @@ public class PathConstants {
     public static final String IMAGE_REMOVE_URL = UPGRADE_URL + "/image/remove";
     public static final String IMAGE_UPLOAD_URL = UPGRADE_URL + "/image/upload ";
     public static final String IMAGE_INSTALL_CANCEL_URL = UPGRADE_URL + "/image/install/cancel/";
-    public static final String IMAGE_DOWNLOAD_PROGRESS_URL = UPGRADE_URL + "/image/download/progress/";
+    public static final String IMAGE_DOWNLOAD_PROGRESS_URL = UPGRADE_URL + "/image/download/progress";
     public static final String TARGET_VERSION_URL = UPGRADE_URL + "/target-version";
     public static final String CLUSTER_STATE_URL = UPGRADE_URL + "/cluster-state";
     public static final String LOGS_URL = "/logs";
     public static final String LOG_LEVELS_URL = LOGS_URL + "/log-levels";
     
     public static final String BACKUP_URL = "/backupset/";
+    public static final String BACKUP_EXTERNAL_URL = BACKUP_URL + "external/";
+    public static final String BACKUP_INFO_URL = BACKUP_URL + "backup/info/";
     public static final String BACKUP_CREATE_URL = BACKUP_URL + "backup/";
     public static final String BACKUP_UPLOAD_URL = BACKUP_URL + "backup/upload";
+    public static final String BACKUP_PULL_URL = BACKUP_URL + "pull/";
+    public static final String BACKUP_PULL_CANCEL_URL = BACKUP_URL + "pull/cancel";
+    public static final String RESTORE_URL = BACKUP_URL + "restore/";
+    public static final String RESTORE_STATUS_URL = BACKUP_URL + "restore/status";
 
     public static final String CHECKDB_URL="/control/db";
     public static final String CHECKDB_GET_URL = CHECKDB_URL + "/consistency";

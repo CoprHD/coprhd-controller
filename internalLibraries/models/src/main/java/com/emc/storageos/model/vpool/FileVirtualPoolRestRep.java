@@ -31,7 +31,6 @@ public class FileVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * Not currently used
      * 
-     * @valid none
      */
     @XmlElement(name = "protection")
     public FileVirtualPoolProtectionParam getProtection() {
@@ -45,7 +44,6 @@ public class FileVirtualPoolRestRep extends VirtualPoolCommonRestRep {
     /**
      * Not currently used
      * 
-     * @valid none
      */
     @XmlElement(name = "long_term_retention")
     public Boolean getLongTermRetention() {

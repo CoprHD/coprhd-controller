@@ -586,12 +586,13 @@ public class AffectedResources extends Controller {
         public BlockConsistencyGroupRestRep blockConsistencyGroup;
         public List<VolumeRestRep> volumes;
         public List<BlockSnapshotDetails> snapshots;
-        public List<BlockSnapshotSessionDetails> snapshotSessions;
+        public List<BlockSnapshotSessionDetails> snapshotSessionsCG;
 
         public BlockConsistencyGroupDetails(URI resourceId) {
             super(resourceId, ResourceType.CONSISTENCY_GROUP);
             blockConsistencyGroup = getBlockConsistencyGroup(client, resourceId);
             volumes = getVolumes(client, blockConsistencyGroup);
+            snapshotSessionsCG = getSnapshotSessions();
         }
 
         public BlockConsistencyGroupDetails(ViPRCoreClient client, URI resourceId) {
@@ -599,6 +600,7 @@ public class AffectedResources extends Controller {
             blockConsistencyGroup = getBlockConsistencyGroup(client, resourceId);
             volumes = getVolumes(client, blockConsistencyGroup);
             snapshots = getSnapshots();
+            snapshotSessionsCG = getSnapshotSessions();
         }
 
         public List<BlockSnapshotDetails> getSnapshots() {
@@ -607,6 +609,14 @@ public class AffectedResources extends Controller {
                 snapshots.add(new BlockSnapshotDetails(client, res.getId()));
             }
             return snapshots;
+        }
+        
+        public List<BlockSnapshotSessionDetails> getSnapshotSessions() {
+            List<BlockSnapshotSessionDetails> snapshotSessions = Lists.newArrayList();
+            for(NamedRelatedResourceRep res : client.blockSnapshotSessions().listByConsistencyGroup(blockConsistencyGroup.getId())) {
+                snapshotSessions.add(new BlockSnapshotSessionDetails(client, res.getId()));
+            }
+            return snapshotSessions;
         }
     }
 

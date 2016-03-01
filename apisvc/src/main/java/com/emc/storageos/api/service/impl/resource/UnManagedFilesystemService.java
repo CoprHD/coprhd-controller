@@ -81,7 +81,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.AuditBlockUtil;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
@@ -422,8 +421,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                 for (StorageProtocol.File fileProtocol : StorageProtocol.File.values()) {
                     fsSupportedProtocols.add(fileProtocol.name());
                 }
-
+                // fs support protocol which is present in StoragePool and VirtualPool both
                 fsSupportedProtocols.retainAll(pool.getProtocols());
+                fsSupportedProtocols.retainAll(cos.getProtocols());
                 filesystem.getProtocol().addAll(fsSupportedProtocols);
                 filesystem.setLabel(null == deviceLabel ? "" : deviceLabel);
                 filesystem.setName(null == fsName ? "" : fsName);
@@ -627,7 +627,7 @@ public class UnManagedFilesystemService extends TaggedResource {
             // record the events after they have been created
             for (FileShare filesystem : filesystems) {
                 recordFileSystemOperation(_dbClient,
-                        OperationTypeEnum.CREATE_FILE_SYSTEM, Status.ready,
+                        OperationTypeEnum.INGEST_FILE_SYSTEM, Status.ready,
                         filesystem.getId());
             }
 
@@ -870,9 +870,6 @@ public class UnManagedFilesystemService extends TaggedResource {
             URI uri = (URI) extParam[0];
             recordBourneFileSystemEvent(dbClient, evType, status, evDesc, uri);
 
-            String id = uri.toString();
-            AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, id);
-
         } catch (Exception e) {
             _logger.error("Failed to record filesystem operation {}, err:", opType.toString(), e);
         }
@@ -955,7 +952,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     .split(",")) {
 
                 switch (tempPermission) {
-                    case "Read":
+                    case "read":
                         tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_READ;
 
                         break;
@@ -965,7 +962,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                     case "execute":
                         tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_EXECUTE;
                         break;
-                    case "FullControl":
+                    case "fullcontrol":
                         tempPermission = FileControllerConstants.NFS_FILE_PERMISSION_FULLCONTROL;
                         break;
                 }
@@ -1015,7 +1012,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 
         try {
             eventManager.recordEvents(event);
-            _logger.info("Bourne {} event recorded", evtType);
+            _logger.info("ViPR {} event recorded", evtType);
         } catch (Exception ex) {
             _logger.error(
                     "Failed to record event. Event description: {}. Error:",

@@ -15,7 +15,7 @@ import com.emc.storageos.model.valid.EnumType;
  * to a storage port group of a storage device.
  */
 @Cf("StoragePort")
-public class StoragePort extends VirtualArrayTaggedResource implements Comparable<StoragePort> {
+public class StoragePort extends VirtualArrayTaggedResource implements Comparable<StoragePort>, Cloneable {
 
     // Defines the supported port types.
     public static enum PortType {
@@ -36,7 +36,10 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
     
     // storage port name used when communicating with the storage system
     private String _portName;
-   
+
+    // device native ID
+    private String _nativeId;
+
     // storage port network identifier e.g. FC - port wwn, IP - network interface identifier
     private String _portNetworkId;
 
@@ -108,7 +111,17 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         _portName = portName;
         setChanged("portName");
     }
-    
+
+    @Name("nativeId")
+    public String getNativeId() {
+        return _nativeId;
+    }
+
+    public void setNativeId(String nativeId) {
+        _nativeId = nativeId;
+        setChanged("nativeId");
+    }
+
     public void setTcpPortNumber(Long tcpPortNumber) {
         _tcpPortNumber = tcpPortNumber;
         setChanged("tcpPortNumber");
@@ -361,6 +374,16 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
         setChanged("discoveryStatus");
     }
     
+    public StoragePort clone() {
+        StoragePort port = null;
+        try {
+            port = (StoragePort) super.clone();
+        } catch (Exception e) {
+            // Do Nothing
+        }
+        return port;
+    }
+
     /**
      * Returns a port name guaranteed to have the director identification.
      * 
@@ -372,6 +395,6 @@ public class StoragePort extends VirtualArrayTaggedResource implements Comparabl
             return getPortName();
         } else {
             return getPortGroup() + ":" + getPortName();
-}
+        }
     }
 }

@@ -22,8 +22,8 @@ import models.RoleAssignmentType;
 import models.Roles;
 import models.datatable.TenantRoleAssignmentDataTable;
 import models.datatable.TenantsDataTable;
-
 import models.security.UserInfo;
+
 import org.apache.commons.lang.StringUtils;
 
 import play.data.binding.As;
@@ -93,12 +93,16 @@ public class Tenants extends ViprResourceController {
         }
 
         QuotaInfo quota = TenantUtils.getQuota(id);
+        
 
         if (viprTenant != null) {
             TenantForm tenant = new TenantForm().from(viprTenant, quota);
             tenant.usermapping = UserMappingForm.loadUserMappingForms(viprTenant.getUserMappings());
-
             addRenderArgs(tenant);
+            //namespace entries
+            List<StringOption> allNamespace = TenantUtils.getUnmappedNamespace();
+            allNamespace.add(new StringOption(viprTenant.getNamespace(), viprTenant.getNamespace()));
+            renderArgs.put("namespaceOptions", allNamespace);
             render(tenant);
         }
         else {
@@ -194,6 +198,9 @@ public class Tenants extends ViprResourceController {
 
         Gson g = new Gson();
         renderArgs.put("domainsJson", g.toJson(domains));
+        
+        List<StringOption> allNamespace = TenantUtils.getUnmappedNamespace();
+        renderArgs.put("namespaceOptions", allNamespace);
     }
 
     @Util

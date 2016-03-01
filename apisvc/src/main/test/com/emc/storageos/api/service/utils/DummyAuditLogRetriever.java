@@ -13,6 +13,7 @@ import java.util.List;
 
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.security.audit.AuditLogRequest;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +38,8 @@ public class DummyAuditLogRetriever implements AuditLogRetriever {
     final private Logger _logger = LoggerFactory.getLogger(DummyAuditLogRetriever.class);
 
     @Override
-    public void getBulkAuditLogs(DateTime time, TimeSeriesMetadata.TimeBucket bucket,
-            MediaType type, String lang, Writer writer) throws MarshallingExcetion {
+    public void getBulkAuditLogs(AuditLogRequest auditLogRequest,
+            MediaType type, Writer writer) throws MarshallingExcetion {
 
         AuditLogMarshaller marshaller = null;
 

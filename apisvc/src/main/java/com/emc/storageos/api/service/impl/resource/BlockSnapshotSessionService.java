@@ -9,11 +9,13 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import com.emc.storageos.api.mapper.functions.MapBlockSnapshotSession;
@@ -76,7 +78,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/link-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep linkTargetVolumes(@PathParam("id") URI id, SnapshotSessionLinkTargetsParam param) {
+    public TaskList linkTargetVolumes(@PathParam("id") URI id, SnapshotSessionLinkTargetsParam param) {
         return getSnapshotSessionManager().linkTargetVolumesToSnapshotSession(id, param);
     }
 
@@ -92,13 +94,13 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      *            the targets will be re-linked.
      * @param param The linked target information.
      * 
-     * @return A TaskResourceRep representing the snapshot session task.
+     * @return A TaskList representing the snapshot session tasks.
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/relink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskResourceRep relinkTargetVolumes(@PathParam("id") URI id, SnapshotSessionRelinkTargetsParam param) {
+    public TaskList relinkTargetVolumes(@PathParam("id") URI id, SnapshotSessionRelinkTargetsParam param) {
         return getSnapshotSessionManager().relinkTargetVolumesToSnapshotSession(id, param);
     }
 
@@ -153,6 +155,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
      * @prereq The block snapshot session has no linked target volumes.
      * 
      * @param id The URI of the BlockSnapshotSession instance to be deleted.
+     * @param type The type of deletion VIPR_ONLY or FULL.
      * 
      * @return TaskList representing the tasks for deleting snapshot sessions.
      */
@@ -160,8 +163,8 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public TaskList deactivateSnapshotSession(@PathParam("id") URI id) {
-        return getSnapshotSessionManager().deleteSnapshotSession(id);
+    public TaskList deactivateSnapshotSession(@PathParam("id") URI id, @DefaultValue("FULL") @QueryParam("type") String type) {
+        return getSnapshotSessionManager().deleteSnapshotSession(id, type);
     }
 
     /**
@@ -296,7 +299,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.BLOCK_SNAPSHOT_SESSION;
     }
-    
+
     /**
      * Get search results by project alone.
      * 
@@ -310,7 +313,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
                 resRepList);
         return resRepList;
     }
-    
+
     /**
      * Get search results by name in zone or project.
      * 
@@ -340,7 +343,7 @@ public class BlockSnapshotSessionService extends TaskResourceService {
             PermissionsHelper permissionsHelper) {
         return new ProjOwnedSnapResRepFilter(user, permissionsHelper, BlockSnapshotSession.class);
     }
-    
+
     /**
      * Block snapshot session is not a zone level resource
      */

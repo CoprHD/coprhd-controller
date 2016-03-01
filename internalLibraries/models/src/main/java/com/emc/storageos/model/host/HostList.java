@@ -29,7 +29,6 @@ public class HostList {
      * List of host objects that exist in ViPR. Each
      * host contains an id, name, and link.
      * 
-     * @valid none
      */
     @XmlElement(name = "host")
     public List<NamedRelatedResourceRep> getHosts() {

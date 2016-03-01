@@ -44,6 +44,17 @@ _checkConfigurable() {
     fi
 }
 
+#get expanded form of IPV6 address
+_get_ipv6_compressed(){
+    local ipaddr
+    if [ "${1}" = "::0" ]; then
+        echo "::0"
+    else
+        ipaddr=$(sipcalc ${1} | egrep '^Compressed address' | awk '{print $4}')
+        [ ! -z ${ipaddr} ] && echo ${ipaddr} || echo ${1}
+    fi
+}
+
 _isIPConsistent() {
     declare -A vdcpropMap
     vdcprops=$(/etc/systool --getvdcprops)
@@ -74,33 +85,41 @@ _isIPConsistent() {
       [ "${vdcpropMap[$vdc_ipv4key]}" != "${ovfenvpropMap[$ovfenv_ipv4key]}" ] && echo "false" && return
     
       vdc_ipv6key="vdc_vdc1_"$site_myid"_network_"$node_index"_ipaddr6";
+      vdc_ipaddr6=$(_get_ipv6_compressed "${vdcpropMap[$vdc_ipv6key]}")
       ovfenv_ipv6key="network_"$node_index"_ipaddr6";
-      [ -z ${vdcpropMap[$vdc_ipv6key]} ] && vdcpropMap[$vdc_ipv6key]="::0"
-      [ "${vdcpropMap[$vdc_ipv6key]}" != "${ovfenvpropMap[$ovfenv_ipv6key]}" ] && echo "false" && return
+      ovfenv_ipaddr6=$(_get_ipv6_compressed "${ovfenvpropMap[$ovfenv_ipv6key]}")
+      [ "${vdc_ipaddr6}" != "${ovfenv_ipaddr6}" ] && echo "false" && return
     done 
-   
+
+    ovfenv_vipkey="network_vip"
     vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip";
-    if [[ ${vdcpropMap[$vdc_vipkey]} == *"::"* ]]; then
-        ovfenv_vip6key="network_vip6"
-        [ -z ${vdcpropMap[$vdc_vipkey]} ] && vdcpropMap[$vdc_vipkey]="::0"
-        [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vip6key]}" ] && echo "false" && return
-    else
-        ovfenv_vipkey="network_vip"
-        [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vipkey]}" ] && echo "false" && return
-    fi 
-    
+    [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenvpropMap[$ovfenv_vipkey]}" ] && echo "false" && return
+
+    ovfenv_vip6key="network_vip6"
+    ovfenv_vip6=$(_get_ipv6_compressed "${ovfenvpropMap[$ovfenv_vip6key]}")
+    vdc_vipkey="vdc_vdc1_"$site_myid"_network_vip6";
+    [ -n "${vdcpropMap[$vdc_vipkey]}" ] && [ "${vdcpropMap[$vdc_vipkey]}" != "${ovfenv_vip6}" ] && echo "false" && return
+
     echo "true" && return
 }
 
 _checkIPConsistencyInMultiSitesEnv() {
-    echo -n "In multiple sites env, check if IP is consistent between ovfenv and vdc properties"
-    
+    is_appaliance=$(/etc/systool --is-appliance)
+    [ $is_appaliance == "false" ] && return;
+
     # Single site IP change via vSphere or Installer will be handled furtherly by IpReconfigManger
     /etc/systool --getvdcprops | grep site_ids | grep ','
     [ $? -ne 0 ] && return
 
+    echo -n "In multiple sites env, check if IP is consistent between ovfenv and vdc properties"
     ret=$(_isIPConsistent)
     if [ $ret == "false" ]; then
+        echo "Vdc site ip info: "
+        /etc/systool --getvdcprops | egrep -e 'vdc_vdc|site_myid'
+
+        echo "Local site ip info: "
+        /etc/getovfproperties --readCDROM
+
         echo -e "\n\e[1;31m***\n*** IP configuration can not be altered from vSphere or Installer in multiple sites env.\n*** Please power off, revert it and follow the user guide to change IP in multiple sites environment.\n***\n*** Press any key to power off this VM\n***\e[0m"
         read -n 1
         /etc/systool --poweroff

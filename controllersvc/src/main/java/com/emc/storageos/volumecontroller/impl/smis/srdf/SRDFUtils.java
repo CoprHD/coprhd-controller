@@ -71,6 +71,12 @@ public class SRDFUtils implements SmisConstants {
     private CIMObjectPathFactory cimPath;
     private SmisCommandHelper helper;
 
+    public enum SyncDirection {
+        SOURCE_TO_TARGET,
+        TARGET_TO_SOURCE,
+        NONE
+    }
+
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -211,7 +217,7 @@ public class SRDFUtils implements SmisConstants {
 
         return result;
     }
-    
+
     public Collection<CIMObjectPath> getStorageSynchronizationsInRemoteGroup(StorageSystem provider, RemoteDirectorGroup group) {
         CIMObjectPath remoteGroupPath = cimPath.getRemoteReplicationCollection(provider, group);
         List<CIMObjectPath> volumePathsInRemoteGroup = getVolumePathsInRemoteGroup(provider, remoteGroupPath);
@@ -282,7 +288,7 @@ public class SRDFUtils implements SmisConstants {
 
         return dbClient.queryObject(Volume.class, volumeURIs);
     }
-    
+
     /**
      * Gets associated ViPR volumes based on the SRDF group
      * 
@@ -305,7 +311,6 @@ public class SRDFUtils implements SmisConstants {
 
         return dbClient.queryObject(Volume.class, volumeURIs);
     }
-
 
     public Predicate<? super Volume> volumePersonalityPredicate(final PersonalityTypes personality) {
         return new Predicate<Volume>() {
@@ -547,49 +552,6 @@ public class SRDFUtils implements SmisConstants {
             log.error("Exception occurred while fetching SRDF enabled virtualpools", ex);
         }
         return srdfProtectedTargetVPools;
-    }
-
-    /**
-     * Checks if R1 or R2 has group snapshot or clone or mirror associated.
-     */
-    public boolean checkIfR1OrR2HasReplica(RemoteDirectorGroup group) {
-        // get one existing source and target volume from group
-        boolean forceAdd = false;
-        Volume existingSourceVolume = null;
-        Volume existingTargetVolume = null;
-        StringSet volumeIds = group.getVolumes();
-        for (String volumeId : volumeIds) {
-            URIQueryResultList result = new URIQueryResultList();
-            dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                    .getVolumeNativeGuidConstraint(volumeId), result);
-            Iterator<URI> volumeIterator = result.iterator();
-            if (volumeIterator.hasNext()) {
-                Volume volume = dbClient.queryObject(Volume.class, volumeIterator.next());
-                if (volume != null && PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
-                    log.debug("Found source volume {} in ViPR DB", volume.getNativeGuid());
-                    existingSourceVolume = volume;
-                    // get target
-                    StringSet targets = volume.getSrdfTargets();
-                    for (String target : targets) {
-                        if (NullColumnValueGetter.isNotNullValue(target)) {
-                            existingTargetVolume = dbClient.queryObject(Volume.class, URI.create(target));
-                            break;
-                        }
-                    }
-                } else if (volume != null && PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())) {
-                    log.debug("Found target volume {} in ViPR DB", volume.getNativeGuid());
-                    existingTargetVolume = volume;
-                    // get source
-                    existingSourceVolume = dbClient.queryObject(Volume.class, volume.getSrdfParent().getURI());
-                }
-            }
-            if (existingSourceVolume != null && existingTargetVolume != null) {
-                break;
-            }
-        }
-        // detect if R1/R2 has snapshots, clones or mirrors
-        return ((existingSourceVolume != null && CheckIfVolumeHasReplica(existingSourceVolume))
-        || (existingTargetVolume != null && CheckIfVolumeHasReplica(existingTargetVolume)));
     }
 
     /**

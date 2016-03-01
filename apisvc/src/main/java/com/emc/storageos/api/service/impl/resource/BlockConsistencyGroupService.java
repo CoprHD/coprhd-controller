@@ -13,6 +13,7 @@ import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDa
 import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
 import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.CONTROLLER_ERROR;
 import static com.google.common.collect.Collections2.transform;
+import static com.google.common.collect.Lists.newArrayList;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -34,6 +35,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
+import com.emc.storageos.model.block.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +48,7 @@ import com.emc.storageos.api.service.impl.placement.PlacementManager;
 import com.emc.storageos.api.service.impl.resource.BlockService.ProtectionOp;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
@@ -61,6 +65,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
@@ -73,6 +78,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -85,19 +91,6 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
-import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
-import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
-import com.emc.storageos.model.block.BlockSnapshotRestRep;
-import com.emc.storageos.model.block.BulkDeleteParam;
-import com.emc.storageos.model.block.CopiesParam;
-import com.emc.storageos.model.block.Copy;
-import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -121,6 +114,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
     private static final int CG_MAX_LIMIT = 64;
+    private static final String FULL_COPY = "Full copy";
 
     // A reference to the placement manager.
     private PlacementManager _placementManager;
@@ -191,14 +185,19 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     protected DataObject queryResource(final URI id) {
         ArgValidator.checkUri(id);
 
-        final Class<? extends DataObject> clazz = URIUtil.isType(id, BlockSnapshot.class) ? BlockSnapshot.class
-                : BlockConsistencyGroup.class;
+        final Class<? extends DataObject> clazz;
 
-        final DataObject consistencyGroup = _permissionsHelper.getObjectById(id, clazz);
+        if (URIUtil.isType(id, BlockSnapshotSession.class)) {
+            clazz = BlockSnapshotSession.class;
+        } else if (URIUtil.isType(id, BlockSnapshot.class)) {
+            clazz = BlockSnapshot.class;
+        } else {
+            clazz = BlockConsistencyGroup.class;
+        }
 
-        ArgValidator.checkEntityNotNull(consistencyGroup, id, isIdEmbeddedInURL(id));
-
-        return consistencyGroup;
+        final DataObject resource = _permissionsHelper.getObjectById(id, clazz);
+        ArgValidator.checkEntityNotNull(resource, id, isIdEmbeddedInURL(id));
+        return resource;
     }
 
     @Override
@@ -249,6 +248,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         consistencyGroup.setLabel(param.getName());
         consistencyGroup.setProject(new NamedURI(project.getId(), param.getName()));
         consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), param.getName()));
+        // disable array consistency if user has selected not to create backend replication group
+        consistencyGroup.setArrayConsistency(param.getArrayConsistency());
 
         _dbClient.createObject(consistencyGroup);
 
@@ -426,6 +427,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -445,21 +447,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
         }
 
-        // Maintain pre-2.2 functionality for VPLEX CGs created prior to
-        // release 2.2, which does not allow snapping a consistency group.
-        URI cgStorageControllerURI = consistencyGroup.getStorageController();
-        if (!NullColumnValueGetter.isNullURI(cgStorageControllerURI)) {
-            // No snapshots for VPLEX consistency groups.
-            StorageSystem cgStorageController = _dbClient.queryObject(
-                    StorageSystem.class, cgStorageControllerURI);
-            if (DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
-                    .getSystemType()) && (!consistencyGroup.checkForType(Types.LOCAL)
-                    || BlockConsistencyGroupUtils.getLocalSystemsInCG(consistencyGroup, _dbClient).isEmpty())) {
-                _log.error("{} Group Snapshot operations not supported when there is no backend CG", consistencyGroup.getId());
-                throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
-            }
-        }
-
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
@@ -471,22 +458,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Set snapshot type.
         String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
-        if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
-            snapshotType = BlockSnapshot.TechnologyType.RP.toString();
-        }
 
-        // Determine the snapshot volume for RP.
         Volume snapVolume = null;
-        if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
-            for (Volume volumeToSnap : volumeList) {
-                // Get the RP source volume.
-                if (volumeToSnap.getPersonality() != null
-                        && volumeToSnap.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
-                    snapVolume = volumeToSnap;
-                    break;
-                }
-            }
-        } else if (!volumeList.isEmpty()) {
+        if (!volumeList.isEmpty()) {
             // Any volume.
             snapVolume = volumeList.get(0);
         }
@@ -579,6 +553,32 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         list.getSnapList().addAll(activeSnapshots);
 
         return list;
+    }
+
+    /**
+     * List snapshot sessions in the consistency group
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param consistencyGroupId
+     *            - Consistency group URI
+     * 
+     * @brief List snapshot sessions in the consistency group
+     * @return The list of snapshot sessions in the consistency group
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public BlockSnapshotSessionList getConsistencyGroupSnapshotSessions(@PathParam("id") final URI consistencyGroupId) {
+        ArgValidator.checkUri(consistencyGroupId);
+        BlockConsistencyGroup consistencyGroup = _permissionsHelper.getObjectById(consistencyGroupId,
+                BlockConsistencyGroup.class);
+        ArgValidator.checkEntityNotNull(consistencyGroup, consistencyGroupId,
+                isIdEmbeddedInURL(consistencyGroupId));
+
+        return getSnapshotSessionManager().getSnapshotSessionsForConsistencyGroup(consistencyGroup);
     }
 
     /**
@@ -722,6 +722,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
 
+        // Snapshot session linked targets must be unlinked instead.
+        BlockSnapshotSession session = BlockSnapshotSessionUtils.getLinkedTargetSnapshotSession(snapshot, _dbClient);
+        if (session != null) {
+            return deactivateAndUnlinkTargetVolumesForSession(session, snapshot);
+        }
+
         // Generate task id
         final String task = UUID.randomUUID().toString();
         TaskList response = new TaskList();
@@ -755,13 +761,36 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
 
-        blockServiceApiImpl.deleteSnapshot(snapshot, task);
+        blockServiceApiImpl.deleteSnapshot(snapshot, snapshots, task, VolumeDeleteTypeEnum.FULL.name());
 
         auditBlockConsistencyGroup(OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
                         .toString(), snapshot.getLabel());
 
         return response;
+    }
+
+    /**
+     * Deactivate the specified Consistency Group Snapshot
+     * 
+     * 
+     * @prereq none
+     * 
+     * @param consistencyGroupId
+     *            - Consistency group URI
+     * @param snapshotSessionId
+     *            - Consistency group snapshot URI
+     * 
+     * @brief Deactivate consistency group snapshot
+     * @return TaskResourceRep
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions/{sid}/deactivate")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList deactivateConsistencyGroupSnapshotSession(
+            @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapshotSessionId) {
+        return getSnapshotSessionManager().deleteSnapshotSession(snapshotSessionId, VolumeDeleteTypeEnum.FULL.name());
     }
 
     /**
@@ -812,13 +841,41 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 snapshot.getId(), taskId, ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT);
 
         // Restore the snapshot.
-        blockServiceApiImpl.restoreSnapshot(snapshot, snapshotParentVolume, taskId);
+        blockServiceApiImpl.restoreSnapshot(snapshot, snapshotParentVolume, null, taskId);
 
         auditBlockConsistencyGroup(OperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
                 snapshotId.toString(), consistencyGroupId.toString(), snapshot.getStorageController().toString());
 
         return toTask(snapshot, taskId, op);
+    }
+
+    /**
+     * Restores the data on the array snapshot point-in-time copy represented by the
+     * BlockSnapshotSession instance with the passed id, to the snapshot session source
+     * object.
+     * 
+     * @brief Restore snapshot session to source
+     * 
+     * @prereq None
+     * 
+     * @param consistencyGroupId The URI of the BlockConsistencyGroup.
+     * @param snapSessionId The URI of the BlockSnapshotSession instance to be restored.
+     * 
+     * @return TaskResourceRep representing the snapshot session task.
+     */
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions/{sid}/restore")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskResourceRep restoreConsistencyGroupSnapshotSession(
+            @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapSessionId) {
+        // Get the consistency group and snapshot and verify the snapshot session
+        // is actually associated with the consistency group.
+        final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
+        final BlockSnapshotSession snapSession = (BlockSnapshotSession) queryResource(snapSessionId);
+        verifySnapshotSessionIsForConsistencyGroup(snapSession, consistencyGroup);
+        return getSnapshotSessionManager().restoreSnapshotSession(snapSessionId);
     }
 
     /**
@@ -1061,7 +1118,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     consistencyGroup.getStorageController(), StorageSystem.class);
         }
 
-        // VPlex, VNX, ScaleIO, and VMax volumes only
+        // IBMXIV, XtremIO, VPlex, VNX, ScaleIO, and VMax volumes only
         String systemType = cgStorageSystem.getSystemType();
         if (!systemType.equals(DiscoveredDataObject.Type.vplex.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
@@ -1115,7 +1172,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
         }
 
-        if (param.hasVolumesToRemove() || (!isReplica && !volsAlreadyInCG)) {
+        if (cgStorageSystem.getUsingSmis80() && cgStorageSystem.deviceIsType(Type.vmax)) {
+            // CG can have replicas
+            if (_log.isDebugEnabled()) {
+                _log.debug("CG can have replicas for VMAX with SMI-S 8.x");
+            }
+        } else if (param.hasVolumesToRemove() || (!isReplica && !volsAlreadyInCG)) {
             // CG cannot have replicas when adding/removing volumes to/from CG
             // Check snapshots
             // Adding/removing volumes to/from a consistency group
@@ -1131,25 +1193,28 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 }
             }
 
-            // Check mirrors
-            // Adding/removing volumes to/from a consistency group
-            // is not supported when existing volumes in CG have mirrors.
-            if (cgVolumes != null && !cgVolumes.isEmpty()) {
-                Volume firstVolume = cgVolumes.get(0);
-                StringSet mirrors = firstVolume.getMirrors();
-                if (mirrors != null && !mirrors.isEmpty()) {
-                    throw APIException.badRequests.notAllowedWhenCGHasMirrors();
+            // VNX group clones and mirrors are just list of replicas, no corresponding group on array side
+            if (!cgStorageSystem.deviceIsType(Type.vnxblock)) {
+                // Check mirrors
+                // Adding/removing volumes to/from a consistency group
+                // is not supported when existing volumes in CG have mirrors.
+                if (cgVolumes != null && !cgVolumes.isEmpty()) {
+                    Volume firstVolume = cgVolumes.get(0);
+                    StringSet mirrors = firstVolume.getMirrors();
+                    if (mirrors != null && !mirrors.isEmpty()) {
+                        throw APIException.badRequests.notAllowedWhenCGHasMirrors();
+                    }
                 }
-            }
 
-            // Check clones
-            // Adding/removing volumes to/from a consistency group
-            // is not supported when the consistency group has
-            // volumes with full copies to which they are still
-            // attached or has volumes that are full copies that
-            // are still attached to their source volumes.
-            getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
-                    cgVolumes);
+                // Check clones
+                // Adding/removing volumes to/from a consistency group
+                // is not supported when the consistency group has
+                // volumes with full copies to which they are still
+                // attached or has volumes that are full copies that
+                // are still attached to their source volumes.
+                getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
+                        cgVolumes);
+            }
         }
 
         // Verify the volumes to be removed.
@@ -1309,6 +1374,23 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
+     * For APIs that act on a snapshot session for a consistency group, ensures that
+     * the passed snapshot session is associated with the passed consistency group, else
+     * throws a bad request exception.
+     * 
+     * @param snapSession A reference to a snapshot session.
+     * @param consistencyGroup A reference to a consistency group
+     */
+    private void verifySnapshotSessionIsForConsistencyGroup(BlockSnapshotSession snapSession,
+            BlockConsistencyGroup consistencyGroup) {
+        URI snapSessionCGURI = snapSession.getConsistencyGroup();
+        if ((NullColumnValueGetter.isNullURI(snapSessionCGURI)) || (!snapSessionCGURI.equals(consistencyGroup.getId()))) {
+            throw APIException.badRequests.snapshotSessionIsNotForConsistencyGroup(
+                    snapSession.getLabel(), consistencyGroup.getLabel());
+        }
+    }
+
+    /**
      * Simply return a task that indicates that the operation completed.
      *
      * @param consistencyGroup [in] BlockConsistencyGroup object
@@ -1338,6 +1420,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @return TaskList
      */
     @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
@@ -1347,11 +1430,108 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+
         // Grab the first volume and call the block full copy
         // manager to create the full copies for the volumes
         // in the CG. Note that it will take into account the
         // fact that the volume is in a CG.
         return getFullCopyManager().createFullCopy(cgVolumes.get(0).getId(), param);
+    }
+
+    /**
+     * Creates a consistency group snapshot session
+     * 
+     * @prereq none
+     * @param consistencyGroupId Consistency group URI
+     * @param param
+     * @brief Create consistency group snapshot session
+     * @return TaskList
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
+    public TaskList createConsistencyGroupSnapshotSession(@PathParam("id") URI consistencyGroupId,
+            SnapshotSessionCreateParam param) {
+
+        // Grab the first volume and call the block snapshot session
+        // manager to create the snapshot sessions for the volumes
+        // in the CG. Note that it will take into account the
+        // fact that the volume is in a CG.
+        BlockConsistencyGroup cg = queryObject(BlockConsistencyGroup.class, consistencyGroupId, true);
+        return getSnapshotSessionManager().createSnapshotSession(cg, param, getFullCopyManager());
+    }
+
+    /**
+     * The method implements the API to create and link new target
+     * volumes to an existing BlockSnapshotSession instance.
+     *
+     * @brief Link target volumes to a snapshot session.
+     *
+     * @prereq The block snapshot session has been created and the maximum
+     *         number of targets has not already been linked to the snapshot sessions
+     *         for the source object.
+     *
+     * @param id The URI of the BlockSnapshotSession instance to which the
+     *            new targets will be linked.
+     * @param param The linked target information.
+     *
+     * @return A TaskList representing the snapshot session task.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions/{sid}/link-targets")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList linkTargetVolumes(@PathParam("id") URI id,
+                                      @PathParam("sid") URI sessionId,
+                                      SnapshotSessionLinkTargetsParam param) {
+        validateSessionPartOfConsistencyGroup(id, sessionId);
+        return getSnapshotSessionManager().linkTargetVolumesToSnapshotSession(sessionId, param);
+    }
+
+    /**
+     * The method implements the API to unlink target volumes from an existing
+     * BlockSnapshotSession instance and optionally delete those target volumes.
+     *
+     * @brief Unlink target volumes from a snapshot session.
+     *
+     * @prereq A snapshot session is created and target volumes have previously
+     *         been linked to that snapshot session.
+     *
+     * @param id The URI of the BlockSnapshotSession instance to which the targets are linked.
+     * @param param The linked target information.
+     *
+     * @return A TaskResourceRep representing the snapshot session task.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/snapshot-sessions/{sid}/unlink-targets")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskResourceRep unlinkTargetVolumesForSession(@PathParam("id") URI id,
+                                                         @PathParam("sid") URI sessionId,
+                                                         SnapshotSessionUnlinkTargetsParam param) {
+        validateSessionPartOfConsistencyGroup(id, sessionId);
+        return getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(sessionId, param);
+    }
+
+    /**
+     * This method is called when a linked BlockSnapshot for a BlockSnapshotSession is passed to
+     * {@link #deactivateConsistencyGroupSnapshot(URI, URI)} and we must instead unlink&delete it.
+     *
+     * @param session   The BlockSnapshotSession.
+     * @param snapshot  The BlockSnapshot.
+     * @return          TaskList wrapping the single TaskResourceRep.
+     */
+    private TaskList deactivateAndUnlinkTargetVolumesForSession(BlockSnapshotSession session, BlockSnapshot snapshot) {
+        SnapshotSessionUnlinkTargetParam unlink = new SnapshotSessionUnlinkTargetParam(snapshot.getId(), true);
+        SnapshotSessionUnlinkTargetsParam param = new SnapshotSessionUnlinkTargetsParam(newArrayList(unlink));
+        TaskResourceRep task = unlinkTargetVolumesForSession(session.getConsistencyGroup(), session.getId(), param);
+        return new TaskList(newArrayList(task));
     }
 
     /**
@@ -1375,6 +1555,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1405,6 +1590,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Get the full copy source.
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
@@ -1440,6 +1630,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
+
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
 
@@ -1469,6 +1664,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1500,6 +1700,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
+
+        // block CG operation if any of its volumes is in COPY type VolumeGroup (Application)
+        if (isIdEmbeddedInURL(cgURI)) {
+            validateVolumeNotPartOfApplication(cgVolumes, FULL_COPY);
+        }
 
         // Verify the full copy.
         verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
@@ -1617,7 +1822,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.SWAP.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(), ProtectionOp.SWAP.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.SWAP.getRestOp());
@@ -1681,7 +1886,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
+                    ProtectionOp.FAILOVER.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
@@ -1737,7 +1943,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
         if (TechnologyType.RP.name().equalsIgnoreCase(copy.getType())) {
-            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_CANCEL.getRestOp());
+            taskResp = performProtectionAction(id, copy.getCopyID(), copy.getPointInTime(),
+                    ProtectionOp.FAILOVER_CANCEL.getRestOp());
             taskList.getTaskList().add(taskResp);
         } else if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
             taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
@@ -1754,11 +1961,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      *
      * @param consistencyGroupId the URI of the BlockConsistencyGroup to perform the protection action against.
      * @param targetVarrayId the target virtual array.
+     * @param pointInTime any point in time, specified in UTC.
+     *            Allowed values: "yyyy-MM-dd_HH:mm:ss" formatted date or datetime in milliseconds.
      * @param op operation to perform (pause, stop, failover, etc)
      * @return task resource rep
      * @throws InternalException
      */
-    private TaskResourceRep performProtectionAction(URI consistencyGroupId, URI targetVarrayId, String op) throws InternalException {
+    private TaskResourceRep
+            performProtectionAction(URI consistencyGroupId, URI targetVarrayId, String pointInTime, String op)
+                    throws InternalException {
         ArgValidator.checkFieldUriType(consistencyGroupId, BlockConsistencyGroup.class, "id");
         ArgValidator.checkFieldUriType(targetVarrayId, VirtualArray.class, "copyId");
 
@@ -1801,7 +2012,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), op, task);
+        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), pointInTime, op, task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());
@@ -2059,6 +2270,41 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
+     * Check if any of the given CG volumes is part of an application.
+     * If so, throw an error indicating replica operation is not supported on CG
+     * and it should be performed at application level.
+     *
+     * @param volume the CG volume
+     */
+    private void validateVolumeNotPartOfApplication(List<Volume> volumes, String replicaType) {
+        for (Volume volume : volumes) {
+            VolumeGroup volumeGroup = volume.getApplication(_dbClient);
+            if (volumeGroup != null) {
+                throw APIException.badRequests.replicaOperationNotAllowedOnCGVolumePartOfCopyTypeVolumeGroup(volumeGroup.getLabel(),
+                        replicaType);
+            }
+        }
+    }
+
+    private void validateSessionPartOfConsistencyGroup(URI cgId, URI sessionId) {
+        ArgValidator.checkUri(sessionId);
+        ArgValidator.checkUri(cgId);
+
+        BlockSnapshotSession session = _dbClient.queryObject(BlockSnapshotSession.class, sessionId);
+        BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+
+        if (session == null) {
+            throw APIException.notFound.unableToFindEntityInURL(sessionId);
+        }
+        if (cg == null) {
+            throw APIException.notFound.unableToFindEntityInURL(cgId);
+        }
+        if (!cg.getId().equals(session.getConsistencyGroup())) {
+            throw APIException.badRequests.snapshotSessionIsNotForConsistencyGroup(session.getLabel(), cg.getLabel());
+        }
+    }
+    
+    /**
      * Creates tasks against consistency groups associated with a request and adds them to the given task list.
      *
      * @param group
@@ -2072,5 +2318,17 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, group.getId(), taskId,
                 operationTypeEnum);
         taskList.getTaskList().add(TaskMapper.toTask(group, taskId, op));
+    }
+
+    /**
+     * Creates and returns an instance of the block snapshot session manager to handle
+     * a snapshot session creation request.
+     * 
+     * @return BlockSnapshotSessionManager
+     */
+    private BlockSnapshotSessionManager getSnapshotSessionManager() {
+        BlockSnapshotSessionManager snapshotSessionManager = new BlockSnapshotSessionManager(_dbClient,
+                _permissionsHelper, _auditMgr, _coordinator, sc, uriInfo, _request);
+        return snapshotSessionManager;
     }
 }

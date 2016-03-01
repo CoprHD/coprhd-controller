@@ -502,6 +502,7 @@ public class StorageSystems extends ViprResourceController {
     }
 
     public static void vNasMoreDetails(String id) {
+        id = id.substring(0, id.indexOf("~~~"));
         List<URI> ids = Lists.newArrayList();
         ids.add(uri(id));
         List<VirtualNASRestRep> vNasRep = getViprClient().virtualNasServers().getByIds(ids);
@@ -712,6 +713,8 @@ public class StorageSystems extends ViprResourceController {
         public Integer resourceLimit;
         public String resourceType;
         public boolean unlimitResource;
+        public boolean supportsSoftLimit;
+        public boolean supportsNotificationLimit;
 
         //
         // a flag to set if unlimitResource control was previously visible.
@@ -745,6 +748,8 @@ public class StorageSystems extends ViprResourceController {
             this.id = storageArray.getId().toString();
             this.name = StorageSystemUtils.getName(storageArray);
             this.type = storageArray.getSystemType();
+            this.supportsSoftLimit = storageArray.getSupportsSoftLimit();
+            this.supportsNotificationLimit = storageArray.getSupportsNotificationLimit();
             // VNX Block uses the same select option as VMAX
             if (StorageSystemTypes.isVnxBlock(type)) {
                 this.type = StorageSystemTypes.VMAX;
@@ -791,7 +796,6 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setIsUnlimitedResourcesSet(true);
                 storageArray.setMaxResources(null);
             }
-
             if (isVnxFile()) {
                 storageArray.setSmisProviderIP(smisProviderIpAddress);
                 storageArray.setSmisPortNumber(smisProviderPortNumber);
@@ -941,6 +945,10 @@ public class StorageSystems extends ViprResourceController {
 
         private boolean isScaleIOApi() {
             return StorageSystemTypes.isScaleIOApi(type);
+        }
+
+        private boolean isIsilon() {
+            return StorageSystemTypes.isIsilon(type);
         }
     }
 

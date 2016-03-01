@@ -830,7 +830,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     
     @Override
     public void doCreateConsistencyGroup(StorageSystem storage,
-            URI consistencyGroup, TaskCompleter taskCompleter)
+            URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} doCreateConsistencyGroup START ...", storage.getSerialNumber());
         taskCompleter.ready(dbClient);
@@ -839,7 +839,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage,
-            URI consistencyGroup, Boolean markInactive, TaskCompleter taskCompleter)
+            URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
         taskCompleter.ready(dbClient);
@@ -849,7 +849,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
     
     @Override
     public void doAddToConsistencyGroup(StorageSystem storage,
-            URI consistencyGroupId, List<URI> blockObjects,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         log.info("{} doAddToConsistencyGroup START ...", storage.getSerialNumber());
         taskCompleter.ready(dbClient);

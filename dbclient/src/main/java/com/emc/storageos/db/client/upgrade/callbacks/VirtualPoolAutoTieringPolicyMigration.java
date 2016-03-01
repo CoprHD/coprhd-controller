@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to set the "uniquePolicyNames" to true if there is a FAST policy
@@ -28,7 +29,7 @@ public class VirtualPoolAutoTieringPolicyMigration extends
     public static final String NATIVE_GUID_DELIMITER = "+";
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         logger.info("Processing virtual pool auto tiering policy migration");
 
         DbClient dbClient = getDbClient();

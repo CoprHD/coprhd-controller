@@ -733,6 +733,7 @@ public class ExportService extends VolumeService {
                 return false;
             }
         }
+        return false;
     }
 
     private boolean processAttachRequest(Volume vol, VolumeActionRequest.AttachVolume attach,

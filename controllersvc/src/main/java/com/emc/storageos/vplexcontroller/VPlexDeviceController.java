@@ -8337,7 +8337,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Otherwise, get all snapshots in the snapset, get the
                 // parent volume for each snapshot, and get the VLPEX
                 // volume using the snapshot parent.
-                List<BlockSnapshot> cgSnaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+                List<BlockSnapshot> cgSnaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
                 for (BlockSnapshot cgSnapshot : cgSnaps) {
                     URIQueryResultList queryResults = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -10542,7 +10542,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<BlockSnapshot> snapshotsToResync = new ArrayList<BlockSnapshot>();
             URI cgURI = snapshot.getConsistencyGroup();
             if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                snapshotsToResync = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+                snapshotsToResync = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
             } else {
                 snapshotsToResync.add(snapshot);
             }
@@ -10954,12 +10954,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             } else {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
                 List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
+                List<BlockObject> allVplexVolumesInRG = ControllerUtils.getAllVolumesForRGInCG(allVplexVolumesInCG,
+                        snapSession.getReplicationGroupInstance(), snapSession.getStorageController(), _dbClient);
                 // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
                 // that are RP source volumes.
-                for (Volume vplexVolume : allVplexVolumesInCG) {
-                    String personality = vplexVolume.getPersonality();
+                for (BlockObject vplexVolume : allVplexVolumesInRG) {
+                    String personality = ((Volume) vplexVolume).getPersonality();
                     if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
-                        vplexVolumes.add(vplexVolume);
+                        vplexVolumes.add((Volume) vplexVolume);
                     }
                 }
             }

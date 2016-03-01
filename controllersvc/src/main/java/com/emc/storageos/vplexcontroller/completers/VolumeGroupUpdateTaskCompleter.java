@@ -13,6 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -56,6 +59,21 @@ public class VolumeGroupUpdateTaskCompleter extends ApplicationTaskCompleter {
                 if (backendVol != null) {
                     backendVol.setConsistencyGroup(cgURI);
                     dbClient.updateObject(backendVol);
+
+                    // handle snapshot
+                    URIQueryResultList snapshotURIs = new URIQueryResultList();
+                    dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                            backendVol.getId()), snapshotURIs);
+                    if (snapshotURIs.iterator().hasNext()) {
+                        List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
+                        for (BlockSnapshot snapshot : snapshots) {
+                            if (snapshot != null && !snapshot.getInactive()) {
+                                snapshot.setSnapsetLabel(NullColumnValueGetter.getNullStr());
+                            }
+                        }
+
+                        dbClient.updateObject(snapshots);
+                    }
                 }
             }
         }

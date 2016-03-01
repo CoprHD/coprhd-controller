@@ -4279,6 +4279,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public void createSnapshot(URI protectionDevice, URI storageURI, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, String opId) throws InternalException {
         TaskCompleter completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
+        // if snapshot is part of a CG, add CG id to the completer
+        List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
+        ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, completer);
+
         Map<URI, Integer> snapshotMap = new HashMap<URI, Integer>();
         try {
             ProtectionSystem system = null;
@@ -4660,7 +4664,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Otherwise, get all snapshots in the snapset, get the parent volume for each
             // snapshot. If the parent is a VPlex backing volume, get the VLPEX volume
             // using the snapshot parent.
-            List<BlockSnapshot> cgSnaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+            List<BlockSnapshot> cgSnaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
             for (BlockSnapshot cgSnapshot : cgSnaps) {
                 URIQueryResultList queryResults = new URIQueryResultList();
                 _dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -5217,7 +5221,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (cgId != null) {
                 // Account for all CG BlockSnapshots if this requested BlockSnapshot
                 // references a CG.
-                snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snap, _dbClient);
+                snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snap, _dbClient);
             } else {
                 snapshots.add(snap);
             }

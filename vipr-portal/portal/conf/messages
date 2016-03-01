@@ -3332,6 +3332,11 @@ resources.fullcopy.protocol=Protocol
 
 resources.applications=Applications
 resources.protocol=Protocols
+resources.applications.snapshot.sessionSet=Snapshot Session Set
+resources.applications.snapshots.session=Snapshots for Set
+resources.application.snapSet=Snapshot Set
+resources.application.snapSet.snapShots=Snapshots for Set
+
 volumeApplication.name=Name
 volumeApplication.capacity=Size
 volumeApplication.varray=Virtual Array

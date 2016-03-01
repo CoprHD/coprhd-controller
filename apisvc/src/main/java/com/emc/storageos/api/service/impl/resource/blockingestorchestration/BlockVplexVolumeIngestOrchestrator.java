@@ -526,17 +526,20 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                                 blockObjectNativeGuid, createdBlockObject.getLabel());
                     }
                 } else {
+                    _logger.info("setting createdObjectMap key {} with blockObject {}", 
+                            blockObjectNativeGuid, blockObject.forDisplay());
                     createdObjectMap.put(blockObjectNativeGuid, blockObject);
                 }
+
+                _logger.info("createdObjectMap is " + createdObjectMap);
 
                 backendRequestContext.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(),
                         backendRequestContext.getVolumeContext());
                 _logger.info("Ingestion ended for backend volume {}", associatedVolume.getNativeGuid());
             } catch (Exception ex) {
                 _logger.error(ex.getLocalizedMessage());
-                throw ex;
-            } finally {
                 backendRequestContext.rollback();
+                throw ex;
             }
         }
     }
@@ -583,7 +586,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             String createdObjectGuid = unManagedVolumeGUID.replace(
                     VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+            _logger.info("createdObjectGuid is " + createdObjectGuid);
             BlockObject processedBlockObject = backendRequestContext.getBlockObjectsToBeCreatedMap().get(createdObjectGuid);
+            _logger.info("backendRequestContext.getBlockObjectsToBeCreatedMap() is " + backendRequestContext.getBlockObjectsToBeCreatedMap());
 
             if (processedBlockObject == null) {
                 String reason = "The ingested block object is null. Skipping ingestion of export masks.";

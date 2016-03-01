@@ -299,15 +299,13 @@ public class UnManagedVolumeService extends TaskResourceService {
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
+                    requestContext.getVolumeContext().rollback();
                 } catch (Exception ex) {
                     _logger.error("Exception occurred", ex);
                     _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(),
                             taskId, IngestionException.exceptions.generalVolumeException(
                                     unManagedVolume.getLabel(), ex.getLocalizedMessage()));
-                } finally {
-                    if (null != requestContext.getVolumeContext()) {
-                        requestContext.getVolumeContext().rollback();
-                    }
+                    requestContext.getVolumeContext().rollback();
                 }
 
                 TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
@@ -492,16 +490,14 @@ public class UnManagedVolumeService extends TaskResourceService {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class,
                         requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
+                requestContext.getVolumeContext().rollback();
             } catch (Exception ex) {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class,
                         requestContext.getCurrentUnManagedVolumeUri(),
                         taskId, IngestionException.exceptions.generalVolumeException(
                                 unManagedVolume.getLabel(), ex.getLocalizedMessage()));
-            } finally {
-                if (null != requestContext.getVolumeContext()) {
-                    requestContext.getVolumeContext().rollback();
-                }
+                requestContext.getVolumeContext().rollback();
             }
 
             TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
@@ -570,15 +566,13 @@ public class UnManagedVolumeService extends TaskResourceService {
             } catch (APIException ex) {
                 _logger.warn(ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
+                volumeContext.rollback();
             } catch (Exception ex) {
                 _logger.warn(ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class, unManagedVolumeUri,
                         taskId, IngestionException.exceptions.generalVolumeException(
                                 processedUnManagedVolume.getLabel(), ex.getLocalizedMessage()));
-            } finally {
-                if (null != volumeContext) {
-                    volumeContext.rollback();
-                }
+                volumeContext.rollback();
             }
         }
     }

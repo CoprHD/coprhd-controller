@@ -436,42 +436,14 @@ _genconfig_data_versioning() {
            # not start 
            touch "/data/UNCOMMITTED_DATA_REVISION"
        else
-           _genconfig_setup_versioning_dir "/data/db" "1" ${tgt_dataver}
-           _genconfig_setup_versioning_dir "/data/geodb" "1" ${tgt_dataver}
-           _genconfig_setup_versioning_dir "/data/zk" "version-2" ${tgt_dataver}
+           /etc/datatool --create-version /data/db/1 ${tgt_dataver}
+           /etc/datatool --create-version /data/geodb/1 ${tgt_dataver}
+           /etc/datatool --create-version /data/zk/version-2 ${tgt_dataver}
            rm -f /data/zk/myid
        fi
    fi
 }
 
-# setup versioning directory for a specific service.
-# $1 root data directory
-# $2 revision pointer. It should be soft link to current data copy
-# $3 target data revision
-_genconfig_setup_versioning_dir() {
-    # check if the pointer is expected
-    local curdir=${1}/${2}
-    if [ -L ${curdir} ] ; then
-        local dir=$(readlink ${curdir})
-        local curver=$(basename ${dir})
-        if [ "${3}" == "${curver}" ] ; then
-            # nothing to do if the pointer is linked to expected revision
-            return
-        fi
-    fi
-
-    # create target revision dir if it does not exists
-    local tgtdir="${1}/${3}"
-    if [ ! -d "${tgtdir}" ] ; then
-        mkdir ${tgtdir}
-        chown storageos:storageos ${tgtdir}
-    fi
-
-    # change the pointer to target revision
-    rm -fR ${curdir}
-    ln -s ${tgtdir} ${curdir}
-    chown -h storageos:storageos ${curdir}
-}
 
 _genconfig_dr_flag() {
     local drflag="/var/run/storageos/${1}_disabled"

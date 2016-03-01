@@ -466,7 +466,12 @@ public class BackupOps {
         log.info("Persist current backup info to zk successfully");
     }
 
-    public Map<String, String> getCurrentBackupInfo() {
+    public String getCurrentBackupName() {
+        Map<String, String> currentBackupInfo = getCurrentBackupInfo();
+        return currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+    }
+
+    private Map<String, String> getCurrentBackupInfo() {
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
                 BackupConstants.BACKUP_RESTORE_STATUS, Constants.GLOBAL_ID);
 

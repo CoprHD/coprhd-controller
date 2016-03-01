@@ -738,7 +738,13 @@ public class VolumeIngestionUtil {
             return;
         }
 
-        throw IngestionException.exceptions.unmanagedVolumeNotIngestable(unManagedVolume.getLabel());
+        String reason = unManagedVolumeCharacteristics
+                .get(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.toString());
+        if (reason == null || reason.isEmpty()) {
+            reason = "Unknown";
+        }
+
+        throw IngestionException.exceptions.unmanagedVolumeNotIngestable(unManagedVolume.getLabel(), reason);
     }
 
     /**

@@ -35,10 +35,12 @@ public class CometRestResource {
     @GET
     @Path("hosts")
     @Produces(MediaType.TEXT_PLAIN)
-    public List<String> getHosts() {
+    public String getHosts() {
         ViperCaller vipr = new ViperCaller();
+        String output = vipr.getHosts().toString();
+        System.out.println(output);
         
-       return vipr.getHosts();
+       return output;
         
     }
     

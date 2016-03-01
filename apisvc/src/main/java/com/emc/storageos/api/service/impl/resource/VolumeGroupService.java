@@ -2358,7 +2358,8 @@ public class VolumeGroupService extends TaskResourceService {
                     case RELINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET:
                         oprEnum = ResourceOperationTypeEnum.RELINK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_TARGETS;
                         SnapshotSessionRelinkTargetsParam relinkParam = new SnapshotSessionRelinkTargetsParam(
-                                getRelinkTargetIdsForSession((VolumeGroupSnapshotSessionRelinkTargetsParam) param, session));
+                                getRelinkTargetIdsForSession((VolumeGroupSnapshotSessionRelinkTargetsParam) param, session,
+                                        snapSessions.size()));
                         taskList.getTaskList().addAll(
                                 _blockConsistencyGroupService.relinkTargetVolumes(cgUri, sessionUri, relinkParam)
                                         .getTaskList());
@@ -2396,26 +2397,41 @@ public class VolumeGroupService extends TaskResourceService {
      *
      * @param param the VolumeGroupSnapshotSessionRelinkTargetsParam
      * @param session the snap session
+     * @param numberOfRequestedSessions the number of requested sessions
      * @return the relink target ids for session
      */
     private List<URI> getRelinkTargetIdsForSession(final VolumeGroupSnapshotSessionRelinkTargetsParam param,
-            BlockSnapshotSession session) {
+            BlockSnapshotSession session, int numberOfRequestedSessions) {
         List<URI> targetIds = new ArrayList<URI>();
-        StringSet sessionTargets = session.getLinkedTargets();
-        for (URI snapURI : param.getLinkedTargetIds()) {
-            // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
-            ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
-            BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
-            ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
-            if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
-                targetIds.add(snapURI);
+        if (numberOfRequestedSessions == 1) {
+            /**
+             * It could be a request from user to re-link targets to different snap sessions.
+             * So, don't filter given targets based on snap session.
+             * 
+             * Re-linking different targets to a snap session can be done for only one
+             * Replication group at a time.
+             */
+            targetIds = param.getLinkedTargetIds();
+        } else {
+            /**
+             * Re-link to same linked targets
+             */
+            StringSet sessionTargets = session.getLinkedTargets();
+            for (URI snapURI : param.getLinkedTargetIds()) {
+                // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
+                ArgValidator.checkFieldUriType(snapURI, BlockSnapshot.class, "id");
+                BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
+                ArgValidator.checkEntityNotNull(snap, snapURI, isIdEmbeddedInURL(snapURI));
+                if (sessionTargets != null && sessionTargets.contains(snapURI.toString())) {
+                    targetIds.add(snapURI);
+                }
             }
         }
         log.info(String.format("Target ids for snapshot session %s : %s",
                 session.getLabel(), Joiner.on(',').join(targetIds)));
         if (targetIds.isEmpty()) {
             // None of the provided target belong to this snapshot session.
-            throw APIException.badRequests.snapshotSessionDoesNotHaveAnyTargets(session.getId().toString());
+            throw APIException.badRequests.snapshotSessionDoesNotHaveAnyTargetsInGivenList(session.getId().toString());
         }
         return targetIds;
     }
@@ -3118,8 +3134,13 @@ public class VolumeGroupService extends TaskResourceService {
                 }
 
                 // check mirrors
-                StringSet mirrors = volume.getMirrors();
-                if (mirrors != null && !mirrors.isEmpty()) {
+                Map<URI, Volume> volumesToUpdate = new HashMap<URI, Volume>();
+                boolean hasMirrors = hasMirrors(dbClient, volume, volumesToUpdate);
+                // clean up stale mirror entries
+                if (!volumesToUpdate.isEmpty()) {
+                    dbClient.updateObject(volumesToUpdate.values());
+                }
+                if (hasMirrors) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                             "Volume has mirror");
                 }
@@ -3166,6 +3187,21 @@ public class VolumeGroupService extends TaskResourceService {
                         volume = dbClient.queryObject(Volume.class, volume.getId());
                     }
                 }
+
+                // check to see if the volume in the request is already in a replication group
+                if (param.getAddVolumesList().getReplicationGroupName() != null) {
+                    String replicationGroupInstance = volume.getReplicationGroupInstance();
+                    if (volume.isVPlexVolume(dbClient)) {
+                        replicationGroupInstance = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient).getReplicationGroupInstance();
+                    }
+                    if (NullColumnValueGetter.isNotNullValue(replicationGroupInstance)) {
+                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                                String.format(
+                                        "the volume is already a member of an array replication group: %s; Application Sub Group should be left blank",
+                                        replicationGroupInstance));
+                    }
+                }
+
                 volumes.add(volume);
                 impactedCGs.add(volume.getConsistencyGroup());
             }
@@ -3213,6 +3249,9 @@ public class VolumeGroupService extends TaskResourceService {
                                 }
                             }
                         }
+                    } else {
+                        URI storage = volToAdd.getStorageController();
+                        backendVolSystemCGMap.put(storage, cgURI);
                     }
                 }
                 if (volumesInReplicationGroup != null && !volumesInReplicationGroup.isEmpty()) {
@@ -3259,6 +3298,38 @@ public class VolumeGroupService extends TaskResourceService {
             }
 
             return volumes;
+        }
+
+        /**
+         * @param dbClient
+         * @param volume
+         * @param volumesToUpdate
+         * @return
+         */
+        private boolean hasMirrors(DbClient dbClient, Volume volume, Map<URI, Volume> volumesToUpdate) {
+            boolean hasMirrors = false;
+            StringSet mirrors = volume.getMirrors();
+            if (mirrors == null) {
+                if (volume.isVPlexVolume(dbClient)) {
+                    Volume backingVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
+                    if (backingVol != null && !backingVol.getInactive()) {
+                        mirrors = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient).getMirrors();
+                    }
+                }
+            }
+            if (mirrors != null) {
+                for (String mirrorId : mirrors) {
+                    BlockMirror mirror = dbClient.queryObject(BlockMirror.class, URI.create(mirrorId));
+                    if (mirror != null && !mirror.getInactive()) {
+                        hasMirrors = true;
+                        break;
+                    } else {
+                        volume.getMirrors().remove(mirrorId);
+                        volumesToUpdate.put(volume.getId(), volume);
+                    }
+                }
+            }
+            return hasMirrors;
         }
 
         /**

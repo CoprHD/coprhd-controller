@@ -63,6 +63,7 @@ import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
@@ -1433,10 +1434,10 @@ public class ControllerUtils {
         if (cg == null || cg.getInactive()) {
             s_logger.warn(String.format("BlockConsistencyGroup with uri %s does not exist or is inactive", cgUri.toString()));
         }
-        return generateReplicationGroupName(storage, cg, replicationGroupName);
+        return generateReplicationGroupName(storage, cg, replicationGroupName, dbClient);
     }
 
-    public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName) {
+    public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName, DbClient dbClient) {
         String groupName = replicationGroupName;
 
         if (storage.deviceIsType(Type.vnxblock) && cg.getArrayConsistency()) {
@@ -1457,6 +1458,19 @@ public class ControllerUtils {
             }
         }
 
+        // Check to see if there's already a groupName associated with the existing volumes
+        // Get all of the volumes associated with this consistency group, look for your storage system
+        // If the replicationGroupInstance is filled-in, go with that.
+        List<Volume> volumes = RPHelper.getAllCgVolumes(cg.getId(), dbClient);
+        for (Volume volume : volumes) {
+            if (volume.getStorageController().equals(storage.getId())) {
+                String volumeCGName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, dbClient);
+                if (NullColumnValueGetter.isNotNullValue(volumeCGName)) {
+                    groupName = volumeCGName;
+                }
+            }
+        }
+        
         return groupName;
     }
 

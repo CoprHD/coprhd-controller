@@ -2828,6 +2828,9 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotSessionDoesNotHaveAnyTargets(final String snapSessionId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotSessionDoesNotHaveAnyTargetsInGivenList(final String snapSessionId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException targetIsNotLinkedToSnapshotSession(final String targetId, final String snapSessionIdd);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

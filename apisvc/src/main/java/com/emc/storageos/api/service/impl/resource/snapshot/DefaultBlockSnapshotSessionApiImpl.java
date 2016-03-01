@@ -478,6 +478,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         // Verify that each target is currently linked to a block
         // snapshot session of the same source.
         URI currentSnapSessionSourceURI = null;
+        String currentSnapSessionSourceGroupName = null;
         for (URI snapshotURI : snapshotURIs) {
             BlockSnapshotSessionUtils.validateSnapshot(snapshotURI, uriInfo, _dbClient);
             List<BlockSnapshotSession> snaphotSessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
@@ -496,6 +497,14 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 } else if (!snapshotSnapSession.getConsistencyGroup().equals(currentSnapSessionSourceURI)) {
                     // Not all targets to be re-linked are linked to a block
                     // snapshot session of the same source.
+                    throw APIException.badRequests.relinkSnapshotSessionsNotOfSameSource();
+                }
+                // validate for source Replication Group since there can be multiple replication groups within a CG.
+                if (currentSnapSessionSourceGroupName == null) {
+                    currentSnapSessionSourceGroupName = snapshotSnapSession.getReplicationGroupInstance();
+                } else if (!currentSnapSessionSourceGroupName.equals(snapshotSnapSession.getReplicationGroupInstance())) {
+                    // Not all targets to be re-linked are linked to a block
+                    // snapshot session of the same source group.
                     throw APIException.badRequests.relinkSnapshotSessionsNotOfSameSource();
                 }
             } else {
@@ -518,6 +527,12 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 : tgtSnapSession.getParent().getURI();
         if (!tgtSnapSessionSourceURI.equals(currentSnapSessionSourceURI)) {
             throw APIException.badRequests.relinkTgtSnapshotSessionHasDifferentSource(currentSnapSessionSourceURI.toString());
+        }
+
+        String tgtSnapSessionSourceGroupName = tgtSnapSession.getReplicationGroupInstance();
+        if (NullColumnValueGetter.isNotNullValue(tgtSnapSessionSourceGroupName)
+                && !tgtSnapSessionSourceGroupName.equals(currentSnapSessionSourceGroupName)) {
+            throw APIException.badRequests.relinkTgtSnapshotSessionHasDifferentSource(currentSnapSessionSourceGroupName);
         }
     }
 

@@ -2521,7 +2521,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
 
                 VolumeGroup volumeGroup = volume.getApplication(_dbClient);
-                boolean isInApplication = volume != null && !volumeGroup.getInactive();
+                boolean isInApplication = volumeGroup != null && !volumeGroup.getInactive();
 
                 if (!isInApplication && (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex)) {
                     // For RP+Vplex targets (who are not former source volumes) and former target volumes,
@@ -3651,9 +3651,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         String firstVolLabel = null;
         List<URI> addVolumeURIs = volumeList.getVolumes();
         int volumesNotInCGCount = 0;
-        String inputRGName = volumeList.getReplicationGroupName();
+        String groupName = volumeList.getReplicationGroupName();
         ApplicationAddVolumeList outVolumesList = new ApplicationAddVolumeList();
-        outVolumesList.setReplicationGroupName(inputRGName);
         URI cgUri = null;
         for (URI voluri : addVolumeURIs) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
@@ -3678,10 +3677,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(), 
                         "the RecoverPoint volumes being added are not associated with a consistency group");
             }
-            
-            if (firstVolLabel == null) {
-                firstVolLabel = volume.getLabel();
-            }
            
         }
         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
@@ -3696,12 +3691,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<Volume> allVolumesToCheck = new ArrayList<Volume> ();
         for (URI volumeUri : allVolumes) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
-            allVolumesToCheck.add(volume);
+            String rgName = volume.getReplicationGroupInstance();
             boolean vplex = RPHelper.isVPlexVolume(volume);
             if (vplex) {
                 // get the backend volume
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
-                String rgName = backendVol.getReplicationGroupInstance();
+                rgName = backendVol.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(rgName) &&
                 		ControllerUtils.checkIfVolumeHasSnapshot(backendVol, _dbClient) &&
                 		(backendVol.getFullCopies() != null && !backendVol.getFullCopies().isEmpty())) {
@@ -3739,11 +3734,21 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 	//throw exception
                 }
             }
+
+            // its possible for the source volumes to be in a replication group but the target volumes are not
+            // in this case, we take the replication group name from the source volumes and apply that to the
+            // target (with the -RPTARGET suffix)
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                // later we will validate that any volume not in a replication group should not have any
+                // snapshots or clones
+                allVolumesToCheck.add(volume);
+                groupName = rgName;
+            }
         }
+        outVolumesList.setReplicationGroupName(groupName);
         outVolumesList.setVolumes(addVolumeURIs);
-        if (volumesNotInCGCount > 0 && (inputRGName == null || inputRGName.isEmpty())) {
-            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
-                    "replication group name is not provided");
+        if (volumesNotInCGCount > 0 && (groupName == null || groupName.isEmpty())) {
+            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel, "application sub group is not provided");
         }
         validateAddVolumesToApplication(allVolumesToCheck, application);
         return outVolumesList;
@@ -3767,23 +3772,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 if (backingVolumes != null) {
                     for (String backingVolId : backingVolumes) {
                         Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                        if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
+                        if (backingVol != null && !backingVol.getInactive()
+                                && NullColumnValueGetter.isNotNullValue(backingVol.getReplicationGroupInstance())) {
                             groupNames.add(backingVol.getReplicationGroupInstance());
                         }
                     }
                 }
-            } else if (volume.getReplicationGroupInstance() != null) {
+            } else if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                 groupNames.add(volume.getReplicationGroupInstance());
-            } else {
-                StringSet backingVolumes = volume.getAssociatedVolumes();
-                if (backingVolumes != null) {
-                    for (String backingVolId : backingVolumes) {
-                        Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                        if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
-                            groupNames.add(backingVol.getReplicationGroupInstance());
-                        }
-                    }
-                }
             }
         }
         return groupNames;
@@ -3811,10 +3807,28 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (it.hasNext()) {
                 hasSnap = true;
             }
-            StringSet mirrors = volume.getMirrors();
+            Map<URI, Volume> volumesToUpdate = new HashMap<URI, Volume>();
             StringSet fullCopyIds = volume.getFullCopies();
-            if (hasSnap || (mirrors != null && !mirrors.isEmpty())
-                    || (fullCopyIds != null && !fullCopyIds.isEmpty())) {
+            boolean hasFullCopies = false;
+            // no need to check backing volumes for vplex virtual volumes because for full copies
+            // there will be a virtual volume for the clone
+            if (fullCopyIds != null) {
+                for (String fullCopyId : fullCopyIds) {
+                    Volume fullCopy = _dbClient.queryObject(Volume.class, URI.create(fullCopyId));
+                    if (fullCopy != null && !fullCopy.getInactive()) {
+                        hasFullCopies = true;
+                        break;
+                    } else {
+                        volume.getFullCopies().remove(fullCopyId);
+                        volumesToUpdate.put(volume.getId(), volume);
+                    }
+                }
+            }
+            // clean up stale replica entries
+            if (!volumesToUpdate.isEmpty()) {
+                _dbClient.updateObject(volumesToUpdate.values());
+            }
+            if (hasSnap || hasFullCopies) {
                 throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
                         String.format("the volumes %s has replica. please remove all replicas from the volume", volume.getLabel()));
             }

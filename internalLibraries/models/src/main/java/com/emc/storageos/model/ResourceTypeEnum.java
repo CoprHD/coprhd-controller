@@ -83,7 +83,6 @@ public enum ResourceTypeEnum {
     STORAGE_SYSTEM_TYPE("storage_system_type", "/storage/storagesystemtypes"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces");
     
-
     private final String type;
     private final String service;
 

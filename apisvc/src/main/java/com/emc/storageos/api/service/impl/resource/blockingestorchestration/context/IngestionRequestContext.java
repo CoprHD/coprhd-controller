@@ -390,4 +390,6 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      */
     public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume);
 
+    public ExportGroup findExportGroup(String exportGroupLabel);
+    
 }

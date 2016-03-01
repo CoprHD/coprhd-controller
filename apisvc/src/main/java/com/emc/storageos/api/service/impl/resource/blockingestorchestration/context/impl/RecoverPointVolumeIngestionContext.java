@@ -847,4 +847,36 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
         getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
+     */
+    @Override
+    public ExportGroup findExportGroup(String exportGroupLabel) {
+        if (exportGroupLabel != null) {
+
+            ExportGroup localExportGroup = getExportGroup();
+            if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
+                _logger.info("Found existing local ExportGroup {} in base ingestion request context", 
+                        localExportGroup.forDisplay());
+                return localExportGroup;
+            }
+        }
+
+        ExportGroup nestedExportGroup = null;
+        for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext instanceof IngestionRequestContext) {
+                nestedExportGroup = ((IngestionRequestContext) volumeContext).findExportGroup(exportGroupLabel);
+            }
+            if (null != nestedExportGroup) {
+                _logger.info("Found existing nested ExportGroup {} in volume context {}", 
+                        nestedExportGroup.forDisplay(), volumeContext.getUnmanagedVolume().forDisplay());
+                return nestedExportGroup;
+            }
+        }
+
+        _logger.info("Could not find existing export group for label " + exportGroupLabel);
+        return null;
+    }
+
 }

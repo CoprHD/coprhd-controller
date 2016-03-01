@@ -6,6 +6,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionContext {
@@ -76,5 +77,18 @@ public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionCo
             dataObject = super.findInUpdatedObjects(uri);
         }
         return dataObject;
+    }
+    
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
+     */
+    @Override
+    public ExportGroup findExportGroup(String exportGroupLabel) {
+        ExportGroup exportGroup = _vplexVolumeIngestionContext.findExportGroup(exportGroupLabel);
+        if (exportGroup == null) {
+            exportGroup = super.findExportGroup(exportGroupLabel);
+        }
+        return exportGroup;
     }
 }

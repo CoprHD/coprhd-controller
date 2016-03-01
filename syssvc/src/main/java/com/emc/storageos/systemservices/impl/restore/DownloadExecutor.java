@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.systemservices.impl.restore;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -193,6 +195,7 @@ public final class DownloadExecutor implements  Runnable {
         backupOps.persistCurrentBackupInfo(remoteBackupFileName, false);
 
         ZipInputStream zin = getDownloadStream();
+        BufferedInputStream in = new BufferedInputStream(zin);
 
         File backupFolder= backupOps.getDownloadDirectory(remoteBackupFileName);
 
@@ -205,10 +208,13 @@ public final class DownloadExecutor implements  Runnable {
             // no backup or invalid backup, so download it again
         }
 
+        byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
         ZipEntry zentry = zin.getNextEntry();
         while (zentry != null) {
             if (isMyBackupFile(zentry)) {
-                downloadMyBackupFile(backupFolder, zentry.getName(), zin);
+                //downloadMyBackupFile(backupFolder, zentry.getName(), zin);
+                log.info("lby download {}", zentry.getName());
+                downloadMyBackupFile(backupFolder, zentry.getName(), in, buf);
             }
             zentry = zin.getNextEntry();
         }
@@ -217,7 +223,8 @@ public final class DownloadExecutor implements  Runnable {
 
         try {
             zin.closeEntry();
-            zin.close();
+            in.close();
+            // zin.close();
         }catch (IOException e) {
             log.debug("Failed to close the stream e", e);
             // it's a known issue to use curl
@@ -270,7 +277,8 @@ public final class DownloadExecutor implements  Runnable {
                 filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 
-    private long downloadMyBackupFile(File downloadDir, String backupFileName, ZipInputStream zin) throws IOException {
+    //private long downloadMyBackupFile(File downloadDir, String backupFileName, ZipInputStream zin) throws IOException {
+    private long downloadMyBackupFile(File downloadDir, String backupFileName, BufferedInputStream in, byte[] buffer) throws IOException {
         long downloadSize = 0;
 
         if (isGeo == false) {
@@ -288,12 +296,13 @@ public final class DownloadExecutor implements  Runnable {
             file.createNewFile();
         }
 
-        byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
+        // byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
         int length;
 
-        try (FileOutputStream out = new FileOutputStream(file)) {
-            while ((length = zin.read(buf)) > 0) {
-                out.write(buf, 0, length);
+        try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file))) {
+            //while ((length = zin.read(buf)) > 0) {
+            while ((length = in.read(buffer)) > 0) {
+                out.write(buffer, 0, length);
                 downloadSize += length;
                 updateDownloadSize(length);
             }

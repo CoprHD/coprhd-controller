@@ -63,9 +63,8 @@ public class KeystoneUtils {
             if (endpointToDelete != null) {
                 // Delete endpoint using Keystone API.
                 keystoneApi.deleteKeystoneEndpoint(endpointToDelete.getId());
+                _log.debug("Keystone endpoint deleted");
             }
-        } else {
-            _log.error("serviceId is null");
         }
 
         _log.debug("END - deleteKeystoneEndpoint");

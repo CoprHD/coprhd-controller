@@ -375,6 +375,11 @@ public class AuthnConfigurationService extends TaggedResource {
         ipv4Setting.loadFromPropertyMap(ovfprops);
         String clusterVIP = ipv4Setting.getNetworkVip();
 
+        if (clusterVIP == null) {
+            _log.error("Could not retrieve cluster Virtual IP");
+            throw APIException.internalServerErrors.targetIsNullOrEmpty("Virtual IP");
+        }
+
         _log.debug("Cluster VIP: {}", clusterVIP);
 
         // Checks whether url should point to cinderv2 or to cinder service.

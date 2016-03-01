@@ -153,6 +153,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
             BlockObject volume = entry.getKey();
             ExportGroup exportGroup = entry.getValue();
             ExportGroup egInDb = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
+            exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
             if (null == egInDb) {
                 _logger.info("Creating VPLEX backend ExportGroup {} for Volume {}", exportGroup.forDisplay(), volume.forDisplay());
                 _dbClient.createObject(exportGroup);

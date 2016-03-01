@@ -84,10 +84,11 @@ public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionCo
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
      */
     @Override
-    public ExportGroup findExportGroup(String exportGroupLabel) {
-        ExportGroup exportGroup = _vplexVolumeIngestionContext.findExportGroup(exportGroupLabel);
+    public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
+        ExportGroup exportGroup = _vplexVolumeIngestionContext.findExportGroup(
+                exportGroupLabel, project, varray, computeResource, resourceType);
         if (exportGroup == null) {
-            exportGroup = super.findExportGroup(exportGroupLabel);
+            exportGroup = super.findExportGroup(exportGroupLabel, project, varray, computeResource, resourceType);
         }
         return exportGroup;
     }

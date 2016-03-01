@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -390,6 +391,7 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      */
     public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume);
 
-    public ExportGroup findExportGroup(String exportGroupLabel);
-    
+    public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType);
+
+    public List<ExportMask> findAllNewExportMasks();
 }

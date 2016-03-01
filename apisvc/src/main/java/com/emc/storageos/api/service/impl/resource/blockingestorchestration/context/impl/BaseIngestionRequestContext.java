@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -848,25 +849,32 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
      */
     @Override
-    public ExportGroup findExportGroup(String exportGroupLabel) {
+    public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
         if (exportGroupLabel != null) {
 
             ExportGroup localExportGroup = getExportGroup();
             if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
-                _logger.info("Found existing local ExportGroup {} in base ingestion request context", 
-                        localExportGroup.forDisplay());
-                return localExportGroup;
+                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup, 
+                        exportGroupLabel, project, varray, computeResource, resourceType)) {
+                    _logger.info("Found existing local ExportGroup {} in base ingestion request context", 
+                            localExportGroup.forDisplay());
+                    return localExportGroup;
+                }
             }
 
             ExportGroup nestedExportGroup = null;
             for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
                 if (volumeContext instanceof IngestionRequestContext) {
-                    nestedExportGroup = ((IngestionRequestContext) volumeContext).findExportGroup(exportGroupLabel);
+                    nestedExportGroup = ((IngestionRequestContext) volumeContext).findExportGroup(
+                            exportGroupLabel, project, varray, computeResource, resourceType);
                 }
                 if (null != nestedExportGroup) {
-                    _logger.info("Found existing nested ExportGroup {} in volume context {}", 
-                            nestedExportGroup.forDisplay(), volumeContext.getUnmanagedVolume().forDisplay());
-                    return nestedExportGroup;
+                    if (VolumeIngestionUtil.verifyExportGroupMatches(nestedExportGroup, 
+                            exportGroupLabel, project, varray, computeResource, resourceType)) {
+                        _logger.info("Found existing nested ExportGroup {} in volume context {}", 
+                                nestedExportGroup.forDisplay(), volumeContext.getUnmanagedVolume().forDisplay());
+                        return nestedExportGroup;
+                    }
                 }
             }
         }
@@ -875,4 +883,36 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return null;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllNewExportMasks()
+     */
+    @Override
+    public List<ExportMask> findAllNewExportMasks() {
+        List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
+        
+        for (List<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
+            for (DataObject createdObject : createdObjects) {
+                if (createdObject instanceof ExportMask) {
+                    newExportMasks.add((ExportMask) createdObject);
+                }
+            }
+        }
+
+        for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext instanceof IngestionRequestContext) {
+                for (List<DataObject> createdObjects : 
+                    ((IngestionRequestContext) volumeContext).getDataObjectsToBeCreatedMap().values()) {
+                    for (DataObject createdObject : createdObjects) {
+                        if (createdObject instanceof ExportMask) {
+                            newExportMasks.add((ExportMask) createdObject);
+                        }
+                    }
+                }
+            }
+        }
+        
+        return newExportMasks;
+    }
+
+    
 }

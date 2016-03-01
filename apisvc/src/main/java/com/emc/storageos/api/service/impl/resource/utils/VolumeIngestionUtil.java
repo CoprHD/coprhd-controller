@@ -2243,6 +2243,45 @@ public class VolumeIngestionUtil {
 
     }
 
+    public static boolean verifyExportGroupMatches(ExportGroup exportGroupToCheck, String exportGroupLabel, 
+            URI project, URI vArray, URI computeResource, String resourceType) {
+
+        if (exportGroupToCheck != null) {
+            if (!exportGroupToCheck.getLabel().equals(exportGroupLabel)) {
+                _logger.info("export group label mismatch: {} and {}", exportGroupToCheck.getLabel(), exportGroupLabel);
+                return false;
+            }
+            if (!exportGroupToCheck.getProject().getURI().equals(project)) {
+                _logger.info("export group project mismatch: {} and {}", exportGroupToCheck.getProject().getURI(), project);
+                return false;
+            }
+            if (!exportGroupToCheck.getVirtualArray().equals(vArray)) {
+                _logger.info("export group varray mismatch: {} and {}", exportGroupToCheck.getLabel(), exportGroupLabel);
+                return false;
+            }
+
+            // optionally check compute resource and resource type
+            if (computeResource != null && resourceType != null) {
+                if (ExportGroup.ExportGroupType.Host.toString().equalsIgnoreCase(resourceType)) {
+                    if (exportGroupToCheck.hasHost(computeResource) &&
+                            !ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(exportGroupToCheck.getType())) {
+                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", exportGroupToCheck.getId());
+                        return true;
+                    }
+                } else if (ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(resourceType)) {
+                    if (exportGroupToCheck.hasCluster(computeResource)) {
+                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", exportGroupToCheck.getId());
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+    
     /**
      * Verify a matching ExportGroup exists for the given parameters.
      *

@@ -641,7 +641,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                     // find or create the backend export group
                     ExportGroup exportGroup = this.findOrCreateExportGroup(
-                            requestContext.getStorageSystem(), associatedSystem, initiators,
+                            requestContext, associatedSystem, initiators,
                             virtualArray.getId(), backendRequestContext.getBackendProject().getId(),
                             backendRequestContext.getTenant().getId(), DEFAULT_BACKEND_NUMPATHS, uem);
                     if (null == exportGroup.getId()) {
@@ -687,22 +687,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * @param unmanagedExportMask the unmanaged export mask
      * @return existing or newly created ExportGroup (not yet persisted)
      */
-    ExportGroup findOrCreateExportGroup(StorageSystem vplex,
+    private ExportGroup findOrCreateExportGroup(IngestionRequestContext requestContext,
             StorageSystem array, Collection<Initiator> initiators,
             URI virtualArrayURI,
             URI projectURI, URI tenantURI, int numPaths,
             UnManagedExportMask unmanagedExportMask) {
 
+        StorageSystem vplex = requestContext.getStorageSystem();
         String arrayName = array.getSystemType().replace("block", "")
                 + array.getSerialNumber().substring(array.getSerialNumber().length() - 4);
         String groupName = unmanagedExportMask.getMaskName() + "_" + arrayName;
+
+        ExportGroup exportGroup = requestContext.findExportGroup(groupName, projectURI, virtualArrayURI, null, null);
+        if (null != exportGroup) {
+            _logger.info(String.format("Returning existing ExportGroup %s", exportGroup.getLabel()));
+            return exportGroup;
+        }
 
         List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(
                 _dbClient, ExportGroup.class, PrefixConstraint.Factory
                         .getFullMatchConstraint(ExportGroup.class, "label",
                                 groupName));
 
-        ExportGroup exportGroup = null;
         if (null != exportGroups && !exportGroups.isEmpty()) {
             for (ExportGroup group : exportGroups) {
                 if (null != group) {

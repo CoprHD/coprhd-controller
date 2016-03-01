@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -1073,19 +1074,23 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
      */
     @Override
-    public ExportGroup findExportGroup(String exportGroupLabel) {
+    public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
         if (exportGroupLabel != null) {
 
             ExportGroup localExportGroup = getExportGroup();
             if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
-                _logger.info("Found existing local ExportGroup {} in base ingestion request context", 
-                        localExportGroup.forDisplay());
-                return localExportGroup;
+                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup, 
+                        exportGroupLabel, project, varray, computeResource, resourceType)) {
+                    _logger.info("Found existing local ExportGroup {} in VPLEX ingestion request context", 
+                            localExportGroup.forDisplay());
+                    return localExportGroup;
+                }
             }
 
             for (ExportGroup backendExportGroup : getVplexBackendExportGroupMap().values()) {
-                if (null != backendExportGroup && exportGroupLabel.equals(backendExportGroup.getLabel())) {
-                    _logger.info("Found existing backend ExportGroup {} in VPLEX backend ingestion request context", 
+                if (VolumeIngestionUtil.verifyExportGroupMatches(backendExportGroup, 
+                        exportGroupLabel, project, varray, computeResource, resourceType)) {
+                    _logger.info("Found existing nested ExportGroup {} in VPLEX backend ingestion request context", 
                             backendExportGroup.forDisplay());
                     return backendExportGroup;
                 }
@@ -1096,4 +1101,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         return null;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllNewExportMasks()
+     */
+    @Override
+    public List<ExportMask> findAllNewExportMasks() {
+        return _parentRequestContext.findAllNewExportMasks();
+    }
 }

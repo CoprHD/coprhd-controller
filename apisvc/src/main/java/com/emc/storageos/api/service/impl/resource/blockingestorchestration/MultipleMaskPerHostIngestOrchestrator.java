@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.mutable.MutableInt;
@@ -21,7 +22,9 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
+import com.google.common.collect.Collections2;
 
 /*
  * MULTIPLE_MASK_PER_HOST :
@@ -45,7 +48,7 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
     }
 
     @Override
-    protected ExportMask getExportsMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
+    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
         ExportMask exportMask = null;
         @SuppressWarnings("deprecation")
         List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(mask
@@ -64,4 +67,22 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         return exportMask;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestExportOrchestrator#getExportMaskAlreadyCreated(com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask, com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
+     */
+    @Override
+    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
+        for (ExportMask createdMask : requestContext.findAllNewExportMasks()) {
+            // COP-18184 : Check if the initiators are also matching
+            if (null != createdMask && createdMask.getInitiators() != null
+                    && createdMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
+                _logger.info("Found already-created ExportMask {} matching all initiators of UnManagedExportMask {}",
+                        createdMask.getMaskName(), mask.getMaskName());
+                return createdMask;
+            }
+        }
+
+        _logger.info("No existing created mask found for UnManagedExportMask {}", mask.getMaskName());
+        return null;
+    }
 }

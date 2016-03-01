@@ -163,7 +163,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         decorateUnManagedProtectionSet(volumeContext, volume, unManagedVolume);
 
         // Perform RP-specific export ingestion
-        performRPExportIngestion(volumeContext, unManagedVolume, volume);
+        performRPExportIngestion(parentRequestContext, volumeContext, unManagedVolume, volume);
 
         // Print post-ingestion report
         _logger.info("Printing Ingestion Report After Ingestion");
@@ -624,7 +624,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @param volume managed volume
      * @return managed volume with export ingested
      */
-    private void performRPExportIngestion(IngestionRequestContext volumeContext,
+    private void performRPExportIngestion(IngestionRequestContext parentRequestContext, IngestionRequestContext volumeContext,
             UnManagedVolume unManagedVolume, Volume volume) {
 
         _logger.info("starting RecoverPoint export ingestion for volume {}", volume.forDisplay());
@@ -733,9 +733,18 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                 exportGroup = RPHelper.createRPExportGroup(internalSiteName, virtualArray, project, protectionSystem,
                         storageSystem, numPaths, isJournalExport);
             }
-    
+
+            if (null != exportGroup) {
+                // check if the ExportGroup has already been fetched
+                ExportGroup loadedExportGroup = parentRequestContext.findExportGroup(
+                        exportGroup.getLabel(), project.getId(), virtualArray.getId(), null, null);
+                if (null != loadedExportGroup) {
+                    exportGroup = loadedExportGroup;
+                }
+            }
+
             volumeContext.setExportGroup(exportGroup);
-            
+
             // set RP device initiators to be used as the "host" for export mask ingestion
             List<Initiator> initiators = new ArrayList<Initiator>();
             Iterator<Initiator> initiatorItr = _dbClient.queryIterativeObjects(Initiator.class, URIUtil.toURIList(em.getKnownInitiatorUris()));

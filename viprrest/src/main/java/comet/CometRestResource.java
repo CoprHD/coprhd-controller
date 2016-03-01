@@ -11,6 +11,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.Provider;
+
+import org.glassfish.jersey.process.internal.RequestScoped;
 
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.Tasks;
@@ -96,6 +99,7 @@ public class CometRestResource {
     @GET
     @Path("migrateTest")
     @Produces(MediaType.TEXT_PLAIN)
+    @RequestScoped
     public String  test(@DefaultValue("All")  @QueryParam(value="host") String host,@QueryParam(value="sourceVolume") String sourceVolume,@QueryParam(value="targetVolume") String targetVolume) throws Exception {
         
         System.out.println(" called migrate");

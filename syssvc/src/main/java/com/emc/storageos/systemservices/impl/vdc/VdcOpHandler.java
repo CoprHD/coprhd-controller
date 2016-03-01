@@ -1153,10 +1153,6 @@ public abstract class VdcOpHandler {
      */
     protected void tryPoweroffRemoteSite(Site site) {
         String siteId = site.getUuid();
-        if (site.getState() != SiteState.STANDBY_PAUSED && !drUtil.isSiteUp(siteId)) {
-            log.info("Site {} is down. no need to poweroff it", site.getUuid());
-            return;
-        }
         // all syssvc shares same port
         String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
         try {

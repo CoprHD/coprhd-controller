@@ -120,23 +120,21 @@ public class CometRestResource {
     @GET
     @Path("migrateVolume")
     @Produces(MediaType.TEXT_PLAIN)
-    public String  migrateVolume(@DefaultValue("All")  @QueryParam(value="host") String host,@QueryParam(value="sourceVolume") String sourceVolume,@QueryParam(value="targetVolume") String targetVolume) throws Exception {
+    public String  migrateVolume(@DefaultValue("All")  @QueryParam(value="host") String host,@QueryParam(value="sourceVolume") String sourceVolume,@QueryParam(value="targetVPool") String targetVpoolId) throws Exception {
         
         System.out.println(" called migrate");
         ViperCaller vipr = new ViperCaller();
-        URI hostURI=new URI(host);
-        URI sourceVolumeURI=new URI(sourceVolume);
-        URI targetVolumeURI=new URI(targetVolume);
+        URI hostURI=new URI(host.trim());
+        URI sourceVolumeURI=new URI(sourceVolume.trim());
+        URI targetVpool=new URI(targetVpoolId.trim());
         
-        Tasks<VolumeRestRep> volumeTasks = vipr.migrate(hostURI, sourceVolumeURI, targetVolumeURI);
-        VolumeRestRep volume = volumeTasks.get().get(0);
-        Response response = Response.status(200).entity(volume).build();
         
-        Tasks<VolumeRestRep> tasks= vipr.migrate(hostURI, sourceVolumeURI, targetVolumeURI);
-        VolumeRestRep newVolume = tasks.get().get(0);
+        Tasks<VolumeRestRep> volumeTasks = vipr.migrate(hostURI, sourceVolumeURI, targetVpool);
+        boolean result = vipr.doExport(sourceVolumeURI, hostURI, targetVpool);
 
-        System.out.println( "Host " +host + " sourceVolume "+sourceVolume+ " targetVolume"+targetVolume);
-        return "new Volume Created "+newVolume.getName();
+        System.out.println( "Host " +host + " sourceVolume "+sourceVolume+ " targetVolume"+targetVpoolId);
+        return "new Volume Created "+ result;
+        
     }
     
     

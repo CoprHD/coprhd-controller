@@ -1454,7 +1454,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                     controlNodesConfigVersions, targetPowerOffState, nodeCount);
         } catch (Exception e) {
             log.info("Fail to get the control node information ", e);
-            return null;
+            return ClusterInfo.ClusterState.UNKNOWN;
         }
     }
     

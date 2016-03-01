@@ -11,6 +11,8 @@ import java.util.Properties;
 
 import com.emc.storageos.coordinator.client.model.*;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
+import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.services.OperationTypeEnum;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +22,7 @@ import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * A thread scheduled in syssvc of the active site to monitor the db quorum availability of each standby site.
@@ -30,6 +33,10 @@ public class DbsvcQuorumMonitor implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(DbsvcQuorumMonitor.class);
 
     private static final int STANDBY_DEGRADED_THRESHOLD = 1000 * 60 * 15; // 15 minutes, in milliseconds
+    private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
+
+    @Autowired
+    private AuditLogManager auditMgr;
 
     private DrUtil drUtil;
     private String myNodeId;
@@ -164,6 +171,8 @@ public class DbsvcQuorumMonitor implements Runnable {
                     drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_CHANGE_DATA_REVISION, vdcVersion);
                 } else {
                     drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY, vdcVersion);
+                    this.auditMgr.recordAuditLog(null, null, EVENT_SERVICE_TYPE, OperationTypeEnum.REJOIN_STANDBY,
+                            System.currentTimeMillis(), AuditLogManager.AUDITLOG_SUCCESS, null, standbySite.toBriefString());
                 }
 
                 // Update version on other connected standby sites if any

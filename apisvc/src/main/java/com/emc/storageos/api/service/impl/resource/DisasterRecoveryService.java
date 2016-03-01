@@ -684,7 +684,7 @@ public class DisasterRecoveryService {
             }
             SiteState state = site.getState();
             if (state.equals(SiteState.ACTIVE)) {
-                log.error("Unable to pause this site {}. It is acitve", siteId);
+                log.error("Unable to pause this site {}. It is active", siteId);
                 throw APIException.badRequests.operationNotAllowedOnActiveSite();
             }
             if (!state.equals(SiteState.STANDBY_SYNCED)) {
@@ -1667,7 +1667,7 @@ public class DisasterRecoveryService {
 
         // show be only standby
         if (drUtil.isActiveSite()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Failover can't be executed in acitve site");
+            throw APIException.badRequests.operationNotAllowedOnActiveSite();
         }
 
         // Current site is stable
@@ -1679,7 +1679,7 @@ public class DisasterRecoveryService {
         }
 
         // this is standby site and NOT in ZK read-only or observer mode,
-        // it means acitve is down and local ZK has been reconfig to participant
+        // it means active is down and local ZK has been reconfig to participant
         CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
         String myNodeId = addrLookupMap.getNodeId();
         String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);

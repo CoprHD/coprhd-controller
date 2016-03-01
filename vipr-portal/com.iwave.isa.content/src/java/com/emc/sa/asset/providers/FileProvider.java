@@ -610,8 +610,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
         @Override
         public boolean evaluate(Object object) {
             FileShareRestRep filesystem = getFilesystem(object);
-            return !(filesystem.getProtection() != null && filesystem.getProtection().getTargetFileSystems() != null &&
-            		!filesystem.getProtection().getTargetFileSystems().isEmpty());
+            return !(filesystem.getProtection() != null && filesystem.getProtection().getParentFileSystem() != null);
         }
 
     }

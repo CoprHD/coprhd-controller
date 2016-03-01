@@ -525,7 +525,9 @@ public class DisasterRecoveryService {
 
         try {
             commonPrecheck(siteIdList);
-        } catch (IllegalStateException e) {
+        } catch (APIException e) {
+            throw e;
+        } catch (Exception e) {
             throw APIException.internalServerErrors.removeStandbyPrecheckFailed(SiteNamesStr, e.getMessage());
         }
 
@@ -682,7 +684,7 @@ public class DisasterRecoveryService {
             }
             SiteState state = site.getState();
             if (state.equals(SiteState.ACTIVE)) {
-                log.error("Unable to pause this site {}. It is acitve", siteId);
+                log.error("Unable to pause this site {}. It is active", siteId);
                 throw APIException.badRequests.operationNotAllowedOnActiveSite();
             }
             if (!state.equals(SiteState.STANDBY_SYNCED)) {
@@ -697,8 +699,11 @@ public class DisasterRecoveryService {
         String siteNameStr = StringUtils.join(siteNameList, ',');
 
         try {
-            commonPrecheck(siteIdList);
-        } catch (IllegalStateException e) {
+            // the site(s) to be paused must be checked as well
+            commonPrecheck();
+        } catch (APIException e) {
+            throw e;
+        } catch (Exception e) {
             throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNameStr, e.getMessage());
         }
 
@@ -770,12 +775,14 @@ public class DisasterRecoveryService {
         }
 
         try (InternalSiteServiceClient client = createInternalSiteServiceClient(standby)) {
-            commonPrecheck(uuid);
+            commonPrecheck();
 
             client.setCoordinatorClient(coordinator);
             client.setKeyGenerator(apiSignatureGenerator);
             client.resumePrecheck();
-        } catch (IllegalStateException e) {
+        } catch (APIException e) {
+            throw e;
+        } catch (Exception e) {
             throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(standby.getName(), e.getMessage());
         }
 
@@ -1442,10 +1449,10 @@ public class DisasterRecoveryService {
      */
     private void commonPrecheck(List<String> excludedSiteIds) {
         if (drUtil.isStandby()) {
-            throw new IllegalStateException("Operation is allowed on acitve site only");
+            throw APIException.badRequests.operationOnlyAllowedOnActiveSite();
         }
         if (!isClusterStable()) {
-            throw new IllegalStateException("Active site cluster state is not stable");
+            throw APIException.serviceUnavailable.clusterStateNotStable();
         }
 
         for (Site site : drUtil.listStandbySites()) {
@@ -1457,25 +1464,22 @@ public class DisasterRecoveryService {
                 continue;
             }
             int nodeCount = site.getNodeCount();
+
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
-            if (state != ClusterInfo.ClusterState.STABLE) {
-                log.error("Site {} is not stable {}", site.getUuid(), state);
-                throw new IllegalStateException(String.format("Site %s is not stable", site.getName()));
+            // state could be null
+            if (!ClusterInfo.ClusterState.STABLE.equals(state)) {
+                log.error("Site {} is not stable {}", site.getUuid(), Objects.toString(state));
+                throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), Objects.toString(state));
             }
         }
     }
 
     /**
-     * Wrapper for commonPrecheck that takes a single site instead of a list
+     * Wrapper for commonPrecheck that enforce precheck on all sites
      *
-     * @param excludedSiteId, site id to be excluded from the cluster state precheck, check all if set to null.
      */
-    private void commonPrecheck(String excludedSiteId) {
-        List<String> excludedSiteIds = new ArrayList<>();
-        if (excludedSiteId != null) {
-            excludedSiteIds.add(excludedSiteId);
-        }
-        commonPrecheck(excludedSiteIds);
+    private void commonPrecheck() {
+        commonPrecheck(new ArrayList<String>());
     }
 
     private Site validateSiteConfig(String uuid) {
@@ -1595,7 +1599,7 @@ public class DisasterRecoveryService {
         Site standby = null;
 
         if (drUtil.isStandby()) {
-            throw new IllegalStateException("Operation is allowed on acitve site only");
+            throw APIException.badRequests.operationOnlyAllowedOnActiveSite();
         }
 
         try {
@@ -1663,7 +1667,7 @@ public class DisasterRecoveryService {
 
         // show be only standby
         if (drUtil.isActiveSite()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Failover can't be executed in acitve site");
+            throw APIException.badRequests.operationNotAllowedOnActiveSite();
         }
 
         // Current site is stable
@@ -1675,7 +1679,7 @@ public class DisasterRecoveryService {
         }
 
         // this is standby site and NOT in ZK read-only or observer mode,
-        // it means acitve is down and local ZK has been reconfig to participant
+        // it means active is down and local ZK has been reconfig to participant
         CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
         String myNodeId = addrLookupMap.getNodeId();
         String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
@@ -1839,7 +1843,7 @@ public class DisasterRecoveryService {
         Site standby = null;
 
         if (drUtil.isStandby()) {
-            throw new IllegalStateException("Operation is allowed on acitve site only");
+            throw APIException.badRequests.operationOnlyAllowedOnActiveSite();
         }
 
         try {
@@ -1888,7 +1892,7 @@ public class DisasterRecoveryService {
 
     private void precheckForSwitchoverForLocalStandby() {
         if (!isClusterStable()) {
-            throw new IllegalStateException("Cluster is not stable");
+            throw APIException.serviceUnavailable.clusterStateNotStable();
         }
 
         Site currentSite = drUtil.getLocalSite();

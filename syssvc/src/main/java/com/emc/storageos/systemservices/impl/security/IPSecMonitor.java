@@ -36,6 +36,9 @@ public class IPSecMonitor implements Runnable {
     public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
     public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
 
+    private static final int NUMBER_OF_CHAR_IN_IPSEC_KEY_WITHOUT_MASK = 5;
+    private static final String MASKED_IPSEC_KEY = "*********";
+
     public ScheduledExecutorService scheduledExecutorService;
     private static ApplicationContext appCtx;
     
@@ -104,15 +107,13 @@ public class IPSecMonitor implements Runnable {
                 log.info("no latest ipsec properties found, skip following check steps");
                 return;
             }
-            log.info("latest ipsec properties: " + latest.toString());
-
 
             log.info("step 3: compare the latest ipsec properties with local, to determine if sync needed");
             if (isSyncNeeded(latest)) {
                 String latestKey = latest.get(Constants.IPSEC_KEY);
                 String latestStatus = latest.get(Constants.IPSEC_STATUS);
                 LocalRepository localRepository = LocalRepository.getInstance();
-                log.info("syncing latest properties to local: key=" + latestKey + ", status=" + latestStatus);
+                log.info("syncing latest properties to local: key=" + maskIpsecKey(latestKey) + ", status=" + latestStatus);
                 localRepository.syncIpsecKeyToLocal(latestKey);
                 localRepository.syncIpsecStatusToLocal(latestStatus);
                 log.info("reloading ipsec");
@@ -164,9 +165,9 @@ public class IPSecMonitor implements Runnable {
                 }
 
                 log.info("checking " + node + ": " + " configVersion=" + configVersion
-                    + ", ipsecKey=" + props.get(Constants.IPSEC_KEY)
+                    + ", ipsecKey=" + maskIpsecKey(props.get(Constants.IPSEC_KEY))
                     + ", ipsecStatus=" + props.get(Constants.IPSEC_STATUS)
-                    + ", latestKey=" + latest.get(Constants.IPSEC_KEY)
+                    + ", latestKey=" + maskIpsecKey(latest.get(Constants.IPSEC_KEY))
                     + ", latestStatus=" + latest.get(Constants.IPSEC_STATUS));
             }
         }
@@ -225,6 +226,12 @@ public class IPSecMonitor implements Runnable {
             GeoClientCacheManager geoClientMgr = getGeoClientManager();
             if (geoClientMgr != null) {
                 GeoServiceClient geoClient = geoClientMgr.getGeoClient(getVdcShortIdByIp(node));
+                String version = geoClient.getViPRVersion();
+                if (version.compareTo("vipr-2.5") < 0) {
+                    log.info("remote vdc version is less than 2.5, skip getting ipsec properties");
+                    return props;
+                }
+
                 VdcIpsecPropertiesResponse ipsecProperties = geoClient.getIpsecProperties();
                 if (ipsecProperties != null) {
                     props.put(IPSEC_KEY, ipsecProperties.getIpsecKey());
@@ -258,12 +265,17 @@ public class IPSecMonitor implements Runnable {
         Map<String, String> localIpsecProp = LocalRepository.getInstance().getIpsecProperties(localIP);
         String localKey = localIpsecProp.get(IPSEC_KEY);
         String localStatus = localIpsecProp.get(IPSEC_STATUS);
-        log.info("local ipsec properties: ipsecKey=" + localKey
+        log.info("local ipsec properties: ipsecKey=" + maskIpsecKey(localKey)
                 + ", ipsecStatus=" + localStatus
                 + ", vdcConfigVersion=" + localIpsecProp.get(VDC_CONFIG_VERSION));
 
         boolean bKeyEqual = false;
         boolean bStatusEqual = false;
+        
+        if (StringUtils.isEmpty(props.get(IPSEC_KEY))) {
+            log.info("remote nodes' latest ipsec_key is empty, skip sync");
+            return false;
+        }
 
         if (localKey == null && props.get(IPSEC_KEY) == null) {
             bKeyEqual = true;
@@ -315,5 +327,19 @@ public class IPSecMonitor implements Runnable {
         }
 
         return (int)(Long.parseLong(left) - Long.parseLong(right));
+    }
+
+    private String maskIpsecKey(String key) {
+        if (!StringUtils.isEmpty(key)) {
+            String maskedKey = "";
+            if (key.length() > NUMBER_OF_CHAR_IN_IPSEC_KEY_WITHOUT_MASK) {
+                maskedKey = key.substring(0, NUMBER_OF_CHAR_IN_IPSEC_KEY_WITHOUT_MASK - 1) + MASKED_IPSEC_KEY;
+            } else {
+                maskedKey = MASKED_IPSEC_KEY;
+            }
+            return maskedKey;
+        } else {
+            return key;
+        }
     }
 }

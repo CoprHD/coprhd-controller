@@ -63,9 +63,7 @@ class Host(object):
     '''
 
     def query_by_name(self, hostName, tenant=None):
-
         hostList = self.list_all(tenant)
-
         for host in hostList:
             hostUri = host['id']
             hostDetails = self.show_by_uri(hostUri)

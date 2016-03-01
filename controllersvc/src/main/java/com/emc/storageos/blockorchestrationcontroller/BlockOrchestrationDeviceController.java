@@ -26,11 +26,13 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPDeviceControll
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.ReplicaDeviceController;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVarrayChangeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeVpoolChangeTaskCompleter;
@@ -57,6 +59,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     static final String RESTORE_VOLUME_FROM_SNAPSHOT_WF_NAME = "RESTORE_VOLUME_FROM_SNAPSHOT_WORKFLOW";
     static final String CHANGE_VPOOL_WF_NAME = "CHANGE_VPOOL_WORKFLOW";
     static final String CHANGE_VARRAY_WF_NAME = "CHANGE_VARRAY_WORKFLOW";
+    static final String RESTORE_FROM_FULLCOPY_WF_NAME = "RESTORE_FROM_FULLCOPY_WORKFLOW";
 
     /*
      * (non-Javadoc)
@@ -164,6 +167,10 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Next, call the BlockDeviceController to add its methods.
             waitFor = _blockDeviceController.addStepsForDeleteVolumes(
                     workflow, waitFor, volumes, taskId);
+
+            // Next, call the BlockDeviceController to add post deletion methods.
+            waitFor = _blockDeviceController.addStepsForPostDeleteVolumes(
+                    workflow, waitFor, volumes, taskId, completer);
 
             // Call the VPlexDeviceController to add its post-delete methods.
             waitFor = _vplexDeviceController.addStepsForPostDeleteVolumes(
@@ -327,7 +334,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // CGs. Mainly used for VPLEX->RP+VPLEX change vpool. The existing VPLEX volume would not be
             // in any CG and we now need it's backing volume(s) to be added to their local array CG.
             waitFor = postRPChangeVpoolSteps(workflow, waitFor, volumes, taskId);
-            
+
             // Finish up and execute the plan.
             // The Workflow will handle the TaskCompleter
             String successMessage = "Change Virtual Pool suceeded for volumes: " + volURIs.toString();
@@ -569,5 +576,38 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         }
         s_logger.info("Releasing all workflow locks with owner: {}", workflow.getWorkflowURI());
         _workflowService.releaseAllWorkflowLocks(workflow);
+    }
+    
+    @Override
+    public void restoreFromFullCopy(URI storage, List<URI> fullCopyURIs, String taskId)
+            throws InternalException {
+        CloneRestoreCompleter completer = new CloneRestoreCompleter(fullCopyURIs, taskId);
+        try {
+            // Generate the Workflow.
+            Workflow workflow = _workflowService.getNewWorkflow(this,
+                    RESTORE_FROM_FULLCOPY_WF_NAME, true, taskId);
+            String waitFor = null;    // the wait for key returned by previous call
+
+            // First, call the RP controller to add RP steps for volume restore
+            waitFor = _rpDeviceController.addPreRestoreFromFullcopySteps(
+                    workflow, waitFor, storage, fullCopyURIs, taskId);
+
+            // Call the VplexDeviceController to add its steps for restore volume from snapshot
+            waitFor = _vplexDeviceController.addStepsForRestoreFromFullcopy(
+                    workflow, waitFor, storage, fullCopyURIs, taskId, completer);
+
+            // Call the RPDeviceController to add its steps for post restore volume from snapshot
+            waitFor = _rpDeviceController.addPostRestoreFromFullcopySteps(workflow, waitFor, storage, fullCopyURIs, taskId);
+
+            // Finish up and execute the plan.
+            // The Workflow will handle the TaskCompleter
+            String successMessage = "Restore from full copy completed successfully";
+            Object[] callbackArgs = new Object[] { new ArrayList<URI>(fullCopyURIs) };
+            workflow.executePlan(completer, successMessage, new WorkflowCallback(), callbackArgs, null, null);
+        } catch (Exception ex) {
+            s_logger.error("Could not restore volume: ", ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            completer.error(s_dbClient, _locker, serviceError);
+        }
     }
 }

@@ -28,8 +28,6 @@ import javax.cim.UnsignedInteger16;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.model.*;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,10 +35,28 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
@@ -85,7 +101,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVolumeExpandJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForGroupSynchronizedJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJob;
-import com.emc.storageos.volumecontroller.impl.utils.ConsistencyUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 
@@ -1069,8 +1085,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
             CIMObjectPath syncObject = null;
             if (storageSystem.deviceIsType(Type.vmax) &&
-                    ConsistencyUtils.isCloneInConsistencyGroup(targetObject.getId(), _dbClient)) {
-                String consistencyGroupName = _helper.getSourceConsistencyGroupName(sourceObj);
+                    ConsistencyGroupUtils.isCloneInConsistencyGroup(targetObject.getId(), _dbClient)) {
+                String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceObj, _dbClient);
                 String replicationGroupName = targetObject.getReplicationGroupInstance();
                 syncObject = _cimPath.getGroupSynchronizedPath(storageSystem, consistencyGroupName, replicationGroupName);
             } else {
@@ -1250,7 +1266,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _log.info("Adding Volumes to Consistency Group: {}", consistencyGroup.getId());
         try {
             // Check if the consistency group exists
-        	String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName);
+        	String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName, _dbClient);
             storage = findProviderFactory.withGroup(storage, groupName).find();
 
             if (storage == null) {
@@ -1284,9 +1300,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 final CIMObjectPath[] volumePaths = _cimPath.getVolumePaths(storage, memberNames);
                 boolean cgHasGroupRelationship = ControllerUtils.checkCGHasGroupRelationship(storage, consistencyGroup.getId(), _dbClient);
                 if (storage.deviceIsType(Type.vnxblock) || !cgHasGroupRelationship) {
-                    if (storage.deviceIsType(Type.vnxblock) && groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
+                    if (storage.deviceIsType(Type.vnxblock) && !consistencyGroup.getArrayConsistency()) {
                         // nothing need to be done on array side
-                        _log.info("VNX virtual replication group {}", groupName);
+                        _log.info("No array operation needed for VNX replication group {}", groupName);
                     } else {
                         final CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
                         final CIMArgument[] inArgs = _helper.getAddMembersInputArguments(cgPath, volumePaths);
@@ -1338,15 +1354,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             // In case of clone, 'replicationgroupinstance' property contains the Replication Group name.
             if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                 groupName = volume.getReplicationGroupInstance();
-                if (storage.deviceIsType(Type.vnxblock) && groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
-                    // nothing need to be done on array side
-                    _log.info("VNX virtual replication group {}", groupName);
-                    volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
-                    _dbClient.updateObject(volume);
-                    return;
-                }
             } else {
-                groupName = _helper.getSourceConsistencyGroupName(volume);
+                groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, _dbClient);
             }
 
             storage = findProviderFactory.withGroup(storage, groupName).find();
@@ -1401,7 +1410,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             volume.getNativeId(), cgPath.toString());
                 }
             } else {
-                _log.warn("The Consistency Group {} does not exist on the array.", cgPath);
+                _log.info("The replication group {} does not exist on the array.", cgPath);
             }
         } catch (Exception e) {
             _log.error("Problem making SMI-S call: ", e);
@@ -1464,7 +1473,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     private void cleanupAnyGroupBackupSnapshots(final StorageSystem storage, final Volume volume) {
         CloseableIterator<CIMObjectPath> settingsIterator = null;
         try {
-            String groupName = _helper.getSourceConsistencyGroupName(volume);
+            String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, _dbClient);
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
@@ -1597,9 +1606,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             }
 
-            if (forProvider.deviceIsType(Type.vnxblock) && groupName != null && groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
+            if (forProvider.deviceIsType(Type.vnxblock) && !consistencyGroup.getArrayConsistency()) {
                 // nothing need to be done on array side
-                _log.info("VNX virtual replication group {}", groupName);
+                _log.info("No array operation needed for VNX replication group {}", groupName);
             } else {
                 inArgs = _helper.getCreateReplicationGroupInputArguments(groupName);
                 CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
@@ -1619,7 +1628,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             } else {
                 consistencyGroup.addConsistencyGroupTypes(Types.LOCAL.name());
             }
-            if (NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
+            if (!consistencyGroup.isProtectedCG() && NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
                 consistencyGroup.setStorageController(storage.getId());
             }
             _dbClient.updateObject(consistencyGroup);
@@ -1669,7 +1678,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * @param storage StorageSystem
      * @param consistencyGroupId BlockConsistencyGroup URI
      * @param replicationGroupName name of the replication group to be deleted
-     * @param newReplicationGroupName String that used as group name in ViPR when existing group is deleted from storage system
+     * @param keepRGName Boolean if true, ViPR will keep group name for CG
      * @param markInactive True, if the user initiated removal of the BlockConsistencyGroup
      * @param taskCompleter TaskCompleter
 
@@ -1677,14 +1686,18 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      */
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, String newReplicationGroupName, Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
 
         ServiceError serviceError = null;
         URI systemURI = storage.getId();
-        BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+        BlockConsistencyGroup consistencyGroup = null;
 
         try {
-            if (consistencyGroup == null || consistencyGroup.getInactive()) {
+            if (consistencyGroupId != null) {
+                // cg id will be null when deleting replication groups created for CG full copy volumes
+                consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
+            }
+            if (replicationGroupName == null && (consistencyGroup == null || consistencyGroup.getInactive())) {
                 _log.info(String.format("%s is inactive or deleted", consistencyGroupId));
                 return;
             }
@@ -1714,6 +1727,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
             CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
+
             if (cgPathInstance != null) {
                 if (storage.deviceIsType(Type.vnxblock)) {
                     cleanupAnyGroupBackupSnapshots(storage, cgPath);
@@ -1727,13 +1741,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         outArgs);
             }
 
-            // Remove the replication group name from the SystemConsistencyGroup field
-            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), groupName);
-            if (newReplicationGroupName != null) {
-                consistencyGroup.addSystemConsistencyGroup(storage.toString(), newReplicationGroupName);
-                _dbClient.updateObject(consistencyGroup);
+            if (keepRGName || consistencyGroup == null) {
                 return;
             }
+
+            // Remove the replication group name from the SystemConsistencyGroup field
+            consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(), groupName);
 
             /*
              * Verify if the BlockConsistencyGroup references any LOCAL arrays.
@@ -1927,7 +1940,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (storageObj.deviceIsType(Type.vmax)) {
                 Volume clone = _dbClient.queryObject(Volume.class, targets.get(0));
                 Volume sourceVol = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
-                String consistencyGroupName = _helper.getSourceConsistencyGroupName(sourceVol);
+                String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVol, _dbClient);
                 String replicationGroupName = clone.getReplicationGroupInstance();
                 CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storageObj, consistencyGroupName, replicationGroupName);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisWaitForGroupSynchronizedJob(groupSynchronized,
@@ -2031,11 +2044,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 boolean createCG = false;
                 CIMObjectPath cgPath = null;
                 CIMInstance cgPathInstance = null;
-                boolean isVPlex = consistencyGroup.checkForType(Types.VPLEX);
-                String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName);
-                // If this is for VPlex, we would create backend consistency group if it does not exist yet.
-                if (!consistencyGroup.nameExistsForStorageSystem(storage.getId(), groupName)) {
-                    if (isVPlex) {
+                boolean isVPlexOrRP = consistencyGroup.checkForType(Types.VPLEX) || consistencyGroup.checkForType(Types.RP);
+                String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName, _dbClient);
+                // If this is for VPlex or RP, we would create backend consistency group if it does not exist yet.
+                if (!consistencyGroup.created(storage.getId(), groupName)) {
+                    if (isVPlexOrRP) {
                         createCG = true;
                         _log.info(String.format("No consistency group exists for the storage: %s", storage.getId()));
                     } else {
@@ -2047,7 +2060,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (!isSrdfTarget) {
                         StorageSystem storageSystem = findProviderFactory.withGroup(storage, groupName).find();
                         if (storageSystem == null) {
-                            if (isVPlex) {
+                            if (isVPlexOrRP) {
                                 _log.info(String.format("Could not find consistency group with the name: %s", groupName));
                                 createCG = true;
                             } else {
@@ -2059,7 +2072,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             forProvider = storageSystem;
                         }
                     }
-                    if (!createCG && !(storage.deviceIsType(Type.vnxblock) && groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG))) {
+                    if (!createCG && !(storage.deviceIsType(Type.vnxblock) && !consistencyGroup.getArrayConsistency())) {
                         cgPath = _cimPath.getReplicationGroupPath(forProvider, storage.getSerialNumber(), groupName);
                         cgPathInstance = _helper.checkExists(forProvider, cgPath, false, false);
                         // If there is no consistency group with the given name, set the
@@ -2079,9 +2092,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
                 }
 
-                if (storage.deviceIsType(Type.vnxblock) && groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG)) {
+                if (storage.deviceIsType(Type.vnxblock) && !consistencyGroup.getArrayConsistency()) {
                     // nothing need to be done on array side
-                    _log.info("VNX virtual replication group {}", groupName);
+                    _log.info("No array operation needed for VNX replication group {}", groupName);
                 } else {
                     CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
                     String[] blockObjectNames = _helper.getBlockObjectAlternateNames(volumes);
@@ -2287,7 +2300,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             final URI consistencyGroupId, final List<URI> blockObjects,
             final TaskCompleter taskCompleter) throws DeviceControllerException {
         
-        String groupName = null;
+        Set<String> groupNames = new HashSet<String>();
+        String grpName = null;
         
         try {
             // get the group name from one of the block objects; we expect all of them to be the same group
@@ -2295,13 +2309,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             while (itr.hasNext()) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, itr.next());
                 if (blockObject != null && !blockObject.getInactive() && !NullColumnValueGetter.isNullValue(blockObject.getReplicationGroupInstance())) {
-                    groupName = blockObject.getReplicationGroupInstance();
-                    break;
+                    groupNames.add(blockObject.getReplicationGroupInstance());
                 }
             }
             
             // Check if the replication group exists
-            if (groupName != null) {
+            for (String groupName : groupNames) {
+                grpName = groupName;
                 
                 storage = findProviderFactory.withGroup(storage, groupName).find();
     
@@ -2314,7 +2328,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 String[] blockObjectNames = _helper.getBlockObjectAlternateNames(blockObjects);
                 CIMObjectPath[] members = _cimPath.getVolumePaths(storage, blockObjectNames);
                 CIMArgument[] output = new CIMArgument[5];
-    
+                BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
+                        consistencyGroupId);
+
                 if (!storage.deviceIsType(Type.vnxblock) && ControllerUtils.checkCGHasGroupRelationship(storage, consistencyGroupId, _dbClient)) {
                     // remove from DeviceMaskingGroup
                     CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, groupName,
@@ -2324,12 +2340,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             members, storage, true);
                     _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
                             SmisConstants.REMOVE_MEMBERS, inArgs, output, null);
-                } else if (!(storage.deviceIsType(Type.vnxblock) && groupName.startsWith(SmisConstants.VNX_VIRTUAL_RG))) {
+                } else {
                     CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
                     CIMInstance cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
-                    // If there is no consistency group with the given name, log a warning and return success
+                    // If there is no replication group with the given name, return success
                     if (cgPathInstance == null) {
-                        _log.warn(String.format("no replication group with name %s exists on storage system %s", groupName, storage.getLabel()));
+                        _log.info(String.format("no replication group with name %s exists on storage system %s", groupName, storage.getLabel()));
                     } else {
                         CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
                         CIMArgument[] removeMembersInput = _helper.getRemoveMembersInputArguments(cgPath,
@@ -2338,21 +2354,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         _helper.invokeMethod(storage, replicationSvc, SmisConstants.REMOVE_MEMBERS,
                                 removeMembersInput, output);
                     }
-                } else {
-                    // nothing need to be done on array side
-                    _log.info("VNX virtual replication group {}", groupName);
                 }
             }
 
-            // Remove any references to the consistency group
-            for (URI blockObjectURI : blockObjects) {
-                BlockObject blockObject = BlockObject.fetch(_dbClient, blockObjectURI);
-                if (blockObject != null) {
-                    blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
-                    blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
-                }
-                _dbClient.updateObject(blockObject);
-            }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
             BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
@@ -2360,7 +2364,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             _log.error("Problem while removing volume from CG :{}", consistencyGroupId, e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup((consistencyGroup == null ? "unknown cg" : consistencyGroup.getLabel()),
-                            (groupName == null ? "unknown replication group" : groupName), e.getMessage()));
+                            (grpName == null ? "unknown replication group" : grpName), e.getMessage()));
         }
     }
 
@@ -2411,7 +2415,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     replicaObj.setConsistencyGroup(consistencyGroupId);
 
                     if (replicaObj instanceof BlockMirror) {
-                        String groupName = _helper.getSourceConsistencyGroupName(replicaObj);
+                        String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(replicaObj, _dbClient);
                         CIMObjectPath syncPath = _cimPath.getGroupSynchronizedPath(storage, groupName, replicationGroupName);
                         ((BlockMirror) replicaObj).setSynchronizedInstance(syncPath.toString());
                     } else if (replicaObj instanceof BlockSnapshot) {
@@ -2431,7 +2435,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (null != replicas && !replicas.isEmpty()) {
                 for (URI replicaURI : replicas) {
                     BlockObject blockObj = _dbClient.queryObject(BlockObject.class, replicaURI);
-                    blockObj.setReplicationGroupInstance(null);
+                    blockObj.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                     _dbClient.updateObject(blockObj);
                 }
             }
@@ -2473,7 +2477,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 }
             } else {
                 // nothing need to be done on VNX array side
-                _log.info("VNX virtual replication group {}", replicationGroupName);
+                _log.info("No array operation needed for VNX replication group {}", replicationGroupName);
             }
 
             // Remove any references to the consistency group
@@ -2483,6 +2487,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 if (blockObject != null) {
                     blockObject.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     blockObject.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                    // unset the Set name on clones
+                    if (blockObject instanceof Volume && NullColumnValueGetter.isNotNullValue(((Volume) blockObject).getFullCopySetName())) {
+                        ((Volume) blockObject).setFullCopySetName(NullColumnValueGetter.getNullStr());
+                    }
                     objectsToUpdate.add(blockObject);
                 }
             }
@@ -2501,9 +2509,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sourceURIs, URI remoteDirectorGroupURI,
-            boolean forceAdd, TaskCompleter completer) {
-        _srdfOperations.addVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, forceAdd, completer);
+    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sourceURIs, URI remoteDirectorGroupURI, TaskCompleter completer) {
+        _srdfOperations.addVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, completer);
     }
 
     @Override

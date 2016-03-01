@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.utils;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,9 @@ import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
  * 
  */
 public abstract class VirtualPoolValidator<C extends VirtualPoolCommonParam, U extends VirtualPoolUpdateParam> {
+    private StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
+            getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+
     protected Logger _logger = LoggerFactory.getLogger(VirtualPoolValidator.class);
     public static final String NONE = "NONE";
     protected VirtualPoolValidator _nextValidator;
@@ -108,4 +112,8 @@ public abstract class VirtualPoolValidator<C extends VirtualPoolCommonParam, U e
             C createParam, DbClient dbClient);
 
     protected abstract boolean isUpdateAttributeOn(U updateParam);
+
+    protected StorageDriverManager getStorageDriverManager() {
+        return storageDriverManager;
+    }
 }

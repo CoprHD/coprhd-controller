@@ -98,8 +98,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.google.common.collect.Collections2;
 
 @Path("/vdc/unmanaged")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
+        Role.RESTRICTED_SYSTEM_ADMIN })
 public class UnManagedVolumeService extends TaskResourceService {
     public static final String EVENT_SERVICE_TYPE = "block";
     public static final String EVENT_SERVICE_SOURCE = "UnManagedVolumeService";
@@ -108,8 +108,6 @@ public class UnManagedVolumeService extends TaskResourceService {
     public static final String AUTO_TIERING_NOT_CONFIGURED = "UnManaged Volume %s Auto Tiering Policy %s does not match"
             + " with the Policy %s in given vPool %s. Skipping Ingestion";
     public static final String INGESTION_SUCCESSFUL_MSG = "Successfully ingested volume.";
-    public static final DataObject.Flag[] INTERNAL_VOLUME_FLAGS = new DataObject.Flag[] {
-            Flag.INTERNAL_OBJECT, Flag.NO_PUBLIC_ACCESS, Flag.NO_METERING };
 
     private static BlockCGIngestDecorator volumeCGDecorator = null;
     private static BlockCGIngestDecorator vplexCGDecorator = null;
@@ -149,9 +147,9 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * Show the details of unmanaged volume.
-     * 
+     *
      * @param id the URN of a ViPR unmanaged volume
      * @prereq none
      * @brief Show unmanaged volume
@@ -174,9 +172,9 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * List data of specified unmanaged volumes.
-     * 
+     *
      * @param param
      *            POST data containing the id list.
      * @prereq none
@@ -217,7 +215,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      * /vdc/unmanaged/volumes/bulk. Using unsupported virtual pool would result in an error.
      * Size of unmanaged volumes which can be ingested via a single API Call is limited to
      * 4000.
-     * 
+     *
      * @param param
      *            parameters required for unmanaged volume ingestion
      * @prereq none
@@ -294,12 +292,15 @@ public class UnManagedVolumeService extends TaskResourceService {
                                 unManagedVolume.getLabel(), "check the logs for more details");
                     }
 
-                    requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
+                    requestContext.getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
-                    requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
-                    requestContext.getProcessedUnManagedVolumeMap().put(
-                            unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
+
+                    // Commit any ingested CG
+                    commitIngestedCG(requestContext, unManagedVolume);
+
+                    requestContext.getVolumeContext().commit();
+
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
@@ -315,26 +316,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                 TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
                 taskList.getTaskList().add(task);
                 taskMap.put(unManagedVolume.getId().toString(), taskId);
-
-                // Get the CG's created as part of the ingestion process
-                // Iterate through each CG & decorate its objects.
-                if (!requestContext.getCGObjectsToCreateMap().isEmpty()) {
-                    for (Entry<String, BlockConsistencyGroup> cgEntry : requestContext.getCGObjectsToCreateMap().entrySet()) {
-                        BlockConsistencyGroup cg = cgEntry.getValue();
-                        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
-                        Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
-                        _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
-                        rpCGDecorator.setDbClient(_dbClient);
-                        rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
-                    }
-                }
-                requestContext.getVolumeContext().commit();
-                persistConsistencyGroups(requestContext.getCGObjectsToCreateMap().values());
-                // Update UnManagedConsistencyGroups.
-                if (!requestContext.getUmCGObjectsToUpdate().isEmpty()) {
-                    _logger.info("updating {} unmanagedConsistencyGroups in db.");
-                    _dbClient.updateObject(requestContext.getUmCGObjectsToUpdate());
-                }
             }
 
             // update the task status
@@ -354,10 +335,10 @@ public class UnManagedVolumeService extends TaskResourceService {
                             VolumeIngestionUtil.VOLUME));
                     _logger.info("checking partial ingestion status of block object " + createdObject);
                     if ((null != createdObject)
-                            && (!createdObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) ||
-                            // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
-                            (createdObject instanceof Volume && ((Volume) createdObject).checkForRp() && ((Volume) createdObject)
-                                    .getProtectionSet() == null))
+                            && (!createdObject.checkInternalFlags(Flag.PARTIALLY_INGESTED) ||
+                                    // If this is an ingested RP volume in an uningested protection set, the ingest is successful.
+                                    (createdObject instanceof Volume && ((Volume) createdObject).checkForRp() && ((Volume) createdObject)
+                                            .getProtectionSet() == null))
                             ||
                             // If this is a successfully processed VPLEX backend volume, it will have the INTERNAL_OBJECT Flag
                             (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume) && createdObject
@@ -387,21 +368,24 @@ public class UnManagedVolumeService extends TaskResourceService {
                             IngestionException.exceptions.unmanagedVolumeIsNotVisible(unManagedVolume.getLabel(), taskMessage));
                 }
 
-                // Update the related objects if any after ingestion
-                List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
+                // Commit this volume's updated data objects if any after ingestion
+                List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
 
-                volumeContext.commit();
-
+                // Commit this volume's created data objects if any after ingestion
+                List<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
+                if (createdObjects != null && !createdObjects.isEmpty()) {
+                    _dbClient.createObject(createdObjects);
+                }
             }
 
-            _dbClient.createObject(requestContext.getObjectsToBeCreatedMap().values());
+            _dbClient.createObject(requestContext.getBlockObjectsToBeCreatedMap().values());
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
 
             // record the events after they have been persisted
-            for (BlockObject volume : requestContext.getObjectsToBeCreatedMap().values()) {
+            for (BlockObject volume : requestContext.getBlockObjectsToBeCreatedMap().values()) {
                 recordVolumeOperation(_dbClient, getOpByBlockObjectType(volume),
                         Status.ready, volume.getId());
             }
@@ -416,7 +400,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Persist the ConsistencyGroups in DB.
-     * 
+     *
      * @param cgsToPersist
      */
     private void persistConsistencyGroups(Collection<BlockConsistencyGroup> cgsToPersist) {
@@ -447,7 +431,7 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
-     * 
+     *
      * @param requestContext
      * @param taskMap
      */
@@ -491,22 +475,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 // TODO come up with a common response object to hold snaps/mirrors/clones
-                requestContext.getObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
+                requestContext.getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
                 requestContext.getProcessedUnManagedVolumeMap().put(
                         unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
-
-                // Get the CG's created as part of the ingestion process
-                // Iterate through each CG & decorate its objects.
-                if (!requestContext.getCGObjectsToCreateMap().isEmpty()) {
-                    for (Entry<String, BlockConsistencyGroup> cgEntry : requestContext.getCGObjectsToCreateMap().entrySet()) {
-                        BlockConsistencyGroup cg = cgEntry.getValue();
-                        Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
-                        Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
-                        _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
-                        rpCGDecorator.setDbClient(_dbClient);
-                        rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
-                    }
-                }
 
             } catch (APIException ex) {
                 _logger.warn("error: " + ex.getLocalizedMessage(), ex);
@@ -524,20 +495,11 @@ public class UnManagedVolumeService extends TaskResourceService {
 
             TaskResourceRep task = toTask(unManagedVolume, taskId, operation);
             taskMap.put(unManagedVolume.getId().toString(), task);
-
-            persistConsistencyGroups(requestContext.getCGObjectsToCreateMap().values());
-            // Update UnManagedConsistencyGroups.
-            if (!requestContext.getUmCGObjectsToUpdate().isEmpty()) {
-                _logger.info("updating {} unmanagedConsistencyGroups in db.");
-                _dbClient.updateObject(requestContext.getUmCGObjectsToUpdate());
-            }
-
-            requestContext.getVolumeContext().commit();
         }
     }
 
     /**
-     * 
+     *
      * @param requestContext
      * @param taskMap
      * @param exportIngestParam
@@ -558,12 +520,9 @@ public class UnManagedVolumeService extends TaskResourceService {
                             processedUnManagedVolume.getLabel(), "check the logs for more details");
                 }
 
-                URI storageSystemUri = processedUnManagedVolume.getStorageSystemUri();
-                StorageSystem system = requestContext.getStorageSystemCache().get(storageSystemUri.toString());
                 // Build the Strategy , which contains reference to Block object & export orchestrators
                 IngestExportStrategy ingestStrategy = ingestStrategyFactory.buildIngestExportStrategy(processedUnManagedVolume);
-                // TODO: get rid of exportIngestParam, deviceInitiators, others in requestContext
-                // when reducing params in the orchestrator interfaces
+
                 BlockObject blockObject = ingestStrategy.ingestExportMasks(processedUnManagedVolume,
                         processedBlockObject, requestContext);
                 if (null == blockObject) {
@@ -573,7 +532,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.getObjectsIngestedByExportProcessing().add(blockObject);
 
                 // If the ingested object is internal, flag an error. If it's an RP volume, it's exempt from this check.
-                if (blockObject.checkInternalFlags(Flag.NO_PUBLIC_ACCESS) &&
+                if (blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED) &&
                         !(blockObject instanceof Volume && ((Volume) blockObject).getRpCopyName() != null)) {
                     StringBuffer taskStatus = requestContext.getTaskStatusMap().get(processedUnManagedVolume.getNativeGuid());
                     String taskMessage = "";
@@ -596,12 +555,27 @@ public class UnManagedVolumeService extends TaskResourceService {
                                                                                                                                // props
                                                                                                                                // message
                 }
+
                 // Update the related objects if any after successful export mask ingestion
-                // Update the related objects if any after successful export mask ingestion
-                List<DataObject> updatedObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
+                List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     _dbClient.updateObject(updatedObjects);
                 }
+
+                // Create the related objects if any after successful export mask ingestion
+                List<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
+                if (createdObjects != null && !createdObjects.isEmpty()) {
+                    _dbClient.createObject(createdObjects);
+                }
+
+                if (requestContext.isExportGroupCreated()) {
+                    _dbClient.createObject(requestContext.getExportGroup());
+                } else {
+                    _dbClient.updateObject(requestContext.getExportGroup());
+                }
+
+                // If there is a CG involved in the ingestion, organize, pollenate, and commit.
+                commitIngestedCG(requestContext, volumeContext.getUnmanagedVolume());
 
                 volumeContext.commit();
 
@@ -622,21 +596,21 @@ public class UnManagedVolumeService extends TaskResourceService {
     /**
      * For each UnManaged Volume Find the list of masking views this volume
      * is exposed to.
-     * 
+     *
      * If only 1 masking view verify if all the initiators are available on
      * the existing MV. Verify the storage Ports are available in given
      * VArray Verify if this export mask is available already If not, then
      * create a new Export Mask with the storage Ports, initiators from
      * ViPr. Else, add volume to export mask.
-     * 
+     *
      * If more than 1 masking view verify if all the initiators are
      * available on all existing MVs. Verify the storage Ports within each
      * Masking view are available in given VArray. Verify if this export
      * mask is available already If not, then create a new Export Mask with
      * the storage Ports, initiators from ViPr. Else, add volume to export
      * mask.
-     * 
-     * 
+     *
+     *
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -649,7 +623,6 @@ public class UnManagedVolumeService extends TaskResourceService {
 
         BaseIngestionRequestContext requestContext = null;
         try {
-            ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
             if (exportIngestParam.getUnManagedVolumes().size() > getMaxBulkSize()) {
                 throw APIException.badRequests.exceedingLimit("unmanaged volumes", getMaxBulkSize());
             }
@@ -680,6 +653,13 @@ public class UnManagedVolumeService extends TaskResourceService {
                     _dbClient, exportIngestParam.getUnManagedVolumes(), vpool,
                     varray, project, tenant, exportIngestParam.getVplexIngestionMethod());
 
+            _logger.info("Ingestion of exported unmanaged volumes started....");
+
+            // First ingest the block objects
+            ingestBlockObjects(requestContext, taskMap);
+            _logger.info("Ingestion of unmanaged volumes ended....");
+
+            // find or create ExportGroup for this set of volumes being ingested
             URI exportGroupResourceUri = null;
             String resourceType = ExportGroupType.Host.name();
             String computeResourcelabel = null;
@@ -696,24 +676,17 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.setHost(exportIngestParam.getHost());
             }
 
-            ExportGroupNameGenerator gen = new ExportGroupNameGenerator();
-            String exportGroupLabel = gen.generate(null, computeResourcelabel, null, '_', 56);
             ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), exportGroupResourceUri,
                     varray.getId(), resourceType, _dbClient);
             if (null == exportGroup) {
-                _logger.info("Creating Export Group with label {}", exportGroupLabel);
+                _logger.info("Creating Export Group with label {}", computeResourcelabel);
+                ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
                 exportGroup = VolumeIngestionUtil.initializeExportGroup(project, resourceType, varray.getId(),
-                        exportGroupLabel, _dbClient, nameGenerator, tenant);
+                        computeResourcelabel, _dbClient, nameGenerator, tenant);
                 requestContext.setExportGroupCreated(true);
             }
 
             requestContext.setExportGroup(exportGroup);
-
-            _logger.info("Ingestion of exported unmanaged volumes started....");
-
-            // First ingest the block objects
-            ingestBlockObjects(requestContext, taskMap);
-            _logger.info("Ingestion of unmanaged volumes ended....");
 
             // next ingest the export masks for the unmanaged volumes which have been fully ingested
             _logger.info("Ingestion of unmanaged exportmasks started....");
@@ -756,8 +729,41 @@ public class UnManagedVolumeService extends TaskResourceService {
     }
 
     /**
-     * group initiators by Protocol
+     * Commit ingested consistency group
      * 
+     * @param requestContext request context
+     * @param unManagedVolume unmanaged volume to ingest against this CG
+     * @throws Exception
+     */
+    private void commitIngestedCG(IngestionRequestContext requestContext, UnManagedVolume unManagedVolume) throws Exception {
+
+        VolumeIngestionContext volumeContext = requestContext.getVolumeContext();
+
+        // Get the CG's created as part of the ingestion process
+        // Iterate through each CG & decorate its objects.
+        if (!volumeContext.getCGObjectsToCreateMap().isEmpty()) {
+            for (Entry<String, BlockConsistencyGroup> cgEntry : volumeContext.getCGObjectsToCreateMap().entrySet()) {
+                BlockConsistencyGroup cg = cgEntry.getValue();
+                Collection<BlockObject> allCGBlockObjects = VolumeIngestionUtil.getAllBlockObjectsInCg(cg, requestContext);
+                Collection<String> nativeGuids = transform(allCGBlockObjects, fctnBlockObjectToNativeGuid());
+                _logger.info("Decorating CG {} with blockObjects {}", cgEntry.getKey(), nativeGuids);
+                rpCGDecorator.setDbClient(_dbClient);
+                rpCGDecorator.decorate(cg, unManagedVolume, allCGBlockObjects, requestContext);
+            }
+        }
+
+        persistConsistencyGroups(volumeContext.getCGObjectsToCreateMap().values());
+
+        // Update UnManagedConsistencyGroups.
+        if (!volumeContext.getUmCGObjectsToUpdate().isEmpty()) {
+            _logger.info("updating {} unmanagedConsistencyGroups in db.");
+            _dbClient.updateObject(volumeContext.getUmCGObjectsToUpdate());
+        }
+    }
+
+    /**
+     * group initiators by Protocol
+     *
      * @param iniStrList
      * @param dbClient
      * @return
@@ -783,7 +789,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Record volume related event and audit
-     * 
+     *
      * @param dbClient
      *            db client
      * @param opType
@@ -815,7 +821,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Generate and Record a Bourne volume specific event
-     * 
+     *
      * @param dbClient
      * @param evtType
      * @param status
@@ -824,7 +830,7 @@ public class UnManagedVolumeService extends TaskResourceService {
      */
     public void recordBourneVolumeEvent(DbClient dbClient,
             String evtType, Operation.Status status, String desc, URI id)
-            throws Exception {
+                    throws Exception {
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
         BlockObject blockObject = null;
@@ -854,7 +860,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Return the OperationTypeEnum based on the volume type.
-     * 
+     *
      * @param blockObj
      * @return
      */

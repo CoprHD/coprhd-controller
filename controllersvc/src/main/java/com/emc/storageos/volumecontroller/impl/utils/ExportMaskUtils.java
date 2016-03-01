@@ -17,6 +17,8 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.net.util.IPAddressUtil;
+
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.db.client.DbClient;
@@ -60,8 +62,6 @@ import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.google.common.base.Strings;
 import com.google.common.collect.Collections2;
 
-import sun.net.util.IPAddressUtil;
-
 public class ExportMaskUtils {
     private static final Logger _log = LoggerFactory.getLogger(ExportMaskUtils.class);
 
@@ -72,12 +72,12 @@ public class ExportMaskUtils {
      * This method is not suitable for VNX/VMAX because an ExportGroup can now have multiple
      * ExportMasks for the same Storage System (one for each different host).
      * It is still used for VPlex.
-     * 
+     *
      * @param exportGroup export mask belongs to this export group
      * @param sdUri export mask is on this storage system
      * @return
      * @throws DatabaseException
-     * 
+     *
      */
     public static ExportMask getExportMask(DbClient dbClient, ExportGroup exportGroup, URI sdUri)
             throws DatabaseException {
@@ -102,7 +102,7 @@ public class ExportMaskUtils {
 
     /**
      * Returns a list of ExportMasks from an ExportGroup that are for a specified storage-system.
-     * 
+     *
      * @param dbClient - database client.
      * @param exportGroup - the ExportGroup to be examined
      * @param ssysURI - the StorageSystem URI; if NULL returns ALL ExportMasks
@@ -129,7 +129,7 @@ public class ExportMaskUtils {
 
     /**
      * Returns all ExportMasks in an ExportGroup.
-     * 
+     *
      * @param dbClient
      * @param exportGroup
      * @return
@@ -140,15 +140,14 @@ public class ExportMaskUtils {
 
     /**
      * Find all export groups that are referencing the export mask
-     * 
+     *
      * @param dbClient db client
      * @param exportMask export mask
      * @return list of export groups referring to the export mask
      */
     public static List<ExportGroup> getExportGroups(DbClient dbClient, ExportMask exportMask) {
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint
-                .Factory.getExportMaskExportGroupConstraint(exportMask.getId()), exportGroupURIs);
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getExportMaskExportGroupConstraint(exportMask.getId()), exportGroupURIs);
         List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
         for (URI egURI : exportGroupURIs) {
             ExportGroup exportGroup = dbClient.queryObject(ExportGroup.class, egURI);
@@ -184,7 +183,7 @@ public class ExportMaskUtils {
 
     /**
      * Return all initiators, existing and user added, associated with this mask.
-     * 
+     *
      * @param dbClient db client
      * @param mask export mask
      * @return set of initiator URIs
@@ -209,7 +208,7 @@ public class ExportMaskUtils {
 
     /**
      * Returns all Initiators of the specified Transport type in the ExportMask.
-     * 
+     *
      * @param dbClient
      * @param exportMask -- ExportMask to be examined
      * @param transportType Transport enum typically Transport.FC
@@ -237,7 +236,7 @@ public class ExportMaskUtils {
     /**
      * Get the Initiators that correspond to the addresses in an ExportMask existingInitiators
      * field. (These will have no entries in ExportMask.initiators.)
-     * 
+     *
      * @param dbClient -- Database client.
      * @param exportMask -- An existing ExportMask
      * @param transportType -- Transport type, e.g. FC
@@ -267,7 +266,7 @@ public class ExportMaskUtils {
 
     /**
      * Return all the StoragePorts in an ExportMask of a specificed Transport type.
-     * 
+     *
      * @param dbClient
      * @param exportMask
      * @param transportType
@@ -294,7 +293,7 @@ public class ExportMaskUtils {
 
     /**
      * Return the StoragePort ids for an Export Mask of a specificed Transport type.
-     * 
+     *
      * @param dbClient
      * @param exportMask
      * @param transportType
@@ -312,7 +311,7 @@ public class ExportMaskUtils {
 
     /**
      * Create an export mask object. The actual mask is created at the array by the controller service.
-     * 
+     *
      * @param dbClient db client
      * @param exportGroup export group
      * @param sdUri storage device ID
@@ -354,11 +353,11 @@ public class ExportMaskUtils {
     /**
      * Generate a name for the export mask based on the initiators sent in.
      * If there are no initiators, just use the generated export group name.
-     * 
+     *
      * It needs to be guaranteed that initiators in the list all belong to
      * one host.
-     * 
-     * 
+     *
+     *
      * @param dbClient database handle
      * @param initiators initiators that are going to be used
      * @param exportGroup export group to get generated name from
@@ -430,16 +429,16 @@ public class ExportMaskUtils {
         if (!Strings.isNullOrEmpty(cluster) && Strings.isNullOrEmpty(host)) {
             cluster = String.format("%s_%s", cluster, lastDigitsOfSerialNo);
         }
-    
+
         String alternateName = (cluster == null && host == null) ? exportGroup.getLabel() : null;
-        
+
         return nameGenerator.generate(cluster, host, alternateName);
     }
 
     /**
      * Fetches an ExportMask from the database. Returns null if not found or
      * if inactive.
-     * 
+     *
      * @param dbClient
      * @param exportMaskURI
      * @return ExportMask object
@@ -455,7 +454,7 @@ public class ExportMaskUtils {
 
     /**
      * Returns a list of all the Volumes in an ExportMask
-     * 
+     *
      * @param exportMask
      * @return
      */
@@ -480,11 +479,11 @@ public class ExportMaskUtils {
         boolean rp = false;
         for (Initiator initiator : initiators) {
             String host = initiator.getHostName();
-            
+
             if (initiator.checkInternalFlags(Flag.RECOVERPOINT)) {
                 rp = true;
             }
-            
+
             if (host != null) {
                 hosts.add(host);
             }
@@ -508,10 +507,10 @@ public class ExportMaskUtils {
         }
 
         // In the case of RP, we want the naming defaults to use the cluster name as the hostname.
-        // This assumes: 
+        // This assumes:
         // 1. initiator list is all RP initiators
         // 2. cluster name is filled-in in each initiator
-        // 3. Default custom naming is being used 
+        // 3. Default custom naming is being used
         if (rp && clusters.iterator().hasNext()) {
             host = clusters.iterator().next();
         }
@@ -523,8 +522,8 @@ public class ExportMaskUtils {
      * Create and initialize the ExportMask. To do this we:
      * 1. Create and persist the ExportMask.
      * 2. Save our targets and exportMaskURI in the ExportGroupCreateData.
-     * 
-     * 
+     *
+     *
      * @param storage - Storage System
      * @param exportGroup - ExportGroup object this ExportMask will apply to
      * @param initiators - Initiator objects pointing to initiators for this mask
@@ -540,7 +539,7 @@ public class ExportMaskUtils {
             StorageSystem storage, ExportGroup exportGroup,
             List<Initiator> initiators, Map<URI, Integer> volumeMap,
             List<URI> targets, Map<URI, List<URI>> zoneAssignments, String maskName, DbClient dbClient)
-            throws Exception {
+                    throws Exception {
         if (maskName == null) {
             maskName = ExportMaskUtils.getMaskName(dbClient, initiators, exportGroup, storage);
         }
@@ -580,9 +579,13 @@ public class ExportMaskUtils {
             T volume, Set<String> unManagedInitiators, String nativeId,
             List<Initiator> userAddedInis, DbClient dbClient,
             Map<String, Integer> wwnToHluMap)
-            throws Exception {
-        ExportMask exportMask = ExportMaskUtils.createExportMask(dbClient, exportGroup,
-                storage.getId(), maskName);
+                    throws Exception {
+
+        ExportMask exportMask = new ExportMask();
+        exportMask.setId(URIUtil.createId(ExportMask.class));
+        exportMask.setMaskName(maskName);
+        exportMask.setStorageDevice(storage.getId());
+
         String resourceRef;
         if (exportGroup.getType() != null) {
             if (exportGroup.getType().equals(ExportGroup.ExportGroupType.Cluster.name())) {
@@ -610,7 +613,7 @@ public class ExportMaskUtils {
         exportMask.addToUserCreatedInitiators(userAddedInis);
 
         // if the block object is marked as internal, then add to existing volumes of the mask
-        if (volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)) {
+        if (volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
             _log.info("Block object {} is marked internal. Adding to existing volumes of the mask {}", volume.getNativeGuid(),
                     exportMask.getMaskName());
             String hlu = ExportGroup.LUN_UNASSIGNED_STR;
@@ -623,15 +626,13 @@ public class ExportMaskUtils {
             exportMask.removeFromExistingVolumes(volume);
         }
 
-        Integer hlu = wwnToHluMap.get(volume.getWWN()) != null ? 
-                wwnToHluMap.get(volume.getWWN()) : ExportGroup.LUN_UNASSIGNED;
+        Integer hlu = wwnToHluMap.get(volume.getWWN()) != null ? wwnToHluMap.get(volume.getWWN()) : ExportGroup.LUN_UNASSIGNED;
         exportMask.addVolume(volume.getId(), hlu);
         exportMask.setNativeId(nativeId);
 
         // need to sync up all remaining existing volumes
         exportMask.addToExistingVolumesIfAbsent(wwnToHluMap);
 
-        dbClient.updateAndReindexObject(exportMask);
         // Update the FCZoneReferences if zoning is enables for the varray
         updateFCZoneReferences(exportGroup, volume, zoneInfoMap, initiators, dbClient);
         return exportMask;
@@ -648,7 +649,7 @@ public class ExportMaskUtils {
     /**
      * Given zoneInfoMap stored in an UnManagedExportMask, create a zone map for the
      * initiators in the list.
-     * 
+     *
      * @param zoneInfoMap zoneInfoMap stored from a UnManagedExportMask
      * @param initiators a list of initiators for which the zone map should created
      * @return a zone map of initiator-uri-to-list-of-ports-uris
@@ -670,7 +671,7 @@ public class ExportMaskUtils {
 
     /**
      * Create FCZoneReference objects to the list of zoneInfoMap.
-     * 
+     *
      * @param volume the FCZoneReference volume
      * @param exportGroup the FCZoneReference export group
      * @param zoneInfoMap the zone info maps
@@ -692,7 +693,7 @@ public class ExportMaskUtils {
 
     /**
      * Creates an instance of FCZoneReference
-     * 
+     *
      * @param info the zone info containing the zone, its network,
      *            its network system, ...
      * @param initiator the zone initiator
@@ -717,7 +718,7 @@ public class ExportMaskUtils {
 
     /**
      * Adds the volumes, initiators, and targets to an ExportMask.
-     * 
+     *
      * @param exportMask
      * @param volumeMap
      * @param initiators
@@ -745,7 +746,7 @@ public class ExportMaskUtils {
 
     /**
      * Returns a StringSetMap containing the Initiator to StoragePort URIs from zoning assignments.
-     * 
+     *
      * @param assignments Map<URI, List<URI>> of zoning assignments.
      * @return StringSetMap with same information encoded as
      */
@@ -783,7 +784,7 @@ public class ExportMaskUtils {
     /**
      * This method will take a URI and return alternateName for the BlockObject object to which the
      * URI applies.
-     * 
+     *
      * @param uri
      *            - URI
      * @return Returns a nativeId String value
@@ -880,7 +881,7 @@ public class ExportMaskUtils {
      * Method returns a mapping of ExportMask URIs to a Map of Volume URIs to Integers.
      * The Mapping of Volume URIs to Integers represents how many ExportGroups that the
      * volume belongs to.
-     * 
+     *
      * @param dbClient [in] - DbClient for accessing DB
      * @param volumeURIs [in] - List of volume URIs to check
      * @param initiatorURIs [in] - List of Initiator URIs
@@ -917,7 +918,7 @@ public class ExportMaskUtils {
     /**
      * Sorts export masks by eligibility.
      * For instance, less utilized export masks will be listed before more utilized ones.
-     * 
+     *
      * @param maskSet list of export masks
      * @return list of sorted export masks
      */
@@ -943,7 +944,7 @@ public class ExportMaskUtils {
     /**
      * Determine if the ExportMask is "in" a given Varray.
      * This is determined by if all the target ports are tagged for for the Varray.
-     * 
+     *
      * @param exportMask -- ExportMask
      * @param varrayURI -- Varray URI
      * @return -- true if ExportMask in given Varray
@@ -955,7 +956,7 @@ public class ExportMaskUtils {
         List<URI> targetURIs = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
         List<StoragePort> ports = dbClient.queryObject(StoragePort.class, targetURIs);
         for (StoragePort port : ports) {
-            if (port.getTaggedVirtualArrays() == null 
+            if (port.getTaggedVirtualArrays() == null
                     || !port.getTaggedVirtualArrays().contains(varrayURI.toString())) {
                 return false;
             }
@@ -965,7 +966,7 @@ public class ExportMaskUtils {
 
     /**
      * Filter the volumeMap to only contain the desired includedVolumes.
-     * 
+     *
      * @param volumeMap -- Map of volumes to LUN ids
      * @param includedVolumes -- Set of included volumes
      * @return -- Filter volumeMap containing only the includedVolumes
@@ -983,7 +984,7 @@ public class ExportMaskUtils {
 
     /**
      * Filters a volume list to only those in the ExportMask.volumes
-     * 
+     *
      * @param volumeURIs -- list of Volume URIs
      * @param exportMask -- ExportMask
      * @return List<URI> of volume URIs filtered
@@ -1002,7 +1003,7 @@ public class ExportMaskUtils {
      * Routine will examine the ExportMask and determine if any of its initiators or volumes no
      * longer exist in the database or are marked as inactive. If so, they will get removed
      * from the list.
-     * 
+     *
      * @param dbClient [in] - DbClient object
      * @param exportMask [in] - ExportMask object to check and sanitize
      */
@@ -1068,7 +1069,7 @@ public class ExportMaskUtils {
      * but the ExportMask and FCZoneReferences in ViPR need to be updated. Note that the only
      * time a co-exist initiator can be removed is by actually deleting this initiator in ViPR.
      * This means all references will need to be deleted.
-     * 
+     *
      * @param dbModelClient an instance of DbModelClient
      * @param exportMaskUri the export mask being updates
      * @param initiatorsUris the ids of the initiators being removed.
@@ -1113,7 +1114,7 @@ public class ExportMaskUtils {
      * if all initiators do not belong to a host. This effectively checks if all
      * initiators are for an RP or vplex system because the host id is set to
      * null for these initiators.
-     * 
+     *
      * @param initiators a list of initiators.
      * @return true if all initiators have a null host id.
      */
@@ -1131,7 +1132,7 @@ public class ExportMaskUtils {
 
     /**
      * Find a set of ExportMasks to which the given Initiators belong.
-     * 
+     *
      * @param dbClient [IN] - For accessing DB
      * @param initiators [IN] - List of initiators to search for among the ExportMasks found in the DB.
      * @return HashMap of ExportMask URI to ExportMask object (Using HashMap, since URI is Comparable)
@@ -1157,4 +1158,61 @@ public class ExportMaskUtils {
         return exportMasksWithInitiator;
     }
 
+    /**
+     * Compare the ExportMask's volumes with a map containing the latest discovered volumes. Return a map of volumes
+     * that are new.
+     * 
+     * @param mask [IN] - ExportMask to check
+     * @param discoveredVolumes [IN] - Map of Volume WWN to Integer HLU representing discovered volumes.
+     * @return Map of Volume WWN (normalized) to Integer HLU representing new volumes, which do not exist in the ExportMask.
+     */
+    public static Map<String, Integer> diffAndFindNewVolumes(final ExportMask mask, final Map<String, Integer> discoveredVolumes) {
+        Map<String, Integer> volumesToAdd = new HashMap<>();
+        // Iterate through the volume WWNs
+        for (String volumeWWN : discoveredVolumes.keySet()) {
+            Integer hlu = discoveredVolumes.get(volumeWWN);
+            // Normalize the WWN, so that we can look it up in the ExportMask
+            String normalizedWWN = BlockObject.normalizeWWN(volumeWWN);
+            if (!mask.hasExistingVolume(normalizedWWN) && !mask.hasUserCreatedVolume(normalizedWWN)) {
+                // https://coprhd.atlassian.net/browse/COP-18518. If the HLU is null, then it's possible that some
+                // other process just added the volume to the ExportMask, but the HLU selection by the array has
+                // not completed. In that case, we won't indicate that the volume is added just yet.
+                // That other process should add the volume and its HLU in the ExportMask addVolume post process.
+                if (hlu != null) {
+                    volumesToAdd.put(normalizedWWN, hlu);
+                } else {
+                    _log.info("Volume {} does not have an HLU. It could be getting assigned.", normalizedWWN);
+                }
+            }
+        }
+        return volumesToAdd;
+    }
+
+    /**
+     * Routine returns the ExportMask by name from the DB that is associated with the StorageSystem.
+     * Inactive ExportMasks are ignored.
+     *
+     * @param dbClient [IN] - DbClient to access DB
+     * @param storageSystemId [IN] - StorageSystem URI against which to search the ExportMask name
+     * @param name [IN] - Name of ExportMask to lookup
+     * @return ExportMask object where its storageDevice = storageSystemId and maskName = name.
+     *         Returns null if not found.
+     */
+    public static ExportMask getExportMaskByName(DbClient dbClient, URI storageSystemId, String name) {
+        ExportMask exportMask = null;
+        URIQueryResultList uriQueryList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getExportMaskByNameConstraint(name), uriQueryList);
+        while (uriQueryList.iterator().hasNext()) {
+            URI uri = uriQueryList.iterator().next();
+            exportMask = dbClient.queryObject(ExportMask.class, uri);
+            if (exportMask != null && !exportMask.getInactive() &&
+                    exportMask.getStorageDevice().equals(storageSystemId)) {
+                // We're expecting there to be only one export mask of a
+                // given name for any storage array.
+                break;
+            }
+        }
+        return exportMask;
+    }
 }

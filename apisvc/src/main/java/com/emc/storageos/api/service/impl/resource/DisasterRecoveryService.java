@@ -1536,7 +1536,10 @@ public class DisasterRecoveryService {
 
         checkSupportedIPForAttachStandby(standby);
         
-        // check NAT
+        checkNATForAttachStandby(viprCoreClient);
+    }
+
+    private void checkNATForAttachStandby(ViPRCoreClient viprCoreClient) {
         DualInetAddress inetAddress = coordinator.getInetAddessLookupMap().getDualInetAddress();
         String ipv4 = inetAddress.getInet4();
         String ipv6 = inetAddress.getInet6();

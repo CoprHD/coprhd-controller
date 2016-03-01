@@ -530,7 +530,6 @@ def put_bucket_acl_parser(subcommand_parsers, common_parser):
                                 required=True)
     put_bucket_acl_parser.add_argument('-permissions', '-perm',
                                     dest='permissions',
-                                    choices=["execute","delete","write","read","privileged_write","full_control","read_acl","write_acl","none"],
                                     metavar='<permissions>',
                                     help='Provide permission(s) for Acl with pipe delimited. example: execute|delete|write')
     put_bucket_acl_parser.add_argument('-tenant', '-tn',

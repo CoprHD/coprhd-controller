@@ -34,8 +34,8 @@ public class BlockConsistencyGroupUtils {
      * group name.
      */
     private static final String SPLITTER = ":";
-    public static final String CLUSTER_1 = "cluster1";
-    public static final String CLUSTER_2 = "cluster2";
+    public static final String CLUSTER_1 = "cluster-1";
+    public static final String CLUSTER_2 = "cluster-2";
 
     /**
      * Parses out the cluster name from the combined cluster/cg name.
@@ -155,9 +155,10 @@ public class BlockConsistencyGroupUtils {
      * @param vplexSystem The VPlex storage system.
      * @param clusterName The VPlex cluster name.
      * @param cgName The consistency group name.
+     * @param isDistributed True if the check if for a Dist CG.
      * @return true if the VPlex consistency group has been created, false otherwise.
      */
-    public static boolean isVplexCgCreated(BlockConsistencyGroup cg, String vplexSystem, String clusterName, String cgName) {
+    public static boolean isVplexCgCreated(BlockConsistencyGroup cg, String vplexSystem, String clusterName, String cgName, boolean isDistributed) {
         boolean vplexCgCreated = false;
 
         if (cg.getSystemConsistencyGroups() == null) {
@@ -166,8 +167,15 @@ public class BlockConsistencyGroupUtils {
 
         StringSet clusterCgNames = cg.getSystemConsistencyGroups().get(vplexSystem);
         if (clusterCgNames != null && !clusterCgNames.isEmpty()) {
-            String clusterCgName = buildClusterCgName(clusterName, cgName);
-            vplexCgCreated = clusterCgNames.contains(clusterCgName);
+            if (isDistributed) {
+                String cluster1CgName = buildClusterCgName(CLUSTER_1, cgName);
+                String cluster2CgName = buildClusterCgName(CLUSTER_2, cgName);
+                vplexCgCreated = clusterCgNames.contains(cluster1CgName)
+                                    || clusterCgNames.contains(cluster2CgName);
+            } else {
+                String clusterCgName = buildClusterCgName(clusterName, cgName);
+                vplexCgCreated = clusterCgNames.contains(clusterCgName);
+            }
         }
 
         return vplexCgCreated;

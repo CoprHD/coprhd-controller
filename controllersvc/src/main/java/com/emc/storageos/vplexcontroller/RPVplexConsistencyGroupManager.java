@@ -202,7 +202,7 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
                 boolean isDistributed = elems[2].equals("dist");
 
                 // Verify that the VPlex CG has been created for this VPlex system and cluster.
-                if (!BlockConsistencyGroupUtils.isVplexCgCreated(cg, vplexURI.toString(), clusterName, cgName)) {
+                if (!BlockConsistencyGroupUtils.isVplexCgCreated(cg, vplexURI.toString(), clusterName, cgName, isDistributed)) {
                     createVplexCG(vplexSystem, client, cg, firstVplexVolume, cgName, clusterName, isDistributed);
                 } else {
                     modifyCGSettings(client, cgName, clusterName, isDistributed);
@@ -367,42 +367,43 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
      * @throws Exception
      */
     @Override
-    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, BlockConsistencyGroup cg) throws Exception {
-        
-        String vplexClusterForVolume = VPlexControllerUtils.getVPlexClusterName(dbClient, vplexVolume);
-        StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
-        
+    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, BlockConsistencyGroup cg) 
+            throws Exception {
+        ClusterConsistencyGroupWrapper clusterConsistencyGroup = new ClusterConsistencyGroupWrapper();
         String vplexCgName = null;
-        
+        // Find the correct VPLEX cluster for this volume
+        String vplexCluster = VPlexControllerUtils.getVPlexClusterName(dbClient, vplexVolume);
+        // Determine if the volume is distributed
         boolean distributed = false;
+        StringSet assocVolumes = vplexVolume.getAssociatedVolumes();                
         if (assocVolumes.size() > 1) {            
             distributed = true;
         }
-        
-        log.info("Find correct VPLEX CG for volume: " + vplexVolume.getLabel());
-        
-        ClusterConsistencyGroupWrapper clusterConsistencyGroup = new ClusterConsistencyGroupWrapper();
-        
-
+        // Keep a reference to the VPLEX
         URI vplexURI = vplexVolume.getStorageController();
-
+        
+        log.info(String.format("Find correct VPLEX CG for VPLEX %s volume [%s](%s) at cluster-%s on VPLEX (%s)", 
+                (distributed ? "distribitued" : "local"), vplexVolume.getLabel(), 
+                vplexVolume.getId(), vplexCluster, vplexURI));
+                                
         // Check to see if the CG name already exists...
         // First: Let's try to see if the CG value has been populated on the volume
         // Second: Manually try and line up the CG name from the ViPR CG to the VPLEX CGs
         if (NullColumnValueGetter.isNotNullValue(vplexVolume.getReplicationGroupInstance())) {              
             vplexCgName = BlockConsistencyGroupUtils.fetchCgName(vplexVolume.getReplicationGroupInstance());
-            log.info("CG name already set on volume: " + vplexCgName);
+            log.info(String.format("CG name already set on volume: %s", vplexCgName));
         } else if (cg.created(vplexURI)) {
             log.info("CG already exists on VPLEX, but we need to figure out the correct one to use...");
             List<String> validVPlexCGsForCluster = new ArrayList<String>();
-            
+
+            // Extract all the CG names for the VPLEX
+            // These names are in the format of: cluster-1:cgName or cluster-2:cgName
             StringSet cgNames = cg.getSystemConsistencyGroups().get(vplexURI.toString());
             
+            // Iterate over the names to line up with the cluster
             Iterator<String> cgNamesIter = cgNames.iterator();
             while (cgNamesIter.hasNext()) {          
-                String clusterCgName = cgNamesIter.next();
-                log.info("Found CG for VPLEX - " + clusterCgName);
-                
+                String clusterCgName = cgNamesIter.next();                
                 String cluster = BlockConsistencyGroupUtils.fetchClusterName(clusterCgName);
                 String cgName = BlockConsistencyGroupUtils.fetchCgName(clusterCgName);
                 
@@ -411,13 +412,11 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
                 // NOTE: A distributed CG lives on both clusters 1 and 2 so we can't
                 //       narrow down the CGs based on cluster so we need all CGs.
                 //       We will narrow this down afterwards for distributed.
-                if (vplexClusterForVolume.equals(cluster) || distributed) {
-                    log.info("Valid CG for cluster - " + cgName);
+                if (vplexCluster.equals(cluster) || distributed) {
                     validVPlexCGsForCluster.add(cgName);
                 }
             }
             
-  
             // Get the API client.
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, dbClient);
             VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
@@ -426,40 +425,22 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
             // This is not ideal but we need to call the VPlex client to fetch all consistency
             // groups so we can find the exact one we are looking for.
             List<VPlexConsistencyGroupInfo> vplexCGs = client.getConsistencyGroups();
+            log.info("Iterating over returned VPLEX CGs to find the one we should use...");
             for (VPlexConsistencyGroupInfo vplexCG : vplexCGs) {
-                log.info("Iterating VPLEX CG - " + vplexCG.getName());
-                boolean cgNameFound = validVPlexCGsForCluster.contains(vplexCG.getName());
-                
-                if (!cgNameFound) {
-                    for (String conGroName : validVPlexCGsForCluster) {
-                        log.info("Checking [" + conGroName + "] equals [" + vplexCG.getName() +"]");
-                        if (conGroName.equalsIgnoreCase(vplexCG.getName())) {
-                            log.info("FFS!!");
-                            cgNameFound = true;
-                        }
-                    }
-                }
-                
-                boolean volumeFound = vplexCG.getVirtualVolumes().contains(vplexVolume.getDeviceLabel());       
-                log.info("cgNameFound - " + cgNameFound);
-                log.info("volumeFound - " + volumeFound);
+                boolean cgNameFound = validVPlexCGsForCluster.contains(vplexCG.getName());   
+                boolean volumeFound = vplexCG.getVirtualVolumes().contains(vplexVolume.getDeviceLabel());
+                // The CG Names will match or we might find the volume in the VPLEX CG,
+                // either way it's valid.
                 if (cgNameFound || volumeFound) {
-                    log.info("Volume: " + vplexVolume.getLabel());
-                    boolean one = (distributed && vplexCG.isDistributed());
-                    vplexCG.getType();
-                    if (!one) {
-                        log.info("one - WAS FALSE, check again... ");
-                        one = (vplexCG.getVisibility().size() > 1);
-                        log.info("one - " + one);
-                        one = one && distributed;
-                    }
-                    boolean two = (!distributed && !vplexCG.isDistributed());
-                    log.info("one - " + one);
-                    log.info("two - " + two);
-//                   if ((distributed && vplexCG.isDistributed())
-//                           || (!distributed && !vplexCG.isDistributed())) {
-                    if (one || two) {
-                       log.info("Found correct VPLEX CG - " + vplexCG.getName());
+                    // Determine if the VPLEX CG is distributed.
+                    // NOTE: VPlexConsistencyGroupInfo.isDistributed() is not returning
+                    //       the correct information. This is probably due to teh fact that
+                    //       visibleClusters is not being returned in the response.
+                    //       Instead we are checking getStorageAtClusters().size(). 
+                    boolean vplexCGIsDistributed = (vplexCG.getStorageAtClusters().size() > 1);                    
+                    if ((distributed && vplexCGIsDistributed)
+                            || (!distributed && !vplexCGIsDistributed)) {                    
+                       log.info(String.format("Found correct VPLEX CG: %s", vplexCG.getName()));
                        vplexCgName = vplexCG.getName();
                        break;
                    } 
@@ -467,17 +448,21 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
             }                                   
         }  
         
-        if (vplexCgName == null) {
+        // If the CG name is still null at this point, we will create it.
+        // The format for VPLEX distributed: cgName-dist
+        // The format for VPLEX local: cgName-vplexCluster
+        if (vplexCgName == null) {            
             // If we do not have a VPLEX CG name it's time to create one.
             if (distributed) {
                 // Add '-dist' to the end of the CG name for distributed consistency groups.
                 vplexCgName = cg.getLabel() + "-dist";
             } else {
-                vplexCgName = cg.getLabel() + "-" + vplexClusterForVolume;
-            }                            
+                vplexCgName = cg.getLabel() + "-" + vplexCluster;
+            }
+            log.info(String.format("There was no existing VPLEX CG, created CG name: %s", vplexCgName));
         }
         
-        clusterConsistencyGroup.setClusterName(vplexClusterForVolume);
+        clusterConsistencyGroup.setClusterName(vplexCluster);
         clusterConsistencyGroup.setCgName(vplexCgName);
         clusterConsistencyGroup.setDistributed(distributed);
 

@@ -86,6 +86,7 @@ public class RecoverPointImageManagementUtils {
 			} else {
 				logger.info("Not waiting on any link states, proceeding with the operation");
 			}
+			
 
             if (bookmarkName == null) {
                 // Time based enable

@@ -79,7 +79,6 @@ import com.emc.fapiclient.ws.RpoPolicy;
 import com.emc.fapiclient.ws.SnapshotGranularity;
 import com.emc.fapiclient.ws.SnapshotShippingMode;
 import com.emc.fapiclient.ws.SnapshotShippingPolicy;
-import com.emc.fapiclient.ws.StorageAccessState;
 import com.emc.fapiclient.ws.SyncReplicationThreshold;
 import com.emc.fapiclient.ws.SystemStatistics;
 import com.emc.fapiclient.ws.UserVolumeSettings;
@@ -662,8 +661,7 @@ public class RecoverPointClient {
     				functionalAPI.addJournalVolume(copyUID, journalDevice);        		
     			}    			
     		}
-    	}
-    	catch (FunctionalAPIActionFailedException_Exception e) {
+        } catch (FunctionalAPIActionFailedException_Exception e) {
     		if (!addedJournalVolumes.isEmpty()) {
     			try {
     				for (Map.Entry<ConsistencyGroupCopyUID, DeviceUID> journalVolume : addedJournalVolumes.entrySet()) {
@@ -1433,7 +1431,8 @@ public class RecoverPointClient {
                 try {
                     String cgCopyName = functionalAPI.getGroupCopyName(copy.getCGGroupCopyUID());
                     String cgName = functionalAPI.getGroupName(copy.getCGGroupCopyUID().getGroupUID());
-                    if (!imageManager.verifyCopyCapableOfEnableImageAccess(functionalAPI, copy.getCGGroupCopyUID(), request.getBookmark(), false)) {
+                    if (!imageManager.verifyCopyCapableOfEnableImageAccess(functionalAPI, copy.getCGGroupCopyUID(), request.getBookmark(),
+                            false)) {
                         logger.info("Copy " + cgCopyName + " of group " + cgName + " is in a mode that disallows enabling the CG copy.");
                         throw RecoverPointException.exceptions.notAllowedToEnableImageAccessToCG(
                                 cgName, cgCopyName);
@@ -1461,7 +1460,6 @@ public class RecoverPointClient {
         return response;
     }
     
-
     /**
      * Disables copy images for one or more consistency group copies
      *
@@ -1588,7 +1586,8 @@ public class RecoverPointClient {
                 Set<RPCopy> copies = rpcg.getCopies();
                 for (RPCopy copy : copies) {
                     // For restore, just wait for link state of the copy being restored                	
-                    imageManager.waitForCGLinkState(functionalAPI, copy.getCGGroupCopyUID().getGroupUID(), RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, rpcg.getCGUID()));
+                    imageManager.waitForCGLinkState(functionalAPI, copy.getCGGroupCopyUID().getGroupUID(),
+                            RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, rpcg.getCGUID()));
                     boolean waitForLinkState = false;
                     imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS,
                             request.getBookmark(), request.getAPITTime());
@@ -1616,6 +1615,7 @@ public class RecoverPointClient {
 
     /**
      * Given an RP site, return a map of all the RP initiator WWNs for each RPA in that site.  
+     * 
      * @param internalSiteName - RP internal site name
      * @return Map of RPA number to Map with portWWN being the key and nodeWWN the value.
      * @throws RecoverPointException
@@ -1683,6 +1683,7 @@ public class RecoverPointClient {
                         String volUID = RecoverPointUtils.getGuidBufferAsString(uvSettings.getVolumeInfo().getRawUids(), false);
                         if (volUID.toLowerCase(Locale.ENGLISH).equalsIgnoreCase(volumeWWN)) {
                             ConsistencyGroupUID cgID = uvSettings.getGroupCopyUID().getGroupUID();
+                            ConsistencyGroupState state = functionalAPI.getGroupState(cgID);
                             List<ConsistencyGroupCopyUID> productionCopiesUIDs = functionalAPI.getGroupSettings(cgID)
                                     .getProductionCopiesUIDs();
                             String cgName = cgSettings.getName();
@@ -1694,6 +1695,15 @@ public class RecoverPointClient {
                             protectionInfo.setRpVolumeRSetID(rsSettings.getReplicationSetUID().getId());
                             protectionInfo.setRpVolumeWWN(volumeWWN);
                             if (RecoverPointUtils.isProductionCopy(uvSettings.getGroupCopyUID(), productionCopiesUIDs)) {
+                                if (RecoverPointUtils.isStandbyProductionCopy(uvSettings.getGroupCopyUID(), state, productionCopiesUIDs)) {
+                                    // In the case of MetroPoint, we will have 2 production copies for the same volume (active and standby).
+                                    // We want to always match on the active production copy. If this is a MetroPoint CG, skip over the
+                                    // standby production copy.
+                                    logger.info(String
+                                            .format("Found production volume %s on copy %s.  Skipping because it is not the active production copy.",
+                                                    volumeWWN, cgCopyName));
+                                    continue;
+                                }
                                 logger.info("Production volume: " + volumeWWN + " is on copy " + cgCopyName + " of CG " + cgName);
                                 protectionInfo
                                         .setRpVolumeCurrentProtectionStatus(RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE);
@@ -1836,7 +1846,8 @@ public class RecoverPointClient {
             }
             // Make sure the CG is ready
             RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();            
-            imageManager.waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
+            imageManager
+                    .waitForCGLinkState(functionalAPI, cgUID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgUID));
             logger.info("Protection enabled on CG copy " + cgCopyName + " on CG " + cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableProtection(
@@ -2689,7 +2700,25 @@ public class RecoverPointClient {
             response.setName(rsetSettings.getReplicationSetName());
             response.setConsistencyGroupUID(cgID);
             response.setVolumes(new ArrayList<CreateRSetVolumeParams>());
+
+            ConsistencyGroupState state = functionalAPI.getGroupState(cgID);
+            ConsistencyGroupSettings cgSettings = functionalAPI.getGroupSettings(cgID);
+            // Get the standby production copy (if one exists). In the case of MetroPoint,
+            // we must ignore the standby copy device when getting the replication set. Including
+            // the standby copy during replication set re-creation will throw an exception
+            // because it has the same device ID as the active copy device.
+            ConsistencyGroupCopyUID standbyProdCopy = RecoverPointUtils.getStandbyProductionCopy(cgSettings, state);
+
             for (UserVolumeSettings volumeSettings : rsetSettings.getVolumes()) {
+                if (standbyProdCopy != null
+                        && RecoverPointUtils.cgCopyEqual(volumeSettings.getGroupCopyUID(), standbyProdCopy)) {
+                    // This is the standby production copy so ignore it.
+                    String standyCopyName = functionalAPI.getGroupCopyName(volumeSettings.getGroupCopyUID());
+                    logger.info(String
+                            .format("Ignoring volume %s at standby copy %s to avoid duplicate device IDs in replication set reconstruction for MetroPoint.",
+                                    volumeSettings.getVolumeInfo().getVolumeName(), standyCopyName));
+                    continue;
+                }
                 CreateRSetVolumeParams volumeParams = new CreateRSetVolumeParams();
                 volumeParams.setDeviceUID(volumeSettings.getVolumeInfo().getVolumeID());
                 volumeParams.setConsistencyGroupCopyUID(volumeSettings.getGroupCopyUID());
@@ -2788,6 +2817,7 @@ public class RecoverPointClient {
     
     /**
      * Returns true if repSetUID is already contained in rsetUids list. 
+     * 
      * @param rsetUids List of ReplicationSet UIDs
      * @param repSetUID ReplicationSet UID to check if it is contained in the rsetUids list.
      * @return
@@ -2807,6 +2837,7 @@ public class RecoverPointClient {
      * 
      * If we still see the RSet(s) being returned, wait and try again until max attempts is
      * reached.
+     * 
      * @param resetIDsToValidate The RSet IDs to check that they have been removed from RP
      * @param cgToValidate The CG UID to check
      * @param volumeWWNs The WWNs of the source volumes to delete, used for exceptions
@@ -2816,7 +2847,8 @@ public class RecoverPointClient {
             throws RecoverPointException {        
         try {            
             String cgName = functionalAPI.getGroupName(cgToValidate);
-            logger.info(String.format("Validating that all requested RSets have been removed from RP CG [%s] (%d)", cgName, cgToValidate.getId()));
+            logger.info(String.format("Validating that all requested RSets have been removed from RP CG [%s] (%d)", cgName,
+                    cgToValidate.getId()));
             int rsetDeleteAttempt = 0;
             while (rsetDeleteAttempt < MAX_WAIT_FOR_RP_DELETE_ATTEMPTS) {
                 boolean allRSetsDeleted = true;

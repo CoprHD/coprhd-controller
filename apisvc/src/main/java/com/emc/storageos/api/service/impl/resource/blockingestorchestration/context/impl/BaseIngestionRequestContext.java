@@ -618,10 +618,8 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         // then we will do a deep dive and see if there are any created object maps
         // nested below (for example, for vplex backend or recover point ingestion)
         if (blockObject == null) {
-            _logger.info("a block object for native GUID {} wasn't found at the top, digging deeper...", nativeGuid);
             VolumeIngestionContext currentVolumeContext = getVolumeContext();
             if (currentVolumeContext instanceof IngestionRequestContext) {
-                _logger.info("looking for block object with native GUID {} in the current volume context...", nativeGuid);
                 blockObject = ((IngestionRequestContext) currentVolumeContext).getBlockObjectsToBeCreatedMap().get(nativeGuid);
                 if (blockObject != null) {
                     _logger.info("\tfound block object: " + blockObject.forDisplay());
@@ -631,11 +629,8 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         }
 
         if (blockObject == null){
-            _logger.info("a block object for native GUID {} still not found, checking all volume contexts...", nativeGuid);
             for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
                 if (volumeContext instanceof IngestionRequestContext) {
-                    _logger.info("the volume context for {} also contains created objects, searching...", 
-                            volumeContext.getUnmanagedVolume().getNativeGuid());
                     blockObject = ((IngestionRequestContext) volumeContext).getBlockObjectsToBeCreatedMap().get(nativeGuid);
                     if (blockObject != null) {
                         _logger.info("\tfound block object: " + blockObject.forDisplay());
@@ -669,10 +664,8 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             }
         }
 
-        _logger.info("a block object for uri {} wasn't found at the top, digging deeper...", uri);
         VolumeIngestionContext currentVolumeContext = getVolumeContext();
         if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
-            _logger.info("looking for block object with uri {} in the current volume context...", uri);
             for (BlockObject bo : ((IngestionRequestContext) currentVolumeContext).getBlockObjectsToBeCreatedMap().values()) {
                 if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
                     _logger.info("\tfound block object: " + bo.forDisplay());
@@ -681,7 +674,6 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             }
         }
 
-        _logger.info("a block object for uri {} still not found, checking all volume contexts...", uri);
         for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
             if (volumeContext instanceof IngestionRequestContext) {
                 for (BlockObject bo : ((IngestionRequestContext) volumeContext).getBlockObjectsToBeCreatedMap().values()) {
@@ -910,9 +902,17 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
                 }
             }
         }
-        
+
+        _logger.info("found {} new ExportMask(s): " + newExportMasks);
         return newExportMasks;
     }
 
-    
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
+     */
+    @Override
+    public IngestionRequestContext getRootIngestionRequestContext() {
+        return this;
+    }
+
 }

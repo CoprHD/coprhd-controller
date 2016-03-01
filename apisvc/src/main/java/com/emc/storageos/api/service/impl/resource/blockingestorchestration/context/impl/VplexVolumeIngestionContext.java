@@ -121,6 +121,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public void commit() {
 
+        _logger.info("persisting VPLEX backend for virtual volume " + getUnmanagedVolume().forDisplay());
         setFlags();
         createVplexMirrorObjects();
         _dbClient.createObject(getCreatedVplexMirrors());
@@ -1109,4 +1110,13 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     public List<ExportMask> findAllNewExportMasks() {
         return _parentRequestContext.findAllNewExportMasks();
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
+     */
+    @Override
+    public IngestionRequestContext getRootIngestionRequestContext() {
+        return _parentRequestContext;
+    }
+
 }

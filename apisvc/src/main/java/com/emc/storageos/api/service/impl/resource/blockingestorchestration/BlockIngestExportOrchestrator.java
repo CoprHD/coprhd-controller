@@ -152,19 +152,20 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     itr.remove();
                     continue;
                 }
+
                 _logger.info("looking for an existing export mask for " + unManagedExportMask.getMaskName());
                 ExportMask exportMask = getExportMaskAlreadyIngested(unManagedExportMask, _dbClient);
-                
+
                 if (null != exportMask) {
                     // check if mask has already been loaded
                     DataObject loadedExportMask = requestContext.findInUpdatedObjects(exportMask.getId());
-                    
+
                     if (loadedExportMask != null) {
                         exportMask = (ExportMask) loadedExportMask;
                     }
                 } else {
                     // check if mask has already been created
-                    exportMask = getExportMaskAlreadyCreated(unManagedExportMask, requestContext);
+                    exportMask = getExportMaskAlreadyCreated(unManagedExportMask, requestContext.getRootIngestionRequestContext());
                     
                     if (exportMask == null) {
                         _logger.info("\tno mask found");

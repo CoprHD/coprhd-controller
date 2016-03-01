@@ -231,6 +231,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public void commit() {
 
+        _logger.info("persisting RecoverPoint backend for volume " + getUnmanagedVolume().forDisplay());
+
         // commit the basic IngestionRequestContext collections
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
         _dbClient.createObject(getBlockObjectsToBeCreatedMap().values());
@@ -893,4 +895,13 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     public List<ExportMask> findAllNewExportMasks() {
         return _parentRequestContext.findAllNewExportMasks();
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
+     */
+    @Override
+    public IngestionRequestContext getRootIngestionRequestContext() {
+        return _parentRequestContext;
+    }
+
 }

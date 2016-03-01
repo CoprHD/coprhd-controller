@@ -394,4 +394,6 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType);
 
     public List<ExportMask> findAllNewExportMasks();
+
+    public IngestionRequestContext getRootIngestionRequestContext();
 }

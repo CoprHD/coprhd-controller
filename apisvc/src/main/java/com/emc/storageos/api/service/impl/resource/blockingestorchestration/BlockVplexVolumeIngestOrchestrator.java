@@ -526,12 +526,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                                 blockObjectNativeGuid, createdBlockObject.getLabel());
                     }
                 } else {
-                    _logger.info("setting createdObjectMap key {} with blockObject {}", 
-                            blockObjectNativeGuid, blockObject.forDisplay());
                     createdObjectMap.put(blockObjectNativeGuid, blockObject);
                 }
-
-                _logger.info("createdObjectMap is " + createdObjectMap);
 
                 backendRequestContext.getProcessedUnManagedVolumeMap().put(associatedVolume.getNativeGuid(),
                         backendRequestContext.getVolumeContext());
@@ -586,9 +582,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             String createdObjectGuid = unManagedVolumeGUID.replace(
                     VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-            _logger.info("createdObjectGuid is " + createdObjectGuid);
+
             BlockObject processedBlockObject = backendRequestContext.getBlockObjectsToBeCreatedMap().get(createdObjectGuid);
-            _logger.info("backendRequestContext.getBlockObjectsToBeCreatedMap() is " + backendRequestContext.getBlockObjectsToBeCreatedMap());
 
             if (processedBlockObject == null) {
                 String reason = "The ingested block object is null. Skipping ingestion of export masks.";
@@ -646,7 +641,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                     // find or create the backend export group
                     ExportGroup exportGroup = this.findOrCreateExportGroup(
-                            requestContext, associatedSystem, initiators,
+                            backendRequestContext.getRootIngestionRequestContext(), associatedSystem, initiators,
                             virtualArray.getId(), backendRequestContext.getBackendProject().getId(),
                             backendRequestContext.getTenant().getId(), DEFAULT_BACKEND_NUMPATHS, uem);
                     if (null == exportGroup.getId()) {

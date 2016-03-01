@@ -21,6 +21,7 @@ import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
@@ -33,10 +34,12 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
@@ -45,6 +48,7 @@ import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.smis.SMISProviderRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
+import com.emc.storageos.model.storagesystem.types.StorageSystemTypeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.DecommissionedResourceRep;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
@@ -428,6 +432,29 @@ public class SystemsMapper {
         to.setNativeGuid(from.getNativeGuid());
         to.setType(from.getType());
         to.setUser(from.getUser());
+        return to;
+    }
+    
+    public static StorageSystemTypeRestRep map(StorageSystemType from, StorageSystemTypeRestRep to) {
+        if (from == null) {
+            return null;
+        }
+        
+        to.setStorageSystemTypeName(from.getStorageTypeName());
+        to.setStorageType(from.getStorageType());
+        to.setIsSmiProvider(from.getIsSmiProvider());
+        return to;
+    }
+    
+    public static StorageSystemTypeRestRep map(StorageSystemType from) {
+        if (from == null) {
+            return null;
+        }
+        
+        StorageSystemTypeRestRep to = new StorageSystemTypeRestRep();
+        to.setStorageSystemTypeName(from.getStorageTypeName());
+        to.setStorageType(from.getStorageType());
+        to.setIsSmiProvider(from.getIsSmiProvider());
         return to;
     }
 }

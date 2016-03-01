@@ -5,7 +5,7 @@ package com.emc.storageos.db.client.model;
  */
 @SuppressWarnings("serial")
 @Cf("StorageSystemTypes")
-public class StorageSystemTypes extends DataObject {
+public class StorageSystemType extends DataObject {
 	// Name of Storage Type, like VMAX, VNX, Isilion
 	private String storageTypeName;
 
@@ -13,7 +13,7 @@ public class StorageSystemTypes extends DataObject {
 	private String storageType;
 
 	// Storage array is directly manage by CoprHD or thru SMI: Providers
-	private Boolean isSmiProvider;
+	private Boolean isSmiProvider = false;
 
 	@Name("storageTypeName")
 	public String getStorageTypeName() {
@@ -44,5 +44,9 @@ public class StorageSystemTypes extends DataObject {
 		this.isSmiProvider = isSmiProvider;
 		setChanged("isSmiProvider");
 	}
+	
+    public static enum StorageType {
+        block, file, object
+    }
 
 }

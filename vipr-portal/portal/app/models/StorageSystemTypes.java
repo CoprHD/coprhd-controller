@@ -29,6 +29,7 @@ public class StorageSystemTypes {
     public static final String XTREMIO = "xtremio";
     public static final String DATA_DOMAIN = "datadomain";
     public static final String ECS = "ecs";
+    
     public static final String STORAGE_PROVIDER_VMAX = "STORAGE_PROVIDER.vmax";
     public static final String STORAGE_PROVIDER_HITACHI = "STORAGE_PROVIDER.hds";
     public static final String STORAGE_PROVIDER_VPLEX = "STORAGE_PROVIDER.vplex";

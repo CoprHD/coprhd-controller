@@ -80,6 +80,7 @@ public enum ResourceTypeEnum {
     COMPUTE_IMAGESERVER("compute_imageserver", "/compute/imageservers"),
     BLOCK_SNAPSHOT_SESSION("block_snapshot_session", "/block/snapshot-sessions"),
     SCHEDULE_POLICY("schedule_policy", "/schedule-policies"),
+    STORAGE_SYSTEM_TYPE("storage_system_type", "/storage/storagesystemtypes"),
     OBJECT_NAMESPACE("object_namespaces", "/vdc/object-namespaces");
     
 

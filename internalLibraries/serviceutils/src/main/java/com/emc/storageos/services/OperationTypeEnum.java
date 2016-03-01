@@ -480,6 +480,8 @@ public enum OperationTypeEnum {
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
+    ADD_STORAGE_SYSTEM_TYPE("ADD STORAGE SYSTEM TYPE", "", "operation to initiate adding a new storage system type"),
+    REMOVE_STORAGE_SYSTEM_TYPE("REMOVE STORAGE SYSTEM TYPE", "", "operation to initiate removing a storage system type"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 
     private final String _evType;

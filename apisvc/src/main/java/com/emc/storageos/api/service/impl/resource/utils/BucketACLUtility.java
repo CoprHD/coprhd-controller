@@ -576,15 +576,17 @@ public class BucketACLUtility {
         }
 
         String userOrGroupOrCustomGroup = requestAcl.getUser();
+        String type = "user";
 
         if (userOrGroupOrCustomGroup == null) {
             userOrGroupOrCustomGroup = requestAcl.getGroup() != null ? requestAcl
                     .getGroup() : requestAcl.getCustomGroup();
+            type = requestAcl.getGroup() != null ? "group" : "customgroup";
         }
 
         // Construct ACL Index
         StringBuffer aclIndex = new StringBuffer();
-        aclIndex.append(this.bucketId).append(domainOfReqAce.toLowerCase()).append(userOrGroupOrCustomGroup.toLowerCase());
+        aclIndex.append(this.bucketId).append(domainOfReqAce.toLowerCase()).append(userOrGroupOrCustomGroup.toLowerCase()).append(type);
 
         acl = this.queryACLByIndex(aclIndex.toString());
 

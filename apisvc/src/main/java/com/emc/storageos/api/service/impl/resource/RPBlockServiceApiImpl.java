@@ -3757,23 +3757,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 if (backingVolumes != null) {
                     for (String backingVolId : backingVolumes) {
                         Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                        if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
+                        if (backingVol != null && !backingVol.getInactive()
+                                && NullColumnValueGetter.isNotNullValue(backingVol.getReplicationGroupInstance())) {
                             groupNames.add(backingVol.getReplicationGroupInstance());
                         }
                     }
                 }
-            } else if (volume.getReplicationGroupInstance() != null) {
+            } else if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                 groupNames.add(volume.getReplicationGroupInstance());
-            } else {
-                StringSet backingVolumes = volume.getAssociatedVolumes();
-                if (backingVolumes != null) {
-                    for (String backingVolId : backingVolumes) {
-                        Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                        if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
-                            groupNames.add(backingVol.getReplicationGroupInstance());
-                        }
-                    }
-                }
             }
         }
         return groupNames;

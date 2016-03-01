@@ -431,7 +431,7 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
     
-    <bean id="storageSystemTypesService" class="com.emc.storageos.api.service.impl.resource.StorageSystemTypesService">
+    <bean id="storageSystemTypeService" class="com.emc.storageos.api.service.impl.resource.StorageSystemTypeService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
@@ -493,7 +493,7 @@
                 <ref bean="ipInterfaceService"/>
                 <ref bean="customConfigService"/>
                 <ref bean="volumeGroupService"/>
-                <ref bean="storageSystemTypesService"/>
+                <ref bean="storageSystemTypeService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.MeteringService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>

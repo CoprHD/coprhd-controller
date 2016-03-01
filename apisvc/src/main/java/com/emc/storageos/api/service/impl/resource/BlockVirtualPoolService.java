@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
+ * Copyright 2012 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -29,18 +42,19 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.volumecontroller.AttributeMatcher;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
+import com.emc.storageos.api.service.impl.resource.cinder.QosService;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.QosSpecification;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -77,6 +91,7 @@ import com.emc.storageos.model.vpool.VirtualPoolPoolUpdateParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionMirrorParam;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionVirtualArraySettingsParam;
 import com.emc.storageos.model.vpool.VirtualPoolRemoteProtectionVirtualArraySettingsParam;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -84,6 +99,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.security.geo.GeoServiceClient;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitUnManagedObjectsMatcher;
@@ -179,7 +195,6 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         List<VpoolProtectionVarraySettings> protectionSettings = new ArrayList<VpoolProtectionVarraySettings>();
         Map<URI, VpoolProtectionVarraySettings> protectionSettingsMap = new HashMap<URI, VpoolProtectionVarraySettings>();
         VirtualPool vpool = prepareVirtualPool(param, remoteSettingsMap, protectionSettingsMap, protectionSettings);
-
         // Set the underlying protection setting objects
         if (!protectionSettings.isEmpty()) {
             _dbClient.createObject(protectionSettings);
@@ -187,15 +202,18 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         if (!remoteSettingsMap.isEmpty()) {
             _dbClient.createObject(new ArrayList(remoteSettingsMap.values()));
         }
-
         // update the implicit pools matching with this VirtualPool.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(vpool, _dbClient, _coordinator);
         Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
+        Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient);
         }
 
         _dbClient.createObject(vpool);
+
+        // Creates a new QoS object in DB based on data from given Virtual Pool
+        QosService.createQosSpecification(vpool, _dbClient);
 
         recordOperation(OperationTypeEnum.CREATE_VPOOL, VPOOL_CREATED_DESCRIPTION, vpool);
         return toBlockVirtualPool(_dbClient, vpool, VirtualPool.getProtectionSettings(vpool, _dbClient),
@@ -229,6 +247,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         List<StoragePool> matchedPools = ImplicitPoolMatcher.getMatchedPoolWithStoragePools(vpool, allPools,
                 protectionSettingsMap,
                 remoteSettingsMap,
+                null,
                 _dbClient, _coordinator, AttributeMatcher.VPOOL_MATCHERS);
         for (StoragePool pool : matchedPools) {
             poolList.getPools().add(toNamedRelatedResource(pool, pool.getNativeGuid()));
@@ -386,6 +405,9 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             throw APIException.badRequests.providedVirtualPoolNotCorrectType();
         }
 
+        // Get the QoS for the VirtualPool, otherwise throw exception.
+        QosSpecification qosSpecification = QosService.getQos(vpool.getId(), _dbClient);
+
         URIQueryResultList resultList = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(id), resultList);
@@ -405,6 +427,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
         // set common VirtualPool update parameters here.
         populateCommonVirtualPoolUpdateParams(vpool, param);
         if (null != param.getSystemType()) {
+            if (vpool.getArrayInfo() == null) {
+                vpool.setArrayInfo(new StringSetMap());
+            }
+            
             if (vpool.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                 for (String systemType : vpool.getArrayInfo().get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
                     vpool.getArrayInfo().remove(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, systemType);
@@ -412,7 +438,7 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             }
 
             if (!(VirtualPool.SystemType.NONE.name().equalsIgnoreCase(param.getSystemType())
-            || VirtualPool.SystemType.isBlockTypeSystem(param.getSystemType()))) {
+                    || VirtualPool.SystemType.isBlockTypeSystem(param.getSystemType()))) {
                 throw APIException.badRequests.invalidSystemType("Block");
             }
 
@@ -499,7 +525,8 @@ public class BlockVirtualPoolService extends VirtualPoolService {
 
         if (null != vpool.getMatchedStoragePools() || null != vpool.getInvalidMatchedPools()) {
             Set<URI> allSrdfTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
-            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, _dbClient);
+            Set<URI> allRpTargetVPools = RPHelper.fetchRPTargetVirtualPools(_dbClient);
+            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedVolumes(vpool, allSrdfTargetVPools, allRpTargetVPools, _dbClient);
         }
 
         // Validate Mirror Vpool
@@ -514,7 +541,10 @@ public class BlockVirtualPoolService extends VirtualPoolService {
             validateMaxNativeContinuousCopies(vpool.getMaxNativeContinuousCopies(), vpool.getHighAvailability());
         }
 
-        _dbClient.updateAndReindexObject(vpool);
+        _dbClient.updateObject(vpool);
+
+        // Update VirtualPool and QoS with new parameters
+        QosService.updateQos(vpool, qosSpecification, _dbClient);
 
         recordOperation(OperationTypeEnum.UPDATE_VPOOL, VPOOL_UPDATED_DESCRIPTION, vpool);
         return toBlockVirtualPool(_dbClient, vpool, VirtualPool.getProtectionSettings(vpool, _dbClient),

@@ -11,11 +11,14 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.net.Socket;
@@ -23,11 +26,13 @@ import java.util.List;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.Comparator;
+
 import org.apache.commons.io.FileUtils;
 
 import com.emc.storageos.management.backup.util.ValidationUtil;
 import com.emc.storageos.management.backup.util.ValidationUtil.*;
 import com.emc.storageos.management.backup.exceptions.BackupException;
+import com.emc.storageos.services.util.Exec;
 
 public class ZkBackupHandler extends BackupHandler {
     private static final Logger log = LoggerFactory.getLogger(ZkBackupHandler.class);
@@ -37,6 +42,15 @@ public class ZkBackupHandler extends BackupHandler {
     private static final int CONNECT_ZK_PORT = 2181;
     private File zkDir;
     private List<String> fileTypeList;
+    private File siteIdFile;
+
+    public File getSiteIdFile() {
+        return siteIdFile;
+    }
+
+    public void setSiteIdFile(File siteIdFile) {
+        this.siteIdFile = siteIdFile;
+    }
 
     /**
      * Sets zk file location
@@ -284,6 +298,10 @@ public class ZkBackupHandler extends BackupHandler {
         return fullBackupTag;
     }
 
+    private void backupSiteId(File targetDir) throws IOException {
+        FileUtils.copyFileToDirectory(siteIdFile, targetDir);
+    }
+
     @Override
     public File dumpBackup(final String backupTag, final String fullBackupTag) {
         File targetDir = new File(backupContext.getBackupDir(), backupTag);
@@ -296,6 +314,7 @@ public class ZkBackupHandler extends BackupHandler {
             ValidationUtil.validateFile(targetFolder, FileType.Dir,
                     NotExistEnum.NOT_EXSIT_CREATE);
             backupFolder(targetFolder, zkDir);
+            backupSiteId(targetFolder);
         } catch (IOException ex) {
             throw BackupException.fatals.failedToDumpZkData(fullBackupTag, ex);
         }

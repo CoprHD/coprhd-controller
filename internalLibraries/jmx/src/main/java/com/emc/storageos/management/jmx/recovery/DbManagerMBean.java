@@ -57,17 +57,12 @@ public interface DbManagerMBean {
     @ManagedOperation(description = "Get status of last succeeded repair, the returned status, if any, is always succeeded")
     DbRepairStatus getLastSucceededRepairStatus(boolean forCurrentNodesOnly);
 
-    @ManagedOperation(description = "Adjust number of tokens for this node to expected value in this software version, if it's not done already.")
-    boolean adjustNumTokens() throws InterruptedException;
-
     /**
-     * Check if all nodes in a specified data center are unreachable
-     *
-     * @param dcName
+     * Reset db repair status
      */
-    @ManagedOperation(description = "Check if all ndoes in a data center are unreachable")
-    boolean isDataCenterUnreachable(String dcName);
-
+    @ManagedOperation(description = "Reset db repair status")
+    public void resetRepairState();
+    
     /**
      * Remove nodes in a specified data center
      *

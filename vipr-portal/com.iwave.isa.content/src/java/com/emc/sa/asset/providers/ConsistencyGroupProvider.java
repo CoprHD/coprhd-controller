@@ -16,14 +16,44 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
+import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
 import com.emc.vipr.model.catalog.AssetOption;
+import com.google.common.collect.Lists;
 
 @Component
 @AssetNamespace("vipr")
 public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
+
+    @Asset("consistencyGroupFilter")
+    public List<AssetOption> getConsistencyGroupFilters(AssetOptionsContext ctx) {
+        List<ProjectRestRep> projects = api(ctx).projects().getByTenant(ctx.getTenant());
+        List<BlockConsistencyGroupRestRep> cgs = Lists.newArrayList();
+
+        for (ProjectRestRep project : projects) {
+            cgs.addAll(api(ctx).blockConsistencyGroups().findByProject(project));
+        }
+
+        List<AssetOption> options = createBaseResourceOptions(cgs);
+        options.add(0, new AssetOption("None", "None"));
+        return options;
+    }
+
+    @Asset("consistencyGroupAll")
+    public List<AssetOption> getAllConsistencyGroup(AssetOptionsContext ctx) {
+        List<ProjectRestRep> projects = api(ctx).projects().getByTenant(ctx.getTenant());
+        List<BlockConsistencyGroupRestRep> cgs = Lists.newArrayList();
+
+        for (ProjectRestRep project : projects) {
+            cgs.addAll(api(ctx).blockConsistencyGroups().findByProject(project));
+        }
+
+        List<AssetOption> options = createBaseResourceOptions(cgs);
+        return options;
+    }
 
     @Asset("consistencyGroup")
     @AssetDependencies({ "project", "blockVirtualPool" })

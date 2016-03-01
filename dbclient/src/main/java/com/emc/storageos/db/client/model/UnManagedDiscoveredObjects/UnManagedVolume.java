@@ -53,10 +53,14 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         IS_SNAP_SHOT("Snapshot", "Snapshot"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         IS_BOUND("EMCSVIsBound", "EMCIsBound"),
+        // Is this volume exported to anything? (including RP and VPLEX)
         IS_VOLUME_EXPORTED("isVolumeExported", "isVolumeExported"),
+        // Is this volume export to hosts/clusters? (excluding RP)
+        IS_NONRP_EXPORTED("isNonRPExported", "isNonRPExported"),
         HAS_REPLICAS("hasReplicas", "hasReplicas"),
         IS_VOLUME_ADDED_TO_CONSISTENCYGROUP("isVolumeAddedToCG", "isVolumeAddedToCG"),
         IS_INGESTABLE("IsIngestable", "IsIngestable"),
+        IS_NOT_INGESTABLE_REASON("IsNotIngestableReason", "IsNotIngestableReason"),
         REMOTE_MIRRORING("remoteMirror", "remoteMirror"),
         IS_VPLEX_VOLUME("isVplexVolume", "isVplexVolume"),
         IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),
@@ -109,6 +113,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         REMOTE_VOLUME_TYPE("volumeType", "volumeType"),
         ACCESS("Access", "Access"),
         STATUS_DESCRIPTIONS("StatusDescriptions", "StatusDescriptions"),
+        UNMANAGED_CONSISTENCY_GROUP_URI("UnManagedConsistencyGroupURI", "UnManagedConsistencyGroupURI"),
         VPLEX_LOCALITY("vplexLocality", "vplexLocality"),
         VPLEX_SUPPORTING_DEVICE_NAME("vplexSupportingDeviceName", "vplexSupportingDeviceName"),
         VPLEX_CONSISTENCY_GROUP_NAME("vplexConsistencyGroup", "vplexConsistencyGroup"),
@@ -149,7 +154,21 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         NEEDS_COPY_TO_TARGET("needsCopyToTarget", "needsCopyToTarget"),
         TECHNOLOGY_TYPE("technologyType", "technologyType"),
         SETTINGS_INSTANCE("settingsInstance", "settingsInstance"),
-        IS_READ_ONLY("isReadOnly", "isReadOnly");
+        IS_READ_ONLY("isReadOnly", "isReadOnly"),
+        RP_PERSONALITY("personality", "personality"),
+        RP_COPY_NAME("rpCopyName", "rpCopyName"),
+        RP_STANDBY_COPY_NAME("rpStandbyCopyName", "rpStandbyCopyName"),
+        RP_COPY_ROLE("rpCopyRole", "rpCopyRole"),
+        RP_RSET_NAME("rpRSetName", "rpRSetName"),
+        RP_INTERNAL_SITENAME("rpInternalSiteName", "rpInternalSiteName"),
+        RP_STANDBY_INTERNAL_SITENAME("rpStandbyInternalSiteName", "rpStandbyInternalSiteName"),
+        RP_PROTECTIONSYSTEM("protectionSystem", "protectionSystem"),
+        RP_UNMANAGED_TARGET_VOLUMES("rpUnManagedTargetVolumes", "rpUnManagedTargetVolumes"),
+        RP_MANAGED_TARGET_VOLUMES("rpManagedTargetVolumes", "rpManagedTargetVolumes"),
+        RP_UNMANAGED_SOURCE_VOLUME("rpUnManagedSourceVolume", "rpUnManagedSourceVolume"),
+        RP_MANAGED_SOURCE_VOLUME("rpManagedSourceVolume", "rpManagedSourceVolume"),
+        RP_ACCESS_STATE("rpAccessState", "rpAccessState"),
+        SNAPSHOT_CONSISTENCY_GROUP_NAME("snapshotConsistencyGroupName", "snapshotConsistencyGroupName");
 
         private final String _infoKey;
         private final String _alternateKey;
@@ -277,7 +296,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
     }
 
     @IndexByKey
-    @AlternateId("InitiatorNetwordIdIndex")
+    @AlternateId("InitiatorNetworkIdIndex")
     @Name("initiatorNetworkIds")
     public StringSet getInitiatorNetworkIds() {
         if (null == _initiatorNetworkIds) {

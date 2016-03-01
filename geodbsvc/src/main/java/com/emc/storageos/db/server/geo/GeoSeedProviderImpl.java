@@ -10,6 +10,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -24,6 +25,8 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
@@ -43,7 +46,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
-    private boolean isDrActiveSite;
+    private boolean useSeedsInLocalSite;
     /**
      * 
      * @param args
@@ -96,14 +99,13 @@ public class GeoSeedProviderImpl implements SeedProvider {
         }
         ZkConnection connection = new ZkConnection();
         connection.setServer(uri);
+        String siteIdFile= args.get(Constants.SITE_ID_FILE);
+        connection.setSiteIdFile(siteIdFile);
         connection.build();
-        String siteId= args.get(Constants.SITE_ID);
-        connection.setSiteId(siteId);
-        log.info("siteId={}", siteId);
 
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
-
+        
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
         CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
         if (inetAddressMap == null) {
@@ -113,7 +115,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
         client.start();
         
         DrUtil drUtil = new DrUtil(client);
-        isDrActiveSite = drUtil.isActiveSite();
+        useSeedsInLocalSite = drUtil.isActiveSite() ||  SiteState.ACTIVE_DEGRADED.equals(drUtil.getLocalSite().getState());
         
         coordinator = client;
     }
@@ -145,7 +147,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
         }
         // On DR standby site, only use seeds from active site. On active site
         // we use local seeds
-        if (isDrActiveSite) {
+        if (useSeedsInLocalSite) {
             // add local seed(s):
             // -For fresh install and upgraded system from 1.1,
             // get the first started node via the AUTOBOOT flag.

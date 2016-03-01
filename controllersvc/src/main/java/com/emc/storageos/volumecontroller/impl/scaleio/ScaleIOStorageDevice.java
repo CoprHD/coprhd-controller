@@ -514,14 +514,14 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, TaskCompleter taskCompleter)
+    public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("Nothing to do here.  ScaleIO consistency groups are formed automatically on-demand.");
         taskCompleter.ready(dbClient);
     }
 
     @Override
-    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, Boolean markInactive, TaskCompleter taskCompleter)
+    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("Going to delete BlockConsistency Group {}", consistencyGroup);
         BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
@@ -597,7 +597,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
-    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, List<URI> blockObjects, TaskCompleter taskCompleter)
+    public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         completeTaskAsUnsupported(taskCompleter);
     }

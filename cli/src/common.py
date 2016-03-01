@@ -301,9 +301,26 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                 error_msg = "Requested resource not found"
             elif(response.status_code == 405):
                 error_msg = str(response.text)
-            elif(response.status_code == 503):
-                error_msg = "Service temporarily unavailable: The server" + \
-                    " is temporarily unable to service your request"
+            elif response.status_code == 503:
+                error_msg = ""
+                errorDetails = ""
+                errorDescription = ""
+
+                responseText = json_decode(response.text)
+
+                if 'code' in responseText:
+                    errorCode = responseText['code']
+                    error_msg = error_msg + "Error " + str(errorCode)
+
+                if 'details' in responseText:
+                    errorDetails = responseText['details']
+                    error_msg = error_msg + ": " + errorDetails
+                elif 'description' in responseText:
+                    errorDescription = responseText['description']
+                    error_msg = error_msg + ": " + errorDescription
+                else:
+                    error_msg = "Service temporarily unavailable: The server" + \
+                                " is temporarily unable to service your request"
             else:
                 error_msg = response.text
                 if isinstance(error_msg, unicode):
@@ -907,13 +924,18 @@ def show_resource(ipAddr, port, componentType, uri,
 
 # Timeout handler for synchronous operations
 def timeout_handler():
+    global IS_TASK_TIMEOUT
     IS_TASK_TIMEOUT = True
 
 
 # Blocks the operation until the task is complete/error out/timeout
-def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
+def block_until_complete(componentType, resource_uri, task_id, ipAddr, port,synctimeout):
+        global IS_TASK_TIMEOUT
         IS_TASK_TIMEOUT = False
-        t = Timer(300, timeout_handler)
+        if synctimeout:
+            t = Timer(synctimeout, timeout_handler)
+        else:
+            t = Timer(300, timeout_handler)
         t.start()
         while(True):
             out = get_task_by_resourceuri_and_taskId(
@@ -939,7 +961,7 @@ def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
                                    " is failed with error: " + error_message)
 
             if(IS_TASK_TIMEOUT):
-                print "Operation timed out."
+                print "Task did not complete in %d secs. Task still in progress. Please check the logs for task status"%synctimeout
                 IS_TASK_TIMEOUT = False
                 break
         return

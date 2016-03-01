@@ -5,7 +5,11 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
+import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +53,8 @@ public class BlockSnapshotSessionUnlinkTargetsWorkflowCompleter extends BlockSna
         URI snapSessionURI = getId();
         try {
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
-            BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+            List<BlockObject> allSources = getAllSources(snapSession, dbClient);
+            BlockObject sourceObj = allSources.get(0);
 
             // Record the results.
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGET,
@@ -69,13 +74,11 @@ public class BlockSnapshotSessionUnlinkTargetsWorkflowCompleter extends BlockSna
                     throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
 
-            if (isNotifyWorkflow()) {
-                // If there is a workflow, update the task to complete.
-                updateWorkflowStatus(status, coded);
-            }
             s_logger.info("Done unlink targets from snapshot session task {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
             s_logger.error("Failed updating status for unlink targets from snapshot session task {}", getOpId(), e);
+        } finally {
+            super.complete(dbClient, status, coded);
         }
     }
 

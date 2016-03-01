@@ -15,7 +15,7 @@ public class DisasterRecoveryDataTable extends DataTable {
         addColumn("description");
         addColumn("VirtualIP");
         addColumn("status").setRenderFunction("standbyStatusIcon");
-        addColumn("id");
+        addColumn("networkHealth").setRenderFunction("networkHealthIcon");
         addColumn("actions").setRenderFunction("renderButtonBar");
         sortAllExcept("actions");
     }
@@ -25,18 +25,19 @@ public class DisasterRecoveryDataTable extends DataTable {
         public String description;
         public String VirtualIP;
         public String status;
-        public String siteId;
         public String id;
+        public String networkHealth;
 
         public StandByInfo() {
         }
 
         public StandByInfo(SiteRestRep standByInfo) {
             this.name = standByInfo.getName();
-            this.VirtualIP = standByInfo.getVip();
+            this.VirtualIP = standByInfo.getVipEndpoint();
             this.status = standByInfo.getState();
             this.id = standByInfo.getUuid();
             this.description = standByInfo.getDescription();
+            this.networkHealth = standByInfo.getNetworkHealth();
         }
     }
 }

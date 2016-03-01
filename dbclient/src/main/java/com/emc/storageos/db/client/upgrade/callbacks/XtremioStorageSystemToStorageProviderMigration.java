@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class XtremioStorageSystemToStorageProviderMigration
         extends BaseCustomMigrationCallback {
@@ -28,7 +29,7 @@ public class XtremioStorageSystemToStorageProviderMigration
      * StorageProvider id.
      */
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
 
         try {

@@ -54,15 +54,20 @@ VirtualDataCenterCapacityService
 VirtualDataCenterService
 UserGroupService
 VirtualNasService
+ObjectNamespaceService
 
 
 =Tenant Services
 ProjectService
 TenantsService
 TenantService
+SchedulePolicyService
 
 =Config Services
 CustomConfigService
+
+=Volume Group Services
+VolumeGroupService
 
 =UI Services
 com.emc.sa.api.ApprovalService
@@ -98,6 +103,18 @@ com.emc.storageos.systemservices.impl.resource.UpgradeService
 com.emc.storageos.systemservices.impl.resource.DbConsistencyService
 com.emc.storageos.systemservices.impl.resource.IPsecService
 
+=Block Services For OpenStack
+com.emc.storageos.api.service.impl.resource.cinder.ExportService
+com.emc.storageos.api.service.impl.resource.cinder.SnapshotService
+com.emc.storageos.api.service.impl.resource.cinder.QuotaService
+com.emc.storageos.api.service.impl.resource.cinder.QuotaClassService
+com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupSnapshotService
+com.emc.storageos.api.service.impl.resource.cinder.TypeService
+com.emc.storageos.api.service.impl.resource.cinder.ExtensionService
+com.emc.storageos.api.service.impl.resource.cinder.QosService
+com.emc.storageos.api.service.impl.resource.cinder.ConsistencyGroupService
+com.emc.storageos.api.service.impl.resource.cinder.MiscService
+
 =Other Services
 com.emc.storageos.api.service.impl.resource.AuditService
 AuthenticationResource
@@ -117,4 +134,5 @@ Compute Services
 Tenant Services
 Virtual Data Center Services
 Object Data Control Services
+Volume Group Services
 Other Services

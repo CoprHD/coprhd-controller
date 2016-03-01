@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.Properties;
 
 import com.emc.storageos.security.helpers.ServiceClientRetryFilter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,6 +100,9 @@ public class GeoClientCacheManager {
     }
 
     private VirtualDataCenter lookupVdc(String shortVdcId) {
+        // to refresh the cache in case it's called after a new VDC added.
+        dbClient.invalidateVdcUrnCache();
+        
         URI vdcURN = dbClient.getVdcUrn(shortVdcId);
         // TODO: convert to the appropriate ViPR exception
         if (vdcURN == null) {
@@ -122,6 +126,7 @@ public class GeoClientCacheManager {
         client.setClientReadTimeout(_clientReadTimeout);
         client.addFilter(new ServiceClientRetryFilter(client.getClientMaxRetries(), client.getClientRetryInterval()));
         client.addFilter(new GeoServiceExceptionFilter());
+        
         return client;
     }
 

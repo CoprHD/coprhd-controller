@@ -19,13 +19,14 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 public class PoolsCompatibilityStatusMigration extends BaseCustomMigrationCallback {
 
     private static final Logger log = LoggerFactory.getLogger(PoolsCompatibilityStatusMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         DbClient dbClient = getDbClient();
         List<URI> storageSystemURIs = dbClient.queryByType(StorageSystem.class, true);
         Iterator<StorageSystem> storageSystemObjs = dbClient.queryIterativeObjects(StorageSystem.class, storageSystemURIs);

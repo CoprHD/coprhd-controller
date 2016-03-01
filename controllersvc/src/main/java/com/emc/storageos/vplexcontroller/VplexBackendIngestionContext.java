@@ -43,7 +43,7 @@ import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
  */
 public class VplexBackendIngestionContext {
 
-    private static Logger _logger = LoggerFactory.getLogger(VplexBackendIngestionContext.class);
+    protected static Logger _logger = LoggerFactory.getLogger(VplexBackendIngestionContext.class);
 
     public static final String VOLUME = "VOLUME";
     public static final String UNMANAGEDVOLUME = "UNMANAGEDVOLUME";
@@ -53,12 +53,15 @@ public class VplexBackendIngestionContext {
     public static final String DISCOVERY_MODE_DISCOVERY_ONLY = "Only During Discovery";
     public static final String DISCOVERY_MODE_INGESTION_ONLY = "Only During Ingestion";
     public static final String DISCOVERY_MODE_HYBRID = "During Discovery and Ingestion";
+    public static final String DISCOVERY_MODE_DB_ONLY = "Only Use Database";
     public static final String DISCOVERY_FILTER = "controller_vplex_volume_discovery_filter";
     public static final String DISCOVERY_KILL_SWITCH = "controller_vplex_volume_discovery_kill_switch";
     public static final String SLOT_0 = "0";
     public static final String SLOT_1 = "1";
-
-    private final DbClient _dbClient;
+    public static final String VVOL_LABEL1 = "dd_";
+    public static final String VVOL_LABEL2 = "device_";
+    
+    protected final DbClient _dbClient;
     private final UnManagedVolume _unmanagedVirtualVolume;
 
     private boolean _discoveryInProgress = false;
@@ -78,11 +81,6 @@ public class VplexBackendIngestionContext {
 
     private Project backendProject;
     private Project frontendProject;
-
-    private final Map<String, UnManagedVolume> processedUnManagedVolumeMap = new HashMap<String, UnManagedVolume>();
-    private final Map<String, BlockObject> createdObjectMap = new HashMap<String, BlockObject>();
-    private final Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
-    private final List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
 
     // A map of BlockSnapshot instances that are created during VPLEX backend ingestion. Snapshots
     // can be created when the VPLEX backend volume is also a snapshot target volume.
@@ -243,6 +241,7 @@ public class VplexBackendIngestionContext {
     private void updateUnmanagedBackendVolumesInParent() {
         if (!getUnmanagedBackendVolumes().isEmpty()) {
             StringSet bvols = new StringSet();
+            String friendlyLabel = _unmanagedVirtualVolume.getLabel();
             for (UnManagedVolume backendVol : unmanagedBackendVolumes) {
                 bvols.add(backendVol.getNativeGuid());
 
@@ -250,6 +249,17 @@ public class VplexBackendIngestionContext {
                 StringSet parentVol = new StringSet();
                 parentVol.add(_unmanagedVirtualVolume.getNativeGuid());
                 backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
+
+                // There may be two backing volumes, so we need to pick the right label.  But for now....
+                if (_unmanagedVirtualVolume.getLabel() == null || _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL1) ||
+                        _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL2)) {
+                    String baseLabel = backendVol.getLabel();
+                    // Remove the -0 or -1 from the backing volume label, if it's there.
+                    if (baseLabel.endsWith("-0") || baseLabel.endsWith("-1")) {
+                        baseLabel = backendVol.getLabel().substring(0, backendVol.getLabel().length()-2);
+                    }
+                    friendlyLabel = baseLabel + " (" + _unmanagedVirtualVolume.getLabel() + ")";
+                }
 
                 if (isDistributed()) {
                     // determine cluster location of distributed component storage volume leg
@@ -267,11 +277,12 @@ public class VplexBackendIngestionContext {
                         }
                     }
                 }
-                _dbClient.persistObject(backendVol);
+                _dbClient.updateObject(backendVol);
             }
             if (bvols != null && !bvols.isEmpty()) {
                 _logger.info("setting VPLEX_BACKEND_VOLUMES: " + unmanagedBackendVolumes);
                 _unmanagedVirtualVolume.putVolumeInfo(SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.name(), bvols);
+                _unmanagedVirtualVolume.setLabel(friendlyLabel);
             }
         }
     }
@@ -869,46 +880,6 @@ public class VplexBackendIngestionContext {
     }
 
     /**
-     * Returns the Map of processed UnManagedVolumes, used
-     * by the general ingestion framework.
-     * 
-     * @return the processed UnManagedVolume Map
-     */
-    public Map<String, UnManagedVolume> getProcessedUnManagedVolumeMap() {
-        return processedUnManagedVolumeMap;
-    }
-
-    /**
-     * Returns the Map of created objects, used
-     * by the general ingestion framework.
-     * 
-     * @return the created object Map
-     */
-    public Map<String, BlockObject> getCreatedObjectMap() {
-        return createdObjectMap;
-    }
-
-    /**
-     * Returns the Map of updated objects, used
-     * by the general ingestion framework.
-     * 
-     * @return the updated object Map
-     */
-    public Map<String, List<DataObject>> getUpdatedObjectMap() {
-        return updatedObjectMap;
-    }
-
-    /**
-     * Returns the Map of ingested objects, used
-     * by the general ingestion framework.
-     * 
-     * @return the ingested objects Map
-     */
-    public List<BlockObject> getIngestedObjects() {
-        return ingestedObjects;
-    }
-
-    /**
      * Returns the map of BlockSnapshot instances created during VPLEX backend ingestion.
      * 
      * @return The map of BlockSnapshot instances created during VPLEX backend ingestion.
@@ -1282,40 +1253,4 @@ public class VplexBackendIngestionContext {
         }
     }
 
-    /**
-     * Returns a detailed report on the state of everything in this context,
-     * useful for debugging.
-     * 
-     * @return a detailed report on the context
-     */
-    public String toStringDebug() {
-        StringBuilder s = new StringBuilder("\n\nVplexBackendIngestionContext \n\t ");
-        s.append("unmanaged virtual volume: ").append(this._unmanagedVirtualVolume).append(" \n\t ");
-        s.append("unmanaged backend volume(s): ").append(this.getUnmanagedBackendVolumes()).append(" \n\t ");
-        s.append("unmanaged snapshots: ").append(this.getUnmanagedSnapshots()).append(" \n\t ");
-        s.append("unmanaged full clones: ").append(this.getUnmanagedVplexClones()).append(" \n\t ");
-        s.append("unmanaged backend only clones: ").append(this.getUnmanagedBackendOnlyClones()).append(" \n\t ");
-        s.append("unmanaged mirrors: ").append(this.getUnmanagedVplexMirrors()).append(" \n\t ");
-        s.append("ingested objects: ").append(this.getIngestedObjects()).append(" \n\t ");
-        s.append("created objects map: ").append(this.getCreatedObjectMap()).append(" \n\t ");
-        s.append("updated objects map: ");
-        for (Entry<String, List<DataObject>> e : this.getUpdatedObjectMap().entrySet()) {
-            s.append(e.getKey()).append(": ");
-            for (DataObject o : e.getValue()) {
-                s.append(o.getLabel()).append("; ");
-            }
-        }
-        s.append(" \n\t ");
-        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap()).append("\n");
-        return s.toString();
-    }
-
-    @Override
-    public String toString() {
-        if (_logger.isDebugEnabled()) {
-            return toStringDebug();
-        }
-
-        return super.toString();
-    }
 }

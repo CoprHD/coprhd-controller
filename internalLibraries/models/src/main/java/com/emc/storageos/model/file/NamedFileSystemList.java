@@ -33,7 +33,6 @@ public class NamedFileSystemList {
     /**
      * List of file systems.
      * 
-     * @valid none
      */
     @XmlElement(name = "filesystem")
     public List<NamedRelatedResourceRep> getFilesystems() {

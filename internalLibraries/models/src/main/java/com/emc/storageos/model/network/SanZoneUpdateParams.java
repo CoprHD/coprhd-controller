@@ -24,7 +24,6 @@ public class SanZoneUpdateParams {
     /**
      * A list of updating San Zones. Each zone has a name and a list of zone members.
      * 
-     * @valid none
      */
     @XmlElement(name = "san_zone_update")
     public List<SanZoneUpdateParam> getUpdateZones() {

@@ -17,16 +17,21 @@ public class BlockConsistencyGroupCreate {
     /**
      * Name of the block consistency group
      * 
-     * @valid none
      */
     private String name;
 
     /**
      * Related Project URI
      * 
-     * @valid none
      */
     private URI project;
+
+    /**
+     * Flag which says if backend Replication Group needs to be created or not.
+     * By default it is set to true.
+     * 
+     */
+    private Boolean arrayConsistency = Boolean.TRUE;
 
     public BlockConsistencyGroupCreate() {
     }
@@ -52,5 +57,18 @@ public class BlockConsistencyGroupCreate {
 
     public void setProject(URI project) {
         this.project = project;
+    }
+
+    /**
+     * Flag which says if backend Replication Group needs to be created or not.
+     *
+     */
+    @XmlElement(name = "array_consistency", defaultValue = "true")
+    public Boolean getArrayConsistency() {
+        return arrayConsistency;
+    }
+
+    public void setArrayConsistency(Boolean arrayConsistency) {
+        this.arrayConsistency = arrayConsistency;
     }
 }

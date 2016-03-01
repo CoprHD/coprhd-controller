@@ -7,6 +7,7 @@
 
     
     <context:property-placeholder location="classpath:syssvc-info.properties" />
+    <import resource="classpath:dbcommon-var.xml"/>
 
     <!-- Move it the beginning of this file so that CoordinatorClientExt can be initialized before db client -->
 	<bean id="coordinatorclientext"
@@ -15,8 +16,11 @@
         <property name="serviceBeacon" ref="beacon" />
         <property name="service" ref="serviceinfo" />
         <property name="nodeCount" value="1" />
+	<property name="vip" value="localhost" />
         <property name="statusChecker" ref="statusChecker"/>
         <property name="drUtil" ref="drUtil"/>
+        <property name="dbCommonInfo" ref="dbcommoninfo"/>
+        <property name="backCompatPreYoda" ref="backCompatPreYoda"/>
     </bean>
     
     <import resource="classpath:dbclient-conf.xml"/>
@@ -46,6 +50,10 @@
     </bean>
     
     <bean id="backCompatPreYoda" class="java.lang.Boolean">
+        <constructor-arg type="java.lang.String" value="false" />
+    </bean>
+
+    <bean id="siteIsStandby" class="java.lang.Boolean">
         <constructor-arg type="java.lang.String" value="false" />
     </bean>
 </beans>

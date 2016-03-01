@@ -16,9 +16,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO_L
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterInfo;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URI;
+import java.net.*;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,12 +26,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
 import org.slf4j.Logger;
@@ -47,6 +49,7 @@ import com.emc.storageos.coordinator.client.model.PowerOffState;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -61,7 +64,6 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfo;
@@ -74,6 +76,7 @@ import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.SysSvcBeaconImpl;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory.SysClient;
+import com.emc.storageos.systemservices.impl.vdc.DbsvcQuorumMonitor;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
 import com.google.common.collect.ImmutableSet;
@@ -83,19 +86,22 @@ public class CoordinatorClientExt {
 
     private static final Set<String> CONTROL_NODE_ROLES =
             new ImmutableSet.Builder<String>().add("sys").add("control").build();
-    private static final Set<String> EXTRA_NODE_ROLES =
-            new ImmutableSet.Builder<String>().add("sys").add("object").build();
     
     private static final String URI_INTERNAL_GET_CLUSTER_INFO = "/control/internal/cluster/info";
     private static final int COODINATOR_MONITORING_INTERVAL = 60; // in seconds
+    private static final int DB_MONITORING_INTERVAL = 60; // in seconds
     private static final String DR_SWITCH_TO_ZK_OBSERVER_BARRIER = "/config/disasterRecoverySwitchToZkObserver";
     private static final int DR_SWITCH_BARRIER_TIMEOUT = 180; // barrier timeout in seconds
     private static final int ZK_LEADER_ELECTION_PORT = 2888;
     private static final int DUAL_ZK_LEADER_ELECTION_PORT = 2898;
     
+    private static final int CHECK_ACTIVE_SITE_STABLE_CONNECT_TIMEOUT_MS = 10000; // 10 seconds
+    private static final int CHECK_ACTIVE_SITE_STABLE_READ_TIMEOUT_MS = 5000; //5 seconds
+    
     private CoordinatorClient _coordinator;
     private SysSvcBeaconImpl _beacon;
     private ServiceImpl _svc;
+    private Properties dbCommonInfo;
     private InterProcessLock _remoteDownloadLock = null;
     private volatile InterProcessLock _targetLock = null;
     private InterProcessLock _newVersionLock = null;
@@ -107,11 +113,13 @@ public class CoordinatorClientExt {
     // EX: syssvc-1, syssvc-2, syssvc-10_247_100_15
     private String mySvcId = null;
     private int _nodeCount = 0;
+    private String _vip;
     private DrUtil drUtil;
     private volatile boolean stopCoordinatorSvcMonitor; // default to false
     
     private DbServiceStatusChecker statusChecker = null;
-
+    private boolean backCompatPreYoda = true;
+    
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
     }
@@ -131,6 +139,10 @@ public class CoordinatorClientExt {
         mySvcId = _svc.getId();
     }
 
+    public void setDbCommonInfo(Properties dbCommonInfo) {
+        this.dbCommonInfo = dbCommonInfo;
+    }
+
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
@@ -141,6 +153,10 @@ public class CoordinatorClientExt {
     
     public DrUtil getDrUtil() {
         return this.drUtil;
+    }
+
+    public void setBackCompatPreYoda(Boolean backCompat) {
+        backCompatPreYoda = backCompat;
     }
     
     /**
@@ -161,8 +177,16 @@ public class CoordinatorClientExt {
         _nodeCount = count;
     }
 
+    public void setVip(String vip) {
+        _vip = vip;
+    }
+
     public int getNodeCount() {
         return _nodeCount;
+    }
+
+    public String getVip() {
+        return _vip;
     }
     
     public void setStatusChecker(DbServiceStatusChecker checker) {
@@ -177,11 +201,7 @@ public class CoordinatorClientExt {
      * Gets the roles associated with the current node.
      */
     public Set<String> getNodeRoles() {
-        if (isControlNode()) {
-            return CONTROL_NODE_ROLES;
-        } else {
-            return EXTRA_NODE_ROLES;
-        }
+        return CONTROL_NODE_ROLES;
     }
 
     /**
@@ -207,7 +227,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Set node info to global scope.
+     * Set node info to global scope for the local site.
      * 
      * @param info
      * @param kind
@@ -215,6 +235,11 @@ public class CoordinatorClientExt {
      */
     public void setNodeGlobalScopeInfo(final CoordinatorSerializable info, final String kind, final String id)
             throws CoordinatorClientException {
+        setNodeGlobalScopeInfo(info, null, kind, id);
+    }
+
+    public void setNodeGlobalScopeInfo(final CoordinatorSerializable info, final String siteId, final String kind,
+                                       final String id) throws CoordinatorClientException {
         if (info == null || kind == null) {
             return;
         }
@@ -225,7 +250,7 @@ public class CoordinatorClientExt {
             cfg.setKind(kind); // We can use service id as the "id" and the type of info as "kind", then we can persist certain type of info
                                // about a particular node in coordinator
             cfg.setConfig(NODE_INFO, info.encodeAsString());
-            _coordinator.persistServiceConfiguration(cfg);
+            _coordinator.persistServiceConfiguration(siteId, cfg);
         } catch (Exception e) {
             _log.error("Failed to set node global scope info", e);
             throw SyssvcException.syssvcExceptions.coordinatorClientError("Failed to set node global scope info. " + e.getMessage());
@@ -233,7 +258,7 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get node info from global scope.
+     * Get node info from local site.
      * 
      * @param clazz
      * @param kind
@@ -243,9 +268,26 @@ public class CoordinatorClientExt {
      */
     public <T extends CoordinatorSerializable> T getNodeGlobalScopeInfo(final Class<T> clazz, final String kind, final String id)
             throws Exception {
+        return getNodeGlobalScopeInfo(clazz, null, kind, id);
+    }
+
+    /**
+     * Get node info from specific site.
+     *
+     * @param clazz
+     * @param siteId
+     * @param kind
+     * @param id
+     * @param <T>
+     * @return
+     * @throws Exception
+     */
+    public <T extends CoordinatorSerializable> T getNodeGlobalScopeInfo(final Class<T> clazz, final String siteId,
+                                                                        final String kind, final String id)
+            throws Exception {
         final T info = clazz.newInstance();
 
-        final Configuration config = _coordinator.queryConfiguration(kind, id);
+        final Configuration config = _coordinator.queryConfiguration(siteId, kind, id);
         if (config != null && config.getConfig(NODE_INFO) != null) {
             final String infoStr = config.getConfig(NODE_INFO);
             _log.debug("getNodeGlobalScopelInfo({}): info={}", clazz.getName(), Strings.repr(infoStr));
@@ -544,7 +586,12 @@ public class CoordinatorClientExt {
      */
     public <T extends CoordinatorSerializable> Map<Service,
             T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
-        return _coordinator.getAllNodeInfos(clazz, nodeIdFilter);
+        return getAllNodeInfos(clazz, nodeIdFilter, _coordinator.getSiteId());
+    }
+
+    public <T extends CoordinatorSerializable> Map<Service,
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter, String siteId) throws Exception {
+        return _coordinator.getAllNodeInfos(clazz, nodeIdFilter, siteId);
     }
 
     public <T extends CoordinatorSerializable> T getNodeInfo(String node, Class<T> clazz) throws CoordinatorClientException {
@@ -568,19 +615,35 @@ public class CoordinatorClientExt {
      * @return - ClusterInfo
      */
     public ClusterInfo getClusterInfo() {
+        return getClusterInfo(_coordinator.getSiteId());
+    }
 
+    public ClusterInfo getClusterInfo(String siteIdParam) {
         try {
+            String siteId = siteIdParam == null ? _coordinator.getSiteId() : siteIdParam;
+
             // get target repository and configVersion
             final RepositoryInfo targetRepository = _coordinator.getTargetInfo(RepositoryInfo.class);
             final PropertyInfoExt targetProperty = _coordinator.getTargetInfo(PropertyInfoExt.class);
-            final PowerOffState targetPowerOffState = _coordinator.getTargetInfo(PowerOffState.class);
 
             // get control nodes' repository and configVersion info
-            final Map<Service, RepositoryInfo> controlNodesInfo = getAllNodeInfos(RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN);
+            final Map<Service, RepositoryInfo> controlNodesInfo = getAllNodeInfos(RepositoryInfo.class,
+                    CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(ConfigVersion.class,
-                    CONTROL_NODE_SYSSVC_ID_PATTERN);
-            final ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState();
+                    CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
+            Site site = drUtil.getSiteFromLocalVdc(siteId);
+            ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId,
+                    site.getNodeCount());
 
+            // if backCompatPreYoda flag is true, it's still in the middle of yoda upgrade. Probably it is 
+            // rotating ipsec key. We should report upgrade in progress on UI
+            if (backCompatPreYoda && ClusterInfo.ClusterState.STABLE.equals(controlNodesState)) {
+                if (!drUtil.isMultivdc()) {
+                    _log.info("Back compat flag for preyoda is true. ");
+                    controlNodesState = ClusterInfo.ClusterState.UPDATING;
+                }
+            }
+            
             // construct cluster information by both control nodes and extra nodes.
             // cluster state is determined both by control nodes' state and extra nodes
             return toClusterInfo(controlNodesState, controlNodesInfo, controlNodesConfigVersions, targetRepository,
@@ -690,7 +753,7 @@ public class CoordinatorClientExt {
      */
     public URI getNodeEndpointForSvcId(String svcId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),null,null);
             for (Service svc : svcs) {
                 if (svc.getId().equals(svcId)) {
                     return svc.getEndpoint();
@@ -713,16 +776,17 @@ public class CoordinatorClientExt {
      */
     public boolean hasPersistentLock(String svcId, String lockId) throws Exception {
         try {
-            DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+            DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
+
             if (lock != null) {
                 String lockOwner = lock.getLockOwner();
-                if (lockOwner != null && serviceIdMatches(lockOwner, svcId)) {
+                if (lockOwner != null && lockOwner.equals(svcId)) {
                     _log.info("Current owner of the {} lock: {} ", lockId, lockOwner);
                     return true;
                 }
             }
         } catch (Exception e) {
-            _log.error("Can not get {} lock owner ",lockId);
+            _log.error("Can not get {} lock owner ", lockId);
         }
         return false;
     }
@@ -738,7 +802,7 @@ public class CoordinatorClientExt {
      */
     public boolean getPersistentLock(String svcId, String lockId) {
         try {
-            DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+            DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
             _log.info("Acquiring the {} lock for {}...", lockId, svcId);
             boolean result = lock.acquireLock(svcId);
             if (result) {
@@ -762,7 +826,7 @@ public class CoordinatorClientExt {
      * @throws InvalidLockOwnerException
      */
     public boolean releasePersistentLock(String svcId, String lockId) throws Exception {
-        DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+        DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
         if (lock != null) {
             String lockOwner = lock.getLockOwner();
 
@@ -771,7 +835,7 @@ public class CoordinatorClientExt {
                 return true;
             }
 
-            if (!serviceIdMatches(lockOwner, svcId)) {
+            if (!lockOwner.equals(svcId)) {
                 throw SyssvcException.syssvcExceptions.invalidLockOwnerError("Lock owner is " + lockOwner);
             } else {
                 boolean result = lock.releaseLock(lockOwner);
@@ -788,21 +852,6 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Check if the service ID matches the current ID or
-     * The ID in a previous release
-     * 
-     * @param previousSvcId the previous service ID
-     * @param currentSvcId the ID of the service
-     * @return
-     */
-    private boolean serviceIdMatches(String previousSvcId, String currentSvcId) {
-        // In 1.1 datanodes had _ and now they have - instead
-        // If the current and previous IDs match return true or
-        // If this is a datanode return true if the previous ID is just 1.1 format
-        return previousSvcId.equals(currentSvcId) || (!isControlNode() && currentSvcId.equals(previousSvcId.replace('_', '-')));
-    }
-
-    /**
      * The method to release the persistent upgrade lock.
      * Any node which calls the method can release the lock.
      * 
@@ -812,7 +861,7 @@ public class CoordinatorClientExt {
      * @throws Exception
      */
     public boolean releasePersistentLock(String lockId) throws Exception {
-        DistributedPersistentLock lock = _coordinator.getPersistentLock(lockId);
+        DistributedPersistentLock lock = _coordinator.getSiteLocalPersistentLock(lockId);
         if (lock != null) {
             String lockOwner = lock.getLockOwner();
 
@@ -875,7 +924,7 @@ public class CoordinatorClientExt {
                 }
             }
             if (_remoteDownloadLock == null) {
-                _remoteDownloadLock = _coordinator.getLock(REMOTE_DOWNLOAD_LOCK);
+                _remoteDownloadLock = _coordinator.getSiteLocalLock(REMOTE_DOWNLOAD_LOCK);
             }
             if (_remoteDownloadLock.acquire(2, TimeUnit.SECONDS)) {
                 publishRemoteDownloadLeader(svcId);
@@ -989,8 +1038,12 @@ public class CoordinatorClientExt {
         }
     }
 
+    private List<Service> getAllServices(String siteId) throws Exception {
+        return _coordinator.locateAllServices(siteId, _svc.getName(), _svc.getVersion(), null, null);
+    }
+
     private List<Service> getAllServices() throws Exception {
-        return _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(), (String) null, null);
+        return getAllServices(_coordinator.getSiteId());
     }
 
     /**
@@ -1002,9 +1055,14 @@ public class CoordinatorClientExt {
      * @return List of NodeHandles for all nodes in the cluster
      */
     public List<String> getAllNodes() {
-        List<String> nodeIds = new ArrayList<String>();
+        return getAllNodes(_coordinator.getSiteId());
+    }
+
+    public List<String> getAllNodes(String siteIdParam) {
+        String siteId = siteIdParam == null ? _coordinator.getSiteId() : siteIdParam;
+        List<String> nodeIds = new ArrayList<>();
         try {
-            List<Service> svcs = getAllServices();
+            List<Service> svcs = getAllServices(siteId);
             for (Service svc : svcs) {
                 final String nodeId = svc.getId();
                 if (nodeId != null) {
@@ -1152,6 +1210,27 @@ public class CoordinatorClientExt {
         return nodeName;
     }
 
+    /**
+     * The utility method to get all controller nodes ids
+     * Converts nodeCount to list of nodeIds regardless of availability
+     *
+     * @return List of nodeIds for all nodes in the cluster(get external id like vipr2)
+     */
+    public ArrayList<String> getAllNodeIds() {
+        ArrayList<String> fullList = new ArrayList<String>();
+
+        if (!getMyNodeId().equals("standalone")) {
+            for (int i = 1; i <= getNodeCount(); i++) {
+                fullList.add(ProductName.getName() + i);
+            }
+        } else {
+            fullList.add("standalone");
+        }
+
+        _log.info("getAllNodeIds(): Node Ids: {}", Strings.repr(fullList));
+        return fullList;
+    }
+
 
     /**
      * The utility method to find all the controller nodes which are not available in the
@@ -1169,7 +1248,7 @@ public class CoordinatorClientExt {
         if (getNodeCount() > 1) {
             for (int i = 1; i <= getNodeCount(); i++) {
                 if (!availableNodes.contains("syssvc-" + i)) {
-                    fullList.add("vipr" + i);
+                    fullList.add(ProductName.getName() + i);
                 }
             }
         }
@@ -1222,7 +1301,7 @@ public class CoordinatorClientExt {
     public boolean getNewVersionLock() {
         try {
             if (_newVersionLock == null) {
-                _newVersionLock = _coordinator.getLock(NEW_VERSIONS_LOCK);
+                _newVersionLock = _coordinator.getSiteLocalLock(NEW_VERSIONS_LOCK);
             }
             _newVersionLock.acquire();
         } catch (Exception e) {
@@ -1316,34 +1395,6 @@ public class CoordinatorClientExt {
         return false;
     }
 
-    /**
-     * Check if the dbsvc on current node has completed its adjustNumTokens() call.
-     * If not, it's UpgradeManager's responsibility to call it through DbManager's MBean interface.
-     * 
-     * @return
-     */
-    public boolean isLocalNodeTokenAdjusted() {
-        if (this.getNodeCount() == 1) {
-            _log.info("single node cluster, skip adjust token");
-            return true;
-        }
-        String dbSvcId = "db" + this.mySvcId.substring(this.mySvcId.lastIndexOf("-"));
-
-        Configuration config = this._coordinator.queryConfiguration(_coordinator.getSiteId(), Constants.DB_CONFIG, dbSvcId);
-        if (config == null) {
-            _log.warn("dbconfig not initialized");
-            return true;
-        }
-
-        String numToken = config.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
-        if (numToken == null) {
-            _log.info("Did not found {} for {}, treating as not adjusted", DbConfigConstants.NUM_TOKENS_KEY, dbSvcId);
-            return false;
-        }
-
-        return Integer.valueOf(numToken).equals(DbConfigConstants.DEFUALT_NUM_TOKENS);
-    }
-
     public boolean isDBMigrationDone() {
         return statusChecker.isMigrationDone();
     }
@@ -1417,18 +1468,43 @@ public class CoordinatorClientExt {
     }
     
     /**
-     * Initialization method. On standby site, start a thread to monitor local coordinatorsvc status
+     * Initialization method.
+     * On standby site, start a thread to monitor local coordinatorsvc status
+     * On active site, start a thread to monitor db quorum of each standby site
      */
     public void start() {
         if (drUtil.isStandby()) {
             _log.info("Start monitoring local coordinatorsvc status on standby site");
-            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1);
-            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 0, COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "CoordinatorsvcMonitor");
+                }
+            });
+            // delay for a period of time to start the monitor. For DR switchover, we stop original active, then start new active. 
+            // So the original active may not see the new active immediately after reboot
+            exe.scheduleAtFixedRate(coordinatorSvcMonitor, 3 * COODINATOR_MONITORING_INTERVAL , COODINATOR_MONITORING_INTERVAL, TimeUnit.SECONDS);
+        } else {
+            _log.info("Start monitoring db quorum on all standby sites");
+            ScheduledExecutorService exe = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+                @Override
+                public Thread newThread(Runnable r) {
+                    return new Thread(r, "DbsvcQuorumMonitor");
+                }
+            });
+            exe.scheduleAtFixedRate(new DbsvcQuorumMonitor(getMyNodeId(), _coordinator, dbCommonInfo)
+                    , 0, DB_MONITORING_INTERVAL, TimeUnit.SECONDS);
         }
     }
 
     public void stopCoordinatorSvcMonitor() {
         stopCoordinatorSvcMonitor = true;
+        _log.info("coordinatorsvc monitor thread stopped");
+    }
+
+    public void startCoordinatorSvcMonitor() {
+        stopCoordinatorSvcMonitor = false;
+        _log.info("coordinatorsvc monitor thread started");
     }
     
     /**
@@ -1451,26 +1527,110 @@ public class CoordinatorClientExt {
         }
 
         private void checkLocalZKMode() {
-            String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
-            if (initZkMode == null) {
-                initZkMode = state;
-            }
-            
-            if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(state)) {
-                return; // expected situation. Standby zookeeper should be observer mode normally
-            }
-            
-            _log.info("Local zookeeper mode {}", state);
-            if (DrUtil.ZOOKEEPER_MODE_READONLY.equals(state)) {
-                // if zk is switched from observer mode to participant, reload syssvc
-                reconfigZKToWritable(!DrUtil.ZOOKEEPER_MODE_READONLY.equals(initZkMode));
-            } else {
-                if (isActiveSiteStable()) {
-                    _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
-                    reconnectZKToActiveSite();
-                } else {
-                    _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
+            try {
+                String state = drUtil.getLocalCoordinatorMode(getMyNodeId());
+                if (initZkMode == null) {
+                    initZkMode = state;
                 }
+
+                _log.info("Local zookeeper mode: {} ",state);
+
+                if(isVirtualIPHolder()){
+                    _log.info("Local node has vip, monitor other node zk states");
+                    checkLocalSiteZKModes();
+                }
+
+                if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
+                        DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state) ||
+                        DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state)) {
+                    // node is in participant mode, update the local site state accordingly
+                    checkAndUpdateLocalSiteState();
+
+                    // check if active site is back
+                    if (isActiveSiteHealthy()) {
+                        _log.info("Active site is back. Reconfig coordinatorsvc to observer mode");
+                        reconnectZKToActiveSite();
+                    } else {
+                        _log.info("Active site is unavailable. Keep coordinatorsvc in current state {}", state);
+                    }
+                }
+            }catch(Exception e){
+                _log.error("Exception while monitoring node state: ",e);
+            }
+        }
+
+        /**
+         * Update the standby site state when the active site is lost.
+         * if SYNCED, change it to PAUSED.
+         * if SYNCING/RESUMING/ADDING, change it to ERROR since it will never finish without the active site.
+         */
+        private void checkAndUpdateLocalSiteState() {
+            Site localSite = drUtil.getLocalSite();
+
+            if (SiteState.STANDBY_SYNCED.equals(localSite.getState())) {
+                _log.info("Updating local site from {} to STANDBY_PAUSED since active is unreachable",
+                        localSite.getState());
+                localSite.setState(SiteState.STANDBY_PAUSED);
+                _coordinator.persistServiceConfiguration(localSite.toConfiguration());
+            } else if (SiteState.STANDBY_SYNCING.equals(localSite.getState()) ||
+                    SiteState.STANDBY_RESUMING.equals(localSite.getState()) ||
+                    SiteState.STANDBY_ADDING.equals(localSite.getState())){
+                _log.info("Updating local site from {} to STANDBY_ERROR since active is unreachable",
+                        localSite.getState());
+
+                localSite.setLastState(localSite.getState());
+                localSite.setState(SiteState.STANDBY_ERROR);
+                _coordinator.persistServiceConfiguration(localSite.toConfiguration());
+            }
+        }
+
+        /**
+         * check all local nodes are in correct zk mode
+         */
+        private void checkLocalSiteZKModes() {
+            List<String> readOnlyNodes = new ArrayList<>();
+            List<String> observerNodes = new ArrayList<>();
+            int numOnline = 0;
+
+            for(String node : getAllNodeIds()){
+
+                String nodeState=drUtil.getLocalCoordinatorMode(node);
+                if (nodeState==null){
+                    _log.debug("State for {}: null",node);
+                    continue;
+                }
+
+                else if(DrUtil.ZOOKEEPER_MODE_READONLY.equals(nodeState)){
+                    // Found another node in read only
+                    readOnlyNodes.add(node);
+                }
+                else if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(nodeState)) {
+                    // Found another node in observer
+                    observerNodes.add(node);
+                }
+                _log.debug("State for {}: {}",node,nodeState);
+                numOnline++;
+            }
+
+            int numParticipants = numOnline - readOnlyNodes.size() - observerNodes.size();
+            int quorum = getNodeCount() / 2 + 1;
+
+            _log.debug("Observer nodes: {}",observerNodes.size());
+            _log.debug("Read Only nodes: {}",readOnlyNodes.size());
+            _log.debug("Participant nodes: {}",numParticipants);
+            _log.debug("nodes Online: {}",numOnline);
+
+            // if there is a participant we need to reconfigure or it will be stuck there
+            // if there are only participants no need to reconfigure
+            // if there are only read only nodes and we have quorum we need to reconfigure
+            if(0 < numParticipants && numParticipants < numOnline) {
+                _log.info("Nodes must have consistent zk mode. Reconfiguring all nodes to participant: {}",
+                        observerNodes.addAll(readOnlyNodes));
+                reconfigZKToWritable(observerNodes,readOnlyNodes);
+            }
+            else if (readOnlyNodes.size() == numOnline && numOnline >= quorum){
+                _log.info("A quorum of nodes are read-only, Reconfiguring nodes to participant: {}",readOnlyNodes);
+                reconfigZKToWritable(observerNodes,readOnlyNodes);
             }
         }
 
@@ -1487,15 +1647,12 @@ public class CoordinatorClientExt {
                     try {
                         localRepository.reconfigCoordinator("observer");
                     } finally {
-                        _log.info("Leaving the barrier.");
-                        boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
-                        if (!leaved) {
-                            _log.warn("Unable to leave barrier for {}", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
-                        }
+                        leaveZKDoubleBarrier(barrier,DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                     }
-                    localRepository.reload("reset-coordinator");
+                    localRepository.restartCoordinator("observer");
                 } else {
-                    _log.warn("Unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                    _log.warn("All nodes unable to enter barrier {}. Try again later", DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
+                    leaveZKDoubleBarrier(barrier, DR_SWITCH_TO_ZK_OBSERVER_BARRIER);
                 }
             } catch (Exception ex) {
                 _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex);
@@ -1503,25 +1660,86 @@ public class CoordinatorClientExt {
         }
     };
 
+
     /**
      * reconfigure ZooKeeper to participant mode within the local site
      *
-     * @param reloadSyssvc if syssvc needs to be reloaded
+     * @param barrier barrier to leave
+     * @param path for logging barrier
+     * @return true for successful, false for success unknown
      */
-    public void reconfigZKToWritable(boolean reloadSyssvc) {
+    private void leaveZKDoubleBarrier(DistributedDoubleBarrier barrier, String path){
+        try {
+            _log.info("Leaving the barrier {}",path);
+            boolean leaved = barrier.leave(DR_SWITCH_BARRIER_TIMEOUT, TimeUnit.SECONDS);
+            if (!leaved) {
+                _log.warn("Unable to leave barrier for {}", path);
+            }
+        } catch (Exception ex) {
+            _log.warn("Unexpected errors during leaving barrier",ex);
+        }
+    }
+
+    /**
+     * reconfigure ZooKeeper to participant mode within the local site
+     */
+    public void reconfigZKToWritable() {
         _log.info("Standby is running in read-only mode due to connection loss with active site. Reconfig coordinatorsvc to writable");
         try {
             LocalRepository localRepository = LocalRepository.getInstance();
             localRepository.reconfigCoordinator("participant");
-            localRepository.restart("coordinatorsvc");
-            if (reloadSyssvc) {
-                localRepository.restart("syssvc");
-            }
+            localRepository.restartCoordinator("participant");
         } catch (Exception ex) {
             _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
         }
     }
-    
+
+    /**
+     * reconfigure ZooKeeper to participant mode within the local site
+     *
+     * @param observerNodes to be reconfigured
+     * @param readOnlyNodes to be reconfigured
+     */
+    public void reconfigZKToWritable(List<String> observerNodes,List<String> readOnlyNodes) {
+        _log.info("Standby is running in read-only mode due to connection loss with active site. " +
+                "Reconfig coordinatorsvc of all nodes to writable");
+
+        try{
+            boolean reconfigLocal = false;
+
+            // if zk is switched from observer mode to participant, reload syssvc
+            for(String node:observerNodes){
+                //The local node cannot reboot itself before others
+                if(node.equals(getMyNodeId())){
+                    reconfigLocal=true;
+                    continue;
+                }
+                LocalRepository localRepository=LocalRepository.getInstance();
+                localRepository.remoteReconfigCoordinator(node, "participant");
+                localRepository.remoteRestartCoordinator(node, "participant");
+            }
+
+            for(String node:readOnlyNodes){
+                //The local node cannot reboot itself before others
+                if(node.equals(getMyNodeId())){
+                    reconfigLocal=true;
+                    continue;
+                }
+                LocalRepository localRepository=LocalRepository.getInstance();
+                localRepository.remoteReconfigCoordinator(node,"participant");
+                localRepository.remoteRestartCoordinator(node,"participant");
+            }
+
+            //reconfigure local node last
+            if (reconfigLocal){
+                reconfigZKToWritable();
+            }
+
+        }catch(Exception ex){
+            _log.warn("Unexpected errors during switching back to zk observer. Try again later. {}", ex.toString());
+        }
+    }
+ 
     /**
       * Get current ZK connection state
       * @return state
@@ -1540,7 +1758,7 @@ public class CoordinatorClientExt {
             String dbVersion = _coordinator.getTargetDbSchemaVersion();
             Set<String> ids = getGoodNodes(serviceName, dbVersion);
             for (String id : ids) {
-                availableNodes.add("vipr" + id);
+                availableNodes.add(ProductName.getName() + id);
             }
         } catch (Exception ex) {
             _log.info("Check service({}) beacon error", serviceName, ex);
@@ -1570,17 +1788,42 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Check if DR active site is stable
+     * Check if DR active site is stable and there is ZK leader in active site
      *
      * @return true for stable, otherwise false
      */
-    public boolean isActiveSiteStable() {
+    public boolean isActiveSiteHealthy() {
         DrUtil drUtil = new DrUtil(_coordinator);
-        Site activeSite = drUtil.getSiteFromLocalVdc(drUtil.getActiveSiteId());
-
+        String activeSiteId = drUtil.getActiveSite().getUuid();
+        
+        boolean isActiveSiteLeaderAlive = false;
+        boolean isActiveSiteStable = false;
+        
+        if (StringUtils.isEmpty(activeSiteId) || drUtil.getLocalSite().getUuid().equals(activeSiteId)) {
+            _log.info("Can't find active site id or local site is active, set active healthy as false");
+        } else {
+            Site activeSite = drUtil.getSiteFromLocalVdc(activeSiteId);
+            isActiveSiteLeaderAlive = isActiveSiteZKLeaderAlive(activeSite);
+            isActiveSiteStable =  isActiveSiteStable(activeSite);
+            _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
+        }
+        
+        
+        SiteMonitorResult monitorResult = _coordinator.getTargetInfo(SiteMonitorResult.class);
+        if (monitorResult == null) {
+            monitorResult = new SiteMonitorResult();
+        }
+        monitorResult.setActiveSiteLeaderAlive(isActiveSiteLeaderAlive);
+        monitorResult.setActiveSiteStable(isActiveSiteStable);
+        _coordinator.setTargetInfo(monitorResult);
+        
+        return isActiveSiteLeaderAlive && isActiveSiteStable;
+    }
+    
+    public boolean isActiveSiteZKLeaderAlive(Site activeSite) {
         // Check alive coordinatorsvc on active site
         Collection<String> nodeAddrList = activeSite.getHostIPv4AddressMap().values();
-        if (nodeAddrList.isEmpty()) {
+        if (!activeSite.isUsingIpv4()) {
             nodeAddrList = activeSite.getHostIPv6AddressMap().values();
         }
 
@@ -1605,13 +1848,18 @@ public class CoordinatorClientExt {
                 return false;
             }
         }
+        
+        return true;
+    }
 
+    public boolean isActiveSiteStable(Site activeSite) {
         // check if cluster state is stable
-        String vip = activeSite.getVip();
+        String vip = activeSite.getVipEndPoint();
         int port = _svc.getEndpoint().getPort();
         String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, vip, port);
         try {
-            SysClient client = SysClientFactory.getSysClient(URI.create(baseNodeURL));
+            SysClient client = SysClientFactory.getSysClient(URI.create(baseNodeURL), CHECK_ACTIVE_SITE_STABLE_READ_TIMEOUT_MS,
+                    CHECK_ACTIVE_SITE_STABLE_CONNECT_TIMEOUT_MS);
             ClusterInfo clusterInfo = client.get(URI.create(URI_INTERNAL_GET_CLUSTER_INFO), ClusterInfo.class, null);
             _log.info("Get cluster info from active site {}", clusterInfo.getCurrentState());
             if (ClusterState.STABLE.equals(ClusterState.valueOf(clusterInfo.getCurrentState()))) {
@@ -1641,5 +1889,19 @@ public class CoordinatorClientExt {
             _log.warn("Unexpected IO errors when checking local coordinator state. {}", ex.toString());
         }
         return false;
+    }
+    
+    /**
+     * check whether current node is virtual IP holder
+     */
+    public boolean isVirtualIPHolder() {
+        try {
+            //standby node with vip will monitor all node states
+            InetAddress vip = InetAddress.getByName(getVip());
+            return (NetworkInterface.getByInetAddress(vip) != null);
+        } catch (Exception e) {
+            _log.error("Error occured while determining leading node for monitor",e);
+            return false;
+        }
     }
 }

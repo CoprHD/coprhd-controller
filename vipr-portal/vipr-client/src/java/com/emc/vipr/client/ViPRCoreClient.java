@@ -8,6 +8,7 @@ import java.net.URI;
 
 import com.emc.storageos.model.tenant.TenantResponse;
 import com.emc.storageos.model.user.UserInfo;
+import com.emc.vipr.client.core.ApplicationSupport;
 import com.emc.vipr.client.core.Audit;
 import com.emc.vipr.client.core.AuthnProviders;
 import com.emc.vipr.client.core.AutoTieringPolicies;
@@ -38,10 +39,12 @@ import com.emc.vipr.client.core.Monitoring;
 import com.emc.vipr.client.core.NetworkSystems;
 import com.emc.vipr.client.core.Networks;
 import com.emc.vipr.client.core.ObjectBuckets;
+import com.emc.vipr.client.core.ObjectNamespaces;
 import com.emc.vipr.client.core.ObjectVirtualPools;
 import com.emc.vipr.client.core.Projects;
 import com.emc.vipr.client.core.ProtectionSystems;
 import com.emc.vipr.client.core.QuotaDirectories;
+import com.emc.vipr.client.core.SchedulePolicies;
 import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StoragePools;
 import com.emc.vipr.client.core.StoragePorts;
@@ -51,6 +54,7 @@ import com.emc.vipr.client.core.StorageTiers;
 import com.emc.vipr.client.core.TasksResources;
 import com.emc.vipr.client.core.Tenants;
 import com.emc.vipr.client.core.Truststore;
+import com.emc.vipr.client.core.UnManagedCGs;
 import com.emc.vipr.client.core.UnManagedExportMasks;
 import com.emc.vipr.client.core.UnManagedFileSystems;
 import com.emc.vipr.client.core.UnManagedVolumes;
@@ -258,7 +262,7 @@ public class ViPRCoreClient {
     public BlockSnapshots blockSnapshots() {
         return new BlockSnapshots(this, client);
     }
-    
+
     public BlockSnapshotSessions blockSnapshotSessions() {
         return new BlockSnapshotSessions(this, client);
     }
@@ -322,6 +326,10 @@ public class ViPRCoreClient {
 
     public UnManagedVolumes unmanagedVolumes() {
         return new UnManagedVolumes(this, client);
+    }
+
+    public UnManagedCGs unmanagedCGs() {
+        return new UnManagedCGs(this, client);
     }
 
     public UnManagedExportMasks unmanagedExports() {
@@ -389,10 +397,23 @@ public class ViPRCoreClient {
     }
     
     public Site site(){
-        return new Site(this, client);
+        return new Site(client);
     }
 
     public IPsec ipsec() {
         return new IPsec(client);
+    }
+    
+    public SchedulePolicies schedulePolicies() {
+        return new SchedulePolicies(this, client);
+    }
+
+    public ApplicationSupport application() {
+        return new ApplicationSupport(client);
+
+    }
+    
+    public ObjectNamespaces objectNamespace() {
+        return new ObjectNamespaces(this, client);
     }
 }

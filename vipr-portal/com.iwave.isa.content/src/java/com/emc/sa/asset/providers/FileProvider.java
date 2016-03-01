@@ -13,6 +13,7 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.Predicate;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -22,16 +23,26 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
+import com.emc.storageos.model.VirtualArrayRelatedResourceRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
+import com.emc.storageos.model.file.FilePolicyList;
+import com.emc.storageos.model.file.FilePolicyRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.model.file.FileShareRestRep.FileProtectionRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
+import com.emc.storageos.model.schedulepolicy.SchedulePolicyList;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.SourceTargetFileSystemsFilter;
 import com.emc.vipr.client.core.filters.VirtualPoolProtocolFilter;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
@@ -125,6 +136,99 @@ public class FileProvider extends BaseAssetOptionsProvider {
     @AssetDependencies("project")
     public List<AssetOption> getUnmountedFilesystems(AssetOptionsContext ctx, URI project) {
         return createFilesystemOptions(api(ctx).fileSystems().findByProject(project), new UnmountedFilesytemsPredicate());
+    }
+    
+    @Asset("fileFilesystemAssociation")
+    @AssetDependencies("project")
+    public List<AssetOption> getFilesystemsForAssociation(AssetOptionsContext ctx, URI project) {
+    	ViPRCoreClient client = api(ctx);
+    	List<FileShareRestRep> fileSharesforAssociation = Lists.newArrayList();
+    	
+    	Map<URI, Boolean> uriToBool = Maps.newHashMap();
+    	List<FileShareRestRep> fileShares = client.fileSystems().findByProject(project);
+    	
+    	for (FileShareRestRep fileShare : fileShares) {
+    		URI vpoolId = fileShare.getVirtualPool().getId();
+    	
+    		if (!uriToBool.containsKey(vpoolId)) {
+    			FileVirtualPoolRestRep vpool = client.fileVpools().get(vpoolId);
+    			uriToBool.put(vpoolId, (vpool.getProtection() != null && vpool.getProtection().getScheduleSnapshots()));
+    		}
+    		
+    		if (uriToBool.get(vpoolId)) {
+    			fileSharesforAssociation.add(fileShare);
+    		}
+    	}
+
+        return createFilesystemOptions(fileSharesforAssociation);
+    }
+    
+    @Asset("fileFilePolicy")
+    @AssetDependencies( {"project", "fileFilesystemAssociation"} )
+    public List<AssetOption> getFilePolicies(AssetOptionsContext ctx, URI project, URI fsId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        FilePolicyList policyList = client.fileSystems().getFilePolicies(fsId);
+        SchedulePolicyList schedulePolicies = client.tenants().getSchedulePoliciesByTenant(ctx.getTenant());
+        
+        for (NamedRelatedResourceRep policy : schedulePolicies.getSchdulePolicies()) {
+            if (!isSchedulePolicyInFilePolicies(policy, policyList)) {
+                options.add(new AssetOption(policy.getId(), policy.getName()));
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    protected boolean isSchedulePolicyInFilePolicies(NamedRelatedResourceRep schedulePolicy, FilePolicyList policyList) {
+        List<FilePolicyRestRep> filePolicies = policyList.getFilePolicies();
+        if (filePolicies == null) {
+            return false;
+        }
+        
+        for (FilePolicyRestRep p : filePolicies) {
+            if (p.getPolicyId().toString().equals(schedulePolicy.getId().toString())) {
+                return true;
+            }
+         }
+        return false;
+    }
+    
+    @Asset("fileFilesystemWithPolicies")
+    @AssetDependencies("project")
+    public List<AssetOption> getFilesystemsWithPolicies(AssetOptionsContext ctx, URI project) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<FileShareRestRep> fileSystems = api(ctx).fileSystems().findByProject(project);
+        for (FileShareRestRep fileSystem : fileSystems) {
+            List<FilePolicyRestRep> filePolicies = client.fileSystems().getFilePolicies(fileSystem.getId()).getFilePolicies();
+            if (filePolicies != null && !filePolicies.isEmpty()) {
+                options.add(new AssetOption(fileSystem.getId(), fileSystem.getName()));
+            }
+        }
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    @Asset("fileSystemPolicies")
+    @AssetDependencies( {"project", "fileFilesystemWithPolicies"} )
+    public List<AssetOption> getFileSystemPolicies(AssetOptionsContext ctx, URI project, URI fsId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+
+        List<FilePolicyRestRep> filePolicies = client.fileSystems().getFilePolicies(fsId).getFilePolicies();
+       
+        if (filePolicies != null && !filePolicies.isEmpty()) {
+            for (FilePolicyRestRep fp : filePolicies) {
+                options.add(new AssetOption(fp.getPolicyId(), fp.getPolicyName()));
+            }
+        }
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
     }
 
     @Asset("fileSnapshot")
@@ -252,6 +356,151 @@ public class FileProvider extends BaseAssetOptionsProvider {
                 options.add(new AssetOption(export.getMountPoint(), export.getMountPoint()));
             }
         }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    @Asset("fileWithContinuousCopies")
+    @AssetDependencies("project")
+    public List<AssetOption> getFileWithContinuousCopies(AssetOptionsContext ctx, URI project) {
+        final ViPRCoreClient client = api(ctx);
+        List<FileShareRestRep> fileShares = client.fileSystems().findByProject(project, new SourceTargetFileSystemsFilter() {
+            @Override
+            public boolean acceptId(URI id) {
+                return !client.fileSystems().getFileContinuousCopies(id).isEmpty();
+            }
+        });
+        return createFilesystemOptions(fileShares);
+    }
+    
+    @Asset("fileContinuousCopies")
+    @AssetDependencies("fileWithContinuousCopies")
+    public List<AssetOption> getFileContinuousCopies(AssetOptionsContext ctx, URI fileId) {
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<NamedRelatedResourceRep> mirrors = client.fileSystems().getFileContinuousCopies(fileId);
+        for (NamedRelatedResourceRep mirror : mirrors) {
+            FileShareRestRep fileShare = client.fileSystems().get(mirror.getId());
+            options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
+        }
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    @Asset("protectedRemoteFileSystem")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getProtectedFileSystems(AssetOptionsContext ctx, URI project) {
+        debug("getting protected remote file system (project=%s)", project);
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(project);
+        
+        for (FileShareRestRep fileShare : fileSystems) {
+            if (fileShare.getProtection() != null) {
+                URI vpoolId = fileShare.getVirtualPool().getId();
+                FileVirtualPoolRestRep vpool = client.fileVpools().get(vpoolId);
+                if (StringUtils.equals(FileShare.PersonalityTypes.SOURCE.toString(), fileShare.getProtection().getPersonality()) &&
+                        StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.REMOTE.name())) {
+                    options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
+                }
+            }
+        }
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
+    @Asset("failoverFileTarget")
+    @AssetDependencies("protectedRemoteFileSystem")
+    public List<AssetOption> getFailoverFileTarget(AssetOptionsContext ctx, URI protectedFileSystem) {
+        if (protectedFileSystem != null) {
+            ViPRCoreClient client = api(ctx);
+            List<AssetOption> options = Lists.newArrayList();
+
+            debug("getting failoverFileTargets (protectedFileSystem=%s)", protectedFileSystem);
+            FileShareRestRep file = client.fileSystems().get(protectedFileSystem);
+            
+            FileProtectionRestRep protection = file.getProtection();
+            if (protection != null) {
+                List<VirtualArrayRelatedResourceRep> targets = protection.getTargetFileSystems();
+                for (VirtualArrayRelatedResourceRep target : targets) {
+                    FileShareRestRep fileshare = client.fileSystems().get(target.getId());
+                    options.add(new AssetOption(fileshare.getId(), fileshare.getName()));
+                }
+            }
+            
+            AssetOptionsUtils.sortOptionsByLabel(options);
+            return options;
+        }
+
+        return Lists.newArrayList();
+    }
+    
+    @Asset("unprotectedFilesystem")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getUnprotectedFileSystems(AssetOptionsContext ctx, URI project) {
+        debug("getting unprotected file system (project=%s)", project);
+        ViPRCoreClient client = api(ctx);
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(project);
+        
+        for (FileShareRestRep fileShare : fileSystems) {
+            if (fileShare.getProtection() != null && fileShare.getProtection().getPersonality() == null) {
+                options.add(new AssetOption(fileShare.getId(), fileShare.getName()));
+            }
+        }
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    protected enum FileVirtualPoolChangeOperationEnum {
+        ADD_REMOTE_FILE_REPLICATION("Add Remote file replication"),
+        ADD_LOCAL_FILE_REPLICATION("Add Local file replication");
+        
+        private String description;
+
+        private FileVirtualPoolChangeOperationEnum(String description) {
+            this.description = description;
+        }
+    
+        @Override
+        public String toString() {
+            return description;
+        }
+    }
+    
+    @Asset("fileVirtualPoolChangeOperation")
+    public List<AssetOption> getVirtualPoolchangeOperations(AssetOptionsContext ctx) {
+        List<AssetOption> options = Lists.newArrayList();
+        
+        for (FileVirtualPoolChangeOperationEnum operation : FileVirtualPoolChangeOperationEnum.values()) {
+            options.add(newAssetOption(operation.name(), "fileVirtualPoolChange.operation." + operation.name()));
+        }
+        return options;
+    }
+    
+    @Asset("fileTargetVirtualPool")
+    @AssetDependencies({"fileVirtualPoolChangeOperation"})
+    public List<AssetOption> getFileTargetVirtualPools(AssetOptionsContext ctx, String vpoolChangeOperation) {
+        List<AssetOption> options = Lists.newArrayList();
+        
+        List<FileVirtualPoolRestRep> vpoolChanges = api(ctx).fileVpools().getAll();
+        
+        for (FileVirtualPoolRestRep vpool : vpoolChanges) {
+            if (StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.REMOTE.name()) &&
+                    StringUtils.equals(vpoolChangeOperation, FileVirtualPoolChangeOperationEnum.ADD_REMOTE_FILE_REPLICATION.name())) {
+                options.add(new AssetOption(vpool.getId(), vpool.getName()));
+            } else if (StringUtils.equals(vpool.getFileReplicationType(), FileReplicationType.LOCAL.name()) &&
+                    StringUtils.equals(vpoolChangeOperation, FileVirtualPoolChangeOperationEnum.ADD_LOCAL_FILE_REPLICATION.name())) {
+                options.add(new AssetOption(vpool.getId(), vpool.getName()));
+            }
+        }
+        
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }

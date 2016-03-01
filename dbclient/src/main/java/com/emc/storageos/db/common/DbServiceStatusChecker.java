@@ -188,42 +188,6 @@ public class DbServiceStatusChecker {
         waitForAllNodesMigrationInit(serviceName);
     }
 
-    public void waitForAllNodesNumTokenAdjusted() {
-        while (true) {
-            if (this.clusterNodeCount == 1) {
-                log.info("no adjust toke for single node vipr, skip");
-                return;
-            }
-
-            List<Configuration> cfgs = this.coordinator.queryAllConfiguration(coordinator.getSiteId(), this.coordinator.getDbConfigPath(this.serviceName));
-            int adjustedCount = 0;
-            for (Configuration cfg : cfgs) {
-                // Bypasses item of "global" and folders of "version", just check db configurations.
-                if (cfg.getId() == null || cfg.getId().equals(Constants.GLOBAL_ID)) {
-                    continue;
-                }
-
-                String numTokens = cfg.getConfig(DbConfigConstants.NUM_TOKENS_KEY);
-                if (numTokens == null) {
-                    log.info("Did not found {} for {}, treating as not adjusted", DbConfigConstants.NUM_TOKENS_KEY, cfg.getId());
-                } else if (Integer.valueOf(numTokens).equals(DbConfigConstants.DEFUALT_NUM_TOKENS)) {
-                    log.info("Found num_tokens of node {} reached target version {}", cfg.getId(), numTokens);
-                    adjustedCount++;
-                }
-            }
-
-            if (adjustedCount == this.clusterNodeCount) {
-                return;
-            }
-
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                log.error("Interrupted", e);
-            }
-        }
-    }
-
     public void waitForAllNodesMigrationInit(String svcName) {
         waitForAllNodesToBecome(DbConfigConstants.MIGRATION_INIT, true, svcName);
     }

@@ -5,22 +5,22 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
@@ -31,16 +31,15 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
     private static final Logger logger = LoggerFactory.getLogger(BlockMirrorIngestOrchestrator.class);
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
-            UnManagedVolume unManagedVolume,
-            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
-            List<UnManagedVolume> unManagedVolumesIngestedSuccessfully,
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
-            Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
+    public <T extends BlockObject> T ingestBlockObjects(IngestionRequestContext requestContext, Class<T> clazz)
+            throws IngestionException {
+
+        UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
+        boolean unManagedVolumeExported = requestContext.getVolumeContext().isVolumeExported();
 
         // Validate the unManagedVolume properties
-        validateUnManagedVolume(unManagedVolume, vPool);
+        validateUnManagedVolume(unManagedVolume, requestContext.getVpool(unManagedVolume));
+        validateParentNotRpProtected(unManagedVolume);
 
         // Check whether mirror already ingested or not.
         String mirrorNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
@@ -51,17 +50,17 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
             return clazz.cast(mirrorObj);
         }
         if (null == mirrorObj) {
-            mirrorObj = createBlockMirror(mirrorNativeGuid, system, unManagedVolume, vPool, virtualArray, project);
+            mirrorObj = createBlockMirror(mirrorNativeGuid, requestContext.getStorageSystem(), unManagedVolume,
+                    requestContext.getVpool(unManagedVolume), requestContext.getVarray(unManagedVolume), requestContext.getProject());
         }
         // Run this always when the volume is NO_PUBLIC_ACCESS
-        if (markUnManagedVolumeInactive(unManagedVolume, mirrorObj, unManagedVolumesIngestedSuccessfully, createdObjectMap,
-                updatedObjectMap, taskStatusMap, vplexIngestionMethod)) {
+        if (markUnManagedVolumeInactive(requestContext, mirrorObj)) {
             logger.info("Marking UnManaged Volume {} as inactive, all the related replicas and parent has been ingested",
                     unManagedVolume.getNativeGuid());
             // mark inactive if this is not to be exported. Else, mark as inactive after successful export
             if (!unManagedVolumeExported) {
                 unManagedVolume.setInactive(true);
-                unManagedVolumesIngestedSuccessfully.add(unManagedVolume);
+                requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
             }
         } else {
             logger.info("Not all the parent/replicas of unManagedVolume {} have been ingested , hence marking as internal",
@@ -73,11 +72,49 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
     }
 
     /**
-     * There is no validation required for mirrors. Hence returning void argument.
+     * ViPR doesn't support creating mirrors off RP protected volumes. So check if the mirror to be ingested has RP
+     * protected parent. If yes, throw an ingestion exception
+     * 
+     * @param unManagedVolume
      */
-    @Override
-    protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
-        return;
+    private void validateParentNotRpProtected(UnManagedVolume unManagedVolume) {
+        String parentNativeGUID = null;
+        StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+        if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString())) {
+            parentNativeGUID = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString(),
+                    unManagedVolumeInformation);
+        } else if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString())) {
+            parentNativeGUID = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
+                    unManagedVolumeInformation);
+        }
+        if (parentNativeGUID != null) {
+            logger.info("Finding unmanagedvolume {} in vipr db", parentNativeGUID);
+            URIQueryResultList umvUriList = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeInfoNativeIdConstraint(parentNativeGUID), umvUriList);
+            if (umvUriList.iterator().hasNext()) {
+                logger.info("Found unmanagedvolume {} in vipr db", parentNativeGUID);
+                URI umvUri = umvUriList.iterator().next();
+                UnManagedVolume parentUnManagedVolume = _dbClient.queryObject(UnManagedVolume.class, umvUri);
+                if (parentUnManagedVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(parentUnManagedVolume)) {
+                    logger.warn("Unmanaged mirror {} has RP protected parent", unManagedVolume.getLabel());
+                    throw IngestionException.exceptions.cannotIngestMirrorsOfRPVolumes(unManagedVolume.getLabel(),
+                            parentUnManagedVolume.getLabel());
+                }
+            } else {
+                // the parent might already be ingested in the vipr db.
+                logger.info("Finding managed volume in vipr db corresponding to {}", parentNativeGUID);
+                BlockObject parentObject = VolumeIngestionUtil.getBlockObject(parentNativeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                        VolumeIngestionUtil.VOLUME), _dbClient);
+                if (parentObject != null && BlockObject.checkForRP(_dbClient, parentObject.getId())) {
+                    logger.warn("Unmanaged mirror {} has RP protected parent", unManagedVolume.getLabel());
+                    throw IngestionException.exceptions.cannotIngestMirrorsOfRPVolumes(unManagedVolume.getLabel(),
+                            parentObject.getLabel());
+                }
+            }
+        }
     }
 
     /**
@@ -106,6 +143,11 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
         String syncType = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SYNC_TYPE.toString(), unManagedVolume.getVolumeInformation());
         mirror.setSyncType(syncType);
+        String autoTierPolicyId = getAutoTierPolicy(unManagedVolume, system, vPool);
+        validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
+        if (null != autoTierPolicyId) {
+            updateTierPolicyProperties(autoTierPolicyId, mirror);
+        }
         return mirror;
     }
 }

@@ -29,7 +29,7 @@ public class BackupUploadJobConsumer extends DistributedQueueConsumer<BackupUplo
     public void consumeItem(BackupUploadStatus job, DistributedQueueItemProcessedCallback callback) throws Exception {
         try {
             log.info("Upload backup({}) begin", job.getBackupName());
-            backupScheduler.getUploadExecutor().runOnce(job.getBackupName());
+            backupScheduler.getUploadExecutor().upload(job.getBackupName());
             log.info("Upload backup({}) finish", job.getBackupName());
         } catch (Exception e) {
             log.error("Upload backup({}) failed", job.getBackupName(), e);

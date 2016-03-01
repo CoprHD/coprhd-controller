@@ -4,10 +4,10 @@
  */
 package com.emc.storageos.plugins.common;
 
+import java.util.regex.Pattern;
+
 import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger32;
-
-import java.util.regex.Pattern;
 
 public class Constants {
     public static final String _computerSystem = "ComputerSystem";
@@ -246,12 +246,16 @@ public class Constants {
     public static final String UN_VOLUME_RAGROUP_MAP = "unManagedVolumesToRAGroupMap";
     public static final String UN_VOLUME_LOCAL_REPLICA_MAP = "unManagedVolumesToLocalReplicaMap";
     public static final String SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP = "snapshotsToSynchronizationAspects";
+    public static final String DUPLICATE_SYNC_ASPECT_ELEMENT_NAME_MAP = "duplicateSyncAspectElementNameMap";
+    public static final String NOT_INGESTABLE_SYNC_ASPECT = "notIngestableSyncAspect";
     public static final String UNMANAGED_EXPORT_MASKS_MAP = "unManagedExportMasksMap";
     public static final String UNMANAGED_EXPORT_MASKS_SET = "unManagedExportMasksSet";
     public static final String UNMANAGED_EXPORT_MASKS_CREATE_LIST = "unManagedExportMasksCreateList";
     public static final String UNMANAGED_EXPORT_MASKS_UPDATE_LIST = "unManagedExportMasksUpdateList";
     public static final String UNMANAGED_EXPORT_MASKS_VPLEX_INITS_SET = "unManagedExportMasksVplexInitsSet";
+    public static final String UNMANAGED_EXPORT_MASKS_RECOVERPOINT_INITS_SET = "unManagedExportMasksRecoverPointInitsSet";
     public static final String UNMANAGED_VPLEX_BACKEND_MASKS_SET = "unManagedVplexBackendVolumesSet";
+    public static final String UNMANAGED_RECOVERPOINT_MASKS_SET = "unManagedRecoverPointVolumesSet";
     public static final String REMOTE_COPY_MODE = "remoteCopyMode";
     public static final String COPY_STATE = "EMCCopyState";
     public static final String COPY_STATE_DESC = "EMCCopyStateDesc";
@@ -296,4 +300,6 @@ public class Constants {
 
     public static final String WORKLOAD = "Workload";
     public static final String SLO_NAMES = "SLONames";
+    public static final String EXTERNALDEVICE = "externaldevice";
+
 }

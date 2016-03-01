@@ -28,19 +28,23 @@ public class SiteMapper {
         to.setUuid(from.getUuid());
         to.setVdcShortId(from.getVdcShortId());
         to.setName(from.getName());
-        to.setVip(from.getVip());
+        to.setVipEndpoint(from.getVipEndPoint());
         to.setDescription(from.getDescription());
         to.setState(from.getState().toString());
+        to.setCreateTime(from.getCreationTime());
+        if (from.getNetworkHealth() != null) {
+            to.setNetworkHealth(from.getNetworkHealth().toString());
+        }
     }
 
     public void map(Site from, SiteParam to) {
         to.setHostIPv4AddressMap(new StringMap(from.getHostIPv4AddressMap()));
         to.setHostIPv6AddressMap(new StringMap(from.getHostIPv6AddressMap()));
         to.setName(from.getName()); // this is the name for the standby site
-        to.setSecretKey(from.getSecretKey());
         to.setUuid(from.getUuid());
         to.setVip(from.getVip());
-        to.setShortId(from.getStandbyShortId());
+        to.setVip6(from.getVip6());
+        to.setShortId(from.getSiteShortId());
         to.setState(from.getState().toString());
         to.setNodeCount(from.getNodeCount());
         to.setCreationTime(from.getCreationTime());
@@ -49,10 +53,10 @@ public class SiteMapper {
     public void map(SiteParam from, Site to) {
         to.setUuid(from.getUuid());
         to.setVip(from.getVip());
+        to.setVip6(from.getVip6());
         to.getHostIPv4AddressMap().putAll(from.getHostIPv4AddressMap());
         to.getHostIPv6AddressMap().putAll(from.getHostIPv6AddressMap());
-        to.setSecretKey(from.getSecretKey());
-        to.setStandbyShortId(from.getShortId());
+        to.setSiteShortId(from.getShortId());
         to.setState(SiteState.valueOf(from.getState()));
         to.setNodeCount(from.getNodeCount());
         to.setCreationTime(from.getCreationTime());

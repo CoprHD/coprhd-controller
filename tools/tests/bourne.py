@@ -56,6 +56,7 @@ URI_VPOOL_ACLS                    = URI_VPOOL_INSTANCE + '/acl'
 
 URI_VPOOL_UPDATE                  = URI_VPOOL_INSTANCE + '/assign-matched-pools'
 URI_VPOOL_DEACTIVATE              = URI_VPOOL_INSTANCE + '/deactivate'
+URI_VPOOL_REFRESH                 = URI_VPOOL_INSTANCE + '/refresh-matched-pools'
 URI_BLOCKVPOOLS_BULKGET            = URI_SERVICES_BASE + '/block/vpools/bulk'
 URI_FILEVPOOLS_BULKGET             = URI_SERVICES_BASE + '/file/vpools/bulk'
 URI_SMISPROVIDER_BULKGET        = URI_SERVICES_BASE + '/vdc/smis-providers/bulk'
@@ -122,6 +123,7 @@ URI_FILE_QUOTA_DIR_DELETE       = URI_FILE_QUOTA_DIR + '/deactivate'
 
 URI_DR                     = URI_SERVICES_BASE  + '/site'
 URI_DR_GET                 = URI_DR   + '/{0}'
+URI_DR_GET_DETAILS         = URI_DR   + '/{0}' + '/details'
 URI_DR_DELETE              = URI_DR   + '/{0}'
 URI_DR_PAUSE               = URI_DR   + '/{0}' + '/pause'
 URI_DR_RESUME              = URI_DR   + '/{0}' + '/resume'
@@ -135,7 +137,9 @@ URI_VDC_RECONNECT_POST      = URI_VDC    + '/{0}/reconnect'
 URI_VDC_SECRETKEY           = URI_VDC    + '/secret-key'
 URI_VDC_CERTCHAIN           = URI_VDC    + '/keystore'
 
-URI_IPSEC               = '/ipsec'
+URI_IPSEC                   = '/ipsec'
+URI_IPSEC_STATUS            = '/ipsec?status={0}'
+URI_IPSEC_KEY               = '/ipsec/key'
 
 URI_VDCINFO                 =  '/object/vdcs' 
 URI_VDCINFO_GET             = URI_VDCINFO    + '/vdc' + '/{0}'
@@ -151,7 +155,13 @@ URI_BACKUP                      = URI_SERVICES_BASE + '/backupset'
 URI_BACKUP_CREATE               = URI_BACKUP + '/backup?tag={0}'
 URI_BACKUP_DELETE               = URI_BACKUP + '/backup?tag={0}'
 URI_BACKUP_LIST                 = URI_BACKUP
+URI_BACKUP_LIST_EXTERNAL        = URI_BACKUP + '/external'
 URI_BACKUP_DOWNLOAD             = URI_BACKUP + '/download?tag={0}'
+URI_BACKUP_UPLOAD               = URI_BACKUP + '/backup/upload?tag={0}'
+URI_BACKUP_QUERY_UPLOAD         = URI_BACKUP + '/backup?tag={0}'
+URI_BACKUP_PULL                 = URI_BACKUP + '/pull?file={0}'
+URI_BACKUP_QUERY_PULL           = URI_BACKUP + '/restore/status?backupname={0}&isLocal={1}'
+URI_BACKUP_RESTORE              = URI_BACKUP + '/restore?backupname={0}&isLocal={1}&password={2}'
 
 URI_VOLUME_LIST                 = URI_SERVICES_BASE  + '/block/volumes'
 URI_VOLUME_BULKGET              = URI_VOLUME_LIST  + '/bulk'
@@ -203,6 +213,7 @@ URI_UNMANAGED_UNEXPORTED_VOLUMES = URI_UNMANAGED + '/volumes/ingest'
 URI_UNMANAGED_VOLUMES_SEARCH     = URI_UNMANAGED + "/search"
 URI_UNMANAGED_VOLUMES_SEARCH_NAME= URI_UNMANAGED_VOLUMES_SEARCH + "?name={0}"
 URI_UNMANAGED_EXPORTED_VOLUMES   = URI_UNMANAGED + '/volumes/ingest-exported' 
+URI_UNMANAGED_TASK               = URI_VDC + '/tasks/{0}'
 
 URI_BLOCK_MIRRORS_BASE          = URI_VOLUME               + '/protection/continuous-copies'
 URI_BLOCK_MIRRORS_LIST          = URI_BLOCK_MIRRORS_BASE
@@ -232,6 +243,10 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_TASKS      = URI_BLOCK_CONSISTENCY_GROUP_SN
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_ACTIVATE   = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/activate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_DEACTIVATE = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/deactivate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/restore"
+
+URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/snapshot-sessions"
+URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_CREATE     = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_BASE
+URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_LIST       = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_BASE
 
 URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/continuous-copies"
 URI_BLOCK_CONSISTENCY_GROUP_SWAP                  = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
@@ -374,10 +389,14 @@ URI_OBJECTTZ                    = URI_SERVICES_BASE + '/object/networks'
 URI_OBJECTTZ_INSTANCE           = URI_OBJECTTZ + '/{0}'
 URI_OBJECTTZ_DELETE             = URI_OBJECTTZ + '/{0}/deactivate'
 
+URI_DISCOVERED_PROTECTION_SYSTEMS   = URI_SERVICES_BASE   + '/vdc/protection-systems'
+URI_DISCOVERED_PROTECTION_SYSTEM    = URI_DISCOVERED_PROTECTION_SYSTEMS + '/{0}'
 URI_PROTECTION_SYSTEM = URI_SERVICES_BASE + '/vdc/protection-systems/{0}'
 URI_PROTECTION_SYSTEMS = URI_SERVICES_BASE + '/vdc/protection-systems'
 URI_PROTECTION_SYSTEM_DISCOVER = URI_PROTECTION_SYSTEM + '/discover'
 URI_PROTECTION_SYSTEM_UPDATE          = URI_PROTECTION_SYSTEM
+URI_DISCOVERED_PROTECTION_SYSTEM_DISCOVER    = URI_PROTECTION_SYSTEM + '/discover'
+URI_DISCOVERED_PROTECTION_SYSTEM_NS = URI_DISCOVERED_PROTECTION_SYSTEM_DISCOVER + '?namespace={1}'
 
 URI_PROTECTIONSET = URI_SERVICES_BASE + '/block/protection-sets/{0}'
 URI_PROTECTIONSETS = URI_SERVICES_BASE + '/block/protection-sets'
@@ -535,7 +554,7 @@ COOKIE_FILE                     = os.getenv('BOURNE_COOKIE_FILE', 'cookiejar')
 # It only effects the connection process itself, not the downloading of the response body
 REQUEST_TIMEOUT_SECONDS = 120
 # Total time for server reconnection
-MAX_WAIT_TIME_IN_SECONDS=240
+MAX_WAIT_TIME_IN_SECONDS=480
 
 CONTENT_TYPE_JSON='application/json'
 CONTENT_TYPE_XML='application/xml'
@@ -897,15 +916,14 @@ class Bourne:
                         print 'Headers', newHeaders
                     response = requests.get(url,headers=newHeaders,verify=False, cookies=cookiejar, timeout=req_timeout, stream=True)
                 else:
-                    raise Excpeption("Unsupported method:", method)
+                    raise Exception("Unsupported method:", method)
 
                 if BOURNE_DEBUG == '1':
                     try:
             		print 'Headers: ', newHeaders
                         print 'Response code ' + str(response.status_code)
-                        if not method != 'GET-stream':
-                            print 'Response '
-                            self.pretty_print_json(cjson.decode(response.text))
+                        print 'Response '
+                        self.pretty_print_json(cjson.decode(response.text))
                     except:
                         print 'Exception printing debug output'
             except requests.exceptions.Timeout:
@@ -1756,6 +1774,9 @@ class Bourne:
 
     def cos_show(self, type, uri):
         return self.api('GET', URI_VPOOL_INSTANCE.format(type, uri))
+
+    def cos_refresh(self, type, uri):
+	return self.api('GET', URI_VPOOL_REFRESH.format(type, uri))
 
     def cos_query(self, type, name):
         if (self.__is_uri(name)):
@@ -3299,6 +3320,12 @@ class Bourne:
         self.assert_is_dict(resp)
         return resp
 
+    def dr_get_standby_details(self,uuid):
+        resp = self.api('GET', URI_DR_GET_DETAILS.format(uuid))
+        print "DR GET STANDBY DETAILS RESP = ",resp
+        self.assert_is_dict(resp)
+        return resp
+
     def dr_delete_standby(self,uuid):
         resp = self.api('DELETE', URI_DR_DELETE.format(uuid))
         print "DR DELETE STANDBY RESP = ",resp
@@ -3328,12 +3355,16 @@ class Bourne:
     # IPsec APIs
     #
 
-    def ipsc_rotate_key(self):
-        resp = self.api('POST', URI_IPSEC)
+    def ipsec_rotate_key(self):
+        resp = self.api('POST', URI_IPSEC_KEY)
         return resp
 
-    def ipsc_check(self):
+    def ipsec_check(self):
         resp = self.api('GET', URI_IPSEC)
+        return resp
+
+    def ipsec_change_status(self,status):
+        resp = self.api('POST', URI_IPSEC_STATUS.format(status))
         return resp
 
     #
@@ -3495,8 +3526,26 @@ class Bourne:
     def list_backup(self):
         return self.api('GET', URI_BACKUP_LIST)
    
+    def list_external_backup(self):
+        return self.api('GET', URI_BACKUP_LIST_EXTERNAL)
+
     def download_backup(self,name):
         return self.api('GET', URI_BACKUP_DOWNLOAD.format(name), None, None, content_type=CONTENT_TYPE_OCTET)
+
+    def upload_backup(self,name):
+        return self.api('POST', URI_BACKUP_UPLOAD.format(name), None, None, content_type=CONTENT_TYPE_OCTET)
+
+    def query_upload_backup(self,name):
+        return self.api('GET', URI_BACKUP_QUERY_UPLOAD.format(name))
+
+    def pull_backup(self,name):
+        return self.api('POST', URI_BACKUP_PULL.format(name), None, None, content_type=CONTENT_TYPE_OCTET)
+
+    def query_pull_backup(self,name,isLocal):
+        return self.api('GET', URI_BACKUP_QUERY_PULL.format(name, isLocal))
+
+    def restore_backup(self,name,isLocal,password):
+        return self.api('POST', URI_BACKUP_RESTORE.format(name, isLocal, password))
 
     def get_db_repair_status(self):
         return self.api('GET', URI_DB_REPAIR)
@@ -3689,13 +3738,16 @@ class Bourne:
         result = self.api_sync_2(tr['resource']['id'], tr['op_id'], self.volume_show_task)
         return result
 
-    def volume_change_link(self, uri, operation, copy_uri, type):
+    def volume_change_link(self, uri, operation, copy_uri, type, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
 
         copy['copyID'] = copy_uri
         copy['type'] = type
+
+        if (pit):
+            copy['pointInTime'] = pit
 
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
@@ -3730,12 +3782,17 @@ class Bourne:
         print 'ERROR: Volume field FAILED Verfication: ' + field + ' IS: ' + foundValue + ', SHOULD BE: ' + value;
         return -1;
 
-    def volume_delete(self, uri, wait, vipronly):
+    def volume_delete(self, uri, wait, vipronly, force):
         s = ""
         m = ""
         posturi = URI_RESOURCE_DEACTIVATE.format(URI_VOLUME.format(uri))
         if (vipronly):
             posturi = posturi + '?type=VIPR_ONLY'
+            if (force):
+               posturi = posturi + '&force=TRUE'
+        elif (force):
+            posturi = posturi + '?force=TRUE'
+
         o = self.api('POST', posturi)
         if (wait):
            self.assert_is_dict(o)
@@ -3744,7 +3801,7 @@ class Bourne:
            m = sync['message']
         return (o, s, m)
 
-    def volume_multi_delete(self, uris, wait, vipronly):
+    def volume_multi_delete(self, uris, wait, vipronly, force):
         params = {}
         ids = []
         if (type(uris) is list):
@@ -3758,6 +3815,10 @@ class Bourne:
         posturi = URI_VOLUMES_DEACTIVATE
         if (vipronly):
             posturi = posturi + '?type=VIPR_ONLY'
+            if (force):
+               posturi = posturi + '&force=TRUE'
+        elif (force):
+            posturi = posturi + '?force=TRUE'
         o = self.api('POST', posturi, params)
         if (wait):
             self.assert_is_dict(o)
@@ -4130,13 +4191,17 @@ class Bourne:
 
         return s
 
-    def block_consistency_group_failover(self, group, copyType, targetVarray):
+    def block_consistency_group_failover(self, group, copyType, targetVarray, pit):
         copies_param = dict()
         copy = dict()
         copy_entries = []
 
         copy['type'] = copyType
         copy['copyID'] = targetVarray
+
+        if (pit):
+            copy['pointInTime'] = pit
+
         copy_entries.append(copy)
         copies_param['copy'] = copy_entries
         
@@ -5107,12 +5172,29 @@ class Bourne:
 	s=self.api_sync_2(task['resource']['id'],task['op_id'],self.protectionsystem_show_task, ignore_error)
         return "discovery is completed"
 
+    def protectionsystem_discover_namespace(self, native_guid, namespace, ignore_error):
+        if (self.__is_uri(native_guid)):
+            return name
+        systems = self.protectionsystem_list()
+        for system in systems:
+            try:
+                protection_system = self.show_element(system['id'], URI_PROTECTION_SYSTEM)
+                if (protection_system['native_guid'] == native_guid or protection_system['name'] == native_guid):
+                    o = self.api('POST', URI_DISCOVERED_PROTECTION_SYSTEM_NS.format(system['id'], namespace));
+                    s=self.api_sync_2(o['resource']['id'],o['op_id'],self.protectionsystem_show_task, ignore_error)
+                    return "discovery of namespace is completed"
+            except KeyError:
+                print 'no name key'
+        raise Exception('bad protection system native_guid: ' + native_guid)
+
     def protectionsystem_list(self):
         o = self.api('GET', URI_PROTECTION_SYSTEMS)
         if (not o):
             return {};
-        else:
-            return o
+	systems = o['protection_system'];
+	if(type(systems) != list):
+	    return [systems];
+        return systems;
 
     def protectionsystem_show(self, uri):
         return self.api('GET', URI_PROTECTION_SYSTEM.format(uri))
@@ -5122,7 +5204,7 @@ class Bourne:
             return name
 
         protectionsystems = self.protectionsystem_list()
-        for protection_system in protectionsystems['protection_system']:
+        for protection_system in protectionsystems:
             protectionsystem = self.protectionsystem_show(protection_system['id'])
             if (protectionsystem['name'] == name):
                 return protectionsystem['id']
@@ -8362,8 +8444,12 @@ class Bourne:
         results = self.un_managed_volume_search(name)
         resources = results['resource']
         for resource in resources:
-             if (resource['match'] == name):
-                 return resource['id']
+	    # Look for exact match
+	    if (resource['match'] == name):
+		return resource['id']
+	    # Look for exact "startsWith" match (as in VPlex)
+	    if (resource['match'].startswith(name + " (")):
+		return resource['id']
         raise Exception('bad volume name ' + name)
 
     def un_managed_volume_search(self, name):
@@ -8372,6 +8458,10 @@ class Bourne:
         if (name):
             return  self.api('GET', URI_UNMANAGED_VOLUMES_SEARCH_NAME.format(name))
         
+
+    def ingest_show_task(self, vol, task):
+        uri_ingest_task = URI_VDC + '/tasks/{1}'
+        return self.api('GET', uri_ingest_task.format(vol, task))
 
     def ingest_exported_volumes(self, host, cluster, varray, vpool, project, volspec):
         projectURI = self.project_query(project).strip()
@@ -8409,10 +8499,11 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+            s = self.api_sync_2(tr['resource']['id'], tr['id'], self.ingest_show_task)
+            result.append(s)
         return result
     
     def ingest_unexported_volumes(self, varray, vpool, project, volspec):
@@ -8440,10 +8531,11 @@ class Bourne:
         if('details' in resp):
            print "Failed operation: "+ resp['details']
            return resp;
-        tr_list = resp['volume']
+        tr_list = resp['task']
         result = list()
         for tr in tr_list:
-           result.append(tr['id'])
+            s = self.api_sync_2(tr['resource']['id'], tr['id'], self.ingest_show_task)
+            result.append(s)
         return result
 
     #
@@ -8546,7 +8638,7 @@ class Bourne:
 
     def block_snapshot_session_delete(self, session_uri):
         tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_DELETE.format(session_uri))
-        
+
         self.assert_is_dict(tasklist)
         tasks = tasklist['task']
         session_uri = ''
@@ -8575,9 +8667,20 @@ class Bourne:
             target_info['copy_mode'] = copy_mode
         params = dict()
         params['new_linked_targets'] = target_info
-        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS.format(session_uri), params)
-        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
-        return task
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS.format(session_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
 
     def block_snapshot_session_unlink_target(self, session_uri, target_uri, delete_target):
         target_info = dict()
@@ -8595,6 +8698,145 @@ class Bourne:
         target_info.append(target_uri)
         params = dict()
         params['ids'] = target_info
-        task = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_RELINK_TARGETS.format(session_uri), params)
-        task = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_snapshot_session_show_task)
-        return task
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_RELINK_TARGETS.format(session_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
+
+	# Consistency group snapshot session operations
+    def block_consistency_group_snapshot_session_create(self, group_uri, name, target_count, target_name, target_copymode):
+        params = dict()
+        params['name'] = name
+        if (target_count) :
+            target_params = dict()
+            params['new_linked_targets'] = target_params
+            target_params['count'] = target_count
+            target_params['target_name'] = target_name
+            if (target_copymode) :
+                target_params['copy_mode'] = target_copymode
+        tasklist = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_CREATE.format(group_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
+
+    def block_consistency_group_snapshot_session_list(self, group_uri):
+        group_uri = group_uri.strip()
+        sessions_list = self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_LIST.format(group_uri))
+        self.assert_is_dict(sessions_list)
+        source_sessions = sessions_list['snapshot_session']
+        source_session_uris = []
+        if (type(source_sessions) != list):
+            source_sessions = [source_sessions]
+        for source_session in source_sessions:
+            source_session_uris.append(source_session.get('id'))
+        return source_session_uris
+
+    def block_consistency_group_snapshot_session_show(self, session_uri):
+        return self.api('GET', URI_BLOCK_SNAPSHOT_SESSION.format(session_uri))
+
+    def block_snapshot_session_consistency_group_query(self, group_session_name):
+        if (self.__is_uri(group_session_name)):
+            return group_session_name
+
+        (group_name, session_name) = group_session_name.rsplit('/', 1)
+        group_uri = self.block_consistency_group_snapshot_session_query(group_name, session_name)
+        group_uri = group_uri.strip()
+
+        session_uris = self.block_snapshot_session_list(source_uri)
+        for session_uri in session_uris:
+            session = self.block_snapshot_session_show(session_uri)
+            if (session['name'] == session_name):
+                return session['id']
+        raise Exception('Invalid snapshot session name')
+
+    def block_consistency_group_snapshot_session_query(self, name):
+        if (self.__is_uri(name)):
+            return name
+
+        (group_name, session_name) = name.rsplit('/', 1)
+
+        return (self.block_consistency_group_snapshot_session_get_id_by_name(group_name, session_name))
+        raise Exception('bad consistency group snapshot name')
+
+    def block_consistency_group_snapshot_session_get_id_by_name(self, group, name):
+        groupid = self.block_consistency_group_query(group)
+        groupid = groupid.strip()
+        o = self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_SESSION_LIST.format(groupid))
+        self.assert_is_dict(o)
+        sessions = o['snapshot_session']
+        ids = []
+        if (not o):
+            return {}
+        else :
+           if (type(sessions) != list):
+              sessions = [sessions]
+           print 'The requested consistency group snapshot session name : ' + name
+           for session in sessions:
+              if(name == session.get('name')):
+                print 'The selected id : ' + session.get('id')
+                return session.get('id')
+
+    def block_consistency_group_snapshot_session_link_targets(self, session_uri, count, name, copy_mode):
+        target_info = dict()
+        target_info['count'] = count
+        target_info['target_name'] = name
+        if (copy_mode):
+            target_info['copy_mode'] = copy_mode
+        params = dict()
+        params['new_linked_targets'] = target_info
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_LINK_TARGETS.format(session_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])
+
+    def block_consistency_group_snapshot_session_unlink_target(self, session_uri, target_uri, delete_target):
+        target_info = dict()
+        target_info['id'] = target_uri
+        if (delete_target):
+            target_info['delete_target'] = delete_target
+        params = dict()
+        params['linked_targets'] = [target_info]
+        tasklist = self.api('POST', URI_BLOCK_SNAPSHOT_SESSION_UNLINK_TARGETS.format(session_uri), params)
+        self.assert_is_dict(tasklist)
+        tasks = tasklist['task']
+        session_uri = ''
+        task_opid = ''
+        if (type(tasks) != list):
+            tasks = [tasks]
+        for task in tasks:
+            session_uri = task['resource']['id']
+            task_opid = task['op_id']
+        # Creating multiple would be a group operation and if one is 
+        # complete, then they are all complete.
+        task = self.api_sync_2(session_uri, task_opid, self.block_snapshot_session_show_task)
+        return (tasklist, task['state'], task['message'])

@@ -4,8 +4,13 @@
  */
 package util.builders;
 
+import models.FileProtectionSystemTypes;
+
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.storageos.model.vpool.FileVirtualPoolParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolProtectionParam;
+import com.emc.storageos.model.vpool.FileVirtualPoolReplicationParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolProtectionSnapshotsParam;
 
@@ -53,5 +58,33 @@ public class FileVirtualPoolBuilder extends VirtualPoolBuilder {
     public FileVirtualPoolBuilder setLongTermRetention(Boolean longTermRetention) {
         virtualPool.setLongTermRetention(longTermRetention);
         return this;
+    }
+
+    protected FileVirtualPoolReplicationParam getReplicationParam() {
+        if (getProtection().getReplicationParam() == null) {
+            getProtection().setReplicationParam(new FileVirtualPoolReplicationParam());
+
+        }
+        return virtualPool.getProtection().getReplicationParam();
+    }
+
+    public static FileVirtualPoolReplicationParam getReplicationParam(FileVirtualPoolRestRep virtualPool) {
+        return virtualPool != null ? virtualPool.getProtection().getReplicationParam() : null;
+    }
+
+    public FileVirtualPoolBuilder setReplicationParam(FileVirtualPoolReplicationParam replicationParam) {
+        String replicationType = replicationParam.getSourcePolicy().getReplicationType();
+        replicationParam.getSourcePolicy().setReplicationType(StringUtils.defaultIfEmpty(replicationType, FileProtectionSystemTypes.NONE));
+        getProtection().setReplicationParam(replicationParam);
+        return this;
+    }
+
+    public FileVirtualPoolBuilder setScheduleSnapshots(Boolean scheduleSnapshots) {
+        getProtection().setScheduleSnapshots(scheduleSnapshots);
+        return this;
+    }
+
+    public static Boolean getScheduleSnapshots(FileVirtualPoolProtectionParam protection) {
+        return protection != null ? protection.getScheduleSnapshots() : null;
     }
 }

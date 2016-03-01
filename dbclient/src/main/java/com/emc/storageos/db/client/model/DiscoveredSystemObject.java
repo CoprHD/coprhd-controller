@@ -52,7 +52,6 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
      */
     private String _registrationStatus = RegistrationStatus.REGISTERED.name();
 
-    @EnumType(Type.class)
     @Name("systemType")
     public String getSystemType() {
         return _systemType;
@@ -75,11 +74,11 @@ public class DiscoveredSystemObject extends DiscoveredDataObject {
     }
 
     public boolean storageSystemIsFile() {
-        return Type.isFileStorageSystem(Type.valueOf(_systemType));
+        return Type.isFileStorageSystem(_systemType);
     }
 
     public boolean storageSystemHasProvider() {
-        return Type.isProviderStorageSystem(Type.valueOf(_systemType));
+        return Type.isProviderStorageSystem(_systemType);
     }
 
     public void setDiscoveryStatus(String status) {

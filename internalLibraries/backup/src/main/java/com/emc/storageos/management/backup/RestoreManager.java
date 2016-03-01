@@ -36,10 +36,15 @@ public class RestoreManager {
     private String ipAddress4;
     private String ipAddress6;
     private Boolean enableChangeVersion;
+    private boolean onlyRestoreSiteId;
 
     private enum Validation {
         passed,
         failed
+    }
+
+    public void setOnlyRestoreSiteId(boolean onlyRestoreSiteId) {
+        this.onlyRestoreSiteId = onlyRestoreSiteId;
     }
 
     public void setDbRestoreHandler(RestoreHandler dbRestoreHandler) {
@@ -111,6 +116,13 @@ public class RestoreManager {
             validateBackupFolder(backupPath, snapshotName);
             purge(false);
 
+            if (onlyRestoreSiteId) {
+                zkRestoreHandler.setOnlyRestoreSiteId(true);
+                zkRestoreHandler.replace();
+                log.info("Backup ({}) has been restored (only site id) on local successfully", snapshotName);
+                return;
+            }
+
             dbRestoreHandler.replace();
             log.info(String.format(OUTPUT_FORMAT,
                     "Restore data of local database", Validation.passed.name()));
@@ -175,8 +187,12 @@ public class RestoreManager {
                         && name.endsWith(BackupConstants.COMPRESS_SUFFIX);
             }
         });
-        String errorMessage = String.format("Need db, geodb and zk backup files under folder");
-        if (backupFiles == null || backupFiles.length < BackupType.values().length - 1) {
+        String errorMessage = String.format("Need db, geodb and zk backup files under folder %s", backupPath);
+        if (backupFiles == null) {
+            throw new IllegalArgumentException(errorMessage);
+        }
+
+        if (!onlyRestoreSiteId && backupFiles.length < BackupType.values().length - 2) {
             throw new IllegalArgumentException(errorMessage);
         }
 
@@ -184,7 +200,7 @@ public class RestoreManager {
         boolean backupInMultiVdc = false;
         for (File backupFile : backupFiles) {
             String backupFileName = backupFile.getName();
-            log.debug("Checking backup file: {}", backupFileName);
+            log.info("Checking backup file: {}", backupFileName);
             if (!backupFileName.contains(nodeId)
                     && !backupFileName.contains(BackupType.zk.name())) {
                 continue;
@@ -206,13 +222,15 @@ public class RestoreManager {
                     backupInMultiVdc = true;
                 }
             } else {
-                log.debug("Invalid backup file: {}", backupFile.getName());
+                log.info("Invalid backup file: {}", backupFile.getName());
                 continue;
             }
-            log.debug("Found backup file: {}", backupFile.getName());
+            log.info("Found backup file: {}", backupFile.getName());
         }
 
-        if (matched != BackupType.values().length - 1) {
+        // When restoring 5-node cluster using 3-node backup, should only restore site id on vipr4 and vipr5.
+        // There's no need to validate backup files on nodes where only site id will be restored, so skip it.
+        if (!onlyRestoreSiteId && matched != BackupType.values().length - 2) {
             throw new IllegalArgumentException(errorMessage);
         }
 
@@ -228,7 +246,7 @@ public class RestoreManager {
      * 
      * @param backupInfoFile The backup info file
      */
-    private void checkBackupInfo(final File backupInfoFile, boolean backupInMultiVdc) {
+    public void checkBackupInfo(final File backupInfoFile, boolean backupInMultiVdc) {
         try (InputStream fis = new FileInputStream(backupInfoFile)) {
             Properties properties = new Properties();
             properties.load(fis);

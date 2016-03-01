@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,6 +69,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.application.VolumeGroupUpdateParam.VolumeGroupVolumeList;
 import com.emc.storageos.model.block.NativeContinuousCopyCreate;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -181,15 +184,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Check if a resource can be deactivated safely
-     * 
-     * @return detail type of the dependency if exist, null otherwise
-     * @throws InternalException
+     * {@inheritDoc}
      */
     @Override
-    public <T extends DataObject> String checkForDelete(T object) throws InternalException {
+    public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
         URI objectURI = object.getId();
-        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true);
+        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true, excludeTypes);
         if (depMsg != null) {
             return depMsg;
         }
@@ -208,7 +208,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Looks up controller dependency for given hardware
+     * Looks up controller dependency for given hardware type.
+     * If cannot locate controller for defined hardware type, lookup controller for
+     * EXTERNALDEVICE.
      * 
      * @param clazz controller interface
      * @param hw hardware name
@@ -216,7 +218,30 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return
      */
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
-        return _coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        T controller;
+        try {
+            controller = _coordinator.locateService(
+                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        } catch (RetryableCoordinatorException rex) {
+            controller = _coordinator.locateService(
+                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, Constants.EXTERNALDEVICE, clazz.getSimpleName());
+        }
+        return controller;
+    }
+
+    /**
+     * Looks up controller dependency for given hardware type.
+     * If cannot locate controller for defined hardware type, lookup default controller
+     * for EXTERNALDEVICE tag.
+     *
+     * @param clazz controller interface
+     * @param hw hardware name
+     * @param externalDevice hardware tag for external devices
+     * @param <T>
+     * @return
+     */
+    protected <T extends Controller> T getController(Class<T> clazz, String hw, String externalDevice) {
+        return _coordinator.locateService(clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, externalDevice, clazz.getSimpleName());
     }
 
     // Default unsupported operations
@@ -300,7 +325,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws ControllerException
      */
     @Override
-    public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task) throws ControllerException {
+    public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task, String deleteType) throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
 
@@ -347,7 +372,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     @Override
     public void deleteVolumes(URI systemURI, List<URI> volumeURIs, String deletionType, String task)
             throws InternalException {
-
         // Get volume descriptor for all volumes to be deleted.
         List<VolumeDescriptor> volumeDescriptors = getDescriptorsForVolumesToBeDeleted(
                 systemURI, volumeURIs, deletionType);
@@ -355,18 +379,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Mark the volumes for deletion for a VIPR only delete, otherwise get
         // the controller and delete the volumes.
         if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deletionType)) {
-            for (URI volumeURI : volumeURIs) {
-                BlockObject bo = BlockObject.fetch(_dbClient, volumeURI);
-                if (bo instanceof Volume) {
-                    Volume volume = (Volume) bo;
-                    if (volume.isVolumeExported(_dbClient)) {
-                        throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid());
-                    }
-                } else if (bo instanceof BlockSnapshot) {
-                    throw APIException.badRequests.inventoryDeleteNotSupportedOnSnapshots(bo.getNativeGuid());
-                }
-
-            }
             // Do any cleanup necessary for the ViPR only delete.
             cleanupForViPROnlyDelete(volumeDescriptors);
 
@@ -387,7 +399,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 Operation op = volume.getOpStatus().get(task);
                 op.ready("Volume succesfully deleted from ViPR");
                 volume.getOpStatus().updateTaskStatus(task, op);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
             }
         } else {
             BlockOrchestrationController controller = getController(
@@ -410,13 +422,27 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             URI systemURI, List<URI> volumeURIs, String deletionType);
 
     /**
-     * Get the volume descriptors for all volumes to be deleted given the passed
-     * volumes.
+     * Perform any database clean up required as a result of removing the volumes
+     * with the passed URIs from the ViPR database.
      * 
-     * @param volumeDescriptors The descriptors for all volumes involved in the
-     *            ViPR only delete
+     * @param volumeDescriptors The descriptors for all volumes involved in the ViPR only delete.
      */
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
+        // Remove volumes from ExportGroup(s) and ExportMask(s).
+        List<URI> volumeURIs = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
+        for (URI volumeURI : volumeURIs) {
+            cleanBlockObjectFromExports(volumeURI, true);
+        }
+    }
+
+    /**
+     * Perform any database clean up required as a result of removing the mirrors
+     * with the passed URIs from the ViPR database.
+     * 
+     * @param mirroURIs The URIs of the mirrors involved in the ViPR only delete.
+     */
+    protected void cleanupForViPROnlyMirrorDelete(List<URI> mirrorURIs) {
+        // NO-OP be default.
     }
 
     /**
@@ -574,6 +600,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volume,
                     currentVpool, newVpool, _dbClient, pathChangeReasonBuff)) {
                 allowedOperations.add(VirtualPoolChangeOperationEnum.EXPORT_PATH_PARAMS);
+            }
+
+            // check if replication mode change is supported
+            StringBuffer replicationModeChangeReasonBuff = new StringBuffer();
+            if (VirtualPoolChangeAnalyzer.isSupportedReplicationModeChange(
+                    currentVpool, newVpool, replicationModeChangeReasonBuff)) {
+                allowedOperations.add(VirtualPoolChangeOperationEnum.REPLICATION_MODE);
             }
 
             // check if Auto-tiering policy change operation is allowable
@@ -927,6 +960,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
+     * Determines if the passed volume has attached mirrors.
+     * 
+     * @param volume A reference to a Volume.
+     * 
+     * @return true if passed volume has attached mirrors, false otherwise.
+     */
+    protected boolean hasMirrors(Volume volume) {
+        return volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+    }
+
+    /**
      * Determines if the passed volume is a meta volume.
      * 
      * @param volume A reference to a Volume.
@@ -976,6 +1020,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             exportController.updatePolicyAndLimits(volumeURIs, newVirtualPool.getId(), taskId);
             return true;
         }
+
         return false;
     }
 
@@ -991,6 +1036,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Validate there are volumes to snap.
         if (volumesToSnap == null || volumesToSnap.isEmpty()) {
             throw APIException.badRequests.noVolumesToSnap();
+        }
+
+        // Validate VNX. Cannot create snapshot if volume is not in a real replication group
+        if (ControllerUtils.isNotInRealVNXRG(reqVolume, _dbClient)) {
+            throw APIException.badRequests.snapshotsNotSupportedForNonRealVNXRG();
         }
 
         // Verify the vpools of the volumes to be snapped support
@@ -1199,16 +1249,63 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Uses the appropriate controller to delete the snapshot.
-     * 
-     * @param snapshot The snapshot to delete
-     * @param taskId The unique task identifier
+     * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
-        StorageSystem device = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
-        BlockController controller = getController(BlockController.class, device.getSystemType());
-        controller.deleteSnapshot(device.getId(), snapshot.getId(), taskId);
+    public void deleteSnapshot(BlockSnapshot requestedSnapshot, List<BlockSnapshot> allSnapshots, String taskId, String deleteType) {
+        if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deleteType)) {
+            s_logger.info("Executing ViPR-only snapshot deletion");
+
+            // Do any cleanup necessary for the ViPR only delete.
+            cleanupForViPROnlySnapshotDelete(allSnapshots);
+
+            // Mark them inactive.
+            _dbClient.markForDeletion(allSnapshots);
+
+            // Update the task status for each snapshot to successfully completed.
+            // Note that we must go back to the database to get the latest snapshot status map.
+            for (BlockSnapshot snapshot : allSnapshots) {
+                BlockSnapshot updatedSnapshot = _dbClient.queryObject(BlockSnapshot.class, snapshot.getId());
+                Operation op = updatedSnapshot.getOpStatus().get(taskId);
+                op.ready("Snapshot succesfully deleted from ViPR");
+                updatedSnapshot.getOpStatus().updateTaskStatus(taskId, op);
+                _dbClient.updateObject(updatedSnapshot);
+            }
+        } else {
+            StorageSystem device = _dbClient.queryObject(StorageSystem.class, requestedSnapshot.getStorageController());
+            BlockController controller = getController(BlockController.class, device.getSystemType());
+            controller.deleteSnapshot(device.getId(), requestedSnapshot.getId(), taskId);
+        }
+    }
+
+    /**
+     * Perform any database clean up required as a result of removing the snapshots
+     * with the passed URIs from the ViPR database.
+     * 
+     * @param snapshots The snapshots to be cleaned up.
+     */
+    public void cleanupForViPROnlySnapshotDelete(List<BlockSnapshot> snapshots) {
+        // Clean up the snapshot in the ViPR database.
+        for (BlockSnapshot snapshot : snapshots) {
+            URI snapshotURI = snapshot.getId();
+            // If the BlockSnapshot instance represents a linked target, then
+            // we need to remove the snapshot from the linked target list of the
+            // session.
+            URIQueryResultList snapSessionURIs = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(snapshotURI),
+                    snapSessionURIs);
+            Iterator<URI> snapSessionURIsIter = snapSessionURIs.iterator();
+            if (snapSessionURIsIter.hasNext()) {
+                URI snapSessionURI = snapSessionURIsIter.next();
+                s_logger.info("Snapshot {} is linked to snapshot session {}", snapshotURI, snapSessionURI);
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                snapSession.getLinkedTargets().remove(snapshotURI.toString());
+                _dbClient.updateObject(snapSession);
+            }
+
+            // Remove the snapshot from any export groups/masks.
+            cleanBlockObjectFromExports(snapshotURI, true);
+        }
     }
 
     /**
@@ -1267,11 +1364,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param taskId The unique task identifier.
      */
     @Override
-    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
+    public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String syncDirection, String taskId) {
         BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                 BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
         controller.restoreVolume(snapshot.getStorageController(), parentVolume.getPool(),
-                parentVolume.getId(), snapshot.getId(), taskId);
+                parentVolume.getId(), snapshot.getId(), syncDirection, taskId);
     }
 
     /**
@@ -1344,24 +1441,24 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * For ViPR-only delete volume operations, we use this method to remove the
-     * volume from the export group and export masks associated with the volume.
+     * For ViPR-only delete operations, we use this method to remove the
+     * block object from the export group and export masks associated with
+     * the block object.
      * 
-     * @param volumeURI volume to remove from export masks
-     * @param addToExistingVolumes When true, adds the volume to the existing volumes
-     *            list from the mask.
+     * @param boURI The BlockObject to remove from export masks
+     * @param addToExisting When true, adds the block object to the existing objects list from the mask.
      */
-    protected void cleanVolumeFromExports(URI volumeURI, boolean addToExistingVolumes) {
-
+    protected void cleanBlockObjectFromExports(URI boURI, boolean addToExisting) {
+        s_logger.info("Cleaning block object {} from exports", boURI);
         Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
         Map<URI, ExportGroup> updatedExportGroupMap = new HashMap<URI, ExportGroup>();
         Map<String, ExportMask> exportMaskMap = new HashMap<String, ExportMask>();
         Map<String, ExportMask> updatedExportMaskMap = new HashMap<String, ExportMask>();
-        Volume assocVolume = _dbClient.queryObject(Volume.class, volumeURI);
+        BlockObject bo = BlockObject.fetch(_dbClient, boURI);
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                getBlockObjectExportGroupConstraint(assocVolume.getId()), exportGroupURIs);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(boURI), exportGroupURIs);
         for (URI exportGroupURI : exportGroupURIs) {
+            s_logger.info("Cleaning block object from export group {}", exportGroupURI);
             ExportGroup exportGroup = null;
             if (exportGroupMap.containsKey(exportGroupURI)) {
                 exportGroup = exportGroupMap.get(exportGroupURI);
@@ -1370,8 +1467,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 exportGroupMap.put(exportGroupURI, exportGroup);
             }
 
-            if (exportGroup.hasBlockObject(volumeURI)) {
-                exportGroup.removeVolume(volumeURI);
+            if (exportGroup.hasBlockObject(boURI)) {
+                s_logger.info("Removing block object from export group");
+                exportGroup.removeVolume(boURI);
                 if (!updatedExportGroupMap.containsKey(exportGroupURI)) {
                     updatedExportGroupMap.put(exportGroupURI, exportGroup);
                 }
@@ -1386,16 +1484,18 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     exportMask = _dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
                     exportMaskMap.put(exportMaskId, exportMask);
                 }
-                if (exportMask.hasVolume(volumeURI)) {
+                if (exportMask.hasVolume(boURI)) {
+                    s_logger.info("Cleaning block object from export mask {}", exportMaskId);
                     StringMap exportMaskVolumeMap = exportMask.getVolumes();
-                    String hluStr = exportMaskVolumeMap.get(volumeURI.toASCIIString());
-                    exportMask.removeVolume(volumeURI);
-                    exportMask.removeFromUserCreatedVolumes(assocVolume);
+                    String hluStr = exportMaskVolumeMap.get(boURI.toString());
+                    exportMask.removeVolume(boURI);
+                    exportMask.removeFromUserCreatedVolumes(bo);
                     // Add this volume to the existing volumes map for the
                     // mask, so that if the last ViPR created volume goes
                     // away, the physical mask will not be deleted.
-                    if (addToExistingVolumes) {
-                        exportMask.addToExistingVolumesIfAbsent(assocVolume, hluStr);
+                    if (addToExisting) {
+                        s_logger.info("Adding to existing volumes");
+                        exportMask.addToExistingVolumesIfAbsent(bo, hluStr);
                     }
                     if (!updatedExportMaskMap.containsKey(exportMaskId)) {
                         updatedExportMaskMap.put(exportMaskId, exportMask);
@@ -1406,13 +1506,13 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         if (!updatedExportGroupMap.isEmpty()) {
             List<ExportGroup> updatedExportGroups = new ArrayList<ExportGroup>(
                     updatedExportGroupMap.values());
-            _dbClient.persistObject(updatedExportGroups);
+            _dbClient.updateObject(updatedExportGroups);
         }
 
         if (!updatedExportMaskMap.isEmpty()) {
             List<ExportMask> updatedExportMasks = new ArrayList<ExportMask>(
                     updatedExportMaskMap.values());
-            _dbClient.persistObject(updatedExportMasks);
+            _dbClient.updateObject(updatedExportMasks);
         }
     }
 
@@ -1535,12 +1635,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     public void verifyReplicaCount(List<Volume> volumes, List<Volume> cgVolumes, boolean volsAlreadyInCG) {
         /*
          * For VMAX, volumes to be added can have replicas only if
-         *    1. CG has no existing volumes, and
-         *    2. SMI-S 8.x
+         * 1. CG has no existing volumes, and
+         * 2. SMI-S 8.x
          * For other arrays, or VMAX (CG has existing volumes, or non SMI-S 8.x), volumes to be added cannot have replicas
          */
         boolean isReplicaAllowed = false;
-        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
+        if ((volsAlreadyInCG || cgVolumes.isEmpty()) && ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient) || ControllerUtils.isVnxVolume(volumes.get(0), _dbClient) ) {
             isReplicaAllowed = true;
         }
 
@@ -1695,4 +1795,15 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     desc.getVolumeURI(), task));
         }
     }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updateVolumesInVolumeGroup(VolumeGroupVolumeList addVolumes, 
+            List<Volume> removeVolumes, 
+            URI applicationId, String taskId) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+    
 }

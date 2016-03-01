@@ -15,6 +15,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -222,16 +224,25 @@ public abstract class ResourceService {
     }
 
     /**
-     * Looks up controller dependency for given hardware
-     * 
+     * Looks up controller dependency for given hardware type.
+     * If cannot locate controller for defined hardware type, lookup controller for
+     * EXTERNALDEVICE.
+     *
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
      * @return
      */
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
-        return _coordinator.locateService(
-                clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        T controller;
+        try {
+            controller = _coordinator.locateService(
+                   clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        } catch (RetryableCoordinatorException rex) {
+            controller = _coordinator.locateService(
+                    clazz, CONTROLLER_SVC, CONTROLLER_SVC_VER, Constants.EXTERNALDEVICE, clazz.getSimpleName());
+        }
+        return controller;
     }
 
     /**
@@ -392,14 +403,13 @@ public abstract class ResourceService {
      * 
      * @param type The class of object being validated
      * @param value the value of label being checked
-     * @param entityName the name of the entity to be used in the error message
      */
     protected <T extends DataObject> void checkDuplicateLabel(Class<T> type,
-            String value, String entityName) {
+            String value) {
         List<T> objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, type,
                 PrefixConstraint.Factory.getFullMatchConstraint(type, DATAOBJECT_NAME_FIELD, value));
         if (!objectList.isEmpty()) {
-            throw APIException.badRequests.duplicateLabel(entityName);
+            throw APIException.badRequests.duplicateLabel(value);
         }
     }
 

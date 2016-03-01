@@ -8,6 +8,8 @@ Dashboard = vipr_c_user_home
 Maintenance = SystemMaintenance
 Preferences = vipr_user_preferences
 Setup = InitSetup
+Backup.create = AddBackupPage
+Backup.list = BackupsPage
 SystemHealth = vipr_c_system_health
 SystemHealth.logs = vipr_c_logs
 SystemHealth.nodeRecovery = SystemNodeRecovery
@@ -49,6 +51,9 @@ arrays.StorageSystems.pools = StoragePools
 arrays.StorageSystems.editPool = EditStoragePool
 arrays.StorageSystems.ports = StoragePorts
 arrays.CustomConfigs.list = ControllerConfigurationsPage
+arrays.ApplicationSupport.list = PhysicalApplications
+arrays.ApplicationSupport.create = PhysicalApplicationsCreateEdit
+arrays.ApplicationSupport.edit = PhysicalApplicationsCreateEdit
 
 # Auth
 auth.Certificates = TrustedCerts
@@ -131,6 +136,8 @@ resources.FileSnapshots = ResourcesFileSnapshots
 resources.FileSystems = ResourcesFileSystems
 resources.ObjectBuckets= ResourcesBuckets
 resources.ResourceController = vipr_c_user_resources
+resources.VirtualNasServers.vNasServers = ResourcesNASServers
+resources.BlockApplications = ResourcesApplications
 
 # Security
 security.Security.logout = vipr_not_logged_in

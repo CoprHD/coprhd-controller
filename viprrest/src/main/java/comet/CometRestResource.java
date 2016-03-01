@@ -62,8 +62,8 @@ public class CometRestResource {
         System.out.println(" Value got");
         ViperCaller vipr = new ViperCaller();
         System.out.println(" Client got");
-//        List<URI> output = vipr.getVolumes();
-        Map<String,URI> output= vipr.getVolumeMap();
+        List<URI> output = vipr.getVolumes();
+//        Map<String,URI> output= vipr.getVolumeMap();
         System.out.println(" Volumes got"+output);
         System.out.println(output);
         

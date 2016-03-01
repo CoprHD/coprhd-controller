@@ -962,6 +962,7 @@
                 <ref bean="blockDeviceExportController"/>
                 <ref bean="exportWorkflowEntryPoints"/>
                 <ref bean="blockOrchestrationDeviceController"/>
+                <ref bean="protectionOrchestrationDeviceController"/>
                 <ref bean="fileOrchestrationDeviceController"/>
                 <ref bean="fileReplicationDeviceController" />
                 <ref bean="srdfDeviceController" />
@@ -1467,6 +1468,27 @@
         <property name="serviceName" value="BlockOrchestrationController"/>
         <property name="service" ref="blockOrchestrationController"/>
         <property name="serviceInterface" value="com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController"/>
+        <property name="registryPort" value="10099"/>
+        <property name="servicePort" value="40201"/>
+    </bean>
+
+    <bean id="protectionOrchestrationDeviceController" class="com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationDeviceController">
+        <property name="dbClient" ref="dbclient"/>
+	<property name="srdfDeviceController" ref="srdfDeviceController" />
+        <property name="vplexDeviceController" ref="vplexDeviceController" />
+	<property name="workflowService" ref="workflowService"/>
+    </bean>
+
+    <bean id="protectionOrchestrationController" class="com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationControllerImpl">
+        <property name="controller" ref="protectionOrchestrationDeviceController" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="dispatcher" ref="dispatcher"/>
+    </bean>
+
+    <bean class="org.springframework.remoting.rmi.RmiServiceExporter" depends-on="beacon">
+        <property name="serviceName" value="ProtectionOrchestrationController"/>
+        <property name="service" ref="protectionOrchestrationController"/>
+        <property name="serviceInterface" value="com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController"/>
         <property name="registryPort" value="10099"/>
         <property name="servicePort" value="40201"/>
     </bean>

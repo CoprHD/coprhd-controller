@@ -92,6 +92,7 @@ import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.protectioncontroller.RPController;
+import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -2136,8 +2137,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                 targetVolume.getStorageController());
-        SRDFController controller = getController(SRDFController.class,
-                system.getSystemType());
+        ProtectionOrchestrationController controller = 
+                getController(ProtectionOrchestrationController.class, 
+                        ProtectionOrchestrationController.PROTECTION_ORCHESTRATION_DEVICE);
 
         // Create a new duplicate copy of the original copy. Update the copyId field to be the
         // ID of the target volume. Existing SRDF controller logic needs the target volume
@@ -2145,7 +2147,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Copy updatedCopy = new Copy(copy.getType(), copy.getSync(), targetVolume.getId(),
                 copy.getName(), copy.getCount());
 
-        controller.performProtectionOperation(system.getId(), updatedCopy, op, task);
+        controller.performSRDFProtectionOperation(system.getId(), updatedCopy, op, task);
 
         return toTask(targetVolume, task, status);
     }

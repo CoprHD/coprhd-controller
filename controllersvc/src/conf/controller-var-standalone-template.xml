@@ -13,6 +13,7 @@
                 <entry key="BlockExportController"
                        value="rmi://${node_id}:10099/BlockExportController"/>
                 <entry key="BlockOrchestrationController" value="rmi://${node_id}:10099/BlockOrchestrationController"/>
+                <entry key="ProtectionOrchestrationController" value="rmi://${node_id}:10099/ProtectionOrchestrationController"/>
                 <entry key="FileOrchestrationController" value="rmi://${node_id}:10099/FileOrchestrationController"/>
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="ObjectController" value="rmi://${node_id}:10099/ObjectController"/>

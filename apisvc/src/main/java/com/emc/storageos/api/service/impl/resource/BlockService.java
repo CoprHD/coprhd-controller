@@ -151,6 +151,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
+import com.emc.storageos.protectionorchestrationcontroller.ProtectionOrchestrationController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
@@ -2801,12 +2802,12 @@ public class BlockService extends TaskResourceService {
             } else if (isSuspendCopyRequest(op, copy)) {
                 op = ProtectionOp.SUSPEND.getRestOp();
             }
-
+            ProtectionOrchestrationController protectionController = 
+                    getController(ProtectionOrchestrationController.class, 
+                            ProtectionOrchestrationController.PROTECTION_ORCHESTRATION_DEVICE);
             StorageSystem system = _dbClient.queryObject(StorageSystem.class,
                     copyVolume.getStorageController());
-            SRDFController controller = getController(SRDFController.class,
-                    system.getSystemType());
-            controller.performProtectionOperation(system.getId(), copy, op, task);
+            protectionController.performSRDFProtectionOperation(system.getId(), copy, op, task);
         } else {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Volume {0} is not SRDF protected",

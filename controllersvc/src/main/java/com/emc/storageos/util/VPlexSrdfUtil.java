@@ -9,6 +9,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.workflow.Workflow;
 
 public class VPlexSrdfUtil {
     
@@ -89,5 +90,5 @@ public class VPlexSrdfUtil {
         }
         return targets;
     }
-
+    
 }

@@ -6222,17 +6222,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     private String createWorkflowStepForWaitOnRebuild(Workflow workflow,
             StorageSystem vplexSystem, URI vplexVolumeURI, String waitFor) {
+        Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
         URI vplexSystemURI = vplexSystem.getId();
         Workflow.Method rebuildExecuteMethod = createWaitOnRebuildMethod(vplexSystemURI,
                 vplexVolumeURI);
         workflow.createStep(WAIT_ON_REBUILD_STEP, String.format(
-                "VPlex %s waiting for volume to rebuild", vplexSystem.getId().toString()),
+                "Waitng for volume %s (%s) to rebuild", vplexVolume.getLabel(), vplexVolume.getId()),
                 waitFor, vplexSystemURI, vplexSystem.getSystemType(), this.getClass(),
                 rebuildExecuteMethod, null, null);
 
         return WAIT_ON_REBUILD_STEP;
     }
-
+    
     /**
      * Creates the waitOnRebuild workflow step execution method.
      * 
@@ -7564,12 +7565,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private String createWorkflowStepForInvalidateCache(Workflow workflow,
             StorageSystem vplexSystem, URI vplexVolumeURI, String waitFor,
             Workflow.Method rollbackMethod) {
+        Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, _dbClient);
         URI vplexURI = vplexSystem.getId();
         Workflow.Method invalidateCacheMethod = createInvalidateCacheMethod(vplexURI,
                 vplexVolumeURI);
         workflow.createStep(INVALIDATE_CACHE_STEP, String.format(
-                "Invalidate read cache for VPLEX volume %s on system %s", vplexVolumeURI,
-                vplexURI), waitFor, vplexURI, vplexSystem.getSystemType(), this.getClass(),
+                "Invalidate read cache for VPLEX volume %s (%s) on system %s", vplexVolume.getLabel(),
+                vplexVolumeURI, vplexURI), waitFor, vplexURI, vplexSystem.getSystemType(), this.getClass(),
                 invalidateCacheMethod, rollbackMethod, null);
         _log.info("Created workflow step to invalidate the read cache for volume {}",
                 vplexVolumeURI);
@@ -11430,5 +11432,137 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     volume.getAllocatedCapacity());
         }
         return capabilities;
+    }
+    
+    public String addPreStepsForCacheFlushes(Workflow workflow, 
+            Map<Volume, Volume> vplexToArrayVolumes, Map<URI, String> vplexVolumeIdToDetachStep, 
+            String inputWaitFor) {
+        if (vplexToArrayVolumes.isEmpty()) {
+            return inputWaitFor;
+        }
+        
+        // Make a map of vplex system to volumes to be flushed
+        Map<URI, List<Volume>> vplexSystemToVolumes = new HashMap<URI, List<Volume>>();
+        for (Volume vplexVolume : vplexToArrayVolumes.keySet()) {
+            URI storageController = vplexVolume.getStorageController();
+            if (!vplexSystemToVolumes.containsKey(storageController)) {
+                vplexSystemToVolumes.put(storageController, new ArrayList<Volume>());
+            }
+            vplexSystemToVolumes.get(storageController).add(vplexVolume);
+        }
+        
+        // Iterate over all vplex systems, performing the necessary steps.
+        for (Map.Entry<URI, List<Volume>> entry : vplexSystemToVolumes.entrySet()) {
+            StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, entry.getKey());
+            String waitFor = inputWaitFor;
+            
+            // Determine the local volumes vs. distributed volumes.
+            List<Volume> volumesToFlush = new ArrayList<Volume>();
+            List<Volume> distributedVolumes = new ArrayList<Volume>();
+            for (Volume vplexVolume : entry.getValue()) {
+                if (vplexVolume.getAssociatedVolumes().size() > 1) {
+                    distributedVolumes.add(vplexVolume);
+                } 
+                volumesToFlush.add(vplexVolume);
+            }
+            
+            // For distributed volumes, detach the HA side (or the side that is not getting
+            // updated after the cache flush.)
+            Map<Volume, String> vplexVolumeToDetachStepId = new HashMap<Volume, String>();
+            for (Volume distributedVolume : distributedVolumes) {
+                // Determine the leg to be detached.
+                URI legToDetachURI = null;
+                for (String associatedVolume : distributedVolume.getAssociatedVolumes()) {
+                    if (!associatedVolume.equals(vplexToArrayVolumes.get(distributedVolume).getId().toString())) {
+                        legToDetachURI = URI.create(associatedVolume);
+                    }
+                }
+                
+                // For distributed volumes before we can do the
+                // operation, we need to detach the associated volume that
+                // will not be updated. Create a workflow step to detach it.
+                String detachStepId = workflow.createStepId();
+                Workflow.Method restoreVolumeRollbackMethod = createRestoreResyncRollbackMethod(
+                        entry.getKey(), distributedVolume.getId(), legToDetachURI,
+                        distributedVolume.getConsistencyGroup(), detachStepId);
+                createWorkflowStepForDetachMirror(workflow, vplexSystem,
+                        distributedVolume, legToDetachURI, detachStepId, waitFor,
+                        restoreVolumeRollbackMethod);
+                vplexVolumeIdToDetachStep.put(distributedVolume.getId(), detachStepId);
+                
+            }
+            if (!distributedVolumes.isEmpty()) {
+                waitFor = DETACH_MIRROR_STEP;
+            }
+            
+            // Now invalidate the cache for both distributed and local volumes
+            for (Volume volumeToFlush : volumesToFlush) {
+                // Now create a workflow step to invalidate the cache for the
+                // volume that will be updated.
+                createWorkflowStepForInvalidateCache(workflow, vplexSystem,
+                        volumeToFlush.getId(), waitFor, rollbackMethodNullMethod());
+            }
+        }
+        return INVALIDATE_CACHE_STEP;
+    }       
+        
+    public String addPostStepsForCacheFlushes(Workflow workflow, 
+            Map<Volume, Volume> vplexToArrayVolumes, 
+            Map<URI, String> vplexVolumeIdToDetachStep, String inputWaitFor) {
+        
+        // If there were no detach steps executed, nothing to do.
+        if (vplexToArrayVolumes.isEmpty() || vplexVolumeIdToDetachStep.isEmpty()) {
+            return inputWaitFor;
+        }
+
+        // Make a map of vplex system to volumes to be flushed
+        Map<URI, List<Volume>> vplexSystemToVolumes = new HashMap<URI, List<Volume>>();
+        for (Volume vplexVolume : vplexToArrayVolumes.keySet()) {
+            URI storageController = vplexVolume.getStorageController();
+            if (!vplexSystemToVolumes.containsKey(storageController)) {
+                vplexSystemToVolumes.put(storageController, new ArrayList<Volume>());
+            }
+            vplexSystemToVolumes.get(storageController).add(vplexVolume);
+        }
+
+        // Iterate over all vplex systems, performing the necessary steps.
+        for (Map.Entry<URI, List<Volume>> entry : vplexSystemToVolumes.entrySet()) {
+            StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, entry.getKey());
+
+            // Determine the distributed volumes. No action is required on local volumes.
+            List<Volume> distributedVolumes = new ArrayList<Volume>();
+            for (Volume vplexVolume : entry.getValue()) {
+                if (vplexVolume.getAssociatedVolumes().size() > 1) {
+                    distributedVolumes.add(vplexVolume);
+                } 
+            }
+            
+            // Fire off steps for re-attaching the mirror on distributed volumes.
+            for (Volume distributedVolume : distributedVolumes) {
+                // Determine the leg to be attached.
+                URI legToAttachURI = null;
+                for (String associatedVolume : distributedVolume.getAssociatedVolumes()) {
+                    if (!associatedVolume.equals(vplexToArrayVolumes.get(distributedVolume).getId().toString())) {
+                        legToAttachURI = URI.create(associatedVolume);
+                    }
+                }
+                // Now create a workflow step to reattach the mirror to initiate
+                // a rebuild of the HA mirror for the full copy source volume.
+                // Note that these steps will not run until after the native
+                // restore, which only gets executed once.
+                String rebuildStep = createWorkflowStepForAttachMirror(workflow, vplexSystem,
+                        distributedVolume, legToAttachURI, vplexVolumeIdToDetachStep.get(distributedVolume.getId()),
+                        inputWaitFor, rollbackMethodNullMethod());
+
+                // Create a step to wait for rebuild of the HA volume to
+                // complete. This should not do any rollback if the step
+                // fails because at this point the restore is really
+                // complete.
+                createWorkflowStepForWaitOnRebuild(workflow, vplexSystem,
+                        distributedVolume.getId(), rebuildStep);
+            }
+
+        }
+        return WAIT_ON_REBUILD_STEP;
     }
 }

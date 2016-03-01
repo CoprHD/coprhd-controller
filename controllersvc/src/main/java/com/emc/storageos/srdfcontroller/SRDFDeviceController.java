@@ -1796,12 +1796,26 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     public void discover(final AsyncTask[] tasks) throws InternalException {
         // TODO Auto-generated method stub
     }
+    
+    /**
+     * Arguments here should match performProtectionOperation except for task.
+     * @param systemUri - Storage System URI
+     * @param copy - Copy object describing target
+     * @param op = String op code
+     * @return Workflow.Method to be invokved
+     */
+    public Workflow.Method performProtectionOperationMethod(final URI systemUri, final Copy copy,
+            final String op) {
+        return new Workflow.Method("performProtectionOperation", systemUri, copy, op);
+    }
 
     @Override
     public void performProtectionOperation(final URI systemUri, final Copy copy,
             final String op, final String task) throws InternalException {
         TaskCompleter completer = null;
         try {
+            // The call to WorkflowStepCompleter is a nop if not in a Workflow; it indicates execution began.
+            WorkflowStepCompleter.stepExecuting(task);
             URI sourceVolumeUri = null;
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
             Volume volume = dbClient.queryObject(Volume.class, copy.getCopyID());
@@ -2160,7 +2174,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
      * 
      * @return A workflow method
      */
-    private Workflow.Method rollbackMethodNullMethod() {
+    public Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
     }
 

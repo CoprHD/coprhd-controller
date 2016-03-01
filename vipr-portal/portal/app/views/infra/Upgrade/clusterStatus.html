@@ -114,7 +114,7 @@
     #{if util.DisasterRecoveryUtils.hasAnyStandbySite()}
         <form id=pauseStandby action="@{infra.DisasterRecovery.pauseResume()}" onsubmit="return true">
             <div class="text"><b>${stepIndex}.&nbsp;&{'upgrade.pauseStandbySite'}</b>&nbsp;
-                <a id="pause_why" data-toggle="tooltip" data-html="true" data-placement="right" title="<p align='left'>&{'upgrade.whyPauseStandbySiteText'}</p>">&{'upgrade.whyPauseStandbySite'}</a>
+                <a id="pause_why" data-toggle="tooltip" data-html="true" data-placement="right" title="<p align='left'>&{'upgrade.whyPauseStandbySiteText'}</p>">&{'upgrade.whyPauseStandbySite'}</a>&nbsp;&nbsp;
                 <button type="submit" class="btn btn-primary btn-sm" >&{'upgrade.pause'}</button>
             </div>
         </form>

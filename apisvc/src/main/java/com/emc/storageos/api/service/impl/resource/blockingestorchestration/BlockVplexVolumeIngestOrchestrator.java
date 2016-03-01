@@ -662,6 +662,25 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     } else {
                         backendRequestContext.getObjectsIngestedByExportProcessing().add(blockObject);
                     }
+
+                    // Update the related objects if any after successful export mask ingestion
+                    List<DataObject> updatedObjects = backendRequestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
+                    if (updatedObjects != null && !updatedObjects.isEmpty()) {
+                        _dbClient.updateObject(updatedObjects);
+                    }
+
+                    // Create the related objects if any after successful export mask ingestion
+                    List<DataObject> createdObjects = backendRequestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
+                    if (createdObjects != null && !createdObjects.isEmpty()) {
+                        _dbClient.createObject(createdObjects);
+                    }
+
+                    backendRequestContext.getExportGroup().addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
+                    if (backendRequestContext.isExportGroupCreated()) {
+                        _dbClient.createObject(backendRequestContext.getExportGroup());
+                    } else {
+                        _dbClient.updateObject(backendRequestContext.getExportGroup());
+                    }
                 }
             } catch (Exception ex) {
                 _logger.error(ex.getLocalizedMessage());

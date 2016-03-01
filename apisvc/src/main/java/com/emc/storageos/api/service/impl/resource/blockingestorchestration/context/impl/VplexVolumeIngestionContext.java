@@ -127,24 +127,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         _dbClient.createObject(getBlockObjectsToBeCreatedMap().values());
         _dbClient.createObject(getCreatedSnapshotMap().values());
 
-        for (List<DataObject> dos : getDataObjectsToBeCreatedMap().values()) {
-            _dbClient.createObject(dos);
-        }
-        for (List<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
-            _dbClient.updateObject(dos);
-        }
-
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
 
         // commit the UnmanagedConsistencyGroups and CGs to create
         _dbClient.updateObject(getUmCGObjectsToUpdate());
         _dbClient.updateObject(getCGObjectsToCreateMap().values());
-
-        if (isExportGroupCreated()) {
-            _dbClient.createObject(getExportGroup());
-        } else {
-            _dbClient.updateObject(getExportGroup());
-        }
     }
 
     /*

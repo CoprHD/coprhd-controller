@@ -138,6 +138,12 @@ public class FileProvider extends BaseAssetOptionsProvider {
         return createFilesystemOptions(api(ctx).fileSystems().findByProject(project), new UnmountedFilesytemsPredicate());
     }
     
+    @Asset("fileUnmountedFilesystemNoTarget")
+    @AssetDependencies("project")
+    public List<AssetOption> getUnmountedFilesystemsNoTarget(AssetOptionsContext ctx, URI project) {
+        return createFilesystemOptions(api(ctx).fileSystems().findByProject(project), new NoTargetFilesytemsPredicate());
+    }
+    
     @Asset("fileFilesystemAssociation")
     @AssetDependencies("project")
     public List<AssetOption> getFilesystemsForAssociation(AssetOptionsContext ctx, URI project) {
@@ -592,6 +598,20 @@ public class FileProvider extends BaseAssetOptionsProvider {
         public boolean evaluate(Object object) {
             FileShareRestRep filesystem = getFilesystem(object);
             return !MachineTagUtils.hasDatastores(filesystem);
+        }
+
+    }
+    
+    /**
+     * Predicate for filtering out mounted filesystems
+     */
+    private class NoTargetFilesytemsPredicate implements Predicate {
+
+        @Override
+        public boolean evaluate(Object object) {
+            FileShareRestRep filesystem = getFilesystem(object);
+            return !(filesystem.getProtection() != null && filesystem.getProtection().getTargetFileSystems() != null &&
+            		!filesystem.getProtection().getTargetFileSystems().isEmpty());
         }
 
     }

@@ -103,13 +103,13 @@ public class DrSiteNetworkMonitor implements Runnable{
         }
 
         for (Site site : drUtil.listStandbySites()){
-            if (SiteState.STANDBY_ADDING.equals(site.getState())){
+            if (SiteState.STANDBY_ADDING.equals(site.getState()) || SiteState.STANDBY_REMOVING.equals(site.getState())){
                 _log.info("Skip site {} for network health check", site.getSiteShortId());
                 continue;
             }
             
             Site.NetworkHealth previousState = site.getNetworkHealth();
-            String host = site.getVip();
+            String host = site.getVipEndPoint();
             double ping = drUtil.testPing(host, SOCKET_TEST_PORT, NETWORK_TIMEOUT);
 
             //if ping successful get an average, format to 3 decimal places

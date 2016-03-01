@@ -1266,7 +1266,7 @@ public class TenantsService extends TaggedResource {
                 throw APIException.badRequests.invalidScheduleSnapshotExpireValue(expireTime, minExpireTime, maxExpireTime);
             }
         } else {
-            if (param.getPolicyType().equalsIgnoreCase(SchedulePolicyType.snapshot.toString())) {
+            if (param.getPolicyType().equalsIgnoreCase(SchedulePolicyType.file_snapshot.toString())) {
                 errorMsg.append("Required parameter snapshot_expire was missing or empty");
                 _log.error("Failed to create schedule policy due to {} ", errorMsg.toString());
                 throw APIException.badRequests.invalidSchedulePolicyParam(param.getPolicyName(), errorMsg.toString());

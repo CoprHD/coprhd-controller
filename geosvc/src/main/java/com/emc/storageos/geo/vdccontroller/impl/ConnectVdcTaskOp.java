@@ -418,9 +418,6 @@ public class ConnectVdcTaskOp extends AbstractVdcTaskOp {
         for (VirtualDataCenter vdc : vdcsToCheck) {
             VdcConfig vdcConfig = new VdcConfig();
             Site activeSite = drUtil.getActiveSite(vdc.getShortId());
-            log.info("Active site {}", activeSite.getHostIPv4AddressMap());
-            log.info("Active site for vdc {}", vdc.getShortId());
-            
             vdcConfig.setId(vdc.getId());
             vdcConfig.setShortId(vdc.getShortId());
             if (activeSite.getHostIPv4AddressMap() != null && !activeSite.getHostIPv4AddressMap().isEmpty() && activeSite.isUsingIpv4()) {

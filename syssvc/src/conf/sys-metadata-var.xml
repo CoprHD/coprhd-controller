@@ -2324,7 +2324,7 @@
 	</bean>
 	<bean id="backup_scheduler_interval" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Interval" />
-		<property name="description" value="The time interval between scheduled backups" />
+		<property name="description" value="The time interval in unit of Day(or Week/Month) between scheduled backups" />
 		<property name="type" value="string" />
 		<property name="maxLen" value="15" />
 		<property name="tag" value="Backup" />
@@ -2338,8 +2338,8 @@
 		<property name="notifiers" value="backupscheduler" />
 	</bean>
 	<bean id="backup_scheduler_copies_to_keep" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Backup Retention Number" />
-		<property name="description" value="Maximum number of scheduled backups" />
+		<property name="label" value="Backup Max Copies" />
+		<property name="description" value="The maximum number of scheduled backup copies to save on the ViPR nodes. Once this is reached, older scheduled backup copies are deleted from the nodes so that newer ones can be saved" />
 		<property name="type" value="uint32" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Backup" />
@@ -2379,7 +2379,7 @@
 	</bean>
 	<bean id="backup_max_manual_copies" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Max Copies" />
-		<property name="description" value="Maximum number of manually created backup copies, kept on system" />
+		<property name="description" value="The maximum number of manually created backup copies to save on the ViPR nodes. Once this is reached, no copies can be created until you manually delete the older manually created copies from the nodes" />
 		<property name="type" value="uint32" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Backup" />

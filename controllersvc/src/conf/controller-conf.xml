@@ -719,7 +719,7 @@
             </set>
         </property>
     </bean>
-
+    
     <bean id="vplexDeviceController" class="com.emc.storageos.vplexcontroller.VPlexDeviceController">
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
@@ -732,7 +732,6 @@
         <property name="exportWorkflowUtils" ref="exportWorkflowUtils" />
         <property name="vplexApiLockManager" ref="vplexlockmgr" />
 	    <property name="blockStorageScheduler" ref="blockscheduler"/>
-	    <property name="replicaDeviceController" ref="replicaDeviceController" />
 	    <property name="coordinator" ref="coordinator"/>
 	    <property name="consistencyGroupManagers">
             <map>
@@ -998,7 +997,7 @@
                 <entry key="rp" value="5"/>
                 <entry key="host" value="4"/>
                 <entry key="vcenter" value="4"/>
-                <entry key="xtremio" value="4"/>
+                <entry key="xtremio" value="20"/>
                 <entry key="ibmxiv" value="4"/>
             </map>
         </property>

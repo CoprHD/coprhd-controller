@@ -48,6 +48,7 @@ import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.model.block.VolumeExpandParam;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
@@ -61,7 +62,6 @@ import com.google.common.collect.Sets;
 import com.watch4net.apg.remote.databaseaccessorservice.Aggregation;
 import com.watch4net.apg.remote.databaseaccessorservice.Aggregations;
 import com.watch4net.apg.remote.databaseaccessorservice.DatabaseAccessorService;
-import com.watch4net.apg.remote.databaseaccessorservice.DistinctPropertyValues;
 import com.watch4net.apg.remote.databaseaccessorservice.Exception_Exception;
 import com.watch4net.apg.remote.databaseaccessorservice.TimeSerie;
 
@@ -444,6 +444,7 @@ public class BlockVolumes extends ResourceController {
         }
         return application;
     }
+
     
     public static void analyze() throws Exception_Exception {
     	Aggregations aggregations = new Aggregations();
@@ -454,18 +455,19 @@ public class BlockVolumes extends ResourceController {
 											new ArrayList<String>(), 1456423942,
 											1456424842, null, null, 600, aggregations);
 		
-		
-		List<String> props = new ArrayList<String>();
-		props.add("device");  
-		List<DistinctPropertyValues> result = service.getDatabaseAccessorPort().getDistinctPropertyValues("devtype='Host'", null, null, null, null, null, props, null);
-		for (DistinctPropertyValues ts : result) {
-			System.out.println(ts.getValue());			
-		}
-		
+		List<String> fields = Lists.newArrayList();
 		for (Iterator iterator = timeseries.iterator(); iterator.hasNext();) {
 			TimeSerie timeSerie = (TimeSerie) iterator.next();
-			System.out.println(timeSerie.getFields());
+			fields.add(String.valueOf(timeSerie.getFields()));
 		}
-		flash.success("response");
+		//flash.put("info", fields);
+		renderJSON(fields);
+    }
+    
+    public static void expandvolume(String volumeId, String newSize) {
+
+        ViPRCoreClient client = BourneUtil.getViprClient();        
+        Task<VolumeRestRep> task = client.blockVolumes().expand(uri(volumeId), new VolumeExpandParam(newSize));
+                
     }
 }

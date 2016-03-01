@@ -1,5 +1,7 @@
 #{extends 'main.html' /}
 #{set navSelected: ['nav.storage', 'nav.block.volumes'] /}
+<meta http-equiv="Cache-control" content="no-cache">
+<meta http-equiv="Expires" content="-1">
   <script type="text/javascript">
     var route = #{jsAction @volumesJson(':id',':appId')/};
    
@@ -35,54 +37,20 @@
       $('#project').on('change', reloadVolumes);
       $('#application').on('change' , reloadVolumes);
       
-      // analyze
-      $("#btnCallWebService").click(function (event) {
-          var wsUrl = "https://lglak140:58443/APG-WS/wsapi/db";
+      // Create overlay and append to body:
+      $('<div id="overlay"/>').css({
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: $(window).height() + 'px',
+          opacity:0.4, 
+          background: 'lightgray url(/public/img/loading-big.gif) no-repeat center'
+      }).hide().appendTo('body');
 
-          var soapRequest =
-'<?xml version="1.0" encoding="utf-8"?>' +
-'<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:dat="http://www.watch4net.com/APG/Remote/DatabaseAccessorService">' +
-'<soap:Body>' +
-'<dat:getAggregatedData>' +
-'<dat:filter>devtype==\'Host\' &amp; device==\'lgloh041\' &amp; name==\'CurrentUtilization\' &amp; parttype==\'FileSystem\' &amp; part==\'\/opt\'</dat:filter>' +
-  '<dat:start-timestamp>1456423942</dat:start-timestamp>' +
-  '<dat:end-timestamp>1456424842</dat:end-timestamp>' +
-  '<dat:aggregations count="last"/>' +
-'</dat:getAggregatedData>' +
-'</soap:Body>' +
-'</soap:Envelope>';
-
-var authorization = 'Basic ' + btoa('admin:changeme');
-
-$.support.cors = true;
-
-          $.ajax({
-        	  crossDomain: true,
-              type: "POST",
-              url: wsUrl,
-              contentType: "text/xml",
-              dataType: "xml",
-              data: soapRequest,
-              success: processSuccess,
-              error: processError,
-				beforeSend: function (xhr) {
-					xhr.setRequestHeader ("Authorization", authorization);
-				}
-          });
-
-      });
+      // Execute refresh with interval:
+      // setInterval(refresh, 1 * 1000);
     });
-    
-    function processSuccess(data, status, req) {
-        if (status == "success")
-            alert($(req.responseXML));
-    }
-
-    function processError(data, status, req) {
-        alert(req.responseText + " " + status);
-        $("response").attr('style','visibility: visibile');
-        $("expand-btn").attr('style','visibility: visibile');
-    }
   </script>
 
 #{Resources.applicationControl projects:projects /}
@@ -108,13 +76,16 @@ $.support.cors = true;
       </ul>
     </div>
     <div class="btn-group">
-      <button id="btnCallWebService" type="button" class="btn btn-info" name="Analyze" onclick="pollStatus()">
+      <button id="analyze" type="button" class="btn btn-info" name="Analyze" onclick="analyze();" data-enabled="selected">
          Analyze
       </button>
     </div>
-    <div id="response" class="btn-group" style="visibility: hidden;">The current utilization is 80 %. Do you wish to Expand ?</div>
-    <div id="expand-btn" class="btn-group" style="visibility: hidden;">
-    	
+    <div id="response" class="btn-group" style="visibility: hidden; padding-left: 75px"></div>
+    <input id="expandVolume" name="expandVolume" value="1GB" style="visibility: hidden;" />
+    <div id="expand-btn-div" class="btn-group" style="visibility: hidden;">
+    	<button id="expand-btn" type="button" class="btn btn-danger" name="Expand" onclick="expandVolume();">
+         	Expand
+      	</button>
     </div>
     #{doBody/}
   #{/DataTable.buttonBar}
@@ -125,6 +96,7 @@ $.support.cors = true;
     <input type="hidden" name="type" value="VIPR_ONLY">
   #{/DataTable.formAction}
 #{/DataTable.table}
+
 #{DataTable.expandHtml @volumeDetails(':id'), table:'volumes' /}
 #{set 'moreScripts'}
 #{get 'moreScripts'/}
@@ -136,9 +108,36 @@ function renderLink(o, val) {
     
     return "<a href='"+href+"'>" + val + "</a>";
 }
-function pollStatus() {
-	alert("in function");
-	var uri = "@{analyze()}"
+
+function analyze() {
+    // SHOW overlay
+    $('#overlay').show();
+	$.get("@{resources.BlockVolumes.analyze()}")
+    .done(function(result) {
+    		if(result >= 1) {
+    		    // SHOW overlay
+    		    $('#overlay').hide();
+	        	$("#response").html('<span>The current utilization is <p style="display: inline;color: red;">90%</p>. Do you wish to expand ?</span>');
+	        	$("#response").attr('style','visibility: visibile; padding-left: 75px;');
+	        	$("#expandVolume").attr('style','visibility: visibile; padding-right: 15px;');
+	    		$("#expand-btn-div").attr('style','visibility: visibile;');
+    		} else {
+    			$('#overlay').hide();
+    			$("#response").text("The current Utilization is " + result + " %.");
+    			$("#response").attr('style','visibility: visibile; padding-left: 75px;');
+    		}
+    	}
+    );   
+}
+
+function expandVolume(){
+	$('#overlay').show();
+	$.get("@{resources.BlockVolumes.expandVolume('urn:storageos:Volume:ee4a9dba-f0fa-45ae-ac74-08755b34d63d:vdc1', '15GB')}")
+    .done(function(result) {
+    		$('#overlay').hide();
+    		location.reload(true);
+    	}
+    ); 
 }
 </script>
 #{/set}

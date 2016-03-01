@@ -676,15 +676,13 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.setHost(exportIngestParam.getHost());
             }
 
-            ExportGroupNameGenerator gen = new ExportGroupNameGenerator();
-            String exportGroupLabel = gen.generate(null, computeResourcelabel, null, '_', 56);
             ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), exportGroupResourceUri,
                     varray.getId(), resourceType, _dbClient);
             if (null == exportGroup) {
-                _logger.info("Creating Export Group with label {}", exportGroupLabel);
+                _logger.info("Creating Export Group with label {}", computeResourcelabel);
                 ResourceAndUUIDNameGenerator nameGenerator = new ResourceAndUUIDNameGenerator();
                 exportGroup = VolumeIngestionUtil.initializeExportGroup(project, resourceType, varray.getId(),
-                        exportGroupLabel, _dbClient, nameGenerator, tenant);
+                        computeResourcelabel, _dbClient, nameGenerator, tenant);
                 requestContext.setExportGroupCreated(true);
             }
 

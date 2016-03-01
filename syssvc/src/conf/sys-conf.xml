@@ -257,6 +257,7 @@
         		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
         		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
                 <entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
+                <entry key="dr_purge_data_revision" value-ref="vdcDrPurgeDataRevisionHandler"/>
         		<entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
         		<entry key="dr_failbackDegrade" value-ref="vdcDrFailbackDegradeHandler" />
                 <entry key="ip_change" value-ref="ipchangeHandler"/>
@@ -494,6 +495,14 @@
     </bean>
     
     <bean id="vdcDrChangeDataRevisionHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrChangeDataRevisionHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+    <bean id="vdcDrPurgeDataRevisionHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrPurgeDataRevisionHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>

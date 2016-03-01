@@ -1680,7 +1680,7 @@ public class DisasterRecoveryService {
         String myNodeId = addrLookupMap.getNodeId();
         String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
         log.info("Local coordinator mode is {}", coordinatorMode);
-        if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
+        if (coordinatorMode == null || DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
             log.info("Active site is available now, can't do failover");
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Active site is available now, can't do failover");
         }

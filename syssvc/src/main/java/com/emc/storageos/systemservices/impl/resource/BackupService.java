@@ -459,11 +459,11 @@ public class BackupService {
     }
 
     /**
-     *  Download backup data from the backup FTP server
-     *  each node will only downloads its own backup data
+     * Download backup data from the backup FTP server
+     * each node will only downloads its own backup data
      *
      * @param backupName the name of the backup on the FTP server
-     * @return server response indicating if the operation succeeds.
+     * @return server response indicating if the operation is accpeted or not.
      */
     @POST
     @Path("pull/")
@@ -474,8 +474,7 @@ public class BackupService {
         checkExternalServer();
 
         if (backupOps.isDownloadInProgress()) {
-            Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
-            String curBackupName = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+            String curBackupName = backupOps.getCurrentBackupName();
             if (!backupName.equals(curBackupName)) {
                 String errmsg = curBackupName + " is downloading";
                 throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);

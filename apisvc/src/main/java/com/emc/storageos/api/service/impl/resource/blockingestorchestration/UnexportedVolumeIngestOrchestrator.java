@@ -29,9 +29,17 @@ public class UnexportedVolumeIngestOrchestrator extends BlockIngestExportOrchest
     }
 
     @Override
-    protected ExportMask getExportsMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
+    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
         // TODO Auto-generated method stub
         return null;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestExportOrchestrator#getExportMaskAlreadyCreated(com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask, com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
+     */
+    @Override
+    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 }

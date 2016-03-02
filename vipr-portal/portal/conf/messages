@@ -1602,6 +1602,8 @@ ldapSources.mode=Type
 ldapSources.description=Description
 ldapSources.disable=Disabled
 ldapSources.disable.help=Disabled providers will not have their connectivity validated or be available for processing login requests
+ldapSources.autoRegCoprHDNImportOSProjects=Automatic Registration and Tenant Mapping
+ldapSources.autoRegCoprHDNImportOSProjects.help=Providers registered automatically will have Tenants and Projects created and associated with Keystone. CoprHD will be added as Cinder Block Service in Keystone.
 ldapSources.domains=Domains
 ldapSources.domains.description=List all Domains, one per line
 ldapSources.groupAttribute=Group Attribute
@@ -3332,6 +3334,11 @@ resources.fullcopy.protocol=Protocol
 
 resources.applications=Applications
 resources.protocol=Protocols
+resources.applications.snapshot.sessionSet=Snapshot Session Set
+resources.applications.snapshots.session=Snapshots for Set
+resources.application.snapSet=Snapshot Set
+resources.application.snapSet.snapShots=Snapshots for Set
+
 volumeApplication.name=Name
 volumeApplication.capacity=Size
 volumeApplication.varray=Virtual Array
@@ -3421,7 +3428,6 @@ resources.filesystem.mirroring.virtualArray=Virtual Array
 resources.filesystem.mirroring.fileSystem=File System
 resources.filesystem.mirroring.status=Mirror Status
 resources.filesystem.policy.name=Policy Name
-resources.filesystem.snapshot.pattern=Snapshot Pattern
 resources.filesystem.snapshot.policy.assign=Assign Policy
 resources.filesystem.policy.none=No Policies
 resources.filesystem.policy.unassign.confirm=Are you sure you want to unassign this policy  from the file system?
@@ -3674,6 +3680,8 @@ snapshots.volume=Volume
 snapshots.createdDate=Date Created
 snapshots.lun=Lun
 snapshots.actions=Action
+snapshots.expires=Date Expires
+snapshots.created=Date Created
 
 exportGroups.name=Export Group Name
 exportGroups.type=Type
@@ -3763,6 +3771,7 @@ button.addExportRule=Add Export Rule
 button.updateAcl=Access Control
 button.addNfsAcl=Add Access Controls
 button.assignPolicy=Assign Policy
+button.snapshotsList=Snapshot List
 button.unassignPolicy=Unassign Policy
 button.addSubDir=Add Share
 button.duplicate=Duplicate
@@ -4377,6 +4386,8 @@ nfsAccessControlList.type=Type
 nfsAccessControlList.domain=Domain
 nfsAccessControlList.permissionType=Permissions Type
 nfs.subdirectory=Sub Directory
+
+schedule.filepolicy.snapshot=File Policy Snapshots
 
 
 

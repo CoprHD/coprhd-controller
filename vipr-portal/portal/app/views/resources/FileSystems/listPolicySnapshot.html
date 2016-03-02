@@ -1,0 +1,22 @@
+#{extends 'main.html' /}
+#{set navSelected: ['nav.storage', 'nav.file.filesystems'] /}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @fileSystems()}&{'resources.filesystems'}#{/breadcrumb.item}
+  #{breadcrumb.item @resources.FileSystems.fileSystem(fileSystemId?:fileSystemId)}${fileSystemName}#{/breadcrumb.item}
+  #{breadcrumb.item}${filePolicyName}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+#{if flash.warningMessage}
+  <div class="clear"></div>
+  <p class="alert alert-warning">${flash.warningMessage}</p>
+#{/if}
+
+#{DataTable.header titleKey:'schedule.filepolicy.snapshot'/}
+
+#{DataTable.table id:'snapshots',
+                  dataTable: dataTable,
+                  selectable: false,                  
+                source: @listPolicySnapshotJson(fileSystemAndpolicyId)}
+
+#{/DataTable.table}

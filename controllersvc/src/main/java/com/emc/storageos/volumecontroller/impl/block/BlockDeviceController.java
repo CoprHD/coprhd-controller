@@ -2274,7 +2274,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 List<BlockSnapshot> allSnapshots = new ArrayList<>();
                 String replicationGroupId = blockSnapshot.getReplicationGroupInstance();
                 if (!NullColumnValueGetter.isNullValue(replicationGroupId)) {
-                    allSnapshots.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupId, _dbClient));
+                    allSnapshots.addAll(ControllerUtils.getSnapshotsPartOfReplicationGroup(blockSnapshot, _dbClient));
                     int nameStartIndex = replicationGroupId.indexOf("+") + 1;
                     replicationGroupName = replicationGroupId.substring(nameStartIndex);
                 } else {
@@ -2314,11 +2314,14 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 snapSession.setLabel(blockSnapshot.getLabel() + System.currentTimeMillis());
                 snapSession.setSessionLabel(snapSession.getLabel());
                 snapSession.setProject(blockSnapshot.getProject());
+                snapSession.setStorageController(storage);
                 snapSession.addInternalFlags(Flag.INTERNAL_OBJECT);
                 if (NullColumnValueGetter.isNullURI(cgURI)) {
                     snapSession.setParent(new NamedURI(blockSnapshot.getId(), blockSnapshot.getLabel()));
                 } else {
                     snapSession.setConsistencyGroup(cgURI);
+                    snapSession.setReplicationGroupInstance(replicationGroupName);
+                    snapSession.setSessionSetName(replicationGroupName);
                 }
                 snapSession.setLinkedTargets(linkedTargets);
                 _dbClient.createObject(snapSession);
@@ -3205,7 +3208,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             // Check if already created, if not create, if so just complete.
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
-            String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null);
+            String groupName = ControllerUtils.generateReplicationGroupName(storageObj, cg, null, _dbClient);
             if (!cg.created(storage, groupName)) {
                 getDevice(storageObj.getSystemType()).doCreateConsistencyGroup(storageObj, consistencyGroup, groupName, completer);
             } else {
@@ -4307,7 +4310,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
 
             if (addVolumesList != null && !addVolumesList.isEmpty()) {
-                String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null);
+                String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Adding volumes to consistency group %s", consistencyGroup),
                         waitFor, storage, storageSystem.getSystemType(),
@@ -5464,8 +5467,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String groupName = null;
             boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
             if (isCG) {
-                BlockConsistencyGroup cg = ConsistencyGroupUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
-                groupName = cg.getCgNameOnStorageSystem(systemURI);
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                groupName = snapSession.getReplicationGroupInstance();
             }
 
             // Create a step to create the session.
@@ -6032,8 +6035,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String groupName = null;
             boolean isCG = checkSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient, completer);
             if (isCG) {
-                BlockConsistencyGroup cg = ConsistencyGroupUtils.getSnapshotSessionConsistencyGroup(snapSessionURI, _dbClient);
-                groupName = cg.getCgNameOnStorageSystem(systemURI);
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+                groupName = snapSession.getReplicationGroupInstance();
             }
 
             // Create the workflow step to delete the snapshot session.

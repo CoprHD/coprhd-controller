@@ -450,6 +450,12 @@
 
     <bean id="ipsecMonitor" class="com.emc.storageos.systemservices.impl.security.IPSecMonitor" />
 
+    <bean id="ipsecInitialRotate" class="com.emc.storageos.systemservices.impl.security.IPSecInitialRotate">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="ipsecConfig" ref="ipsecConfig" />
+        <property name="ipsecMgr" ref="ipsecMgr" />
+    </bean>
+
     <bean id="backupUploadJobProducer" class="com.emc.storageos.systemservices.impl.jobs.common.JobProducer" init-method="startQueue" destroy-method="stopQueue">
         <property name="coordinator" ref="coordinator"/>
         <property name="consumer" ref="backupUploadJobConsumer"/>

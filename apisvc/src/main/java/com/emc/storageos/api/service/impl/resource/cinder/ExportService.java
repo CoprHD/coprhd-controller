@@ -710,8 +710,8 @@ public class ExportService extends VolumeService {
     boolean waitForTaskCompletion(URI resourceId, String task) throws InterruptedException {
         int tryCnt = 0;
         Task taskObj = null;
-        // while(tryCnt < RETRY_COUNT){
-        while (true) {
+        while(tryCnt < RETRY_COUNT){
+        //while (true) {
             _log.info("THE TASK var is {}", task);
             Thread.sleep(40000);
             taskObj = TaskUtils.findTaskForRequestId(_dbClient, resourceId, task);
@@ -733,6 +733,7 @@ public class ExportService extends VolumeService {
                 return false;
             }
         }
+        return false;
     }
 
     private boolean processAttachRequest(Volume vol, VolumeActionRequest.AttachVolume attach,
@@ -781,10 +782,12 @@ public class ExportService extends VolumeService {
             exportGroup.setVirtualArray(vol.getVirtualArray());
             // put volume map
             volumeMap.put(vol.getId(), ExportGroup.LUN_UNASSIGNED);
+            exportGroup.addVolume(vol.getId(), ExportGroup.LUN_UNASSIGNED);
             // put list of initiators
             for (Initiator initiator : newInitiators) {
                 initiatorURIs.add(initiator.getId());
             }
+            exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
             _dbClient.createObject(exportGroup);
             _log.info("createExportGroup request is submitted.");
             initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);

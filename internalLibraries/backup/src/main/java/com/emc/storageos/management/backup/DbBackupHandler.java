@@ -134,18 +134,6 @@ public class DbBackupHandler extends BackupHandler {
                 cfDirs = (cfDirs == null) ? BackupConstants.EMPTY_ARRAY : cfDirs;
                 for (File cfDir : cfDirs) {
                     File cfBackupFolder = new File(ksBackupFolder, cfDir.getName());
-
-                    // Handles empty Column Family
-                    String[] cfSubFileList = cfDir.list(new FilenameFilter() {
-                        @Override
-                        public boolean accept(File dir, String name) {
-                            return name.endsWith(DB_SSTABLE_TYPE);
-                        }
-                    });
-                    if (cfSubFileList == null || cfSubFileList.length == 0) {
-                        cfBackupFolder.mkdir();
-                        continue;
-                    }
                     File snapshotFolder = new File(cfDir,
                             DB_SNAPSHOT_SUBDIR + File.separator + fullBackupTag);
                     // Filters ignored Column Family
@@ -153,7 +141,20 @@ public class DbBackupHandler extends BackupHandler {
                         FileUtils.deleteQuietly(snapshotFolder);
                         cfBackupFolder.mkdir();
                         continue;
-                    } else if (!snapshotFolder.exists()) {
+                    } 
+                    if (!snapshotFolder.exists()) {
+                        // Handles stale Column Family
+                        String[] cfSubFileList = cfDir.list(new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return name.endsWith(DB_SSTABLE_TYPE);
+                            }
+                        });
+                        if (cfSubFileList == null || cfSubFileList.length == 0) {
+                            log.warn("No snapshot directory created for cf: {}", cfDir.getName());
+                            cfBackupFolder.mkdir();
+                            continue;
+                        }
                         throw new FileNotFoundException(String.format(
                                 "Can't find snapshot directory: %s", snapshotFolder.getAbsolutePath()));
                     }

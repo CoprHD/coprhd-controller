@@ -89,6 +89,24 @@ public class ExportUtils {
     }
 
     /**
+     * Return a Set initiators for the given collection of port names (WWN or IQNs)
+     * 
+     * @param portNames [IN] - Port names to query
+     * @param dbClient [IN] - DbClient for DB access
+     * @return Set or Initiators looked up by the 'portNames'
+     */
+    public static Set<Initiator> getInitiators(Collection<String> portNames, DbClient dbClient) {
+        Set<Initiator> initiatorSet = new HashSet<>();
+        for (String portName : portNames) {
+            Initiator initiator = getInitiator(Initiator.toPortNetworkId(portName), dbClient);
+            if (initiator != null) {
+                initiatorSet.add(initiator);
+            }
+        }
+        return initiatorSet;
+    }
+    
+    /**
      * A utility function method to get the user-created initiators from an export mask.
      * If an initiator is not found for a given user-created WWN, it is simply
      * ignored and no error is raised.

@@ -90,7 +90,7 @@ class Bucket(object):
     #Routine to delete Bucket 
     
     
-    def bucket_delete(self,tenant, project, name , forceDelete=False):
+    def bucket_delete(self,tenant, project, name , forceDelete=False, delete_type='FULL'):
         
         
         if(name):
@@ -100,6 +100,7 @@ class Bucket(object):
             if(forceDelete):
                 
                 request ['forceDelete']  = False
+            request ['delete_type'] = delete_type
             body = json.dumps(request)
             
        
@@ -350,6 +351,12 @@ def delete_parser(subcommand_parsers, common_parser):
                                choices = ["true" , "false"],
                                metavar='<forcedelete>',
                                help='force Delete option ')
+    delete_parser.add_argument('-deleteType', '-dt',
+                               dest='delete_type',
+                               metavar='<delete_type>',
+                               help='Delete bucket either from Inventory only or full delete, default FULL',
+                               default='FULL',
+                               choices=["FULL", "INTERNAL_DB_ONLY"])
 
     delete_parser.set_defaults(func=bucket_delete)
 
@@ -357,7 +364,7 @@ def delete_parser(subcommand_parsers, common_parser):
 def bucket_delete(args):
     obj = Bucket(args.ip, args.port)
     try:
-        obj.bucket_delete(args.tenant , args.project , args.name, args.forcedelete)
+        obj.bucket_delete(args.tenant , args.project , args.name, args.forcedelete, args.delete_type)
         return
     except SOSError as e:
         common.format_err_msg_and_raise("delete", "bucket",
@@ -523,9 +530,9 @@ def put_bucket_acl_parser(subcommand_parsers, common_parser):
                                 required=True)
     put_bucket_acl_parser.add_argument('-permissions', '-perm',
                                     dest='permissions',
-                                    choices=["execute","delete","write","read","privileged_write","full_control","read_acl","write_acl","none"],
                                     metavar='<permissions>',
-                                    help='Provide permission(s) for Acl with pipe delimited. example: execute|delete|write')
+                                    help='Provide permission(s) for Acl with pipe delimited. example: execute|delete|write|read.' +
+                                    ' Available choices are read,write,execute,delete,privileged_write,full_control,read_acl,write_acl,none.')
     put_bucket_acl_parser.add_argument('-tenant', '-tn',
                                      metavar='<tenantname>',
                                      dest='tenant',

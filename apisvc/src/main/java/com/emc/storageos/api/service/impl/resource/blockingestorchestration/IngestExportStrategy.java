@@ -17,6 +17,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
@@ -47,6 +48,7 @@ public class IngestExportStrategy {
             T blockObject, IngestionRequestContext requestContext) throws IngestionException {
 
         if (null != requestContext.getExportGroup()) {
+
             if (null != unManagedVolume.getUnmanagedExportMasks() && !unManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 List<URI> unManagedMaskUris = new ArrayList<URI>(Collections2.transform(
                         unManagedVolume.getUnmanagedExportMasks(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
@@ -64,8 +66,13 @@ public class IngestExportStrategy {
                 if (blockObject.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
                     // check if none of the export masks are ingested
                     if (masksIngestedCount.intValue() == 0) {
-                        throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(
-                                unManagedVolume.getLabel(), Joiner.on(", ").join(errorMessages));
+                        if (null != errorMessages && !errorMessages.isEmpty()) {
+                            throw IngestionException.exceptions.unmanagedVolumeMasksNotIngestedAdditionalInfo(
+                                    unManagedVolume.getLabel(), Joiner.on(", ").join(errorMessages));
+                        } else {
+                            throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(
+                                    unManagedVolume.getLabel());
+                        }
                     } else {
                         return blockObject;
                     }
@@ -79,10 +86,10 @@ public class IngestExportStrategy {
                         boolean isRPVolume = VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
                         // if its RP volume and non RP exported, then check whether the RP CG is fully ingested
                         if (isRPVolume && VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)) {
-                            List<DataObject> updateObjects = requestContext.getObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
+                            List<DataObject> updateObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
                             if (updateObjects == null) {
                                 updateObjects = new ArrayList<DataObject>();
-                                requestContext.getObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), updateObjects);
+                                requestContext.getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), updateObjects);
                             }
                             List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllUnManagedVolumesToBeDeleted();
                             ingestedUnManagedVolumes.add(unManagedVolume);
@@ -108,14 +115,17 @@ public class IngestExportStrategy {
 
                     return blockObject;
                 } else {
-                    throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(
-                            unManagedVolume.getLabel(), Joiner.on(", ").join(errorMessages));
+                    if (null != errorMessages && !errorMessages.isEmpty()) {
+                        throw IngestionException.exceptions.unmanagedVolumeMasksNotIngestedAdditionalInfo(
+                                unManagedVolume.getLabel(), Joiner.on(", ").join(errorMessages));
+                    } else {
+                        throw IngestionException.exceptions.unmanagedVolumeMasksNotIngested(
+                                unManagedVolume.getLabel());
+                    }
                 }
             }
         }
 
         return blockObject;
-
     }
-
 }

@@ -64,6 +64,9 @@ import com.google.common.base.Joiner;
 public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchestrator {
     private static final Logger _logger = LoggerFactory.getLogger(BlockVplexVolumeIngestOrchestrator.class);
 
+    // last known discovery mode, defaults to discovery mode only
+    private String _discoveryMode = VplexBackendIngestionContext.DISCOVERY_MODE_DISCOVERY_ONLY;
+    
     // best practice two paths from each VPLEX director for paths in a backend export group
     private static final int DEFAULT_BACKEND_NUMPATHS = 4;
 
@@ -130,9 +133,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             // The default mode is "Only During Discovery", so the user needs to remember
             // to run discovery first on all backend storage arrays before running on the VPLEX.
             //
-            String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+            _discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
                     _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
-            if (VplexBackendIngestionContext.DISCOVERY_MODE_DISCOVERY_ONLY.equals(discoveryMode)) {
+            if (VplexBackendIngestionContext.DISCOVERY_MODE_DISCOVERY_ONLY.equals(_discoveryMode) 
+                    || VplexBackendIngestionContext.DISCOVERY_MODE_DB_ONLY.equals(_discoveryMode)) {
                 volumeContext.setInDiscoveryOnlyMode(true);
             }
 
@@ -175,8 +179,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
     @Override
     protected void managedVolumeSetLabel(BlockObject blockObject, String deviceLabel) {
         if (deviceLabel.contains("(")) {
+            // We want the user-visible label to be friendly.  The deviceLabel needs to be the VPLEX label.
+            // DB1_vol1 (dd_v1234567890_vol)
+            // label:       DB1_vol1
+            // deviceLabel: dd_v1234567890_vol
             blockObject.setLabel(deviceLabel.substring(0, deviceLabel.indexOf('(') - 1));
-            blockObject.setDeviceLabel(deviceLabel.substring(0, deviceLabel.indexOf('(') - 1));
+            blockObject.setDeviceLabel(deviceLabel.substring(deviceLabel.indexOf('(')+1, deviceLabel.indexOf(')')));
         } else {
             super.managedVolumeSetLabel(blockObject, deviceLabel);
         }
@@ -222,9 +230,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
 
-        // validate the supporting device structure is compatible with vipr
-        // TODO temporarily disabled until simulator can support this
-        // context.validateSupportingDeviceStructure();
+        if (!VplexBackendIngestionContext.DISCOVERY_MODE_DB_ONLY.equals(_discoveryMode)) {
+            // validate the supporting device structure is compatible with vipr
+            // will contact the VPLEX API to check the current device structure
+            context.validateSupportingDeviceStructure();
+        }
 
         // validate that there are not too many replicas on a distributed volume
         // as we can only support ingesting snaps or clones on one leg
@@ -492,7 +502,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 // the BlockSnapshot instance and only the Volume would get created. So,
                 // we first move the snapshot to the created snapshots list before adding
                 // the volume to the created objects list.
-                Map<String, BlockObject> createdObjectMap = backendRequestContext.getObjectsToBeCreatedMap();
+                Map<String, BlockObject> createdObjectMap = backendRequestContext.getBlockObjectsToBeCreatedMap();
                 String blockObjectNativeGuid = blockObject.getNativeGuid();
                 if (createdObjectMap.containsKey(blockObjectNativeGuid)) {
                     BlockObject createdBlockObject = createdObjectMap.get(blockObjectNativeGuid);
@@ -524,6 +534,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 _logger.info("Ingestion ended for backend volume {}", associatedVolume.getNativeGuid());
             } catch (Exception ex) {
                 _logger.error(ex.getLocalizedMessage());
+                backendRequestContext.rollback();
                 throw ex;
             }
         }
@@ -567,11 +578,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 continue;
             }
 
-            _logger.info("ingesting export mask(s) for unmanaged volume " + processedUnManagedVolume);
+            _logger.info("ingesting VPLEX backend export mask(s) for unmanaged volume " + processedUnManagedVolume);
 
             String createdObjectGuid = unManagedVolumeGUID.replace(
                     VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-            BlockObject processedBlockObject = backendRequestContext.getObjectsToBeCreatedMap().get(createdObjectGuid);
+
+            BlockObject processedBlockObject = backendRequestContext.getBlockObjectsToBeCreatedMap().get(createdObjectGuid);
 
             if (processedBlockObject == null) {
                 String reason = "The ingested block object is null. Skipping ingestion of export masks.";
@@ -629,7 +641,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
                     // find or create the backend export group
                     ExportGroup exportGroup = this.findOrCreateExportGroup(
-                            requestContext.getStorageSystem(), associatedSystem, initiators,
+                            backendRequestContext.getRootIngestionRequestContext(), associatedSystem, initiators,
                             virtualArray.getId(), backendRequestContext.getBackendProject().getId(),
                             backendRequestContext.getTenant().getId(), DEFAULT_BACKEND_NUMPATHS, uem);
                     if (null == exportGroup.getId()) {
@@ -652,6 +664,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     } else {
                         backendRequestContext.getObjectsIngestedByExportProcessing().add(blockObject);
                     }
+
+                    backendRequestContext.getVplexBackendExportGroupMap().put(blockObject, exportGroup);
                 }
             } catch (Exception ex) {
                 _logger.error(ex.getLocalizedMessage());
@@ -673,22 +687,28 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * @param unmanagedExportMask the unmanaged export mask
      * @return existing or newly created ExportGroup (not yet persisted)
      */
-    ExportGroup findOrCreateExportGroup(StorageSystem vplex,
+    private ExportGroup findOrCreateExportGroup(IngestionRequestContext requestContext,
             StorageSystem array, Collection<Initiator> initiators,
             URI virtualArrayURI,
             URI projectURI, URI tenantURI, int numPaths,
             UnManagedExportMask unmanagedExportMask) {
 
+        StorageSystem vplex = requestContext.getStorageSystem();
         String arrayName = array.getSystemType().replace("block", "")
                 + array.getSerialNumber().substring(array.getSerialNumber().length() - 4);
         String groupName = unmanagedExportMask.getMaskName() + "_" + arrayName;
+
+        ExportGroup exportGroup = requestContext.findExportGroup(groupName, projectURI, virtualArrayURI, null, null);
+        if (null != exportGroup) {
+            _logger.info(String.format("Returning existing ExportGroup %s", exportGroup.getLabel()));
+            return exportGroup;
+        }
 
         List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(
                 _dbClient, ExportGroup.class, PrefixConstraint.Factory
                         .getFullMatchConstraint(ExportGroup.class, "label",
                                 groupName));
 
-        ExportGroup exportGroup = null;
         if (null != exportGroups && !exportGroups.isEmpty()) {
             for (ExportGroup group : exportGroups) {
                 if (null != group) {
@@ -729,7 +749,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     /**
      * Following steps are performed as part of this method execution.
-     * 1. Checks whether unManagedVolume is protected by RP, if yes we willn't create CG for VPLEX VirtualVolumes.
+     * 1. Checks whether unManagedVolume is protected by RP, if yes we will not create CG for VPLEX VirtualVolumes.
      * 2. When ingesting vplex virtual volume in CG, we will check whether CG already exists in DB for the same project & tenant.
      * If yes, we will reuse it.
      * Otherwise, we will create new BlockConsistencyGroup for the unmanaged consistencyGroup.
@@ -825,7 +845,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
             if (!toUpdateList.isEmpty()) {
                 // Since I pulled this in from the database, we need to add it to the list of objects to update.
-                ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap().put(
+                ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getDataObjectsToBeUpdatedMap().put(
                         unManagedVolume.getNativeGuid(), toUpdateList);
             }
         }

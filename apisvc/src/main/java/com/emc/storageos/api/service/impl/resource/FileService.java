@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -81,9 +82,11 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -125,6 +128,8 @@ import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.NfsACLs;
 import com.emc.storageos.model.file.QuotaDirectoryCreateParam;
 import com.emc.storageos.model.file.QuotaDirectoryList;
+import com.emc.storageos.model.file.ScheduleSnapshotList;
+import com.emc.storageos.model.file.ScheduleSnapshotRestRep;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -145,6 +150,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileController;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.FileShareExport.Permissions;
@@ -1602,10 +1608,15 @@ public class FileService extends TaskResourceService {
         if (!param.getForceDelete()) {
             ArgValidator.checkReference(FileShare.class, id, checkForDelete(fs));
             if (!fs.getFilePolicies().isEmpty()) {
-
                 throw APIException.badRequests
                         .resourceCannotBeDeleted("Please unassign the policy from file system. " + fs.getLabel());
             }
+        }
+        StringBuffer notSuppReasonBuff = new StringBuffer();
+        // Verify the file system is having any active replication targets!!
+        if (filesystemHasActiveReplication(fs, notSuppReasonBuff, param.getDeleteType(), param.getForceDelete())) {
+            throw APIException.badRequests
+                    .resourceCannotBeDeleted(notSuppReasonBuff.toString());
         }
         List<URI> fileShareURIs = new ArrayList<URI>();
         fileShareURIs.add(id);
@@ -2707,6 +2718,15 @@ public class FileService extends TaskResourceService {
         capabilities.put(VirtualPoolCapabilityValuesWrapper.EXISTING_SOURCE_FILE_SYSTEM, fs);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SOURCE_STORAGE_SYSTEM, device);
 
+        if (param.getCopyName() != null && !param.getCopyName().isEmpty()) {
+            // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
+            // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
+            String convertedName = param.getCopyName().replaceAll("[^\\dA-Za-z\\_]", "");
+            _log.info("Original copy name {} and converted copy name {}", param.getCopyName(), convertedName);
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.FILE_TARGET_COPY_NAME, convertedName);
+
+        }
+
         FileServiceApi fileServiceApi = getFileShareServiceImpl(fs, _dbClient);
 
         try {
@@ -3423,6 +3443,131 @@ public class FileService extends TaskResourceService {
     }
 
     /**
+     * Get file system Snapshot created by policy
+     * 
+     * @param id
+     *            The URN of a ViPR file system
+     * @param filePolicyUri
+     *            The URN of a file policy schedule
+     * @param timeout
+     *            Time limit in seconds to get the output .Default is 30 seconds
+     * @return List of snapshots created by a file policy
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/file-policies/{filePolicyUri}/snapshots")
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public ScheduleSnapshotList getFileSystemSchedulePolicySnapshots(@PathParam("id") URI id,
+            @PathParam("filePolicyUri") URI filePolicyUri, @QueryParam("timeout") int timeout) {
+        // valid value of timeout is 10 sec to 10 min
+        if (timeout < 10 || timeout > 600) {
+            timeout = 30;// default timeout value.
+        }
+
+        ScheduleSnapshotList list = new ScheduleSnapshotList();
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
+        FileShare fs = queryResource(id);
+        ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        ArgValidator.checkFieldUriType(filePolicyUri, SchedulePolicy.class, "filePolicyUri");
+        ArgValidator.checkUri(filePolicyUri);
+        SchedulePolicy sp = _permissionsHelper.getObjectById(filePolicyUri, SchedulePolicy.class);
+        ArgValidator.checkEntityNotNull(sp, filePolicyUri, isIdEmbeddedInURL(filePolicyUri));
+
+        // verify the file system tenant is same as policy tenant
+        if (!sp.getTenantOrg().getURI().toString().equalsIgnoreCase(fs.getTenant().getURI().toString())) {
+            throw APIException.badRequests.associatedPolicyTenantMismatch(filePolicyUri, id);
+        }
+        // verify the schedule policy is associated with file system or not.
+        if (!fs.getFilePolicies().contains(filePolicyUri.toString())) {
+            throw APIException.badRequests.cannotFindAssociatedPolicy(filePolicyUri);
+        }
+
+        String task = UUID.randomUUID().toString();
+        StorageSystem device = _dbClient.queryObject(StorageSystem.class, fs.getStorageDevice());
+        FileController controller = getController(FileController.class, device.getSystemType());
+        Operation op = _dbClient.createTaskOpStatus(FileShare.class, fs.getId(),
+                task, ResourceOperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE);
+        op.setDescription("list snapshots created by a policy");
+
+        try {
+
+            _log.info("No Errors found. Proceeding further {}, {}, {}", new Object[] { _dbClient, fs, sp });
+
+            controller.listSanpshotByPolicy(device.getId(), fs.getId(), sp.getId(), task);
+            Task taskObject = null;
+            auditOp(OperationTypeEnum.GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE, true, AuditLogManager.AUDITOP_BEGIN,
+                    fs.getId().toString(), device.getId().toString(), sp.getId());
+            int timeoutCounter = 0;
+            // wait till timeout or result from controller service ,whichever is earlier
+            do {
+                TimeUnit.SECONDS.sleep(1);
+                taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
+                timeoutCounter++;
+                // exit the loop if task is completed with error/success or timeout
+            } while ((taskObject != null && !(taskObject.isReady() || taskObject.isError())) && timeoutCounter < timeout);
+
+            if (taskObject == null) {
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots task information");
+
+            }
+            else if (taskObject.isReady()) {
+                URIQueryResultList snapshotsURIs = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id),
+                        snapshotsURIs);
+                List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapshotsURIs);
+
+                for (Snapshot snap : snapList) {
+
+                    if (!snap.getInactive() && snap.getExtensions().containsKey("schedule")) {
+                        ScheduleSnapshotRestRep snapRest = new ScheduleSnapshotRestRep();
+                        getScheduleSnapshotRestRep(snapRest, snap);
+                        list.getScheduleSnapList().add(snapRest);
+                        snap.setInactive(true);
+                        _dbClient.updateObject(snap);
+                    }
+                }
+
+            } else if (taskObject.isError()) {
+
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to" + taskObject.getMessage());
+
+            } else {
+
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to timeout");
+
+            }
+
+        } catch (BadRequestException e) {
+            op = _dbClient.error(FileShare.class, fs.getId(), task, e);
+            _log.error("Error while getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        } catch (Exception e) {
+            _log.error("Error while getting  Filesystem policy  Snapshots {}, {}", e.getMessage(), e);
+            throw APIException.badRequests.unableToProcessRequest(e.getMessage());
+        }
+        return list;
+
+    }
+
+    private void getScheduleSnapshotRestRep(ScheduleSnapshotRestRep target, Snapshot source) {
+
+        if (source.getExtensions().containsKey("created")) {
+            target.setCreated(source.getExtensions().get("created"));
+
+        }
+        if (source.getExtensions().containsKey("expires")) {
+            target.setExpires(source.getExtensions().get("expires"));
+
+        }
+        target.setId(source.getId());
+        target.setMountPath(source.getMountPath());
+        target.setName(source.getName());
+    }
+
+    /**
      * Create FilePolicyRestRep object from the SchedulePolicy object
      * 
      * @param fpRest
@@ -3549,7 +3694,7 @@ public class FileService extends TaskResourceService {
         if (fs.getPersonality() != null
                 && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
-                        || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
+                || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
             notSuppReasonBuff
                     .append(String
                             .format("File system given in request is in active or failover state %s.",
@@ -3592,7 +3737,7 @@ public class FileService extends TaskResourceService {
 
         switch (operation) {
 
-            // Refresh operation can be performed without any check.
+        // Refresh operation can be performed without any check.
             case "refresh":
                 isSupported = true;
                 break;
@@ -3627,7 +3772,7 @@ public class FileService extends TaskResourceService {
             // Fail over can be performed if Mirror status is NOT UNKNOWN or FAILED_OVER.
             case "failover":
                 if (!(currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
+                || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.FAILED_OVER.toString())))
                     isSupported = true;
                 break;
 
@@ -3669,5 +3814,44 @@ public class FileService extends TaskResourceService {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Checks to see if the file replication change is supported.
+     * 
+     * @param fs
+     * @param notSuppReasonBuff
+     *            the not supported reason string buffer
+     * @return
+     */
+    private boolean filesystemHasActiveReplication(FileShare fs, StringBuffer notSuppReasonBuff,
+            String deleteType, boolean forceDelete) {
+
+        // File system should not be the target file system..
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return true;
+        }
+
+        // File system should not have active replication targets!!
+        // For resource delete (forceDelete=false)
+        // For VIPR_ONLY type, till we support ingestion of replication file systems
+        // avoid deleting file systems if it has active mirrors!!
+        if (forceDelete == false || FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)) {
+            if (fs.getMirrorfsTargets() != null
+                    && !fs.getMirrorfsTargets().isEmpty()) {
+                notSuppReasonBuff
+                        .append(String
+                                .format("File system %s given in request has active target file systems.",
+                                        fs.getLabel()));
+                _log.info(notSuppReasonBuff.toString());
+                return true;
+
+            }
+        }
+
+        return false;
     }
 }

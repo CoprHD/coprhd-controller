@@ -421,7 +421,13 @@ public abstract class DataObject implements Serializable {
         RECOVERPOINT(4),            // 0x10
         DELETION_IN_PROGRESS(5),    // 0x20
         RECOVERPOINT_JOURNAL(6),    // 0x40
-        PARTIALLY_INGESTED(7);      // 0x80
+        PARTIALLY_INGESTED(7), // 0x80
+        // We need to know if the user given request is for entire Application or set of Array replication groups.
+        // This Flag is temporarily used for replica operation on Volume Group.
+        // As an alternate, we can change the BlockFullCopyManager method signatures
+        // to accept multiple URIs but doing it will result in changes in too many Impl classes
+        // and the real meaning of those methods may not indicate the same.
+        VOLUME_GROUP_PARTIAL_REQUEST(8); // 0x40
 
         private final long mask;
 
@@ -469,7 +475,7 @@ public abstract class DataObject implements Serializable {
     }
 
     public String forDisplay() {
-        if (_label != null) {
+        if (_label != null && !_label.isEmpty()) {
             return String.format("%s (%s)", _label, _id);
         } else {
             return _id.toString();

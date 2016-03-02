@@ -354,7 +354,7 @@ public abstract class VdcOpHandler {
                         
                     for (Site site : toBeRemovedSites) {
                         try {
-                            poweroffRemoteSite(site);
+                            tryPoweroffRemoteSite(site);
                             removeDbNodesFromGossip(site);
                         } catch (Exception e) { 
                             populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
@@ -905,7 +905,7 @@ public abstract class VdcOpHandler {
                     return;
                 }
 
-                poweroffRemoteSite(oldActiveSite);    
+                tryPoweroffRemoteSite(oldActiveSite);    
                 removeDbNodesFromGossip(oldActiveSite);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 postHandlerFactory.initializeAllHandlers();
@@ -1148,22 +1148,25 @@ public abstract class VdcOpHandler {
         log.info("Removed site {} configuration from db strategy options", site.getUuid());
     }
 
-    protected void poweroffRemoteSite(Site site) {
+    /**
+     * Just try, don't guarantee successfully done
+     */
+    protected void tryPoweroffRemoteSite(Site site) {
         String siteId = site.getUuid();
-        if (!drUtil.isSiteUp(siteId)) {
-            log.info("Site {} is down. no need to poweroff it", site.getUuid());
-            return;
-        }
         // all syssvc shares same port
         String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
-        SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
-        log.info("Powering off site {}", siteId);
-        while(drUtil.isSiteUp(siteId)) {
-            log.info("Short sleep and will check site status later");
-            retrySleep();
+        try {
+            SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
+            log.info("Powering off site {}", siteId);
+            while(drUtil.isSiteUp(siteId)) {
+                log.info("Short sleep and will check site status later");
+                retrySleep();
+            }
+        } catch (Exception e) {
+            log.warn("Error happened when trying to poweroff remove site {}", siteId, e);
         }
     }
-    
+
     protected void retrySleep() {
         waiter.sleep(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
     }

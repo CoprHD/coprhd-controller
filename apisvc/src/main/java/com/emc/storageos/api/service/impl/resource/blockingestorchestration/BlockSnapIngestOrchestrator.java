@@ -223,7 +223,10 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
                     blockObjectsToUpdate.add(blockObject);
                 }
                 blockObject.setConsistencyGroup(cg.getId());
-                blockObject.setReplicationGroupInstance(cg.getLabel());
+                // Set the replication group instance only if it is not already populated during the block object's ingestion.
+                if (blockObject.getReplicationGroupInstance() == null || blockObject.getReplicationGroupInstance().isEmpty()) {
+                    blockObject.setReplicationGroupInstance(cg.getLabel());
+                }
             }
             if (!blockObjectsToUpdate.isEmpty()) {
                 requestContext.getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);

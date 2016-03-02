@@ -431,7 +431,6 @@ public class VolumeService extends TaskResourceService {
         if (sourceVolId != null)
         {
             _log.debug("Creating New Volume from Volume : Source volume ID ={}", sourceVolId);
-            //Volume sourceVolume = findVolume(sourceVolId, openstackTenantId);
             if (sourceVolume != null) {
                 tasklist = volumeClone(name, project, sourceVolId, varray, volumeCount, sourceVolume, blkFullCpManager);
             } else {

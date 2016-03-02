@@ -24,10 +24,10 @@
     <import resource="classpath:dbclient-conf.xml"/>
     <import resource="classpath:api-var.xml"/>
     <import resource="classpath:local-security-conf.xml" />
-    <import resource="classpath:security-common.xml" />
     <import resource="classpath:attr-matcher.xml"/>
     <import resource="classpath:jmx-conf.xml"/>
     <import resource="classpath:geoclient-conf.xml"/>
+    <import resource="classpath:keystone-conf.xml"/>
     <import resource="classpath:dbcommon-var.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
     <import resource="classpath:controller-configinfo.xml"/>
@@ -710,7 +710,9 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.AuthnConfigurationService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
-                    <property name="keystoneFactory" ref="keystoneFactory"/>
+                    <property name="keystoneUtils" ref="keystoneUtils"/>
+                    <property name="tenantsService" ref="tenantsService"/>
+                    <property name="ovfProperties" ref="ovfProperties"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.WorkflowService">
                     <property name="dbClient" ref="dbclient"/>

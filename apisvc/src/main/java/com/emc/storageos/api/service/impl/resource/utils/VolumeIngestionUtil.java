@@ -2243,6 +2243,18 @@ public class VolumeIngestionUtil {
 
     }
 
+    /**
+     * Verifies that the given ExportGroup matches the rest of the parameters.
+     * ComputeResource URI and resourceType are only check if both are non-null
+     * 
+     * @param exportGroupToCheck the ExportGroup to check
+     * @param exportGroupLabel the name of the ExportGroup
+     * @param project the URI of the ExportGroup's Project
+     * @param vArray the URI of the ExportGroup's VirtualArray
+     * @param computeResource the URI of the ExportGroup's ComputeResource (optional)
+     * @param resourceType the ExportGroup's resource type (optional)
+     * @return true if the exportGroupToCheck is a match for the rest of the parameters
+     */
     public static boolean verifyExportGroupMatches(ExportGroup exportGroupToCheck, String exportGroupLabel, 
             URI project, URI vArray, URI computeResource, String resourceType) {
 

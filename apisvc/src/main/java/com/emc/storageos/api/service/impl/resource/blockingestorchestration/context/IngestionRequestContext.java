@@ -391,9 +391,30 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      */
     public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume);
 
+    /**
+     * Finds an already-loaded ExportGroup for the given parameters in the scope of
+     * this IngestionRequestContext.
+     * 
+     * @param exportGroupLabel the name of the ExportGroup
+     * @param project the ExportGroup's Project URI
+     * @param varray the ExportGroup's VirtualArray URI
+     * @param computeResource the ExportGroup's compute resource URI (optional)
+     * @param resourceType the ExportGroup's resourceType (optional)
+     * @return
+     */
     public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType);
 
+    /**
+     * Returns a List of all the newly-created ExportMasks in this scope.
+     * 
+     * @return a List of all newly-created ExportMasks
+     */
     public List<ExportMask> findAllNewExportMasks();
 
+    /**
+     * Gets the root, top-level IngestionRequestContext.
+     * 
+     * @return the root, top-level IngestionRequestContext
+     */
     public IngestionRequestContext getRootIngestionRequestContext();
 }

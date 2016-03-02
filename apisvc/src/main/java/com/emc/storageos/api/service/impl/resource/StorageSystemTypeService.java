@@ -16,12 +16,13 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.StorageSystemType;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.storagesystem.types.StorageSystemTypeAdd;
-import com.emc.storageos.model.storagesystem.types.StorageSystemTypeList;
-import com.emc.storageos.model.storagesystem.types.StorageSystemTypeRestRep;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAdd;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -74,11 +75,14 @@ public class StorageSystemTypeService extends TaskResourceService {
      * @return List of all compute images.
      */
     @GET
+    @Path("/type/{type_name}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-    public StorageSystemTypeList getStorageSystemTypes(@QueryParam("imageType") String storageType) {
-        log.info("getStorageSystemTypes, storageType: {}", storageType);
-
+    public StorageSystemTypeList getStorageSystemTypes(String storageType) {
+        log.info("getStorageSystemTypes");
+        
+        storageType = "block";
+        
         if (!checkForStorageSystemType()) {
         	addDefaultStorageSystemTypes();
         }
@@ -95,7 +99,7 @@ public class StorageSystemTypeService extends TaskResourceService {
         while (iter.hasNext()) {
         	StorageSystemType ssType = iter.next();
             if (storageType == null || storageType.equals(ssType.getStorageType())) {
-                list.getStorageSystemTypes().add(map(ssType));
+                list.getStorageSystemTypes().add(map(ssType)); //DbObjectMapper.toNamedRelatedResource
             }
         }
         return list;

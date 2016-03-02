@@ -1,4 +1,4 @@
-package com.emc.storageos.model.storagesystem.types;
+package com.emc.storageos.model.storagesystem.type;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -13,29 +13,29 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
-@XmlRootElement(name = "storagesystem_types")
+@XmlRootElement(name = "storagesystem_type")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class StorageSystemTypeRestRep extends DataObjectRestRep {
 
     private String storageSystemTypeName;
     private String storageType;
+    private String id;
     private boolean isSmiProvider = false;
     
-    private List<NamedRelatedResourceRep> availableImageServers = new ArrayList<NamedRelatedResourceRep>();
-
     public StorageSystemTypeRestRep() {
     }
 
     // TODO remove 2 methods
-    @XmlElement(name = "storageSystemType_id")
-    public URI getStorageSystemTypeId() {
-        return null;
+    @XmlElement(name = "type_id")
+    public String getStorageSystemTypeId() {
+        return id;
     }
 
-    public void setImageId(URI imageId) {
+    public void setStorageSystemTypeId(String id) {
+    	this.id = id;
     }
 
-    @XmlElement(name = "storagesystemtype_name")
+    @XmlElement(name = "type_name")
     public String getStorageSystemTypeName() {
         return storageSystemTypeName;
     }
@@ -44,7 +44,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
         this.storageSystemTypeName = storageSystemTypeName;
     }
 
-    @XmlElement(name = "storage_type")
+    @XmlElement(name = "type_type")
     public String getStorageType() {
         return storageType;
     }
@@ -62,15 +62,18 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
         this.isSmiProvider = isSmiProvider;
     }
 
-     @XmlElementWrapper(name = "available_image_servers", nillable = true, required = false)
-    @XmlElement(name = "available_image_server")
-    public List<NamedRelatedResourceRep> getAvailableImageServers() {
-        return availableImageServers;
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("StorageSystemTypeRestRep [type_id=");
+        builder.append(id);
+        builder.append(", type_name=");
+        builder.append(storageSystemTypeName);
+        builder.append(", type_type=");
+        builder.append(storageType);
+        builder.append(", isSmiProvider=");
+        builder.append(isSmiProvider);
+        builder.append("]");
+        return builder.toString();
     }
-
-    public void setAvailableImageServers(
-            List<NamedRelatedResourceRep> availableImageServers) {
-        this.availableImageServers = availableImageServers;
-    }
-
 }

@@ -2,7 +2,7 @@
  * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.model.storagesystem.types;
+package com.emc.storageos.model.storagesystem.type;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;

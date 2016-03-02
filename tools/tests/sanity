@@ -7372,8 +7372,13 @@ dr_basic_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr switchover $standby_site
 
-    echo "---WAIT 7m AFTER SWITCHOVER FOR THE REBOOT---"
-    sleep 420
+    echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable 10 600
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable 10 600
 
     # verify switchover status
     echo "---WAIT FOR SWITCHOVER FROM $active_site TO $standby_site DONE---"
@@ -7508,7 +7513,7 @@ dr_multisite_tests()
 
     
     echo "---WAIT FOR SYNC $standby_site_b---"
-    dr waitforstate $standby_site_b STANDBY_SYNCED 30 600
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
 
     echo "---WAIT 1m FOR $standby_site_b TO BOOTSTRAP---"
@@ -7583,7 +7588,7 @@ dr_multisite_tests()
 
 
     echo "---WAIT FOR SYNC $standby_site_c---"
-    dr waitforstate $standby_site_c STANDBY_SYNCED 30 600
+    dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
 
     echo "---WAIT 1m FOR $standby_site_c TO BOOTSTRAP---"
@@ -7730,41 +7735,69 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     project show $test_projectid
 
+    # switchover test part
+    echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable 10 600
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable 10 600
+
+    echo "---SWITCHOVER FROM TO $active_site TO $standby_site_c---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr switchover $standby_site_c
+
+    echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
+    BOURNE_IPADDR=$DR_SITE_A_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable 10 600
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable 10 600
+
+    echo "---WAIT FOR SWITCHOVER FROM $active_site TO $standby_site DONE---"
+    dr waitforstate $standby_site_c ACTIVE 10 1200 && echo "standby has been switched into active"
+    dr waitforstate $active_site STANDBY_SYNCED 10 1200 && echo "active has been switched into standby"
+
+    # NOTE: active site and standby site has been switched, site A is standby and site C is active now
+
     # failover test part
-    echo "Stopping active site $DR_SITE_A_NAME services to prepare for failover test ..."
-    stop_vdc_services $DR_SITE_A_IP
+    echo "Stopping active site $DR_SITE_C_NAME services to prepare for failover test ..."
+    stop_vdc_services $DR_SITE_C_IP
 
     echo "Sleep 400 seconds to wait standby ZK switch to participant"
     sleep 400
 
     echo "Wait for stable"
-    BOURNE_IPADDR=$DR_SITE_C_IP
+    BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
+    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
 
-    echo "Failover to promote site $DR_SITE_C_NAME as active"
-    dr failover --ip "${DR_SITE_C_IP}" $standby_site_c
+    echo "Failover to promote site $DR_SITE_A_NAME as active"
+    dr failover --ip "${DR_SITE_A_IP}" $active_site
 
     echo "Sleep 800 seconds to wait failover"
     sleep 800
 
     echo "Wait for stable"
-    BOURNE_IPADDR=$DR_SITE_C_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
-
-    echo "Wait site state to be PRIAMRY after failover"
-    dr waitforstate $standby_site_c ACTIVE 30 600 --ip "${DR_SITE_C_IP}"
-
-    # failback test part
-    echo "Starting old active site $DR_SITE_A_NAME services ..."
-    start_vdc_services $DR_SITE_A_IP
-    echo "Sleep 400 seconds to wait old site to become ACTIVE_DEGRADED ..."
-    sleep 400
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
-    dr waitforstate $active_site ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_A_IP}"
+
+    echo "Wait site state to be PRIAMRY after failover"
+    dr waitforstate $active_site ACTIVE 30 600 --ip "${DR_SITE_A_IP}"
+
+    # failback test part
+    echo "Starting old active site $DR_SITE_C_NAME services ..."
+    start_vdc_services $DR_SITE_C_IP
+    echo "Sleep 600 seconds to wait old site to become ACTIVE_DEGRADED ..."
+    sleep 600
+    BOURNE_IPADDR=$DR_SITE_C_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
+    dr waitforstate $standby_site_c ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_C_IP}"
 
     #disabling pipefail option to pipe exit codes
     set +o pipefail

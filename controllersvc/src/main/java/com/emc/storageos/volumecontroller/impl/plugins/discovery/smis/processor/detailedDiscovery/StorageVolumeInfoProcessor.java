@@ -23,7 +23,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +49,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
@@ -735,7 +735,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             }
 
             Object raidLevelObj;
-            boolean isIngestable;
+            String isNotIngestableReason;
             String isBound;
             String isThinlyProvisioned;
             String isMetaVolume;
@@ -748,7 +748,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         .getAlternateKey());
                 isBound = getCIMPropertyValue(volumeInstance,
                         SupportedVolumeCharacterstics.IS_BOUND.getAlterCharacterstic());
-                isIngestable = isVolumeIngestable(volumeInstance, isBound, USAGE);
+                isNotIngestableReason = isVolumeIngestable(volumeInstance, isBound, USAGE);
                 isThinlyProvisioned = getCIMPropertyValue(volumeInstance, THINLY_PROVISIONED);
                 isMetaVolume = getCIMPropertyValue(volumeInstance, SupportedVolumeCharacterstics.IS_METAVOLUME.getAlterCharacterstic());
                 allocCapacity = getAllocatedCapacity(volumeInstance, _volumeToSpaceConsumedMap, system.checkIfVmax3());
@@ -758,7 +758,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         SupportedVolumeCharacterstics.IS_BOUND.getCharacterstic());
                 raidLevelObj = volumeInstance.getPropertyValue(SupportedVolumeInformation.RAID_LEVEL
                         .getInfoKey());
-                isIngestable = isVolumeIngestable(volumeInstance, isBound, SVUSAGE);
+                isNotIngestableReason = isVolumeIngestable(volumeInstance, isBound, SVUSAGE);
                 isThinlyProvisioned = getCIMPropertyValue(volumeInstance, EMC_THINLY_PROVISIONED);
                 isMetaVolume = getCIMPropertyValue(volumeInstance, SupportedVolumeCharacterstics.IS_METAVOLUME.getCharacterstic());
                 allocCapacity = getCIMPropertyValue(volumeInstance, EMC_ALLOCATED_CAPACITY);
@@ -788,12 +788,14 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // only Volumes with Usage 2 can be ingestable, other volumes
             // [SAVE,VAULT...] apart from replicas have usage other than 2
             // Volumes which are set EMCIsBound as false cannot be ingested
-            if (isIngestable) {
+            if (isNotIngestableReason == null) {
                 unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_INGESTABLE.toString(),
                         TRUE);
             } else {
                 unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_INGESTABLE.toString(),
                         FALSE);
+                unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.toString(),
+                        isNotIngestableReason);
             }
 
             if (volumeToRAGroupMap.containsKey(unManagedVolume.getNativeGuid())) {
@@ -1138,20 +1140,25 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * false cannot be ingested
      *
      * @param volumeInstance
-     * @return
+     * 
+     * @return A string indicating why the volume in not ingestable, else null.
      */
-    private boolean isVolumeIngestable(CIMInstance volumeInstance, String isBound, String usageProp) {
+    private String isVolumeIngestable(CIMInstance volumeInstance, String isBound, String usageProp) {
         String usage = getCIMPropertyValue(volumeInstance, usageProp);
-        if (Boolean.valueOf(isBound)
-                && (TWO.equalsIgnoreCase(usage) || NINE.equalsIgnoreCase(usage)
-                        || SEVEN.equalsIgnoreCase(usage) || ELEVEN.equalsIgnoreCase(usage)
-                        || USAGE_LOCAL_REPLICA_TARGET.equalsIgnoreCase(usage)
-                        || USAGE_DELTA_REPLICA_TARGET.equalsIgnoreCase(usage)
-                        || USGAE_LOCAL_REPLICA_SOURCE.equalsIgnoreCase(usage)
-                        || USAGE_LOCAL_REPLICA_SOURCE_OR_TARGET.equalsIgnoreCase(usage))) {
-            return true;
+        if (!Boolean.valueOf(isBound)) {
+            return "The volume is not ingestable because it is not bound and the controller only supports bound volumes";
         }
-        return false;
+
+        if ((TWO.equalsIgnoreCase(usage) || NINE.equalsIgnoreCase(usage)
+                || SEVEN.equalsIgnoreCase(usage) || ELEVEN.equalsIgnoreCase(usage)
+                || USAGE_LOCAL_REPLICA_TARGET.equalsIgnoreCase(usage)
+                || USAGE_DELTA_REPLICA_TARGET.equalsIgnoreCase(usage)
+                || USGAE_LOCAL_REPLICA_SOURCE.equalsIgnoreCase(usage)
+                || USAGE_LOCAL_REPLICA_SOURCE_OR_TARGET.equalsIgnoreCase(usage))) {
+            return null;
+        } else {
+            return "The volume is not ingestable because it has a usage that is not supported by the controller";
+        }
     }
 
     @Override

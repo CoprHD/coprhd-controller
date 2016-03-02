@@ -12681,12 +12681,26 @@ Please DO NOT modify the content.
             <field name="value" type="java.lang.String">
                 <annotations/>
             </field>
+<<<<<<< HEAD
         </fields>
     </data_object_schema>
     <data_object_schema name="InitialSetup" type="com.emc.storageos.db.client.model.uimodels.InitialSetup">
         <annotations/>
         <fields>
             <field name="complete" type="java.lang.Boolean">
+=======
+            <field name="autoRegCoprHDNImportOSProjects" type="java.lang.Boolean">
+                <annotations/>
+            </field>
+            <field name="domains" type="com.emc.storageos.db.client.model.StringSet">
+                <annotations>
+                    <annotation name="AlternateId" type="com.emc.storageos.db.client.model.AlternateId">
+                        <annotation_value name="value" value="AltIdIndex"/>
+                    </annotation>
+                </annotations>
+            </field>
+            <field name="groupAttribute" type="java.lang.String">
+>>>>>>> origin/master
                 <annotations/>
             </field>
             <field name="creationTime" type="java.util.Calendar">

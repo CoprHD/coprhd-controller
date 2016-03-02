@@ -115,6 +115,9 @@ public class StorageProviderUtils {
         	update.setSecondaryPassword(null);
         } else if (StorageProviderTypes.isCeph(interfaceType)) {
             update.setPassword(secretKey);
+            if (id != null) {
+                update.setInterfaceType(null);
+            }
         }
         return getViprClient().storageProviders().update(id, update);
     }

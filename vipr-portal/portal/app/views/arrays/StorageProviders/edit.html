@@ -36,8 +36,12 @@
       <control-group v-field="smisProvider.interfaceType" ng-if="editMode && (smisProvider.interfaceType =='scaleio' || smisProvider.interfaceType =='scaleioapi')" required>
         <select-one options="optionsSIO" ></select-one>
       </control-group>
+
+      <control-group v-field="smisProvider.interfaceType" ng-if="editMode && smisProvider.interfaceType == 'ceph'" required>
+        <select-one options="interfaceTypeOptions" ></select-one>
+      </control-group>
       
-      <control-group v-field="smisProvider.interfaceType" ng-if="editMode && (smisProvider.interfaceType !='scaleio' && smisProvider.interfaceType != 'scaleioapi')" required>
+      <control-group v-field="smisProvider.interfaceType" ng-if="editMode && (smisProvider.interfaceType !='scaleio' && smisProvider.interfaceType != 'scaleioapi' && smisProvider.interfaceType != 'ceph')" required>
         <select-one options="interfaceTypeOptions" ng-disabled="editMode"></select-one>
       </control-group>
             
@@ -92,11 +96,11 @@
 </div>
 <script>
 $(document).ready(function() {
-	disableTypeScaleIOAPI();
+	disableInterfaceType();
 });
-function disableTypeScaleIOAPI() {
+function disableInterfaceType() {
 	var providerType = '${smisProvider.interfaceType}';
-	if (providerType == 'scaleioapi') {
+	if (providerType == 'scaleioapi' || providerType == 'ceph') {
 		$("#smisProvider_interfaceType").attr('disabled',true);
 	}
 }

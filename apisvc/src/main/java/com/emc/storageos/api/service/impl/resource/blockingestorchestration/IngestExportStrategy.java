@@ -49,16 +49,6 @@ public class IngestExportStrategy {
 
         if (null != requestContext.getExportGroup()) {
 
-            // refresh ExportGroup
-            URI exportGroupUri = requestContext.getExportGroup().getId();
-            if (exportGroupUri != null) {
-                ExportGroup existingGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
-                if (null != existingGroup) {
-                    requestContext.setExportGroup(existingGroup);
-                    requestContext.setExportGroupCreated(false);
-                }
-            }
-
             if (null != unManagedVolume.getUnmanagedExportMasks() && !unManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 List<URI> unManagedMaskUris = new ArrayList<URI>(Collections2.transform(
                         unManagedVolume.getUnmanagedExportMasks(), CommonTransformerFunctions.FCTN_STRING_TO_URI));

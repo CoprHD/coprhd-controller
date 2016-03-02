@@ -220,6 +220,7 @@ public class XtremIOV2Client extends XtremIOClient {
             }
         } catch (Exception ex) {
             log.warn("Error getting tag names", ex.getMessage());
+            log.info("Ignoring this as we again check if the tag is present before creating a new tag");
         }
         return tagNames;
     }

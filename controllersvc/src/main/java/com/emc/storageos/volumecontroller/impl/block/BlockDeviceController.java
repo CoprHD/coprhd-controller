@@ -29,7 +29,6 @@ import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
 
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +81,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -1759,7 +1759,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     // be deleted when the BlockSnapshot instance is deleted. All we want to do is
                     // mark the Volume instance inactive.
                     // COP-20875: Native Guid will not be set when there is error during create volume operation
-                    if (volume.getNativeGuid() != null) {
+                    if (!NullColumnValueGetter.isNullValue(volume.getNativeGuid())) {
                         List<BlockSnapshot> snapshots = CustomQueryUtility
                                 .getActiveBlockSnapshotByNativeGuid(_dbClient, volume.getNativeGuid());
                         if (!snapshots.isEmpty()) {

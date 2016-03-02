@@ -4,19 +4,6 @@
  */
 package com.emc.storageos.management.backup;
 
-import com.emc.vipr.model.sys.healthmonitor.DataDiskStats;
-import com.emc.storageos.services.util.Exec;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.storageos.management.backup.util.ZipUtil;
-import com.emc.storageos.management.backup.exceptions.BackupException;
-import com.google.common.base.Preconditions;
-import com.google.common.hash.Hashing;
-import com.google.common.io.Files;
-import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -31,6 +18,20 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import com.google.common.base.Preconditions;
+import com.google.common.hash.Hashing;
+import com.google.common.io.Files;
+import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.vipr.model.sys.healthmonitor.DataDiskStats;
+import com.emc.storageos.services.util.Exec;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.storageos.management.backup.util.ZipUtil;
+import com.emc.storageos.management.backup.exceptions.BackupException;
 
 public class BackupManager implements BackupManagerMBean {
     private static final Logger log = LoggerFactory.getLogger(BackupManager.class);
@@ -329,21 +330,36 @@ public class BackupManager implements BackupManagerMBean {
             if (!dir.isDirectory()) {
                 continue;
             }
+
             File[] backupFiles = dir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.endsWith(BackupConstants.COMPRESS_SUFFIX);
+                    return name.endsWith(BackupConstants.COMPRESS_SUFFIX) || name.endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
                 }
             });
+
             if (backupFiles == null || backupFiles.length == 0) {
                 continue;
             }
+
             for (File file : backupFiles) {
                 BackupSetInfo backupSetInfo = new BackupSetInfo();
-		backupSetInfo.setName(file.getName());
-		backupSetInfo.setCreateTime(file.lastModified());
-		backupSetInfo.setSize(file.length());
-		backupSetInfoList.add(backupSetInfo);
+                backupSetInfo.setName(file.getName());
+
+                long createTime = 0;
+                if (file.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                    log.info("Get the create time from info file {}", file.getName());
+                    BackupOps ops = new BackupOps();
+                    createTime = ops.getCreateTimeFromPropFile(file);
+                }
+
+                if (createTime == 0) {
+                    createTime = file.lastModified();
+                }
+
+                backupSetInfo.setCreateTime(createTime);
+                backupSetInfo.setSize(file.length());
+                backupSetInfoList.add(backupSetInfo);
             }
         }
         log.info("Backup is listed successfully: {}", backupSetInfoList);
@@ -352,9 +368,7 @@ public class BackupManager implements BackupManagerMBean {
 
     @Override
     public void delete(final String backupTag) {
-        Preconditions.checkArgument(backupTag != null
-                && !backupTag.trim().isEmpty()
-                && backupTag.length() < 256,
+        Preconditions.checkArgument(backupTag != null && !backupTag.trim().isEmpty() && backupTag.length() < 256,
                 "Invalid backup name: %s", backupTag);
         checkBackupDir();
         File[] backupFiles = backupContext.getBackupDir().listFiles(new FilenameFilter() {

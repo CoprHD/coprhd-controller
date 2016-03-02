@@ -82,10 +82,13 @@ public interface ServiceParams {
 
     public String APPLICATION = "application";
     public String APPLICATION_SUB_GROUP = "applicationSubGroup";
+    public String APPLICATION_COPY_SETS = "applicationCopySets";
     public String NEW_APPLICATION_SUB_GROUP = "newApplicationSubGroup";
     public String APPLICATION_SITE = "applicationSite";
     public String FULL_COPY_NAME = "fullCopyName";
+    public String HIGH_AVAILABILITY = "highAvailability";
 
+    public String APPLICATION_SNAPSHOT_TYPE = "applicationSnapshotType";
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";
 
@@ -142,6 +145,8 @@ public interface ServiceParams {
     public String ADVISORY_LIMIT = "advisoryLimit";
     public String SOFT_LIMIT = "softLimit";
     public String GRACE_PERIOD = "gracePeriod";
+
+    public String DELETE_TARGET = "deleteTarget";
 
     public String LINKED_SNAPSHOT = "linkedSnapshot";
     public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";

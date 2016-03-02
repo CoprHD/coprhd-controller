@@ -24,7 +24,7 @@ public class VPlexDirectorInfo extends VPlexResourceInfo {
     // access the map such that 1-1-A, would be [0][0][0] or
     // slot 0 and 1-1-B would be [0][0][1] or slot 1.
     private static final int[][][] DIRECTOR_SLOT_MAP = {
-            { { 0, 1 }, { 2, 3 }, { 4, 5 }, { 5, 7 } },
+            { { 0, 1 }, { 2, 3 }, { 4, 5 }, { 6, 7 } },
             { { 8, 9 }, { 10, 11 }, { 12, 13 }, { 14, 15 } }
     };
 

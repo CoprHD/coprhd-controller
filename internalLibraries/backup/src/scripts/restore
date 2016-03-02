@@ -10,6 +10,8 @@
 #
 
 DIR="$(dirname $0)"
+DIR="$(readlink -f $DIR)"
+echo "DIR=$DIR"
 
 . ${DIR}/restore-libs.sh
 

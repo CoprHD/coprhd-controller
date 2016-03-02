@@ -226,7 +226,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String UNEXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
     private static final String VPLEX_STEP = "vplexVirtual";
-    private static final String TRANSFER_SPEED_STEP = "setTransferSpeed";
     private static final String MIGRATION_CREATE_STEP = "migrate";
     private static final String MIGRATION_COMMIT_STEP = "commit";
     private static final String DELETE_MIGRATION_SOURCES_STEP = "deleteSources";
@@ -261,6 +260,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String ADD_VOLUME_REPLICATION_GROUP_STEP = "addVolumesToReplicationGroupStep";
     private static final String CREATE_REPLICATION_GROUP_STEP = "createReplicationGroupStep";
     private static final String REMOVE_REPLICATION_GROUP_STEP = "removeReplicationGropuStep";
+    private static final String RESTORE_FROM_FULLCOPY_STEP = "restoreFromFullCopy";
 
     // Workflow controller method names.
     private static final String DELETE_VOLUMES_METHOD_NAME = "deleteVolumes";
@@ -280,7 +280,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RB_COMMIT_MIGRATION_METHOD_NAME = "rollbackCommitMigration";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
     private static final String CREATE_VIRTUAL_VOLUME_FROM_IMPORT_METHOD_NAME = "createVirtualVolumeFromImportStep";
-    private static final String REBUILD_SET_TRANSFER_SIZE = "rebuildSetTransferSize";
     private static final String DELETE_VIRTUAL_VOLUMES_METHOD_NAME = "deleteVirtualVolumes";
     private static final String DELETE_MIGRATION_SOURCES_METHOD = "deleteMigrationSources";
     private static final String EXPAND_VOLUME_NATIVELY_METHOD_NAME = "expandVolumeNatively";
@@ -314,6 +313,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     private static final String RESTORE_SNAP_SESSION_METHOD_NAME = "restoreSnapshotSession";
     private static final String REMOVE_FROM_CONSISTENCY_GROUP_METHOD_NAME = "removeFromConsistencyGroup";
     private static final String ADD_TO_CONSISTENCY_GROUP_METHOD_NAME = "addToConsistencyGroup";
+    private static final String RESTORE_FROM_FULLCOPY_METHOD_NAME = "restoreFromFullCopy";
 
     // Constants used for creating a migration name.
     private static final String MIGRATION_NAME_PREFIX = "M_";
@@ -496,10 +496,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (URI fullCopyURI : getIds()) {
                 if (URIUtil.isType(fullCopyURI, Volume.class)) {
                     Volume fullCopy = dbClient.queryObject(Volume.class, fullCopyURI);
-                    Volume source = dbClient.queryObject(Volume.class, fullCopy.getAssociatedSourceVolume());
-                    if (source != null && source.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
-                        source.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
-                        toUpdate.add(source);
+                    URI sourceId = fullCopy.getAssociatedSourceVolume();
+                    if (!NullColumnValueGetter.isNullURI(sourceId)) {
+                        Volume source = dbClient.queryObject(Volume.class, sourceId);
+                        if (source != null && source.checkInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST)) {
+                            source.clearInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
+                            toUpdate.add(source);
+                        }
                     }
                 }
             }
@@ -5795,20 +5798,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vplexSystem.getSystemType(), null);
                 _log.info("Migration speed is {}", speed);
                 transferSize = mgirationSpeedToTransferSizeMap.get(speed);
-            }
-            Workflow.Method vplexSetTransferSizeMethod = rebuildSetTransferSizeMethod(vplexVolume.getStorageController(), transferSize);
-            // Create a step for updating the transfer speed in VPLEX.
-            workflow.createStep(TRANSFER_SPEED_STEP, String.format("VPlex %s setting transfer size speed",
-                    vplexSystem.getId().toString()), EXPORT_STEP, vplexURI, vplexSystem.getSystemType(), this.getClass(),
-                    vplexSetTransferSizeMethod,
-                    rollbackMethodNullMethod(), null);
+            }            
 
             // Now make a Step to create the VPlex Virtual volumes.
             // This will be done from this controller.
             String stepId = workflow.createStepId();
             Workflow.Method vplexExecuteMethod = createVirtualVolumeFromImportMethod(
                     vplexVolume.getStorageController(), vplexVolumeURI, importedVolumeURI,
-                    createdVolumeURI, vplexSystemProject, vplexSystemTenant, newCosURI, newLabel);
+                    createdVolumeURI, vplexSystemProject, vplexSystemTenant, newCosURI, newLabel, transferSize);
             Workflow.Method vplexRollbackMethod = null;
             if (importedVolumeURI != null) {
                 // If importing to a local/distributed virtual volume, then
@@ -5830,7 +5827,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     VPLEX_STEP,
                     String.format("VPlex %s creating virtual volume",
                             vplexSystem.getId().toString()),
-                    TRANSFER_SPEED_STEP, vplexURI,
+                            EXPORT_STEP, vplexURI,
                     vplexSystem.getSystemType(), this.getClass(), vplexExecuteMethod,
                     vplexRollbackMethod, stepId);
 
@@ -5984,34 +5981,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     private Workflow.Method createVirtualVolumeFromImportMethod(URI vplexURI,
             URI vplexVolumeURI, URI existingVolumeURI, URI newVolumeURI,
-            URI vplexSystemProject, URI vplexSystemTenant, URI newCosURI, String newLabel) {
+            URI vplexSystemProject, URI vplexSystemTenant, URI newCosURI, String newLabel,
+            String transferSize) {
         return new Workflow.Method(CREATE_VIRTUAL_VOLUME_FROM_IMPORT_METHOD_NAME,
                 vplexURI, vplexVolumeURI, existingVolumeURI, newVolumeURI,
-                vplexSystemProject, vplexSystemTenant, newCosURI, newLabel);
+                vplexSystemProject, vplexSystemTenant, newCosURI, newLabel, transferSize);
     }
 
-    private Workflow.Method rebuildSetTransferSizeMethod(URI vplexURI, String transferSize) {
-        return new Workflow.Method(REBUILD_SET_TRANSFER_SIZE, vplexURI, transferSize);
-    }
-
-    public void rebuildSetTransferSize(URI vplexURI, String transferSize, String stepId)
-            throws WorkflowException {
-        try {
-            WorkflowStepCompleter.stepExecuting(stepId);
-            // Get the API client.
-            StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-            VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplex, _dbClient);
-
-            client.setTransferSize(transferSize);
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (Exception ex) {
-            ServiceError serviceError;
-            _log.error("Exception while setting transfer size");
-            String opName = ResourceOperationTypeEnum.REBUILD_SET_TRANSFER_SPEED.getName();
-            serviceError = VPlexApiException.errors.rebuildSetTransferSpeed(opName, ex);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
-        }
-    }
 
     /**
      * Create a Virtual Volume from an Imported Volume.
@@ -6037,7 +6013,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public void createVirtualVolumeFromImportStep(URI vplexURI, URI vplexVolumeURI,
             URI existingVolumeURI, URI newVolumeURI, URI vplexSystemProject,
-            URI vplexSystemTenant, URI newCosURI, String newLabel, String stepId)
+            URI vplexSystemTenant, URI newCosURI, String newLabel, String transferSize,
+            String stepId)
                     throws WorkflowException {
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -6106,7 +6083,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         newVolume.getNativeId(), newVolume.getThinlyProvisioned().booleanValue(), itls);
                 // Add rollback data.
                 _workflowService.storeStepData(stepId, vinfo);
-                virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, true, clusterId);
+                virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, true, clusterId, transferSize);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED.getName();
                     ServiceError serviceError = VPlexApiException.errors.upgradeLocalToDistributedFailed(opName);
@@ -8361,7 +8338,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Otherwise, get all snapshots in the snapset, get the
                 // parent volume for each snapshot, and get the VLPEX
                 // volume using the snapshot parent.
-                List<BlockSnapshot> cgSnaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+                List<BlockSnapshot> cgSnaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
                 for (BlockSnapshot cgSnapshot : cgSnaps) {
                     URIQueryResultList queryResults = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -10566,7 +10543,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<BlockSnapshot> snapshotsToResync = new ArrayList<BlockSnapshot>();
             URI cgURI = snapshot.getConsistencyGroup();
             if (!NullColumnValueGetter.isNullURI(cgURI)) {
-                snapshotsToResync = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+                snapshotsToResync = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
             } else {
                 snapshotsToResync.add(snapshot);
             }
@@ -10978,12 +10955,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             } else {
                 BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
                 List<Volume> allVplexVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
+                List<BlockObject> allVplexVolumesInRG = ControllerUtils.getAllVolumesForRGInCG(allVplexVolumesInCG,
+                        snapSession.getReplicationGroupInstance(), snapSession.getStorageController(), _dbClient);
                 // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
                 // that are RP source volumes.
-                for (Volume vplexVolume : allVplexVolumesInCG) {
-                    String personality = vplexVolume.getPersonality();
+                for (BlockObject vplexVolume : allVplexVolumesInRG) {
+                    String personality = ((Volume) vplexVolume).getPersonality();
                     if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
-                        vplexVolumes.add(vplexVolume);
+                        vplexVolumes.add((Volume) vplexVolume);
                     }
                 }
             }
@@ -11421,5 +11400,38 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     volume.getAllocatedCapacity());
         }
         return capabilities;
+    }
+    
+    /**
+     * Add steps to restore full copy
+     * @param workflow - the workflow the steps would be added to
+     * @param waitFor - the step would be waited before the added steps would be executed
+     * @param storage - the storage controller URI
+     * @param fullcopies - the full copies to restore
+     * @param opId 
+     * @param completer - the CloneRestoreCompleter
+     * @return the step id for the added step
+     * @throws InternalException
+     */
+    public String addStepsForRestoreFromFullcopy(Workflow workflow,
+            String waitFor, URI storage, List<URI> fullcopies, String opId,
+            CloneRestoreCompleter completer) throws InternalException {
+       
+        Volume firstFullCopy = getDataObject(Volume.class, fullcopies.get(0), _dbClient);
+        BlockObject firstSource = BlockObject.fetch(_dbClient, firstFullCopy.getAssociatedSourceVolume());
+        if (!NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {
+            completer.addConsistencyGroupId(firstSource.getConsistencyGroup());
+        }
+        StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, storage);
+
+        Workflow.Method restoreFromFullcopyMethod = new Workflow.Method(
+                RESTORE_FROM_FULLCOPY_METHOD_NAME, storage, fullcopies);
+        waitFor = workflow.createStep(RESTORE_FROM_FULLCOPY_STEP,
+                "Restore volumes from full copies", waitFor,
+                storage, vplexSystem.getSystemType(),
+                VPlexDeviceController.class, restoreFromFullcopyMethod, null, null);
+        _log.info("Created workflow step to restore VPLEX volume from full copies");
+
+        return waitFor;
     }
 }

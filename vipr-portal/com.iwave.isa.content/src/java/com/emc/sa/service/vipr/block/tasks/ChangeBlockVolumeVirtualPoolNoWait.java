@@ -34,17 +34,19 @@ public class ChangeBlockVolumeVirtualPoolNoWait extends ViPRExecutionTask<Tasks<
 
         // One request per virtual pool
         for (URI vpool : volumeIds.keySet()) {
-            VolumeVirtualPoolChangeParam input = new VolumeVirtualPoolChangeParam();
-            input.setVolumes(Lists.newArrayList(volumeIds.get(vpool)));
-            input.setVirtualPool(targetVirtualPoolId);
-            try {
-                Tasks<VolumeRestRep> tasks = getClient().blockVolumes().changeVirtualPool(input);
-                for (Task<VolumeRestRep> task : tasks.getTasks()) {
-                    addOrderIdTag(task.getTaskResource().getId());
+            if (!vpool.equals(targetVirtualPoolId)) {
+                VolumeVirtualPoolChangeParam input = new VolumeVirtualPoolChangeParam();
+                input.setVolumes(Lists.newArrayList(volumeIds.get(vpool)));
+                input.setVirtualPool(targetVirtualPoolId);
+                try {
+                    Tasks<VolumeRestRep> tasks = getClient().blockVolumes().changeVirtualPool(input);
+                    for (Task<VolumeRestRep> task : tasks.getTasks()) {
+                        addOrderIdTag(task.getTaskResource().getId());
+                    }
+                    result.getTasks().addAll(tasks.getTasks());
+                } catch (ServiceErrorException ex) {
+                    logError(ex.getMessage());
                 }
-                result.getTasks().addAll(tasks.getTasks());
-            } catch (ServiceErrorException ex) {
-                logError(ex.getMessage());
             }
         }
         return result;

@@ -158,27 +158,29 @@ public class CinderApiUtils {
                     	mapElement.setTextContent(entry.getValue().toString());	
                     }
                     else{                    	
-	                    Field[] fields = clazz.getDeclaredFields();
-	                    	                    	                   
-	                	for ( Field field : fields  ) {	                		
-	                		Element subElement = document.createElement(field.getName());
-	                		String fieldName = field.getName().toString();
-	                		String methodName = "get" + fieldName.toUpperCase().substring(0,1);
-	                		methodName = methodName + fieldName.substring(1);
-	                		
-	                		try {	                			
-								Method getterMethod = clazz.getMethod(methodName);
-								subElement.setTextContent(String.valueOf(getterMethod.invoke(clazz.cast(entry.getValue()))));
-							}catch (NoSuchMethodException e) {
-								_log.info("The getter method {} for the field does not exist {}", methodName , field.getName());
-							} catch (SecurityException e) {
-								_log.info("The getter method {} for the field led to security exception {}", methodName , field.getName());
-							}catch (Exception e) {
-								_log.info("The getter method {} for the field failed with exception {}", methodName, e.toString());
-							}
-	                				                			                		
-	                		mapElement.appendChild(subElement);
-	                	}    
+                    	Method[] methods = clazz.getDeclaredMethods();
+ 	                   
+                    	String getterPrefix = "get";
+                    	
+	                	for ( Method method : methods  ) {	            
+	                		String methodName = method.getName();
+	                		if(methodName.startsWith("get")){
+		                		
+		                		String fieldName = methodName.substring(getterPrefix.length(),getterPrefix.length()+1).toLowerCase();
+		                		fieldName = fieldName + methodName.substring(getterPrefix.length()+1);
+		                		Element subElement = document.createElement(fieldName);
+		                	
+		                		try {	                												
+									subElement.setTextContent(String.valueOf(method.invoke(clazz.cast(entry.getValue()))));
+								} catch (SecurityException e) {
+									_log.info("The getter method {} for the field led to security exception {}", methodName);
+								}catch (Exception e) {
+									_log.info("The getter method {} for the field failed with exception {}", methodName, e.toString());
+								}
+		                				                			                		
+		                		mapElement.appendChild(subElement);
+	                		}
+	                	}	                			                   
                     }
                 	                    
                     rootElement.appendChild(mapElement);

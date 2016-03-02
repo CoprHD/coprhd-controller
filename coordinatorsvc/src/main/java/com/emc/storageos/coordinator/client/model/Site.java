@@ -29,7 +29,6 @@ public class Site {
     private static final String KEY_LAST_LOST_QUORUM_TIME = "lastLostQuorumTime";
     private static final String KEY_LASTSTATE = "lastState";
     private static final String KEY_SITE_STATE = "state";
-    private static final String KEY_NETWORK_HEALTH = "networkHealth";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
     private static final String KEY_NODECOUNT = "nodeCount";
@@ -38,12 +37,6 @@ public class Site {
     public static final String CONFIG_KIND = "disasterRecoverySites";
     
     public static final Site DUMMY_ACTIVE_SITE;
-
-    public enum NetworkHealth {
-        GOOD,
-        SLOW,
-        BROKEN
-    }
 
     private String uuid;
     private String vdcShortId;
@@ -58,7 +51,6 @@ public class Site {
     private long lastStateUpdateTime;
     private long lastLostQuorumTime;
 
-    private NetworkHealth networkHealth;
     private SiteState state = SiteState.ACTIVE;
     private SiteState lastState;
     private int nodeCount;
@@ -176,14 +168,6 @@ public class Site {
         this.lastLostQuorumTime = lastLostQuorumTime;
     }
 
-    public NetworkHealth getNetworkHealth() {
-        return networkHealth;
-    }
-
-    public void setNetworkHealth(NetworkHealth networkHealth) {
-        this.networkHealth = networkHealth;
-    }
-
     public long getLastStateUpdateTime() {
         return lastStateUpdateTime;
     }
@@ -258,9 +242,6 @@ public class Site {
         if (lastLostQuorumTime != 0L) {
             config.setConfig(KEY_LAST_LOST_QUORUM_TIME, String.valueOf(lastLostQuorumTime));
         }
-        if (networkHealth != null) {
-            config.setConfig(KEY_NETWORK_HEALTH, networkHealth.toString());
-        }
 
         if (lastState != null) {
             config.setConfig(KEY_LASTSTATE, String.valueOf(lastState));
@@ -295,10 +276,6 @@ public class Site {
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
             this.vip6 = config.getConfig(KEY_VIP6);
-            String networkHealthStr = config.getConfig(KEY_NETWORK_HEALTH);
-            if (networkHealthStr != null && !networkHealthStr.isEmpty()) {
-                this.networkHealth = Enum.valueOf(NetworkHealth.class, networkHealthStr.toUpperCase());
-            }
             this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
@@ -371,8 +348,6 @@ public class Site {
         builder.append(siteShortId);
         builder.append(", creationTime=");
         builder.append(creationTime);
-        builder.append(", networkHealth=");
-        builder.append(networkHealth);
         builder.append("]");
         return builder.toString();
     }

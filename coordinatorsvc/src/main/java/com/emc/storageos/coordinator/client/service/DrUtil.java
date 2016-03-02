@@ -5,7 +5,7 @@
 
 package com.emc.storageos.coordinator.client.service;
 
-import com.emc.storageos.coordinator.client.model.SiteNetworkLatency;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -203,10 +203,10 @@ public class DrUtil {
      * @param siteId
      * @return
      */
-    public Double getSiteNetworkLatency(String siteId) {
-        SiteNetworkLatency siteNetworkLatency = coordinator.getTargetInfo(siteId, SiteNetworkLatency.class);
-        if (siteNetworkLatency != null) {
-            return siteNetworkLatency.getNetworkLatencyInMs();
+    public SiteNetworkState getSiteNetworkState(String siteId) {
+        SiteNetworkState siteNetworkState = coordinator.getTargetInfo(siteId, SiteNetworkState.class);
+        if (siteNetworkState != null) {
+            return siteNetworkState;
         }
         throw CoordinatorException.retryables.cannotFindSite(siteId);
     }

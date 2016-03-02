@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import com.emc.storageos.coordinator.client.model.SiteNetworkState;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -55,7 +57,6 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
-import com.emc.storageos.coordinator.client.model.Site.NetworkHealth;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -453,7 +454,10 @@ public class DisasterRecoveryService {
 
         try {
             Site site = drUtil.getSiteFromLocalVdc(uuid);
-            return siteMapper.map(site);
+            SiteNetworkState networkState = drUtil.getSiteNetworkState(uuid);
+            SiteRestRep siteRestRep = siteMapper.map(site);
+            siteRestRep.setNetworkHealth(networkState.getNetworkHealth().toString());
+            return siteRestRep;
         } catch (Exception e) {
             log.error("Can't find site with specified site ID {}", uuid);
             throw APIException.badRequests.siteIdNotFound();
@@ -1357,16 +1361,18 @@ public class DisasterRecoveryService {
     }
 
     private boolean isDataSynced(Site site) {
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(site.getUuid());
         if (site.getState().equals(SiteState.ACTIVE)) {
             return true;
-        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !Site.NetworkHealth.BROKEN.equals(site.getNetworkHealth())) {
+        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !NetworkHealth.BROKEN.equals(networkState.getNetworkHealth())) {
             return true;
         }
         return false;
     }
 
     private Date getLastSyncTime(Site site) {
-        if (site.getNetworkHealth() == NetworkHealth.BROKEN) {
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(site.getUuid());
+        if (networkState.getNetworkHealth() == NetworkHealth.BROKEN) {
             return null;
         }
         if (site.getState() == SiteState.STANDBY_PAUSED) {
@@ -1396,7 +1402,7 @@ public class DisasterRecoveryService {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
-            standbyDetails.setNetworkLatencyInMs(drUtil.getSiteNetworkLatency(uuid));
+            standbyDetails.setNetworkLatencyInMs(drUtil.getSiteNetworkState(uuid).getNetworkLatencyInMs());
             Date lastSyncTime = getLastSyncTime(standby);
             if (lastSyncTime != null) {
                 standbyDetails.setLastSyncTime(lastSyncTime);
@@ -1891,7 +1897,8 @@ public class DisasterRecoveryService {
     }
     
     private void checkSiteConnectivity(Site site) {
-        if (site.getNetworkHealth() == NetworkHealth.BROKEN) {
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(site.getUuid());
+        if (networkState.getNetworkHealth() == NetworkHealth.BROKEN) {
             throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), "Network health state is broken.");
         }
         

@@ -281,6 +281,24 @@ render.registrationStatus = function(o, val) {
     }
 }
 
+render.alertSeverity = function(o, val) {
+    if (!val) {
+        return "";
+    }
+    var icons = {
+        '1':  'glyphicon glyphicon-remove',
+        '2':  'glyphicon glyphicon-ok',
+        '3':  'glyphicon glyphicon-remove text-muted'
+    };
+    var icon = icons[val];
+    if (icon != null) {
+        return "<span class='" + icon + "'></span>";
+    }
+    else {
+        return "";
+    }
+}
+
 render.allocationDisqualified = function (o,val) {
     return (val) ? '<span class="glyphicon glyphicon-thumbs-down"></span>' : '<span class="glyphicon glyphicon-thumbs-up"></span>';
 }

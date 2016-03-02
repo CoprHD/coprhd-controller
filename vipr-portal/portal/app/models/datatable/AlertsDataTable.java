@@ -5,7 +5,7 @@ import util.datatable.DataTable;
 public class AlertsDataTable extends DataTable {
     
     public AlertsDataTable(){
-        addColumn("severity");
+        addColumn("severity").setRenderFunction("render.alertSeverity");
         addColumn("name");
         addColumn("description");
         addColumn("deviceType");

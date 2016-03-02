@@ -143,14 +143,15 @@ nav.object.buckets=Buckets
 nav.app=Applications
 nav.disasterRecovery=System Disaster Recovery
 nav.ipsec=IPsec
-nav.remediation=Remediation
-alerts.list.title=Alerts
+nav.remediation=SAN Remediation
+alerts.list.title=SAN Alerts
 alerts.name=Name
 alerts.severity=Severity
 alerts.description=Description
 alerts.category=Category
 alerts.state=State
 alerts.actions=Remedy
+alerts.deviceType=Device Type
 
 # Override messages in the Secure plugin
 secure.title=

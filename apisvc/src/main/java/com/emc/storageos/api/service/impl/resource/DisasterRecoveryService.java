@@ -410,7 +410,7 @@ public class DisasterRecoveryService {
         SiteList standbyList = new SiteList();
 
         for (Site site : drUtil.listSites()) {
-            standbyList.getSites().add(siteMapper.map(site));
+            standbyList.getSites().add(siteMapper.mapWithNetwork(site,drUtil));
         }
         return standbyList;
     }
@@ -454,10 +454,7 @@ public class DisasterRecoveryService {
 
         try {
             Site site = drUtil.getSiteFromLocalVdc(uuid);
-            SiteNetworkState networkState = drUtil.getSiteNetworkState(uuid);
-            SiteRestRep siteRestRep = siteMapper.map(site);
-            siteRestRep.setNetworkHealth(networkState.getNetworkHealth().toString());
-            return siteRestRep;
+            return siteMapper.mapWithNetwork(site,drUtil);
         } catch (Exception e) {
             log.error("Can't find site with specified site ID {}", uuid);
             throw APIException.badRequests.siteIdNotFound();

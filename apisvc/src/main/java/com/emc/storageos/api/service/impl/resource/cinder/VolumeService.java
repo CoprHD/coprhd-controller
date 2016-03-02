@@ -847,8 +847,11 @@ public class VolumeService extends TaskResourceService {
 
     /* Get vpool from the given label */
     private VirtualPool getVpool(String vpoolName) {
-        if (vpoolName == null)
+        if ( (vpoolName == null) || (vpoolName.length()==0) )
             return null;
+
+	_log.info("Vpool name is {}",vpoolName);
+
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getLabelPrefixConstraint(

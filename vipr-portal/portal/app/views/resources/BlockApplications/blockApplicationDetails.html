@@ -58,6 +58,38 @@ function updateVolumes(oSettings) {
           <tr>
           <td><a href="@{resources.BlockApplications.getAssociatedVolumes(application.id,clones)}">${clones}</a></td>
           </tr>#{/list}</table>
-#{/collapse}
+	#{/collapse}
+  </div>
+  
+  <div class="col-sm-12">
+  	#{collapse 'resources.volume.snapshot.sessions',noPanelBody: true}
+  	<table class='table table-condensed table-striped'>
+  	<thead><tr>
+  	<th>&{'resources.applications.snapshot.sessionSet'}</th>
+  	</tr></thead>
+  	<tbody>
+  	#{list items:sessionSet, as:'snapSet'}
+  	<tr>
+  	<td><a href="@{resources.BlockApplications.getAssociatedSnapSession(application.id,snapSet)}">${snapSet}</a></td></tr>
+	</tr>#{/list}</tbody></table>
+	#{/collapse}
+	</div>
+	
+	
+	<div class="col-sm-12">
+  	#{collapse 'resources.volume.snapshots',noPanelBody: true}
+  	<table class='table table-condensed table-striped'>
+  	<thead><tr>
+  	<th>&{'resources.application.snapSet'}</th>
+  	</tr></thead>
+  	<tbody>
+  	#{list items:snapSets, as:'snapSet'}
+  	<tr>
+  	<td><a href="@{resources.BlockApplications.getAssociatedSnapshots(application.id,snapSet)}">${snapSet}</a></td></tr>
+  	#{/list}
+  	</tbody>
+  	</table>
+  	#{/collapse}
+  
   </div>
 #{/if}

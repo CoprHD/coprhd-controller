@@ -45,9 +45,11 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
@@ -289,8 +291,21 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                     // Generate label here
                     String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
                     String label = snapsetLabel;
-                    if (sourceObjList.size() > 1) {
-                        label = String.format("%s-%s", label, ++count);
+                    String rgName = sourceObj.getReplicationGroupInstance();
+                    if (sourceObj instanceof Volume && ((Volume) sourceObj).isVPlexVolume(_dbClient)) {
+                        // get RG name from back end volume
+                        Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) sourceObj, true, _dbClient);
+                        rgName = srcBEVolume.getReplicationGroupInstance();
+                    }
+                    if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                        // There can be multiple RGs in a CG, in such cases generate unique name
+                        if (sourceObjList.size() > 1) {
+                            label = String.format("%s-%s-%s", snapsetLabel, rgName, ++count);
+                        } else {
+                            label = String.format("%s-%s", snapsetLabel, rgName);
+                        }
+                    } else if (sourceObjList.size() > 1) {
+                        label = String.format("%s-%s", snapsetLabel, ++count);
                     }
 
                     BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label);
@@ -315,17 +330,28 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
 
         snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
+
+        snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
+        snapSession.setStorageController(sourceObj.getStorageController());
+
+        if (sourceObj.hasConsistencyGroup()) {
+            snapSession.setConsistencyGroup(sourceObj.getConsistencyGroup());
+            snapSession.setSessionSetName(snapSessionLabel);
+            String rgName = sourceObj.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                snapSession.setReplicationGroupInstance(rgName);
+                // append RG name to user given label to uniquely identify sessions
+                // when there are multiple RGs in a CG
+                instanceLabel = String.format("%s-%s", instanceLabel, rgName);
+            }
+        } else {
+            snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
+        }
+
         snapSession.setLabel(instanceLabel);
         snapSession.setSessionLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(snapSessionLabel,
                 SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
 
-        snapSession.setProject(new NamedURI(sourceProject.getId(), sourceObj.getLabel()));
-
-        if (sourceObj.hasConsistencyGroup()) {
-            snapSession.setConsistencyGroup(sourceObj.getConsistencyGroup());
-        } else {
-            snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));
-        }
         return snapSession;
     }
 
@@ -373,8 +399,16 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 // Generate label here
                 String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
                 String label = snapsetLabel;
-                if (sourceObjList.size() > 1) {
-                    label = String.format("%s-%s", label, ++count);
+                String rgName = sourceObj.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                    // There can be multiple RGs in a CG, in such cases generate unique name
+                    if (sourceObjList.size() > 1) {
+                        label = String.format("%s-%s-%s", snapsetLabel, rgName, ++count);
+                    } else {
+                        label = String.format("%s-%s", snapsetLabel, rgName);
+                    }
+                } else if (sourceObjList.size() > 1) {
+                    label = String.format("%s-%s", snapsetLabel, ++count);
                 }
 
                 BlockSnapshot blockSnapshot = prepareSnapshotForSession(sourceObj, snapsetLabel, label);
@@ -444,6 +478,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         // Verify that each target is currently linked to a block
         // snapshot session of the same source.
         URI currentSnapSessionSourceURI = null;
+        String currentSnapSessionSourceGroupName = null;
         for (URI snapshotURI : snapshotURIs) {
             BlockSnapshotSessionUtils.validateSnapshot(snapshotURI, uriInfo, _dbClient);
             List<BlockSnapshotSession> snaphotSessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
@@ -462,6 +497,14 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 } else if (!snapshotSnapSession.getConsistencyGroup().equals(currentSnapSessionSourceURI)) {
                     // Not all targets to be re-linked are linked to a block
                     // snapshot session of the same source.
+                    throw APIException.badRequests.relinkSnapshotSessionsNotOfSameSource();
+                }
+                // validate for source Replication Group since there can be multiple replication groups within a CG.
+                if (currentSnapSessionSourceGroupName == null) {
+                    currentSnapSessionSourceGroupName = snapshotSnapSession.getReplicationGroupInstance();
+                } else if (!currentSnapSessionSourceGroupName.equals(snapshotSnapSession.getReplicationGroupInstance())) {
+                    // Not all targets to be re-linked are linked to a block
+                    // snapshot session of the same source group.
                     throw APIException.badRequests.relinkSnapshotSessionsNotOfSameSource();
                 }
             } else {
@@ -484,6 +527,12 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 : tgtSnapSession.getParent().getURI();
         if (!tgtSnapSessionSourceURI.equals(currentSnapSessionSourceURI)) {
             throw APIException.badRequests.relinkTgtSnapshotSessionHasDifferentSource(currentSnapSessionSourceURI.toString());
+        }
+
+        String tgtSnapSessionSourceGroupName = tgtSnapSession.getReplicationGroupInstance();
+        if (NullColumnValueGetter.isNotNullValue(tgtSnapSessionSourceGroupName)
+                && !tgtSnapSessionSourceGroupName.equals(currentSnapSessionSourceGroupName)) {
+            throw APIException.badRequests.relinkTgtSnapshotSessionHasDifferentSource(currentSnapSessionSourceGroupName);
         }
     }
 

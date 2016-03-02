@@ -169,8 +169,7 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
      * @param dbClient  Database client
      */
     private void updateSnapshotSessionLinkedTargets(BlockSnapshot snapshot, DbClient dbClient) {
-        String replicationGroupInstance = snapshot.getReplicationGroupInstance();
-        List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupInstance, dbClient);
+        List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, dbClient);
 
         if (snapshots == null || snapshots.isEmpty()) {
             return;

@@ -142,7 +142,8 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void resumeMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void resumeMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer)
+            throws DeviceControllerException {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
@@ -156,7 +157,8 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
+    public void cancelMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer)
+            throws DeviceControllerException {
         FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, target.getParentFileShare().getURI());
         String policyName = ControllerUtils.generateLabel(sourceFileShare.getLabel(), target.getLabel());
         BiosCommandResult cmdResult = doCancelReplicationPolicy(system, policyName);
@@ -370,7 +372,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                        "doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
+                                "doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -402,7 +404,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                        "doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
+                                "doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -433,7 +435,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                        "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
+                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -576,7 +578,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      */
     public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
             TaskCompleter completer)
-            throws IsilonException {
+                    throws IsilonException {
 
         IsilonApi isiPrimary = getIsilonDevice(primarySystem);
         IsilonSyncJob job = new IsilonSyncJob();
@@ -716,9 +718,9 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
             if (policy.getLastStarted() != null) {
                 localTarget = isiSecondary.getTargetReplicationPolicy(policyName);
             }
-            if (policy.getLastStarted() == null && !policy.getEnabled()) {
+            if (policy.getLastStarted() == null) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.UNKNOWN);
-            } else if (policy.getLastStarted() != null && !policy.getEnabled()) {
+            } else if (!policy.getEnabled()) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.DETACHED);
             } else if (policy.getLastJobState().equals(JobState.paused)) {
                 mirrorRefreshCompleter.setFileMirrorStatusForSuccess(FileShare.MirrorStatus.SUSPENDED);

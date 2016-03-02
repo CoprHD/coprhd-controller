@@ -1417,7 +1417,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
                 TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, tenantURI);
                 String tenantName = tenant.getLabel();
-                String snapSessionLabelToUse = _nameGenerator.generate(tenantName, snapSession.getLabel(),
+                String snapSessionLabelToUse = _nameGenerator.generate(tenantName, snapSession.getSessionLabel(),
                         snapSessionURI.toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
                 CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 CIMObjectPath sourceObjPath = _cimPath.getBlockObjectPath(system, sourceObj);

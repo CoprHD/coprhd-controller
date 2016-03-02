@@ -1174,6 +1174,22 @@ public class ControllerUtils {
                     return true;
                 }
             }
+
+            // snapshot session
+            if (storage.checkIfVmax3()) {
+                URIQueryResultList sessionList = new URIQueryResultList();
+                dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                        getBlockSnapshotSessionByConsistencyGroup(cgURI), sessionList);
+                Iterator<URI> itr = sessionList.iterator();
+                while (itr.hasNext()) {
+                    URI sessionID = itr.next();
+                    BlockSnapshotSession session = dbClient.queryObject(BlockSnapshotSession.class, sessionID);
+                    if (session != null && !session.getInactive()
+                            && NullColumnValueGetter.isNotNullValue(session.getReplicationGroupInstance())) {
+                        return true;
+                    }
+                }
+            }
         }
 
         return false;

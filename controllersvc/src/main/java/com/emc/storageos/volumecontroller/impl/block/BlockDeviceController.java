@@ -30,6 +30,7 @@ import java.util.Set;
 import javax.xml.bind.DataBindingException;
 
 import com.emc.storageos.services.util.StorageDriverManager;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -5515,6 +5516,26 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Adds the step to create block snapshot session.
+     *
+     * @param workflow the workflow
+     * @param systemURI the system uri
+     * @param session the snapshot session
+     * @param repGroupName the replication group name
+     * @param waitFor the wait for
+     * @return the stepId
+     */
+    public String addStepToCreateSnapshotSession(Workflow workflow, URI systemURI, BlockSnapshotSession session,
+            String repGroupName, String waitFor) {
+        String stepId = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOT_SESSION_STEP_GROUP,
+                String.format("Creating block snapshot session"),
+                waitFor, systemURI, getDeviceType(systemURI), getClass(),
+                createBlockSnapshotSessionMethod(systemURI, session.getId(), repGroupName),
+                rollbackMethodNullMethod(), null);
+        return stepId;
+    }
+
+    /**
      * Create the workflow method that is invoked by the workflow service
      * to create block snapshot sessions.
      *
@@ -5606,6 +5627,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
         return true;
+    }
+
+    public String addStepToLinkBlockSnapshotSessionTarget(Workflow workflow, URI systemURI,
+            BlockSnapshotSession session, URI snapshot, String copyMode, String waitFor) {
+        String stepId = workflow.createStep(
+                BlockDeviceController.LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                String.format("Linking targets for snapshot session %s", session.getId()),
+                waitFor, systemURI, getDeviceType(systemURI), getClass(),
+                linkBlockSnapshotSessionTargetMethod(systemURI, session.getId(), snapshot, copyMode, Boolean.FALSE),
+                rollbackLinkBlockSnapshotSessionTargetMethod(systemURI, session.getId(), snapshot), null);
+        return stepId;
     }
 
     /**

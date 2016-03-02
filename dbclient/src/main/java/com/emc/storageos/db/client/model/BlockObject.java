@@ -59,9 +59,7 @@ public abstract class BlockObject extends DataObject {
     // provider side and an EMCRefresh will be required.
     private Boolean _emcRefreshRequired;
 
-    // Name reference of target replica consistency group. That is,
-    // after a replica of consistency group is taken, the group of replica volumes
-    // will be placed in a grouping. This String references that group instance.
+    // Name reference of replication group that the object belong to.
     private String _replicationGroupInstance;
 
     @AlternateId("AltIdIndex")

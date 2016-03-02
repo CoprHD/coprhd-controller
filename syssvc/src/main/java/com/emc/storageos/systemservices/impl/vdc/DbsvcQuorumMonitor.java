@@ -21,7 +21,6 @@ import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-
 /**
  * A thread scheduled in syssvc of the active site to monitor the db quorum availability of each standby site.
  * If a STANDBY_SYNCED site has lost db quorum for more than STANDBY_DEGRADED_THRESHOLD, it will be degraded.

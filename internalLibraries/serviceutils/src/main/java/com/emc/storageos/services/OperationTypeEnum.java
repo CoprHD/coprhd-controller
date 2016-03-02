@@ -479,7 +479,6 @@ public enum OperationTypeEnum {
     STANDBY_SWITCHOVER("STANDBY BECOME ACTIVE AFTER SWITCHOVER", "", "operation that marks switchover on new active site complete"),
     FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
-    REJOIN_STANDBY("REJOIN STANDBY", "", "operation to rejoin a degraded standby to ensemble"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 

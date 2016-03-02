@@ -850,8 +850,6 @@ public class VolumeService extends TaskResourceService {
         if ( (vpoolName == null) || (vpoolName.length()==0) )
             return null;
 
-	_log.info("Vpool name is {}",vpoolName);
-
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getLabelPrefixConstraint(

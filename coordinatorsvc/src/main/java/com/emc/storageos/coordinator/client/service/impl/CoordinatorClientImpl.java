@@ -733,7 +733,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 || kind.equals(SiteError.CONFIG_KIND)
                 || kind.equals(PowerOffState.CONFIG_KIND)
                 || kind.equals(SiteMonitorResult.CONFIG_KIND)
-                || kind.equals(DOWNLOADINFO_KIND)) {
+                || kind.equals(DOWNLOADINFO_KIND)
+                || kind.equals(DB_DOWNTIME_TRACKER_CONFIG)) {
             return true;
         }
         return false;

@@ -120,6 +120,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                         session.setSessionLabel(syncAspectName);
                         session.setParent(new NamedURI(volume.getId(), volume.getLabel()));
                         session.setProject(new NamedURI(requestContext.getProject().getId(), volume.getLabel()));
+                        session.setStorageController(volume.getStorageController());
                         session.setSessionInstance(syncAspectObjPath);
                         StringSet linkedTargetURIs = new StringSet();
                         URIQueryResultList snapshotQueryResults = new URIQueryResultList();
@@ -159,7 +160,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.SNAPSHOT.name();
             IngestStrategy ingestStrategy = ingestStrategyFactory.getIngestStrategy(IngestStrategyEnum.getIngestStrategy(strategyKey));
             snapshot = ingestStrategy.ingestBlockObjects(requestContext, BlockSnapshot.class);
-            requestContext.getObjectsToBeCreatedMap().put(snapshot.getNativeGuid(), snapshot);
+            requestContext.getBlockObjectsToBeCreatedMap().put(snapshot.getNativeGuid(), snapshot);
         }
 
         // Run this always when volume NO_PUBLIC_ACCESS
@@ -204,7 +205,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
     @Override
     protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject volume, IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume) {
-        UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroupFromContext(cg, requestContext);
+        UnManagedConsistencyGroup umcg = requestContext.findUnManagedConsistencyGroup(cg);
         List<DataObject> blockObjectsToUpdate = new ArrayList<DataObject>();
         if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
             for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
@@ -228,7 +229,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                 blockObject.setReplicationGroupInstance(cg.getLabel());
             }
             if (!blockObjectsToUpdate.isEmpty()) {
-                requestContext.getObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
+                requestContext.getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
             }
         }
         volume.setConsistencyGroup(cg.getId());
@@ -267,7 +268,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
             return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, blockObj, context.getVpool(unManagedVolume),
                     context.getProject().getId(), context.getTenant().getId(), context.getVarray(unManagedVolume).getId(),
-                    context.getUmCGObjectsToUpdate(),
+                    context.getVolumeContext().getUmCGObjectsToUpdate(),
                     dbClient);
         }
         return null;

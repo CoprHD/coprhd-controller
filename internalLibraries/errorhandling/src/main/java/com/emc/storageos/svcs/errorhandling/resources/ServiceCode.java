@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2013-2014 EMC Corporation
- * All Rights Reserved
+ * Copyright 2013-2014 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -549,9 +562,12 @@ public enum ServiceCode {
 
     // customConfig controller errors (62000 - 62099)
     CONTROLLER_CUSTOMCONFIG_ERROR(62000),
+
+    // Keystone errors (62100-62199)
     KEYSTONE_API_ERROR(62100),
     KEYSTONE_REQUEST_PARSE_ERRORS(62101),
     KEYSTONE_RESPONSE_PARSE_ERROR(62102),
+    KEYSTONE_CONFIGURATION_ERROR(62103),
 
     // NetApp Cluster errors (63000 - 63099):
     NETAPPC_ERROR(63000),
@@ -608,6 +624,13 @@ public enum ServiceCode {
     EXTERNALDEVICE_NO_NATIVEID_DEFINED_FOR_STORAGE_PORT_ERROR(66011),
     EXTERNALDEVICE_DELETE_VOLUME_FROM_EXPORT_MASK_ERROR(66012),
     EXTERNALDEVICE_DELETE_EXPORT_MASK_ERROR(66013),
+    EXTERNALDEVICE_RESTORE_FROM_SNAPSHOT_ERROR(66014),
+    EXTERNALDEVICE_CREATE_VOLUME_CLONE_ERROR(66015),
+    EXTERNALDEVICE_CREATE_GROUP_CLONE_ERROR(66016),
+    EXTERNALDEVICE_DETACH_CLONE_ERROR(66017),
+    EXTERNALDEVICE_RESTORE_CLONES_ERROR(66018),
+    EXTERNALDEVICE_EXPAND_VOLUME_ERROR(66019),
+
 
     // Ceph errors (66000 - 66999)
     CEPH_CONNECTION_ERROR(66000),

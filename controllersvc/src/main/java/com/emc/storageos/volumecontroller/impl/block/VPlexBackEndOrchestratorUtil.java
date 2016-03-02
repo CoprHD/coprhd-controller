@@ -30,7 +30,6 @@ import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
-import com.emc.storageos.vplex.api.VPlexApiExceptions;
 
 public class VPlexBackEndOrchestratorUtil {
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackEndOrchestratorUtil.class);
@@ -123,6 +122,8 @@ public class VPlexBackEndOrchestratorUtil {
                 if (mask.hasExistingInitiator(initiatorPortWwn)) {
                     portsInDirector++;
                 } else if (mask.hasUserInitiator(initiatorPortWwn)) {
+                    portsInDirector++;
+                } else if (mask.hasInitiator(initiatorId)) {
                     portsInDirector++;
                 }
             }

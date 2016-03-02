@@ -449,6 +449,9 @@ public class DataCollectionJobUtil {
                 || Type.ibmxiv.name().equals(
                         storageDevice.getSystemType())) {
             injectDiscoveryProfile(accessProfile, storageDevice);
+            if (null != nameSpace) {
+                accessProfile.setnamespace(nameSpace);
+            }
         } else if (Type.vnxfile.toString().equalsIgnoreCase(storageDevice.getSystemType())) {
             accessProfile.setIpAddress(storageDevice.getIpAddress());
             accessProfile.setUserName(storageDevice.getUsername());

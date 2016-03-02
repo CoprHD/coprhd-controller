@@ -54,12 +54,18 @@ import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 
 public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     private static final Logger _log = LoggerFactory.getLogger(XtremIOStorageDevice.class);
+
+    // Max retries for RecoverPoint volume delete operation
+    private static final int MAX_RP_RETRIES = 30;
+    // Wait 30 seconds before attempting another call to delete the RecoverPoint associated XIO volume
+    private static final int RP_WAIT_FOR_RETRY = 30000;
 
     XtremIOClientFactory xtremioRestClientFactory;
     DbClient dbClient;
@@ -116,15 +122,15 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     // and it is already created on the storage system.
                     // Also, exclude RP volumes.
                     isCG = true;
-                    
+
                     /**
                      * If Vplex backed volume does not have replicationGroupInstance value, should not add the volume into backend cg
                      */
-                    if(Volume.checkForVplexBackEndVolume(dbClient, vol)
-                    	&&NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance())){
-                    	isCG = false;
+                    if (Volume.checkForVplexBackEndVolume(dbClient, vol)
+                            && NullColumnValueGetter.isNullValue(vol.getReplicationGroupInstance())) {
+                        isCG = false;
                     }
-                } 
+                }
             }
 
             // find the project this volume belongs to.
@@ -139,11 +145,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             String volumesFolderName = "";
             if (isVersion2) {
                 volumesFolderName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage),
-                        clusterName).
-                        get(XtremIOConstants.VOLUME_KEY);
+                        clusterName).get(XtremIOConstants.VOLUME_KEY);
             } else {
-                volumesFolderName = XtremIOProvUtils.createFoldersForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage)).
-                        get(XtremIOConstants.VOLUME_KEY);
+                volumesFolderName = XtremIOProvUtils.createFoldersForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage))
+                        .get(XtremIOConstants.VOLUME_KEY);
             }
             Random randomNumber = new Random();
             for (Volume volume : volumes) {
@@ -183,11 +188,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                         client.tagObject(volumesFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), volume.getLabel(), clusterName);
                         // Do not add RP+VPlex journal or target backing volumes to consistency groups.
                         // This causes issues with local array snapshots of RP+VPlex volumes.
-                        String rpName = volume.getReplicationGroupInstance();
+                        String cgName = volume.getReplicationGroupInstance();
                         if (isCG && !RPHelper.isAssociatedToRpVplexType(volume, dbClient,
                                 PersonalityTypes.METADATA, PersonalityTypes.TARGET) &&
-                                NullColumnValueGetter.isNotNullValue(rpName)) {
-                            client.addVolumeToConsistencyGroup(volume.getLabel(), cgObj.getLabel(), clusterName);
+                                NullColumnValueGetter.isNotNullValue(cgName)) {
+                            client.addVolumeToConsistencyGroup(volume.getLabel(), cgName, clusterName);
                         }
                     }
 
@@ -330,8 +335,43 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                                 }
                             }
                         }
-                        _log.info("Deleting the volume {}", volume.getLabel());
-                        client.deleteVolume(volume.getLabel(), clusterName);
+                        // If this is a RecoverPoint volume (straight RP protection XIO volume or XIO VPlex
+                        // backing volume).
+                        if (volume.checkForRp() || RPHelper.isAssociatedToAnyRpVplexTypes(volume, dbClient)) {
+                            int attempt = 0;
+                            while (attempt++ <= MAX_RP_RETRIES) {
+                                try {
+                                    _log.info(String.format("Deleting RecoverPoint volume %s (attempt %s/%s)", volume.getLabel(), attempt,
+                                            MAX_RP_RETRIES));
+                                    client.deleteVolume(volume.getLabel(), clusterName);
+                                    break;
+                                } catch (XtremIOApiException e) {
+                                    // RP/XIO source/target volumes are placed in consistency groups generated by XIO and RP, not ViPR.
+                                    // There is occasionally some lag or delay in the communication between RP and XIO when a replication
+                                    // set is removed. This results in the XIO volume not being removed from its CG before the delete
+                                    // call is invoked which throws an exception. We isolate this exception below so we can wait and
+                                    // retry the operation in hopes the proper communication has taken place between RP and XIO and the
+                                    // volume removed from the consistency group.
+                                    if (attempt != MAX_RP_RETRIES
+                                            && e.getMessage().contains("cannot_remove_volume_that_is_in_consistency_group")) {
+                                        _log.warn(String
+                                                .format("Encountered exception attempting delete RP volume %s.  Waiting %s milliseconds before trying again.  Error: %s",
+                                                        volume.getLabel(), RP_WAIT_FOR_RETRY, e.getMessage()));
+                                        try {
+                                            Thread.sleep(RP_WAIT_FOR_RETRY);
+                                        } catch (InterruptedException e1) {
+                                            Thread.currentThread().interrupt();
+                                        }
+                                    } else {
+                                        // re-throw the exception if this is not the one we care about
+                                        throw e;
+                                    }
+                                }
+                            }
+                        } else {
+                            _log.info("Deleting the volume {}", volume.getLabel());
+                            client.deleteVolume(volume.getLabel(), clusterName);
+                        }
                     }
                     volume.setInactive(true);
                     volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
@@ -374,7 +414,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Verify whether the given volume exists in the CG Volume list or not.
      * If Exists return true, else false.
-     * 
+     *
      * @param volList - CG Volume List
      * @param volume - Volume to check.
      * @return true if the volume Exists in CG
@@ -382,9 +422,11 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
      */
     private boolean checkIfVolumeExistsInCG(List<List<Object>> volList, Volume volume) {
         for (List<Object> vols : volList) {
-            if (null != vols.get(0)) {
-                String cgVolNativeId = vols.get(0).toString();
-                if (cgVolNativeId.equalsIgnoreCase(volume.getNativeId())) {
+            if (null != vols.get(1)) {
+                // vols contains 3 volume related elements. The second element is the device
+                // name, which we will use to match against the provided volume's label.
+                String cgVolLabel = vols.get(1).toString();
+                if (cgVolLabel.equalsIgnoreCase(volume.getLabel())) {
                     return true;
                 }
             }
@@ -401,7 +443,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
          * using Initiator label. - If not found, POST to IG and use IG-name to POST to Initiator
          * with IG (IG per Host) - If found, find IG - Maintain an in-memory Set of IGs - Lookup
          * Volumes - Create LUNMap foreach (IG, V)
-         * 
+         *
          * 0. Discover Initiators and update the corresponding labels if not set. 0a. If label is
          * not matching with user given, then keep a local data structure in memory and use it only
          * during this process. 1. Look up IG by name and find IGs 2. Store IGs in list 3. If list
@@ -411,8 +453,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
          * yes, then add the remaining initiators to the any one of the initiator Group which
          * matches above criteria 5c. Else, create a new initiator group and add the remaining
          * initiators. 6. If complete, no action 7. Create LunMaps for each Volume and IG.
-         * 
-         * 
+         *
+         *
          */
         _log.info("{} doExportGroupCreate START ...", storage.getSerialNumber());
         VolumeURIHLU[] volumeLunArray = ControllerUtils.getVolumeURIHLUArray(
@@ -532,11 +574,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("SnapShot Creation..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
-        Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
         XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
-        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
-                && null != sourceVolume
-                && !sourceVolume.checkForRp()) {
+        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
             snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive, readOnly, taskCompleter);
         } else {
             for (URI snapshotURI : snapshotList) {
@@ -552,11 +591,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         _log.info("SnapShot Deletion..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-        Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
         XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
-        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
-                && null != sourceVolume
-                && !sourceVolume.checkForRp()) {
+        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
             snapshotOperations.deleteGroupSnapshots(storage, snapshot, taskCompleter);
         } else {
             snapshotOperations.deleteSingleVolumeSnapshot(storage, snapshot, taskCompleter);
@@ -569,11 +605,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         _log.info("SnapShot Restore..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-        Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
         XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
-        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
-                && null != sourceVolume
-                && !sourceVolume.checkForRp()) {
+        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
             snapshotOperations.restoreGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.restoreSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
@@ -586,11 +619,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         _log.info("SnapShot resync..... Started");
         List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, Arrays.asList(snapshot));
-        Volume sourceVolume = getSnapshotParentVolume(snapshots.get(0));
         XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
-        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)
-                && null != sourceVolume
-                && !sourceVolume.checkForRp()) {
+        if (client.isVersion2() && ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, dbClient, taskCompleter)) {
             snapshotOperations.resyncGroupSnapshots(storage, volume, snapshot, taskCompleter);
         } else {
             snapshotOperations.resyncSingleVolumeSnapshot(storage, volume, snapshot, taskCompleter);
@@ -600,7 +630,8 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
-            String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         _log.info("{} doDeleteConsistencyGroup START ...", storage.getSerialNumber());
 
         ServiceError serviceError = null;
@@ -623,7 +654,6 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 return;
             }
 
-
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             // We still need throw exception for standard CG.
             if (!client.isVersion2() && consistencyGroup.isProtectedCG()) {
@@ -638,7 +668,6 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 if (null != XtremIOProvUtils.isCGAvailableInArray(client, groupName, clusterName)) {
                     client.removeConsistencyGroup(groupName, clusterName);
                 }
-
 
                 if (null != XtremIOProvUtils.isTagAvailableInArray(client, cgProject.getLabel(),
                         XtremIOConstants.XTREMIO_ENTITY_TYPE.ConsistencyGroup.name(), clusterName)) {
@@ -876,14 +905,5 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 CustomConfigConstants.XTREMIO_VOLUME_FOLDER_NAME, storage.getSystemType(), dataSource);
 
         return volumeGroupFolderName;
-    }
-
-    private Volume getSnapshotParentVolume(BlockSnapshot snapshot) {
-        Volume sourceVolume = null;
-        URI sourceVolURI = snapshot.getParent().getURI();
-        if (!NullColumnValueGetter.isNullURI(sourceVolURI)) {
-            sourceVolume = dbClient.queryObject(Volume.class, sourceVolURI);
-        }
-        return sourceVolume;
     }
 }

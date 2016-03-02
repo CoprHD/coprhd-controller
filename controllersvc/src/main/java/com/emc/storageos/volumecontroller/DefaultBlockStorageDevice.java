@@ -526,7 +526,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup, boolean forceAdd,
+    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup,
             TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

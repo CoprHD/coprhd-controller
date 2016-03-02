@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.CifsShareACL;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DecommissionedResource;
@@ -26,6 +27,7 @@ import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.FileExportRule;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
 import com.emc.storageos.db.client.model.NFSShareACL;
@@ -295,6 +297,11 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getBlockSnapshotsBySnapsetLabel(String label) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("snapsetLabel"), label);
+        }
+
+        public static AlternateIdConstraint getBlockSnapshotSessionsBySetName(String setName) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("sessionSetName"), setName);
         }
 
         public static AlternateIdConstraint getFullCopiesBySetName(String setName) {
@@ -691,6 +698,16 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
         }
 
+        public static AlternateIdConstraint getHostsByVolumeGroupId(String volumeGroupId) {
+            DataObjectType doType = TypeMap.getDoType(Host.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
+        }
+
+        public static AlternateIdConstraint getClustersByVolumeGroupId(String volumeGroupId) {
+            DataObjectType doType = TypeMap.getDoType(Cluster.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("volumeGroupIds"), volumeGroupId);
+        }
+ 
         public static AlternateIdConstraint getDriverRegistryEntriesByDriverName(String driverName) {
             DataObjectType doType = TypeMap.getDoType(DriverRegistryRecord.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("driverName"), driverName);

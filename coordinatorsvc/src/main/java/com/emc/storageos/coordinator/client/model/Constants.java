@@ -37,6 +37,7 @@ public interface Constants {
     public static final String DATA_REVISION_TMP = FileUtils.generateTmpFileName("datarevisionconfig.properties.new");
     public static final String KEY_DATA_REVISION = "target_data_revision";
     public static final String KEY_DATA_REVISION_COMMITTED = "target_data_revision_committed";
+    public static final String KEY_VDC_CONFIG_VERSION = "vdc_config_version";
 
     //ipsec command constants
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";

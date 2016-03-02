@@ -71,6 +71,7 @@ import com.emc.storageos.model.block.tier.StorageTierRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 
@@ -87,6 +88,7 @@ public class BlockMapper {
         to.setDeviceLabel(from.getDeviceLabel() != null ? from.getDeviceLabel() : "");
         to.setNativeId(from.getNativeId() != null ? from.getNativeId() : "");
         to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance() != null ? from.getReplicationGroupInstance() : "");
     }
 
     public static VolumeRestRep map(Volume from) {
@@ -120,10 +122,16 @@ public class BlockMapper {
         to.setLinkStatus(from.getLinkStatus());
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
+
         if (dbClient != null) {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
-            if (system != null && system.checkIfVmax3()) {                
-                to.setSupportsSnapshotSessions(Boolean.TRUE);                 
+            if (system != null){
+                if(system.checkIfVmax3()) { 
+                    to.setSupportsSnapshotSessions(Boolean.TRUE);  
+                    to.setSystemType("vmax3");  
+                } else {
+                    to.setSystemType(system.getSystemType());
+                }
             }
         }
         // Extra checks for VPLEX volumes
@@ -131,15 +139,18 @@ public class BlockMapper {
             // For snapshot session support of a VPLEX volume, we only need to check the SOURCE side of the
             // volume.
             Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, sourceSideBackingVolume.getStorageController());
-            if (null != system && system.checkIfVmax3()) {
-                to.setSupportsSnapshotSessions(Boolean.TRUE); 
+            // Check for null in case the VPlex vol was ingested w/o the backend volumes
+            if (sourceSideBackingVolume != null) {
+                StorageSystem system = dbClient.queryObject(StorageSystem.class, sourceSideBackingVolume.getStorageController());
+                if (null != system && system.checkIfVmax3()) {
+                    to.setSupportsSnapshotSessions(Boolean.TRUE);
+                }
             }
             // Set xio3xvolume in virtual volume only if it's backend volume belongs to xtremio & version is 3.x
             for (String backendVolumeuri : from.getAssociatedVolumes()) {
                 Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
                 if (null != backendVol) {
-                    system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());                    
+                    StorageSystem system = dbClient.queryObject(StorageSystem.class, backendVol.getStorageController());
                     if (null != system && StorageSystem.Type.xtremio.name().equalsIgnoreCase(system.getSystemType())
                             && !XtremIOProvUtils.is4xXtremIOModel(system.getModel())) {
                         to.setHasXIO3XVolumes(Boolean.TRUE);
@@ -334,6 +345,7 @@ public class BlockMapper {
         to.setSyncActive(from.getIsSyncActive());
         to.setReplicaState(getReplicaState(from));
         to.setReadOnly(from.getIsReadOnly());
+        to.setSnapsetLabel(from.getSnapsetLabel() != null ? from.getSnapsetLabel() : "");
         return to;
     }
 
@@ -347,10 +359,10 @@ public class BlockMapper {
 
     /**
      * Maps a BlockSnapshotSession instance to its Rest representation.
-     * 
+     *
      * @param dbClient A reference to a database client.
      * @param from An instance of BlockSnapshotSession.
-     * 
+     *
      * @return An instance of BlockSnapshotSessionRestRep
      */
     public static BlockSnapshotSessionRestRep map(DbClient dbClient, BlockSnapshotSession from) {
@@ -403,6 +415,12 @@ public class BlockMapper {
             to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, projectURI.getURI()));
         }
 
+        // Map storage controller
+        URI storageURI = from.getStorageController();
+        if (storageURI != null) {
+            to.setStorageController(storageURI);
+        }
+
         // Map linked targets.
         StringSet linkedTargetIds = from.getLinkedTargets();
         if ((linkedTargetIds != null) && (!linkedTargetIds.isEmpty())) {
@@ -417,6 +435,12 @@ public class BlockMapper {
 
         // Map session label.
         to.setSessionLabel(from.getSessionLabel());
+
+        // Map replication group name.
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+
+        // Map session set name.
+        to.setSessionSetName(from.getSessionSetName());
 
         return to;
     }
@@ -470,20 +494,20 @@ public class BlockMapper {
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
         to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
         to.setArrayConsistency(from.getArrayConsistency());
-        
+
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
         if (dbClient != null && from.getStorageController() != null) {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
-            if (system != null && system.checkIfVmax3()) {                
-                to.setSupportsSnapshotSessions(Boolean.TRUE);                 
+            if (system != null && system.checkIfVmax3()) {
+                to.setSupportsSnapshotSessions(Boolean.TRUE);
             }
         }
 
         try {
             if (from.getSystemConsistencyGroups() != null) {
                 to.setSystemConsistencyGroups(new StringSetMapAdapter().marshal(from.getSystemConsistencyGroups()));
-                
+
                 if (!to.getSupportsSnapshotSessions()) {
                     // If we haven't already determined that we can support snapshot sessions,
                     // loop through all the system cg's to find any storage systems that this
@@ -494,8 +518,8 @@ public class BlockMapper {
                             String storageSystemId = entry.getKey();
                             if (storageSystemId != null) {
                                 StorageSystem system = dbClient.queryObject(StorageSystem.class, URI.create(storageSystemId));
-                                if (system != null && system.checkIfVmax3()) {                
-                                    to.setSupportsSnapshotSessions(Boolean.TRUE);     
+                                if (system != null && system.checkIfVmax3()) {
+                                    to.setSupportsSnapshotSessions(Boolean.TRUE);
                                     break;
                                 }
                             }
@@ -536,9 +560,9 @@ public class BlockMapper {
             List<RelatedResourceRep> volumesResourceRep = new ArrayList<RelatedResourceRep>();
             for (URI volumeUri : volumes) {
                 Volume volume = dbClient.queryObject(Volume.class, volumeUri);
-                // Only display CG volumes that are non-RP or RP source volumes.
-                if (!volume.checkForRp() || (volume.checkForRp() && volume.getPersonality() != null
-                        && volume.getPersonality().equals(PersonalityTypes.SOURCE.name()))) {
+                // Only display CG volumes that are non-RP or RP source volumes. Exclude RP+VPlex backing volumes.
+                if ((!volume.checkForRp() && !RPHelper.isAssociatedToAnyRpVplexTypes(volume, dbClient))
+                        || (volume.checkForRp() && PersonalityTypes.SOURCE.name().equals(volume.getPersonality()))) {
                     volumesResourceRep.add(toRelatedResource(ResourceTypeEnum.VOLUME, volumeUri));
                 }
             }

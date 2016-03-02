@@ -8,6 +8,7 @@ package com.emc.storageos.db.server.impl;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -39,7 +42,7 @@ public class SeedProviderImpl implements SeedProvider {
     private String _id;
     private CoordinatorClientImpl _client;
     private List<String> extraSeeds = new ArrayList<>();
-    private boolean isDrActiveSite;
+    private boolean useSeedsInLocalSite;
     private DrUtil drUtil;
     
     /**
@@ -106,7 +109,7 @@ public class SeedProviderImpl implements SeedProvider {
         client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
         drUtil = new DrUtil(client);
-        isDrActiveSite = drUtil.isActiveSite();
+        useSeedsInLocalSite = drUtil.isActiveSite() ||  SiteState.ACTIVE_DEGRADED.equals(drUtil.getLocalSite().getState());
         
         _client = client;
     }
@@ -137,7 +140,7 @@ public class SeedProviderImpl implements SeedProvider {
             }
             // On DR standby site, only use seeds from active site. On active site
             // we use local seeds
-            if (isDrActiveSite) {
+            if (useSeedsInLocalSite) {
                 for (int i = 0; i < configs.size(); i++) {
                     Configuration config = configs.get(i);
                     // Bypasses item of "global" and folders of "version", just check db configurations.

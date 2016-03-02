@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2012 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.common;
@@ -17,7 +17,6 @@ import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedRelationIndex;
 import com.emc.storageos.db.client.model.RelationIndex;
-import com.emc.storageos.db.client.model.VplexMirror;
 
 public class DependencyInterceptor {
 	private static final Logger log = LoggerFactory.getLogger(DependencyInterceptor.class);
@@ -28,11 +27,25 @@ public class DependencyInterceptor {
 		this.modelClasses = modelClasses;
 	}
 
+    /**
+     * Check the clazz if it has Cf annotation
+     *
+     * @param clazz the class which to check against
+     * @return true if has Cf annotation 
+     */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public boolean isConcretModelClass(Class clazz) {
 		return clazz.getAnnotation(Cf.class) != null;
 	}
 	
+    /**
+     * handle the dependency if type attribute set to abstract class in RelationIndex/NamedRelationIndex
+     *
+     * @param tracker dependency tracker
+     * @param sourceClazz the DataObject Type 
+     * @param field the property has Relation/NamedRelationIndex annotation in sourceClazz  
+     * @return
+     */
 	@SuppressWarnings({ "rawtypes" })
 	public void handleDependency(DependencyTracker tracker,  Class sourceClazz, ColumnField field) {
 		log.info("process dependency of class {} field {}", sourceClazz.getSimpleName(), field.getName());

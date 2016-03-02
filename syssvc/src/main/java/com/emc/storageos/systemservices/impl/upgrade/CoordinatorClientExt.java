@@ -1421,17 +1421,12 @@ public class CoordinatorClientExt {
      * @return a Set instance with good node seq id(1, 2, or 3 etc).
      */
     private Set<String> getGoodNodes(String svcName, String version) {
-        return getGoodNodes(null, svcName, version);
+        return getGoodNodes(_coordinator.getSiteId(), svcName, version);
     }
 
     private Set<String> getGoodNodes(String siteId, String svcName, String version) {
         Set<String> goodNodes = new HashSet<String>();
-        List<Service> svcs = null;
-        if (siteId == null) {
-            svcs = _coordinator.locateAllServices(svcName, version, (String) null, null);
-        } else {
-            svcs = _coordinator.locateAllServices(siteId, svcName, version, (String) null, null);
-        }
+        List<Service> svcs = _coordinator.locateAllServices(siteId, svcName, version, (String) null, null);
         for (Service svc : svcs) {
             String svcId = svc.getId();
             goodNodes.add(getNodeSeqFromSvcId(svcId));
@@ -1775,7 +1770,12 @@ public class CoordinatorClientExt {
         _log.info("Get available nodes by check {}: {} for site {}", serviceName, availableNodes, siteId);
         return availableNodes;
     }
-    
+
+    public List<String> getServiceAvailableNodes(String serviceName) {
+        String siteId = _coordinator.getSiteId();
+        return getServiceAvailableNodes(siteId, serviceName);
+    }
+
     public void blockUntilZookeeperIsWritableConnected(long sleepInterval) {
         while (true) {
             try {

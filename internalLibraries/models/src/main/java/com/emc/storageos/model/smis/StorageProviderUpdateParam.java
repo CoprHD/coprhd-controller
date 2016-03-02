@@ -22,7 +22,6 @@ public class StorageProviderUpdateParam {
     private String secondaryUsername;
     private String secondaryPassword;
     private String elementManagerURL;
-    private String secretKey;
 
     public StorageProviderUpdateParam() {
     }
@@ -167,19 +166,5 @@ public class StorageProviderUpdateParam {
 
     public void setElementManagerURL(String elementManagerURL) {
         this.elementManagerURL = elementManagerURL;
-    }
-
-    /**
-     * Secret key - token to access to storage provider.
-     *
-     * @valid none
-     */
-    @XmlElement(required = false, name = "secret_key")
-    public String getSecretKey() {
-        return secretKey;
-    }
-
-    public void setSecretKey(String secretKey) {
-        this.secretKey = secretKey;
     }
 }

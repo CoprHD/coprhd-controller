@@ -83,7 +83,6 @@ public class StorageProviderUtils {
         update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, null));
         update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, null));
         update.setElementManagerURL(StringUtils.defaultIfEmpty(elementManagerURL, null));
-        update.setSecretKey(StringUtils.defaultIfEmpty(secretKey, null));
         if (StorageProviderTypes.isScaleIOApi(interfaceType)) {
         	update.setUserName(secondaryUsername);
         	update.setPassword(secondaryPassword);
@@ -91,7 +90,6 @@ public class StorageProviderUtils {
         	update.setSecondaryPassword(null);
         } else if (StorageProviderTypes.isCeph(interfaceType)) {
             update.setPassword(secretKey);
-            update.setSecretKey(null);
         }
         return getViprClient().storageProviders().create(update);
     }
@@ -110,7 +108,6 @@ public class StorageProviderUtils {
         update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, null));
         update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, null));
         update.setElementManagerURL(StringUtils.defaultIfEmpty(elementManagerURL, null));
-        update.setSecretKey(StringUtils.defaultIfEmpty(secretKey, null));
         if (StorageProviderTypes.isScaleIOApi(interfaceType)) {
         	update.setUserName(secondaryUsername);
         	update.setPassword(secondaryPassword);
@@ -118,7 +115,6 @@ public class StorageProviderUtils {
         	update.setSecondaryPassword(null);
         } else if (StorageProviderTypes.isCeph(interfaceType)) {
             update.setPassword(secretKey);
-            update.setSecretKey(null);
         }
         return getViprClient().storageProviders().update(id, update);
     }

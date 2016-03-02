@@ -103,11 +103,6 @@ public class StorageProvider extends DataObject {
     private String elementManagerURL;
 
     /**
-     * Secret key. A token to access to storage provider.
-     */
-    private String secretKey;
-
-    /**
      * Secondary set of credentials. This is used for example in the
      * case of ScaleIO, where there is a password to SSH into the
      * MDM box (primary creds) and the secondary creds will be the
@@ -124,17 +119,6 @@ public class StorageProvider extends DataObject {
     public void setElementManagerURL(String elementManagerURL) {
         this.elementManagerURL = elementManagerURL;
         setChanged("elementManagerURL");
-    }
-
-    @Encrypt
-    @Name("secretKey")
-    public String getSecretKey() {
-        return secretKey;
-    }
-
-    public void setSecretKey(String secretKey) {
-        this.secretKey = secretKey;
-        setChanged("secretKey");
     }
 
     @Name("secondaryUsername")

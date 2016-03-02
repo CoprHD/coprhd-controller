@@ -1187,15 +1187,12 @@ public class VPlexApiMigrationManager {
                             + " will not be updated.", migrationSrcName);
                     return;
                 }
-                String srcVolumeName = migrationSrcName.substring(
-                        VPlexApiConstants.EXTENT_PREFIX.length(),
-                        migrationSrcName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
 
                 // Find the virtual volume containing the source volume
                 // name.
                 for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                     virtualVolumeInfo = discoveryMgr.findVirtualVolume(
-                            clusterInfo.getName(), srcVolumeName, false);
+                            clusterInfo.getName(), virtualVolumeName, false);
                     if (virtualVolumeInfo != null) {
                         break;
                     }
@@ -1221,6 +1218,8 @@ public class VPlexApiMigrationManager {
 
                 // Update the virtual volume name and associated distributed
                 // device name to reflect the target rather than the source.
+                String srcVolumeName = migrationSrcName.substring(VPlexApiConstants.EXTENT_PREFIX.length(),
+                        migrationSrcName.indexOf(VPlexApiConstants.EXTENT_SUFFIX));
                 String migrationTgtName = migrationInfo.getTarget();
                 String tgtVolumeName = migrationTgtName.substring(
                         VPlexApiConstants.EXTENT_PREFIX.length(),

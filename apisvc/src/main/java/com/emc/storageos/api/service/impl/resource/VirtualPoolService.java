@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Collection;
 
 import javax.ws.rs.core.Response;
 
@@ -305,7 +306,7 @@ public abstract class VirtualPoolService extends TaggedResource {
      * OR
      * 2) Virtual array should not have virtual pool resources
      * 
-     * @param varrays
+     * @param varrayChanges
      * @param vpool
      */
     protected boolean checkVirtualArraysWithVPoolResources(VirtualArrayAssignmentChanges varrayChanges, VirtualPool vpool) {
@@ -756,10 +757,18 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
 
         URI tenant = URI.create(user.getTenantId());
+        Map<String, Collection<String>> subTenantRoles = _permissionsHelper
+                .getSubtenantRolesForUser(user);
+        List<URI> subtenants = new ArrayList<URI>();
+        for (String subtenant : subTenantRoles.keySet()) {
+            subtenants.add(URI.create(subtenant));
+        }
+
         for (VirtualPool vpool : vpoolObjects) {
             if (!_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
                 // filter by only authorized to us
-                if (_permissionsHelper.tenantHasUsageACL(tenant, vpool)) {
+                if (_permissionsHelper.tenantHasUsageACL(tenant, vpool) ||
+                        _permissionsHelper.tenantHasUsageACL(subtenants, vpool)) {
                     // this is an allowed VirtualPool, add it to the list
                     list.getVirtualPool().add(toVirtualPoolResource(vpool));
                 }

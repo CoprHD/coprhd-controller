@@ -984,6 +984,33 @@ public class BasePermissionsHelper {
     }
 
     /**
+     * Returns true if any tenant in the list has a usage acl on the VirtualPool
+     *
+     * @param tenantUris
+     * @param virtualPool
+     * @return
+     */
+    public boolean tenantHasUsageACL(List<URI> tenantUris, VirtualPool virtualPool) {
+        if (_disabler != null) {
+            return true;
+        }
+        // Make CoS open to all by default, restriction kicks in once a acl assignment is done
+        if (CollectionUtils.isEmpty(virtualPool.getAcls())) {
+            return true;
+        }
+
+        for (URI tenantUri : tenantUris) {
+            Set<String> acls = virtualPool.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
+                    tenantUri.toString(), virtualPool.getType()).toString());
+            if (acls != null && acls.contains(ACL.USE.toString())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Returns true if the user's tenant has a usage acl on the ComputeVirtualPool
      * 
      * @param tenantUri
@@ -1027,6 +1054,32 @@ public class BasePermissionsHelper {
                 tenantUri.toString()).toString());
         if (acls != null && acls.contains(ACL.USE.toString())) {
             return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns true if any tenant in the list has a usage acl on the VirtualArray
+     *
+     * @param tenantUris
+     * @param virtualArray
+     * @return
+     */
+    public boolean tenantHasUsageACL(List<URI> tenantUris, VirtualArray virtualArray) {
+        if (_disabler != null) {
+            return true;
+        }
+        // Make Neighborhood open to all by default, restriction kicks in once a acl assignment is done
+        if (CollectionUtils.isEmpty(virtualArray.getAcls())) {
+            return true;
+        }
+
+        for (URI tenantUri : tenantUris) {
+            Set<String> acls = virtualArray.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
+                    tenantUri.toString()).toString());
+            if (acls != null && acls.contains(ACL.USE.toString())) {
+                return true;
+            }
         }
         return false;
     }

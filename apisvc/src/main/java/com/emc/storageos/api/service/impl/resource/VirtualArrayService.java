@@ -20,6 +20,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Collection;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -199,11 +200,18 @@ public class VirtualArrayService extends TaggedResource {
         } else {
             // otherwise, filter by only authorized to use
             URI tenant = URI.create(user.getTenantId());
+            Map<String, Collection<String>> subTenantRoles = _permissionsHelper
+                    .getSubtenantRolesForUser(user);
+            List<URI> subtenants = new ArrayList<URI>();
+            for (String subtenant : subTenantRoles.keySet()) {
+                subtenants.add(URI.create(subtenant));
+            }
+
             for (VirtualArray nh : nhObjList) {
-                if (_permissionsHelper.tenantHasUsageACL(tenant, nh)) {
+                if (_permissionsHelper.tenantHasUsageACL(tenant, nh) ||
+                        _permissionsHelper.tenantHasUsageACL(subtenants, nh)  ) {
                     list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
                             nh.getId(), nh.getLabel()));
-                }
             }
         }
         return list;

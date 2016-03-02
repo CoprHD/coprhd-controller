@@ -779,7 +779,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
-     * Get File Policy associated with a File System
+     * Get list of snapshot created by file policy
      * <p>
      * API Call: <tt>GET /file/filesystems/{fileSystemId}/file-policies/{filePolicyId}/snapshots</tt>
      * 

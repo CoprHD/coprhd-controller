@@ -3503,9 +3503,15 @@ public class FileService extends TaskResourceService {
                 TimeUnit.SECONDS.sleep(1);
                 taskObject = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), task);
                 timeoutCounter++;
-            } while ((taskObject != null && !taskObject.isReady()) && timeoutCounter < timeout);
+                // exit the loop if task is completed with error/success or timeout
+            } while ((taskObject != null && !(taskObject.isReady() || taskObject.isError())) && timeoutCounter < timeout);
 
-            if (taskObject.isReady()) {
+            if (taskObject == null) {
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots task information");
+
+            }
+            else if (taskObject.isReady()) {
                 URIQueryResultList snapshotsURIs = new URIQueryResultList();
                 _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id),
                         snapshotsURIs);
@@ -3522,7 +3528,13 @@ public class FileService extends TaskResourceService {
                     }
                 }
 
+            } else if (taskObject.isError()) {
+
+                throw APIException.badRequests
+                        .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to" + taskObject.getMessage());
+
             } else {
+
                 throw APIException.badRequests
                         .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots due to timeout");
 

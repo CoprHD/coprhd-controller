@@ -99,14 +99,14 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      * @return A mapping of VPlex cluster/consistency groups to their associated volumes
      * @throws Exception
      */
-    protected Map<ClusterConsistencyGroupWrapper, List<URI>> getClusterConsistencyGroupVolumes(List<URI> vplexVolumeURIs, String cgName)
+    protected Map<ClusterConsistencyGroupWrapper, List<URI>> getClusterConsistencyGroupVolumes(List<URI> vplexVolumeURIs, BlockConsistencyGroup cg)
             throws Exception {
         Map<ClusterConsistencyGroupWrapper, List<URI>> clusterConsistencyGroups =
                 new HashMap<ClusterConsistencyGroupWrapper, List<URI>>();
 
         for (URI vplexVolumeURI : vplexVolumeURIs) {
             Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
-            addVolumeToClusterConsistencyGroup(vplexVolume, clusterConsistencyGroups, cgName);
+            addVolumeToClusterConsistencyGroup(vplexVolume, clusterConsistencyGroups, cg);
         }
 
         return clusterConsistencyGroups;
@@ -124,9 +124,9 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      * @throws Exception
      */
     protected void addVolumeToClusterConsistencyGroup(Volume vplexVolume, Map<ClusterConsistencyGroupWrapper,
-            List<URI>> clusterConsistencyGroupVolumes, String cgName) throws Exception {
+            List<URI>> clusterConsistencyGroupVolumes, BlockConsistencyGroup cg) throws Exception {
         ClusterConsistencyGroupWrapper clusterConsistencyGroup =
-                getClusterConsistencyGroup(vplexVolume, cgName);
+                getClusterConsistencyGroup(vplexVolume, cg);
 
         if (!clusterConsistencyGroupVolumes.containsKey(clusterConsistencyGroup)) {
             clusterConsistencyGroupVolumes.put(clusterConsistencyGroup, new ArrayList<URI>());
@@ -285,12 +285,12 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     }
 
     @Override
-    public void deleteConsistencyGroupVolume(URI vplexURI, Volume volume, String cgName) throws Exception {
+    public void deleteConsistencyGroupVolume(URI vplexURI, Volume volume, BlockConsistencyGroup cg) throws Exception {
         VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexURI, dbClient);
 
         // Determine the VPlex CG corresponding to the this volume
         ClusterConsistencyGroupWrapper clusterCg =
-                getClusterConsistencyGroup(volume, cgName);
+                getClusterConsistencyGroup(volume, cg);
 
         if (clusterCg != null) {
             // Remove the volume from the CG. Delete the CG if it's empty
@@ -318,7 +318,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgURI, dbClient);
 
         ClusterConsistencyGroupWrapper clusterConsistencyGroup =
-                getClusterConsistencyGroup(volume, cg.getLabel());
+                getClusterConsistencyGroup(volume, cg);
 
         return clusterConsistencyGroup.getCgName();
     }
@@ -327,10 +327,9 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     public void addVolumeToCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean addToViPRCg) throws Exception {
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class,
                 cgURI, dbClient);
-        String cgName = cg.getLabel();
 
         ClusterConsistencyGroupWrapper clusterCgWrapper =
-                this.getClusterConsistencyGroup(vplexVolume, cgName);
+                this.getClusterConsistencyGroup(vplexVolume, cg);
 
         log.info("Adding volumes to consistency group: " + clusterCgWrapper.getCgName());
         // Add the volume from the CG.
@@ -346,10 +345,9 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     public void removeVolumeFromCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean removeFromViPRCg) throws Exception {
         BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class,
                 cgURI, dbClient);
-        String cgName = cg.getLabel();
 
         ClusterConsistencyGroupWrapper clusterCgWrapper =
-                this.getClusterConsistencyGroup(vplexVolume, cgName);
+                this.getClusterConsistencyGroup(vplexVolume, cg);
 
         log.info("Removing volumes from consistency group: " + clusterCgWrapper.getCgName());
         // Remove the volumes from the CG.

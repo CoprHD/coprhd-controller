@@ -1127,7 +1127,7 @@ public class VPlexApiMigrationManager {
      * source, and we want to be sure the name continues to reflect the backend
      * storage volumes used by the virtual volume.
      * 
-     * @param virtualVolumeName The name of the virtual volume prior to the commit.
+     * @param virtualVolumeName The name of the virtual volume prior migration.
      * @param migrationInfoList The list of committed migrations.
      * @param rename true to rename the volumes.
      * 
@@ -1144,16 +1144,16 @@ public class VPlexApiMigrationManager {
         for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
             VPlexVirtualVolumeInfo virtualVolumeInfo = null;
             if (migrationInfo.getIsDeviceMigration()) {
-                // For a device migration, the virtual volume name is
-                // automatically updated after the commit. All we have
-                // to do is make sure the migration contains the updated
-                // virtual volume information.
-                for (VPlexClusterInfo clusterInfo : clusterInfoList) {
-                    virtualVolumeInfo = discoveryMgr.findVirtualVolume(
-                            clusterInfo.getName(), virtualVolumeName, false);
-                    if (virtualVolumeInfo != null) {
-                        break;
-                    }
+                // In some cases for a for a device migration, the virtual volume
+                // name is automatically updated after the commit and there is nothing
+                // to do. In other cases it simply ends up as the target volume name and
+                // we need to append the virtual volume suffix. In these cases we
+                // won't find the virtual volume using the passed, original virtual
+                // volume name as it will already reflect the new target backend
+                // volume.
+                virtualVolumeInfo = findVirtualVolumeAfterDeviceMigration(migrationInfo, clusterInfoList);
+                if (virtualVolumeInfo == null) {
+                    break;
                 }
 
                 String migrationTgtName = migrationInfo.getTarget();
@@ -1290,5 +1290,38 @@ public class VPlexApiMigrationManager {
         }
 
         s_logger.info("Successfully update volume info after commit");
+    }
+
+    /**
+     * Finds the virtual volume after a device migration.
+     * 
+     * @param migrationInfo The migration information.
+     * @param clusterInfoList The VPLEX cluster information.
+     * 
+     * @return A VPlexVirtualVolumeInfo representing the volume, or null when not found.
+     */
+    private VPlexVirtualVolumeInfo findVirtualVolumeAfterDeviceMigration(VPlexMigrationInfo migrationInfo,
+            List<VPlexClusterInfo> clusterInfoList) {
+        VPlexVirtualVolumeInfo virtualVolumeInfo = null;
+        VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+            String clusterName = clusterInfo.getName();
+            String virtualVolumeName = migrationInfo.getTarget();
+            virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterName, virtualVolumeName, false);
+            if (virtualVolumeInfo != null) {
+                s_logger.info("Found virtual volume after device migration with name {} on cluster {}",
+                        virtualVolumeName, clusterName);
+                break;
+            } else {
+                virtualVolumeName += VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX;
+                virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(), virtualVolumeName, false);
+                if (virtualVolumeInfo != null) {
+                    s_logger.info("Found virtual volume after device migration with name {} on cluster {}",
+                            virtualVolumeName, clusterName);
+                    break;
+                }
+            }
+        }
+        return virtualVolumeInfo;
     }
 }

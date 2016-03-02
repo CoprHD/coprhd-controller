@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.fapiclient.ws.ClusterUID;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyRole;
-import com.emc.fapiclient.ws.ConsistencyGroupCopyRoleInfo;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySettings;
 import com.emc.fapiclient.ws.ConsistencyGroupCopySnapshots;
 import com.emc.fapiclient.ws.ConsistencyGroupCopyState;

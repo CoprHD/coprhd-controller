@@ -11,8 +11,10 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,6 +39,7 @@ import util.datatable.DataTablesSupport;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
@@ -71,6 +74,7 @@ public class BlockVolumes extends ResourceController {
     private static final String NOTARGET = "resources.snapshot.session.targets.none";
 
     private static BlockVolumesDataTable blockVolumesDataTable = new BlockVolumesDataTable();
+    private static Set<String> roles = new HashSet(Arrays.asList("COPY"));
 
     public static void volumes(String projectId) {
         setActiveProjectId(projectId);
@@ -423,9 +427,17 @@ public class BlockVolumes extends ResourceController {
 
     @Util
     private static List<NamedRelatedResourceRep> getApplications() {
-        List<NamedRelatedResourceRep> application = AppSupportUtil.getApplications();
-        if (!application.isEmpty()) {
-            Collections.sort(application, new Comparator<NamedRelatedResourceRep>() {
+        List<NamedRelatedResourceRep> applications = AppSupportUtil.getApplications();
+        List<NamedRelatedResourceRep> results = Lists.newArrayList();
+		for (NamedRelatedResourceRep application : applications) {
+			VolumeGroupRestRep volumeGroup = AppSupportUtil
+					.getApplication(application.getId().toString());
+			if ((roles).equals(volumeGroup.getRoles())) {
+				results.add(application);
+			}
+		}
+        if (!results.isEmpty()) {
+            Collections.sort(results, new Comparator<NamedRelatedResourceRep>() {
                 @Override
                 public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
                 {
@@ -434,6 +446,6 @@ public class BlockVolumes extends ResourceController {
             });
 
         }
-        return application;
+        return results;
     }
 }

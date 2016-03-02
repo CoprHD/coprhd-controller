@@ -2699,7 +2699,7 @@ rp_port_setup()
     fi
 
     if [ "${RPXIO_TESTS}" = "1" ]; then
-        run storageport update $RECOVERPOINT_XTREMIO_GUID FC --addvarrays $RECOVERPOINT_VARRAY1528
+        run storageport update $RECOVERPOINT_XTREMIO_GUID FC --addvarrays $RECOVERPOINT_VARRAY1
     fi
 
 }
@@ -2744,10 +2744,13 @@ rp_isolate_rpa_clusters()
 {
     if [ "$RP_USE_RPA_ISOLATION" = "1" ]; then
         secho 'RecoverPoint isolate RPA clusters'
-
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY2
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4 --addvarrays $RECOVERPOINT_VARRAY3
+        if [ "${RPXIO_TESTS}" = "0" ]; then
+            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
+            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY2
+            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4 --addvarrays $RECOVERPOINT_VARRAY3
+	else
+            run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_XIORPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
+	fi
     fi
 }
 

@@ -56,7 +56,7 @@ public class DbDowntimeTracker {
     }
 
     private AutoCloseable getTrackerLock() throws Exception {
-        return new InterProcessLockHolder(this.coordinator.getCoordinatorClient(), DB_TRACKER_LOCK, this.log);
+        return new InterProcessLockHolder(this.coordinator.getCoordinatorClient(), DB_TRACKER_LOCK, this.log, true);
     }
 
     /**

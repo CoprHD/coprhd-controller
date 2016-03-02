@@ -1249,7 +1249,7 @@ public class VolumeIngestionUtil {
                 SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(),
                 unManagedVolume.getVolumeInformation());
 
-        // Don't create CG if the vplex is behind RP. Add a check here.
+        // Don't create CG if the vplex is behind RP
         if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
             StringSet clusterEntries = PropertySetterUtil.extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString(),

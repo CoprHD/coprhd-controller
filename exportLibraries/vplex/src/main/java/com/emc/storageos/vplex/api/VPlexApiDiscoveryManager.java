@@ -2470,6 +2470,7 @@ public class VPlexApiDiscoveryManager {
                 URI.create(uriBuilder.toString()));
         s_logger.info("Get consistency groups request URI is {}", requestURI.toString());
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+                   
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();

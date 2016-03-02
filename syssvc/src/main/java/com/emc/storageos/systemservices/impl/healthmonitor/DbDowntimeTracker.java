@@ -12,9 +12,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
+import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.services.util.TimeUtils;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
@@ -42,29 +45,44 @@ public class DbDowntimeTracker {
      * Monitor dbsvc and geodbsvc online/offline event and record downtime in ZK
      */
     public void run() {
+        DrUtil drUtil = new DrUtil(coordinator.getCoordinatorClient());
+        if (drUtil.isStandby()) {
+            log.info("Current site is standby, no need to monitor dbsvc and geodbsvc status");
+            return;
+        }
         log.info("Monitoring dbsvc and geodbsvc status");
         try (AutoCloseable lock = getTrackerLock()) {
-            for (String serviceName : serviceNames) {
-                log.info("Check status for {} begin", serviceName);
-                List<String> availableNodes = coordinator.getServiceAvailableNodes(serviceName);
-                updateTrackerInfo(serviceName, availableNodes);
-                log.info("Check status for {} finish", serviceName);
+            for (Site site : drUtil.listSites()) {
+                String siteId = site.getUuid();
+                log.info("Start to check db/geodb status for site {}", site.getUuid());
+                updateSiteDbsvcStatus(site);
             }
         } catch (Exception e) {
             log.warn("Failed to monitor db status", e);
         }
     }
 
+    private void updateSiteDbsvcStatus(Site site) {
+        String siteId = site.getUuid();
+        for (String serviceName : serviceNames) {
+            log.info("Check status for {} begin, site id: {}", serviceName, siteId);
+            List<String> availableNodes = coordinator.getServiceAvailableNodes(siteId, serviceName);
+            updateTrackerInfo(site, serviceName, availableNodes);
+            log.info("Check status for {} finish, site id: {}", serviceName, siteId);
+        }
+    }
+
     private AutoCloseable getTrackerLock() throws Exception {
-        return new InterProcessLockHolder(this.coordinator.getCoordinatorClient(), DB_TRACKER_LOCK, this.log, true);
+        return new InterProcessLockHolder(this.coordinator.getCoordinatorClient(), DB_TRACKER_LOCK, this.log);
     }
 
     /**
      * Update db offline event info in ZK.
      */
-    private void updateTrackerInfo(String serviceName, List<String> activeNodes) {
+    private void updateTrackerInfo(Site site, String serviceName, List<String> activeNodes) {
+        String siteId = site.getUuid();
         log.info("Querying db tracker info from zk");
-        Configuration config = coordinator.getCoordinatorClient().queryConfiguration(
+        Configuration config = coordinator.getCoordinatorClient().queryConfiguration(siteId,
                 Constants.DB_DOWNTIME_TRACKER_CONFIG, serviceName);
         DbOfflineEventInfo dbOfflineEventInfo = new DbOfflineEventInfo(config);
 
@@ -78,9 +96,9 @@ public class DbDowntimeTracker {
         }
 
         dbOfflineEventInfo.setLastUpdateTimestamp(currentTimeStamp);
-        log.info("Db tracker last check time: {}, current check time: {}", lastUpdateTimestamp, currentTimeStamp);
+        log.info("Db tracker last check time: {}, current check time: {}, site: ", lastUpdateTimestamp, currentTimeStamp, siteId);
 
-        int nodeCount = coordinator.getNodeCount();
+        int nodeCount = site.getNodeCount();
         for (int i = 1; i <= nodeCount; i++) {
             String nodeId = "vipr" + i;
             if (activeNodes.contains(nodeId)) {
@@ -102,7 +120,7 @@ public class DbDowntimeTracker {
             }
         }
         config = dbOfflineEventInfo.toConfiguration(serviceName);
-        coordinator.getCoordinatorClient().persistServiceConfiguration(coordinator.getCoordinatorClient().getSiteId(), config);
+        coordinator.getCoordinatorClient().persistServiceConfiguration(siteId, config);
         log.info("Persist db tracker info to zk successfully");
     }
 }

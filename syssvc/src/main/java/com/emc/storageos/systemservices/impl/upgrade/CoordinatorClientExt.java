@@ -1421,8 +1421,17 @@ public class CoordinatorClientExt {
      * @return a Set instance with good node seq id(1, 2, or 3 etc).
      */
     private Set<String> getGoodNodes(String svcName, String version) {
+        return getGoodNodes(null, svcName, version);
+    }
+
+    private Set<String> getGoodNodes(String siteId, String svcName, String version) {
         Set<String> goodNodes = new HashSet<String>();
-        List<Service> svcs = _coordinator.locateAllServices(svcName, version, (String) null, null);
+        List<Service> svcs = null;
+        if (siteId == null) {
+            svcs = _coordinator.locateAllServices(svcName, version, (String) null, null);
+        } else {
+            svcs = _coordinator.locateAllServices(siteId, svcName, version, (String) null, null);
+        }
         for (Service svc : svcs) {
             String svcId = svc.getId();
             goodNodes.add(getNodeSeqFromSvcId(svcId));
@@ -1752,18 +1761,18 @@ public class CoordinatorClientExt {
     /**
      * Get the nodes list on which specific service are available
      */
-    public List<String> getServiceAvailableNodes(String serviceName) {
+    public List<String> getServiceAvailableNodes(String siteId, String serviceName) {
         List<String> availableNodes = new ArrayList<String>();
         try {
             String dbVersion = _coordinator.getTargetDbSchemaVersion();
-            Set<String> ids = getGoodNodes(serviceName, dbVersion);
+            Set<String> ids = getGoodNodes(siteId, serviceName, dbVersion);
             for (String id : ids) {
                 availableNodes.add(ProductName.getName() + id);
             }
         } catch (Exception ex) {
-            _log.info("Check service({}) beacon error", serviceName, ex);
+            _log.info("Check service({}) beacon error for site {}", serviceName, siteId, ex);
         }
-        _log.info("Get available nodes by check {}: {}", serviceName, availableNodes);
+        _log.info("Get available nodes by check {}: {} for site {}", serviceName, availableNodes, siteId);
         return availableNodes;
     }
     

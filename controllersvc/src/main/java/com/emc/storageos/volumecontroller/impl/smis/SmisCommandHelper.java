@@ -7204,8 +7204,8 @@ public class SmisCommandHelper implements SmisConstants {
     }
     
     /**
-     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry, then remove it using 
-     * the clone replication group name and source replication group name
+     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone replication group name 
+     * and source replication group name, then remove it. This operation is necessary before deleting a attached clone replication group. 
      * @param system 
      * @param replicationSvc
      * @param cloneReplicationGroupName
@@ -7222,7 +7222,6 @@ public class SmisCommandHelper implements SmisConstants {
         if (sfsEntries != null && !sfsEntries.isEmpty()) {
             for (String entry : sfsEntries) {
                 if (entry.contains(entryLabel)) {
-                    _log.info(entry);
                     removeEntries.add(entry);
                     break;
                 }
@@ -7244,6 +7243,13 @@ public class SmisCommandHelper implements SmisConstants {
         
     }
 
+    /**
+     * Construct a String using clone replication group name and source replication group name for searching the EMCSFSEntries.
+     * @param systemSerial array serial number
+     * @param cloneReplicationGroupName - clone replication group name
+     * @param sourceRGName - source replication group name
+     * @return constructed string
+     */
     private String formatCloneLabelForSFSEntry(String systemSerial, String cloneReplicationGroupName, String sourceRGName) {
         return String.format("%s+%s#%s+%s#", systemSerial, sourceRGName, systemSerial, cloneReplicationGroupName);
     }
@@ -7255,7 +7261,6 @@ public class SmisCommandHelper implements SmisConstants {
      * @return the list of EMCSFSEntries
      */
     public List<String> getEMCSFSEntries(StorageSystem storage, CIMObjectPath replicationSvc) {
-        //CIMArgument[] inArgs;
         CIMArgument[] outArgs = new CIMArgument[5];
         try {
             invokeMethod(storage, replicationSvc, SmisConstants.EMC_LIST_SFSENTRIES, null, outArgs);

@@ -432,7 +432,7 @@ public class BlockVolumes extends ResourceController {
 		for (NamedRelatedResourceRep application : applications) {
 			VolumeGroupRestRep volumeGroup = AppSupportUtil
 					.getApplication(application.getId().toString());
-			if (volumeGroup.getRoles().equals(roles)) {
+			if ((roles).equals(volumeGroup.getRoles())) {
 				results.add(application);
 			}
 		}

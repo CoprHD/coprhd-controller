@@ -37,7 +37,7 @@ public class ApplicationSupportDataTable extends DataTable {
 				.getApplications()) {
 			VolumeGroupRestRep application = AppSupportUtil
 					.getApplication(applications.getId().toString());
-			if (application.getRoles().equals(roles)) {
+			if ((roles).equals(application.getRoles())) {
 				results.add(new ApplicationSupport(application));
 			}
 

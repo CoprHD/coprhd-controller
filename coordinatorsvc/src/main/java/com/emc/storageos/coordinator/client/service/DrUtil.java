@@ -207,8 +207,9 @@ public class DrUtil {
         SiteNetworkState siteNetworkState = coordinator.getTargetInfo(siteId, SiteNetworkState.class);
         if (siteNetworkState != null) {
             return siteNetworkState;
+        } else {
+            return new SiteNetworkState();
         }
-        throw CoordinatorException.retryables.cannotFindSite(siteId);
     }
     
     

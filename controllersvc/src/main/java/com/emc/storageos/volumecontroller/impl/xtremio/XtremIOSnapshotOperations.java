@@ -227,14 +227,15 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-            // We should use snapsetLabel to get the snapset name because in case of ingested snaps, the replicationGroupInstance
-            // will be populated with the CG name corresponding to the snapset.
-            String snapsetName = snapshotObj.getSnapsetLabel();
+            // The ingested snaps should have the replicationGroupInstance populated with the
+            // snapset name.
+            String snapsetName = snapshotObj.getReplicationGroupInstance();
             if (null != XtremIOProvUtils.isSnapsetAvailableInArray(client, snapsetName, clusterName)) {
                 client.deleteSnapshotSet(snapsetName, clusterName);
             }
-            // Set inactive=true for all snapshots in the snap
-            List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, dbClient);
+            // Set inactive=true for all snapshots in the snapset
+            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
+                    snapshotObj.getReplicationGroupInstance(), dbClient);
             for (BlockSnapshot snap : snapshots) {
                 snap.setIsSyncActive(false);
                 snap.setInactive(true);
@@ -287,9 +288,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                                 group.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
-            // We should use snapsetLabel to get the snapset name because in case of ingested snaps, the replicationGroupInstance
-            // will be populated with the CG name corresponding to the snapset.
-            client.restoreCGFromSnapshot(clusterName, cgName, snapshotObj.getSnapsetLabel());
+            // The ingested snaps should have the replicationGroupInstance populated with the
+            // snapset name.
+            client.restoreCGFromSnapshot(clusterName, cgName, snapshotObj.getReplicationGroupInstance());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot restore failed", e);
@@ -336,9 +337,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                                 group.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
-            // We should use snapsetLabel to get the snapset name because in case of ingested snaps, the replicationGroupInstance
-            // will be populated with the CG name corresponding to the snapset.
-            client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getSnapsetLabel());
+            // The ingested snaps should have the replicationGroupInstance populated with the
+            // snapset name.
+            client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot resync failed", e);

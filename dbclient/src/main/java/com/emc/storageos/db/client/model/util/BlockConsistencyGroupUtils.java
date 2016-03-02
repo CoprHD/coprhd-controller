@@ -17,7 +17,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Project;
@@ -360,8 +359,8 @@ public class BlockConsistencyGroupUtils {
         }
     }
 
-    public static List<BlockObject> getAllSources(BlockConsistencyGroup cg, DbClient dbClient) {
-        List<BlockObject> result = new ArrayList<>();
+    public static List<Volume> getAllCGVolumes(BlockConsistencyGroup cg, DbClient dbClient) {
+        List<Volume> result = new ArrayList<>();
 
         if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && cg.checkForType(BlockConsistencyGroup.Types.RP)) {
             // VPLEX+RP

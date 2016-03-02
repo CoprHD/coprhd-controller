@@ -88,6 +88,7 @@ public class BlockMapper {
         to.setDeviceLabel(from.getDeviceLabel() != null ? from.getDeviceLabel() : "");
         to.setNativeId(from.getNativeId() != null ? from.getNativeId() : "");
         to.setConsistencyGroup(toRelatedResource(ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP, from.getConsistencyGroup()));
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance() != null ? from.getReplicationGroupInstance() : "");
     }
 
     public static VolumeRestRep map(Volume from) {
@@ -121,10 +122,16 @@ public class BlockMapper {
         to.setLinkStatus(from.getLinkStatus());
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
+
         if (dbClient != null) {
             StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
-            if (system != null && system.checkIfVmax3()) {
-                to.setSupportsSnapshotSessions(Boolean.TRUE);
+            if (system != null){
+                if(system.checkIfVmax3()) { 
+                    to.setSupportsSnapshotSessions(Boolean.TRUE);  
+                    to.setSystemType("vmax3");  
+                } else {
+                    to.setSystemType(system.getSystemType());
+                }
             }
         }
         // Extra checks for VPLEX volumes
@@ -338,6 +345,7 @@ public class BlockMapper {
         to.setSyncActive(from.getIsSyncActive());
         to.setReplicaState(getReplicaState(from));
         to.setReadOnly(from.getIsReadOnly());
+        to.setSnapsetLabel(from.getSnapsetLabel() != null ? from.getSnapsetLabel() : "");
         return to;
     }
 
@@ -407,6 +415,12 @@ public class BlockMapper {
             to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, projectURI.getURI()));
         }
 
+        // Map storage controller
+        URI storageURI = from.getStorageController();
+        if (storageURI != null) {
+            to.setStorageController(storageURI);
+        }
+
         // Map linked targets.
         StringSet linkedTargetIds = from.getLinkedTargets();
         if ((linkedTargetIds != null) && (!linkedTargetIds.isEmpty())) {
@@ -421,6 +435,12 @@ public class BlockMapper {
 
         // Map session label.
         to.setSessionLabel(from.getSessionLabel());
+
+        // Map replication group name.
+        to.setReplicationGroupInstance(from.getReplicationGroupInstance());
+
+        // Map session set name.
+        to.setSessionSetName(from.getSessionSetName());
 
         return to;
     }

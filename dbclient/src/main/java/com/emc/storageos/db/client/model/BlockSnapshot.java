@@ -30,7 +30,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     // New volume generated when the snapshot was created or exported
     private String _newVolumeNativeId;
 
-    // Set of snapshots generated at the same time, with the same consistency group
+    // Label for snapshots generated at the same time, with the same consistency group or volume group.
     private String _snapsetLabel;
 
     // Source ALU, for convenience

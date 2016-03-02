@@ -165,4 +165,12 @@ public class DisasterRecoveryUtils {
         CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
         return getViprClient().site().getSite(coordinatorClient.getSiteId()).getState();
     }
+    
+    public static boolean isMultiDrSite() {
+        int sitecount = getSiteCount();
+        if(sitecount > 1) {
+            return true;
+        }
+        return false;
+    }
 }

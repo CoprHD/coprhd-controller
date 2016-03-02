@@ -51,6 +51,7 @@ ETCFILES_COMMON = \
     $(ETCDIR)/genconfig.d/ipsec \
     $(ETCDIR)/genconfig.d/test \
     $(ETCDIR)/gentmpl \
+    $(ETCDIR)/datatool \
     $(ETCDIR)/diagtool \
     $(ETCDIR)/powerofftool \
     $(ETCDIR)/ipsectool \

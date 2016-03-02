@@ -223,10 +223,10 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
 
     }
 
-	@Override
-	public void rollBackCreateFileShares(URI systemURI, List<URI> fileURIs, String opId) throws InternalException {
-		execFS("rollBackCreateFileShares", systemURI, fileURIs, opId);
-	}
+    @Override
+    public void rollBackCreateFileShares(URI systemURI, List<URI> fileURIs, String opId) throws InternalException {
+        execFS("rollBackCreateFileShares", systemURI, fileURIs, opId);
+    }
 
     @Override
     public void assignFileSystemSnapshotPolicy(URI storageURI, URI fsURI, URI policy, String opId) throws InternalException {
@@ -237,5 +237,11 @@ public class FileControllerImpl extends AbstractDiscoveredSystemController imple
     @Override
     public void unassignFileSystemSnapshotPolicy(URI storageURI, URI fsURI, URI policy, String opId) throws InternalException {
         execFS("unassignFileSystemSnapshotPolicy", storageURI, fsURI, policy, opId);
+    }
+
+    @Override
+    public void listSanpshotByPolicy(URI storageURI, URI fsURI, URI policy, String opId) throws InternalException {
+        execFS("listSanpshotByPolicy", storageURI, fsURI, policy, opId);
+
     }
 }

@@ -1029,10 +1029,10 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
         } catch (DatabaseException e) {
             String message = String.format(
-                    "IO exception when trying to restore snapshot(s) on array %s",
+                    "IO exception when trying to resync snapshot(s) on array %s",
                     storage.getSerialNumber());
             _log.error(message, e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("doRestoreFromSnapshot",
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("doResyncSnapshot",
                     e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
@@ -1266,7 +1266,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _log.info("Adding Volumes to Consistency Group: {}", consistencyGroup.getId());
         try {
             // Check if the consistency group exists
-        	String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName);
+        	String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName, _dbClient);
             storage = findProviderFactory.withGroup(storage, groupName).find();
 
             if (storage == null) {
@@ -2074,7 +2074,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 CIMObjectPath cgPath = null;
                 CIMInstance cgPathInstance = null;
                 boolean isVPlexOrRP = consistencyGroup.checkForType(Types.VPLEX) || consistencyGroup.checkForType(Types.RP);
-                String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName);
+                String groupName = ControllerUtils.generateReplicationGroupName(storage, consistencyGroup, replicationGroupName, _dbClient);
                 // If this is for VPlex or RP, we would create backend consistency group if it does not exist yet.
                 if (!consistencyGroup.created(storage.getId(), groupName)) {
                     if (isVPlexOrRP) {
@@ -2196,11 +2196,17 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             String sessionLabel = entry.getKey();
             List<BlockSnapshotSession> oldSessions = entry.getValue();
             BlockSnapshotSession templateSession = oldSessions.get(0);
+            // get RG name from source (parent) volume
+            String groupName = null;
+            if (!NullColumnValueGetter.isNullNamedURI(templateSession.getParent())) {
+                BlockObject source = BlockObject.fetch(_dbClient, templateSession.getParent().getURI());
+                groupName = (source != null) ? source.getReplicationGroupInstance() : null;
+            }
 
             // 1) Run Harsha's method to fab SourceGroup aspect
             _log.info("Fabricating synchronization aspect for SourceGroup {}", cg.getLabel());
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            CIMArgument[] iArgs = _helper.fabricateSourceGroupSynchronizationAspectInputArguments(storage, cg, sessionLabel);
+            CIMArgument[] iArgs = _helper.fabricateSourceGroupSynchronizationAspectInputArguments(storage, groupName, sessionLabel);
             CIMArgument[] oArgs = new CIMArgument[5];
             _helper.invokeMethod(storage, replicationSvc, "EMCRemoveSFSEntries", iArgs, oArgs);
 
@@ -2220,13 +2226,15 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             newSession.setId(URIUtil.createId(BlockSnapshotSession.class));
             newSession.setConsistencyGroup(cg.getId());
             newSession.setProject(new NamedURI(templateSession.getProject().getURI(), templateSession.getProject().getName()));
+            newSession.setStorageController(storage.getId());
             newSession.setLabel(templateSession.getSessionLabel());
             newSession.setSessionLabel(templateSession.getSessionLabel());
+            newSession.setReplicationGroupInstance(groupName);
+            newSession.setSessionSetName(groupName);
             newSession.setLinkedTargets(consolidatedLinkedTargets);
             _dbClient.createObject(newSession);
 
             // Determine the session instance and update the BlockSnapshotSession
-            String groupName = _helper.getConsistencyGroupName(cg, storage);
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CloseableIterator<CIMObjectPath> associatorNames = null;
 
@@ -2312,7 +2320,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (!(replicaObject instanceof Volume && ControllerUtils.isVolumeFullCopy((Volume) replicaObject, _dbClient))) {
                 replicaObject.setConsistencyGroup(consistencyGroup.getId());
             } else if (replicaObject instanceof BlockSnapshot) {
-                String snapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(replicationGroupName, _dbClient);
+                String snapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(replicationGroupName, replicaObject.getStorageController(), _dbClient);
                 // set the snapsetLabel for the snapshots to add
                 if (null != snapSetLabel) {
                     ((BlockSnapshot) replicaObject).setSnapsetLabel(snapSetLabel);
@@ -2429,7 +2437,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             List<BlockObject> replicaList = new ArrayList<BlockObject>();
             String settingsInst = null;
             if (storage.checkIfVmax3() && URIUtil.isType(replicas.get(0), BlockSnapshot.class)) {
-                List<BlockSnapshot> blockSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupName, _dbClient);
+                List<BlockSnapshot> blockSnapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicationGroupName, storage.getId(), _dbClient);
                 if (blockSnapshots != null && !blockSnapshots.isEmpty()) {
                     settingsInst = blockSnapshots.get(0).getSettingsInstance();
                 }

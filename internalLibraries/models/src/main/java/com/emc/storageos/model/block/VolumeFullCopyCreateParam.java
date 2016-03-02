@@ -19,7 +19,11 @@ public class VolumeFullCopyCreateParam {
     private String name;
     private Integer count;
     private Boolean createInactive;
-    
+
+    // flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes
+    // By default, create copy on source back end side
+    private Boolean copyOnHighAvailabilitySide = Boolean.FALSE;
+
     // varray tells us source or target for RP or source or HA for vplex
     private URI varrayId;
     private URI vpoolId;
@@ -125,4 +129,16 @@ public class VolumeFullCopyCreateParam {
         this.vpoolId = vpoolId;
     }
 
+    /**
+     * Flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes.
+     * By default, it is considered as false which means copy is requested on source backend side.
+     */
+    @XmlElement(name = "copy_on_high_availability_side", defaultValue = "false")
+    public Boolean getCopyOnHighAvailabilitySide() {
+        return copyOnHighAvailabilitySide;
+    }
+
+    public void setCopyOnHighAvailabilitySide(Boolean copyOnHighAvailabilitySide) {
+        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
+    }
 }

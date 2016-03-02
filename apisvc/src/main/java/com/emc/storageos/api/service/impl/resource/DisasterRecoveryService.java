@@ -69,6 +69,8 @@ import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
 import com.emc.storageos.db.common.DbConfigConstants;
+import com.emc.storageos.geomodel.VdcNatCheckParam;
+import com.emc.storageos.geomodel.VdcNatCheckResponse;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
@@ -194,7 +196,7 @@ public class DisasterRecoveryService {
         }
 
         String siteId = standbyConfig.getUuid();
-        precheckForStandbyAdd(standbyConfig);
+        precheckForStandbyAdd(standbyConfig, viprCoreClient);
 
         InterProcessLock lock = drUtil.getDROperationLock();
 
@@ -1507,7 +1509,7 @@ public class DisasterRecoveryService {
     /*
      * Internal method to check whether standby can be attached to current active site
      */
-    protected void precheckForStandbyAdd(SiteConfigRestRep standby) {
+    protected void precheckForStandbyAdd(SiteConfigRestRep standby, ViPRCoreClient viprCoreClient) {
         if (!isClusterStable()) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed("Current site is not stable");
         }
@@ -1537,6 +1539,26 @@ public class DisasterRecoveryService {
         }
 
         checkSupportedIPForAttachStandby(standby);
+        
+        checkNATForAttachStandby(viprCoreClient);
+    }
+
+    private void checkNATForAttachStandby(ViPRCoreClient viprCoreClient) {
+        DualInetAddress inetAddress = coordinator.getInetAddessLookupMap().getDualInetAddress();
+        String ipv4 = inetAddress.getInet4();
+        String ipv6 = inetAddress.getInet6();
+
+        log.info("Got local node's IP addresses, IPv4 = {}, IPv6 = {}", ipv4, ipv6);
+
+        DRNatCheckParam checkParam = new DRNatCheckParam();
+        checkParam.setIPv4Address(ipv4);
+        checkParam.setIPv6Address(ipv6);
+        DRNatCheckResponse resp = viprCoreClient.site().checkIfBehindNat(checkParam);
+        if (resp.isBehindNAT()) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(String
+                    .format("The remote site seen this node's IP is %s, which is different from local addresses: %s or %s, it may behind a NAT",
+                            resp.getSeenIp(), ipv4, ipv6));
+        }
     }
 
     protected void checkSupportedIPForAttachStandby(SiteConfigRestRep standby) {

@@ -209,9 +209,10 @@ public class VirtualArrayService extends TaggedResource {
 
             for (VirtualArray nh : nhObjList) {
                 if (_permissionsHelper.tenantHasUsageACL(tenant, nh) ||
-                        _permissionsHelper.tenantHasUsageACL(subtenants, nh)  ) {
+                        _permissionsHelper.tenantHasUsageACL(subtenants, nh)) {
                     list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
                             nh.getId(), nh.getLabel()));
+                }
             }
         }
         return list;

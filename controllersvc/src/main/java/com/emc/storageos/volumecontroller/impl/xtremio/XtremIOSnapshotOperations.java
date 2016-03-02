@@ -233,9 +233,8 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             if (null != XtremIOProvUtils.isSnapsetAvailableInArray(client, snapsetName, clusterName)) {
                 client.deleteSnapshotSet(snapsetName, clusterName);
             }
-            // Set inactive=true for all snapshots in the snapset
-            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                    snapshotObj.getReplicationGroupInstance(), dbClient);
+            // Set inactive=true for all snapshots in the snap
+            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, dbClient);
             for (BlockSnapshot snap : snapshots) {
                 snap.setIsSyncActive(false);
                 snap.setInactive(true);

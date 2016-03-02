@@ -48,7 +48,7 @@ public class BlockSnapshotRestoreCompleter extends BlockSnapshotTaskCompleter {
                 if (snapshot.getConsistencyGroup() != null) {
                     // For snapshot based on a consistency group, set status and send
                     // events for all related snaps
-                    List<BlockSnapshot> snaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, dbClient);
+                    List<BlockSnapshot> snaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, dbClient);
                     for (BlockSnapshot snap : snaps) {
                         URI uri = snap.getId();
                         BlockSnapshot it = dbClient.queryObject(BlockSnapshot.class, uri);

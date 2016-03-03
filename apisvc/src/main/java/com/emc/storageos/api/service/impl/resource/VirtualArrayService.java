@@ -200,13 +200,7 @@ public class VirtualArrayService extends TaggedResource {
         } else {
             // otherwise, filter by only authorized to use
             URI tenant = URI.create(user.getTenantId());
-            Map<String, Collection<String>> subTenantRoles = _permissionsHelper
-                    .getSubtenantRolesForUser(user);
-            List<URI> subtenants = new ArrayList<URI>();
-            for (String subtenant : subTenantRoles.keySet()) {
-                subtenants.add(URI.create(subtenant));
-            }
-
+            List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
             for (VirtualArray nh : nhObjList) {
                 if (_permissionsHelper.tenantHasUsageACL(tenant, nh) ||
                         _permissionsHelper.tenantHasUsageACL(subtenants, nh)) {

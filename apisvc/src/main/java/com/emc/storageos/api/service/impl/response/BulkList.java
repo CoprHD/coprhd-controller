@@ -428,8 +428,10 @@ public class BulkList<T> implements List<T> {
          * @return true if user can access the resource.
          */
         private boolean isNeighborhoodAccessible(VirtualArray resource) {
+            List<URI> tenantUris = _permissionsHelper.getSubtenantsWithRoles(_user);
             return _permissionsHelper.tenantHasUsageACL(
-                    URI.create(_user.getTenantId()), resource);
+                    URI.create(_user.getTenantId()), resource)
+                    || _permissionsHelper.tenantHasUsageACL(tenantUris, resource);
         }
     }
 
@@ -626,8 +628,10 @@ public class BulkList<T> implements List<T> {
          * @return true if user can access the resource.
          */
         private boolean isVpoolAccessible(VirtualPool resource) {
+            List<URI> tenantUris = _permissionsHelper.getSubtenantsWithRoles(_user);
             return _permissionsHelper.tenantHasUsageACL(
-                    URI.create(_user.getTenantId()), resource);
+                    URI.create(_user.getTenantId()), resource)
+                    || _permissionsHelper.tenantHasUsageACL(tenantUris, resource);
         }
 
     }

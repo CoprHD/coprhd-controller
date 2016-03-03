@@ -991,18 +991,8 @@ public class BasePermissionsHelper {
      * @return
      */
     public boolean tenantHasUsageACL(List<URI> tenantUris, VirtualPool virtualPool) {
-        if (_disabler != null) {
-            return true;
-        }
-        // Make CoS open to all by default, restriction kicks in once a acl assignment is done
-        if (CollectionUtils.isEmpty(virtualPool.getAcls())) {
-            return true;
-        }
-
         for (URI tenantUri : tenantUris) {
-            Set<String> acls = virtualPool.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
-                    tenantUri.toString(), virtualPool.getType()).toString());
-            if (acls != null && acls.contains(ACL.USE.toString())) {
+            if (tenantHasUsageACL(tenantUri, virtualPool)) {
                 return true;
             }
         }
@@ -1066,22 +1056,28 @@ public class BasePermissionsHelper {
      * @return
      */
     public boolean tenantHasUsageACL(List<URI> tenantUris, VirtualArray virtualArray) {
-        if (_disabler != null) {
-            return true;
-        }
-        // Make Neighborhood open to all by default, restriction kicks in once a acl assignment is done
-        if (CollectionUtils.isEmpty(virtualArray.getAcls())) {
-            return true;
-        }
-
         for (URI tenantUri : tenantUris) {
-            Set<String> acls = virtualArray.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
-                    tenantUri.toString()).toString());
-            if (acls != null && acls.contains(ACL.USE.toString())) {
+            if (tenantHasUsageACL(tenantUri, virtualArray)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * return a list of tenant URI the specified user has tenant role over it.
+     *
+     * @param user
+     * @return
+     */
+    public List<URI> getSubtenantsWithRoles(StorageOSUser user) {
+        Map<String, Collection<String>> subTenantRoles = getSubtenantRolesForUser(user);
+        List<URI> subtenants = new ArrayList<URI>();
+        for (String subtenant : subTenantRoles.keySet()) {
+            subtenants.add(URI.create(subtenant));
+        }
+
+        return subtenants;
     }
 
     /**

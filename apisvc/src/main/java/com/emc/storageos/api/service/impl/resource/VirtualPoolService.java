@@ -758,13 +758,7 @@ public abstract class VirtualPoolService extends TaggedResource {
         }
 
         URI tenant = URI.create(user.getTenantId());
-        Map<String, Collection<String>> subTenantRoles = _permissionsHelper
-                .getSubtenantRolesForUser(user);
-        List<URI> subtenants = new ArrayList<URI>();
-        for (String subtenant : subTenantRoles.keySet()) {
-            subtenants.add(URI.create(subtenant));
-        }
-
+        List<URI> subtenants = _permissionsHelper.getSubtenantsWithRoles(user);
         for (VirtualPool vpool : vpoolObjects) {
             if (!_permissionsHelper.userHasGivenRole(user, null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
                 // filter by only authorized to us

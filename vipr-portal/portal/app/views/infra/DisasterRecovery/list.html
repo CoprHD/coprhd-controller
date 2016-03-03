@@ -33,7 +33,7 @@
 	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span>
 #{/elseif}
 
-#{if !isActiveSite && util.DisasterRecoveryUtils.getLocalSiteState() == "STANDBY_PAUSED"}
+#{if !isActiveSite && controllers.infra.DisasterRecovery.getLocalSiteState() == "STANDBY_PAUSED"}
 	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteDataNotConsistentWarning'}</span>
 #{/if}
 

@@ -161,9 +161,8 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().getSiteDetails(uuid);
     }
     
-    public static String getLocalSiteState() {
-        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-        return getViprClient().site().getSite(coordinatorClient.getSiteId()).getState();
+    public static SiteRestRep getLocalSite() {
+        return getViprClient().site().getLocalSite();
     }
     
     public static boolean isMultiDrSite() {

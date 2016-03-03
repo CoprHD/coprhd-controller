@@ -62,6 +62,7 @@ public class DrUtil {
     private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
     private static final String DR_CONFIG_ID = "global";
     private static final String DR_OPERATION_LOCK = "droperation";
+    private static final String RECORD_AUDITLOG_LOCK = "droperationauditlog";
     private static final int LOCK_WAIT_TIME_SEC = 5; // 5 seconds
 
     public static final String KEY_ADD_STANDBY_TIMEOUT = "add_standby_timeout_millis";
@@ -97,11 +98,22 @@ public class DrUtil {
      * @param site
      */
     public void recordDrOperationStatus(Site site) {
-        DrOperationStatus operation = new DrOperationStatus();
-        operation.setSiteUuid(site.getUuid());
-        operation.setSiteState(site.getState());
-        coordinator.persistServiceConfiguration(operation.toConfiguration());
-        log.info("DR operation status has been recorded: {}", operation.toString());
+        try (InterProcessLockHolder lock = new InterProcessLockHolder(coordinator, RECORD_AUDITLOG_LOCK, log)) {
+            DrOperationStatus status = new DrOperationStatus(coordinator.queryConfiguration(DrOperationStatus.CONFIG_KIND, site.getUuid()));
+            String siteId = status.getSiteUuid();
+            SiteState siteState = status.getSiteState();
+            if (siteId != null && siteState != null && siteId == site.getUuid() && siteState == site.getState()) {
+                log.info("DR operation status {} for site {} has been recorded by another node", site.getState(), site.getUuid());
+                return;
+            }
+            DrOperationStatus operation = new DrOperationStatus();
+            operation.setSiteUuid(site.getUuid());
+            operation.setSiteState(site.getState());
+            coordinator.persistServiceConfiguration(operation.toConfiguration());
+            log.info("DR operation status has been recorded: {}", operation.toString());
+        } catch (Exception e) {
+            log.error("Error happened when recording auditlog for DR operation for site {}, state: {}", site.toBriefString(), site.getState(), e);
+        }
     }
 
     /**

@@ -794,8 +794,8 @@ public class DisasterRecoveryService {
             log.error("site {} is in state {}, should be STANDBY_PAUSED", uuid, standby.getState());
             throw APIException.badRequests.operationOnlyAllowedOnPausedSite(standby.getName(), standby.getState().toString());
         }
-        
-        if (standby.getNetworkHealth() == NetworkHealth.BROKEN) {
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(uuid);
+        if (networkState.getNetworkHealth() == NetworkHealth.BROKEN) {
             throw APIException.internalServerErrors.siteConnectionBroken(standby.getName(), "Network health state is broken.");
         }
 

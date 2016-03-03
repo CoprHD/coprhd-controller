@@ -66,7 +66,6 @@ public class DrUtil {
 
     public static final String KEY_ADD_STANDBY_TIMEOUT = "add_standby_timeout_millis";
     public static final String KEY_REMOVE_STANDBY_TIMEOUT = "remove_standby_timeout_millis";
-    public static final String KEY_PAUSE_STANDBY_TIMEOUT = "pause_standby_timout_millis";
     public static final String KEY_RESUME_STANDBY_TIMEOUT = "resume_standby_timeout_millis";
     public static final String KEY_SWITCHOVER_TIMEOUT = "switchover_timeout_millis";
     public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";

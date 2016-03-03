@@ -2046,6 +2046,7 @@ rpxio_targets()
         --protocols FC \
         --numpaths 2 \
         --provisionType 'Thin' \
+        --multiVolumeConsistency \
         --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
         --max_snapshots 10
 }

@@ -1028,7 +1028,7 @@ public class ControllerUtils {
      * @return snapshot list
      */
     public static List<BlockSnapshot> getSnapshotsPartOfReplicationGroup(BlockSnapshot snapshot, DbClient dbClient) {
-        if (snapshot.getReplicationGroupInstance() != null) {
+        if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
             return getSnapshotsPartOfReplicationGroup(snapshot.getReplicationGroupInstance(), snapshot.getStorageController(), dbClient);
         }
         return new ArrayList<BlockSnapshot>(Arrays.asList(snapshot));

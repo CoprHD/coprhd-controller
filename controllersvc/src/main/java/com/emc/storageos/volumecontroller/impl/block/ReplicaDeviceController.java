@@ -12,6 +12,7 @@ import static com.google.common.collect.Lists.newArrayList;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -418,6 +419,12 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             waitFor = _blockDeviceController.addStepToCreateSnapshotSession(workflow, systemURI, session,
                     existingSession.getReplicationGroupInstance(), waitFor);
 
+            // Add step to remove volume from its Replication Group before linking its target
+            // -volume was added to RG as part of create volume step
+            // otherwise linking single target will fail when it sees the source in group
+            waitFor = _blockDeviceController.addStepToRemoveFromConsistencyGroup(workflow, systemURI, cgURI, Arrays.asList(volume.getId()),
+                    waitFor, true);
+
             // snapshot targets
             Map<String, List<URI>> snapGroupToSnapshots = new HashMap<String, List<URI>>();
             for (String snapGroupName : snapGroupNames) {
@@ -437,6 +444,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 waitFor = _blockDeviceController.addStepToLinkBlockSnapshotSessionTarget(workflow, systemURI, session,
                         blockSnapshot.getId(), copyMode, waitFor);
             }
+            // Add step to add back the source volume to its group which was removed before linking target
+            waitFor = _blockDeviceController.addStepToAddToConsistencyGroup(workflow, systemURI, cgURI,
+                    volume.getReplicationGroupInstance(), Arrays.asList(volume.getId()), waitFor);
+
             // Add steps to add new targets to their snap groups
             for (Map.Entry<String, List<URI>> entry : snapGroupToSnapshots.entrySet()) {
                 waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,

@@ -948,19 +948,12 @@ public class NetworkDeviceController implements NetworkController {
      */
     public boolean zoneExportMasksCreate(URI exportGroupURI,
             List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
-    	
-    	
         ExportGroup exportGroup = null;
         List<URI> listExportGroupURI = new ArrayList<URI>();  
-        listExportGroupURI.add(exportGroupURI);
-        
-       
-        try {
-        	
+        listExportGroupURI.add(exportGroupURI);             
+        try {    	
         	Iterator<ExportGroup> exportGroupIterator = _dbClient.queryIterativeObjects(ExportGroup.class, listExportGroupURI);
-        	exportGroup = exportGroupIterator.next();
-        	
-        	
+        	exportGroup = exportGroupIterator.next();    	
             _log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
                     exportGroup.getLabel(), exportGroup.getId()));
             if (exportMaskURIs == null && exportGroup.getExportMasks() != null) {

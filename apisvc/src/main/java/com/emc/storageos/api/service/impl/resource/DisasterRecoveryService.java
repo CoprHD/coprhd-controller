@@ -164,8 +164,8 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Attach one fresh install site to this acitve site as standby
-     * Or attach a acitve site for the local standby site when it's first being added.
+     * Attach one fresh install site to this active site as standby
+     * Or attach a active site for the local standby site when it's first being added.
      * 
      * @param param site detail information
      * @return site response information
@@ -325,7 +325,7 @@ public class DisasterRecoveryService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @ExcludeLicenseCheck
     public Response syncSites(SiteConfigParam configParam) {
-        log.info("sync sites from acitve site");
+        log.info("sync sites from active site");
 
         return initStandby(configParam);
     }
@@ -398,7 +398,7 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Get all sites including standby and acitve
+     * Get all sites including standby and active
      * 
      * @return site list contains all sites with detail information
      */
@@ -417,9 +417,9 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Check if current site is acitve site
+     * Check if current site is active site
      * 
-     * @return SiteActive true if current site is acitve else false
+     * @return SiteActive true if current site is active else false
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -525,7 +525,7 @@ public class DisasterRecoveryService {
                 throw APIException.badRequests.siteIdNotFound();
             }
             if (site.getState().equals(SiteState.ACTIVE)) {
-                log.error("Unable to remove this site {}. It is acitve", siteId);
+                log.error("Unable to remove this site {}. It is active", siteId);
                 throw APIException.badRequests.operationNotAllowedOnActiveSite();
             }
             if (site.getState().isDROperationOngoing() && !site.getState().equals(SiteState.STANDBY_SYNCING)) {
@@ -1018,10 +1018,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * This API will do switchover to target new acitve site according passed in site UUID. After failover, old acitve site will
-     * work as normal standby site and target site will be promoted to acitve. All site will update properties to trigger reconfig.
+     * This API will do switchover to target new active site according passed in site UUID. After failover, old active site will
+     * work as normal standby site and target site will be promoted to active. All site will update properties to trigger reconfig.
      * 
-     * @param uuid target new acitve site UUID
+     * @param uuid target new active site UUID
      * @return return accepted response if operation is successful
      */
     @POST
@@ -1169,10 +1169,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * This API will do failover from standby site. This operation is only allowed when acitve site is down.
-     * After failover, this standby site will be promoted to acitve site.
+     * This API will do failover from standby site. This operation is only allowed when active site is down.
+     * After failover, this standby site will be promoted to active site.
      * 
-     * @param uuid target new acitve site UUID
+     * @param uuid target new active site UUID
      * @return return accepted response if operation is successful
      */
     @POST
@@ -1637,7 +1637,7 @@ public class DisasterRecoveryService {
     }
 
     /*
-     * Internal method to check whether failover from acitve to standby is allowed
+     * Internal method to check whether failover from active to standby is allowed
      */
     protected void precheckForSwitchover(String standbyUuid) {
         Site standby = null;

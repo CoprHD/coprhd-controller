@@ -365,28 +365,30 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
             consistencyGroup.setStorageController(null);
             consistencyGroup.setInactive(true);
-            _dbClient.persistObject(consistencyGroup);
+            _dbClient.updateObject(consistencyGroup);
             return finishDeactivateTask(consistencyGroup, task);
         }
 
-        final StorageSystem storageSystem = consistencyGroup.created() ? _permissionsHelper
-                .getObjectById(consistencyGroup.getStorageController(), StorageSystem.class) : null;
+        if (consistencyGroup.getStorageController() != null) {
+            final StorageSystem storageSystem = consistencyGroup.created() ? 
+                    _permissionsHelper.getObjectById(consistencyGroup.getStorageController(), StorageSystem.class) : null;
 
-        // If the consistency group has been created, and the system
-        // is a VPlex, then we need to do VPlex related things to destroy
-        // the consistency groups on the system. If the consistency group
-        // has not been created on the system or the system is not a VPlex
-        // revert to the default.
-        BlockServiceApi blockServiceApi = getBlockServiceImpl("group");
-        if (storageSystem != null) {
-            String systemType = storageSystem.getSystemType();
-            if (DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
-                blockServiceApi = getBlockServiceImpl(systemType);
+            // If the consistency group has been created, and the system
+            // is a VPlex, then we need to do VPlex related things to destroy
+            // the consistency groups on the system. If the consistency group
+            // has not been created on the system or the system is not a VPlex
+            // revert to the default.
+            BlockServiceApi blockServiceApi = getBlockServiceImpl("group");
+            if (storageSystem != null) {
+                String systemType = storageSystem.getSystemType();
+                if (DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
+                    blockServiceApi = getBlockServiceImpl(systemType);
+                }
+                _log.info(String.format("BlockConsistencyGroup %s is associated to StorageSystem %s. Going to delete it on that array.",
+                        consistencyGroup.getLabel(), storageSystem.getNativeGuid()));
+                // Otherwise, invoke operation to delete CG from the array.
+                return blockServiceApi.deleteConsistencyGroup(storageSystem, consistencyGroup, task);
             }
-            _log.info(String.format("BlockConsistencyGroup %s is associated to StorageSystem %s. Going to delete it on that array.",
-                    consistencyGroup.getLabel(), storageSystem.getNativeGuid()));
-            // Otherwise, invoke operation to delete CG from the array.
-            return blockServiceApi.deleteConsistencyGroup(storageSystem, consistencyGroup, task);
         }
         _log.info(String.format("BlockConsistencyGroup %s was not associated with any storage. Deleting it from ViPR only.",
                 consistencyGroup.getLabel()));

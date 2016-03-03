@@ -1267,11 +1267,15 @@ public class FileService extends TaskResourceService {
 
         if (param.getSoftLimit() != 0L) {
             ArgValidator.checkFieldMinimum(param.getSoftGrace(), 1L, "soft_grace");
+            fs.setSoftGracePeriod(param.getSoftGrace());
         }
 
-        fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
-        fs.setSoftGracePeriod(param.getSoftGrace());
-        fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
+        if (param.getSoftLimit() > 0) {
+            fs.setSoftLimit(Long.valueOf(param.getSoftLimit()));
+        }
+        if (param.getNotificationLimit() > 0) {
+            fs.setNotificationLimit(Long.valueOf(param.getNotificationLimit()));
+        }
 
         _dbClient.updateObject(fs);
 

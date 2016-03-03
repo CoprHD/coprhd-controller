@@ -123,6 +123,10 @@ public class UpgradeService {
         if (!_coordinator.isClusterUpgradable()) {
             throw APIException.serviceUnavailable.clusterStateNotStable();
         }
+
+        // check if all DR sites are in stable or paused status
+        checkClusterState();
+
         List<SoftwareVersion> available = null;
         try {
             available = _coordinator.getVersions(_coordinator.getMySvcId());
@@ -162,7 +166,7 @@ public class UpgradeService {
 
         auditUpgrade(OperationTypeEnum.UPDATE_VERSION,
                 AuditLogManager.AUDITLOG_SUCCESS,
-                null, targetVersion.toString());
+                null, targetVersion.toString(), FORCE.equals(forceUpgrade));
 
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {

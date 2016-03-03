@@ -105,7 +105,7 @@ public class DrSiteNetworkMonitor implements Runnable{
         }
 
         for (Site site : drUtil.listStandbySites()){
-            if (SiteState.STANDBY_ADDING.equals(site.getState())){
+            if (SiteState.STANDBY_ADDING.equals(site.getState()) || SiteState.STANDBY_REMOVING.equals(site.getState())){
                 _log.info("Skip site {} for network health check", site.getSiteShortId());
                 continue;
             }

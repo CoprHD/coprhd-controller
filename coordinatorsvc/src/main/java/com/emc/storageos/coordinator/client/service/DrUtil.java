@@ -73,6 +73,7 @@ public class DrUtil {
     public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";
     public static final String KEY_FAILOVER_STANDBY_SITE_TIMEOUT = "failover_standby_site_timeout_millis";
     public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
+    public static final String KEY_DB_GC_GRACE_PERIOD = "db_gc_grace_period_millis";
     
     private CoordinatorClient coordinator;
 

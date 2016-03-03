@@ -2161,6 +2161,9 @@ public class BlockService extends TaskResourceService {
         // Don't operate on VPLEX backend volumes or RP journal volumes.
         BlockServiceUtils.validateNotAnInternalBlockObject(requestedVolume, false);
 
+        // Don't allow snapshots on single volumes that are in consistency groups, but don't have replication group instance set
+        BlockServiceUtils.validateNotInCG(requestedVolume, _dbClient);
+        
         validateSourceVolumeHasExported(requestedVolume);
 
         // Make sure that we don't have some pending

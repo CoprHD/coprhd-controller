@@ -16,9 +16,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -685,5 +685,40 @@ public class BlockServiceUtils {
         ArgValidator.checkEntity(snapshot, snapshotURI,
                 BlockServiceUtils.isIdEmbeddedInURL(snapshotURI, uriInfo), true);
         return snapshot;
+    }
+
+    /**
+     * Ensure that we're not trying to create a snapshot on an individual volume
+     * that is keyed to only be used in CG based replications.
+     * 
+     * We want to throw an exception in the case where:
+     * 1. The volume is in a BlockConsistencyGroup and
+     * 2. The volume does not have a replicationGroupInstance
+     * 
+     * @param requestedVolume volume requested for snapshot
+     */
+    public static void validateNotInCG(Volume requestedVolume, DbClient dbClient) {
+        // If this volume isn't in a consistency group, it's valid
+        if (!requestedVolume.hasConsistencyGroup()) {
+            return;
+        }
+        
+        // If it's a VPLEX volume, check both backing volumes to make sure they have replication group instance set
+        if (requestedVolume.isVPlexVolume(dbClient)) {
+            Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(requestedVolume, false, dbClient);
+            if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
+                throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
+            }
+            backendVolume = VPlexUtil.getVPLEXBackendVolume(requestedVolume, true, dbClient);
+            if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
+                throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
+            }
+            return;
+        }
+        
+        // Non-VPLEX, just check for replication group instance
+        if (NullColumnValueGetter.isNullValue(requestedVolume.getReplicationGroupInstance())) {
+            throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(requestedVolume.getLabel());
+        }
     }
 }

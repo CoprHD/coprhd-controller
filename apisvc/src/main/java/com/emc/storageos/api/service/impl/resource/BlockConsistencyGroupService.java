@@ -35,9 +35,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
-import com.emc.storageos.model.block.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,11 +47,13 @@ import com.emc.storageos.api.service.impl.resource.BlockService.ProtectionOp;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyUtils;
 import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionManager;
+import com.emc.storageos.api.service.impl.resource.snapshot.BlockSnapshotSessionUtils;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.api.service.impl.response.SearchedResRepList;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
@@ -92,6 +91,25 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupBulkRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
+import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
+import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
+import com.emc.storageos.model.block.BlockConsistencyGroupUpdate;
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
+import com.emc.storageos.model.block.BulkDeleteParam;
+import com.emc.storageos.model.block.CopiesParam;
+import com.emc.storageos.model.block.Copy;
+import com.emc.storageos.model.block.NamedVolumesList;
+import com.emc.storageos.model.block.SnapshotSessionCreateParam;
+import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
+import com.emc.storageos.model.block.VolumeFullCopyCreateParam;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -104,6 +122,7 @@ import com.emc.storageos.srdfcontroller.SRDFController;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -446,12 +465,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
 
-        // Snapshots of RecoverPoint consistency groups is not supported.
-        // Volume group snapshot is supported
-        if (isIdEmbeddedInURL(consistencyGroupId) && consistencyGroup.checkForType(Types.RP)) {
-            throw APIException.badRequests.snapshotsNotSupportedForRPCGs();
-        }
-
+        // Validate CG information in the request
+        validateVolumesInReplicationGroups(consistencyGroup, param, _dbClient);
+        
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
 
@@ -514,6 +530,55 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
 
         return taskList;
+    }
+
+    /**
+     * Validate the volumes we are requested to snap all contain the proper replication group instance information.
+     * 
+     * @param consistencyGroup consistency group object
+     * @param param incoming request parameters
+     * @param _dbClient dbclient
+     */
+    private void validateVolumesInReplicationGroups(BlockConsistencyGroup consistencyGroup, BlockConsistencyGroupSnapshotCreate param,
+            DbClient _dbClient) {
+
+        // Get all of the volumes from the consistency group
+        Iterator<Volume> volumeIterator = null;
+        if (param.getVolumes() == null || param.getVolumes().isEmpty()) {
+            URIQueryResultList uriQueryResultList = new URIQueryResultList();
+            _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
+            volumeIterator = _dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
+        } else {
+            volumeIterator = _dbClient.queryIterativeObjects(Volume.class, param.getVolumes());
+        }
+        
+        if (volumeIterator == null || !volumeIterator.hasNext()) {
+            throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroupNoVols(consistencyGroup.getLabel());
+        }
+
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume.getInactive()) {
+                continue;
+            }
+
+            // If it's a VPLEX volume, check both backing volumes to make sure they have replication group instance set
+            if (volume.isVPlexVolume(_dbClient)) {
+                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient);
+                if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
+                    throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
+                }
+                backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
+                    throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
+                }
+            } else {
+                // Non-VPLEX, just check for replication group instance
+                if (NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
+                    throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(volume.getLabel());
+                }
+            }
+        }
     }
 
     /**
@@ -763,7 +828,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
 
-        if (snapshot.getConsistencyGroup() != null) {
+        if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup()) && !NullColumnValueGetter.isNullValue(snapshot.getReplicationGroupInstance())) {
             // Collect all the BlockSnapshots if part of a CG.
             snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
         }
@@ -1120,25 +1185,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.noVolumesToBeAddedRemovedFromCG();
         }
 
-        // cannot update RP consistency groups
-        if (consistencyGroup.getTypes().contains(Types.RP.toString())) {
-            throw APIException.badRequests.notAllowedOnRPConsistencyGroups();
-        }
-
         // TODO require a check if requested list contains all volumes/replicas?
         // For replicas, check replica count with volume count in CG
-
         StorageSystem cgStorageSystem = null;
 
         // if consistency group is not created yet, then get the storage system from the block object to be added
         // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)
-        if (!consistencyGroup.created()
+        if ((!consistencyGroup.created() || NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) 
                 && param.hasVolumesToAdd()) { // we just need to check the case of add volumes in this case
             BlockObject bo = BlockObject.fetch(_dbClient, param.getAddVolumesList().getVolumes().get(0));
             cgStorageSystem = _permissionsHelper.getObjectById(
                     bo.getStorageController(), StorageSystem.class);
         } else {
-            // Get the storage system for the consistency group.
             cgStorageSystem = _permissionsHelper.getObjectById(
                     consistencyGroup.getStorageController(), StorageSystem.class);
         }

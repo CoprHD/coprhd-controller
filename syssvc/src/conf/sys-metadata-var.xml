@@ -1519,6 +1519,33 @@
 		<property name="value" value="" />
 		<property name="controlNodeOnly" value="true" />
 	</bean>
+	<bean id="alert_config" class="com.emc.storageos.model.property.PropertyMetadata">
+                <property name="label" value="Alert Name" />
+                <property name="description" value="Alert names to be received by the ViPR Controller" />
+                <property name="type" value="uint32" />
+                <property name="tag" value="Other" />
+                <property name="advanced" value="true" />
+                <property name="userMutable" value="true" />
+                <property name="userConfigurable" value="true" />
+                <property name="reconfigRequired" value="false" />
+                <property name="rebootRequired" value="true" />
+                <property name="value" value="volumeCapacityExceed" />
+                <property name="controlNodeOnly" value="true" />
+        </bean>
+
+ <bean id="alert_threshold" class="com.emc.storageos.model.property.PropertyMetadata">
+                <property name="label" value="Alert Threshold" />
+                <property name="description" value="Alert threshold for auto remediation" />
+                <property name="type" value="uint32" />
+                <property name="tag" value="Other" />
+                <property name="advanced" value="true" />
+                <property name="userMutable" value="true" />
+                <property name="userConfigurable" value="true" />
+                <property name="reconfigRequired" value="false" />
+                <property name="rebootRequired" value="true" />
+                <property name="value" value="89" />
+                <property name="controlNodeOnly" value="true" />
+ </bean>
 	<bean id="system_login_banner" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Login banner" />
 		<property name="description" value="The login banner that will be displayed during login process." />

@@ -524,6 +524,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                             // Step 2 : Convert them to nfs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
                             umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+                            if(umNfsAcl.getPermissions().isEmpty()){
+                                continue;
+                            }
                             createNFSACL(umNfsAcl, fsNfsShareAcls, filesystem);
                             // Step 4: Update the UnManaged Share ACL : Set Inactive as true
                             umNfsAcl.setInactive(true);

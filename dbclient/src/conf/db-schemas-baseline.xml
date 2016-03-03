@@ -11401,6 +11401,9 @@ Please DO NOT modify the content.
             <field name="disable" type="java.lang.Boolean">
                 <annotations/>
             </field>
+            <field name="autoRegCoprHDNImportOSProjects" type="java.lang.Boolean">
+                <annotations/>
+            </field>
             <field name="domains" type="com.emc.storageos.db.client.model.StringSet">
                 <annotations>
                     <annotation name="AlternateId" type="com.emc.storageos.db.client.model.AlternateId">

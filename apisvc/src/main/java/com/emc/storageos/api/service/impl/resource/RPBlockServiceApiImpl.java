@@ -2520,7 +2520,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
 
                 VolumeGroup volumeGroup = volume.getApplication(_dbClient);
-                boolean isInApplication = volume != null && !volumeGroup.getInactive();
+                boolean isInApplication = volumeGroup != null && !volumeGroup.getInactive();
 
                 if (!isInApplication && (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex)) {
                     // For RP+Vplex targets (who are not former source volumes) and former target volumes,
@@ -3757,23 +3757,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 if (backingVolumes != null) {
                     for (String backingVolId : backingVolumes) {
                         Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                        if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
+                        if (backingVol != null && !backingVol.getInactive()
+                                && NullColumnValueGetter.isNotNullValue(backingVol.getReplicationGroupInstance())) {
                             groupNames.add(backingVol.getReplicationGroupInstance());
                         }
                     }
                 }
-            } else if (volume.getReplicationGroupInstance() != null) {
+            } else if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                 groupNames.add(volume.getReplicationGroupInstance());
-            } else {
-                StringSet backingVolumes = volume.getAssociatedVolumes();
-                if (backingVolumes != null) {
-                    for (String backingVolId : backingVolumes) {
-                        Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                        if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
-                            groupNames.add(backingVol.getReplicationGroupInstance());
-                        }
-                    }
-                }
             }
         }
         return groupNames;

@@ -657,7 +657,7 @@ public class BlockServiceUtils {
                 Volume backedVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                 if (backedVol != null) {
                     rgName = backedVol.getReplicationGroupInstance();
-                    storage = volume.getStorageController();
+                    storage = backedVol.getStorageController();
                 }
             } else {
                 rgName = volume.getReplicationGroupInstance();

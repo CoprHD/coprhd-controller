@@ -53,8 +53,6 @@ public class DbDowntimeTracker {
         log.info("Monitoring dbsvc and geodbsvc status");
         try (AutoCloseable lock = getTrackerLock()) {
             for (Site site : drUtil.listSites()) {
-                String siteId = site.getUuid();
-                log.info("Start to check db/geodb status for site {}", site.getUuid());
                 updateSiteDbsvcStatus(site);
             }
         } catch (Exception e) {
@@ -64,6 +62,7 @@ public class DbDowntimeTracker {
 
     private void updateSiteDbsvcStatus(Site site) {
         String siteId = site.getUuid();
+        log.info("Start to check db/geodb status for site {}", siteId);
         for (String serviceName : serviceNames) {
             log.info("Check status for {} begin, site id: {}", serviceName, siteId);
             List<String> availableNodes = coordinator.getServiceAvailableNodes(siteId, serviceName);
@@ -98,7 +97,7 @@ public class DbDowntimeTracker {
         }
 
         dbOfflineEventInfo.setLastUpdateTimestamp(currentTimeStamp);
-        log.info("Db tracker last check time: {}, current check time: {}, site: ", lastUpdateTimestamp, currentTimeStamp, siteId);
+        log.info("Db tracker last check time: {}, current check time: {}, site: {}", lastUpdateTimestamp, currentTimeStamp, siteId);
 
         int nodeCount = site.getNodeCount();
         for (int i = 1; i <= nodeCount; i++) {

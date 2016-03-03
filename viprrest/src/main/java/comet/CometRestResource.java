@@ -75,6 +75,25 @@ public class CometRestResource {
     }
     
     @GET
+    @Path("blockvpools")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getVpools() {
+        
+        System.out.println(" Value got");
+        ViperCaller vipr = new ViperCaller();
+        System.out.println(" Client got");
+        Map<String,String> output = vipr.getBlockVPool();
+//        List<URI> output = vipr.getVolumes();
+//        Map<String,URI> output= vipr.getVolumeMap();
+        System.out.println(" vPools got"+output);
+        
+       return output.toString();
+       
+    }
+    
+    
+    
+    @GET
     @Path("migrate")
     @Produces(MediaType.APPLICATION_XML)
     public Tasks<VolumeRestRep> migrateVolume() throws Exception {

@@ -12,6 +12,7 @@ import com.emc.storageos.model.block.VolumeMigrate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.VolumeParam;
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -76,6 +77,21 @@ public class ViperCaller {
         System.out.println(" Value reached "+hostNameMap);
         return hostNameMap;
      }
+    
+    public Map<String,String> getBlockVPool(){
+        List<NamedRelatedVirtualPoolRep> vPoolLists = client.blockVpools().list();
+        System.out.println(" Value reached "+vPoolLists);
+         Map<String,String>vPoolMap = new HashMap<String,String>();
+         String name;
+         
+        for(NamedRelatedVirtualPoolRep vpool :vPoolLists ) {
+            vPoolMap.put(vpool.getName(), vpool.getId().toString());
+        }
+        
+        System.out.println(" Value reached "+vPoolMap);
+        return vPoolMap;
+     }
+
     
     public Tasks<VolumeRestRep> createVolume(URI sourceVolumeURI, URI targetVirtualPoolId){
        

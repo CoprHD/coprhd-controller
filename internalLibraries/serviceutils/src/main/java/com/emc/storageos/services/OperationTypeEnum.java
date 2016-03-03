@@ -146,6 +146,8 @@ public enum OperationTypeEnum {
     ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyAssign", "FileSystemPolicyAssignFailed", "FileSystem Policy Assigned"),
     UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyUnassign", "FileSystemPolicyUnassignFailed", "FileSystem Policy Unassigned"),
     DELETE_FILE_SYSTEM_SHARE("FileSystemShareDeleted", "FileSystemShareDeleteFailed", "FileSystem share deleted"),
+    GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("FileSystemScheduleSnapshot", "FileSystemScheduleSnapshotFailed",
+            "FileSystem Schedule Snapshot List"),
 
     CREATE_FILE_SYSTEM_SNAPSHOT("FileSystemSnapshotCreated", "FileSystemSnapshotCreateFailed", "FileSystem snapshot created"),
     DELETE_FILE_SNAPSHOT("FileSystemSnapshotDeleted", "FileSystemSnapshotDeleteFailed", "FileSystem snapshot deleted"),
@@ -496,7 +498,7 @@ public enum OperationTypeEnum {
     SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
     ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),
     STANDBY_SWITCHOVER("STANDBY BECOME ACTIVE AFTER SWITCHOVER", "", "operation that marks switchover on new active site complete"),
-    FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
+    FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failing over to a standby site"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");

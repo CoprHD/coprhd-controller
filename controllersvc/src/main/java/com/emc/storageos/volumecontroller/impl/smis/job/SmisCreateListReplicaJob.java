@@ -19,6 +19,8 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -135,6 +137,7 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
                     snapshot.setProvisionedCapacity(getProvisionedCapacityInformation(client, syncVolume));
                     snapshot.setAllocatedCapacity(getAllocatedCapacityInformation(client, syncVolume));
                     updateSnapshotSessionLinkedTargets(snapshot, dbClient);
+                    setSettingsInstance(storage, snapshot, dbClient);
                 } else if (replica instanceof BlockMirror) {
                     BlockMirror mirror = (BlockMirror) replica;
                     mirror.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(storage, mirror));
@@ -188,5 +191,15 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
                 break;
             }
         }
+    }
+
+    private void setSettingsInstance(StorageSystem storage, BlockSnapshot snapshot, DbClient dbClient) {
+        if (!storage.checkIfVmax3()) {
+            return;
+        }
+        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapshot.getConsistencyGroup());
+        String cgName = cg.getCgNameOnStorageSystem(storage.getId());
+        String instance = SmisUtils.generateVmax3SettingsInstance(storage, cgName, snapshot.getReplicationGroupInstance());
+        snapshot.setSettingsInstance(instance);
     }
 }

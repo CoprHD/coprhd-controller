@@ -6228,6 +6228,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 Volume vol = _dbClient.queryObject(Volume.class, addVolumes.get(0));
                 storageUri = vol.getStorageController();
                 cguri = vol.getConsistencyGroup();
+                String rgName = vol.getReplicationGroupInstance();
+                if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                    // volumes have already been in a RG, need remove them from original RG
+                    removeVolumesForStorageSystem.addAll(addVolumes);
+                }
             }
             if (storageUri == null && removeVolumesForStorageSystem != null && !removeVolumesForStorageSystem.isEmpty()) {
                 Volume vol = _dbClient.queryObject(Volume.class, removeVolumesForStorageSystem.get(0));
@@ -6264,7 +6269,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
        List<URI> addVolumesList = new ArrayList<URI>();
        
        String waitFor = waitForStep;
-
+       // Note volumes could be in both addVolList and removeVolumeList
+       // Need to process remove list first
        if (removeVolumeList!= null && !removeVolumeList.isEmpty()) {
            Map<URI, List<URI>> removeVolsMap = new HashMap<URI, List<URI>>();
            for (URI voluri : removeVolumeList) {
@@ -6321,8 +6327,11 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cguri);
 
            // check if cg is created, if not create it
+           boolean isNewRG = false;
            if (!cg.created(rgName, storageSystem.getId())) {
                _log.info("Consistency group not created. Creating it");
+               isNewRG = true;
+
                if (storageSystem.deviceIsType(Type.vnxblock)) {
                    // set arrayConsistency to false, so that no replication group will be created on array
                    cg.setArrayConsistency(false);
@@ -6343,8 +6352,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                    addToConsistencyGroupMethod(storage, cguri, rgName, addVolumesList),
                    rollbackMethodNullMethod(), null);
 
-           // call ReplicaDeviceController
-           waitFor = _replicaDeviceController.addStepsForAddingVolumesToRG(workflow, waitFor, cguri, addVolumesList, rgName, opId);
+           if (!isNewRG) {
+               // call ReplicaDeviceController
+               waitFor = _replicaDeviceController.addStepsForAddingVolumesToRG(workflow, waitFor, cguri, addVolumesList, rgName, opId);
+           }
        }
 
        return waitFor;

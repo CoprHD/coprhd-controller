@@ -11235,7 +11235,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                 ControllerUtils.isVnxVolume(backVol, _dbClient)) {
                             // This is a VNX volume and it is in a RG, need to convert the real RG to virtual one.
                             vnxVolumes.add(backVol);
-                        } else if (NullColumnValueGetter.isNullValue(backRG)) {
+                        } else {
                             allAddBEVolumes.add(URI.create(backendId));
                         }
                     }

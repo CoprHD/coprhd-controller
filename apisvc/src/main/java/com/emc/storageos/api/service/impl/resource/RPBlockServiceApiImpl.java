@@ -3603,12 +3603,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, applicationId);
         ApplicationAddVolumeList addVolumesNotInCG = null;
-        List<URI> removeVolumesURI = new ArrayList<URI>();
+        List<URI> removeVolumesURI = null;
         RPController controller = null;
         URI protSystemUri = null;
         Volume firstVolume = null;
         if (addVolumes != null && addVolumes.getVolumes() != null && !addVolumes.getVolumes().isEmpty()) {
-            addVolumesNotInCG = addVolumesToApplication(addVolumes, volumeGroup, taskId, removeVolumesURI);
+            addVolumesNotInCG = addVolumesToApplication(addVolumes, volumeGroup, taskId);
             List<URI> vols = addVolumesNotInCG.getVolumes();
             if (vols != null && !vols.isEmpty()) {
                 firstVolume = _dbClient.queryObject(Volume.class, vols.get(0));
@@ -3646,8 +3646,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param application The application that the volumes are added to
      * @return ApplicationVolumeList The volumes that are in the add volume list, but not in any consistency group yet.
      */
-    private ApplicationAddVolumeList addVolumesToApplication(VolumeGroupVolumeList volumeList, VolumeGroup application, String taskId,
-    		List<URI> removeVolumesURI ) {
+    private ApplicationAddVolumeList addVolumesToApplication(VolumeGroupVolumeList volumeList, VolumeGroup application, String taskId) {
         String firstVolLabel = null;
         List<URI> addVolumeURIs = volumeList.getVolumes();
         int volumesNotInCGCount = 0;
@@ -3698,8 +3697,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
                 rgName = backendVol.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(rgName) &&
-                		ControllerUtils.checkIfVolumeHasSnapshot(backendVol, _dbClient) &&
-                		(backendVol.getFullCopies() != null && !backendVol.getFullCopies().isEmpty())) {
+                        (ControllerUtils.checkIfVolumeHasSnapshot(backendVol, _dbClient) ||
+                        (backendVol.getFullCopies() != null && !backendVol.getFullCopies().isEmpty()))) {
                     // the backend volume is in a replication group. make sure all source volumes in the same replication group is in the add list
                     URI storageSystemUri = backendVol.getStorageController();
                     String key = storageSystemUri.toString() + rgName;
@@ -3719,20 +3718,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     
                 } else {
                     volumesNotInCGCount++;
-                    //if backend RG doenst have any replicas , then we can remove the volume from RG
-					if (!NullColumnValueGetter.isNotNullValue(rgName)) {
-						removeVolumesURI.add(volumeUri);
-					}
                 }
             } else {
-                volumesNotInCGCount++;
-              //Regular RP volume, but replication Group is there without any replicas
-                if (null != volume.getReplicationGroupInstance() && !ControllerUtils.checkIfVolumeHasSnapshot(volume, _dbClient) &&
-                		(volume.getFullCopies() == null || volume.getFullCopies().isEmpty())) {
-                	removeVolumesURI.add(volumeUri);
-                } else  if (null != volume.getReplicationGroupInstance())  {
-                	//throw exception
+                // Regular RP volume, but replication Group is there with replicas
+                if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance()) &&
+                        (ControllerUtils.checkIfVolumeHasSnapshot(volume, _dbClient) ||
+                        (volume.getFullCopies() != null && !volume.getFullCopies().isEmpty()))) {
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
+                            "volume has existing replicas");
                 }
+
+                volumesNotInCGCount++;
             }
 
             // its possible for the source volumes to be in a replication group but the target volumes are not

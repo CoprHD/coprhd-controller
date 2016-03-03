@@ -1231,6 +1231,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             // find member volumes in the group
             List<Volume> existingRGVolumes = ControllerUtils.getVolumesPartOfRG(storage, replicationGroup, _dbClient);
+            if (existingRGVolumes.isEmpty()) {
+                return waitFor;
+            }
+
             if (checkIfCGHasCloneReplica(existingRGVolumes)) {
                 log.info("Adding clone steps for adding volumes");
                 // create new clones for the newly added volumes

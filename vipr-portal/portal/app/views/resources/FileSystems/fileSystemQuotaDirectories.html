@@ -1,59 +1,68 @@
 #{if quotas}
-<table class='table table-condensed table-striped'>
-	<thead>
-		<tr>
-			<th>&{'resources.filesystem.quota.name'}</th>
-			<th>&{'resources.filesystem.quota.security'}</th>
-			<th>&{'resources.filesystem.quota.lock'}</th>
-			<th>&{'resources.filesystem.quota.size'}</th>
-			<th style="text-align: right;">&{'resources.actions'}</th>
-		</tr>
-	</thead>
-	<script type="text/javascript"> 
-
-	$('.expandable').click(function() {
-		$(this).parent().parent().next(".quotadesc").toggle();
-		return false; 
-	}
-); 
-
-  </script>
-	<tbody>
-		#{list items:quotas, as:'quota'}
-		<tr class="quotainfo">
-			<td><span class="collapsed">#{icon 'chevron-right'/}</span> <span
-				class="expanded">#{icon 'chevron-down'/}</span> <span
-				class="loading">#{loadingImage /}</span></td>
-			<td><img src="/public/img/assets/QuotaDirectory.png"
-				style="width: 32px;" /><a class="expandable"
-				href="javascript:void(0);">${quota.name}</a></td>
-			<td>${quota.securityStyle}</td>
-			<td>${quota.oplock}</td>
-			<td>${quota.quotaSize}</td>
-			<td style="text-align: right;"><a class="btn btn-default btn-xs"
-				onclick="modifyQuotaDirectory('${quota.id}')">&{'button.modify'}</a>
-				<a
-				href="@{deleteFileSystemQuotaDirectory(params.fileSystemId, quota.id)}"
-				class="btn btn-danger btn-xs"
-				onclick="return confirm('&{'resources.filesystem.quota.delete.confirm'}')">&{'button.delete'}</a>
-			</td>
-		</tr>
-		<tr class="quotadesc" style="display: none;">
-			#{if !(quota.notificationLimit == 0) || !(quota.softLimit == 0) ||
-			!(quota.softGrace == 0)}
-			<td colspan="8">
-				<dl class="dl-horizontal">
-					<dt>&{'resources.filesystem.quota.notificationLimit'}:</dt>
-					<dd>${quota.notificationLimit == 0 ? null :
-						quota.notificationLimit}</dd>
-					<dt>&{'resources.filesystem.quota.softLimit'}:</dt>
-					<dd>${quota.softLimit == 0 ? null : quota.softLimit}</dd>
-					<dt>&{'resources.filesystem.quota.softGrace'}:</dt>
-					<dd>${quota.softGrace == 0 ? null : quota.softGrace}</dd>
-				</dl>
-			</td> #{/if}
-		</tr>
-		#{/list}
-	</tbody>
-</table>
-#{/if} #{else} &{'resources.filesystem.quota.none'} #{/else}
+	<table class='table table-condensed table-striped'>
+		<thead>
+			<tr>
+				<th style="width: 12px;"></th>
+				<th>&{'resources.filesystem.quota.name'}</th>
+				<th>&{'resources.filesystem.quota.security'}</th>
+				<th>&{'resources.filesystem.quota.lock'}</th>
+				<th>&{'resources.filesystem.quota.size'}</th>
+				<th style="text-align: right;">&{'resources.actions'}</th>
+			</tr>
+		</thead>
+		<script type="text/javascript"> 
+		
+		$('.expandable').click(function(){
+			$(this).parent().next(".quotadesc").toggle();
+			if ( $(this).parent().next(".quotadesc").css('display') == 'none' ){
+				$(this).find('span.collapsed').show();
+				$(this).find('span.expanded').hide();
+			}
+			else{
+				$(this).find('span.collapsed').hide();
+				$(this).find('span.expanded').show();
+			}
+		});
+	
+	  </script>
+		<tbody>
+			#{list items:quotas, as:'quota'}
+			<tr class="quotainfo">
+				<td class="expandable" style="width: 12px;">
+				#{if !(quota.notificationLimit == 0) || !(quota.softLimit == 0) || !(quota.softGrace == 0)}
+				<span class="collapsed" style="cursor: pointer;">#{icon 'chevron-right'/}</span> 
+				<span class="expanded" style="display: none;cursor: pointer;">#{icon 'chevron-down'/}</span>
+				#{/if}
+				</td>
+				<td><img src="/public/img/assets/QuotaDirectory.png" style="width: 32px;" />${quota.name}</td>
+				<td>${quota.securityStyle}</td>
+				<td>${quota.oplock}</td>
+				<td>${quota.quotaSize}</td>
+				<td style="text-align: right;"><a class="btn btn-default btn-xs"
+					onclick="modifyQuotaDirectory('${quota.id}')">&{'button.modify'}</a>
+					<a href="@{deleteFileSystemQuotaDirectory(params.fileSystemId, quota.id)}"
+					class="btn btn-danger btn-xs"
+					onclick="return confirm('&{'resources.filesystem.quota.delete.confirm'}')">&{'button.delete'}</a>
+				</td>
+			</tr>
+			<tr class="quotadesc" style="display: none;">
+				#{if !(quota.notificationLimit == 0) || !(quota.softLimit == 0) || !(quota.softGrace == 0)}
+				<td colspan="8">
+					<dl class="dl-horizontal">
+						<dt>&{'resources.filesystem.quota.notificationLimit'}:</dt>
+						<dd>${quota.notificationLimit == 0 ? null :	quota.notificationLimit}</dd>
+						<dt>&{'resources.filesystem.quota.softLimit'}:</dt>
+						<dd>${quota.softLimit == 0 ? null : quota.softLimit}</dd>
+						<dt>&{'resources.filesystem.quota.softGrace'}:</dt>
+						<dd>${quota.softGrace == 0 ? null : quota.softGrace}</dd>
+					</dl>
+				</td> 
+				#{/if}
+			</tr>
+			#{/list}
+		</tbody>
+	</table>
+#{/if} 
+#{else}
+	&{'resources.filesystem.quota.none'} 
+#{/else}

@@ -2561,7 +2561,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param volume The volume for which the snapshot is being created.
      * @param snapshotName The name to be given the snapshot
      * @param index Integer to make snapshot label unique in a group
-     * @param snapshotType TODO
+     * @param snapshotType type of snapshot (NATIVE, RP, SRDF)
      * @return A reference to the new BlockSnapshot instance.
      */
     protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapshotName, Volume targetVolume, int index, String snapshotType) {

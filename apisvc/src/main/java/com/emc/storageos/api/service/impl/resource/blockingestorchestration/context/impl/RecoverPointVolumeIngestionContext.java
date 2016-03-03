@@ -21,6 +21,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
@@ -736,7 +737,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getDataObjectsToBeCreatedMap()
      */
@@ -794,7 +795,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#
      * findAllUnManagedVolumesToBeDeleted()
      */
@@ -805,7 +806,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.
      * URI)
@@ -817,7 +818,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.net.
      * URI)
@@ -829,7 +830,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findUnManagedConsistencyGroup(
      * com.emc.storageos.db.client.model.BlockConsistencyGroup)
@@ -841,7 +842,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToCreate(com.emc.
      * storageos.db.client.model.BlockObject)
      */
@@ -852,7 +853,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToUpdate(com.emc.
      * storageos.db.client.model.DataObject)
      */
@@ -866,7 +867,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addDataObjectToCreate(com.emc.
      * storageos.db.client.model.DataObject)
@@ -879,8 +880,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.
+     * String)
      */
     @Override
     public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
@@ -888,9 +892,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
             ExportGroup localExportGroup = getExportGroup();
             if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
-                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup, 
+                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup,
                         exportGroupLabel, project, varray, computeResource, resourceType)) {
-                    _logger.info("Found existing local ExportGroup {} in RP ingestion request context", 
+                    _logger.info("Found existing local ExportGroup {} in RP ingestion request context",
                             localExportGroup.forDisplay());
                     return localExportGroup;
                 }
@@ -904,9 +908,9 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
                         exportGroupLabel, project, varray, computeResource, resourceType);
             }
             if (null != nestedExportGroup) {
-                if (VolumeIngestionUtil.verifyExportGroupMatches(nestedExportGroup, 
+                if (VolumeIngestionUtil.verifyExportGroupMatches(nestedExportGroup,
                         exportGroupLabel, project, varray, computeResource, resourceType)) {
-                    _logger.info("Found existing nested ExportGroup {} in volume context {}", 
+                    _logger.info("Found existing nested ExportGroup {} in volume context {}",
                             nestedExportGroup.forDisplay(), volumeContext.getUnmanagedVolume().forDisplay());
                     return nestedExportGroup;
                 }
@@ -917,13 +921,15 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return null;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllNewExportMasks()
      */
     @Override
     public List<ExportMask> findAllNewExportMasks() {
         List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
-        
+
         for (List<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
             for (DataObject createdObject : createdObjects) {
                 if (createdObject instanceof ExportMask) {
@@ -935,8 +941,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return newExportMasks;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
      */
     @Override
     public IngestionRequestContext getRootIngestionRequestContext() {

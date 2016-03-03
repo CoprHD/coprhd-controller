@@ -88,9 +88,11 @@ public class DbDowntimeTracker {
 
         long currentTimeStamp = TimeUtils.getCurrentTime();
         Long lastUpdateTimestamp = dbOfflineEventInfo.getLastUpdateTimestamp();
-        lastUpdateTimestamp = (lastUpdateTimestamp == null) ? currentTimeStamp : lastUpdateTimestamp;
-        long interval = Math.min((currentTimeStamp - lastUpdateTimestamp), TRACKER_CHECK_INTERVAL);
-        if (interval < NO_NEED_UPDATE_LIMIT) {
+        long interval = 0L;
+        if (lastUpdateTimestamp != null) {
+            interval = Math.min((currentTimeStamp - lastUpdateTimestamp), TRACKER_CHECK_INTERVAL);
+        }
+        if (interval != 0L && interval < NO_NEED_UPDATE_LIMIT) {
             log.info("Have already updated within a few minutes, skipping this update");
             return;
         }

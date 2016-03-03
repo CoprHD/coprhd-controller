@@ -118,7 +118,6 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.srdfcontroller.SRDFController;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
@@ -811,18 +810,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                         .getModelClass(taskResourceRep.getResource().getId());
                 _dbClient.error(clazz, taskResourceRep.getResource().getId(), task, e);
             }
+            throw e;
         } catch (Exception e) {
             String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snapshot.getId(), e.getMessage());
             _log.error(errorMsg);
-            ServiceCoded sc = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
+            APIException apie = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
             for (TaskResourceRep taskResourceRep : response.getTaskList()) {
                 taskResourceRep.setState(Operation.Status.error.name());
-                taskResourceRep.setMessage(sc.getMessage());
+                taskResourceRep.setMessage(apie.getMessage());
                 @SuppressWarnings("unchecked")
                 Class<? extends DataObject> clazz = (Class<? extends DataObject>) URIUtil
                         .getModelClass(taskResourceRep.getResource().getId());
-                _dbClient.error(clazz, taskResourceRep.getResource().getId(), task, sc);
+                _dbClient.error(clazz, taskResourceRep.getResource().getId(), task, apie);
             }
+            throw apie;
         }
 
         auditBlockConsistencyGroup(OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT,

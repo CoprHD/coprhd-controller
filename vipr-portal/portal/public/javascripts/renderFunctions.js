@@ -295,7 +295,7 @@ render.alertSeverity = function(o, val) {
         return "<span class='label label-danger'><span class='" + icon + "'></span></span>";
     }
     else {
-        return "";
+        return "<span class='label label-info'><span class='glyphicon glyphicon-remove text-muted'></span></span>";
     }
 }
 

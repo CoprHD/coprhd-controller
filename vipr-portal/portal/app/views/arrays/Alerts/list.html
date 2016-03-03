@@ -10,7 +10,7 @@
 
 <script id="inlineActions.html" type="text/ng-template">
     <div class="btn-group-nas">
-        <a class="btn btn-default btn-xs" ng-show="isFixRequired" role="button" href="{{serviceCatalogUrl}}">{{'Expand' | t}}</a>
+        <a class="btn btn-default btn-xs" ng-disabled="isFixRequired" role="button" href="{{serviceCatalogUrl}}">{{'Expand Block Volume' | t}}</a>
     </div>
 </script>                  
                   
@@ -24,12 +24,12 @@ angular.module('tags').directive({
          restrict: "E",
          templateUrl: "inlineActions.html",
          link: function(scope, elem, attrs) {
-        	 scope.isFixRequired = false;
+        	 scope.isFixRequired = true;
         	 var cap = scope.row.alertValue;
         	 var threshold = 90;
              if(cap < threshold){
-             	scope.isFixRequired = true;
-             	var catId = 'urn:storageos:CatalogService:00045473-a023-412a-a7e5-7f4dab0a637e:vdc1';
+             	scope.isFixRequired = false;
+             	var catId = 'urn:storageos:CatalogService:7c93af43-cf01-4875-be96-92c9d3c4c8b3:vdc1';
              	scope.serviceCatalogUrl = routes.ServiceCatalog_showService({serviceId: catId});
              }
             

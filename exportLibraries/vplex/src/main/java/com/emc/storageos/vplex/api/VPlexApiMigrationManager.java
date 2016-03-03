@@ -1304,15 +1304,29 @@ public class VPlexApiMigrationManager {
             List<VPlexClusterInfo> clusterInfoList) {
         VPlexVirtualVolumeInfo virtualVolumeInfo = null;
         VPlexApiDiscoveryManager discoveryMgr = _vplexApiClient.getDiscoveryManager();
+        // Initially we found that during a device migration, VPLEX automatically updated the
+        // volume name to reflect the new local device name, based on the new backend storage
+        // volume. As such, there was no need to update the name after migration. However, it
+        // then seemed that some versions of VPLEX did not do this and the volume simply had
+        // the same name as the new local device without the "_vol" suffix. So to find the
+        // volume after a device migration, we need to handle these two possible conditions.
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterName = clusterInfo.getName();
             String virtualVolumeName = migrationInfo.getTarget();
+            // First try to find the volume based on the fact that the name was not
+            // updated to append the "_vol" suffix. This means the volume would have
+            // the same name as the new local device on which the volume is now built
+            // which is captured by the migration target. The name would have the
+            // format "device_<sysid>-<devid>".
             virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterName, virtualVolumeName, false);
             if (virtualVolumeInfo != null) {
                 s_logger.info("Found virtual volume after device migration with name {} on cluster {}",
                         virtualVolumeName, clusterName);
                 break;
             } else {
+                // If not found, then VPLEX must have renamed the volume automatically to
+                // append the "_vol" suffix to the volume, which it also does when you create
+                // a new virtual volume.
                 virtualVolumeName += VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX;
                 virtualVolumeInfo = discoveryMgr.findVirtualVolume(clusterInfo.getName(), virtualVolumeName, false);
                 if (virtualVolumeInfo != null) {

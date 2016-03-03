@@ -104,6 +104,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -602,19 +603,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 // Deal with CGs.
                 // Filter out any VPlex Volumes that front the SRDF targets for now.
-                List<URI> volsForCG = VPlexUtil.filterOutVplexSrdfTargets(_dbClient, vplexVolumeURIs);
+                List<URI> volsForCG = VPlexSrdfUtil.filterOutVplexSrdfTargets(_dbClient, vplexVolumeURIs);
                 if (!volsForCG.isEmpty()) {
                     lastStep = consistencyGroupManager.addStepsForCreateConsistencyGroup(workflow, lastStep,
                             vplexSystem, volsForCG, false);
                 }
                 
-                // If the are VPlex Volumes fronting SRDF targets, handle them.
+                // If there are VPlex Volumes fronting SRDF targets, handle them.
                 // They will go into a separate CG that represents the SRDF targets.
                 // That CG will have already been generated?
-                volsForCG = VPlexUtil.returnVplexSrdfTargets(_dbClient, vplexVolumeURIs, true);
+                volsForCG = VPlexSrdfUtil.returnVplexSrdfTargets(_dbClient, vplexVolumeURIs);
                 if (!volsForCG.isEmpty()) {
-                    lastStep = consistencyGroupManager.addStepsForCreateConsistencyGroup(workflow, lastStep,
-                            vplexSystem, volsForCG, false);
+                    lastStep = consistencyGroupManager.addStepsForAddingVolumesToSRDFTargetCG(
+                            workflow, vplexSystem, volsForCG, lastStep);
                 }
                 _log.info("Added steps for creating consistency group");
             }

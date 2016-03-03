@@ -587,4 +587,13 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                 vplexVolumeURIs);
     }
 
+    @Override
+    public String addStepsForAddingVolumesToSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem, List<URI> vplexVolumeURIs,
+            String waitFor) throws Exception {
+        // Default is this is not supported and adds no steps.
+        return waitFor;
+    }
+    
+    
+
 }

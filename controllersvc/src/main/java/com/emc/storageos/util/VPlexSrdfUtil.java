@@ -3,12 +3,19 @@ package com.emc.storageos.util;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.workflow.Workflow;
 
 public class VPlexSrdfUtil {
@@ -89,6 +96,67 @@ public class VPlexSrdfUtil {
             }
         }
         return targets;
+    }
+    
+    /**
+     * Given a list of Vplex Volume URIs, will filter out any that front SRDF targets.
+     * @param dbClient -- database client
+     * @param vplexVolumeUris  -- list of URIS for Vplex volumes
+     * @return -- filtered list of Vplex volume URIs, or empty list if all filtered away
+     */
+    public static List<URI> filterOutVplexSrdfTargets(DbClient dbClient, List<URI> vplexVolumeUris) {
+        List<URI> returnedVolumes = new ArrayList<URI>();
+        returnedVolumes.addAll(vplexVolumeUris);
+        List<URI> vplexSrdfTargets = returnVplexSrdfTargets(dbClient, vplexVolumeUris);
+        returnedVolumes.removeAll(vplexSrdfTargets);
+        return returnedVolumes;
+    }
+    
+    /**
+     * Given a list of Vplex Volume URIs, return any that front SRDF targets.
+     * @param dbClient -- database client
+     * @param vplexVolumeURIs  -- list of URIS for Vplex volumes
+     * @param setCGOnVplexVolume -- if true, sets the consistency group of the Vplex volumes
+     *    to the CG of the underlying RDF volume, and only returns volumes that have CG set.
+     *    It also makes sure that VPLEX is in the cg Requested Types.
+     * @return -- filtered list of Vplex volume URIs, or empty list if all filtered away
+     */
+    public static List<URI> returnVplexSrdfTargets(DbClient dbClient, 
+            List<URI> vplexVolumeURIs) {
+        List<URI> returnedVolumes = new ArrayList<URI>();
+        for (URI vplexURI : vplexVolumeURIs) {
+            Volume vplexVolume = dbClient.queryObject(Volume.class, vplexURI);
+            if (vplexVolume == null) {
+                continue;
+            }
+            Volume srdfVolume = getSrdfVolumeFromVplexVolume(dbClient, vplexVolume);
+            // See if SRDF target
+            if (srdfVolume != null && srdfVolume.getSrdfParent() != null) {
+                // Virtual volume in front of SRDF target to return list
+                returnedVolumes.add(vplexVolume.getId());
+            }
+        }
+        return returnedVolumes;
+    }
+    
+    /**
+     * Given a list of Vplex volume URIs, returns a map of VPlexVolume to corresonding SRDF backend volume.
+     * @param dbClient
+     * @param vplexVolumeURIs
+     * @return Map<Volume, Volume> of vplex to srdf volumes
+     */
+    public static Map<Volume, Volume> makeVplexToSrdfVolumeMap(DbClient dbClient, List<URI> vplexVolumeURIs) {
+        Map<Volume, Volume> vplexToSrdfVolumeMap = new HashMap<Volume, Volume>();
+        for (URI vplexVolumeURI : vplexVolumeURIs) {
+            Volume vplexVolume = dbClient.queryObject(Volume.class, vplexVolumeURI);
+            if (vplexVolume != null) {
+                Volume srdfVolume = getSrdfVolumeFromVplexVolume(dbClient, vplexVolume);
+                if (srdfVolume != null) {
+                    vplexToSrdfVolumeMap.put(vplexVolume, srdfVolume);
+                }
+            }
+        }
+        return vplexToSrdfVolumeMap;
     }
     
 }

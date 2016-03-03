@@ -110,4 +110,16 @@ public interface ConsistencyGroupManager {
     public void removeVolumeFromCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean removeFromViPRCg) throws Exception;
 
     public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, String cgName) throws Exception;
+    
+    /**
+     * 
+     * @param workflow
+     * @param vplexSystem
+     * @param vplexVolumeURIs
+     * @param waitFor
+     * @return
+     * @throws Exception
+     */
+    public String addStepsForAddingVolumesToSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem,
+            List<URI> vplexVolumeURIs, String waitFor) throws Exception;
 }

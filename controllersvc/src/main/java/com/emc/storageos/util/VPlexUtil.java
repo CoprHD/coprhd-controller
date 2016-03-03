@@ -1457,67 +1457,6 @@ public class VPlexUtil {
         return result;
     }
     
-    /**
-     * Given a list of Vplex Volume URIs, will filter out any that front SRDF targets.
-     * @param dbClient -- database client
-     * @param vplexVolumeUris  -- list of URIS for Vplex volumes
-     * @return -- filtered list of Vplex volume URIs, or empty list if all filtered away
-     */
-    public static List<URI> filterOutVplexSrdfTargets(DbClient dbClient, List<URI> vplexVolumeUris) {
-        List<URI> returnedVolumes = new ArrayList<URI>();
-        returnedVolumes.addAll(vplexVolumeUris);
-        List<URI> vplexSrdfTargets = returnVplexSrdfTargets(dbClient, vplexVolumeUris, false);
-        returnedVolumes.removeAll(vplexSrdfTargets);
-        return returnedVolumes;
-    }
     
-    /**
-     * Given a list of Vplex Volume URIs, return any that front SRDF targets.
-     * @param dbClient -- database client
-     * @param vplexVolumeUris  -- list of URIS for Vplex volumes
-     * @param setCGOnVplexVolume -- if true, sets the consistency group of the Vplex volumes
-     *    to the CG of the underlying RDF volume, and only returns volumes that have CG set.
-     *    It also makes sure that VPLEX is in the cg Requested Types.
-     * @return -- filtered list of Vplex volume URIs, or empty list if all filtered away
-     */
-    public static List<URI> returnVplexSrdfTargets(DbClient dbClient, 
-            List<URI> vplexVolumeUris, boolean setCGOnVplexVolume) {
-        List<URI> returnedVolumes = new ArrayList<URI>();
-        for (URI vplexUri : vplexVolumeUris) {
-            Volume vplexVolume = dbClient.queryObject(Volume.class, vplexUri);
-            if (vplexVolume == null) {
-                continue;
-            }
-            for (String assocVolume : vplexVolume.getAssociatedVolumes()) {
-                // Look at each component of the Vplex volume. It is a target if it has an srdfParent.
-                Volume componentVolume = dbClient.queryObject(Volume.class, URI.create(assocVolume));
-                if (componentVolume == null) {
-                    continue;
-                }
-                if (componentVolume.getSrdfParent() != null) {
-                    if (setCGOnVplexVolume) {
-                        if (!NullColumnValueGetter.isNullURI(componentVolume.getConsistencyGroup())) {
-                            // Set the consistency group
-                            vplexVolume.setConsistencyGroup(componentVolume.getConsistencyGroup());
-                            dbClient.updateObject(vplexVolume);
-                            // Make sure the requested types in the CG has type VPLEX.
-                            BlockConsistencyGroup cg = dbClient.queryObject(
-                                    BlockConsistencyGroup.class, componentVolume.getConsistencyGroup());
-                            if (!cg.getRequestedTypes().contains(BlockConsistencyGroup.Types.VPLEX.name())) {
-                                cg.addRequestedTypes(Arrays.asList(BlockConsistencyGroup.Types.VPLEX.name()));
-                                dbClient.updateObject(cg);
-                            }
-                            returnedVolumes.add(vplexVolume.getId());
-                            break;
-                        }
-                    } else {
-                        returnedVolumes.add(vplexVolume.getId());
-                        break;
-                    }
-                }
-            }
-        }
-        return returnedVolumes;
-    }
 
 }

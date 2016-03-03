@@ -10,6 +10,7 @@ import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getVPlexAPI
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -35,6 +36,7 @@ import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
@@ -221,6 +223,11 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             if (cg.created(vplexURI)) {
                 StringSet cgNames = cg.getSystemConsistencyGroups().get(vplexURI.toString());
                 log.info("Consistency group(s) already created: " + cgNames.toString());
+                if (!cg.getTypes().contains(Types.VPLEX.name())) {
+                    // SRDF will reset the CG types. If the CG was existing on VPLEX need to make sure its in types.
+                    cg.addConsistencyGroupTypes(Types.VPLEX.name());
+                    dbClient.updateObject(cg);
+                }
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
@@ -270,6 +277,8 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
         }
     }
 
+    
+    
     /**
      * A method that creates the workflow method for adding VPLEX volumes to a
      * consistency group.
@@ -749,5 +758,238 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             }
         }
         return localVolumesMap;
+    }
+    
+    @Override
+    public String addStepsForAddingVolumesToSRDFTargetCG(Workflow workflow, StorageSystem vplexSystem,
+            List<URI> vplexVolumeURIs, String waitFor) {
+        StringBuilder volumeList = new StringBuilder();
+        for (URI vplexVolumeURI : vplexVolumeURIs) {
+            Volume volume = dbClient.queryObject(Volume.class, vplexVolumeURI);
+            if (volumeList.length() != 0) {
+                volumeList.append(", ");
+            }
+            volumeList.append(volume.getLabel());
+        }
+        Workflow.Method executeMethod = addVplexVolumesToSRDFTagetCGMethod(vplexSystem.getId(), vplexVolumeURIs);
+        Workflow.Method rollbackMethod = removeVplexVolumesFromSRDFTargetCGMethod(vplexSystem.getId(), vplexVolumeURIs);
+        waitFor = workflow.createStep(null, 
+                "Add VplexVolumes to Target CG: " + volumeList.toString(), waitFor, vplexSystem.getId(), 
+                vplexSystem.getSystemType(), this.getClass(), executeMethod, rollbackMethod, null);
+        return waitFor;
+    }
+    
+    public Workflow.Method addVplexVolumesToSRDFTagetCGMethod(URI vplexURI, List<URI> vplexVolumeURIs) {
+        return new Workflow.Method("addVplexVolumesToSRDFTargetCG", vplexURI, vplexVolumeURIs);
+    }
+    
+    /**
+     * This workflow step will add vplex volumes fronting an SRDF target volume to the SRDF target consistency group.
+     * Note that the SRDF target consistency group may not be created until the SRDF Pairing operation has completed.
+     * At this time the underlying SRDF Targets will be associated with the correct CG. For this reason, we don't know
+     * what consistency group to associate the Vplex volumes with until the SRDF pairing operation has completed, and
+     * the workflow is executing.
+     * 
+     * So here we find the appropriate SRDF target volume(s), determine the CG, and then set up code to
+     * create the Vplex CG and add the volume to that.
+     * 
+     * @param vplexURI -- URI of VPlex system
+     * @param vplexVolumeURIs -- List of VPLEX Volume URIs fronting SRDF Target volumes
+     * @param stepId -- The step ID being processed
+     * @throws WorkflowException
+     */
+    public void addVplexVolumesToSRDFTargetCG(URI vplexURI, List<URI> vplexVolumeURIs, String stepId)
+            throws WorkflowException {
+        // Make a map of the VPlex volume to corresponding SRDF volume
+        Map<Volume, Volume> vplexToSrdfVolumeMap = VPlexSrdfUtil.makeVplexToSrdfVolumeMap(dbClient, vplexVolumeURIs);
+        // Make sure that the SRDF volumes have a consistency group and it is the same.
+        URI cgURI = null;
+        for (Volume srdfVolume : vplexToSrdfVolumeMap.values()) {
+            if (srdfVolume.getConsistencyGroup() != null) {
+                if (cgURI == null) {
+                    cgURI = srdfVolume.getConsistencyGroup();
+                } else {
+                    if (srdfVolume.getConsistencyGroup() != cgURI) {
+                        log.info("Multiple CGs discovered: " + cgURI.toString() + " " + srdfVolume.getConsistencyGroup().toString());
+                    }
+                }
+            }
+        }
+        
+        // If there is no consistency group, that is not an error.
+        if (cgURI == null) {
+            WorkflowStepCompleter.stepSucceded(stepId);
+            return;
+        }
+        
+        // Get the consistency group, and make sure it has requested type Vplex. Change the VPlex volumes to point to the CG.
+        BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
+        if (!consistencyGroup.getRequestedTypes().contains(Types.VPLEX)) {
+            consistencyGroup.addRequestedTypes(Arrays.asList(Types.VPLEX.name()));
+            dbClient.updateObject(consistencyGroup);
+        }
+        
+        Volume protoVolume = null;
+        for (Volume vplexVolume : vplexToSrdfVolumeMap.keySet()) {
+            protoVolume = vplexVolume;
+            break;
+        }
+        StorageSystem vplexSystem = dbClient.queryObject(StorageSystem.class, protoVolume.getStorageController());
+        
+        // Create the consistency group if it does not already exist. If there is an error, the step is completed
+        // and we return.
+        if (createVplexCG(vplexSystem, consistencyGroup, protoVolume, stepId) == false) {
+            return;
+        }
+        
+        // Add the Vplex volumes to the CG, and fire off the Step completer.
+        addVolumesToCG(vplexSystem, consistencyGroup, vplexToSrdfVolumeMap.keySet(), stepId);
+    }
+    
+    /**
+     * Returns a workflow method for removing Vplex Volumes form the SRDF Target CG.
+     * This is used for rolling back addVplexVolumesToSRDFTargetCG.
+     * @param vplexURI
+     * @param vplexVolumeURIs
+     * @return
+     */
+    Workflow.Method removeVplexVolumesFromSRDFTargetCGMethod(URI vplexURI, List<URI> vplexVolumeURIs) {
+        return new Workflow.Method("removeVplexVolumesFromSRDFTargetCG", vplexURI, vplexVolumeURIs);
+    }
+    
+    
+    /**
+     * Rolls back adding volumes to SRDF Target.
+     * @param vplexURI
+     * @param vplexVolumeURIs
+     * @param stepId
+     * @throws WorkflowException
+     */
+    public  void removeVplexVolumesFromSRDFTargetCG(URI vplexURI, List<URI> vplexVolumeURIs, String stepId)
+            throws WorkflowException {
+        // Make a map of the VPlex volume to corresponding SRDF volume
+        Map<Volume, Volume> vplexToSrdfVolumeMap = VPlexSrdfUtil.makeVplexToSrdfVolumeMap(dbClient, vplexVolumeURIs);
+        // Make sure that the SRDF volumes have a consistency group and it is the same.
+        Volume protoVolume = dbClient.queryObject(Volume.class, vplexVolumeURIs.get(0));
+        removeVolumesFromCG(vplexURI, protoVolume.getConsistencyGroup(), vplexVolumeURIs, stepId);
+    }
+    
+    /**
+     * Create a Vplex CG within a step. This routine does not complete the step unless there is an error (and it returns false).
+     * @param vplexSystem -- StorageSystem of the VPLEX
+     * @param cg -- BlockConsistencyGroup object
+     * @param protoVolume -- A prototypical Vplex volume
+     * @param stepId -- String stepId, completed only if error
+     * @return true if no error, false if error
+     */
+    private boolean createVplexCG(StorageSystem vplexSystem, BlockConsistencyGroup cg, Volume protoVolume, String stepId) {
+        try {
+            VPlexApiClient client  = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
+
+            log.info("Got VPLEX API client.");
+
+            // Check to see if it was created since we defined the workflow.
+            if (cg.created(vplexSystem.getId())) {
+                StringSet cgNames = cg.getSystemConsistencyGroups().get(vplexSystem.getId().toString());
+                log.info("Consistency group(s) already created: " + cgNames.toString());
+                return true;
+            }
+
+            // We need to know on what cluster to create the consistency group.
+            // The cluster would be determined by the virtual array specified in
+            // a volume creation request, which is the virtual array of the
+            // passed virtual volumes. Get the virtual array for one of the
+            // vplex volumes.
+            // Lets determine the VPlex consistency group that need to be created for this volume.
+            ClusterConsistencyGroupWrapper clusterConsistencyGroup =
+                    getClusterConsistencyGroup(protoVolume, cg.getLabel());
+
+            String cgName = clusterConsistencyGroup.getCgName();
+            String clusterName = clusterConsistencyGroup.getClusterName();
+            boolean isDistributed = clusterConsistencyGroup.isDistributed();
+
+            URI vaURI = protoVolume.getVirtualArray();
+            log.info("Got virtual array for VPLEX volume.");
+
+            // Now we can create the consistency group.
+            client.createConsistencyGroup(cgName, clusterName, isDistributed);
+            log.info("Created VPLEX consistency group.");
+
+            // Now update the CG in the DB.
+            cg.setVirtualArray(vaURI);
+            cg.addSystemConsistencyGroup(vplexSystem.getId().toString(),
+                    BlockConsistencyGroupUtils.buildClusterCgName(clusterName, cgName));
+            cg.addConsistencyGroupTypes(Types.VPLEX.name());
+            dbClient.updateObject(cg);
+            log.info("Updated consistency group in DB.");
+        } catch (VPlexApiException vex) {
+            log.error("Exception creating consistency group: " + vex.getMessage(), vex);
+            WorkflowStepCompleter.stepFailed(stepId, vex);
+            return false;
+        } catch (Exception ex) {
+            log.error("Exception creating consistency group: " + ex.getMessage(), ex);
+            String opName = ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP.getName();
+            ServiceError serviceError = VPlexApiException.errors.createConsistencyGroupFailed(opName, ex);
+            WorkflowStepCompleter.stepFailed(stepId, serviceError);
+            return false;
+        } 
+        return true;
+    }
+    
+    /**
+     * Adds volumes to a BlockConsistencyGroup.
+     * @param vplexSystem - StorageSystem representing the Vplex
+     * @param cg -- Block Consistency Group the volumes are to be added to
+     * @param vplexVolumes -- Collection of Vplex volumes to be added
+     * @param stepId -- String Stepid. WorkflowStepCompleter is called if successful or not.
+     * @return true if successful, false if not
+     */
+    private boolean addVolumesToCG(StorageSystem vplexSystem, BlockConsistencyGroup cg, 
+            Collection<Volume> vplexVolumes, String stepId) {
+        try {
+            VPlexApiClient client  = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
+            
+            // Get the names of the volumes to be added.
+            Volume protoVolume = null;
+            List<String> vplexVolumeNames = new ArrayList<String>();
+            for (Volume vplexVolume : vplexVolumes) {
+                if (protoVolume == null) {
+                    protoVolume = vplexVolume;
+                }
+                vplexVolumeNames.add(vplexVolume.getDeviceLabel());
+                log.info("VPLEX volume:" + vplexVolume.getDeviceLabel());
+            }
+            log.info("Got VPLEX volume names.");
+            String cgName = getVplexCgName(protoVolume, cg.getId());
+
+            long startTime = System.currentTimeMillis();
+            // Add the volumes to the CG.
+            client.addVolumesToConsistencyGroup(cgName, vplexVolumeNames);
+            long elapsed = System.currentTimeMillis() - startTime;
+            log.info(String.format("TIMER: Adding %s virtual volume(s) %s to the consistency group %s took %f seconds",
+                    vplexVolumeNames.size(), vplexVolumeNames, cgName, (double) elapsed / (double) 1000));
+
+            // Make sure the volumes are updated. Necessary when
+            // adding volumes to a CG after volume creation.
+            for (Volume vplexVolume : vplexVolumes) {
+                vplexVolume.setConsistencyGroup(cg.getId());
+                dbClient.updateObject(vplexVolume);
+            }
+
+            // Update workflow step state to success.
+            WorkflowStepCompleter.stepSucceded(stepId);
+            log.info("Updated workflow step state to success for add volumes to consistency group.");
+            return true;
+        } catch (VPlexApiException vae) {
+            log.error("Exception adding volumes to consistency group: " + vae.getMessage(), vae);
+            WorkflowStepCompleter.stepFailed(stepId, vae);
+            return false;
+        } catch (Exception ex) {
+            log.error(
+                    "Exception adding volumes to consistency group: " + ex.getMessage(), ex);
+            ServiceError svcError = VPlexApiException.errors.jobFailed(ex);
+            WorkflowStepCompleter.stepFailed(stepId, svcError);
+            return false;
+        }
     }
 }

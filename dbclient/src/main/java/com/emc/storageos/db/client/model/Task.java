@@ -59,7 +59,7 @@ public class Task extends DataObject {
     public Task() {
     }
 
-    @NamedRelationIndex(cf = "TaskResource", types={Volume.class, VirtualPool.class})
+    @NamedRelationIndex(cf = "TaskResource", types={Volume.class, BlockSnapshot.class, VolumeGroup.class, BlockConsistencyGroup.class})
     @Name("resource")
     public NamedURI getResource() {
         return resource;

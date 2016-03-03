@@ -61,4 +61,7 @@ public interface CustomConfigControllerExceptions {
     
     @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
     public CustomConfigControllerException predefinedValueConstraintViolated(final String val, final String validValues);
+
+    @DeclareServiceCode(ServiceCode.CONTROLLER_CUSTOMCONFIG_ERROR)
+    public CustomConfigControllerException invalidSyntax(String value, final String reason);
 }

@@ -80,6 +80,7 @@ public interface BackupConstants {
     public static final String BACKUP_ZK_FILE_SUFFIX = BACKUP_NAME_DELIMITER + "zk.zip";
     public static final String BACKUP_INFO_VERSION = "version";
     public static final String BACKUP_INFO_HOSTS = "hosts";
+    public static final String BACKUP_INFO_CREATE_TIME = "time";
     public static final String EVENT_SERVICE_TYPE = "backup";
     public static final String BACKUP_LEADER_PATH = "backupleader";
     public static final long BACKUP_WAINT_BEFORE_RETRY_ZK_CONN = 1000L;

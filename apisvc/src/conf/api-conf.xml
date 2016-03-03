@@ -24,10 +24,10 @@
     <import resource="classpath:dbclient-conf.xml"/>
     <import resource="classpath:api-var.xml"/>
     <import resource="classpath:local-security-conf.xml" />
-    <import resource="classpath:security-common.xml" />
     <import resource="classpath:attr-matcher.xml"/>
     <import resource="classpath:jmx-conf.xml"/>
     <import resource="classpath:geoclient-conf.xml"/>
+    <import resource="classpath:keystone-conf.xml"/>
     <import resource="classpath:dbcommon-var.xml"/>
     <import resource="classpath:controller-custom-config-info.xml"/>
     <import resource="classpath:controller-configinfo.xml"/>
@@ -270,7 +270,25 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
+<<<<<<< HEAD
     
+=======
+
+    <bean id="blockConsistencyGroupService" class="com.emc.storageos.api.service.impl.resource.BlockConsistencyGroupService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="placementManager" ref="placementManager"/>
+        <property name="blockService" ref="blockService"/>
+        <property name="blockServiceApis">
+        <map>
+            <entry key="group" value-ref="defaultBlockServiceApiImpl" />
+            <entry key="vplex" value-ref="vplexBlockServiceApiImpl" />
+            <entry key="rp" value-ref="rpBlockServiceApiImpl" />
+        </map>
+        </property>
+    </bean>
+
+>>>>>>> 3201f555926ed2b141644b8052c80ef66b11c6cd
     <bean id="volumeGroupService" class="com.emc.storageos.api.service.impl.resource.VolumeGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -283,7 +301,7 @@
             </map>
         </property>
     </bean>
-    
+
     <bean id="defaultBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.DefaultBlockServiceApiImpl">
          <property name="dbClient" ref="dbclient"/>
          <property name="coordinator" ref="coordinator"/>
@@ -697,7 +715,9 @@
                 <bean class="com.emc.storageos.api.service.impl.resource.AuthnConfigurationService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
-                    <property name="keystoneFactory" ref="keystoneFactory"/>
+                    <property name="keystoneUtils" ref="keystoneUtils"/>
+                    <property name="tenantsService" ref="tenantsService"/>
+                    <property name="ovfProperties" ref="ovfProperties"/>
                 </bean>
                 <bean class="com.emc.storageos.api.service.impl.resource.WorkflowService">
                     <property name="dbClient" ref="dbclient"/>

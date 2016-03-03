@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
@@ -75,6 +76,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     private ExportGroup _exportGroup;
     private List<Initiator> _deviceInitiators;
     private List<BlockObject> _objectsIngestedByExportProcessing;
+    private Map<BlockObject, ExportGroup> _vplexBackendExportGroupMap;
 
     private Map<String, BlockConsistencyGroup> _cgsToCreateMap;
     private List<UnManagedConsistencyGroup> _umCGsToUpdate;
@@ -119,6 +121,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public void commit() {
 
+        _logger.info("persisting VPLEX backend for virtual volume " + getUnmanagedVolume().forDisplay());
         setFlags();
         createVplexMirrorObjects();
         _dbClient.createObject(getCreatedVplexMirrors());
@@ -127,11 +130,38 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         _dbClient.createObject(getBlockObjectsToBeCreatedMap().values());
         _dbClient.createObject(getCreatedSnapshotMap().values());
 
-        for (List<DataObject> dos : getDataObjectsToBeCreatedMap().values()) {
-            _dbClient.createObject(dos);
+        // Update the related objects if any after successful export mask ingestion
+        for (List<DataObject> updatedObjects : getDataObjectsToBeUpdatedMap().values()) {
+            if (updatedObjects != null && !updatedObjects.isEmpty()) {
+                for (DataObject dob : updatedObjects) {
+                    _logger.info("Updating DataObject " + dob.forDisplay());
+                    _dbClient.updateObject(dob);
+                }
+            }
         }
-        for (List<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
-            _dbClient.updateObject(dos);
+
+        // Create the related objects if any after successful export mask ingestion
+        for (List<DataObject> createdObjects : getDataObjectsToBeCreatedMap().values()) {
+            if (createdObjects != null && !createdObjects.isEmpty()) {
+                for (DataObject dob : createdObjects) {
+                    _logger.info("Creating DataObject " + dob.forDisplay());
+                    _dbClient.createObject(dob);
+                }
+            }
+        }
+
+        for (Entry<BlockObject, ExportGroup> entry : getVplexBackendExportGroupMap().entrySet()) {
+            BlockObject volume = entry.getKey();
+            ExportGroup exportGroup = entry.getValue();
+            ExportGroup egInDb = _dbClient.queryObject(ExportGroup.class, exportGroup.getId());
+            exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
+            if (null == egInDb) {
+                _logger.info("Creating VPLEX backend ExportGroup {} for Volume {}", exportGroup.forDisplay(), volume.forDisplay());
+                _dbClient.createObject(exportGroup);
+            } else {
+                _logger.info("Updating VPLEX backend ExportGroup {} for Volume {}", exportGroup.forDisplay(), volume.forDisplay());
+                _dbClient.updateObject(exportGroup);
+            }
         }
 
         _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
@@ -139,12 +169,21 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         // commit the UnmanagedConsistencyGroups and CGs to create
         _dbClient.updateObject(getUmCGObjectsToUpdate());
         _dbClient.updateObject(getCGObjectsToCreateMap().values());
+    }
 
-        if (isExportGroupCreated()) {
-            _dbClient.createObject(getExportGroup());
-        } else {
-            _dbClient.updateObject(getExportGroup());
+    /**
+     * Gets a Map of backend Volume objects to the ExportGroup to 
+     * which they are tied.  This is necessary because a VPLEX distributed
+     * volume could have two different backend ExportGroups.
+     * 
+     * @return a Map of backend Volume objects to its ExportGroup
+     */
+    public Map<BlockObject, ExportGroup> getVplexBackendExportGroupMap() {
+        if (null == _vplexBackendExportGroupMap) {
+            _vplexBackendExportGroupMap = new HashMap<BlockObject, ExportGroup>();
         }
+        
+        return _vplexBackendExportGroupMap;
     }
 
     /*
@@ -163,6 +202,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         getCreatedVplexMirrors().clear();
         getUmCGObjectsToUpdate().clear();
         getCGObjectsToCreateMap().clear();
+        getVplexBackendExportGroupMap().clear();
     }
 
     /*
@@ -1037,11 +1077,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * storageos.db.client.model.DataObject)
      */
     @Override
-    public void addDataObjectToUpdate(DataObject dataObject) {
-        if (null == getDataObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid())) {
-            getDataObjectsToBeUpdatedMap().put(getCurrentUnmanagedVolume().getNativeGuid(), new ArrayList<DataObject>());
+    public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume) {
+        if (null == getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid())) {
+            getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
         }
-        getDataObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid()).add(dataObject);
+        getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
 
     /*
@@ -1052,10 +1092,68 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * storageos.db.client.model.DataObject)
      */
     @Override
-    public void addDataObjectToCreate(DataObject dataObject) {
-        if (null == getDataObjectsToBeCreatedMap().get(getCurrentUnmanagedVolume().getNativeGuid())) {
-            getDataObjectsToBeCreatedMap().put(getCurrentUnmanagedVolume().getNativeGuid(), new ArrayList<DataObject>());
+    public void addDataObjectToCreate(DataObject dataObject, UnManagedVolume unManagedVolume) {
+        if (null == getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid())) {
+            getDataObjectsToBeCreatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
         }
-        getDataObjectsToBeCreatedMap().get(getCurrentUnmanagedVolume().getNativeGuid()).add(dataObject);
+        getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
+     */
+    @Override
+    public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
+        if (exportGroupLabel != null) {
+
+            ExportGroup localExportGroup = getExportGroup();
+            if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
+                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup, 
+                        exportGroupLabel, project, varray, computeResource, resourceType)) {
+                    _logger.info("Found existing local ExportGroup {} in VPLEX ingestion request context", 
+                            localExportGroup.forDisplay());
+                    return localExportGroup;
+                }
+            }
+
+            for (ExportGroup backendExportGroup : getVplexBackendExportGroupMap().values()) {
+                if (VolumeIngestionUtil.verifyExportGroupMatches(backendExportGroup, 
+                        exportGroupLabel, project, varray, computeResource, resourceType)) {
+                    _logger.info("Found existing nested ExportGroup {} in VPLEX backend ingestion request context", 
+                            backendExportGroup.forDisplay());
+                    return backendExportGroup;
+                }
+            }
+        }
+
+        _logger.info("Could not find existing export group for label " + exportGroupLabel);
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllNewExportMasks()
+     */
+    @Override
+    public List<ExportMask> findAllNewExportMasks() {
+        List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
+        
+        for (List<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
+            for (DataObject createdObject : createdObjects) {
+                if (createdObject instanceof ExportMask) {
+                    newExportMasks.add((ExportMask) createdObject);
+                }
+            }
+        }
+
+        return newExportMasks;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
+     */
+    @Override
+    public IngestionRequestContext getRootIngestionRequestContext() {
+        return _parentRequestContext;
+    }
+
 }

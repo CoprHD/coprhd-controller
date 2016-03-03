@@ -53,7 +53,7 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
      * 
      */
     @Override
-    protected ExportMask getExportsMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
+    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
         ExportMask eMask = null;
         boolean maskFound = false;
         List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
@@ -80,5 +80,30 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
             }
         }
         return eMask;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestExportOrchestrator#getExportMaskAlreadyCreated(com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask, com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
+     */
+    @Override
+    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
+        List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
+                mask.getKnownInitiatorUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        for (URI ini : initiatorUris) {
+            for (ExportMask createdMask : requestContext.findAllNewExportMasks()) {
+                if (null != createdMask && createdMask.getInitiators() != null
+                        && createdMask.getInitiators().contains(ini)) {
+                    if (createdMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
+                        _logger.info("Found already-created ExportMask {} matching UnManagedExportMask initiator {} and storage system {}",
+                                createdMask.getMaskName(), ini, mask.getStorageSystemUri());
+                        return createdMask;
+                    }
+                }
+
+            }
+        }
+        
+        _logger.info("No existing created mask found for UnManagedExportMask {}", mask.getMaskName());
+        return null;
     }
 }

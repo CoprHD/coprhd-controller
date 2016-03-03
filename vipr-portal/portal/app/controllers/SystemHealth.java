@@ -35,6 +35,7 @@ import play.mvc.Controller;
 import play.mvc.With;
 import util.AdminDashboardUtils;
 import util.BourneUtil;
+import util.DisasterRecoveryUtils;
 import util.MonitorUtils;
 import util.SystemLogUtils;
 import util.datatable.DataTablesSupport;
@@ -195,7 +196,9 @@ public class SystemHealth extends Controller {
         ClusterInfo clusterInfo = AdminDashboardUtils.getClusterInfo();
 
         renderArgs.put("severities", SEVERITIES);
-        renderArgs.put("orderTypes", ORDER_TYPES);
+        if(DisasterRecoveryUtils.isActiveSite()) {
+            renderArgs.put("orderTypes", ORDER_TYPES);
+        }
 
         Set<String> controlServiceNames = getControlServiceNames(nodeHealthList, clusterInfo);
         renderArgs.put("controlServices", controlServiceNames);
@@ -521,11 +524,12 @@ public class SystemHealth extends Controller {
         if (severity != null && severity > 0) {
             creator.setLogSeverity(severity);
         }
-        if (StringUtils.equalsIgnoreCase(orderTypes, OrderTypes.ALL.name())) {
-            creator.setOrderTypes(OrderTypes.ALL);
-        }
-        else if (StringUtils.equals(orderTypes, OrderTypes.ERROR.name())) {
-            creator.setOrderTypes(OrderTypes.ERROR);
+        if(DisasterRecoveryUtils.isActiveSite()) {
+            if (StringUtils.equalsIgnoreCase(orderTypes, OrderTypes.ALL.name())) {
+                creator.setOrderTypes(OrderTypes.ALL);
+            } else if (StringUtils.equals(orderTypes, OrderTypes.ERROR.name())) {
+                creator.setOrderTypes(OrderTypes.ERROR);
+            }
         }
         renderSupportPackage(creator);
     }

@@ -12,6 +12,7 @@ import java.util.Map;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -376,14 +377,42 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * Adds a DataObject to the dataObjectsToBeUpdated Map for the current UnManagedVolume.
      *
      * @param dataObject the DataObject that needs to be updated in the database
+     * @param unManagedVolume the UnManagedVolume associatd with the DataObject
      */
-    public void addDataObjectToCreate(DataObject dataObject);
+    public void addDataObjectToCreate(DataObject dataObject, UnManagedVolume unManagedVolume);
 
     /**
      * Adds a DataObject to the dataObjectsToBeCreated Map for the current UnManagedVolume.
      *
      * @param dataObject the DataObject that needs to be created in the database
+     * @param unManagedVolume the UnManagedVolume associatd with the DataObject
      */
-    public void addDataObjectToUpdate(DataObject dataObject);
+    public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume);
 
+    /**
+     * Finds an already-loaded ExportGroup for the given parameters in the scope of
+     * this IngestionRequestContext.
+     * 
+     * @param exportGroupLabel the name of the ExportGroup
+     * @param project the ExportGroup's Project URI
+     * @param varray the ExportGroup's VirtualArray URI
+     * @param computeResource the ExportGroup's compute resource URI (optional)
+     * @param resourceType the ExportGroup's resourceType (optional)
+     * @return
+     */
+    public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType);
+
+    /**
+     * Returns a List of all the newly-created ExportMasks in this scope.
+     * 
+     * @return a List of all newly-created ExportMasks
+     */
+    public List<ExportMask> findAllNewExportMasks();
+
+    /**
+     * Gets the root, top-level IngestionRequestContext.
+     * 
+     * @return the root, top-level IngestionRequestContext
+     */
+    public IngestionRequestContext getRootIngestionRequestContext();
 }

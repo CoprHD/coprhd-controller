@@ -230,6 +230,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public void commit() {
 
+        _logger.info("persisting RecoverPoint backend for volume " + getUnmanagedVolume().forDisplay());
+
         // commit the basic IngestionRequestContext collections
         _dbClient.createObject(getObjectsIngestedByExportProcessing());
         _dbClient.createObject(getBlockObjectsToBeCreatedMap().values());
@@ -855,11 +857,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * storageos.db.client.model.DataObject)
      */
     @Override
-    public void addDataObjectToUpdate(DataObject dataObject) {
-        if (null == getDataObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid())) {
-            getDataObjectsToBeUpdatedMap().put(getCurrentUnmanagedVolume().getNativeGuid(), new ArrayList<DataObject>());
+    public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume) {
+        if (null == getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid())) {
+            getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
         }
-        getDataObjectsToBeUpdatedMap().get(getCurrentUnmanagedVolume().getNativeGuid()).add(dataObject);
+        getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
 
     /*
@@ -870,10 +872,75 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * storageos.db.client.model.DataObject)
      */
     @Override
-    public void addDataObjectToCreate(DataObject dataObject) {
-        if (null == getDataObjectsToBeCreatedMap().get(getCurrentUnmanagedVolume().getNativeGuid())) {
-            getDataObjectsToBeCreatedMap().put(getCurrentUnmanagedVolume().getNativeGuid(), new ArrayList<DataObject>());
+    public void addDataObjectToCreate(DataObject dataObject, UnManagedVolume unManagedVolume) {
+        if (null == getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid())) {
+            getDataObjectsToBeCreatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
         }
-        getDataObjectsToBeCreatedMap().get(getCurrentUnmanagedVolume().getNativeGuid()).add(dataObject);
+        getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
+     */
+    @Override
+    public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
+        if (exportGroupLabel != null) {
+
+            ExportGroup localExportGroup = getExportGroup();
+            if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
+                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup, 
+                        exportGroupLabel, project, varray, computeResource, resourceType)) {
+                    _logger.info("Found existing local ExportGroup {} in RP ingestion request context", 
+                            localExportGroup.forDisplay());
+                    return localExportGroup;
+                }
+            }
+        }
+
+        ExportGroup nestedExportGroup = null;
+        for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext instanceof IngestionRequestContext) {
+                nestedExportGroup = ((IngestionRequestContext) volumeContext).findExportGroup(
+                        exportGroupLabel, project, varray, computeResource, resourceType);
+            }
+            if (null != nestedExportGroup) {
+                if (VolumeIngestionUtil.verifyExportGroupMatches(nestedExportGroup, 
+                        exportGroupLabel, project, varray, computeResource, resourceType)) {
+                    _logger.info("Found existing nested ExportGroup {} in volume context {}", 
+                            nestedExportGroup.forDisplay(), volumeContext.getUnmanagedVolume().forDisplay());
+                    return nestedExportGroup;
+                }
+            }
+        }
+
+        _logger.info("Could not find existing export group for label " + exportGroupLabel);
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllNewExportMasks()
+     */
+    @Override
+    public List<ExportMask> findAllNewExportMasks() {
+        List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
+        
+        for (List<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
+            for (DataObject createdObject : createdObjects) {
+                if (createdObject instanceof ExportMask) {
+                    newExportMasks.add((ExportMask) createdObject);
+                }
+            }
+        }
+
+        return newExportMasks;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
+     */
+    @Override
+    public IngestionRequestContext getRootIngestionRequestContext() {
+        return _parentRequestContext;
+    }
+
 }

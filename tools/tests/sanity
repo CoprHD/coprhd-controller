@@ -2857,19 +2857,19 @@ recoverpoint_ingest_host_setup()
 {
     vpool=${1}
 
-    if [ "${vpool}" = "rp_${rptypetag}cdp" ]; then
+    if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:E0
         WWNN1=20:00:00:E0:E0:E0:E0:E0
         PWWN2=10:00:00:E0:E0:E0:E0:E1
         WWNN2=20:00:00:E0:E0:E0:E0:E1
         RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}cdp
-    elif [ "${vpool}" = "rp_${rptypetag}crr" ]; then
+    elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:F0
         WWNN1=20:00:00:E0:E0:E0:E0:F0
         PWWN2=10:00:00:E0:E0:E0:E0:F1
         WWNN2=20:00:00:E0:E0:E0:E0:F1
         RP_HOSTNAME=${RECOVERPOINT_HOST_VARRAY1}crr
-    elif [ "${vpool}" = "rp_${rptypetag}clr" ]; then
+    elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
         PWWN1=10:00:00:E0:E0:E0:E0:D0
         WWNN1=20:00:00:E0:E0:E0:E0:D0
         PWWN2=10:00:00:E0:E0:E0:E0:D1

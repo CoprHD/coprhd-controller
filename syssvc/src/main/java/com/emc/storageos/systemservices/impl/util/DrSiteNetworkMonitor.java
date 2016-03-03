@@ -8,7 +8,6 @@ package com.emc.storageos.systemservices.impl.util;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.services.util.AlertsLogger;
@@ -105,10 +104,6 @@ public class DrSiteNetworkMonitor implements Runnable{
         }
 
         for (Site site : drUtil.listStandbySites()){
-            if (SiteState.STANDBY_ADDING.equals(site.getState()) || SiteState.STANDBY_REMOVING.equals(site.getState())){
-                _log.info("Skip site {} for network health check", site.getSiteShortId());
-                continue;
-            }
             SiteNetworkState siteNetworkState = drUtil.getSiteNetworkState(site.getUuid());
             NetworkHealth previousState = siteNetworkState.getNetworkHealth();
             String host = site.getVipEndPoint();

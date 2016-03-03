@@ -12,6 +12,11 @@
       required:"false"
     },
     
+    applicationSubGroup:{
+      type:"assetType.vipr.replicationGroup",
+      select:"many"
+    },
+    
     name:{
       type:"text",
       validation:{

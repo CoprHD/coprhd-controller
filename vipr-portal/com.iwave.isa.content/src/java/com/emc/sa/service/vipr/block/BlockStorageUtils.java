@@ -41,6 +41,7 @@ import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSession;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSessionList;
 import com.emc.sa.service.vipr.application.tasks.GetBlockSnapshotSet;
+import com.emc.sa.service.vipr.application.tasks.GetFullCopyList;
 import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
@@ -1104,6 +1105,22 @@ public class BlockStorageUtils {
             }
         }
         return snapshotSessionIds;
+    }
+
+    public static List<URI> getSingleFullCopyPerSubGroup(URI applicationId, String copySet,
+            List<String> subGroups) {
+        List<URI> fullCopyIds = Lists.newArrayList();
+        NamedVolumesList fullCopyList = execute(new GetFullCopyList(applicationId, copySet));
+        for (String subGroup : subGroups) {
+            for (NamedRelatedResourceRep fullCopy : fullCopyList.getVolumes()) {
+                VolumeRestRep fullCopyVolume = execute(new GetBlockVolume(fullCopy.getId()));
+                if (fullCopyVolume.getReplicationGroupInstance() != null && fullCopyVolume.getReplicationGroupInstance().equals(subGroup)) {
+                    fullCopyIds.add(fullCopyVolume.getId());
+                    break;
+                }
+            }
+        }
+        return fullCopyIds;
     }
 
     public static boolean isVplexVolume(VolumeRestRep volume, String storageSystemType) {

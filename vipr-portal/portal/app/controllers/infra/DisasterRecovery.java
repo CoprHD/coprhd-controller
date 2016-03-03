@@ -290,6 +290,11 @@ public class DisasterRecovery extends ViprResourceController {
     private static boolean isActiveSiteState(SiteState state) {
         return activeStates.contains(state);
     }
+    
+    public static String getLocalSiteState() {
+        SiteRestRep site = DisasterRecoveryUtils.getLocalSite();
+        return site != null ? site.getState() : "";
+    }
 
     public static void errorDetails(String id) {
         Boolean isError = false;
@@ -356,7 +361,7 @@ public class DisasterRecovery extends ViprResourceController {
             return new StandByInfo(provider);
         }
     }
-
+    
     // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
     @SuppressWarnings("squid:S2068")
     public static class DisasterRecoveryForm {

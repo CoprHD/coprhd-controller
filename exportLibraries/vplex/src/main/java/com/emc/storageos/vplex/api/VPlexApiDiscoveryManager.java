@@ -407,7 +407,7 @@ public class VPlexApiDiscoveryManager {
 
     Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(List<VolumeInfo> volumeInfoList,
             List<VPlexClusterInfo> clusterInfoList)
-            throws VPlexApiException {
+                    throws VPlexApiException {
 
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = new HashMap<VolumeInfo, VPlexStorageVolumeInfo>();
         Iterator<VolumeInfo> volumeInfoIter = volumeInfoList.iterator();
@@ -509,8 +509,7 @@ public class VPlexApiDiscoveryManager {
                 try {
                     String storageVolumeName = storageVolumeInfo.getName();
                     s_logger.info("Find extent for volume {}", storageVolumeName);
-                    List<VPlexExtentInfo> clusterExtentInfoList = getExtentInfoForCluster
-                            (storageVolumeInfo.getClusterId());
+                    List<VPlexExtentInfo> clusterExtentInfoList = getExtentInfoForCluster(storageVolumeInfo.getClusterId());
                     for (VPlexExtentInfo extentInfo : clusterExtentInfoList) {
                         s_logger.info("Extent Info: {}", extentInfo.toString());
                         StringBuilder nameBuilder = new StringBuilder();
@@ -674,8 +673,7 @@ public class VPlexApiDiscoveryManager {
                     s_logger.info("Find device with name {}", deviceNameBuilder.toString());
 
                     // Get the devices on the cluster for this extent.
-                    List<VPlexDeviceInfo> clusterDeviceInfoList = getLocalDeviceInfoOnCluster
-                            (storageVolumeInfo.getClusterId());
+                    List<VPlexDeviceInfo> clusterDeviceInfoList = getLocalDeviceInfoOnCluster(storageVolumeInfo.getClusterId());
                     for (VPlexDeviceInfo deviceInfo : clusterDeviceInfoList) {
                         s_logger.info("Device Info: {}", deviceInfo.toString());
                         if (deviceInfo.getName().equals(deviceNameBuilder.toString())) {
@@ -884,11 +882,9 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
-     * Find the virtual volume containing the passed name or name fragment.
-     * In some cases, the passed name fragment could be a storage volume
-     * used by the virtual volume.
+     * Find the virtual volume containing the passed name.
      * 
-     * @param volumeNameSubstr The name or name fragment of the virtual volume.
+     * @param volumeName The name of the virtual volume.
      * @param fetchAtts true to fetch the virtual volume attributes.
      * 
      * @return A reference to the virtual volume info.
@@ -896,10 +892,10 @@ public class VPlexApiDiscoveryManager {
      * @throws VPlexApiException When an error occurs finding the virtual
      *             volume.
      */
-    VPlexVirtualVolumeInfo findVirtualVolume(String volumeNameSubstr, boolean fetchAtts)
+    VPlexVirtualVolumeInfo findVirtualVolume(String volumeName, boolean fetchAtts)
             throws VPlexApiException {
 
-        if (volumeNameSubstr == null) {
+        if (volumeName == null) {
             throw VPlexApiException.exceptions.cantFindRequestedVolumeNull();
         }
 
@@ -908,7 +904,7 @@ public class VPlexApiDiscoveryManager {
         List<VPlexClusterInfo> clusterInfoList = getClusterInfoLite();
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             virtualVolumeInfo = findVirtualVolume(clusterInfo.getName(),
-                    volumeNameSubstr, fetchAtts);
+                    volumeName, fetchAtts);
             if (virtualVolumeInfo != null) {
                 break;
             }
@@ -916,20 +912,18 @@ public class VPlexApiDiscoveryManager {
 
         // Throw an exception if we can't find the volume.
         if (virtualVolumeInfo == null) {
-            throw VPlexApiException.exceptions.cantFindRequestedVolume(volumeNameSubstr);
+            throw VPlexApiException.exceptions.cantFindRequestedVolume(volumeName);
         }
 
         return virtualVolumeInfo;
     }
 
     /**
-     * Find the virtual volume containing the passed name or name fragment.
-     * In some cases, the passed name fragment could be a storage volume
-     * used by the virtual volume.
+     * Find the virtual volume containing the passed name.
      * 
      * @param clusterId The id of the cluster on which to find the virtual
      *            volume.
-     * @param volumeNameSubstr The name or name fragment of the virtual volume.
+     * @param volumeName The name of the virtual volume.
      * @param fetchAtts true to fetch the virtual volume attributes.
      * 
      * @return A reference to the virtual volume info or null if not found.
@@ -937,19 +931,17 @@ public class VPlexApiDiscoveryManager {
      * @throws VPlexApiException When an error occurs finding the virtual
      *             volume.
      */
-    VPlexVirtualVolumeInfo findVirtualVolume(String clusterId, String volumeNameSubstr,
+    VPlexVirtualVolumeInfo findVirtualVolume(String clusterId, String volumeName,
             Boolean fetchAtts) throws VPlexApiException {
-        return findVirtualVolume(clusterId, volumeNameSubstr, fetchAtts, false);
+        return findVirtualVolume(clusterId, volumeName, fetchAtts, false);
     }
 
     /**
-     * Find the virtual volume containing the passed name or name fragment.
-     * In some cases, the passed name fragment could be a storage volume
-     * used by the virtual volume.
+     * Find the virtual volume containing the passed name.
      * 
      * @param clusterId The id of the cluster on which to find the virtual
      *            volume.
-     * @param volumeNameSubstr The name or name fragment of the virtual volume.
+     * @param volumeName The name of the virtual volume.
      * @param fetchAtts true to fetch the virtual volume attributes.
      * @param retry Indicates retry should occur if the first attempt to find
      *            the virtual volume fails.
@@ -959,14 +951,14 @@ public class VPlexApiDiscoveryManager {
      * @throws VPlexApiException When an error occurs finding the virtual
      *             volume.
      */
-    VPlexVirtualVolumeInfo findVirtualVolume(String clusterId, String volumeNameSubstr,
+    VPlexVirtualVolumeInfo findVirtualVolume(String clusterId, String volumeName,
             Boolean fetchAtts, boolean retry) throws VPlexApiException {
 
-        if (volumeNameSubstr == null) {
+        if (volumeName == null) {
             throw VPlexApiException.exceptions.cantFindRequestedVolumeNull();
         }
 
-        s_logger.info("Find virtual volume containing {}", volumeNameSubstr);
+        s_logger.info("Find virtual volume with name {}", volumeName);
 
         int retryCount = 0;
         while (++retryCount <= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
@@ -974,11 +966,7 @@ public class VPlexApiDiscoveryManager {
                 List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = getVirtualVolumesForCluster(clusterId);
                 for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
                     s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
-                    // We use contains as at times the passed name is only
-                    // a portion of the virtual volume name for example, it
-                    // may be the name of one of the storage volumes used by
-                    // the virtual volume.
-                    if (volumeInfo.getName().contains(volumeNameSubstr)) {
+                    if (volumeInfo.getName().equals(volumeName)) {
                         s_logger.info("Found virtual volume {}", volumeInfo.getName());
                         return volumeInfo;
                     }
@@ -1066,8 +1054,8 @@ public class VPlexApiDiscoveryManager {
                 }
 
                 for (VPlexVirtualVolumeInfo virtualVolumeInfo : virtualVolumeToFindList) {
-                    List<VPlexVirtualVolumeInfo> clusterVolumeInfoList =
-                            clusterToVirtualVolumeMap.get(virtualVolumeInfo.getClusters().get(0));
+                    List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = clusterToVirtualVolumeMap
+                            .get(virtualVolumeInfo.getClusters().get(0));
                     for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
                         s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
                         if (volumeInfo.getName().equals(virtualVolumeInfo.getName())) {
@@ -1223,8 +1211,7 @@ public class VPlexApiDiscoveryManager {
         response.close();
 
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
-            throw VPlexApiException.exceptions.
-                    failedGettingStorageVolumeInfo(clusterName, String.valueOf(status));
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(clusterName, String.valueOf(status));
         }
 
         // Successful Response
@@ -1589,8 +1576,7 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
                 URI.create(uriBuilder.toString()));
         s_logger.info("Initiators Request URI is {}", requestURI.toString());
-        ClientResponse response =
-                _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
         String responseStr = response.getEntity(String.class);
         int status = response.getStatus();
         response.close();
@@ -1608,7 +1594,7 @@ public class VPlexApiDiscoveryManager {
             return new ArrayList<VPlexInitiatorInfo>();
         } else {
             throw VPlexApiException.exceptions
-                .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
+                    .failedGettingInitiatorInfoForCluster(clusterName, String.valueOf(status));
         }
     }
 
@@ -1726,8 +1712,7 @@ public class VPlexApiDiscoveryManager {
         URI requestURI = _vplexApiClient.getBaseURI().resolve(
                 URI.create(uriBuilder.toString()));
         s_logger.info("Targets Request URI is {}", requestURI.toString());
-        ClientResponse response =
-                _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
+        ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
         String responseStr = response.getEntity(String.class);
         s_logger.info("Response is {}", responseStr);
         int status = response.getStatus();
@@ -2525,7 +2510,7 @@ public class VPlexApiDiscoveryManager {
      */
     VPlexConsistencyGroupInfo findConsistencyGroup(String cgName,
             List<VPlexClusterInfo> clusterInfoList, boolean fetchAtts, boolean retry)
-            throws VPlexApiException {
+                    throws VPlexApiException {
 
         int retryCount = 0;
         VPlexConsistencyGroupInfo cgInfo = null;
@@ -3399,9 +3384,8 @@ public class VPlexApiDiscoveryManager {
 
         // Successful Response
         try {
-            List<VPlexStorageVolumeInfo> storageVolumeInfoList =
-                    VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                            responseStr, VPlexStorageVolumeInfo.class);
+            List<VPlexStorageVolumeInfo> storageVolumeInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                    responseStr, VPlexStorageVolumeInfo.class);
 
             s_logger.info("TIMER: getStorageVolumesForDevice took {}ms",
                     System.currentTimeMillis() - start);
@@ -3607,9 +3591,8 @@ public class VPlexApiDiscoveryManager {
         parentDevice.setName(deviceName);
 
         // Successful Response
-        List<VPlexDeviceInfo> deviceInfoList =
-                VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                        responseStr, VPlexDeviceInfo.class);
+        List<VPlexDeviceInfo> deviceInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                responseStr, VPlexDeviceInfo.class);
 
         for (VPlexDeviceInfo componentDevice : deviceInfoList) {
             switch (componentDevice.getGeometry().toLowerCase()) {
@@ -3620,8 +3603,7 @@ public class VPlexApiDiscoveryManager {
                 case VPlexApiConstants.ARG_GEOMETRY_RAID1:
                     s_logger.info("top-level device geometry is raid-1 for component {}, need to find mirror info",
                             componentDevice.getName());
-                    List<VPlexDeviceInfo> childDeviceInfos =
-                            getDeviceComponentInfoForIngestion(componentDevice);
+                    List<VPlexDeviceInfo> childDeviceInfos = getDeviceComponentInfoForIngestion(componentDevice);
                     componentDevice.setChildDeviceInfo(childDeviceInfos);
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAIDC:
@@ -3692,9 +3674,8 @@ public class VPlexApiDiscoveryManager {
         VPlexDeviceInfo device = null;
 
         // Successful Response
-        List<VPlexDeviceInfo> deviceInfoList =
-                VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                        responseStr, VPlexDeviceInfo.class);
+        List<VPlexDeviceInfo> deviceInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                responseStr, VPlexDeviceInfo.class);
         if (deviceInfoList.size() == 1) {
             device = deviceInfoList.get(0);
 
@@ -3706,8 +3687,7 @@ public class VPlexApiDiscoveryManager {
                 case VPlexApiConstants.ARG_GEOMETRY_RAID1:
                     s_logger.info("top-level device geometry is raid-1 for device {}, finding children",
                             device.getName());
-                    List<VPlexDeviceInfo> componentDeviceInfoList =
-                            getDeviceComponentInfoForIngestion(device);
+                    List<VPlexDeviceInfo> componentDeviceInfoList = getDeviceComponentInfoForIngestion(device);
                     device.setChildDeviceInfo(componentDeviceInfoList);
                     break;
                 case VPlexApiConstants.ARG_GEOMETRY_RAIDC:
@@ -3777,9 +3757,8 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexDeviceInfo> deviceInfoList =
-                VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                        responseStr, VPlexDeviceInfo.class);
+        List<VPlexDeviceInfo> deviceInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                responseStr, VPlexDeviceInfo.class);
 
         for (VPlexDeviceInfo device : deviceInfoList) {
             switch (device.getGeometry().toLowerCase()) {
@@ -3847,9 +3826,8 @@ public class VPlexApiDiscoveryManager {
 
         if (status == VPlexApiConstants.SUCCESS_STATUS) {
             // Successful Response
-            List<VPlexDeviceInfo> deviceInfoList =
-                    VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                            responseStr, VPlexDeviceInfo.class);
+            List<VPlexDeviceInfo> deviceInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                    responseStr, VPlexDeviceInfo.class);
 
             for (VPlexDeviceInfo device : deviceInfoList) {
                 distributedDevicePathToClusterMap.put(device.getPath(), device.getCluster());

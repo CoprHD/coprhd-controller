@@ -33,16 +33,18 @@
         </td>
       </tr>
       <tr class="quotadesc" style="display:none;">
+      #{if !(quota.notificationLimit == 0) || !(quota.softLimit == 0) || !(quota.softGrace == 0)}
       	<td colspan="8" >
-			<dl class="dl-horizontal ng-scope">
-				<dt>Advisory Limit (%):</dt>
+			<dl class="dl-horizontal">
+				<dt>&{'resources.filesystem.quota.notificationLimit'}:</dt>
 				<dd>${quota.notificationLimit == 0 ? null : quota.notificationLimit}</dd>
-				<dt>Soft Limit (%):</dt>
+				<dt>&{'resources.filesystem.quota.softLimit'}:</dt>
 				<dd>${quota.softLimit == 0 ? null : quota.softLimit}</dd>
-				<dt>Grace Period (Days):</dt>
+				<dt>&{'resources.filesystem.quota.softGrace'}:</dt>
 				<dd>${quota.softGrace == 0 ? null : quota.softGrace}</dd>
 			</dl>
 		</td>
+		#{/if}
       </tr>
     #{/list}
   </tbody>

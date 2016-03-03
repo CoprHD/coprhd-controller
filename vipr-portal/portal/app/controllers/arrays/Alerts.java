@@ -32,8 +32,10 @@ public class Alerts extends Controller {
         AlertsBulkResponse bulkResponse = BourneUtil.getViprClient().remediation().getBulkResponse(bulkIds);
         List<AlertsCreateResponse> alertRestRep = bulkResponse.getAlerts();
         for(AlertsCreateResponse resp : alertRestRep){
+            String str = resp.getProblemDescription();
+            String numberOnly = str.replaceAll("[^0-9]", "");
             AlertsDataTable.Alerts alert = new AlertsDataTable.Alerts(resp.getAffectedResourceID(), resp.getAffectedResourceName(),
-                    resp.getProblemDescription(),resp.getDeviceType(),resp.getSeverity(),resp.getState());
+                    resp.getProblemDescription(),numberOnly,resp.getSeverity(),resp.getState());
 
             alerts.add(alert);
         }

@@ -7,8 +7,9 @@ public class AlertsDataTable extends DataTable {
     public AlertsDataTable(){
         addColumn("severity").setRenderFunction("render.alertSeverity");
         addColumn("name");
+        addColumn("resource");
         addColumn("description");
-        addColumn("deviceType");
+        addColumn("alertValue");
         addColumn("state");
         addColumn("actions").setRenderFunction("renderButtonBar");
         sortAllExcept("actions");
@@ -17,17 +18,19 @@ public class AlertsDataTable extends DataTable {
     
     public static class Alerts {
         public String id;
+        public String resource;
         public String name;
         public String description;
-        public String deviceType;
+        public String alertValue;
         public String severity;
         public String state;
         
-        public Alerts(String id, String name, String description, String deviceType, String severity, String state) {
+        public Alerts(String id, String name, String description, String alertValue, String severity, String state) {
             this.id = id;
-            this.name = name;
+            this.resource = name;
+            this.name = "volumeCapacityExceed";
             this.description = description;
-            this.deviceType = deviceType;
+            this.alertValue = alertValue;
             this.severity = severity;
             this.state = state;
         }

@@ -25,7 +25,7 @@ angular.module('tags').directive({
          templateUrl: "inlineActions.html",
          link: function(scope, elem, attrs) {
         	 scope.isFixRequired = false;
-        	 var cap = 10;
+        	 var cap = scope.row.alertValue;
         	 var threshold = 90;
              if(cap < threshold){
              	scope.isFixRequired = true;

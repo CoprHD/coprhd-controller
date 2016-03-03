@@ -151,7 +151,8 @@ alerts.description=Description
 alerts.category=Category
 alerts.state=State
 alerts.actions=Remedy
-alerts.deviceType=Device Type
+alerts.alertValue=Alert Value
+alerts.resource=Resource Name
 
 # Override messages in the Secure plugin
 secure.title=

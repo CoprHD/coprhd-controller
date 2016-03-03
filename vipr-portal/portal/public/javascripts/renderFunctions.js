@@ -292,7 +292,7 @@ render.alertSeverity = function(o, val) {
     };
     var icon = icons[val];
     if (icon != null) {
-        return "<span class='" + icon + "'></span>";
+        return "<span class='label label-danger'><span class='" + icon + "'></span></span>";
     }
     else {
         return "";

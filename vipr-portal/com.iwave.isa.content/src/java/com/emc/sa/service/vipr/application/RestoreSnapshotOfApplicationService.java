@@ -16,7 +16,6 @@ import com.emc.sa.service.vipr.application.tasks.RestoreSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.RestoreSnapshotSessionForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.vipr.client.Tasks;
 
 @Service("RestoreSnapshotOfApplication")
@@ -37,18 +36,15 @@ public class RestoreSnapshotOfApplicationService extends ViPRService {
     @Override
     public void execute() throws Exception {
 
-        // get list of volumes in application
-        NamedVolumesList applicationVolumes = getClient().application().getVolumeByApplication(applicationId);
         Tasks<? extends DataObjectRestRep> tasks = null;
 
         if (snapshotType != null && snapshotType.equalsIgnoreCase(BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE)) {
             List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroupAndStorageSystem(applicationId,
                     applicationCopySet,
-                    applicationVolumes, subGroups);
+                    subGroups);
             tasks = execute(new RestoreSnapshotSessionForApplication(applicationId, snapshotSessionIds));
         } else {
             List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroupAndStorageSystem(applicationId, applicationCopySet,
-                    applicationVolumes,
                     subGroups);
             tasks = execute(new RestoreSnapshotForApplication(applicationId, snapshotIds));
         }

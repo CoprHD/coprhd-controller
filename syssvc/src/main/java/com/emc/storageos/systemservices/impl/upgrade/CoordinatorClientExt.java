@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -50,6 +51,7 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -1798,6 +1800,12 @@ public class CoordinatorClientExt {
         
         boolean isActiveSiteLeaderAlive = false;
         boolean isActiveSiteStable = false;
+        
+        SiteInfo siteInfo = _coordinator.getTargetInfo(SiteInfo.class);
+        
+        if (StringUtils.isEmpty(activeSiteId) && SiteInfo.DR_OP_SWITCHOVER.equals(siteInfo.getActionRequired())) {
+            activeSiteId = siteInfo.getTargetSiteUUID();
+        }
         
         if (StringUtils.isEmpty(activeSiteId) || drUtil.getLocalSite().getUuid().equals(activeSiteId)) {
             _log.info("Can't find active site id or local site is active, set active healthy as false");

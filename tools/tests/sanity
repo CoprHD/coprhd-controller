@@ -7739,10 +7739,10 @@ dr_multisite_tests()
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable 10 600
+    dr waitforstable 10 800
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable 10 600
+    dr waitforstable 10 800
 
     echo "---SWITCHOVER FROM TO $active_site TO $standby_site_c---"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -7752,10 +7752,10 @@ dr_multisite_tests()
     echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable 10 600
+    dr waitforstable 10 800
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable 10 600
+    dr waitforstable 10 800
 
     echo "---WAIT FOR SWITCHOVER FROM $active_site TO $standby_site DONE---"
     dr waitforstate $standby_site_c ACTIVE 10 1200 && echo "standby has been switched into active"

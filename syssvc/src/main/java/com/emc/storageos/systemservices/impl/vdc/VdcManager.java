@@ -75,7 +75,6 @@ public class VdcManager extends AbstractManager {
     // Timeout in minutes for add/resume/data sync
     // If data synchronization takes long than this value, set site to error
     public static final int ADD_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
-    public static final int PAUSE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int RESUME_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int REMOVE_STANDBY_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
     public static final int SWITCHOVER_TIMEOUT_MILLIS = 20 * 60 * 1000; // 20 minutes
@@ -574,14 +573,6 @@ public class VdcManager extends AbstractManager {
                 if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
                     log.warn("Step3: Site {} set to error due to add standby timeout", site.getName());
                     error = new SiteError(APIException.internalServerErrors.addStandbyFailedTimeout(
-                            drOpTimeoutMillis / 60 / 1000),site.getState().name());
-                }
-                break;
-            case STANDBY_PAUSING:
-                drOpTimeoutMillis = drUtil.getDrIntConfig(DrUtil.KEY_PAUSE_STANDBY_TIMEOUT, PAUSE_STANDBY_TIMEOUT_MILLIS);
-                if (currentTime - lastSiteUpdateTime > drOpTimeoutMillis) {
-                    log.warn("Step3: Site {} set to error due to pause standby timeout", site.getName());
-                    error = new SiteError(APIException.internalServerErrors.pauseStandbyFailedTimeout(
                             drOpTimeoutMillis / 60 / 1000),site.getState().name());
                 }
                 break;

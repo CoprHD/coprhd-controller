@@ -29,7 +29,6 @@ import java.util.Set;
 
 import javax.xml.bind.DataBindingException;
 
-import com.emc.storageos.services.util.StorageDriverManager;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,6 +81,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.StorageSystemViewObject;
 import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.services.util.StorageDriverManager;
 import com.emc.storageos.srdfcontroller.SRDFDeviceController;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -1065,7 +1065,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         BlockConsistencyGroup targetCG = _dbClient.queryObject(
                                 BlockConsistencyGroup.class, cgUri);
                         if (null != targetCG && (null == targetCG.getTypes()
-                                || null == targetCG.getStorageController())) {
+                                || NullColumnValueGetter.isNullURI(targetCG.getStorageController()))) {
                             _log.info("Set target CG {} inactive", targetCG.getLabel());
                             targetCG.setInactive(true);
                             _dbClient.persistObject(targetCG);

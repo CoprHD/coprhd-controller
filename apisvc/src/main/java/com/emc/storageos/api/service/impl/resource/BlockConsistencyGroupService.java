@@ -369,7 +369,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             return finishDeactivateTask(consistencyGroup, task);
         }
 
-        if (consistencyGroup.getStorageController() != null) {
+        if (!NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
             final StorageSystem storageSystem = consistencyGroup.created() ? 
                     _permissionsHelper.getObjectById(consistencyGroup.getStorageController(), StorageSystem.class) : null;
 

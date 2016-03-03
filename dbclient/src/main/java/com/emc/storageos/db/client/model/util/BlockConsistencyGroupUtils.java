@@ -371,15 +371,15 @@ public class BlockConsistencyGroupUtils {
 
     public static List<Volume> getAllCGVolumes(BlockConsistencyGroup cg, DbClient dbClient) {
         List<Volume> result = new ArrayList<>();
-
+        
         if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && cg.checkForType(BlockConsistencyGroup.Types.RP)) {
-            // VPLEX+RP
+            // VPLEX+RP - Right now application supports taking snap sessions on RP targets too.
             result.addAll(getActiveVplexVolumesInCG(cg, dbClient, null));
         } else if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && !cg.checkForType(BlockConsistencyGroup.Types.RP)) {
             // VPLEX
             result.addAll(getActiveVplexVolumesInCG(cg, dbClient, null));
         } else if (cg.checkForType(BlockConsistencyGroup.Types.RP) && !cg.checkForType(BlockConsistencyGroup.Types.VPLEX)) {
-            // RP
+            // RP Right now application supports taking snap sessions on RP targets too.
             result.addAll(getActiveNonVplexVolumesInCG(cg, dbClient, null));
         } else {
             // Native (no protection)

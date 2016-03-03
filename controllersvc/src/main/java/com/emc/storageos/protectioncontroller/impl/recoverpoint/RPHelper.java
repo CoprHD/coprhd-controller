@@ -1822,14 +1822,16 @@ public class RPHelper {
      */
     public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType, DbClient dbClient) {
     	 //if volume is part of CG, and is snapshot type is not RP, then always create native Array snaps
+    	String rgName = volume.getReplicationGroupInstance();
     	 if (volume.isVPlexVolume(dbClient)) {
              Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
              if (backendVol != null && !backendVol.getInactive()) {
-                 if (NullColumnValueGetter.isNotNullValue(backendVol.getReplicationGroupInstance()) &&
-                		 !snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
-                     return false;
-                 }
+            	 rgName = backendVol.getReplicationGroupInstance();
              }
+         }
+         if (NullColumnValueGetter.isNotNullValue(rgName) &&
+        		 !snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
+             return false;
          }
     	 
         // This is a protection based snapshot request if:

@@ -194,12 +194,4 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         return null;
     }
 
-    @Override
-    protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject snapshot, IngestionRequestContext requestContext,
-            UnManagedVolume unManagedVolume) {
-        super.decorateCGInfoInVolumes(cg, snapshot, requestContext, unManagedVolume);
-        snapshot.setConsistencyGroup(cg.getId());
-        snapshot.setReplicationGroupInstance(cg.getLabel());
-    }
-
 }

@@ -358,7 +358,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getDataObjectsToBeCreatedMap()
      */
@@ -655,7 +655,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.net.
      * URI)
@@ -715,7 +715,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes
      * ()
@@ -753,7 +753,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.
      * URI)
@@ -810,14 +810,28 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findUnManagedConsistencyGroup(
      * com.emc.storageos.db.client.model.BlockConsistencyGroup)
      */
     @Override
     public UnManagedConsistencyGroup findUnManagedConsistencyGroup(String cgName) {
+        VolumeIngestionContext currentVolumeContext = getVolumeContext();
+        if (currentVolumeContext != null) {
+            _logger.info("checking current volume ingestion context {}", currentVolumeContext.getUnmanagedVolume().forDisplay());
+            List<UnManagedConsistencyGroup> umcgList = currentVolumeContext.getUmCGObjectsToUpdate();
+            if (null != umcgList && !umcgList.isEmpty()) {
+                for (UnManagedConsistencyGroup umcg : umcgList) {
+                    if (umcg.getLabel().equalsIgnoreCase(cgName)) {
+                        return umcg;
+                    }
+                }
+            }
+        }
         for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+            _logger.info("checking already-ingested volume ingestion context {}",
+                    volumeContext.getUnmanagedVolume().forDisplay());
             List<UnManagedConsistencyGroup> umcgList = volumeContext.getUmCGObjectsToUpdate();
             if (null != umcgList && !umcgList.isEmpty()) {
                 for (UnManagedConsistencyGroup umcg : umcgList) {
@@ -833,7 +847,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToCreate(com.emc.
      * storageos.db.client.model.BlockObject)
      */
@@ -844,7 +858,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToUpdate(com.emc.
      * storageos.db.client.model.DataObject)
      */
@@ -858,7 +872,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addDataObjectToCreate(com.emc.
      * storageos.db.client.model.DataObject)

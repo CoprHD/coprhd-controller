@@ -38,20 +38,20 @@ import java.util.Random;
 @ContextConfiguration(locations = { "/scaleio-driver-prov.xml" })
 public class ScaleIOStorageDriverTest {
 
-    String SYS_NATIVE_ID_A = "08bee35c00000000";
-    String SYS_NATIVE_ID_B = "08af5d6100000000";
-    String IP_ADDRESS_A = "10.193.17.97";
-    String IP_ADDRESS_B = "10.193.17.88";
+    String SYS_NATIVE_ID_A = "4271f77300000000";
+    String SYS_NATIVE_ID_B = "1c865e9900000000";
+    String IP_ADDRESS_A = "10.193.17.92";
+    String IP_ADDRESS_B = "10.193.17.97";
 
     int PORT_NUMBER = 443;
     String USER_NAME = "admin";
     String PASSWORD = "Scaleio123";
-    String VOLUME_ID_1A = "08bee35d00000001";
-    String VOLUME_ID_2A = "08bee35e00000002";
-    String SNAPSHOT_OF_1A = "08bee35f00000003";
-    String VOLUME_ID_1B = "83f1771b00000000";
-    String VOLUME_ID_2B = "83f1771000000001";
-    String INVALID_VOLUME_ID_1 = "83f177070000000";
+    String VOLUME_ID_1A = "dc6e73fb00000000";
+    String VOLUME_ID_2A = "dc6e73fc00000001";
+    String SNAPSHOT_OF_1A = "dc6e73fd00000002";
+    String VOLUME_ID_1B = "08bee3ec00000000";
+    String VOLUME_ID_2B = "08bee3ed00000003";
+    String INVALID_VOLUME_ID_1 = "dc6e741100086r000003";
 
     private ScaleIOStorageDriver driver;
     // @Autowired
@@ -632,7 +632,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNotNull(task);
         Assert.assertEquals("READY", task.getStatus().toString());
 
-        // Some clones which does not exist
+       // Some clones which does not exist
         clones = this.createCloneListDiffSys(true);
         driver.createVolumeClone(clones, null);
         task = driver.deleteVolumeClone(clones);
@@ -652,7 +652,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
         // volumes from same storage system
-        clones = this.createCloneListSameCG(false);
+        clones = this.createCloneListSameSys(false);
         cg = new VolumeConsistencyGroup();
         task = driver.createConsistencyGroupClone(cg, clones, null);
         Assert.assertNotNull(task);
@@ -710,7 +710,7 @@ public class ScaleIOStorageDriverTest {
         Assert.assertNotNull(task);
         Assert.assertEquals("FAILED", task.getStatus().toString());
 
-        // Clones which are in same consistency group (w/o un-existed snapshot)
+      // Clones which are in same consistency group (w/o un-existed snapshot)
         clones = this.createCloneListSameCG(false);
         task = driver.deleteConsistencyGroupClone(clones);
         Assert.assertNotNull(task);

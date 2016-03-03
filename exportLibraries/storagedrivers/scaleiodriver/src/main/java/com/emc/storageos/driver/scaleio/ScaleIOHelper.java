@@ -107,7 +107,7 @@ public class ScaleIOHelper {
             String storageSystemId = clones.get(0).getStorageSystemId();
             isSameCG = true;
             for (VolumeClone clone  : clones) {
-                if (clone.getConsistencyGroup() != storageSystemId) {
+                if (clone.getStorageSystemId() != storageSystemId) {
                     isSameCG = false;
                     break;
                 }

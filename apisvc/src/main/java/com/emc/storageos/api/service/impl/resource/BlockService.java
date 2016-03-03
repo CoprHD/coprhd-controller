@@ -2161,20 +2161,22 @@ public class BlockService extends TaskResourceService {
         // Don't operate on VPLEX backend volumes or RP journal volumes.
         BlockServiceUtils.validateNotAnInternalBlockObject(requestedVolume, false);
 
-        // Don't allow snapshots on single volumes that are in consistency groups, but don't have replication group instance set
-        BlockServiceUtils.validateNotInCG(requestedVolume, _dbClient);
+        // Set default type, if not set at all.
+        if (param.getType() == null) {
+            param.setType(TechnologyType.NATIVE.toString());
+        }
+        String snapshotType = param.getType();
+
+        if (param.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
+            // Don't allow snapshots on single volumes that are in consistency groups, but don't have replication group instance set
+            BlockServiceUtils.validateNotInCG(requestedVolume, _dbClient);
+        }    
         
         validateSourceVolumeHasExported(requestedVolume);
 
         // Make sure that we don't have some pending
         // operation against the volume
         checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
-
-        // Set default type, if not set at all.
-        if (param.getType() == null) {
-            param.setType(TechnologyType.NATIVE.toString());
-        }
-        String snapshotType = param.getType();
 
         // Set whether or not the snapshot be activated when created.
         Boolean createInactive = Boolean.FALSE;

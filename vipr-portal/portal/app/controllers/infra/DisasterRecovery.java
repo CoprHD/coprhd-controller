@@ -262,6 +262,10 @@ public class DisasterRecovery extends ViprResourceController {
     public static boolean isActiveSite() {
         return DisasterRecoveryUtils.isActiveSite();
     }
+    
+    public static boolean isMultiDrSite() {
+        return DisasterRecoveryUtils.isMultiDrSite();
+    }
 
     public static boolean isRetrySite(String uuid) {
         SiteErrorResponse error = DisasterRecoveryUtils.getSiteError(uuid);

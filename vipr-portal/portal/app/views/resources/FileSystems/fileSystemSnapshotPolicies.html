@@ -3,7 +3,6 @@
   <thead>
     <tr>
       <th>&{'resources.filesystem.policy.name'}</th>
-      <th>&{'resources.filesystem.snapshot.pattern'}</th>
       <th></th>
       <th></th>
       <th></th>
@@ -13,21 +12,20 @@
   <tbody>  
     #{list items:filePolicies, as:'filePolicy'}
       <tr>
-        <td>
-           ${filePolicy.policyName}
+        <td>   
+                  ${filePolicy.policyName}        
         </td>
         <td>
-          ${filePolicy.snapshotPattern}
+        </td>
+        <td> 
+        </td>
+        <td>
+         </td>
+   
         </td>        
-        <td>
-         
-        </td>
-        <td>
-        </td>
-        <td>
-          
-        </td>
+
         <td style="text-align:right;">
+           <a href="@{listPolicySnapshot(params.fileSystemId,filePolicy.policyId,filePolicy.policyName)}" class="btn btn-default btn-xs" >&{'button.snapshotsList'}</a>
           <a href="@{unassignPolicyToFileSystem(params.fileSystemId, filePolicy.policyId)}" 
             class="btn btn-danger btn-xs"
             onclick="return confirm('&{'resources.filesystem.policy.unassign.confirm'}')"

@@ -1122,12 +1122,12 @@ public class BlockStorageUtils {
             List<NamedRelatedResourceRep> volumeUris) {
         Table<URI, String, BlockSnapshotSessionRestRep> storageRgToVolumes = HashBasedTable.create();
         for (NamedRelatedResourceRep volumeUri : volumeUris) {
-            BlockSnapshotSessionRestRep snapshot = execute(new GetBlockSnapshotSession(volumeUri.getId()));
-            VolumeRestRep volume = execute(new GetBlockVolume(snapshot.getParent().getId()));
+            BlockSnapshotSessionRestRep snapshotSession = execute(new GetBlockSnapshotSession(volumeUri.getId()));
+            VolumeRestRep volume = execute(new GetBlockVolume(snapshotSession.getParent().getId()));
             String rgName = volume.getReplicationGroupInstance();
             URI storage = volume.getStorageController();
             if (!storageRgToVolumes.contains(storage, rgName)) {
-                storageRgToVolumes.put(storage, rgName, snapshot);
+                storageRgToVolumes.put(storage, rgName, snapshotSession);
             }
         }
         return storageRgToVolumes;
@@ -1159,9 +1159,9 @@ public class BlockStorageUtils {
 
     public static List<URI> getSingleSnapshotSessionPerSubGroupAndStorageSystem(URI applicationId, String copySet, List<String> subGroups) {
         List<URI> snapshotSessionIds = Lists.newArrayList();
-        Table<URI, String, BlockSnapshotRestRep> results = getReplicationGroupSnapshots(execute(
+        Table<URI, String, BlockSnapshotSessionRestRep> results = getReplicationGroupSnapshotSessions(execute(
                 new GetBlockSnapshotSessionList(applicationId, copySet)).getSnapSessionRelatedResourceList());
-        for (Cell<URI, String, BlockSnapshotRestRep> cell : results.cellSet()) {
+        for (Cell<URI, String, BlockSnapshotSessionRestRep> cell : results.cellSet()) {
             if (subGroups.contains(cell.getColumnKey())) {
                 snapshotSessionIds.add(cell.getValue().getId());
             }

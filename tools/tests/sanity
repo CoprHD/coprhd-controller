@@ -2991,9 +2991,9 @@ recoverpoint_ingest_test()
         RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
     fi
 
-    rp_target_vpool=rp_target
+    rp_target_vpool=rp_targets
     if [ "${RPXIO_TESTS}" = "1" ]; then
-	rp_target_vpool=rpxio_target
+	rp_target_vpool=rpxio_targets
     fi
 
     # Run discovery
@@ -3159,9 +3159,9 @@ recoverpoint_ingest_export_test()
         RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY3}
     fi
 
-    rp_target_vpool=rp_target
+    rp_target_vpool=rp_targets
     if [ "${RPXIO_TESTS}" = "1" ]; then
-	rp_target_vpool=rpxio_target
+	rp_target_vpool=rpxio_targets
     fi
 
     # Run discovery

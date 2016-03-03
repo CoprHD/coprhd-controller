@@ -546,7 +546,7 @@ public class BlockStorageUtils {
         	BlockObjectRestRep obj = getVolume(volumeId);
         	if (obj instanceof VolumeRestRep) {
                 VolumeRestRep volume = (VolumeRestRep) obj;
-                if (!StringUtils.equalsIgnoreCase(volume.getSystemType(), "vplex")) {
+                if (!StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vplex.name())) {
                 	execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
                 }
         	}

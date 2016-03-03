@@ -270,10 +270,6 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
-<<<<<<< HEAD
-    
-=======
-
     <bean id="blockConsistencyGroupService" class="com.emc.storageos.api.service.impl.resource.BlockConsistencyGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -288,7 +284,6 @@
         </property>
     </bean>
 
->>>>>>> 3201f555926ed2b141644b8052c80ef66b11c6cd
     <bean id="volumeGroupService" class="com.emc.storageos.api.service.impl.resource.VolumeGroupService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>

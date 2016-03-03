@@ -2456,7 +2456,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int index = 1;
         for (Volume volume : volumes) {
-            if (RPHelper.isProtectionBasedSnapshot(volume, snapshotType)
+            if (RPHelper.isProtectionBasedSnapshot(volume, snapshotType, _dbClient)
                     && snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
                 // For protection-based snapshots, get the protection domains we
                 // need to create snapshots on
@@ -2694,7 +2694,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             storageControllerURI = reqVolume.getStorageController();
         }
 
-        if (RPHelper.isProtectionBasedSnapshot(reqVolume, snapshotType)) {
+        if (RPHelper.isProtectionBasedSnapshot(reqVolume, snapshotType, _dbClient)) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
             RPController controller = getController(RPController.class, protectionSystem.getSystemType());
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);

@@ -374,13 +374,13 @@ public class BlockConsistencyGroupUtils {
 
         if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && cg.checkForType(BlockConsistencyGroup.Types.RP)) {
             // VPLEX+RP
-            result.addAll(getActiveVplexVolumesInCG(cg, dbClient, Volume.PersonalityTypes.SOURCE));
+            result.addAll(getActiveVplexVolumesInCG(cg, dbClient, null));
         } else if (cg.checkForType(BlockConsistencyGroup.Types.VPLEX) && !cg.checkForType(BlockConsistencyGroup.Types.RP)) {
             // VPLEX
             result.addAll(getActiveVplexVolumesInCG(cg, dbClient, null));
         } else if (cg.checkForType(BlockConsistencyGroup.Types.RP) && !cg.checkForType(BlockConsistencyGroup.Types.VPLEX)) {
             // RP
-            result.addAll(getActiveNonVplexVolumesInCG(cg, dbClient, Volume.PersonalityTypes.SOURCE));
+            result.addAll(getActiveNonVplexVolumesInCG(cg, dbClient, null));
         } else {
             // Native (no protection)
             result.addAll(getActiveNativeVolumesInCG(cg, dbClient));

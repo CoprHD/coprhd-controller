@@ -293,6 +293,23 @@ public class VolumeService extends TaskResourceService {
         long requestedSize = param.volume.size * GB;
         // convert volume type from name to vpool
         VirtualPool vpool = getVpool(param.volume.volume_type);
+        
+        Volume sourceVolume = null;
+        
+        if (vpool == null){
+        	if(sourceVolId != null){
+        		sourceVolume = findVolume(sourceVolId, openstackTenantId);
+        		if(sourceVolume == null){
+        			throw APIException.badRequests.parameterIsNotValid(param.volume.source_volid);
+        		}
+        		vpool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());        		
+        	}
+        	else{
+        		throw APIException.badRequests.parameterIsNotValid(param.volume.volume_type);
+        	}
+        }
+        
+        
         if (!validateVolumeCreate(openstackTenantId, null, requestedSize)) {
             _log.info("The volume can not be created because of insufficient project quota.");
             throw APIException.badRequests.insufficientQuotaForProject(project.getLabel(), "volume");
@@ -302,8 +319,7 @@ public class VolumeService extends TaskResourceService {
             throw APIException.badRequests.insufficientQuotaForVirtualPool(vpool.getLabel(), "virtual pool");
         }
 
-        if (vpool == null)
-            throw APIException.badRequests.parameterIsNotValid(param.volume.volume_type);
+        
         _log.debug("Create volume: vpool = {}", vpool.getLabel());
         VirtualArray varray = getCinderHelper().getVarray(param.volume.availability_zone, getUserFromContext());
         if ((snapshotId == null) && (sourceVolId == null) && (varray == null)) {
@@ -415,7 +431,6 @@ public class VolumeService extends TaskResourceService {
         if (sourceVolId != null)
         {
             _log.debug("Creating New Volume from Volume : Source volume ID ={}", sourceVolId);
-            Volume sourceVolume = findVolume(sourceVolId, openstackTenantId);
             if (sourceVolume != null) {
                 tasklist = volumeClone(name, project, sourceVolId, varray, volumeCount, sourceVolume, blkFullCpManager);
             } else {
@@ -832,8 +847,9 @@ public class VolumeService extends TaskResourceService {
 
     /* Get vpool from the given label */
     private VirtualPool getVpool(String vpoolName) {
-        if (vpoolName == null)
+        if ( (vpoolName == null) || (vpoolName.length()==0) )
             return null;
+
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getLabelPrefixConstraint(

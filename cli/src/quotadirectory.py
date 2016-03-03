@@ -225,6 +225,38 @@ class QuotaDirectory(object):
                 self.isTimeout = False
                 break
         return
+    
+    def quotadirectory_updates(self, resourceUri, name, size, oplock, securitystyle, advlim, softlim, grace):
+        qdUri = self.quotadirectory_query(
+            resourceUri,
+            name)
+        parms = dict()
+
+        if(size):
+            size = common.to_bytes(size)
+            parms["size"] = size
+        if(oplock):
+            parms["oplock"] = oplock
+        if(securitystyle):
+            parms["security_style"] = securitystyle
+        if advlim:
+            parms['notification_limit'] = advlim
+        if softlim:
+            parms['soft_limit'] = softlim
+        if grace:
+            parms['soft_grace'] = grace
+            
+        body = json.dumps(parms)
+
+        # REST api call
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            QuotaDirectory.URI_QUOTA_DIRECTORY_UPDATE.format(qdUri), body)
+
+        o = common.json_decode(s)
+
+        return
 
     # Indentation END for the class
 
@@ -290,7 +322,7 @@ def create_parser(subcommand_parsers, common_parser):
                                help='Grace period in days for soft limit',
                                metavar='<graceperiod>')
     create_parser.add_argument('-synchronous', '-sync',
-                               dest='synchronous',
+                               dest='sync',
                                help='Synchronous quotadirectory create',
                                action='store_true')
 
@@ -320,7 +352,7 @@ def quotadirectory_create(args):
             args.tenant)
 
         obj.create(resourceUri, args.name, args.size, args.oplock, 
-		   args.securitystyle, args.synchronous,args.synctimeout,args.advlim, args.softlim, args.grace)
+		   args.securitystyle, args.sync, args.synctimeout, args.advlim, args.softlim, args.grace)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
@@ -558,10 +590,6 @@ def quotadirectory_delete(args):
                 e.err_code)
 
 
-
-
-
-
 def quotadirectory_update(args):
     if not args.sync and args.synctimeout !=0:
         raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
@@ -583,6 +611,103 @@ def quotadirectory_update(args):
                 args.name +
                 ", Update Failed\n" +
                 e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "update",
+                "quotadirectory",
+                e.err_text,
+                e.err_code)
+            
+
+# update command parser
+def update_parser(subcommand_parsers, common_parser):
+    update_parser = subcommand_parsers.add_parser(
+        'update',
+        description='ViPR Quotadirectory Update CLI usage',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Update Quotadirectory details')
+
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
+
+    mandatory_args.add_argument(
+        '-fs', '-filesystem',
+        help='Name of the Filesystem',
+        metavar='<filesystem>',
+        dest='filesystem',
+        required=True)
+
+    mandatory_args.add_argument('-name', '-n',
+                       metavar='<quotadirectoryname>',
+                       dest='name',
+                       help='Name of Quotadirectory',
+                       required=True)
+
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of Project',
+                                required=True)
+    update_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    update_parser.add_argument('-size', '-s',
+                               metavar='<size>',
+                               dest='size',
+                               help='Size of Quotadirectory')
+    update_parser.add_argument('-oplk', '-oplock ',
+                               choices=["true", "false"],
+                               metavar='<oplock>',
+                               dest='oplock',
+                               help='Oplock for Quotadirectory')
+    update_parser.add_argument('-secsy', '-securitystyle',
+                               choices=["unix", "ntfs", "mixed"],
+                               help='Quota Directory Security Style ',
+                               dest='securitystyle',
+                               metavar='<securitystyle>')
+    update_parser.add_argument('-advisorylimit', '-advlmt',
+                               dest='advlim',
+                               help='Advisory limit in percentage for the filesystem',
+                               metavar='<advisorylimit>')
+    update_parser.add_argument('-softlimit', '-softlmt',
+                               dest='softlim',
+                               help='Soft limit in percentage for the filesystem',
+                               metavar='<softlimit>')
+    update_parser.add_argument('-graceperiod', '-grace',
+                               dest='grace',
+                               help='Grace period in days for soft limit',
+                               metavar='<graceperiod>')
+
+    update_parser.set_defaults(func=quotadirectory_updates)
+
+
+def quotadirectory_updates(args):
+    obj = QuotaDirectory(args.ip, args.port)    
+    try:
+        resourceUri = obj.storageResource_query(
+            args.filesystem,
+            args.project,
+            args.tenant)
+        respContent = obj.quotadirectory_updates(
+            resourceUri,
+            args.name, 
+            args.size, 
+            args.oplock,
+            args.securitystyle,
+            args.advlim,
+            args.softlim,
+            args.grace)
+
+        return respContent
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "quotadirectory " +
+                args.name +
+                ": Not Found")
         else:
             common.format_err_msg_and_raise(
                 "update",
@@ -617,3 +742,6 @@ def quotadirectory_parser(parent_subparser, common_parser):
 
     # delete parser
     delete_parser(subcommand_parsers, common_parser)
+    
+    # update command parser
+    update_parser(subcommand_parsers, common_parser)

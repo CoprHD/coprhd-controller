@@ -14,9 +14,8 @@ import com.emc.storageos.volumecontroller.impl.HostIOLimitsParam;
 public class ExportMaskPolicy extends HostIOLimitsParam {
     @Override
     public String toString() {
-        return "ExportMaskPolicy [localTierPolicy=" + localTierPolicy
-                + ", tierPolicies=" + tierPolicies + ", simpleMask="
-                + simpleMask + ", sgName=" + sgName + ", export-type=" + exportType + "]";
+        return String.format("ExportMaskPolicy [localTierPolicy=%s, tierPolicies=%s, simpleMask=%s, sgName=%s, export-type=%s, igType=%s]",
+                localTierPolicy, tierPolicies, simpleMask, sgName, exportType, igType);
     }
 
     public String localTierPolicy;

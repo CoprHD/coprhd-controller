@@ -15,7 +15,6 @@ import json
 import tag
 from volume import Volume
 
-
 class VolumeGroup(object):
 
     '''
@@ -26,6 +25,8 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_LIST = '/volume-groups/block'
     URI_VOLUME_GROUP = '/volume-groups/block/{0}'
     URI_VOLUME_GROUP_VOLUMES = '/volume-groups/block/{0}/volumes'
+    URI_VOLUME_GROUP_HOSTS = '/volume-groups/block/{0}/hosts'
+    URI_VOLUME_GROUP_CLUSTERS = '/volume-groups/block/{0}/clusters'
     URI_VOLUME_GROUP_CHILDREN = '/volume-groups/block/{0}/volume-groups'
     URI_DEACTIVATE = URI_VOLUME_GROUP + '/deactivate'
     URI_TAG_VOLUME_GROUP = URI_VOLUME_GROUP + "/tags"
@@ -39,7 +40,16 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_CLONE_LIST = URI_VOLUME_GROUP_CLONE
     URI_VOLUME_GROUP_CLONE_GET= "/volume-groups/block/{0}/protection/full-copies/{1}"
     
-    
+    # URIs for VolumeGroup Snapshot Operations
+    URI_VOLUME_GROUP_SNAPSHOT = "/volume-groups/block/{0}/protection/snapshots"
+    URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE = URI_VOLUME_GROUP_SNAPSHOT + "/activate"
+    URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE = URI_VOLUME_GROUP_SNAPSHOT + "/deactivate"
+    URI_VOLUME_GROUP_SNAPSHOT_RESTORE = URI_VOLUME_GROUP_SNAPSHOT + "/restore"
+    URI_VOLUME_GROUP_SNAPSHOT_RESYNCHRONIZE = URI_VOLUME_GROUP_SNAPSHOT + "/resynchronize"
+    URI_VOLUME_GROUP_SNAPSHOT_LIST = URI_VOLUME_GROUP_SNAPSHOT
+    URI_VOLUME_GROUP_SNAPSHOT_SHOW= URI_VOLUME_GROUP_SNAPSHOT + "/{1}"
+    URI_VOLUME_GROUP_SNAPSHOT_GET_COPY_SETS= URI_VOLUME_GROUP_SNAPSHOT + "/copy-sets"
+
     def __init__(self, ipAddr, port):
         '''
         Constructor: takes IP address and port of the ViPR instance. These are
@@ -48,7 +58,7 @@ class VolumeGroup(object):
         self.__ipAddr = ipAddr
         self.__port = port
         
-    def create(self, name, description, roles, parent):
+    def create(self, name, description, roles, parent, migrationType, migrationGroupBy):
         '''
         Makes REST API call to create volume group
         Parameters:
@@ -63,6 +73,8 @@ class VolumeGroup(object):
         request["description"] = description
         request["roles"] = roles.split(',')
         request["parent"] = parent
+        request["migration_type"] = migrationType
+        request["migration_group_by"] = migrationGroupBy
 
         body = json.dumps(request)
 
@@ -166,7 +178,7 @@ class VolumeGroup(object):
         volume_group_uri = self.query_by_name(name)
         return self.delete_by_uri(volume_group_uri)
 
-    def update(self, name, new_name, new_description, add_volumes, cg_id, rg_name, remove_volumes, parent):
+    def update(self, name, new_name, new_description, add_volumes, cg_id, rg_name, remove_volumes, parent, add_hosts, add_clusters, remove_hosts, remove_clusters):
         '''
         Makes REST API call and updates volume group name and description
         Parameters:
@@ -198,6 +210,14 @@ class VolumeGroup(object):
             remove_vols = dict()
             remove_vols["volume"] = remove_volumes.split(',')
             request["remove_volumes"] = remove_vols
+        if(add_hosts and len(add_hosts) > 0):
+            request["add_hosts"] = add_hosts.split(',')
+        if(add_clusters and len(add_clusters) > 0):
+            request["add_clusters"] = add_clusters.split(',')
+        if(remove_hosts and len(remove_hosts) > 0):
+            request["remove_hosts"] = remove_hosts.split(',')
+        if(remove_clusters and len(remove_clusters) > 0):
+            request["remove_clusters"] = remove_clusters.split(',')
 
         body = json.dumps(request)
 
@@ -400,8 +420,6 @@ class VolumeGroup(object):
     def volume_group_clone_get(self, name, cloneURI):
         
         volumeGroupUri = self.query_by_name(name)
-        print "volume group URI is " + volumeGroupUri
-        print "clone URI is " + cloneURI
         
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -456,6 +474,150 @@ class VolumeGroup(object):
             return self.check_for_sync(task, sync)
         else:
             return o   
+
+    # Creates snapshot for the given volume group
+    def snapshot(self, name, snapshot_name, create_inactive, partial, volumeUris, sync):
+        '''
+        Makes REST API call to create volume group snapshot
+        Parameters:
+            name: name with which snapshot to be created
+            create_inactive: with this flag, created snapshot will not be activated
+            partial: Enable the flag to create clones for subset of VolumeGroup.
+                     Please specify one volume from each Array Replication Group
+            volumes: A list of volumes specifying their Array Replication Groups.
+                    This field is valid only when partial flag is provided
+        Returns:
+            response of the create operation
+        '''
+
+        volumeGroupUri = self.query_by_name(name)
+
+        request = {
+            'name': snapshot_name,
+            'create_inactive': create_inactive
+        }
+
+        # if partial request
+        if (partial):
+            request["partial"] = partial
+            request["volumes"] = volumeUris.split(',')
+
+        body = json.dumps(request)
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT.format(volumeGroupUri),
+                                             body)
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o
+
+    def volume_group_snapshot_operation(self, name, snapshotUris, partial, sync, uri):
+        '''
+        Makes REST API call to activate/deactivate/restore/resync volume group snapshot
+        Parameters:
+            partial: Enable the flag to operate on snapshots for subset of VolumeGroup.
+                     Please specify one snapshot from each Array Replication Group
+            snapshots: A snapshot of a volume group specifying which snapshot Set to act on.
+                    For partial operation, specify one snapshot from each Array Replication Group
+        Returns:
+            response of the operation
+        '''
+        volume_group_uri = self.query_by_name(name)
+
+        request = dict()
+        request["snapshots"] = snapshotUris.split(',')
+
+        # if partial request
+        if (partial):
+            request["partial"] = partial
+
+        body = json.dumps(request)
+
+        (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port,
+                "POST",
+                uri.format(volume_group_uri), body)
+
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task,sync)
+        else:
+            return o
+
+    def volume_group_snapshot_list(self, name):
+        volume_group_uri = self.query_by_name(name)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_LIST.format(volume_group_uri), None)
+
+        o = common.json_decode(s)
+
+        if('snapshot' in o):
+            return o['snapshot']
+        else:
+            return []
+
+    def snapshot_query(self, name, snapshotname):
+        '''
+        This function will take the snapshot name and volume group name
+        as input and get uri of the first occurance of snapshot.
+        paramters:
+             name : Name of volume group.
+             snapshotname : Name of the snapshot
+        return
+            return with uri of the given snapshot.
+        '''
+        uris = self.volume_group_snapshot_list(name)
+        for ss in uris:
+            if (ss['name'] == snapshotname):
+                return ss['id']
+        raise SOSError(SOSError.SOS_FAILURE_ERR, "Snapshot " + snapshotname +
+                       ": not found")
+
+    def volume_group_snapshot_show(self, name, snapshotname):
+        volumeGroupUri = self.query_by_name(name)
+        snapshotUri = self.snapshot_query(name, snapshotname)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SHOW.format(volumeGroupUri, snapshotUri), None)
+
+        o = common.json_decode(s)
+        return o
+
+    def volume_group_snapshot_get_sets(self, name):
+        volumeGroupUri = self.query_by_name(name)
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_GET_COPY_SETS.format(volumeGroupUri), None)
+
+        o = common.json_decode(s)
+        return o
+
+    def volume_group_snapshot_get(self, name, setname):
+        volumeGroupUri = self.query_by_name(name)
+
+        request = dict()
+        request["copy_set_name"] = setname
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_GET_COPY_SETS.format(volumeGroupUri), json.dumps(request))
+
+        o = common.json_decode(s)
+
+        if('snapshot' in o):
+            return o['snapshot']
+        else:
+            return []
 
     # Blocks the operation until the task is complete/error out/timeout
     def check_for_sync(self, result, sync):
@@ -563,13 +725,22 @@ def create_parser(subcommand_parsers, common_parser):
                                metavar='<parent>',
                                dest='parent',
                                help='parent volume group for volume group')
+    create_parser.add_argument('-mt', '-migrationType',
+                               metavar='<migrationType>',
+                               dest='migrationType',
+                               help='migration type for mobility volume group')
+    create_parser.add_argument('-mg', '-migrationGroupBy',
+                               metavar='<migrationGroupBy>',
+                               dest='migrationGroupBy',
+                               help='migration group by for mobility volume group')
+    
     create_parser.set_defaults(func=create)
 
 
 def create(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
-        obj.create(args.name, args.description, args.roles, args.parent)
+        obj.create(args.name, args.description, args.roles, args.parent, args.migrationType, args.migrationGroupBy)
     except SOSError as e:
         if (e.err_code in [SOSError.NOT_FOUND_ERR,
                             SOSError.ENTRY_ALREADY_EXISTS_ERR]):
@@ -729,17 +900,35 @@ def update_parser(subcommand_parsers, common_parser):
                                        metavar='<parent>',
                                        dest='parent',
                                        help='A parent volume group for the volume group')
+    update_parser.add_argument('-rh', '-remove_hosts',
+                                       metavar='<remove_hosts>',
+                                       dest='remove_hosts',
+                                       help='A list of hosts to remove from the volume group')
+    update_parser.add_argument('-ah', '-add_hosts',
+                                       metavar='<add_hosts>',
+                                       dest='add_hosts',
+                                       help='A list of hosts to add to the volume group')
+    update_parser.add_argument('-rc', '-remove_clusters',
+                                       metavar='<remove_clusters>',
+                                       dest='remove_clusters',
+                                       help='A list of clusters to remove from the volume group')
+    update_parser.add_argument('-ac', '-add_clusters',
+                                       metavar='<add_clusters>',
+                                       dest='add_clusters',
+                                       help='A list of clusters to add to the volume group')
+
 
     update_parser.set_defaults(func=update)
 
 
 def update(args):
 
-    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None and args.parent is None):
+    if(args.newname is None and args.description is None and args.add_volumes is None and args.remove_volumes is None and args.parent is None and args.remove_hosts is None and args.add_hosts is None and args.add_clusters is None and args.remove_clusters is None):
         raise SOSError(SOSError.CMD_LINE_ERR,
             "viprcli volume group update: error: at least one of " +
             "the arguments -np/-newname -d/-description -a/-add_volumes " +
-            " -r/-remove_volumes is required")
+            " -r/-remove_volumes -rh/-remove_hosts -ah/-add_hosts " +
+            " -rc/-remove_clusters -ac/-add_clusters required")
      
     add_vols = []
     if(args.add_volumes and len(args.add_volumes) > 0):
@@ -767,7 +956,7 @@ def update(args):
     obj = VolumeGroup(args.ip, args.port)
     try:
         obj.update(args.name, args.newname,
-                    args.description, ",".join(add_vols), args.consistency_group, args.replication_group, ",".join(rem_vols), args.parent)
+                    args.description, ",".join(add_vols), args.consistency_group, args.replication_group, ",".join(rem_vols), args.parent, args.add_hosts, args.add_clusters, args.remove_hosts, args.remove_clusters)
     except SOSError as e:
         raise e
 
@@ -1244,7 +1433,419 @@ def volume_group_clone_get(args):
                 e.err_text,
                 e.err_code)   
 
+# volume group snapshot routines
+def snapshot_parser(subcommand_parsers, common_parser):
+    snapshot_parser = subcommand_parsers.add_parser(
+        'snapshot',
+        description='ViPR VolumeGroup Snapshot CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='VolumeGroup Snapshot')
 
+    mandatory_args = snapshot_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    mandatory_args.add_argument('-snapshotname', '-ssn',
+                                metavar='<snapshotname>',
+                                dest='snapshotname',
+                                help='Name of Snapshot',
+                                required=True)
+    snapshot_parser.add_argument('-createinactive', '-ci',
+                              dest='createinactive',
+                              action='store_true',
+                              help='Create snapshot with inactive state')
+    snapshot_parser.add_argument('-readonly', '-ro',
+                              dest='readonly',
+                              action='store_true',
+                              help='Create read only snapshot')
+    snapshot_parser.add_argument('-partial',
+                              dest='partial',
+                              action='store_true',
+                              help='To create clones for subset of VolumeGroup. ' +
+                              'Please specify one volume from each Array Replication Group')
+    snapshot_parser.add_argument('-volumes', '-v',
+                            metavar='<volume_label,...>',
+                            dest='volumes',
+                            help='A list of volumes specifying their Array Replication Groups to be cloned.' +
+                            ' This field is valid only when partial flag is provided')
+    snapshot_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+
+    snapshot_parser.set_defaults(func=volume_group_snapshot)
+
+def volume_group_snapshot(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        volumeUris = query_volumes_for_partial_request(args)
+        obj.snapshot(args.name, args.snapshotname, args.createinactive, args.partial, ",".join(volumeUris), False)
+        return
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "create",
+            "volume group snapshot",
+            e.err_text,
+            e.err_code)
+
+# Common Parser for snapshot operations
+def volume_group_snapshot_common_parser(cc_common_parser):
+    mandatory_args = cc_common_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    cc_common_parser.add_argument('-partial',
+                              dest='partial',
+                              action='store_true',
+                              help='To operate on snapshots for subset of VolumeGroup. ' +
+                              'Please specify one snapshot from each Array Replication Group')
+    mandatory_args.add_argument('-snapshots', '-s',
+                            metavar='<snapshotname,...>',
+                            dest='snapshots',
+                            help='A snapshot of a volume group specifying which snapshot Set to act on. ' +
+                            'For partial operation, specify one snapshot from each Array Replication Group',
+                            required=True)
+
+    cc_common_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    cc_common_parser.add_argument('-synchronous', '-sync',
+                                  dest='sync',
+                                  action='store_true',
+                                  help='Synchronous mode enabled')
+
+def volume_group_snapshot_operation(args, operation, uri):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        obj.volume_group_snapshot_operation(
+            args.name,
+            args.snapshots, #",".join(snapshotUris),
+            args.partial,
+            args.sync,
+            uri)
+        return
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot " + operation + ": " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot",
+                operation,
+                e.err_text,
+                e.err_code)
+
+# snapshot_activate_parser
+def snapshot_activate_parser(subcommand_parsers, common_parser):
+    snapshot_activate_parser = subcommand_parsers.add_parser(
+        'snapshot-activate',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Activate snapshot of a VolumeGroup',
+        description='ViPR Activate Snapshot of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_activate_parser)
+    snapshot_activate_parser.set_defaults(func=volume_group_snapshot_activate)
+
+# Activate Snapshot Function
+def volume_group_snapshot_activate(args):
+    volume_group_snapshot_operation(args, "activate", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE)
+
+# snapshot_deactivate_parser
+def snapshot_deactivate_parser(subcommand_parsers, common_parser):
+    snapshot_deactivate_parser = subcommand_parsers.add_parser(
+        'snapshot-deactivate',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Deactivate snapshot of a VolumeGroup',
+        description='ViPR Deactivate Snapshot of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_deactivate_parser)
+    snapshot_deactivate_parser.set_defaults(func=volume_group_snapshot_deactivate)
+
+# Deactivate Snapshot Function
+def volume_group_snapshot_deactivate(args):
+    volume_group_snapshot_operation(args, "deactivate", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE)
+
+# snapshot_restore_parser
+def snapshot_restore_parser(subcommand_parsers, common_parser):
+    snapshot_restore_parser = subcommand_parsers.add_parser(
+        'snapshot-restore',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Restore snapshot of a VolumeGroup',
+        description='ViPR Restore Snapshot of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_restore_parser)
+    snapshot_restore_parser.set_defaults(func=volume_group_snapshot_restore)
+
+# Restore Snapshot Function
+def volume_group_snapshot_restore(args):
+    volume_group_snapshot_operation(args, "restore", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_RESTORE)
+
+# snapshot_resync_parser
+def snapshot_resync_parser(subcommand_parsers, common_parser):
+    snapshot_resync_parser = subcommand_parsers.add_parser(
+        'snapshot-resync',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Resynchronize snapshot of a VolumeGroup',
+        description='ViPR Resynchronize Snapshot of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot parser.
+    volume_group_snapshot_common_parser(snapshot_resync_parser)
+    snapshot_resync_parser.set_defaults(func=volume_group_snapshot_resync)
+
+# Resynchronize Snapshot Function
+def volume_group_snapshot_resync(args):
+    volume_group_snapshot_operation(args, "resynchronize", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_RESYNCHRONIZE)
+
+# snapshot_list_parser
+def snapshot_list_parser(subcommand_parsers, common_parser):
+    snapshot_list_parser = subcommand_parsers.add_parser(
+        'snapshot-list',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get Snapshot list of a VolumeGroup',
+        description='ViPR List Snapshot of a VolumeGroup CLI usage.')
+
+    mandatory_args = snapshot_list_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    snapshot_list_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    snapshot_list_parser.set_defaults(func=volume_group_snapshot_list)
+
+# List Snapshot Function
+def volume_group_snapshot_list(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+        res= obj.volume_group_snapshot_list(args.name)
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot List: " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot",
+                "list",
+                e.err_text,
+                e.err_code)
+
+# snapshot_show_parser
+def snapshot_show_parser(subcommand_parsers, common_parser):
+    snapshot_show_parser = subcommand_parsers.add_parser(
+        'snapshot-show',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Show a Snapshot details of a VolumeGroup',
+        description='ViPR Show Snapshot of a VolumeGroup CLI usage.')
+
+    mandatory_args = snapshot_show_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    mandatory_args.add_argument('-snapshotname', '-ssn',
+                                metavar='<snapshotname>',
+                                dest='snapshotname',
+                                help='Name of Snapshot',
+                                required=True)
+    snapshot_show_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+
+    snapshot_show_parser.set_defaults(func=volume_group_snapshot_show)
+
+# Get Snapshot Function
+def volume_group_snapshot_show(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        res= obj.volume_group_snapshot_show(args.name,
+            args.snapshotname)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot show: " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot",
+                "show",
+                e.err_text,
+                e.err_code)
+
+# snapshot_get_sets_parser
+def snapshot_get_sets_parser(subcommand_parsers, common_parser):
+    snapshot_get_sets_parser = subcommand_parsers.add_parser(
+        'snapshot-get-sets',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get copy set names of a VolumeGroup',
+        description='ViPR Get Copy Set Names of a VolumeGroup CLI usage.')
+
+    mandatory_args = snapshot_get_sets_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    snapshot_get_sets_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    snapshot_get_sets_parser.set_defaults(func=volume_group_snapshot_get_sets)
+
+# Get Snapshot Sets Function
+def volume_group_snapshot_get_sets(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        res= obj.volume_group_snapshot_get_sets(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot get sets: " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot",
+                "get sets",
+                e.err_text,
+                e.err_code)
+
+# snapshot_get_parser
+def snapshot_get_parser(subcommand_parsers, common_parser):
+    snapshot_get_parser = subcommand_parsers.add_parser(
+        'snapshot-get',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get snapshots of a VolumeGroup by set name',
+        description='ViPR Get Snapshots of a VolumeGroup by Copy Set Name CLI usage.')
+
+    mandatory_args = snapshot_get_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    snapshot_get_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    snapshot_get_parser.add_argument('-setname', '-sn',
+                              dest='setname',
+                              help='Copy set name',
+                              required=True)
+    snapshot_get_parser.set_defaults(func=volume_group_snapshot_get)
+
+# Get Snapshots by Copy Set Name Function
+def volume_group_snapshot_get(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        res= obj.volume_group_snapshot_get(args.name, args.setname)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshots get" +
+                args.name + " with " + args.setname +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot",
+                "get snapshots by set name",
+                e.err_text,
+                e.err_code)
 
 # VolumeGroup Main parser routine
 def volume_group_parser(parent_subparser, common_parser):
@@ -1304,4 +1905,30 @@ def volume_group_parser(parent_subparser, common_parser):
     # GET full-copy volume of a volume group command parser
     clone_get_parser(subcommand_parsers, common_parser)
     
+    #snapshot
+    # snapshot create command parser
+    snapshot_parser(subcommand_parsers, common_parser)
 
+    # snapshot activate command parser
+    snapshot_activate_parser(subcommand_parsers, common_parser)
+
+    # snapshot deactivate command parser
+    snapshot_deactivate_parser(subcommand_parsers, common_parser)
+
+    # snapshot restore command parser
+    snapshot_restore_parser(subcommand_parsers, common_parser)
+
+    # snapshot resync command parser
+    snapshot_resync_parser(subcommand_parsers, common_parser)
+
+    # Get snapshot list of a volume group command parser
+    snapshot_list_parser(subcommand_parsers, common_parser)
+
+    # Show snapshot of a volume group command parser
+    snapshot_show_parser(subcommand_parsers, common_parser)
+
+    # Get snapshot set names of a volume group command parser
+    snapshot_get_sets_parser(subcommand_parsers, common_parser)
+
+    # Get snapshots with set name of a volume group command parser
+    snapshot_get_parser(subcommand_parsers, common_parser)

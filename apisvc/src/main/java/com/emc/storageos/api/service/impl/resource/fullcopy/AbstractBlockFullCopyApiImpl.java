@@ -19,6 +19,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
+import com.emc.storageos.plugins.common.Constants;
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +82,9 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
 
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(AbstractBlockFullCopyApiImpl.class);
+
+    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
+            getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
 
     /**
      * Constructor
@@ -232,9 +238,15 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      *            source.
      */
     protected void verifyFullCopySupportedForStoragePool(StoragePool storagePool) {
-        StringSet copyTypes = storagePool.getSupportedCopyTypes();
-        if ((copyTypes == null) || (!copyTypes.contains(StoragePool.CopyTypes.UNSYNC_UNASSOC.name()))) {
-            throw APIException.badRequests.fullCopyNotSupportedOnArray(storagePool.getStorageDevice());
+        URI storageSystemUri = storagePool.getStorageDevice();
+        StorageSystem storageSystem = (StorageSystem) _dbClient.queryObject(storageSystemUri);
+
+        if (!storageDriverManager.isDriverManaged(storageSystem.getSystemType())) {
+         // for driver managed systems we allow full copy.
+            StringSet copyTypes = storagePool.getSupportedCopyTypes();
+            if ((copyTypes == null) || (!copyTypes.contains(StoragePool.CopyTypes.UNSYNC_UNASSOC.name()))) {
+                throw APIException.badRequests.fullCopyNotSupportedOnArray(storagePool.getStorageDevice());
+            }
         }
     }
 
@@ -369,8 +381,10 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 taskList.getTaskList().add(fullCopyVolumeTask);
             }
 
-            addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
-                    ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+            if (NullColumnValueGetter.isNotNullValue(fullCopyVolume.getReplicationGroupInstance())) {
+                addConsistencyGroupTasks(Arrays.asList(fcSourceObj), taskList, taskId,
+                        ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY);
+            }
 
             try {
                 controller.detachFullCopy(storageSystem.getId(), new ArrayList<URI>(
@@ -515,18 +529,29 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         return result;
     }
 
+
     /**
-     * Looks up controller dependency for given hardware
-     * 
+     * Looks up controller dependency for given hardware type.
+     * If cannot locate controller for defined hardware type, lookup controller for
+     * EXTERNALDEVICE.
+     *
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
-     * 
      * @return
      */
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
-        return _coordinator.locateService(clazz, BlockServiceApi.CONTROLLER_SVC,
-                BlockServiceApi.CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        T controller;
+        try {
+            controller = _coordinator.locateService(
+                    clazz, BlockServiceApi.CONTROLLER_SVC,
+                    BlockServiceApi.CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+        } catch (RetryableCoordinatorException rex) {
+            controller = _coordinator.locateService(
+                    clazz, BlockServiceApi.CONTROLLER_SVC,
+                    BlockServiceApi.CONTROLLER_SVC_VER, Constants.EXTERNALDEVICE, clazz.getSimpleName());
+        }
+        return controller;
     }
 
     /**

@@ -28,6 +28,8 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.db.client.model.SMBFileShare;
@@ -37,11 +39,15 @@ import com.emc.storageos.db.client.model.SchedulePolicy.ScheduleFrequency;
 import com.emc.storageos.db.client.model.SchedulePolicy.SnapshotExpireType;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.isilon.restapi.IsilonApi;
+import com.emc.storageos.isilon.restapi.IsilonApi.IsilonList;
 import com.emc.storageos.isilon.restapi.IsilonApiFactory;
 import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.isilon.restapi.IsilonExport;
@@ -50,6 +56,7 @@ import com.emc.storageos.isilon.restapi.IsilonNFSACL.Acl;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare;
 import com.emc.storageos.isilon.restapi.IsilonSMBShare.Permission;
 import com.emc.storageos.isilon.restapi.IsilonSmartQuota;
+import com.emc.storageos.isilon.restapi.IsilonSnapshot;
 import com.emc.storageos.isilon.restapi.IsilonSshApi;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.file.ExportRule;
@@ -79,6 +86,7 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
 
     private static final String EXPORT_OP_NAME = "Snapshot Export";
     private static final String SHARE_OP_NAME = "Snapshot Share";
+    public static final long SEC_IN_MILLI = 1000L;
 
     private IsilonApiFactory _factory;
     private HashMap<String, String> configinfo;
@@ -2536,4 +2544,53 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
         return seconds.intValue();
     }
 
+    @Override
+    public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        SchedulePolicy sp = args.getFilePolicy();
+        FileShare fs = args.getFs();
+        String snapshotScheduleName = sp.getPolicyName() + "_" + args.getFsName();
+        IsilonApi isi = getIsilonDevice(storageObj);
+        String resumeToken = null;
+
+        try {
+            do {
+                IsilonList<IsilonSnapshot> snapshots = isi.listSnapshotsCreatedByPolicy(resumeToken, snapshotScheduleName);
+                if (snapshots != null) {
+
+                    for (IsilonSnapshot islon_snap : snapshots.getList()) {
+                        _log.info("file policy snapshot is  : " + islon_snap.getName());
+                        Snapshot snap = new Snapshot();
+                        snap.setLabel(islon_snap.getName());
+                        snap.setMountPath(islon_snap.getPath());
+                        snap.setName(islon_snap.getName());
+                        snap.setId(URIUtil.createId(Snapshot.class));
+                        snap.setOpStatus(new OpStatusMap());
+                        snap.setProject(new NamedURI(fs.getProject().getURI(), islon_snap.getName()));
+                        snap.setMountPath(getSnapshotPath(islon_snap.getPath(), islon_snap.getName()));
+                        snap.setParent(new NamedURI(fs.getId(), islon_snap.getName()));
+                        StringMap map = new StringMap();
+                        Long createdTime = Long.parseLong(islon_snap.getCreated()) * SEC_IN_MILLI;
+                        Long expiresTime = Long.parseLong(islon_snap.getExpires()) * SEC_IN_MILLI;
+                        map.put("created", createdTime.toString());
+                        map.put("expires", expiresTime.toString());
+                        map.put("schedule", sp.getPolicyName());
+                        snap.setExtensions(map);
+                        _dbClient.updateObject(snap);
+
+                    }
+                    resumeToken = snapshots.getToken();
+                }
+            } while (resumeToken != null && !resumeToken.equalsIgnoreCase("null"));
+
+        } catch (IsilonException e) {
+            _log.error("listing snapshot by file policy failed.", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+        Task task = TaskUtils.findTaskForRequestId(_dbClient, fs.getId(), args.getOpId());
+        // set task to completed and progress to 100 and store in DB, so waiting thread in apisvc can read it.
+        task.ready();
+        task.setProgress(100);
+        _dbClient.updateObject(task);
+        return BiosCommandResult.createSuccessfulResult();
+    }
 }

@@ -392,6 +392,9 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException rdfGroupInViprDBNotInSyncWithArray(String groupName);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException rdfGroupHasPairsCreatedOutsideViPR(String groupName);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException srdfAsyncStepDeletionfailed(String groupName);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_ERROR)

@@ -7,6 +7,8 @@ package com.emc.sa.service.vipr.application;
 import java.net.URI;
 import java.util.List;
 
+import com.emc.sa.asset.providers.BlockProviderUtils;
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
@@ -34,6 +36,11 @@ public class AddVolumesToApplicationService extends ViPRService {
 
     @Override
     public void precheck() throws Exception {
+        // if a new sub group is selected, make sure it doesn't already exist
+        if (fieldIsPopulated(newApplicationSubGroup)
+                && BlockProviderUtils.getApplicationReplicationGroupNames(getClient(), applicationId).contains(newApplicationSubGroup)) {
+            ExecutionUtils.fail("failTask.AddVolumesToApplicationService.subGroupUnique.precheck", new Object[] {});
+        }
         replicationGroup = fieldIsPopulated(newApplicationSubGroup) ? newApplicationSubGroup : existingApplicationSubGroup;
     }
 

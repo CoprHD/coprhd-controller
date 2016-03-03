@@ -121,6 +121,7 @@ $(document).ready(function() {
         #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
       #{/field}
       #{field 'vpool.scheduleSnapshots'}
+       #{VirtualPools.locked locked:locked, field:field /}
        #{Form.booleanCheckBoxControlGroup field:field /}
       #{/field}
       #{field 'vpool.replicationType'}

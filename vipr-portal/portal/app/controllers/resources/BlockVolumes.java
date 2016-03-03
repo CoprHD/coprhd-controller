@@ -11,8 +11,10 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,14 +37,15 @@ import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
 
 import com.emc.sa.util.ResourceType;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.CopiesParam;
 import com.emc.storageos.model.block.Copy;
+import com.emc.storageos.model.block.MigrationRestRep;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
@@ -71,6 +74,7 @@ public class BlockVolumes extends ResourceController {
     private static final String NOTARGET = "resources.snapshot.session.targets.none";
 
     private static BlockVolumesDataTable blockVolumesDataTable = new BlockVolumesDataTable();
+    private static Set<String> roles = new HashSet(Arrays.asList("COPY"));
 
     public static void volumes(String projectId) {
         setActiveProjectId(projectId);
@@ -210,13 +214,13 @@ public class BlockVolumes extends ResourceController {
 
         render(snapshots);
     }
-    
+
     public static void volumeSnapshotSessions(String volumeId) {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
 
         List<NamedRelatedResourceRep> refs = client.blockSnapshotSessions().listByVolume(uri(volumeId));
-        
+
         List<BlockSnapshotSessionRestRep> snapshotSessions = client.blockSnapshotSessions().getByRefs(refs);
 
         render(snapshotSessions, volumeId);
@@ -283,7 +287,9 @@ public class BlockVolumes extends ResourceController {
 
         ViPRCoreClient client = BourneUtil.getViprClient();
 
-        List<NamedRelatedResourceRep> migrations = client.blockVolumes().listMigrations(uri(volumeId));
+        List<NamedRelatedResourceRep> migrationsRep = client.blockVolumes().listMigrations(uri(volumeId));
+
+        List<MigrationRestRep> migrations = client.blockMigrations().getByRefs(migrationsRep);
 
         render(migrations);
     }
@@ -349,6 +355,36 @@ public class BlockVolumes extends ResourceController {
         volume(volumeId, continuousCopyId);
     }
 
+    @FlashException(referrer = { "volume" })
+    public static void pauseMigration(String volumeId, String migrationId) {
+        if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(migrationId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.blockMigrations().pause(uri(migrationId));
+            flash.put("info", MessagesUtils.get("resources.migrations.pause"));
+        }
+        volume(volumeId, null);
+    }
+
+    @FlashException(referrer = { "volume" })
+    public static void cancelMigration(String volumeId, String migrationId) {
+        if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(migrationId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.blockMigrations().cancel(uri(migrationId));
+            flash.put("info", MessagesUtils.get("resources.migrations.cancel"));
+        }
+        volume(volumeId, null);
+    }
+
+    @FlashException(referrer = { "volume" })
+    public static void resumeMigration(String volumeId, String migrationId) {
+        if (StringUtils.isNotBlank(volumeId) && StringUtils.isNotBlank(migrationId)) {
+            ViPRCoreClient client = BourneUtil.getViprClient();
+            client.blockMigrations().resume(uri(migrationId));
+            flash.put("info", MessagesUtils.get("resources.migrations.resume"));
+        }
+        volume(volumeId, null);
+    }
+
     @Util
     private static CopiesParam createCopiesParam(String continuousCopyId) {
         Copy copy = new Copy();
@@ -391,17 +427,25 @@ public class BlockVolumes extends ResourceController {
 
     @Util
     private static List<NamedRelatedResourceRep> getApplications() {
-        List<NamedRelatedResourceRep> application = AppSupportUtil.getApplications();
-        if(!application.isEmpty()) {
-        Collections.sort(application, new Comparator<NamedRelatedResourceRep>() {
-            @Override
-            public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
-            {
-                return app1.getName().compareTo(app2.getName());
-            }
-        });
-        
-    }
-        return application;
+        List<NamedRelatedResourceRep> applications = AppSupportUtil.getApplications();
+        List<NamedRelatedResourceRep> results = Lists.newArrayList();
+		for (NamedRelatedResourceRep application : applications) {
+			VolumeGroupRestRep volumeGroup = AppSupportUtil
+					.getApplication(application.getId().toString());
+			if ((roles).equals(volumeGroup.getRoles())) {
+				results.add(application);
+			}
+		}
+        if (!results.isEmpty()) {
+            Collections.sort(results, new Comparator<NamedRelatedResourceRep>() {
+                @Override
+                public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
+                {
+                    return app1.getName().compareTo(app2.getName());
+                }
+            });
+
+        }
+        return results;
     }
 }

@@ -25,6 +25,8 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
     private String description;
     private Set<String> roles;
     private RelatedResourceRep parent;
+    private String migrationType;
+    private String migrationGroupBy;
     private Set<String> replicationGroupNames;
     private Set<NamedRelatedResourceRep> virtualArrays;
 
@@ -66,6 +68,34 @@ public class VolumeGroupRestRep extends DataObjectRestRep {
 
     public void setParent(RelatedResourceRep parent) {
         this.parent = parent;
+    }
+
+    /**
+     * Migration type for the mobility group
+     * 
+     * @return migration type
+     */
+    @XmlElement(name = "migrationType")
+    public String getMigrationType() {
+        return migrationType;
+    }
+
+    public void setMigrationType(String migrationType) {
+        this.migrationType = migrationType;
+    }
+
+    /**
+     * Migration group by type for the mobility group
+     * 
+     * @return migration group by
+     */
+    @XmlElement(name = "migrationGroupBy")
+    public String getMigrationGroupBy() {
+        return migrationGroupBy;
+    }
+
+    public void setMigrationGroupBy(String migrationGroupBy) {
+        this.migrationGroupBy = migrationGroupBy;
     }
 
     /**

@@ -3014,10 +3014,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             URI vplexVolumeVarray = vplexVolume.getVirtualArray().getId();
             for (RelatedResourceRep haVolume : vplexVolume.getHaVolumes()) {
                 VolumeRestRep volume = client.blockVolumes().get(haVolume.getId());
-                if (volume != null) {
-                    if (volume.getVirtualArray().getId().equals(vplexVolumeVarray)) {
-                        return volume;
-                    }
+                if (volume != null && volume.getVirtualArray().getId().equals(vplexVolumeVarray)) {
+                    return volume;
                 }
             }
         }

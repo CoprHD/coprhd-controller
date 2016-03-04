@@ -16,7 +16,11 @@ import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO_L
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterInfo;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.Socket;
+import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,8 +38,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -47,11 +49,12 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.CoordinatorClassInfo;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.PowerOffState;
+import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -81,6 +84,7 @@ import com.emc.storageos.systemservices.impl.client.SysClientFactory.SysClient;
 import com.emc.storageos.systemservices.impl.vdc.DbsvcQuorumMonitor;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.ClusterInfo.ClusterState;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
 
 public class CoordinatorClientExt {
@@ -1767,9 +1771,9 @@ public class CoordinatorClientExt {
                 availableNodes.add(ProductName.getName() + id);
             }
         } catch (Exception ex) {
-            _log.info("Check service({}) beacon error for site {}", serviceName, siteId, ex);
+            _log.info(String.format("Check service(%s) beacon error for site %s", serviceName, siteId), ex);
         }
-        _log.info("Get available nodes by check {}: {} for site {}", serviceName, availableNodes, siteId);
+        _log.info(String.format("Get available nodes by check %s: %s for site %s", serviceName, Joiner.on(',').join(availableNodes), siteId));
         return availableNodes;
     }
 

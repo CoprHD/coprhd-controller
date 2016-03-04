@@ -147,7 +147,7 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
             Volume firstVplexVolume = null;
             for (URI volURI : vplexVolumeURIs) {
                 Volume vol = dbClient.queryObject(Volume.class, volURI);
-                if (vol != null && PersonalityTypes.SOURCE.name().equals(vol.getPersonality())) {
+                if (vol != null && PersonalityTypes.SOURCE.name().equalsIgnoreCase(vol.getPersonality())) {
                     // found the first source volume so break
                     firstVplexVolume = vol;
                     break;

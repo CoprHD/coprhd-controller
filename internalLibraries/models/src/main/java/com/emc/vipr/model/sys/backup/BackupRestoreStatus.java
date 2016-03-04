@@ -20,6 +20,7 @@ public class BackupRestoreStatus {
     private static final String KEY_BACKUP_SIZE = "backupSize";
     private static final String KEY_DOWNLOAD_SIZE = "downloadSize";
     private static final String KEY_STATUS = "status";
+    private static final String KEY_MESSAGE = "message";
     private static final String KEY_NODE_COMPLETED= "nodeCompleted";
     private static final String KEY_IS_GEO_ENV= "isGeo";
 
@@ -152,6 +153,7 @@ public class BackupRestoreStatus {
         map.put(KEY_BACKUP_SIZE, Long.toString(backupSize));
         map.put(KEY_DOWNLOAD_SIZE, Long.toString(downloadSize));
         map.put(KEY_STATUS, status.name());
+        map.put(KEY_MESSAGE, status.getMessage());
         map.put(KEY_NODE_COMPLETED, Integer.toString(nodeCompleted));
         map.put(KEY_IS_GEO_ENV, Boolean.toString(isGeo));
 
@@ -166,6 +168,7 @@ public class BackupRestoreStatus {
         for (Map.Entry<String, String> config: configs.entrySet()) {
             String key = config.getKey();
             String value = config.getValue();
+            String message = null;
             switch (key) {
                 case KEY_BACKUP_NAME:
                     backupName = value;
@@ -178,6 +181,15 @@ public class BackupRestoreStatus {
                     break;
                 case KEY_STATUS:
                     status = Status.valueOf(value);
+                    if (message != null) {
+                        status.setMessage(message);
+                    }
+                    break;
+                case KEY_MESSAGE:
+                    message = value;
+                    if (status != null) {
+                        status.setMessage(message);
+                    }
                     break;
                 case KEY_NODE_COMPLETED:
                     nodeCompleted = Integer.parseInt(value);

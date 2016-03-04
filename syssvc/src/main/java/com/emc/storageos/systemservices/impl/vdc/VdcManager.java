@@ -349,7 +349,7 @@ public class VdcManager extends AbstractManager {
                 Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
         long targetVdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
         log.info("local vdc config version: {}, target vdc config version: {}", localVdcConfigVersion, targetVdcConfigVersion);
-        return localVdcConfigVersion < targetVdcConfigVersion;
+        return localVdcConfigVersion != targetVdcConfigVersion;
     }
 
     private boolean isGeoUpgradeFromPreYoda() {

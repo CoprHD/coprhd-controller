@@ -3684,8 +3684,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     storagePoolURI, backendCG == null ? null : backendCG.getId(),
                             vPoolCapabilities, size);
             descriptors.add(descriptor);
-
-        }
+            volumeCounter++;
+        }   
         return descriptors;
     }
     

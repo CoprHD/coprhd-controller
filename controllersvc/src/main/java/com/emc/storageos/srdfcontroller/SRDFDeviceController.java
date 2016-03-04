@@ -287,7 +287,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
 
         Method method = updateSourceAndTargetPairingsMethod(sourceURIs, targetURIs);
         workflow.createStep(UPDATE_SRDF_PAIRING_STEP_GROUP, UPDATE_SRDF_PAIRING_STEP_GROUP, waitFor,
-                sourceSystem.getId(), sourceSystem.getSystemType(), getClass(), method, null, null);
+                sourceSystem.getId(), sourceSystem.getSystemType(), getClass(), 
+                method, rollbackMethodNullMethod(), null);
 
         return UPDATE_SRDF_PAIRING_STEP_GROUP;
     }

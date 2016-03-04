@@ -305,11 +305,11 @@ def volume_search(args):
 #
 # display volumes in list form
 #
-vol_display_fmt = '{0:50s} {1:6s} {2:6s} {3:4s} {4:26s} {5:16s} {6:62s} {7:32s} {8:11s} {9:12s} {10:10s}'
+vol_display_fmt = '{0:50s} {1:6s} {2:6s} {3:4s} {4:26s} {5:16s} {6:62s} {7:32s} {8:11s} {9:12s} {10:10s} {11:9}'
 
 def vol_display_hdr():
-    print vol_display_fmt.format('name', 'rqsize', 'alsize', 'act', 'vpool', 'varray', 'id', 'wwn', 'personality', 'access_state', 'link_status')
-    print vol_display_fmt.format('----', '------', '------', '---', '-----', '------', '--', '---', '-----------', '------------', '-----------')
+    print vol_display_fmt.format('name', 'rqsize', 'alsize', 'act', 'vpool', 'varray', 'id', 'wwn', 'personality', 'access_state', 'link_statux', 'native_id')
+    print vol_display_fmt.format('----', '------', '------', '---', '-----', '------', '--', '---', '-----------', '------------', '-----------', '---------')
 
 def vol_display(vol):
     personality = 'N/A';
@@ -332,7 +332,8 @@ def vol_display(vol):
               vol['wwn'] if 'wwn' in vol.keys() else 'N/A',
               personality,
               vol['access_state'] if 'access_state' in vol.keys() else 'N/A',
-              vol['link_status'] if 'link_status' in vol.keys() else 'N/A')
+              vol['link_status'] if 'link_status' in vol.keys() else 'N/A',
+              vol['native_id'] if 'native_id' in vol.keys() else 'N/A')
 
 exports_display_fmt = '{0:32s} {1:32s} {2:64s}'
 

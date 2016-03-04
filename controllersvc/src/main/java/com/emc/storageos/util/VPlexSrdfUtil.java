@@ -88,6 +88,9 @@ public class VPlexSrdfUtil {
         StringSet targets = new StringSet();
         for (String target : srdfVolume.getSrdfTargets()) {
             Volume srdfTarget = dbClient.queryObject(Volume.class, URI.create(target));
+            if (srdfTarget == null) { 
+                continue;
+            }
             Volume vplexTarget = getVplexVolumeFromSrdfVolume(dbClient, srdfTarget);
             if (vplexTarget != null) {
                 targets.add(vplexTarget.getId().toString());

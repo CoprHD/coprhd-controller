@@ -31,10 +31,10 @@ import java.util.concurrent.TimeUnit;
  */
 @Service
 public class DiagnosticsScheduler implements Runnable, JobConstants {
-    private static final Logger _log = LoggerFactory.getLogger(DiagnosticsScheduler
+    private static final Logger log = LoggerFactory.getLogger(DiagnosticsScheduler
             .class);
 
-    private static final AlertsLogger _alertsLog = AlertsLogger.getAlertsLogger();
+    private static final AlertsLogger alertsLog = AlertsLogger.getAlertsLogger();
 
     private LogAnalyser _dbLogAnalyser;
     private LogAnalyser _zkLogAnalyser;
@@ -60,13 +60,12 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
     /**
      * Sets up the scheduler.
      */
-    public DiagnosticsScheduler() {
-        _log.info("Initializing diagnostics scheduler");
+    public void start() {
+        log.info("Initializing diagnostics scheduler");
         ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
         service.scheduleAtFixedRate(this, SERVICE_START_LAG, LAG_BETWEEN_RUNS_ALERTS,
                 TimeUnit.SECONDS);
     }
-
     @Override
     public void run() {
         List<DiagTest> diagTests = DiagnosticsExec.getDiagToolResults(DiagConstants
@@ -79,13 +78,13 @@ public class DiagnosticsScheduler implements Runnable, JobConstants {
                     status = status.trim();
                     if (!diagTestMetadata.getOk().contains(status)) {
                         if (diagTestMetadata.getWarn().contains(status)) {
-                            _alertsLog.warn(test);
+                            alertsLog.warn(test);
                         }
                         else if (diagTestMetadata.getError().contains(status)) {
-                            _alertsLog.error(test);
+                            alertsLog.error(test);
                         }
                         else if (diagTestMetadata.getCrit().contains(status)) {
-                            _alertsLog.fatal(test);
+                            alertsLog.fatal(test);
                         }
                     }
                 }

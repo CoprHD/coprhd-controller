@@ -7,11 +7,20 @@
 import argparse
 import sys
 import os
-from bourne import Bourne
 import time
+
+from bourne import Bourne
+import sysmgr as SysMgr
+
+class Args:
+    def __init__(self, ip, sleep, length):
+        self.ip = ip
+        self.sleep = sleep
+        self.length = length
 
 def ipsec_key_rotate(vip):
     """ a test on ipsec key rotation """
+    SysMgr.wait_for_stable_state(Args(vip, 10, 1200))
     bourne.connect(vip)
     version = bourne.ipsec_rotate_key()
     print "Key rotation is submitted successfully at version %s" % version
@@ -24,6 +33,7 @@ def ipsec_check(vip):
 
 def ipsec_change_status(vip, status):
     """ a test on ipsec changing status """
+    SysMgr.wait_for_stable_state(Args(vip, 10, 1200))
     bourne.connect(vip)
     ipsec_status = bourne.ipsec_change_status(status)
     print "ipsec status change to %s" % ipsec_status

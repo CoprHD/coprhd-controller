@@ -3271,6 +3271,10 @@ public class RecoverPointClient {
 
                 logger.info("Checking for volumes unattached to splitters");
                 RecoverPointUtils.verifyCGVolumesAttachedToSplitter(functionalAPI, cgID);
+                
+                RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
+                logger.info("Waiting for links to become active for CG " );
+                rpiMgmt.waitForCGLinkState(functionalAPI, cgID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgID));
             } catch (FunctionalAPIActionFailedException_Exception e) {
                 throw RecoverPointException.exceptions.failedToRecreateReplicationSet(volumeWWNs.toString(), e);
             } catch (FunctionalAPIInternalError_Exception e) {

@@ -1,0 +1,37 @@
+{
+  baseKey:"CreateMobilityGroup.Migration",
+  serviceId:"CreateMobilityGroup",
+  fields:{
+  
+    name:{
+     type:"text"
+    },
+    
+    description:{
+     type:"text",
+     required:false
+    },
+    
+    migrationType:{
+     type: "choice",
+     initialValue: "VPLEX",
+     select: "one",
+     options: {
+        "VPLEX": "VPLEX"
+      },
+      lockable: true
+    },
+    
+    groupBy:{
+     type: "choice",
+     initialValue: "VOLUMES",
+     select: "one",
+     options: {
+        "VOLUMES": "Volumes",
+        "HOSTS": "Hosts",
+        "CLUSTERS": "Clusters"
+      },
+      lockable: true
+    }
+  }
+}

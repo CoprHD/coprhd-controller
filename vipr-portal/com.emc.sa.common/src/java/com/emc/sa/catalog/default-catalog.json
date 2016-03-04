@@ -598,6 +598,14 @@
           "baseService": "VplexDataMigration"
         },
         {
+          "image": "Service_Create_MobilityGroup.png",
+          "baseService": "CreateMobilityGroup"
+        },
+        {
+          "image": "Service_Delete_GroupMigration.png",
+          "baseService": "DeleteMobilityGroup"
+        },
+        {
           "image": "Service_MobilityGroupMigration.png",
           "baseService": "MobilityGroupMigration"
         },

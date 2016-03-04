@@ -1,0 +1,9 @@
+{
+  baseKey:"DeleteMobilityGroup.Migration",
+  serviceId:"DeleteMobilityGroup",
+  fields:{  
+    mobilityGroup:{
+      type:"assetType.vipr.mobilityGroup"
+    }
+  }
+}

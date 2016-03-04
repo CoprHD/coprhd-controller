@@ -44,6 +44,7 @@ public interface ServiceParams {
     public String VIRTUAL_POOL = "virtualPool";
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
     public String NAME = "name";
+    public String DESCRIPTION = "description";
     public String TYPE = "type";
     public String STORAGE_TYPE = "storageType";
     public String VOLUMES = "volumes";
@@ -77,6 +78,8 @@ public interface ServiceParams {
     public String COPIES = "copies";
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
+    public String MIGRATION_TYPE = "migrationType";
+    public String GROUP_BY = "groupBy";
 
     public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
 

@@ -30,12 +30,10 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
-import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.util.Waiter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
-import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 
@@ -213,12 +211,13 @@ public abstract class VdcOpHandler {
         
         private void checkDataRevision() throws Exception {
             // Step4: change data revision
-            String targetDataRevision = targetSiteInfo.getTargetDataRevision();
-            log.info("check if target data revision is changed - {}", targetDataRevision);
             try {
-                String localRevision = localRepository.getDataRevision();
+                long targetDataRevision = Long.parseLong(targetSiteInfo.getTargetDataRevision());
+                log.info("check if target data revision is changed - {}", targetDataRevision);
+                
+                long localRevision = Long.parseLong(localRepository.getDataRevision());
                 log.info("local data revision is {}", localRevision);
-                if (!targetSiteInfo.isNullTargetDataRevision() && !targetDataRevision.equals(localRevision)) {
+                if (targetDataRevision > 0 && targetDataRevision > localRevision) {
                     updateDataRevision();
                 }
             } catch (Exception e) {
@@ -238,6 +237,7 @@ public abstract class VdcOpHandler {
         private void updateDataRevision() throws Exception {
             String localRevision = localRepository.getDataRevision();
             String targetDataRevision = targetSiteInfo.getTargetDataRevision();
+            long vdcConfigVersion = targetSiteInfo.getVdcConfigVersion();
             log.info("Trying to reach agreement with timeout for data revision change");
             String barrierPath = String.format("%s/%s/DataRevisionBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
             DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, coordinator.getNodeCount());
@@ -246,16 +246,16 @@ public abstract class VdcOpHandler {
                 if (phase1Agreed) {
                     // reach phase 1 agreement, we can start write to local property file
                     log.info("Reach phase 1 agreement for data revision change");
-                    localRepository.setDataRevision(targetDataRevision, false);
+                    localRepository.setDataRevision(targetDataRevision, false, vdcConfigVersion);
                     boolean phase2Agreed = barrier.leave(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                     if (phase2Agreed) {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Reach phase 2 agreement for data revision change");
-                        localRepository.setDataRevision(targetDataRevision, true);
+                        localRepository.setDataRevision(targetDataRevision, true, vdcConfigVersion);
                         setConcurrentRebootNeeded(true);
                     } else {
                         log.info("Failed to reach phase 2 agreement. Rollback revision change");
-                        localRepository.setDataRevision(localRevision, true);
+                        localRepository.setDataRevision(localRevision, true, vdcConfigVersion);
                         throw new IllegalStateException("Failed to reach phase 2 agreement on data revision change");
                     }
                 } else {
@@ -283,6 +283,25 @@ public abstract class VdcOpHandler {
         }
     }
 
+    /**
+     * Purge old data revisions on given site
+     *  - call /etc/systool --purge-data-revision to cleanup unused data revisions on local disk
+     */
+    public static class DrPurgeDataRevisionHandler extends VdcOpHandler {
+        public DrPurgeDataRevisionHandler() {
+        }
+        
+        @Override
+        public void execute() throws Exception {
+            SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
+            String purgeSiteId = siteInfo.getSourceSiteUUID();
+            log.info("Purging data revision should be done on site {}", purgeSiteId);
+            if (drUtil.getLocalSite().getUuid().equals(purgeSiteId)) {
+                localRepository.purgeDataRevision();
+            }
+        }
+    }
+    
     /**
      * Process DR config change for remove-standby op
      *  - active site: power off to-be-removed standby, remove the db nodes from 
@@ -335,7 +354,7 @@ public abstract class VdcOpHandler {
                         
                     for (Site site : toBeRemovedSites) {
                         try {
-                            poweroffRemoteSite(site);
+                            tryPoweroffRemoteSite(site);
                             removeDbNodesFromGossip(site);
                         } catch (Exception e) { 
                             populateStandbySiteErrorIfNecessary(site, APIException.internalServerErrors.removeStandbyReconfigFailed(e.getMessage()));
@@ -630,6 +649,7 @@ public abstract class VdcOpHandler {
         private static final int TIME_WAIT_FOR_OLD_ACTIVE_SWITCHOVER_MS = 1000 * 5;
         private static final int MAX_WAIT_TIME_IN_MIN = 5;
         private boolean isRebootNeeded = true;
+        private boolean hasSingleNodeSite = false;
         
         public DrSwitchoverHandler() {
             isRebootNeeded = true;
@@ -644,6 +664,7 @@ public abstract class VdcOpHandler {
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
             SiteInfo siteInfo = coordinator.getCoordinatorClient().getTargetInfo(SiteInfo.class);
+            hasSingleNodeSite = hasSingleNodeSite();
             
             // Update site state
             if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
@@ -675,8 +696,8 @@ public abstract class VdcOpHandler {
                 waitForOldActiveZKLeaderDown(oldActiveSite);
                 
                 flushVdcConfigToLocal();
-                proccessSingleNodeSiteCase();
                 refreshCoordinator();
+                proccessSingleNodeSiteCase();
                 
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE, site.getNodeCount());
             } else {
@@ -706,7 +727,7 @@ public abstract class VdcOpHandler {
         }
 
         private void proccessSingleNodeSiteCase() {
-            if (hasSingleNodeSite()) {
+            if (hasSingleNodeSite) {
                 log.info("Single node deployment detected. Need refresh firewall/ipsec");
                 refreshIPsec();
                 refreshFirewall();
@@ -839,6 +860,7 @@ public abstract class VdcOpHandler {
                 reconfigVdc();
                 coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
                 processFailover();
+                localRepository.rebaseZkSnapshot();
                 waitForAllNodesAndReboot(site);
             } else {
                 reconfigVdc();
@@ -883,7 +905,7 @@ public abstract class VdcOpHandler {
                     return;
                 }
 
-                poweroffRemoteSite(oldActiveSite);    
+                tryPoweroffRemoteSite(oldActiveSite);    
                 removeDbNodesFromGossip(oldActiveSite);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 postHandlerFactory.initializeAllHandlers();
@@ -1126,22 +1148,25 @@ public abstract class VdcOpHandler {
         log.info("Removed site {} configuration from db strategy options", site.getUuid());
     }
 
-    protected void poweroffRemoteSite(Site site) {
+    /**
+     * Just try, don't guarantee successfully done
+     */
+    protected void tryPoweroffRemoteSite(Site site) {
         String siteId = site.getUuid();
-        if (!drUtil.isSiteUp(siteId)) {
-            log.info("Site {} is down. no need to poweroff it", site.getUuid());
-            return;
-        }
         // all syssvc shares same port
         String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT, site.getVipEndPoint(), service.getEndpoint().getPort());
-        SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
-        log.info("Powering off site {}", siteId);
-        while(drUtil.isSiteUp(siteId)) {
-            log.info("Short sleep and will check site status later");
-            retrySleep();
+        try {
+            SysClientFactory.getSysClient(URI.create(baseNodeURL)).post(URI.create(URI_INTERNAL_POWEROFF), null, null);
+            log.info("Powering off site {}", siteId);
+            while(drUtil.isSiteUp(siteId)) {
+                log.info("Short sleep and will check site status later");
+                retrySleep();
+            }
+        } catch (Exception e) {
+            log.warn("Error happened when trying to poweroff remove site {}", siteId, e);
         }
     }
-    
+
     protected void retrySleep() {
         waiter.sleep(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
     }
@@ -1216,7 +1241,7 @@ public abstract class VdcOpHandler {
             } else {
                 log.warn("Only Part of nodes entered within {} seconds at path {}", timeout, barrierPath);
                 // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
-                barrier.leave(); 
+                barrier.leave(timeout, TimeUnit.SECONDS); 
                 throw new Exception("Only Part of nodes entered within timeout");
             }
         }

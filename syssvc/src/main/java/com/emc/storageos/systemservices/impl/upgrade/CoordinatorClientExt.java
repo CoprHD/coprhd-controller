@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.ZooKeeper.States;
@@ -50,6 +51,7 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -64,7 +66,6 @@ import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.model.property.PropertiesMetadata;
 import com.emc.storageos.model.property.PropertyInfo;
@@ -119,7 +120,8 @@ public class CoordinatorClientExt {
     private volatile boolean stopCoordinatorSvcMonitor; // default to false
     
     private DbServiceStatusChecker statusChecker = null;
-
+    private boolean backCompatPreYoda = true;
+    
     public CoordinatorClient getCoordinatorClient() {
         return _coordinator;
     }
@@ -155,6 +157,10 @@ public class CoordinatorClientExt {
         return this.drUtil;
     }
 
+    public void setBackCompatPreYoda(Boolean backCompat) {
+        backCompatPreYoda = backCompat;
+    }
+    
     /**
      * Get property
      * 
@@ -628,9 +634,18 @@ public class CoordinatorClientExt {
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(ConfigVersion.class,
                     CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             Site site = drUtil.getSiteFromLocalVdc(siteId);
-            final ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId,
+            ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId,
                     site.getNodeCount());
 
+            // if backCompatPreYoda flag is true, it's still in the middle of yoda upgrade. Probably it is 
+            // rotating ipsec key. We should report upgrade in progress on UI
+            if (backCompatPreYoda && ClusterInfo.ClusterState.STABLE.equals(controlNodesState)) {
+                if (!drUtil.isMultivdc()) {
+                    _log.info("Back compat flag for preyoda is true. ");
+                    controlNodesState = ClusterInfo.ClusterState.UPDATING;
+                }
+            }
+            
             // construct cluster information by both control nodes and extra nodes.
             // cluster state is determined both by control nodes' state and extra nodes
             return toClusterInfo(controlNodesState, controlNodesInfo, controlNodesConfigVersions, targetRepository,
@@ -1408,8 +1423,12 @@ public class CoordinatorClientExt {
      * @return a Set instance with good node seq id(1, 2, or 3 etc).
      */
     private Set<String> getGoodNodes(String svcName, String version) {
+        return getGoodNodes(_coordinator.getSiteId(), svcName, version);
+    }
+
+    private Set<String> getGoodNodes(String siteId, String svcName, String version) {
         Set<String> goodNodes = new HashSet<String>();
-        List<Service> svcs = _coordinator.locateAllServices(svcName, version, (String) null, null);
+        List<Service> svcs = _coordinator.locateAllServices(siteId, svcName, version, (String) null, null);
         for (Service svc : svcs) {
             String svcId = svc.getId();
             goodNodes.add(getNodeSeqFromSvcId(svcId));
@@ -1739,21 +1758,26 @@ public class CoordinatorClientExt {
     /**
      * Get the nodes list on which specific service are available
      */
-    public List<String> getServiceAvailableNodes(String serviceName) {
+    public List<String> getServiceAvailableNodes(String siteId, String serviceName) {
         List<String> availableNodes = new ArrayList<String>();
         try {
             String dbVersion = _coordinator.getTargetDbSchemaVersion();
-            Set<String> ids = getGoodNodes(serviceName, dbVersion);
+            Set<String> ids = getGoodNodes(siteId, serviceName, dbVersion);
             for (String id : ids) {
                 availableNodes.add(ProductName.getName() + id);
             }
         } catch (Exception ex) {
-            _log.info("Check service({}) beacon error", serviceName, ex);
+            _log.info("Check service({}) beacon error for site {}", serviceName, siteId, ex);
         }
-        _log.info("Get available nodes by check {}: {}", serviceName, availableNodes);
+        _log.info("Get available nodes by check {}: {} for site {}", serviceName, availableNodes, siteId);
         return availableNodes;
     }
-    
+
+    public List<String> getServiceAvailableNodes(String serviceName) {
+        String siteId = _coordinator.getSiteId();
+        return getServiceAvailableNodes(siteId, serviceName);
+    }
+
     public void blockUntilZookeeperIsWritableConnected(long sleepInterval) {
         while (true) {
             try {
@@ -1785,6 +1809,12 @@ public class CoordinatorClientExt {
         
         boolean isActiveSiteLeaderAlive = false;
         boolean isActiveSiteStable = false;
+        
+        SiteInfo siteInfo = _coordinator.getTargetInfo(SiteInfo.class);
+        
+        if (StringUtils.isEmpty(activeSiteId) && SiteInfo.DR_OP_SWITCHOVER.equals(siteInfo.getActionRequired())) {
+            activeSiteId = siteInfo.getTargetSiteUUID();
+        }
         
         if (StringUtils.isEmpty(activeSiteId) || drUtil.getLocalSite().getUuid().equals(activeSiteId)) {
             _log.info("Can't find active site id or local site is active, set active healthy as false");

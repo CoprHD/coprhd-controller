@@ -26,7 +26,7 @@
     deleteSubmit = _deleteHref ? 'deleteForm' : null
 }%
 #{DataTable.buttonBar}
-  #{Form.button name:(_createName ?: 'button.add'), class:(_createClass ?: 'success'), icon:(_createIcon ?: 'plus'),
+  #{Form.button name:(_createName ?: 'button.create'), class:(_createClass ?: 'success'), icon:(_createIcon ?: 'plus'),
                 href:_createHref, action:_createAction/}
   #{Form.button name:(_deleteName ?: 'button.delete'), class:(_deleteClass ?: 'danger'), icon:(_deleteIcon ?: 'trash'), 
                 submit:deleteSubmit, action:_deleteAction, data:deleteData/}

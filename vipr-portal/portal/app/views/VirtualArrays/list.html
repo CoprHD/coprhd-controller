@@ -8,7 +8,7 @@
                       selectable: true,
                       source: @listJson()}
   #{DataTable.buttonBar}
-    #{Form.button name:'button.add', class:'success', icon:'plus', action:'showAddVarrayDialog()'/}
+    #{Form.button name:'button.create', class:'success', icon:'plus', action:'showAddVarrayDialog()'/}
     #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'deleteForm', data: ['enabled':'selected']/}
   #{/DataTable.buttonBar}
 #{/DataTable.table}

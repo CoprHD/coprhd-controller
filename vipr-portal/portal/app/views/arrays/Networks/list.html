@@ -13,7 +13,7 @@
                   deleteData:['property':'discovered', 'value': 'false'],
                   deleteConfirm:messages.get('Networks.deleteConfirm')}
   #{DataTable.buttonBar}
-    #{Form.button name:'Networks.add', class:'success', icon:'plus', action:'$("#createDialog").modal("show")'/}
+    #{Form.button name:'button.create', class:'success', icon:'plus', action:'$("#createDialog").modal("show")'/}
     #{Form.button name:'button.delete', class:'danger', icon:'trash', submit:'removeForm',
                   data:['enabled': 'selected', 'property': 'discovered', 'value':'false']/}
     

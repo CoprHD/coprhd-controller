@@ -790,7 +790,7 @@ CustomConfigs.error.delete=Error encountered while deleting configuration. The c
 
 # Execution Windows
 executionWindows.title=Execution Window Calendar
-executionWindows.description=Add, Remove and edit execution windows. If execution windows are enabled, requests will be scheduled for the next window instead of executing immediately. <span style="font-weight:bold;">Note:  All times are displayed in Local Time.</span>
+executionWindows.description=Create,Delete and Remove execution windows. If execution windows are enabled, requests will be scheduled for the next window instead of executing immediately. <span style="font-weight:bold;">Note:  All times are displayed in Local Time.</span>
 executionWindows.loading=Loading...
 executionWindows.confirm=Are you sure you want to delete the %s execution window?
 
@@ -3692,8 +3692,7 @@ buckets.protocols=Protocols
 common.date.format=yyyy-MM-dd HH:mm:ss
 
 # Common Messages
-button.create=create
-button.remove=remove
+button.create=Create
 button.add=Add
 button.addExisting=Add Existing
 button.addExportRule=Add Export Rule
@@ -3957,9 +3956,9 @@ host.wnn.pattern=^([0-9A-Fa-f]{2})((:[0-9A-Fa-f]{2}){7}$)
 ServiceCatalog.viewCatalog=View Catalog
 ServiceCatalog.editCatalog=Edit Catalog
 ServiceCatalog.editCatalog.alert=Catalog Update Available
-ServiceCatalog.createService=Add Service
+ServiceCatalog.createService=Create Service
 ServiceCatalog.editService.loading=Loading Service Fields...
-ServiceCatalog.createCategory=Add Category
+ServiceCatalog.createCategory=Create Category
 ServiceCatalog.editCurrentCategory=Edit Current Category
 ServiceCatalog.restoreCatalog=Restore Default
 ServiceCatalog.updateCatalog=Update Catalog

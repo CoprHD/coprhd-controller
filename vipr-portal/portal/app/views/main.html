@@ -139,7 +139,6 @@
             #{nav.item 'file.virtualPools', href: @arrays.FileVirtualPools.list()/}
             #{nav.item 'object.virtualPools', href: @arrays.ObjectVirtualPools.list()/}
             #{nav.item 'computeVirtualPools', href: @compute.ComputeVirtualPools.list()/}
-            #{nav.item 'mobilityGroups', href: @arrays.MobilityGroups.list()/}
           #{/license.ifController}
         #{/deadbolt.restrict}
         #{nav.item 'vdcs', href: @infra.VirtualDataCenters.list()/}
@@ -191,6 +190,8 @@
         #{nav.item 'object.buckets', href: @resources.ObjectBuckets.buckets()/}
         #{nav.separator /}
         #{nav.item 'tasks', href: @Tasks.listAll()/}
+        #{nav.separator /}
+        #{nav.item 'mobilityGroups', href: @resources.MobilityGroups.list()/}           
       #{/nav.menuSection}
     #{/nav.menu}
   #{/license.ifController}   

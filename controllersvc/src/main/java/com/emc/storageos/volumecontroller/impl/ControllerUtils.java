@@ -13,6 +13,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1027,17 +1028,20 @@ public class ControllerUtils {
      * @return snapshot list
      */
     public static List<BlockSnapshot> getSnapshotsPartOfReplicationGroup(BlockSnapshot snapshot, DbClient dbClient) {
-        return getSnapshotsPartOfReplicationGroup(snapshot.getReplicationGroupInstance(), snapshot.getStorageController(), dbClient);
+        if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+            return getSnapshotsPartOfReplicationGroup(snapshot.getReplicationGroupInstance(), snapshot.getStorageController(), dbClient);
+        }
+        return new ArrayList<BlockSnapshot>(Arrays.asList(snapshot));
     }
 
     /**
      * Filters the CG volumes by given Replication Group name and system.
      *
      * @param cgVolumes the cg volumes
-     * @param rgName the repliaction group name
+     * @param rgName the replication group name
      * @param system the system
      * @param dbClient the db client
-     * @return volumes belonging to given repliaction group and system in a CG
+     * @return volumes belonging to given replication group and system in a CG
      */
     public static List<BlockObject> getAllVolumesForRGInCG(List<Volume> cgVolumes, String rgName,
             URI system, DbClient dbClient) {

@@ -6,6 +6,7 @@
 package com.emc.storageos.systemservices.impl;
 
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
+import com.emc.storageos.systemservices.impl.jobs.DiagnosticsScheduler;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate;
@@ -84,6 +85,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     @Autowired
     private DrSiteNetworkMonitor _drSiteNetworkMonitor;
+
+    @Autowired
+    private DiagnosticsScheduler diagnosticsScheduler;
 
     public void setUpgradeManager(UpgradeManager upgradeMgr) {
         _upgradeMgr = upgradeMgr;
@@ -183,6 +187,10 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _drNetworkMonitorThread.start();
     }
 
+    private void startDiagnosticsScheduler() {
+        diagnosticsScheduler.start();
+    }
+
     @Override
     public void start() throws Exception {
         if (_app != null) {
@@ -201,8 +209,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startNewVersionCheck();
             startUpgradeManager();
             startSecretsManager();
-            startPropertyManager();
-            startVdcManager();
             startIpReconfigManager();
             
             //config cassandra as client mode to avoid load yaml file
@@ -214,11 +220,16 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
                 startSystemAudit(_dbClient);
             }
             _svcBeacon.start();
-
+            // start property manager and vdc manager after beacon is registered
+            // since they would update beacon
+            startPropertyManager();
+            startVdcManager();
 
             if (drUtil.isActiveSite()) {
                 startNetworkMonitor();
             }
+
+            startDiagnosticsScheduler();
         } else {
             throw new Exception("No app found.");
         }

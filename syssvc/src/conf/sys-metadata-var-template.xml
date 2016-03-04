@@ -1579,9 +1579,9 @@
 	</bean>
 	<bean id="controller_vplex_volume_discovery_mode" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="VPLEX backend volume discovery mode" />
-		<property name="description" value="'Only During Discovery' mode will collect all VPLEX backend volume data during Unmanaged Volume discovery (this mode is the default and is recommended for ingesting large numbers of volumes at once, and full ingestion will fail on an individual volume if any data is missing from the database). 'Only During Ingestion' mode will delay discovery of backend volumes until ingestion time (this mode is recommended for ingesting a few specific volumes at once so that discovery will run faster).  'During Discovery and Ingestion' will attempt to collect as much data as possible during discovery, and will check again during ingestion if any needed backend volume data is missing from the database (this mode is the most flexible, but may exhibit somewhat unpredictable performance)." />
+		<property name="description" value="'Only During Discovery' mode will collect all VPLEX backend volume data during Unmanaged Volume discovery (this mode is the default and is recommended for ingesting large numbers of volumes at once, and full ingestion will fail on an individual volume if any data is missing from the database). 'Only During Ingestion' mode will delay discovery of backend volumes until ingestion time (this mode is recommended for ingesting a few specific volumes at once so that discovery will run faster).  'During Discovery and Ingestion' will attempt to collect as much data as possible during discovery, and will check again during ingestion if any needed backend volume data is missing from the database (this mode is the most flexible, but may exhibit somewhat unpredictable performance). 'Only Use Database' is a flag that can be used to indicate that no direct queries of the VPLEX should be attempted, and that the code should rely only on what is in the database already." />
 		<property name="type" value="string" />
-		<property name="allowedValues" value="Only During Discovery,Only During Ingestion,During Discovery and Ingestion" />
+		<property name="allowedValues" value="Only During Discovery,Only During Ingestion,During Discovery and Ingestion,Only Use Database" />
 		<property name="tag" value="Controller" />
 		<property name="hidden" value="true" />
 		<property name="advanced" value="true" />
@@ -2344,8 +2344,8 @@
 		<property name="notifiers" value="backupscheduler" />
 	</bean>
 	<bean id="backup_scheduler_copies_to_keep" class="com.emc.storageos.model.property.PropertyMetadata">
-		<property name="label" value="Backup Retention Number" />
-		<property name="description" value="Maximum number of scheduled backups" />
+		<property name="label" value="Backup Max Copies" />
+		<property name="description" value="The maximum number of scheduled backup copies to save on the ViPR nodes. Once this is reached, older scheduled backup copies are deleted from the nodes so that newer ones can be saved" />
 		<property name="type" value="uint32" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Backup" />
@@ -2385,7 +2385,7 @@
 	</bean>
 	<bean id="backup_max_manual_copies" class="com.emc.storageos.model.property.PropertyMetadata">
 		<property name="label" value="Backup Max Copies" />
-		<property name="description" value="Maximum number of manually created backup copies, kept on system" />
+		<property name="description" value="The maximum number of manually created backup copies to save on the ViPR nodes. Once this is reached, no copies can be created until you manually delete the older manually created copies from the nodes" />
 		<property name="type" value="uint32" />
 		<property name="allowedValues" value="0,1,2,3,4,5" />
 		<property name="tag" value="Backup" />

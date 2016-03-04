@@ -34,6 +34,8 @@ public class BackupFile implements Comparable<BackupFile> {
             this.type = BackupType.geodbmultivdc;
         } else if (backupNameSegs[1].startsWith(BackupType.geodb.toString())) {
             this.type = BackupType.geodb;
+        } else if (backupNameSegs[1].startsWith(BackupType.info.toString())) {
+            this.type = BackupType.info;
         } else {
             throw new IllegalStateException("Unknown type of backup file name:"
                     + info.getName());

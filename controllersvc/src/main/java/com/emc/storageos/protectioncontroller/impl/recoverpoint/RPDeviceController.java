@@ -75,6 +75,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
+import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -4279,6 +4280,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public void createSnapshot(URI protectionDevice, URI storageURI, List<URI> snapshotList,
             Boolean createInactive, Boolean readOnly, String opId) throws InternalException {
         TaskCompleter completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
+        // if snapshot is part of a CG, add CG id to the completer
+        List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotList);
+        ControllerUtils.checkSnapshotsInConsistencyGroup(snapshots, _dbClient, completer);
+
         Map<URI, Integer> snapshotMap = new HashMap<URI, Integer>();
         try {
             ProtectionSystem system = null;
@@ -4660,7 +4665,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Otherwise, get all snapshots in the snapset, get the parent volume for each
             // snapshot. If the parent is a VPlex backing volume, get the VLPEX volume
             // using the snapshot parent.
-            List<BlockSnapshot> cgSnaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+            List<BlockSnapshot> cgSnaps = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
             for (BlockSnapshot cgSnapshot : cgSnaps) {
                 URIQueryResultList queryResults = new URIQueryResultList();
                 _dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -4745,6 +4750,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     Map<String, RecreateReplicationSetRequestParams> rsetParams =
                             new HashMap<String, RecreateReplicationSetRequestParams>();
 
+                    //Lock CG
+                    List<String> locks = new ArrayList<String>();
+                    String lockName = generateRPLockCG(_dbClient, volumeURIs.get(0));
+                    if (null != lockName) {
+                        locks.add(lockName);
+                        acquireWorkflowLockOrThrow(workflow, locks);
+                    }
+                    
                     for (URI volumeId : volumeURIs) {
                         Volume vol = _dbClient.queryObject(Volume.class, volumeId);
                         RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, vol.getId());
@@ -5217,7 +5230,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (cgId != null) {
                 // Account for all CG BlockSnapshots if this requested BlockSnapshot
                 // references a CG.
-                snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snap, _dbClient);
+                snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snap, _dbClient);
             } else {
                 snapshots.add(snap);
             }
@@ -6143,4 +6156,189 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             allVolumes.add(volume.getId());
         }
     }
+    
+
+    /**
+     * Adds the necessary RecoverPoint controller steps that need to be executed prior
+     * to restoring a volume from full copy. The pre-restore step is required if we
+     * are restoring a VPLEX distributed full copy     
+     * @param workflow the Workflow being constructed
+     * @param waitFor the step that the newly created steps will wait for.
+     * @param storageSystemURI the URI of storage controller
+     * @param fullCopies the URI of full copies to restore
+     * @param taskId the top level operation's taskId
+     * @return A waitFor key that can be used by subsequent controllers to wait on
+     */
+    public String addPreRestoreFromFullcopySteps(Workflow workflow, String waitFor, URI storageSystemURI, List<URI> fullCopies, String taskId) {
+        if (fullCopies != null && !fullCopies.isEmpty()) {
+            List<Volume> rpVplexVolumes = checkIfDistributedVplexFullCopies(fullCopies);
+            if (!rpVplexVolumes.isEmpty()) {
+                Map<String, RecreateReplicationSetRequestParams> rsetParams = new HashMap<String, RecreateReplicationSetRequestParams>();
+                List<URI> volumeURIs = new ArrayList<URI>();
+                URI rpSystemId = rpVplexVolumes.get(0).getProtectionController();
+                ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
+                for (Volume vol : rpVplexVolumes) {
+                    RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, vol.getId());
+                    rsetParams.put(RPHelper.getRPWWn(vol.getId(), _dbClient), rsetParam);
+                    volumeURIs.add(vol.getId());
+                }
+                //Lock CG
+                List<String> locks = new ArrayList<String>();
+                String lockName = generateRPLockCG(_dbClient, volumeURIs.get(0));
+                if (null != lockName) {
+                    locks.add(lockName);
+                    acquireWorkflowLockOrThrow(workflow, locks);
+                }
+    
+                String stepId = workflow.createStepId();
+                Workflow.Method deleteRsetExecuteMethod = new Workflow.Method(METHOD_DELETE_RSET_STEP,
+                        rpSystem.getId(), volumeURIs);
+    
+                // rollback method for deleteRset. If deleteRest fails, recreate the Rset
+                Workflow.Method recreateRSetExecuteMethod = new Workflow.Method(METHOD_RECREATE_RSET_STEP,
+                        rpSystem.getId(), volumeURIs, rsetParams);
+    
+                waitFor = workflow.createStep(STEP_PRE_VOLUME_RESTORE,
+                        "Pre volume restore from full copy, delete replication set step for RP",
+                        waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
+                        deleteRsetExecuteMethod, recreateRSetExecuteMethod, stepId);
+    
+                _log.info("Created workflow step to delete replication set for volumes");
+                    
+            }
+        }
+
+        return waitFor;
+    }
+    
+    /**
+     * Adds the necessary RecoverPoint controller steps that need to be executed after
+     * restoring a volume from full copy. The post-restore step is required if we
+     * are restoring a VPLEX full copy, whoes source volume is a distributed VPLEX volume     
+     * @param workflow the Workflow being constructed
+     * @param waitFor the step that the newly created steps will wait for.
+     * @param storageSystemURI the URI of storage controller
+     * @param fullCopies the URI of full copies to restore
+     * @param taskId the top level operation's taskId
+     * @return A waitFor key that can be used by subsequent controllers to wait on
+     */
+    public String addPostRestoreFromFullcopySteps(Workflow workflow, String waitFor, URI storageSystemURI, List<URI> fullCopies, String taskId) {
+        if (fullCopies != null && !fullCopies.isEmpty()) {
+            List<Volume> rpVplexVolumes = checkIfDistributedVplexFullCopies(fullCopies);
+            if (!rpVplexVolumes.isEmpty()) {
+                Map<String, RecreateReplicationSetRequestParams> rsetParams = new HashMap<String, RecreateReplicationSetRequestParams>();
+                List<URI> volumeURIs = new ArrayList<URI>();
+                URI rpSystemId = rpVplexVolumes.get(0).getProtectionController();
+                ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
+                for (Volume vol : rpVplexVolumes) {
+                    RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, vol.getId());
+                    rsetParams.put(RPHelper.getRPWWn(vol.getId(), _dbClient), rsetParam);
+                    volumeURIs.add(vol.getId());
+                }
+    
+                String stepId = workflow.createStepId();
+    
+                Workflow.Method recreateRSetExecuteMethod = new Workflow.Method(METHOD_RECREATE_RSET_STEP,
+                        rpSystemId, volumeURIs, rsetParams);
+    
+                waitFor = workflow.createStep(STEP_PRE_VOLUME_RESTORE,
+                        "Post volume restore from full copy, add replication set step for RP",
+                        waitFor, rpSystemId, rpSystem.getSystemType(), this.getClass(),
+                        recreateRSetExecuteMethod, rollbackMethodNullMethod(), stepId);
+    
+                _log.info("Created workflow step to recreate replication set for volumes");
+                    
+            }
+        }
+
+        return waitFor;
+    }
+    
+    /**
+     * Check if the full copies source volumes are distributed vplex volumes
+     * @param fullcopies - URI of full copies
+     * @return - the VPLEX distributed source volumes 
+     */
+    private List<Volume> checkIfDistributedVplexFullCopies(List<URI> fullcopies) {
+        List<Volume> vplexVolumes = new ArrayList<Volume>();
+        
+        for (URI fullCopyUri : fullcopies) {
+            Volume fullCopy = _dbClient.queryObject(Volume.class, fullCopyUri);
+            if (fullCopy != null) {
+                boolean vplexDistBackingVolume = false;
+                URI volume = fullCopy.getAssociatedSourceVolume();
+                Volume sourceVol = _dbClient.queryObject(Volume.class, volume);
+                if (sourceVol != null &&
+                        sourceVol.getAssociatedVolumes() != null &&
+                        sourceVol.getAssociatedVolumes().size() == 2) {
+                    vplexDistBackingVolume = true;
+                }
+
+                // Only add the post-restore step if we are restoring a full copy whoes source
+                // volume is a distributed vplex volume
+                if (!NullColumnValueGetter.isNullURI(sourceVol.getProtectionController()) &&
+                        vplexDistBackingVolume) {   
+                    ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, sourceVol.getProtectionController());
+                    if (rpSystem == null) {
+                        // Verify non-null storage device returned from the database client.
+                        throw DeviceControllerExceptions.recoverpoint.failedConnectingForMonitoring(sourceVol.getProtectionController());
+                    }
+
+                    vplexVolumes.add(sourceVol);
+                }
+            }
+        }
+        return vplexVolumes;
+    }
+    
+    /**
+     * Attempts to acquire a workflow lock based on the RP lockname.
+     * 
+     * @param workflow
+     * @param locks
+     * @throws LockRetryException
+     */
+    private void acquireWorkflowLockOrThrow(Workflow workflow, List<String> locks) throws LockRetryException {
+        _log.info("Attempting to acquire workflow lock {}", Joiner.on(',').join(locks));
+        _workflowService.acquireWorkflowLocks(workflow, locks,
+                LockTimeoutValue.get(LockType.RP_CG));
+    }
+    
+    /**
+     * Lock the entire CG based on this volume.
+     *
+     * @param dbClient db client
+     * @param locker locker service
+     * @return true if lock was acquired
+     */
+    public String generateRPLockCG(DbClient dbClient, URI volumeId) {
+        // Figure out the lock ID (rpSystemInstallationID:CGName)
+         
+        String lockName = null;
+
+        // If this is a snapshot object completer, get the volume id from the snapshot.
+        if (URIUtil.isType(volumeId, BlockSnapshot.class)) {
+            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, volumeId);
+            volumeId = snapshot.getParent().getURI();
+        } 
+
+        // Figure out the lock ID (rpSystemInstallationID:CGName)
+        Volume volume = dbClient.queryObject(Volume.class, volumeId);
+
+        if (volume != null ) {
+            if (volume.getProtectionController() != null && volume.getProtectionSet() != null) {
+                ProtectionSystem rpSystem = dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
+                ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
+                if (rpSystem != null && protectionSet != null && rpSystem.getInstallationId() != null && protectionSet.getLabel() != null) {
+                    // Unlock the CG based on this volume
+                    lockName = rpSystem.getInstallationId() + "-" + protectionSet.getLabel();
+                    return lockName;
+                }
+            } else if (volume.getProtectionSet() == null) {                
+                _log.info(String.format("The volume %s does not have protectionSet", volume.getLabel()));
+            }
+        }
+        return lockName;
+    }
+
 }

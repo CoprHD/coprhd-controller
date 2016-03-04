@@ -33,6 +33,9 @@ _usage() {
     echo "   or: $0 --setvdcprops file" >&2
     echo "   or: $0 --getsslprops"      >&2
     echo "   or: $0 --setsslprops file" >&2
+    echo "   or: $0 --get-data-revision" >&2
+    echo "   or: $0 --set-data-revision file" >&2
+    echo "   or: $0 --purge-data-revision" >&2
     echo "   or: $0 --reboot"           >&2
     echo "   or: $0 --poweroff"         >&2
     echo "   or: $0 --reconfig"         >&2
@@ -481,16 +484,23 @@ _stop() {
 }
 
 #
-# Restart services to apply config change in _reconfig_coordinator
+# Restart services on standby to apply config change in _reconfig_coordinator
 #
+# param: participant - break connection with active site and make zk accessible
+#        observer - reestablish zk connection with active site
 _restart_coordinator() {
     if [ "$(_is_dr_standby)" = "true" ] ; then
-        if [ "${1}" = "observer" ]; then
-            # reset zk data directory and resync data from active site
-            # if we would switch to observer mode
-            _stop coordinatorsvc
-            rm -fR /data/zk/version-2/*
+        local zkdir="/data/zk"
+	local tgtdir=${zkdir}/version-2
+        _stop coordinatorsvc
+        if [ "${1}" = "participant" ]; then
+            /etc/datatool --create-snapshot /data/zk/version-2
+            rm -fR /data/zk/myid
+        else
+            /etc/datatool --revert-snapshot /data/zk/version-2
+            rm -fR /data/zk/myid
         fi
+
         for svc in coordinatorsvc dbsvc geodbsvc authsvc apisvc geosvc portalsvc syssvc; do
             _restart ${svc}
         done
@@ -505,6 +515,17 @@ _is_dr_standby() {
       done
       return 1
      )
+}
+
+# Purge old data reversions
+_purge_data_revision() {
+    /etc/datatool --purge-unused-versions /data/db/1
+    /etc/datatool --purge-unused-versions /data/geodb/1
+    /etc/datatool --purge-unused-versions /data/zk/version-2
+}
+
+_rebase_zk_snapshot() {
+    /etc/datatool --rebase-snapshot /data/zk/version-2
 }
 
 _reload() {
@@ -841,6 +862,8 @@ case ${#} in
             --getvdcprops)            _s _get_vdc_props ;;
             --getsslprops)            _s _get_ssl_props ;;
             --get-data-revision)      _s _get_data_revision ;;
+            --purge-data-revision)    _s _purge_data_revision ;;
+            --rebase-zk-snapshot)     _s _rebase_zk_snapshot ;;
             --getbootfsdev)           _s _get_bootfs_dev ;;
             --initializeprops)        _x _initialize_props ;;
             --remount-rw)             _x _bootfs_mount_rw "no" ;;

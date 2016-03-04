@@ -188,7 +188,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     SYNC_TYPE.SNAPSHOT, taskCompleter, _dbClient, _helper, _cimPath);
             if (isSuccess) {
                 List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                        snapshotObj.getReplicationGroupInstance(), _dbClient);
+                        snapshotObj, _dbClient);
                 setIsSyncActive(snapshots, true);
                 for (BlockSnapshot it : snapshots) {
                     it.setRefreshRequired(true);
@@ -370,20 +370,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     snapshotList.get(0).toString(), '-', storage.getUsingSmis80() ? SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH
                             : SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
 
-            int snapshotsCount = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(first, _dbClient).size();
-
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, first, _dbClient, _helper, _cimPath);
-
-            if (snapshotsCount <= 0) {
-                final String errMsg = String.format(
-                        "The number of block snapshots with snapset label %s is %d; need to have more than 0 to CG snaps.",
-                        first.getSnapsetLabel(), snapshotsCount);
-                _log.error(errMsg);
-                ServiceError error = DeviceControllerErrors.smis.noBlockSnapshotsFound();
-                taskCompleter.error(_dbClient, error);
-            }
-
             final Map<String, List<Volume>> volumesBySizeMap = new HashMap<String, List<Volume>>();
 
             // Group volumes by pool and size
@@ -488,7 +476,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
             }
             List<BlockSnapshot> snapshotList = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                    snapshotObj.getReplicationGroupInstance(), _dbClient);
+                    snapshotObj, _dbClient);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
@@ -1322,16 +1310,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMArgument[] restoreCGSnapInput = _helper.getResyncSnapshotWithWaitInputArguments(groupSynchronized);
                 cimJob = _helper.callModifyReplica(storage, restoreCGSnapInput);
 
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotJob(cimJob, storage.getId(), taskCompleter)));
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockResyncSnapshotJob(cimJob, storage.getId(), taskCompleter)));
             } else {
                 ServiceError error = DeviceControllerErrors.smis.unableToFindSynchPath(consistencyGroupName);
                 taskCompleter.error(_dbClient, error);
             }
         } catch (Exception e) {
-            String message = String.format("Generic exception when trying to restoring snapshots from consistency group on array %s",
+            String message = String.format("Generic exception when trying to resynchronizing consistency group snapshots on array %s",
                     storage.getSerialNumber());
             _log.error(message, e);
-            ServiceError error = DeviceControllerErrors.smis.methodFailed("restoreGroupSnapshots", e.getMessage());
+            ServiceError error = DeviceControllerErrors.smis.methodFailed("resyncGroupSnapshots", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }
     }
@@ -1371,8 +1359,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMInstance syncInstance = _helper.checkExists(storage, groupSynchronizedPath, false, false);
             if (syncInstance == null) {
                 // get all snapshots belonging to a Replication Group. There may be multiple snapshots available for a Volume
-                List<BlockSnapshot> snapshots = ControllerUtils
-                        .getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(), _dbClient);
+                List<BlockSnapshot> snapshots = ControllerUtils.
+                        getSnapshotsPartOfReplicationGroup(snapshotObj, _dbClient);
 
                 List<CIMObjectPath> elementSynchronizations = new ArrayList<CIMObjectPath>();
                 for (BlockSnapshot snapshotObject : snapshots) {
@@ -1465,7 +1453,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, consistencyGroup.getTenant().getURI());
             String tenantName = tenant.getLabel();
 
-            final String label = _nameGenerator.generate(tenantName, snapSession.getLabel(),
+            final String label = _nameGenerator.generate(tenantName, snapSession.getSessionLabel(),
                     snapSessionURI.toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
 
             CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(system, groupName);
@@ -1592,7 +1580,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String targetGroupName;
             if (!targetsExist) {
                 // This is the normal scenario for linking group targets to a group snapshot session.
-                sourceGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+                sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sampleParent, _dbClient);
                 // Group snapshots parent volumes by their pool and size
                 Map<String, List<Volume>> volumesBySizeMap = new HashMap<>();
                 for (BlockSnapshot target : snapshots) {
@@ -1652,10 +1640,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 sourceGroupName = sourceGroupName.substring(groupNameStartIndex);
 
                 // The target in this case is actually a source volume and the target group
-                // is the source volume group, which we can get from the consistency group.
+                // is the source volume group, which we can get from the parent's replication group instance.
                 // Note that we can use the sample parent because it references the same
-                // consistency group as the source volume.
-                targetGroupName = _helper.getConsistencyGroupName(sampleParent, system);
+                // repliaction group as the source volume.
+                targetGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sampleParent, _dbClient);
 
                 // Get the CIM object path for the target group.
                 targetGroupPath = _cimPath.getReplicationGroupPath(system, targetGroupName);
@@ -1758,11 +1746,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String groupName = _helper.extractGroupName(snapshot.getReplicationGroupInstance());
             CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(system, groupName);
 
-            // We need a single source volume for the session.
-            BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, tgtSnapSession.getConsistencyGroup());
-            List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
-            BlockObject sourceObj = nativeVolumes.get(0);
-            String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
+            // get source group name from the session.
+            String sourceGroupName = tgtSnapSession.getReplicationGroupInstance();
             CIMObjectPath settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
 
             // We need to know if the group was linked in copy mode or nocopy mode.
@@ -1834,7 +1819,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     }
                 }
                 snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(
-                        replicationGroupName, _dbClient);
+                        snapshot, _dbClient);
             } else {
                 BlockObject sourceObj = BlockObject.fetch(_dbClient, snapshot.getParent().getURI());
                 syncObjectPath = getSyncObject(system, snapshot, sourceObj);
@@ -1978,9 +1963,15 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     // We need a single source volume for the session.
                     BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, snapSession.getConsistencyGroup());
                     List<Volume> nativeVolumes = BlockConsistencyGroupUtils.getActiveNativeVolumesInCG(cg, _dbClient);
-                    sourceObj = nativeVolumes.get(0);
-                    String sourceGroupName = _helper.getConsistencyGroupName(sourceObj, system);
+                    // get source group name from the session.
+                    String sourceGroupName = snapSession.getReplicationGroupInstance();
                     settingsStatePath = _cimPath.getGroupSynchronizedSettingsPath(system, sourceGroupName, syncAspectPath);
+                    for (Volume volume : nativeVolumes) {
+                        if (sourceGroupName.equals(volume.getReplicationGroupInstance())) {
+                            sourceObj = volume;
+                            break;  // get source volume which matches session's RG name
+                        }
+                    }
                 } else {
                     _log.info("Restoring single volume snapshot session");
                     sourceObj = BlockObject.fetch(_dbClient, snapSession.getParent().getURI());

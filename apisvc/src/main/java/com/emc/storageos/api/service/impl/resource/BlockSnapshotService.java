@@ -100,10 +100,8 @@ import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
  * 
  */
 @Path("/block/snapshots")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = { ACL.ANY },
-        writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.ANY }, writeRoles = {
+        Role.TENANT_ADMIN }, writeAcls = { ACL.ANY })
 public class BlockSnapshotService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "BlockSnapshot";
 
@@ -266,7 +264,7 @@ public class BlockSnapshotService extends TaskResourceService {
                         snapSessionURIsIter.next(), param));
                 return response;
             }
-    
+
             // Not an error if the snapshot we try to delete is already deleted
             if (snap.getInactive()) {
                 _log.info("Snapshot is already inactive");
@@ -287,7 +285,7 @@ public class BlockSnapshotService extends TaskResourceService {
         final URI cgId = snap.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgId)) {
             // Collect all the BlockSnapshots if part of a CG.
-            snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snap, _dbClient);
+            snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snap, _dbClient);
         } else {
             // Snap is not part of a CG so only delete the snap
             snapshots.add(snap);
@@ -404,8 +402,7 @@ public class BlockSnapshotService extends TaskResourceService {
         }
 
         // restore for OpenStack storage system type is not supported
-        if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType()))
-        {
+        if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType())) {
             throw APIException.methodNotAllowed.notSupportedWithReason(
                     String.format("Snapshot restore is not possible on third-party storage systems"));
         }
@@ -475,15 +472,13 @@ public class BlockSnapshotService extends TaskResourceService {
         }
 
         // resync for OpenStack storage system type is not supported
-        if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType()))
-        {
+        if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType())) {
             throw APIException.methodNotAllowed.notSupportedWithReason(
-                    String.format("Snapshot restore is not possible on third-party storage systems"));
+                    String.format("Snapshot resynchronization is not possible on third-party storage systems"));
         }
 
         // resync for VNX storage system type is not supported
-        if (Type.vnxblock.name().equalsIgnoreCase(storage.getSystemType()))
-        {
+        if (Type.vnxblock.name().equalsIgnoreCase(storage.getSystemType())) {
             throw APIException.methodNotAllowed.notSupportedWithReason(
                     "Snapshot resynchronization is not supported on VNX storage systems");
         }
@@ -558,7 +553,7 @@ public class BlockSnapshotService extends TaskResourceService {
 
         List<URI> snapshotList = new ArrayList<URI>();
         if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup())) {
-            List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshot, _dbClient);
             for (BlockSnapshot snap : snapshots) {
                 snapshotList.add(snap.getId());
             }
@@ -760,8 +755,7 @@ public class BlockSnapshotService extends TaskResourceService {
     @Override
     public BlockSnapshotBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<BlockSnapshot> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<BlockSnapshot> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new BlockSnapshotBulkRep(BulkList.wrapping(_dbIterator, MapBlockSnapshot.getInstance(_dbClient)));
     }
 
@@ -769,8 +763,7 @@ public class BlockSnapshotService extends TaskResourceService {
     protected BulkRestRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        Iterator<BlockSnapshot> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<BlockSnapshot> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         ResourceFilter<BlockSnapshot> filter = new BlockSnapshotFilter(getUserFromContext(), _permissionsHelper);
         return new BlockSnapshotBulkRep(BulkList.wrapping(_dbIterator, MapBlockSnapshot.getInstance(_dbClient), filter));
 
@@ -825,7 +818,8 @@ public class BlockSnapshotService extends TaskResourceService {
         } else {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getBlockSnapshotUnderProjectConstraint(
-                            projectId, name), resRepList);
+                            projectId, name),
+                    resRepList);
         }
         return resRepList;
     }

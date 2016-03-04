@@ -1234,6 +1234,13 @@ public class RecoverPointImageManagementUtils {
                         continue;
                     }
 
+                    if (desiredPipeState.equals(PipeState.ACTIVE)) {
+                        // Treat SNAP_IDLE as ACTIVE
+                        if (linkstate.getPipeState().equals(PipeState.SNAP_IDLE)) {
+                            linkstate.setPipeState(PipeState.ACTIVE);
+                        }
+                    }
+                    
                     PipeState pipeState = linkstate.getPipeState();
                     logger.info("Copy link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
 

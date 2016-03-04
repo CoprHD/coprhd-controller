@@ -64,6 +64,9 @@ import com.google.common.collect.Lists;
 
 public class XtremIOUnManagedVolumeDiscoverer {
 
+    private static final String RP_SNAPSHOT_CRITERIA3 = "_SMP";
+    private static final String RP_SNAPSHOT_CRITERIA2 = ".RP_";
+    private static final String RP_SNAPSHOT_CRITERIA1 = "._RP_";
     private static final Logger log = LoggerFactory.getLogger(XtremIOUnManagedVolumeDiscoverer.class);
     private static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
@@ -129,7 +132,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
             
             // If this name is a trigger/match for RP automated snapshots, ignore it as well
             String snapName = (String)snapNameToProcess;
-            if ((snapName.contains("._RP_") || snapName.contains(".RP_")) && snapName.contains("_SMP")) {
+            if ((snapName.contains(RP_SNAPSHOT_CRITERIA1) || snapName.contains(RP_SNAPSHOT_CRITERIA2)) && snapName.contains(RP_SNAPSHOT_CRITERIA3)) {
                 log.warn("Skipping snapshot {} because it is internal to RP for volume {}", snapName, parentGUID);
                 continue;
             }

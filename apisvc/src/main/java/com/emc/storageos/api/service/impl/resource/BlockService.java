@@ -2169,7 +2169,7 @@ public class BlockService extends TaskResourceService {
 
         if (param.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
             // Don't allow snapshots on single volumes that are in consistency groups, but don't have replication group instance set
-            BlockServiceUtils.validateNotInCG(requestedVolume, _dbClient);
+            BlockServiceUtils.validateNotInCG(requestedVolume, _dbClient, true);
         }    
         
         validateSourceVolumeHasExported(requestedVolume);

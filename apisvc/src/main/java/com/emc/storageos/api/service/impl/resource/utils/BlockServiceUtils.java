@@ -665,6 +665,9 @@ public class BlockServiceUtils {
                 storage = volume.getStorageController();
             }
 
+            // Don't allow snapshot sessions on single volumes that are in consistency groups, but don't have replication group instance set.
+            BlockServiceUtils.validateNotInCG(volume, dbClient, false);
+            
             if (NullColumnValueGetter.isNullValue(rgName)) {
                 throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
             }
@@ -697,31 +700,36 @@ public class BlockServiceUtils {
      * 2. The volume does not have a replicationGroupInstance
      * 
      * @param requestedVolume volume requested for snapshot
+     * @param dbclient db client
+     * @param requestedSnapshot backward compatibility check. Extra logic needed for snapshot requests
      */
-    public static void validateNotInCG(Volume requestedVolume, DbClient dbClient) {
+    public static void validateNotInCG(BlockObject requestedVolume, DbClient dbClient, boolean requestedSnapshot) {
         // If this volume isn't in a consistency group, it's valid
         if (!requestedVolume.hasConsistencyGroup()) {
             return;
         }
         
-        // Backward compatibility:  We need to allow single-volume snapshotting of RP Target volumes
-        // for SRM/SRA support with previous versions of ViPR
-        if (requestedVolume.checkPersonality(PersonalityTypes.TARGET.toString())) {
-            _log.warn("Backward compatibility mode: allowing snapshot of single volume for RP target");
-            return;
-        }
-        
-        // If it's a VPLEX volume, check both backing volumes to make sure they have replication group instance set
-        if (requestedVolume.isVPlexVolume(dbClient)) {
-            Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(requestedVolume, false, dbClient);
-            if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
-                throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
+        if (requestedVolume instanceof Volume) {
+            Volume volume = (Volume)requestedVolume;
+            // Backward compatibility:  We need to allow single-volume snapshotting of RP Target volumes
+            // for SRM/SRA support with previous versions of ViPR
+            if (requestedSnapshot && volume.checkPersonality(PersonalityTypes.TARGET.toString())) {
+                _log.warn("Backward compatibility mode: allowing snapshot of single volume for RP target");
+                return;
             }
-            backendVolume = VPlexUtil.getVPLEXBackendVolume(requestedVolume, true, dbClient);
-            if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
-                throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
+
+            // If it's a VPLEX volume, check both backing volumes to make sure they have replication group instance set
+            if (volume.isVPlexVolume(dbClient)) {
+                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient);
+                if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
+                    throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
+                }
+                backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (backendVolume != null && NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
+                    throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
+                }
+                return;
             }
-            return;
         }
         
         // Non-VPLEX, just check for replication group instance

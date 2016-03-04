@@ -321,26 +321,31 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
                         StringSet discoveredSnaps = discoverVolumeSnaps(storageSystem, volume.getSnaps(), unManagedVolumeNatvieGuid,
                                 parentMatchedVPools, xtremIOClient, xioClusterName, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
-                        // set the HAS_REPLICAS property
-                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                                TRUE);
-                        StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
-                        if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
-                            log.debug("Snaps :" + Joiner.on("\t").join(discoveredSnaps));
-                            if (null != discoveredSnaps && discoveredSnaps.isEmpty()) {
-                                // replace with empty string set doesn't work, hence added explicit code to remove all
-                                unManagedVolumeInformation.get(
-                                        SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
+                        if (!discoveredSnaps.isEmpty()) {
+                            // set the HAS_REPLICAS property
+                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
+                                    TRUE);
+                            StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+                            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
+                                log.debug("Snaps :" + Joiner.on("\t").join(discoveredSnaps));
+                                if (null != discoveredSnaps && discoveredSnaps.isEmpty()) {
+                                    // replace with empty string set doesn't work, hence added explicit code to remove all
+                                    unManagedVolumeInformation.get(
+                                            SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
+                                } else {
+                                    // replace with new StringSet
+                                    unManagedVolumeInformation.get(
+                                            SupportedVolumeInformation.SNAPSHOTS.toString()).replace(discoveredSnaps);
+                                    log.info("Replaced snaps :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
+                                            SupportedVolumeInformation.SNAPSHOTS.toString())));
+                                }
                             } else {
-                                // replace with new StringSet
-                                unManagedVolumeInformation.get(
-                                        SupportedVolumeInformation.SNAPSHOTS.toString()).replace(discoveredSnaps);
-                                log.info("Replaced snaps :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
-                                        SupportedVolumeInformation.SNAPSHOTS.toString())));
+                                unManagedVolumeInformation.put(
+                                        SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
                             }
                         } else {
-                            unManagedVolumeInformation.put(
-                                    SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
+                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
+                                    FALSE);
                         }
                     } else {
                         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),

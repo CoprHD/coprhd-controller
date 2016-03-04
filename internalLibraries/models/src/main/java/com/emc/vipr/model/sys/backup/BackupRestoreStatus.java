@@ -7,7 +7,10 @@ package com.emc.vipr.model.sys.backup;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -21,14 +24,18 @@ public class BackupRestoreStatus {
     private static final String KEY_DOWNLOAD_SIZE = "downloadSize";
     private static final String KEY_STATUS = "status";
     private static final String KEY_NODE_COMPLETED= "nodeCompleted";
+    private static final String KEY_FILE_NAMES= "filenames";
+    private static final String FILE_NAME_SEPARATOR= ":";
     private static final String KEY_IS_GEO_ENV= "isGeo";
 
     private String backupName;
     private long backupSize = 0;
     private long downloadSize = 0;
     private Status status = Status.READY;
+    // private int filesToDownloadCount = 0;
     private int nodeCompleted = 0;
     private boolean isGeo = false;
+    private List<String> backupFileNames = new ArrayList();
 
     public BackupRestoreStatus() {
     }
@@ -51,12 +58,36 @@ public class BackupRestoreStatus {
         this.status = status;
     }
 
+    /*
+    public int getFilesToDownloadCount() {
+        return filesToDownloadCount;
+    }
+
+    public void setFilesDownloadedCount(int count) {
+        filesToDownloadCount = count;
+    }
+
+    public void decreaseFilesDownloaded() {
+        log.info("lbyx decrease count {} stack=", filesToDownloadCount, new Throwable());
+        filesToDownloadCount--;
+    }
+    */
+
     public int getNodeCompleted() {
         return nodeCompleted;
     }
 
-    public void resetNodeCompleted() {
-        this.nodeCompleted = 0;
+    public void increaseNodeCompleted() {
+        log.info("lbyu {} stack=", nodeCompleted, new Throwable());
+        nodeCompleted++;
+    }
+
+    public List<String> getBackupFileNames() {
+        return backupFileNames;
+    }
+
+    public void setBackupFileNames(List<String> backupFileNames) {
+        this.backupFileNames = backupFileNames;
     }
 
     @XmlElement (name = "is_geo")
@@ -68,9 +99,6 @@ public class BackupRestoreStatus {
         this.isGeo = isGeo;
     }
 
-    public void increaseNodeCompleted() {
-        nodeCompleted++;
-    }
 
     /**
      * The status of uploading backup set
@@ -152,8 +180,22 @@ public class BackupRestoreStatus {
         map.put(KEY_BACKUP_SIZE, Long.toString(backupSize));
         map.put(KEY_DOWNLOAD_SIZE, Long.toString(downloadSize));
         map.put(KEY_STATUS, status.name());
+        //map.put(KEY_NODE_COMPLETED, Integer.toString(filesToDownloadCount));
         map.put(KEY_NODE_COMPLETED, Integer.toString(nodeCompleted));
         map.put(KEY_IS_GEO_ENV, Boolean.toString(isGeo));
+
+        /*
+        StringBuilder builder = new StringBuilder();
+        for (String name : backupFileNames ) {
+            builder.append(name);
+            builder.append(FILE_NAME_SEPARATOR);
+        }
+
+        String names = builder.toString();
+        */
+        String names = String.join(FILE_NAME_SEPARATOR, backupFileNames);
+        log.info("lbya backup files={}", names);
+        map.put(KEY_FILE_NAMES, names);
 
         return map;
     }
@@ -180,7 +222,14 @@ public class BackupRestoreStatus {
                     status = Status.valueOf(value);
                     break;
                 case KEY_NODE_COMPLETED:
+                    //filesToDownloadCount = Integer.parseInt(value);
                     nodeCompleted = Integer.parseInt(value);
+                    break;
+                case KEY_FILE_NAMES:
+                    String[] names = value.split(FILE_NAME_SEPARATOR);
+
+                    backupFileNames = Arrays.asList(names);
+                    log.info("lby value={} filenames={}", value, backupFileNames);
                     break;
                 case KEY_IS_GEO_ENV:
                     isGeo = Boolean.valueOf(value);
@@ -198,8 +247,11 @@ public class BackupRestoreStatus {
           .append(getBackupSize())
           .append(", downloadSize:")
           .append(getDownoadSize())
-          .append(", nodeCompleted:")
-          .append(getNodeCompleted())
+          .append(", filesDownloaded:")
+          //.append(getFilesToDownloadCount())
+          .append(getBackupFileNames())
+          .append(" nodesCompleted:")
+          .append(nodeCompleted)
           .append(", isGeo:")
           .append(isGeo())
           .append(", status:")

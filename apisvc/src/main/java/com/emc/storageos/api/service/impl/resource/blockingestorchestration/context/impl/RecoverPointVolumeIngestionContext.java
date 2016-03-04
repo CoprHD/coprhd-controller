@@ -234,40 +234,65 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         _logger.info("persisting RecoverPoint backend for volume " + getUnmanagedVolume().forDisplay());
 
         // commit the basic IngestionRequestContext collections
-        _dbClient.createObject(getObjectsIngestedByExportProcessing());
-        _dbClient.createObject(getBlockObjectsToBeCreatedMap().values());
+        for (BlockObject bo : getObjectsIngestedByExportProcessing()) {
+            _logger.info("Creating BlockObject " + bo.forDisplay());
+            _dbClient.createObject(bo);
+        }
+        for (BlockObject bo : getBlockObjectsToBeCreatedMap().values()) {
+            _logger.info("Creating BlockObject " + bo.forDisplay());
+            _dbClient.createObject(bo);
+        }
 
         for (List<DataObject> dos : getDataObjectsToBeCreatedMap().values()) {
-            _dbClient.createObject(dos);
+            for (DataObject dob : dos) {
+                _logger.info("Creating DataObject " + dob.forDisplay());
+                _dbClient.createObject(dob);
+            }
         }
         for (List<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
-            _dbClient.updateObject(dos);
+            for (DataObject dob : dos) {
+                _logger.info("Updating DataObject " + dob.forDisplay());
+                _dbClient.updateObject(dob);
+            }
         }
-        _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
+
+        for (UnManagedVolume umv : getUnManagedVolumesToBeDeleted()) {
+            _logger.info("Deleting UnManagedVolume " + umv.forDisplay());
+            _dbClient.updateObject(umv);
+        }
 
         // now commit the RecoverPoint specific data
+        _logger.info("Updating RP Source Volumes: " + _managedSourceVolumesToUpdate);
         _dbClient.updateObject(_managedSourceVolumesToUpdate);
+        _logger.info("Updating RP Source UnManagedVolumes: " + _unmanagedSourceVolumesToUpdate);
         _dbClient.updateObject(_unmanagedSourceVolumesToUpdate);
+        _logger.info("Updating RP Target UnManagedVolumes: " + _unmanagedTargetVolumesToUpdate);
         _dbClient.updateObject(_unmanagedTargetVolumesToUpdate);
 
         // commit the ProtectionSet, if created, and remove the UnManagedProtectionSet
         if (null != _managedProtectionSet) {
+            _logger.info("Creating ProtectionSet " + _managedProtectionSet.forDisplay());
             _managedProtectionSet.getVolumes().add(_managedBlockObject.getId().toString());
             _dbClient.createObject(_managedProtectionSet);
 
             // the protection set was created, so delete the unmanaged one
+            _logger.info("Deleting UnManagedProtectionSet " + _unManagedProtectionSet.forDisplay());
             _dbClient.removeObject(_unManagedProtectionSet);
         }
 
         // commit the BlockConsistencyGroup, if created
         if (null != _managedBlockConsistencyGroup) {
+            _logger.info("Creating BlockConsistencyGroup " + _managedBlockConsistencyGroup.forDisplay());
             _dbClient.createObject(_managedBlockConsistencyGroup);
         }
 
+        ExportGroup exportGroup = getExportGroup();
         if (isExportGroupCreated()) {
-            _dbClient.createObject(getExportGroup());
+            _logger.info("Creating ExportGroup " + exportGroup.forDisplay());
+            _dbClient.createObject(exportGroup);
         } else {
-            _dbClient.updateObject(getExportGroup());
+            _logger.info("Updating ExportGroup " + exportGroup.forDisplay());
+            _dbClient.updateObject(exportGroup);
         }
 
         super.commit();

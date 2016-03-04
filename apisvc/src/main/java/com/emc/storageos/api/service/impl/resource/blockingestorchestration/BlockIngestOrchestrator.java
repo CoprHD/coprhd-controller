@@ -902,7 +902,7 @@ public abstract class BlockIngestOrchestrator {
                 fullyIngestedVolume = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient);
                 // If fully ingested, then setup the RP CG too.
                 if (fullyIngestedVolume) {
-                    VolumeIngestionUtil.setupRPCG(requestContext, umpset, updateObjects, _dbClient);
+                    VolumeIngestionUtil.setupRPCG(requestContext, umpset, currentUnmanagedVolume, updateObjects, _dbClient);
                 } else { // else mark the volume as internal. This will be marked visible when the RP CG is ingested
                     parent.addInternalFlags(INTERNAL_VOLUME_FLAGS);
                 }

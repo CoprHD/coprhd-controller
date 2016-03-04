@@ -1291,7 +1291,7 @@ public class VolumeIngestionUtil {
                             // need to check for several matching properties
                             URI storageControllerUri = cg.getStorageController();
                             URI virtualArrayUri = cg.getVirtualArray();
-                            if (null != storageControllerUri && null != virtualArrayUri) {
+                            if (!NullColumnValueGetter.isNullURI(storageControllerUri) && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                                 if (storageControllerUri.equals(storageSystem.getId()) &&
                                         virtualArrayUri.equals(varrayUri)) {
                                     _logger.info("Found a matching BlockConsistencyGroup {} "
@@ -3694,7 +3694,7 @@ public class VolumeIngestionUtil {
                     }
                     URI storageControllerUri = cg.getStorageController();
                     URI virtualArrayUri = cg.getVirtualArray();
-                    if (null == storageControllerUri && null == virtualArrayUri) {
+                    if (NullColumnValueGetter.isNullURI(storageControllerUri) && NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                         potentialUnclaimedCg = cg;
                     }
                 }
@@ -3762,7 +3762,7 @@ public class VolumeIngestionUtil {
                 URI storageControllerUri = cg.getStorageController();
                 URI virtualArrayUri = cg.getVirtualArray();
                 // need to check for several matching properties
-                if (null != storageControllerUri && null != virtualArrayUri) {
+                if (!NullColumnValueGetter.isNullURI(storageControllerUri) && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                     if (storageControllerUri.equals(storageSystem.getId()) &&
                             virtualArrayUri.equals(varrayUri)) {
                         _logger.info("Found a matching BlockConsistencyGroup {} "
@@ -3924,11 +3924,12 @@ public class VolumeIngestionUtil {
      *
      * @param requestContext current unManagedVolume Ingestion context.
      * @param umpset Unmanaged protection set for which a protection set has to be created
+     * @param unManagedVolume the current iterating UnManagedVolume
      * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, List<DataObject> updatedObjects,
-            DbClient dbClient) {
+    public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, UnManagedVolume unManagedVolume,
+            List<DataObject> updatedObjects, DbClient dbClient) {
         _logger.info("Ingesting all volumes associated with RP consistency group");
 
         ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(requestContext, umpset, dbClient);
@@ -3967,16 +3968,18 @@ public class VolumeIngestionUtil {
 
         RecoverPointVolumeIngestionContext rpContext = null;
 
-        // the RP volume ingestion context will take care of persisting the
+        // the RP volume ingestion context will take care of persisting the 
         // new objects and deleting the old UnManagedProtectionSet
         if (requestContext instanceof RecoverPointVolumeIngestionContext) {
             rpContext = (RecoverPointVolumeIngestionContext) requestContext;
-        } else if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
-            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext();
+        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
         }
 
         if (rpContext != null) {
+            _logger.info("setting managed BlockConsistencyGroup on RecoverPoint context {} to {}", rpContext, cg);
             rpContext.setManagedBlockConsistencyGroup(cg);
+            _logger.info("setting managed ProtectionSet on RecoverPoint context {} to {}", rpContext, pset);
             rpContext.setManagedProtectionSet(pset);
         }
     }

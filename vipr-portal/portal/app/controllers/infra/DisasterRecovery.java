@@ -73,7 +73,8 @@ public class DisasterRecovery extends ViprResourceController {
     public static void list() {
         DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
         boolean showPauseButton = false;
-        render(dataTable, showPauseButton);
+        String localSiteUuid = DisasterRecoveryUtils.getLocalUuid();
+        render(dataTable, showPauseButton, localSiteUuid);
     }
 
     @FlashException("list")

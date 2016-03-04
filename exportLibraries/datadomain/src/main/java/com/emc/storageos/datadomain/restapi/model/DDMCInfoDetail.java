@@ -25,8 +25,6 @@ public class DDMCInfoDetail {
 
     private String uptime;
 
-    private DDRestLinkRep link;
-
     public String getName() {
         return name;
     }
@@ -67,14 +65,7 @@ public class DDMCInfoDetail {
         this.uptime = uptime;
     }
 
-    public DDRestLinkRep getLink() {
-        return link;
-    }
-
-    public void setLink(DDRestLinkRep link) {
-        this.link = link;
-    }
-
+    @Override
     public String toString() {
         return new Gson().toJson(this).toString();
     }

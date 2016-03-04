@@ -2,7 +2,7 @@
 	<table class='table table-condensed table-striped'>
 		<thead>
 			<tr>
-				<th style="width: 12px;"></th>
+				<th style="width: 24px;"></th>
 				<th>&{'resources.filesystem.quota.name'}</th>
 				<th>&{'resources.filesystem.quota.security'}</th>
 				<th>&{'resources.filesystem.quota.lock'}</th>
@@ -28,7 +28,7 @@
 		<tbody>
 			#{list items:quotas, as:'quota'}
 			<tr class="quotainfo">
-				<td class="expandable" style="width: 12px;">
+				<td class="expandable" style="width: 24px;">
 				#{if !(quota.notificationLimit == 0) || !(quota.softLimit == 0) || !(quota.softGrace == 0)}
 				<span class="collapsed" style="cursor: pointer;">#{icon 'chevron-right'/}</span> 
 				<span class="expanded" style="display: none;cursor: pointer;">#{icon 'chevron-down'/}</span>

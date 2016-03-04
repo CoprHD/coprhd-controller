@@ -445,17 +445,35 @@ public class BackupService {
      */
     @POST
     @Path("internal/pull")
-    public Response downloadBackupFile(String backupName) {
-        log.info("To download backupName={}", backupName);
+    public Response downloadBackupFile(@QueryParam("backupname") String backupName, @QueryParam("endpoint") URI endpoint) {
+        log.info("lbyf To download files of backupname={} endpoint={}", backupName, endpoint);
 
-        downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps);
-
+        downloadTask = new DownloadExecutor(backupName, backupOps, endpoint);
         Thread downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
-        downloadThread.setName("backupDownloadThread");
         downloadThread.start();
 
         return Response.status(202).build();
+    }
+
+    @GET
+    @Path("internal/pull-file/")
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
+    public Response getBackupFile(@QueryParam("backupname") String backupName, @QueryParam("filename") String filename) {
+        log.info("lbyf get backup file {} from {}", filename, backupName);
+
+        File downloadDir = backupOps.getDownloadDirectory(backupName);
+        File backupFile = new File(downloadDir, filename);
+
+        log.info("lbyf file={}", backupFile.getAbsolutePath());
+        final InputStream in;
+        try {
+            in = new FileInputStream(backupFile);
+        } catch (IOException e) {
+            throw BackupException.fatals.backupFileNotFound(filename);
+        }
+
+        return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
     }
 
     /**
@@ -469,7 +487,7 @@ public class BackupService {
     @Path("pull/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response pullBackup(@QueryParam("file") String backupName ) {
-        log.info("To pull the backup file {}", backupName);
+        log.info("lbye To pull the backup file {}", backupName);
 
         checkExternalServer();
 
@@ -481,12 +499,18 @@ public class BackupService {
             }
             log.info("The backup {} is downloading, no need to trigger again", backupName);
         }else {
-            setBackupFileSize(backupName);
-            notifyOtherNodes(backupName);
+            initDownload(backupName);
+
+            downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps);
+
+            Thread downloadThread = new Thread(downloadTask);
+            downloadThread.setDaemon(true);
+            downloadThread.start();
 
             auditBackup(OperationTypeEnum.PULL_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, backupName);
             log.info("done");
         }
+
         return Response.status(202).build();
     }
 
@@ -497,8 +521,8 @@ public class BackupService {
         }
     }
 
-    private void setBackupFileSize(String backupName) {
-        log.info("To set backup file size");
+    private void initDownload(String backupName) {
+        log.info("init download");
         SchedulerConfig cfg = backupScheduler.getCfg();
         long size = 0;
         try {
@@ -509,30 +533,14 @@ public class BackupService {
             throw new RuntimeException(e);
         }
 
-        backupOps.setBackupFileSize(backupName, size);
-    }
+        BackupRestoreStatus s = new BackupRestoreStatus();
+        s.setBackupName(backupName);
+        s.setBackupSize(size);
 
-    private void notifyOtherNodes(String backupName) {
-        URI pushUri = SysClientFactory.URI_NODE_BACKUPS_PULL;
+        log.info("lbya init backup/restore status:",s);
 
-        URI endpoint = null;
-        try {
-            Map<String, URI > nodes = backupOps.getNodesInfo();
-            log.info("nodes to notify {}", nodes);
-            for (URI addr : nodes.values()) {
-                endpoint = addr;
-                log.info("Notify {}", addr);
-                SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
-                sysClient.post(pushUri, null, backupName);
-            }
-        }catch (Exception e) {
-            String errMsg = String.format("Failed to send %s to %s", pushUri, endpoint);
-            log.error(errMsg);
-            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
-            s.setMessage(errMsg);
-            backupOps.setRestoreStatus(backupName, s, false);
-            throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
-        }
+        s.setStatus(BackupRestoreStatus.Status.DOWNLOADING);
+        backupOps.persistBackupRestoreStatus(s, false, true);
     }
 
     private void redirectRestoreRequest(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
@@ -678,7 +686,7 @@ public class BackupService {
         log.info("Query restore status backupName={} isLocal={}", backupName, isLocal);
         BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, isLocal);
 
-        log.info("done");
+        log.info("lbyb backup/restore status:{}", status);
         return status;
     }
 

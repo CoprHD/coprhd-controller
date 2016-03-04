@@ -46,6 +46,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             .getLogger(RepairJobRunner.class);
     private final SimpleDateFormat format = new SimpleDateFormat(
             "yyyy-MM-dd HH:mm:ss,SSS");
+    private final int minRepairMinute = 5;
 
     private final Condition condition = new SimpleCondition();
 
@@ -257,7 +258,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
         }
 
         long repairMillis = System.currentTimeMillis() - _startTimeInMillis;
-        _log.info("Db repair consumes {} ",repairMillis > 5 * TimeUtils.MINUTES ?
+        _log.info("Db repair consumes {} ",repairMillis > minRepairMinute * TimeUtils.MINUTES ?
                 repairMillis / TimeUtils.MINUTES + " minutes" : repairMillis / TimeUtils.SECONDS + " seconds");
         return _success;
     }

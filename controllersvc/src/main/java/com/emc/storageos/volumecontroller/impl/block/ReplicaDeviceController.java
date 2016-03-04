@@ -70,6 +70,7 @@ import com.google.common.collect.Lists;
  */
 public class ReplicaDeviceController implements Controller, BlockOrchestrationInterface {
     private static final Logger log = LoggerFactory.getLogger(ReplicaDeviceController.class);
+    private static final String MARK_SNAP_SESSIONS_INACTIVE = "markSnapSessionsInactive";
     private DbClient _dbClient;
     private BlockDeviceController _blockDeviceController;
 
@@ -360,7 +361,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
 	public BlockSnapshotSession prepareSnapshotSessionFromSource(
-			BlockObject sourceObj, String snapSessionLabel, String instanceLabel) {
+            BlockObject sourceObj, BlockSnapshotSession existingSession) {
 		BlockSnapshotSession snapSession = new BlockSnapshotSession();
         URI sourceProject = ControllerUtils
 				.querySnapshotSessionSourceProject(sourceObj, _dbClient);
@@ -373,9 +374,14 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 		snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj
 				.getLabel()));
 
+        // session label should be same as group session's label
+        String sessionLabel = existingSession.getSessionLabel();
+        // append source object name to session label to uniquely identify this session from RG session
+        String instanceLabel = String.format("%s-%s", existingSession.getLabel(), sourceObj.getLabel());
+
 		snapSession.setLabel(instanceLabel);
 		snapSession.setSessionLabel(ResourceOnlyNameGenerator
-				.removeSpecialCharsForName(snapSessionLabel,
+                .removeSpecialCharsForName(sessionLabel,
 						SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
 
         _dbClient.createObject(snapSession);
@@ -386,14 +392,18 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             URI systemURI, List<Volume> volumes, String repGroupName, BlockSnapshotSession existingSession) {
         // create session for each volume (session's parent is volume. i.e as a non-CG session)
         for (Volume volume : volumes) {
-            // session label should be same as group session's label
-            // append source object name to session label to uniquely identify this session from RG session
-            String instanceLabel = String.format("%s-%s", existingSession.getLabel(), volume.getLabel());
-            String sessionLabel = existingSession.getSessionLabel();
-            BlockSnapshotSession session = prepareSnapshotSessionFromSource(volume, sessionLabel, instanceLabel);
+            // delete the new session object at the end from DB
+            BlockSnapshotSession session = prepareSnapshotSessionFromSource(volume, existingSession);
             log.info("adding snapshot session create step for volume {}", volume.getLabel());
             waitFor = _blockDeviceController.
-                    addStepToCreateSnapshotSession(workflow, systemURI, session, repGroupName, waitFor);
+                    addStepToCreateSnapshotSession(workflow, systemURI, session.getId(), repGroupName, waitFor);
+            
+            // add step to delete the newly created session object from DB
+            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
+                    String.format("marking snap session %s inactive", session.getLabel()), waitFor, systemURI,
+                    _blockDeviceController.getDeviceType(systemURI), this.getClass(),
+                    markSnapSessionsInactiveMethod(Arrays.asList(session.getId())),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
         }
 
         return waitFor;
@@ -410,13 +420,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 _dbClient);
 
         for (Volume volume : volumes) {
-            // session label should be same as group session's label
-            // append source object name to session label to uniquely identify this session from RG session
-            String instanceLabel = String.format("%s-%s", existingSession.getLabel(), volume.getLabel());
-            String sessionLabel = existingSession.getSessionLabel();
-            BlockSnapshotSession session = prepareSnapshotSessionFromSource(volume, sessionLabel, instanceLabel);
+            // delete the new session object at the end from DB
+            BlockSnapshotSession session = prepareSnapshotSessionFromSource(volume, existingSession);
             log.info("adding snapshot session create step for volume {}", volume.getLabel());
-            waitFor = _blockDeviceController.addStepToCreateSnapshotSession(workflow, systemURI, session,
+            waitFor = _blockDeviceController.addStepToCreateSnapshotSession(workflow, systemURI, session.getId(),
                     existingSession.getReplicationGroupInstance(), waitFor);
 
             // Add step to remove volume from its Replication Group before linking its target
@@ -444,6 +451,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 waitFor = _blockDeviceController.addStepToLinkBlockSnapshotSessionTarget(workflow, systemURI, session,
                         blockSnapshot.getId(), copyMode, waitFor);
             }
+            // add step to delete the newly created session object from DB
+            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
+                    String.format("marking snap session %s inactive", session.getLabel()), waitFor, systemURI,
+                    _blockDeviceController.getDeviceType(systemURI), this.getClass(),
+                    markSnapSessionsInactiveMethod(Arrays.asList(session.getId())),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
+
             // Add step to add back the source volume to its group which was removed before linking target
             waitFor = _blockDeviceController.addStepToAddToConsistencyGroup(workflow, systemURI, cgURI,
                     volume.getReplicationGroupInstance(), Arrays.asList(volume.getId()), waitFor);
@@ -459,6 +473,32 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         return waitFor;
+    }
+
+    public Workflow.Method markSnapSessionsInactiveMethod(List<URI> snapSessions) {
+        return new Workflow.Method(MARK_SNAP_SESSIONS_INACTIVE, snapSessions);
+    }
+
+    /**
+     * A workflow step that marks volume's snap sessions inactive after
+     * the completion of adding the new volumes to the group session step.
+     *
+     * @param snapSessions -- List<URI> of snapSessions
+     * @param stepId -- Workflow Step Id.
+     */
+    public void markSnapSessionsInactive(List<URI> snapSessions, String stepId) {
+        try {
+            for (URI uri : snapSessions) {
+                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, uri);
+                if (snapSession != null && !snapSession.getInactive()) {
+                    log.info("Marking snap session in-active: {}", snapSession.getLabel());
+                    snapSession.setInactive(true);
+                    _dbClient.updateObject(snapSession);
+                }
+            }
+        } finally {
+            WorkflowStepCompleter.stepSucceded(stepId);
+        }
     }
 
     private String addSnapshotSessionsToReplicationGroupStep(Workflow workflow, String waitFor,

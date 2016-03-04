@@ -2957,6 +2957,7 @@ recoverpoint_ingest_test()
     # Create the consistency group + volume
     run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_VOL1_CG}
     run volume create ${RECOVERPOINT_INGEST_VOL1_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_VOL1_CG}
+    exit;
 
     # Delete the volume and CG
     run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
@@ -3215,6 +3216,10 @@ recoverpoint_ingest_export_test()
 
     SRCUID=`volume list ${PROJECT} | grep ${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} | awk '{print $7}'`
 
+    # Backward compatibility mode: need to be able to create single-volume array-based snapshot of RP targets for SRA
+    run_noundo blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_TGT_VARRAY} ${blocksnap}-${RECOVERPOINT_TGT_VARRAY}
+    run_noundo blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_TGT_VARRAY}/${blocksnap}-${RECOVERPOINT_TGT_VARRAY}-${RECOVERPOINT_TGT_VARRAY}
+
     # TBD: Add volume group snapshot creation, snap, delete support here.
     #run volumegroup create source-vgroup copy1 COPY
     #run volumegroup add-volumes source-vgroup ${SRCUID}
@@ -3226,8 +3231,7 @@ recoverpoint_ingest_export_test()
     # When we create these snapshots, the name will be augemented with the target varray, therefore we can't unroll it.
     run_noundo blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} ${rpsnap} --type rp
     run_noundo blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${rpsnap}-${RECOVERPOINT_TGT_VARRAY}
-    #run_noundo blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_TGT_VARRAY} ${blocksnap}-${RECOVERPOINT_TGT_VARRAY}
-    #run_noundo blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_TGT_VARRAY}/${blocksnap}-${RECOVERPOINT_TGT_VARRAY}-${RECOVERPOINT_TGT_VARRAY}
+
 
     # Inventory-only remove of RP volume
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --vipronly

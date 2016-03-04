@@ -258,7 +258,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
 
         for (UnManagedVolume umv : getUnManagedVolumesToBeDeleted()) {
             _logger.info("Deleting UnManagedVolume " + umv.forDisplay());
-            _dbClient.createObject(umv);
+            _dbClient.updateObject(umv);
         }
 
         // now commit the RecoverPoint specific data

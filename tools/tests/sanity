@@ -3218,20 +3218,18 @@ recoverpoint_ingest_export_test()
 
     # Backward compatibility mode: need to be able to create single-volume array-based snapshot of RP targets for SRA
     run_noundo blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_TGT_VARRAY} ${blocksnap}-${RECOVERPOINT_TGT_VARRAY}
-    run_noundo blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_TGT_VARRAY}/${blocksnap}-${RECOVERPOINT_TGT_VARRAY}-${RECOVERPOINT_TGT_VARRAY}
-
-    # TBD: Add volume group snapshot creation, snap, delete support here.
-    #run volumegroup create source-vgroup copy1 COPY
-    #run volumegroup add-volumes source-vgroup ${SRCUID}
-
-    #run blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} ${blocksnap}
-    #run blocksnapshot activate ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
-    #run blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
+    run_noundo blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-target-${RECOVERPOINT_TGT_VARRAY}/${blocksnap}-${RECOVERPOINT_TGT_VARRAY}
 
     # When we create these snapshots, the name will be augemented with the target varray, therefore we can't unroll it.
     run_noundo blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} ${rpsnap} --type rp
     run_noundo blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${rpsnap}-${RECOVERPOINT_TGT_VARRAY}
 
+    # TBD: Add volume group snapshot creation, snap, delete support here.
+    #run volumegroup create source-vgroup copy1 COPY
+    #run volumegroup add-volumes source-vgroup ${SRCUID}
+    #run blocksnapshot create ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} ${blocksnap}
+    #run blocksnapshot activate ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
+    #run blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
 
     # Inventory-only remove of RP volume
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --vipronly

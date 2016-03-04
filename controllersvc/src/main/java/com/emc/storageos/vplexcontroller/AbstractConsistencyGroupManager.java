@@ -208,7 +208,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                         // group. Note that we assume the consistency group does not
                         // contain any volumes. Currently, the API service does not allow
                         // this, and so this should never be called otherwise.
-                        addStepForRemoveVPlexCG(workflow, stepId, waitFor, storageSystem,
+                        waitFor = addStepForRemoveVPlexCG(workflow, stepId, waitFor, storageSystem,
                                 cgURI, vplexCg.getKey(), vplexCg.getValue(), Boolean.TRUE, deletCGRollbackMethod);
                     }
                 }
@@ -308,7 +308,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
             // have been deleted.
             if ((setInactive) && (!BlockConsistencyGroupUtils.referencesVPlexCGs(cg, dbClient))) {
                 dbClient.markForDeletion(cg);
-                log.info("Marked consistency group for deletion");
+                log.info(String.format("Marking consistency group %s for deletion", cg.getId()));
             }
 
             // Update step status to success.
@@ -521,17 +521,18 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
      * @param setInactive whether or not to set the BlockConsistencyGroup to inactive.
      * @param rollbackMethod the rollback method
      */
-    public void addStepForRemoveVPlexCG(Workflow workflow, String stepId,
+    public String addStepForRemoveVPlexCG(Workflow workflow, String stepId,
             String waitFor, StorageSystem vplexSystem, URI cgURI, String cgName,
             String clusterName, Boolean setInactive, Workflow.Method rollbackMethod) {
         URI vplexSystemURI = vplexSystem.getId();
         Workflow.Method vplexExecuteMethod = new Workflow.Method(
                 DELETE_CG_METHOD_NAME, vplexSystemURI, cgURI, cgName, clusterName, setInactive);
-        workflow.createStep(DELETE_CG_STEP, String.format(
+        String step = workflow.createStep(DELETE_CG_STEP, String.format(
                 "Deleting Consistency Group %s on VPLEX system %s", cgName, vplexSystemURI.toString()),
                 waitFor, vplexSystemURI, vplexSystem.getSystemType(), getClass(),
                 vplexExecuteMethod, rollbackMethod, stepId);
         log.info("Created step for delete CG {} on VPLEX {}", clusterName + ":" + cgName, vplexSystemURI);
+        return step;
     }
 
     /**

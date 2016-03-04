@@ -1000,9 +1000,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      */
     private void validateBackendVolumeVpool(UnManagedVolume backendVolume, VirtualPool vpool) {
         URI storagePoolUri = backendVolume.getStoragePoolUri();
-        if (!vpool.getMatchedStoragePools().contains(storagePoolUri.toString())) {
-            String reason = "vpool " + vpool.getLabel()
-                    + " does not match the backend volume's storage pool URI "
+        if (vpool.getMatchedStoragePools() == null || 
+                !vpool.getMatchedStoragePools().contains(storagePoolUri.toString())) {
+            String reason = "virtual pool " + vpool.getLabel()
+                    + " does not contain the backend volume's storage pool URI "
                     + storagePoolUri;
             _logger.error(reason);
             throw IngestionException.exceptions.validationException(reason);

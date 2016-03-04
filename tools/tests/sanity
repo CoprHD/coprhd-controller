@@ -3048,6 +3048,9 @@ recoverpoint_ingest_test()
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
     fi
 
+    # Verify the CG got created; fail script if this fails.
+    run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
+
     # now perform failover tests
     recoverpoint_failover_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}"
     # Add a volume to the protection
@@ -3058,6 +3061,7 @@ recoverpoint_ingest_test()
 
     # Inventory-only remove of RP volume 
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly
+    run blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
 
     # Run discovery
     recoverpoint_ingest_discovery
@@ -3098,8 +3102,12 @@ recoverpoint_ingest_test()
 	recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
     fi
 
+    # Verify the CG got created; fail script if this fails.
+    run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
+
     # Inventory-only remove of RP volume
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly
+    run blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
 }
 
 recoverpoint_ingest_export_test()
@@ -3195,6 +3203,9 @@ recoverpoint_ingest_export_test()
 	RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
     fi
 
+    # Verify the CG got created; fail script if this fails.
+    run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
+
     # Snapshot test
     rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
     blocksnap=blocksnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
@@ -3220,6 +3231,7 @@ recoverpoint_ingest_export_test()
 
     # Inventory-only remove of RP volume
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --vipronly
+    run blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
 }
 
 recoverpoint_failover_test()

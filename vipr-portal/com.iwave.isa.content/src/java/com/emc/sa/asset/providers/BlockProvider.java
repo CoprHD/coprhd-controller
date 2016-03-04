@@ -1123,19 +1123,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
             VolumeRestRep volume = client.blockVolumes().get(volumeId);
             if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
-                volume = client.blockVolumes().get(volume.getHaVolumes().get(0).getId());
+                volume = getVPlexSourceVolume(client, volume);
             }
-            if (isTarget) {
-                if (volume.getVirtualArray().getId().equals(virtualArray)
-                        && BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
-                    subGroups.add(volume.getReplicationGroupInstance());
-                }
-            } else {
-                if (volume.getProtection() == null || volume.getProtection().getRpRep() == null
-                        || volume.getProtection().getRpRep().getPersonality() == null
-                        || volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
-                    if (!BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
+            if (volume != null && volume.getReplicationGroupInstance() != null) {
+                if (isTarget) {
+                    if (volume.getVirtualArray().getId().equals(virtualArray)
+                            && BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
                         subGroups.add(volume.getReplicationGroupInstance());
+                    }
+                } else {
+                    if (volume.getProtection() == null || volume.getProtection().getRpRep() == null
+                            || volume.getProtection().getRpRep().getPersonality() == null
+                            || volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
+                        if (!BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
+                            subGroups.add(volume.getReplicationGroupInstance());
+                        }
                     }
                 }
             }
@@ -3005,6 +3007,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
         return volumes;
+    }
+
+    private static VolumeRestRep getVPlexSourceVolume(ViPRCoreClient client, VolumeRestRep vplexVolume) {
+        if (vplexVolume.getHaVolumes() != null && !vplexVolume.getHaVolumes().isEmpty()) {
+            URI vplexVolumeVarray = vplexVolume.getVirtualArray().getId();
+            for (RelatedResourceRep haVolume : vplexVolume.getHaVolumes()) {
+                VolumeRestRep volume = client.blockVolumes().get(haVolume.getId());
+                if (volume != null) {
+                    if (volume.getVirtualArray().getId().equals(vplexVolumeVarray)) {
+                        return volume;
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     protected List<URI> getHostIds(ViPRCoreClient client, URI hostOrClusterId,

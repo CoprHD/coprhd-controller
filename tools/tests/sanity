@@ -3061,7 +3061,7 @@ recoverpoint_ingest_test()
 
     # Inventory-only remove of RP volume 
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly
-    run blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
+    run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
 
     # Run discovery
     recoverpoint_ingest_discovery
@@ -3107,7 +3107,7 @@ recoverpoint_ingest_test()
 
     # Inventory-only remove of RP volume
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly
-    run blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
+    run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
 }
 
 recoverpoint_ingest_export_test()
@@ -3232,7 +3232,7 @@ recoverpoint_ingest_export_test()
 
     # Inventory-only remove of RP volume
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --vipronly
-    run blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
+    run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
 }
 
 recoverpoint_failover_test()

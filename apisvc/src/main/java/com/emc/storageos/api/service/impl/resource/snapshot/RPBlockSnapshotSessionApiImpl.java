@@ -64,7 +64,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         if (URIUtil.isType(requestedSourceURI, Volume.class)) {
             Volume sourceVolume = (Volume) requestedSourceObj;
             boolean protectionBased = RPHelper.isProtectionBasedSnapshot(sourceVolume,
-                    BlockSnapshot.TechnologyType.NATIVE.name());
+                    BlockSnapshot.TechnologyType.NATIVE.name(), _dbClient);
             if (protectionBased) {
                 throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
             }

@@ -439,7 +439,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                     if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
 
-                        sPort = getIsilonStoragePort(port, nasUri, _dbClient, neighborhood.getId());
+                        sPort = getIsilonStoragePort(port, neighborhood.getId());
 
                     } else {
                         sPort = compareAndSelectPortURIForUMFS(system, port,
@@ -807,42 +807,14 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @return StoragePort
      */
 
-    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, DbClient dbClient, URI virtualArray) {
-        StoragePort sp = null;
-        NASServer nasServer = null;
-
-        if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
-            nasServer = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
-        }
-        else {
-            nasServer = dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri));
-        }
+    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, URI virtualArray) {
 
         List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
-        StringSet virtualArrayPortsSet = new StringSet();
-
-        StringSet storagePorts = nasServer.getStoragePorts();
-
-        for (URI tempVarrayPort : virtualArrayPorts) {
-            virtualArrayPortsSet.add(tempVarrayPort.toString());
+        
+        if(virtualArrayPorts.contains(umfsStoragePort.getId())){
+            return umfsStoragePort;
         }
-
-        StringSet commonPorts = null;
-
-        if (virtualArrayPorts != null && storagePorts != null) {
-            commonPorts = new StringSet(storagePorts);
-            commonPorts.retainAll(virtualArrayPortsSet);
-        }
-
-        if (commonPorts.contains(umfsStoragePort.getId())) {
-            sp = umfsStoragePort;
-        } else {
-            List<String> tempList = new ArrayList<String>(commonPorts);
-            Collections.shuffle(tempList);
-            sp = dbClient.queryObject(StoragePort.class,
-                    URI.create(tempList.get(0)));
-        }
-        return sp;
+        return null;
     }
 
     @Override

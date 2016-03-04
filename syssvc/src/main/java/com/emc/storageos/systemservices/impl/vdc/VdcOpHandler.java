@@ -323,7 +323,7 @@ public abstract class VdcOpHandler {
                 log.info("Standby site - waiting for completion of db removal from active site");
                 Site localSite = drUtil.getLocalSite();
                 if (localSite.getState().equals(SiteState.STANDBY_REMOVING)) {
-                    log.info("Current standby site is removed from DR. You can power it on and promote it as acitve later");
+                    log.info("Current standby site is removed from DR. You can power it on and promote it as active later");
                     // cleanup site error 
                     SiteError siteError = coordinator.getCoordinatorClient().getTargetInfo(localSite.getUuid(), SiteError.class);
                     if (siteError != null) {
@@ -332,9 +332,9 @@ public abstract class VdcOpHandler {
                     }
                     return;
                 } else {
-                    log.info("Waiting for completion of site removal from acitve site");
+                    log.info("Waiting for completion of site removal from active site");
                     while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
-                        log.info("Waiting for completion of site removal from acitve site");
+                        log.info("Waiting for completion of site removal from active site");
                         retrySleep();
                     }
                 }
@@ -403,7 +403,7 @@ public abstract class VdcOpHandler {
         }
         
         /**
-         * Update the strategy options and remove the paused site from gossip ring on the acitve site.
+         * Update the strategy options and remove the paused site from gossip ring on the active site.
          * This should be done after the firewall has been updated to block the paused site so that it's not affected.
          */
         private void checkAndPauseOnActive() {
@@ -668,7 +668,7 @@ public abstract class VdcOpHandler {
             
             // Update site state
             if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
-                log.info("This is switchover active site (old acitve)");
+                log.info("This is switchover active site (old active)");
 
                 coordinator.stopCoordinatorSvcMonitor();
                 
@@ -678,9 +678,9 @@ public abstract class VdcOpHandler {
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, site.getNodeCount());
                 Site newActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID());
+                drUtil.recordDrOperationStatus(newActiveSite.getUuid(), SiteState.STANDBY_SWITCHING_OVER);
                 updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER,
                         Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, site.getNodeCount());
-                drUtil.recordDrOperationStatus(newActiveSite);
                 waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
@@ -901,7 +901,7 @@ public abstract class VdcOpHandler {
                 // double check site state
                 oldActiveSite = getOldActiveSiteForFailover();
                 if (oldActiveSite == null) {
-                    log.info("Old acitve site has been remove by other node, no action needed.");
+                    log.info("Old active site has been remove by other node, no action needed.");
                     return;
                 }
 
@@ -911,7 +911,7 @@ public abstract class VdcOpHandler {
                 postHandlerFactory.initializeAllHandlers();
                 drUtil.removeSite(oldActiveSite);
             } catch (Exception e) {
-                log.error("Failed to remove old acitve site in failover, {}", e);
+                log.error("Failed to remove old active site in failover, {}", e);
                 throw e;
             } finally {
                 if (lock != null) {
@@ -1242,7 +1242,7 @@ public abstract class VdcOpHandler {
                 log.warn("Only Part of nodes entered within {} seconds at path {}", timeout, barrierPath);
                 // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
                 barrier.leave(timeout, TimeUnit.SECONDS); 
-                throw new Exception("Only Part of nodes entered within timeout");
+                throw new IllegalStateException("Only Part of nodes entered within timeout");
             }
         }
 

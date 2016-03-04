@@ -5,7 +5,9 @@
 package com.emc.storageos.api.mapper;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -17,6 +19,19 @@ public class SiteMapper {
         }
         SiteRestRep to = new SiteRestRep();
         map(from, to);
+        return to;
+    }
+
+    public SiteRestRep mapWithNetwork(Site from, DrUtil drUtil) {
+        if (from == null) {
+            return null;
+        }
+        SiteRestRep to = new SiteRestRep();
+        map(from, to);
+        NetworkHealth networkHealth = drUtil.getSiteNetworkState(from.getUuid()).getNetworkHealth();
+        if ( networkHealth != null ) {
+            to.setNetworkHealth(networkHealth.toString());
+        }
         return to;
     }
     
@@ -32,9 +47,6 @@ public class SiteMapper {
         to.setDescription(from.getDescription());
         to.setState(from.getState().toString());
         to.setCreateTime(from.getCreationTime());
-        if (from.getNetworkHealth() != null) {
-            to.setNetworkHealth(from.getNetworkHealth().toString());
-        }
     }
 
     public void map(Site from, SiteParam to) {

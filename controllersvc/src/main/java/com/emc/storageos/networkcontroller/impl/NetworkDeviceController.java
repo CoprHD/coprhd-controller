@@ -953,8 +953,10 @@ public class NetworkDeviceController implements NetworkController {
         listExportGroupURI.add(exportGroupURI);             
         try {    	
         	Iterator<ExportGroup> exportGroupIterator = _dbClient.queryIterativeObjects(ExportGroup.class, listExportGroupURI);
-        	exportGroup = exportGroupIterator.next();    	
-            _log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
+        	if (exportGroupIterator.hasNext()){
+        		exportGroup = exportGroupIterator.next(); 
+        	}       	   	            
+        	_log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
                     exportGroup.getLabel(), exportGroup.getId()));
             if (exportMaskURIs == null && exportGroup.getExportMasks() != null) {
                 // If the ExportMasks aren't specified, do all in the ExportGroup.

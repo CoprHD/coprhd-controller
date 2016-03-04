@@ -63,7 +63,7 @@
 						<label for="Password of ViPR"><h4>Enter the password of ViPR</h4></label>
 					</div>
 					<div class="col-md-7">
-						<input type="text" class="form-control" id="ViPR_pass">
+						<input type="password" class="form-control" id="ViPR_pass">
 					</div>
 						
 				</div>
@@ -75,7 +75,7 @@
 			
 		</form>	
 		<div class="next-button">
-			<button type="button" class="btn btn-primary btn-lg" id="VDCnext" data-toggle="modal" data-target="#Infrastructure" >NEXT</button>
+			<button type="button" class="btn btn-primary btn-lg" id="VDCnext" data-toggle="modal" data-target="#Infrastructure" onclick="loadData()"  >NEXT</button>
 		</div>	
 		
 	</div>
@@ -108,11 +108,8 @@
 								</div>
 								<div class="col-md-7">
 									<select class="form-control hosts" id="HostsLists">
-											<option> Host1 </option>
-											<option> Host2 </option>
-											<option> Host3 </option>
-											<option> Host5 </option>
-											<option> Hyper_v_server2012R2</option>									
+											
+																				
 									</select>
 								</div>
 							</div>				
@@ -125,11 +122,6 @@
 								</div>
 								<div class="col-md-7">
 									<select class="form-control vols" id="source_vol">
-											<option> volume1 </option>
-											<option> volume2 </option>
-											<option> volume3 </option>
-											<option> volume5 </option>
-											<option> volume6</option>										
 									</select>
 								</div>
 						
@@ -137,7 +129,7 @@
 							<div class="form-group col-md-6">
 					
 								<div class="col-md-5">
-									<label for="Target Array"><h4>Select the target Array</h4></label>
+									<label for="Target Array"><h4>Select the target Array(vPool)</h4></label>
 								</div>
 								<div class="col-md-7">
 									<select class="form-control tar_vols" id="targetarray">
@@ -153,7 +145,7 @@
 						
 						</div>
 						<div class="btn-save" >
-							<button type="button" class="btn btn-primary btn-lg" onclick="Migrate()"> Migrate </button>
+							<button type="button" class="btn btn-primary btn-lg" onclick="Migrate()" > Migrate </button>
 						</div>
 			
 					</form>	
@@ -199,15 +191,30 @@
 			</div>			
 		</div>
 	</div>
-	
+
 	<script src="./bootstrap/js/jquery.js"></script>
 	<script src="./bootstrap/js/jquery.slimscroll.min.js"></script>
 	<!-- Twitter Bootstrap -->
 	<script src="./bootstrap/js/bootstrap.min.js"></script>
-
-
-
-
-
+	
+	 <script type="text/javascript" src="./bootstrap/js/jquery.js"></script>
+ <!--  	<script type="text/javascript">
+    	$(document).ready(function(){
+        	$("#VDCnext").click(function(){
+        		$.ajax({
+           		 	type: 'GET',
+           			url: "http://lglw8230.lss.emc.com:9090/myapp/powermigrate/hosts",
+            		success:function(data){
+             		alert(data);
+            		}
+       		 	});
+    			return false;
+    		});
+		});
+	</script> -->
+	
+	
+	
+	
 </body>
 </html>

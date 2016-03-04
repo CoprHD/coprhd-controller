@@ -1366,6 +1366,29 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     break;
                 }
             }
+                       
+            // XtremIO target is added to a replication set, it must be exactly the same size as the
+            // source volume. It cannot be larger or smaller.
+            // This is a special case for change vpool to ensure this is true.
+            if (storageSystemsMatch 
+                    && isChangeVpool
+                    && DiscoveredDataObject.Type.xtremio.name().equals(storageSystem.getSystemType())) {                
+             
+                for (Volume volume : allVolumesToUpdateCapacity) {
+                    if (NullColumnValueGetter.isNotNullValue(volume.getPersonality())
+                            && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                        capacity = volume.getProvisionedCapacity();
+                        break;
+                    }
+                }     
+                
+                for (Volume volume : allVolumesToUpdateCapacity) {                   
+                    updateVolumeCapacity(volume, capacity, isExpand);
+                }     
+                
+                _log.info(String.format("Capacity adjustments made for XIO change vpool operation."));                
+                return capacity;
+            }
 
             // If the storage systems do not all match we need to figure out matching volume
             // allocation sizes for all storage systems. CG creation will likely fail if
@@ -2092,7 +2115,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         String systemType = storageSystem.getSystemType();
         if ((DiscoveredDataObject.Type.vplex.name().equals(systemType))
                 || (DiscoveredDataObject.Type.vmax.name().equals(systemType))
-                || (DiscoveredDataObject.Type.vnxblock.name().equals(systemType))) {
+                || (DiscoveredDataObject.Type.vnxblock.name().equals(systemType)) 
+                || (DiscoveredDataObject.Type.xtremio.name().equals(systemType))) {
 
             // Get the current vpool
             VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
@@ -2456,7 +2480,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int index = 1;
         for (Volume volume : volumes) {
-            if (RPHelper.isProtectionBasedSnapshot(volume, snapshotType)
+            if (RPHelper.isProtectionBasedSnapshot(volume, snapshotType, _dbClient)
                     && snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
                 // For protection-based snapshots, get the protection domains we
                 // need to create snapshots on
@@ -2694,7 +2718,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             storageControllerURI = reqVolume.getStorageController();
         }
 
-        if (RPHelper.isProtectionBasedSnapshot(reqVolume, snapshotType)) {
+        if (RPHelper.isProtectionBasedSnapshot(reqVolume, snapshotType, _dbClient)) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
             RPController controller = getController(RPController.class, protectionSystem.getSystemType());
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);
@@ -3046,7 +3070,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         capacity));
                 // Update capacity and persist volume
                 volume.setCapacity(capacity);
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
             } else {
                 _log.info(String.format("Do not update capacity for volume [%s] as this is an expand operation.", volume.getLabel()));
             }

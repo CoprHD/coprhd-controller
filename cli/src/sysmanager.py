@@ -2973,7 +2973,7 @@ def failover_site_parser(subcommand_parsers,common_parser):
         description='ViPR: CLI usage to do failover from standby site',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Failover from standby site. This operation is only allowed when acitve site is down')
+        help='Failover from standby site. This operation is only allowed when active site is down')
     
     mandatory_args = failover_site_parser.add_argument_group(
         'mandatory arguments')

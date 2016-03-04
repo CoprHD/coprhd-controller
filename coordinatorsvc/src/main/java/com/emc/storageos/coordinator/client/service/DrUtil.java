@@ -63,11 +63,11 @@ public class DrUtil {
     private static final String DR_CONFIG_KIND = "disasterRecoveryConfig";
     private static final String DR_CONFIG_ID = "global";
     private static final String DR_OPERATION_LOCK = "droperation";
+    private static final String RECORD_AUDITLOG_LOCK = "droperationauditlog";
     private static final int LOCK_WAIT_TIME_SEC = 5; // 5 seconds
 
     public static final String KEY_ADD_STANDBY_TIMEOUT = "add_standby_timeout_millis";
     public static final String KEY_REMOVE_STANDBY_TIMEOUT = "remove_standby_timeout_millis";
-    public static final String KEY_PAUSE_STANDBY_TIMEOUT = "pause_standby_timout_millis";
     public static final String KEY_RESUME_STANDBY_TIMEOUT = "resume_standby_timeout_millis";
     public static final String KEY_SWITCHOVER_TIMEOUT = "switchover_timeout_millis";
     public static final String KEY_STANDBY_DEGRADE_THRESHOLD = "degrade_standby_threshold_millis";
@@ -98,11 +98,41 @@ public class DrUtil {
      * @param site
      */
     public void recordDrOperationStatus(Site site) {
-        DrOperationStatus operation = new DrOperationStatus();
-        operation.setSiteUuid(site.getUuid());
-        operation.setSiteState(site.getState());
-        coordinator.persistServiceConfiguration(operation.toConfiguration());
-        log.info("DR operation status has been recorded: {}", operation.toString());
+        recordDrOperationStatus(site.getUuid(), site.getState());
+    }
+
+    public void recordDrOperationStatus(String siteId, SiteState state) {
+        if (isDrOperationRecorded(siteId, state)) {
+            return;
+        }
+        try (InterProcessLockHolder lock = new InterProcessLockHolder(coordinator, RECORD_AUDITLOG_LOCK, log)) {
+            if (isDrOperationRecorded(siteId, state)) {
+                return;
+            }
+            if (siteId == null || siteId.isEmpty() || state == null || !state.isDROperationOngoing()) {
+                log.error("Can't record DR operation status due to Illegal site state, siteId: {}, state: {}", siteId, state);
+                return;
+            }
+            DrOperationStatus operation = new DrOperationStatus();
+            operation.setSiteUuid(siteId);
+            operation.setSiteState(state);
+            coordinator.persistServiceConfiguration(operation.toConfiguration());
+            log.info("DR operation status has been recorded: {}", operation.toString());
+        } catch (Exception e) {
+            log.error("Error happened when recording auditlog for DR operation for site {}, state: {}", siteId, state, e);
+        }
+    }
+
+    private boolean isDrOperationRecorded(String siteId, SiteState state) {
+        if (siteId == null || siteId.isEmpty() || state == null || !state.isDROperationOngoing()) {
+            return false;
+        }
+        DrOperationStatus status = new DrOperationStatus(coordinator.queryConfiguration(DrOperationStatus.CONFIG_KIND, siteId));
+        if (status.getSiteState() == state) {
+            log.info("DR operation status {} for site {} has been recorded by another node", siteId, state);
+            return true;
+        }
+        return false;
     }
 
     /**

@@ -1595,13 +1595,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
 
                 // Create snapshot target volumes
-
-                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, (Volume) sampleParent, null);
                 for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
                     final List<Volume> volumes = entry.getValue();
                     final Volume volume = volumes.get(0);
                     final URI poolId = volume.getPool();
 
+                    // get respective group path for volume storage pool
+                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, volume, null);
                     // Create target devices based on the array model
                     final List<String> newDeviceIds = kickOffTargetDevicesCreation(system, volumeGroupPath,
                             sourceGroupName, null, false, true, volumes.size(), poolId,

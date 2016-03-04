@@ -4394,8 +4394,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return true;
     }
 
-    private static Workflow.Method addToConsistencyGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName,
-            List<URI> addVolumesList) {
+    public String addStepToAddToConsistencyGroup(Workflow workflow, URI storage, URI consistencyGroup, String replicationGroupName,
+            List<URI> addVolumesList, String waitFor) {
+        String stepId = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                String.format("Adding volumes to consistency group %s", consistencyGroup),
+                waitFor, storage, getDeviceType(storage),
+                this.getClass(),
+                addToConsistencyGroupMethod(storage, consistencyGroup, replicationGroupName, addVolumesList),
+                rollbackMethodNullMethod(), null);
+        return stepId;
+    }
+
+    private static Workflow.Method addToConsistencyGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList) {
         return new Workflow.Method("addToConsistencyGroup", storage, consistencyGroup, replicationGroupName, addVolumesList);
     }
 
@@ -4417,8 +4427,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return true;
     }
 
-    private static Workflow.Method removeFromConsistencyGroupMethod(URI storage, URI consistencyGroup, List<URI> removeVolumesList,
-            boolean keepRGReference) {
+    public String addStepToRemoveFromConsistencyGroup(Workflow workflow, URI storage, URI consistencyGroup, List<URI> removeVolumesList,
+            String waitFor, boolean keepRGReference) {
+        String stepId = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                String.format("Removing volumes from consistency group %s", consistencyGroup),
+                waitFor, storage, getDeviceType(storage),
+                this.getClass(),
+                removeFromConsistencyGroupMethod(storage, consistencyGroup, removeVolumesList, keepRGReference),
+                rollbackMethodNullMethod(), null);
+        return stepId;
+    }
+
+    private static Workflow.Method removeFromConsistencyGroupMethod(URI storage, URI consistencyGroup, List<URI> removeVolumesList, boolean keepRGReference) {
         return new Workflow.Method("removeFromConsistencyGroup", storage, consistencyGroup, removeVolumesList, keepRGReference);
     }
 

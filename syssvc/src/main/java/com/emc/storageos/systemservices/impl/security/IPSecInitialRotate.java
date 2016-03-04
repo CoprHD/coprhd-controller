@@ -41,7 +41,7 @@ public class IPSecInitialRotate implements Runnable {
         }
         
         String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
-        if (StringUtils.isBlank(preSharedKey)) {
+        if (!StringUtils.isBlank(preSharedKey)) {
             log.info("IPsec key has been initialized");
             return;
         }

@@ -3835,7 +3835,11 @@ recoverpoint_tests()
 
                 if [ "$RP_CDP" = "1" ] ; then
                     recoverpoint_ingest_test rp${rptypetag}_cdp
-                    recoverpoint_ingest_export_test rp${rptypetag}_cdp
+		    if [ "${RPXIO_TESTS}" = "0" ]; then
+			recoverpoint_ingest_export_test rp${rptypetag}_cdp
+		    else
+			secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
+		    fi
                 fi
 
                 if [ "$RP_CRR" = "1" ] ; then

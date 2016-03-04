@@ -2620,8 +2620,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         // We want snaps of targets to contain the varray label so we can distinguish multiple
-        // targets from one another
-        if (targetVolume != null) {
+        // targets from one another in the case of RP bookmarks.
+        if (targetVolume != null && snapshotType.equalsIgnoreCase(TechnologyType.RP.toString())) {
             VirtualArray targetVarray = _dbClient.queryObject(VirtualArray.class, targetVolume.getVirtualArray());
             modifiedSnapshotName = modifiedSnapshotName + "-" + targetVarray.getLabel();
         }

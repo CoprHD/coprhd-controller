@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -700,6 +701,13 @@ public class BlockServiceUtils {
     public static void validateNotInCG(Volume requestedVolume, DbClient dbClient) {
         // If this volume isn't in a consistency group, it's valid
         if (!requestedVolume.hasConsistencyGroup()) {
+            return;
+        }
+        
+        // Backward compatibility:  We need to allow single-volume snapshotting of RP Target volumes
+        // for SRM/SRA support with previous versions of ViPR
+        if (requestedVolume.checkPersonality(PersonalityTypes.TARGET.toString())) {
+            _log.warn("Backward compatibility mode: allowing snapshot of single volume for RP target");
             return;
         }
         

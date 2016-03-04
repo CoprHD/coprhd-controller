@@ -98,12 +98,11 @@ public class DrUtil {
      * @param site
      */
     public void recordDrOperationStatus(Site site) {
+        if (isDrOperationRecorded(site)) {
+            return;
+        }
         try (InterProcessLockHolder lock = new InterProcessLockHolder(coordinator, RECORD_AUDITLOG_LOCK, log)) {
-            DrOperationStatus status = new DrOperationStatus(coordinator.queryConfiguration(DrOperationStatus.CONFIG_KIND, site.getUuid()));
-            String siteId = status.getSiteUuid();
-            SiteState siteState = status.getSiteState();
-            if (siteId != null && siteState != null && siteId == site.getUuid() && siteState == site.getState()) {
-                log.info("DR operation status {} for site {} has been recorded by another node", site.getState(), site.getUuid());
+            if (isDrOperationRecorded(site)) {
                 return;
             }
             DrOperationStatus operation = new DrOperationStatus();
@@ -114,6 +113,17 @@ public class DrUtil {
         } catch (Exception e) {
             log.error("Error happened when recording auditlog for DR operation for site {}, state: {}", site.toBriefString(), site.getState(), e);
         }
+    }
+
+    private boolean isDrOperationRecorded(Site site) {
+        DrOperationStatus status = new DrOperationStatus(coordinator.queryConfiguration(DrOperationStatus.CONFIG_KIND, site.getUuid()));
+        String siteId = status.getSiteUuid();
+        SiteState siteState = status.getSiteState();
+        if (siteId != null && siteState != null && siteId.equals(site.getUuid()) && siteState == site.getState()) {
+            log.info("DR operation status {} for site {} has been recorded by another node", site.getState(), site.getUuid());
+            return true;
+        }
+        return false;
     }
 
     /**

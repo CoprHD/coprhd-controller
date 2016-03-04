@@ -812,6 +812,9 @@ public abstract class VdcOpHandler {
                 log.info("Set state from {} to {}", site.getState(), siteState);
                 site.setState(siteState);
                 coordinator.getCoordinatorClient().persistServiceConfiguration(site.toConfiguration());
+                if (siteState.isDROperationOngoing()) {
+                    drUtil.recordDrOperationStatus(site);
+                }
             } finally {
                 barrier.leave();
             }

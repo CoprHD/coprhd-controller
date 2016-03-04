@@ -4,24 +4,22 @@
  */
 package com.emc.storageos.systemservices.impl.healthmonitor;
 
-import java.lang.String;
-import java.util.List;
 import java.util.Arrays;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.DbOfflineEventInfo;
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.coordinator.client.service.InterProcessLockHolder;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.services.util.TimeUtils;
-import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.jobs.common.JobConstants;
+import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 
 /**
  * DbDowntimeTracker is to track the downtime of dbsvc and geodbsvc.
@@ -97,7 +95,7 @@ public class DbDowntimeTracker {
         }
 
         dbOfflineEventInfo.setLastUpdateTimestamp(currentTimeStamp);
-        log.info("Db tracker last check time: {}, current check time: {}, site: {}", lastUpdateTimestamp, currentTimeStamp, siteId);
+        log.info(String.format("Db tracker last check time: %d, current check time: %d, site: %s", lastUpdateTimestamp, currentTimeStamp, siteId));
 
         int nodeCount = site.getNodeCount();
         for (int i = 1; i <= nodeCount; i++) {

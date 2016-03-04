@@ -1494,6 +1494,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             return ClusterInfo.ClusterState.DEGRADED;
         }
 
+        DrUtil drUtil = new DrUtil(this);
+        if (drUtil.getLocalSite().getState() == SiteState.STANDBY_ERROR) {
+            return ClusterInfo.ClusterState.DEGRADED;
+        }
+
         // 1st. Find nodes which currents and versions are different from target's
         List<String> differentCurrents = getDifferentCurrentsCommon(targetGiven, infos);
         List<String> differentVersions = getDifferentVersionsCommon(targetGiven, infos);

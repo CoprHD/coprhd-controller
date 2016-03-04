@@ -3851,6 +3851,9 @@ recoverpoint_tests()
                     recoverpoint_ingest_test rp${rptypetag}_clr
                     recoverpoint_ingest_export_test rp${rptypetag}_clr
                 fi
+
+		secho "RP ingest tests complete"
+		return
             fi
 
             if [ "$RP_TESTS" = "1" ]; then

@@ -3106,7 +3106,7 @@ recoverpoint_ingest_test()
     run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
 
     # Inventory-only remove of RP volume
-    run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly
+    run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --wait
     run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
 }
 
@@ -3231,7 +3231,7 @@ recoverpoint_ingest_export_test()
     #run blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
 
     # Inventory-only remove of RP volume
-    run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --vipronly
+    run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --wait
     run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
 }
 
@@ -3851,6 +3851,9 @@ recoverpoint_tests()
                     recoverpoint_ingest_test rp${rptypetag}_clr
                     recoverpoint_ingest_export_test rp${rptypetag}_clr
                 fi
+
+		secho "RP ingest tests complete"
+		return
             fi
 
             if [ "$RP_TESTS" = "1" ]; then

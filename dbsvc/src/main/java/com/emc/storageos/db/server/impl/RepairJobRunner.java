@@ -255,7 +255,9 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             _lastToken = null;
         }
 
-        _log.info("Db repair consumes {} minutes", (System.currentTimeMillis() - _startTimeInMillis) / 60000);
+        long repairSeconds = (System.currentTimeMillis() - _startTimeInMillis) / 1000;
+        _log.info("Db repair consumes {} ",repairSeconds > 5 * 60 ?
+                repairSeconds / 60 + " minutes" : repairSeconds + " seconds");
         return _success;
     }
 

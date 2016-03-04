@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
@@ -30,26 +30,26 @@ public class IPSecInitialRotate implements Runnable {
 
     @Override
     public void run() {
-        if (drUtil.isMultivdc()) {
-            log.info("Skip ipsec key initial rotation for multi-vdc configuration");
-            return;
-        }
-        
-        if (drUtil.isMultisite()) {
-            log.info("Skip ipsec key initial rotation for multi-site DR configuration");
-            return;
-        }
-        
-        String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
-        if (!StringUtils.isBlank(preSharedKey)) {
-            log.info("IPsec key has been initialized");
-            return;
-        }
-        
         while (true) {
             try {
                 InterProcessLock lock = null;
                 try {
+                    if (drUtil.isMultivdc()) {
+                        log.info("Skip ipsec key initial rotation for multi-vdc configuration");
+                        return;
+                    }
+                    
+                    if (drUtil.isMultisite()) {
+                        log.info("Skip ipsec key initial rotation for multi-site DR configuration");
+                        return;
+                    }
+                    
+                    String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
+                    if (!StringUtils.isBlank(preSharedKey)) {
+                        log.info("IPsec key has been initialized");
+                        return;
+                    }
+                    
                     lock = coordinator.getCoordinatorClient().getSiteLocalLock("ipseclock");
                     lock.acquire();
                     log.info("Acquired the lock {}", "ipseclock");

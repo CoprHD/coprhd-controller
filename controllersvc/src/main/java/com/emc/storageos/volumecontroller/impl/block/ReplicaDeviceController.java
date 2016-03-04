@@ -442,6 +442,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 BlockSnapshot blockSnapshot = prepareSnapshot(volume, snapGroupName);
                 blockSnapshot.setCopyMode(copyMode);
                 _dbClient.updateObject(blockSnapshot);
+                // add this snapshot target to existing snap session
+                existingSession.getLinkedTargets().add(blockSnapshot.getId().toString());
+                _dbClient.updateObject(existingSession);
+
                 if (snapGroupToSnapshots.get(snapGroupName) == null) {
                     snapGroupToSnapshots.put(snapGroupName, new ArrayList<URI>());
                 }

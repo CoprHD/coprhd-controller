@@ -5,6 +5,7 @@
 package com.emc.storageos.db.server.impl;
 
 import com.emc.storageos.services.util.JmxServerWrapper;
+import com.emc.storageos.services.util.TimeUtils;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.apache.cassandra.service.StorageServiceMBean;
@@ -255,9 +256,9 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             _lastToken = null;
         }
 
-        long repairSeconds = (System.currentTimeMillis() - _startTimeInMillis) / 1000;
-        _log.info("Db repair consumes {} ",repairSeconds > 5 * 60 ?
-                repairSeconds / 60 + " minutes" : repairSeconds + " seconds");
+        long repairMillis = System.currentTimeMillis() - _startTimeInMillis;
+        _log.info("Db repair consumes {} ",repairMillis > 5 * TimeUtils.MINUTES ?
+                repairMillis / TimeUtils.MINUTES + " minutes" : repairMillis / TimeUtils.SECONDS + " seconds");
         return _success;
     }
 

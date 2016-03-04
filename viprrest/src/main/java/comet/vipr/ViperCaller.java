@@ -2,9 +2,7 @@ package comet.vipr;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.block.VolumeCreate;
@@ -27,24 +25,6 @@ public class ViperCaller {
        return client.blockVolumes().listBulkIds();
     }
     
-    public Map<String, URI>  getVolumeMap(){
-        
-        List<URI> volumes= client.blockVolumes().listBulkIds();
-        
-        Map<String,URI> volumeMap= new HashMap<String,URI>();
-        for(URI volume : volumes){
-            System.out.println("Calling Volume"+volume);
-            String vol =client.blockVolumes().get(volume).getName();
-            System.out.println(" Volume : "+vol+" URI "+volume);
-            volumeMap.put(vol,volume);
-            
-        }
-        return volumeMap;
-     }
-
-    
-    
-    
     public List<NamedRelatedVirtualPoolRep> getVpools(){
        return client.blockVpools().list();
         
@@ -52,43 +32,29 @@ public class ViperCaller {
     
     public List<String> getHosts(){
        List<URI> hostURILists = client.hosts().listBulkIds();
-       System.out.println(" Value reached "+hostURILists);
-       List<String> hostNameList = new ArrayList<String>();
+       List<String> hostNameList = null;
        for( URI hostURI:hostURILists ) {
-              hostNameList.add(hostURI.toString());
+              hostNameList.add(hostURI.getHost());
               
        }
-       
-       System.out.println(" Value reached "+hostNameList);
        return hostNameList;
     }
-    
-    
-    public Map<String,String> getHostsMap(){
-        List<URI> hostURILists = client.hosts().listBulkIds();
-        System.out.println(" Value reached "+hostURILists);
-         Map<String,String> hostNameMap = new HashMap<String,String>();
-         String name;
-         
-        for( URI hostURI:hostURILists ) {
-            name = client.hosts().get(hostURI).getHostName();
-            hostNameMap.put(name, hostURI.toString());
-        }
-        
-        System.out.println(" Value reached "+hostNameMap);
-        return hostNameMap;
-     }
     
     public Tasks<VolumeRestRep> createVolume(URI sourceVolumeURI, URI targetVirtualPoolId){
        
        
        URI project = client.blockVolumes().get(sourceVolumeURI).getProject().getId();
        String sourceVolumeName = client.blockVolumes().get(sourceVolumeURI).getName();
+       String targetVolumeName = "new" + sourceVolumeName.replaceAll("\\s+",""); 
+       
        String size = client.blockVolumes().get(sourceVolumeURI).getCapacity();
+       float intSize = Float.parseFloat(size) + 1;
+       String sizeGB = intSize+"GB";
        List<RelatedResourceRep> resourceList = client.blockVpools().get(targetVirtualPoolId).getVirtualArrays();
        RelatedResourceRep vArray=resourceList.get(0);
-       VolumeCreate create = new VolumeCreate("migrationTgt1", "4GB", 1, targetVirtualPoolId, vArray.getId(), project);
-       
+       //VolumeCreate create = new VolumeCreate("NewArrayLUN1", sizeGB, 1, targetVirtualPoolId, vArray.getId(), project);
+       VolumeCreate create = new VolumeCreate(targetVolumeName, sizeGB, 1, targetVirtualPoolId, vArray.getId(), project);
+
        return client.blockVolumes().create(create);
        
        
@@ -129,7 +95,7 @@ public class ViperCaller {
     }
     */
     
-    public boolean exportVolumeURI (URI hostURI, URI targetVolumeURI){
+    public boolean exportVolumeURI (URI hostURI, URI targetVolumeURI) {
         
         URI project = client.blockVolumes().get(targetVolumeURI).getProject().getId();
         URI vArray = client.blockVolumes().get(targetVolumeURI).getVirtualArray().getId();
@@ -138,13 +104,17 @@ public class ViperCaller {
         List<VolumeParam> volumes = new ArrayList<VolumeParam>();
         volumes.add(new VolumeParam(targetVolumeURI));
         hosts.add(hostURI);
-        client.blockExports().create(new ExportCreateParam(project, vArray, "sampleExport2", "Host", volumes ,null, hosts, null)); 
+        
+        String exportGroupName = client.blockVolumes().get(targetVolumeURI).getName() + "Group";
+   //     client.blockExports().create(new ExportCreateParam(project, vArray, "libl044TargetExportGroup", "Host", volumes ,null, hosts, null));
+        client.blockExports().create(new ExportCreateParam(project, vArray, exportGroupName, "Host", volumes ,null, hosts, null));
         return true;
         
     } 
     
     public boolean doExport(URI sourceVolumeURI, URI hostURI, URI targetVirtualPoolId){
         
+       
         
         boolean result =false;
         Tasks<VolumeRestRep> volumeTask = createVolume(sourceVolumeURI, targetVirtualPoolId);
@@ -154,8 +124,13 @@ public class ViperCaller {
         URI targetVolumeURI = volumeList.get(0).getId();
         
         result = exportVolumeURI (hostURI, targetVolumeURI);
+       
+        migrate(hostURI, sourceVolumeURI, targetVolumeURI);
+        
+        client.blockVolumes().deactivate(sourceVolumeURI);
         
         return result;
+
     }
     
     public Tasks<VolumeRestRep> migrate(URI hostURI, URI sourceVolumeURI, URI targetVolumeURI){

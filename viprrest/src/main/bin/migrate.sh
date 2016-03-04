@@ -123,4 +123,8 @@ fi
 # Clean up the migration
 /sbin/powermig cleanup -hd ${HANDLE} -no > /dev/null 2>&1
 
+# Remove the source volume.  TARGET_DEV is specified here because the original source volume's pseudo name got
+# swapped with that of the target volume's pseudo name when the migration was committed.
+/etc/opt/emcpower/emcplun_linux r ${TARGET_DEV} -noprompt
+
 /bin/true

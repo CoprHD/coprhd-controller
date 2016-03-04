@@ -234,7 +234,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
 
             // Lets determine the VPlex consistency group that need to be created for this volume.
             ClusterConsistencyGroupWrapper clusterConsistencyGroup =
-                    getClusterConsistencyGroup(firstVPlexVolume, cg.getLabel());
+                    getClusterConsistencyGroup(firstVPlexVolume, cg);
 
             String cgName = clusterConsistencyGroup.getCgName();
             String clusterName = clusterConsistencyGroup.getClusterName();
@@ -413,7 +413,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             Volume firstVPlexVolume = getDataObject(Volume.class, vplexVolumeURIs.get(0), dbClient);
 
             ClusterConsistencyGroupWrapper clusterConsistencyGroup =
-                    getClusterConsistencyGroup(firstVPlexVolume, cg.getLabel());
+                    getClusterConsistencyGroup(firstVPlexVolume, cg);
 
             String cgName = clusterConsistencyGroup.getCgName();
             String clusterName = clusterConsistencyGroup.getClusterName();
@@ -561,7 +561,6 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 log.info("Created step for add volumes to consistency group.");
             } else if (isNewCg && addVolumesList != null && !addVolumesList.isEmpty() && !isFullCopy) {
                 addStepsForCreateConsistencyGroup(workflow, waitFor, vplexSystem, addVolumesList, false, cgURI);
-
             }
 
             TaskCompleter completer = new VPlexTaskCompleter(BlockConsistencyGroup.class,
@@ -592,7 +591,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
      * @throws Exception
      */
     @Override
-    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, String cgName) throws Exception {
+    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, BlockConsistencyGroup cg) throws Exception {
         ClusterConsistencyGroupWrapper clusterConsistencyGroup = new ClusterConsistencyGroupWrapper();
 
         // If there are no associated volumes, we cannot determine the cluster name and if the
@@ -611,7 +610,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             clusterConsistencyGroup.setDistributed(distributed);
         }
 
-        clusterConsistencyGroup.setCgName(cgName);
+        clusterConsistencyGroup.setCgName(cg.getLabel());
 
         return clusterConsistencyGroup;
     }

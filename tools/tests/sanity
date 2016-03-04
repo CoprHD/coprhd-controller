@@ -7389,7 +7389,7 @@ dr_basic_tests()
 
     # failover test part
     echo "Stopping active site $DR_SITE_B_NAME services to prepare for failover test ..."
-    stop_vdc_services $DR_SITE_B_IP
+    stop_vdc_services "$DR_SITE_B_IP"
     echo "Sleep 400 seconds to wait standby site (VIP: ${DR_SITE_A_IP}) ZK switch to participant"
     sleep 400
     echo "Wait for site ${DR_SITE_A_NAME} to be stable ..."
@@ -7412,7 +7412,7 @@ dr_basic_tests()
 
     # failback test part
     echo "Starting old active site $DR_SITE_B_NAME services ..."
-    start_vdc_services $DR_SITE_B_IP
+    start_vdc_services "$DR_SITE_B_IP"
     echo "Sleep 400 seconds to wait old site to become ACTIVE_DEGRADED ..."
     sleep 600
     BOURNE_IPADDR=$DR_SITE_B_IP
@@ -7739,10 +7739,10 @@ dr_multisite_tests()
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable 10 600
+    dr waitforstable 10 800
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable 10 600
+    dr waitforstable 10 800
 
     echo "---SWITCHOVER FROM TO $active_site TO $standby_site_c---"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -7752,10 +7752,10 @@ dr_multisite_tests()
     echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable 10 600
+    dr waitforstable 10 800
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable 10 600
+    dr waitforstable 10 800
 
     echo "---WAIT FOR SWITCHOVER FROM $active_site TO $standby_site DONE---"
     dr waitforstate $standby_site_c ACTIVE 10 1200 && echo "standby has been switched into active"
@@ -7765,7 +7765,7 @@ dr_multisite_tests()
 
     # failover test part
     echo "Stopping active site $DR_SITE_C_NAME services to prepare for failover test ..."
-    stop_vdc_services $DR_SITE_C_IP
+    stop_vdc_services "$DR_SITE_C_IP"
 
     echo "Sleep 400 seconds to wait standby ZK switch to participant"
     sleep 400
@@ -7791,7 +7791,7 @@ dr_multisite_tests()
 
     # failback test part
     echo "Starting old active site $DR_SITE_C_NAME services ..."
-    start_vdc_services $DR_SITE_C_IP
+    start_vdc_services "$DR_SITE_C_IP"
     echo "Sleep 600 seconds to wait old site to become ACTIVE_DEGRADED ..."
     sleep 600
     BOURNE_IPADDR=$DR_SITE_C_IP

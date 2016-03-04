@@ -5,6 +5,7 @@
 
 package com.emc.storageos.coordinator.client.service;
 
+import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -183,7 +184,7 @@ public class DrUtil {
 
     /**
      * Load site information from local vdc
-     * 
+     *
      * @param siteId
      * @return
      */
@@ -194,6 +195,22 @@ public class DrUtil {
             return new Site(config);
         }
         throw CoordinatorException.retryables.cannotFindSite(siteId);
+    }
+
+
+    /**
+     * Load site network latency information from zk
+     *
+     * @param siteId
+     * @return
+     */
+    public SiteNetworkState getSiteNetworkState(String siteId) {
+        SiteNetworkState siteNetworkState = coordinator.getTargetInfo(siteId, SiteNetworkState.class);
+        if (siteNetworkState != null) {
+            return siteNetworkState;
+        } else {
+            return new SiteNetworkState();
+        }
     }
     
     

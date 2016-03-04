@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -22,6 +23,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -93,13 +96,14 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     /**
      * Based on a list of VPlex volumes and a ViPR consistency group, this method determines
      * the corresponding VPlex cluster names and VPlex consistency group names.
-     * 
+     *
      * @param vplexVolumeURIs The VPlex virtual volumes to analyze
      * @param cgName The ViPR BlockConsistencyGroup name
      * @return A mapping of VPlex cluster/consistency groups to their associated volumes
      * @throws Exception
      */
-    protected Map<ClusterConsistencyGroupWrapper, List<URI>> getClusterConsistencyGroupVolumes(List<URI> vplexVolumeURIs, BlockConsistencyGroup cg)
+    protected Map<ClusterConsistencyGroupWrapper, List<URI>> getClusterConsistencyGroupVolumes(List<URI> vplexVolumeURIs,
+            BlockConsistencyGroup cg)
             throws Exception {
         Map<ClusterConsistencyGroupWrapper, List<URI>> clusterConsistencyGroups =
                 new HashMap<ClusterConsistencyGroupWrapper, List<URI>>();
@@ -115,7 +119,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     /**
      * Builds and adds a VPlex cluster/consistency group mapping for a given VPlex volume and ViPR
      * BlockConsistencyGroup name.
-     * 
+     *
      * @param vplexVolume The VPlex virtual volume for which we want to find a VPlex cluster/
      *            consistency group mapping.
      * @param clusterConsistencyGroupVolumes The Map to which we want to add the VPlex cluster/
@@ -187,9 +191,17 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
                     // Iterate over the VPlex consistency groups that need to be
                     // deleted.
+                    Map<String, String> vplexCgsToDelete = new HashMap<String, String>();
                     for (String clusterCgName : cg.getSystemConsistencyGroups().get(vplexSystemUri.toString())) {
-                        String clusterName = BlockConsistencyGroupUtils.fetchClusterName(clusterCgName);
                         String cgName = BlockConsistencyGroupUtils.fetchCgName(clusterCgName);
+                        String clusterName = BlockConsistencyGroupUtils.fetchClusterName(clusterCgName);
+
+                        if (!vplexCgsToDelete.containsKey(cgName)) {
+                            vplexCgsToDelete.put(cgName, clusterName);
+                        }
+                    }
+
+                    for (Map.Entry<String, String> vplexCg : vplexCgsToDelete.entrySet()) {
                         String stepId = workflow.createStepId();
                         Workflow.Method deletCGRollbackMethod = rollbackDeleteCGMethod(cgURI, stepId);
                         // Create the steps in the workflow to delete the consistency
@@ -197,7 +209,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
                         // contain any volumes. Currently, the API service does not allow
                         // this, and so this should never be called otherwise.
                         addStepForRemoveVPlexCG(workflow, stepId, waitFor, storageSystem,
-                                cgURI, cgName, clusterName, Boolean.TRUE, deletCGRollbackMethod);
+                                cgURI, vplexCg.getKey(), vplexCg.getValue(), Boolean.TRUE, deletCGRollbackMethod);
                     }
                 }
             }
@@ -224,14 +236,14 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     /**
      * Deletes the consistency group with the passed URI on the VPLEX storage
      * system with the passed URU.
-     * 
+     *
      * @param vplexSystemURI The URI of the VPlex system.
      * @param cgUri The URI of the ViPR consistency group.
      * @param cgName The name of the VPlex consistency group to delete.
      * @param clusterName The name of the VPlex cluster.
      * @param setInative true to mark the CG for deletion.
      * @param stepId The workflow step identifier.
-     * 
+     *
      * @throws WorkflowException When an error occurs updating the work step
      *             state.
      */
@@ -240,7 +252,8 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
         try {
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
-            log.info("Updated workflow step to executing");
+            log.info(String.format("Executing workflow step deleteCG. Storage System: %s, CG Name: %s, Cluster Name: %s",
+                    vplexSystemURI, cgName, clusterName));
 
             StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexSystemURI, dbClient);
             VPlexApiClient client = getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
@@ -248,7 +261,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
             // Make a call to the VPlex API client to delete the consistency group.
             client.deleteConsistencyGroup(cgName);
-            log.info("Deleted consistency group");
+            log.info(String.format("Deleted consistency group %s", cgName));
 
             // Create the rollback data in case this needs to be recreated.
             VPlexDeleteCGRollbackData rbData = new VPlexDeleteCGRollbackData();
@@ -260,9 +273,36 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
             // Update the consistency group in the database.
             BlockConsistencyGroup cg = getDataObject(BlockConsistencyGroup.class, cgUri, dbClient);
-            cg.removeSystemConsistencyGroup(vplexSystemURI.toString(),
-                    BlockConsistencyGroupUtils.buildClusterCgName(clusterName, cgName));
-            dbClient.persistObject(cg);
+
+            // Remove all storage system CG entries stored on the BlockConsistencyGroup that match
+            // the give CG name. For RecoverPoint, there will be an entry for the distributed CG
+            // on each cluster so this takes care of removing each of those.
+            List<String> cgRefsToDelete = new ArrayList<String>();
+            StringSetMap sysCgs = cg.getSystemConsistencyGroups();
+            if (sysCgs != null && !sysCgs.isEmpty()) {
+                StringSet cgsForVplex = sysCgs.get(vplexSystemURI.toString());
+
+                if (cgsForVplex != null && !cgsForVplex.isEmpty()) {
+                    Iterator<String> itr = cgsForVplex.iterator();
+                    while (itr.hasNext()) {
+                        String clusterCgName = itr.next();
+                        if (BlockConsistencyGroupUtils.fetchCgName(clusterCgName).equals(cgName)) {
+                            cgRefsToDelete.add(clusterCgName);
+                        }
+                    }
+                }
+            }
+
+            // Remove the CG/Cluster references from the BlockConsistencyGroup.
+            if (!cgRefsToDelete.isEmpty()) {
+                for (String cgRef : cgRefsToDelete) {
+                    log.info(String.format("Removing system consistency group %s from storage system %s",
+                            cgRef, vplexSystemURI.toString()));
+                    cg.removeSystemConsistencyGroup(vplexSystemURI.toString(), cgRef);
+                }
+
+                dbClient.updateObject(cg);
+            }
 
             // Only mark the ViPR CG for deletion when all associated VPlex CGs
             // have been deleted.
@@ -308,7 +348,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     /**
      * Gets the VPlex consistency group name that corresponds to the volume
      * and BlockConsistencyGroup.
-     * 
+     *
      * @param volume The virtual volume used to determine cluster configuration.
      * @param cgURI The BlockConsistencyGroup id.
      * @return The VPlex consistency group name
@@ -376,11 +416,11 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     /**
      * Determine if the consistency group with the passed name on the passed cluster
      * is distributed.
-     * 
+     *
      * @param client A reference to a VPLEX client
      * @param cgName The consistency group name
      * @param cgCluster The consistency group cluster
-     * 
+     *
      * @return true if the consistency group is distributed, false otherwise.
      */
     private boolean getIsCGDistributed(VPlexApiClient client, String cgName, String cgCluster) {
@@ -399,10 +439,10 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
     /**
      * Create the workflow method to rollback a CG deletion on a VPLEX system.
-     * 
+     *
      * @param cgURI The consistency group URI
      * @param deleteStepId The step that deleted the CG.
-     * 
+     *
      * @return A reference to the workflow method
      */
     private Workflow.Method rollbackDeleteCGMethod(URI cgURI, String deleteStepId) {
@@ -411,7 +451,7 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
 
     /**
      * Method call when we need to rollback the deletion of a consistency group.
-     * 
+     *
      * @param cgURI The consistency group URI
      * @param deleteStepId The step that deleted the CG.
      * @param stepId The step id.
@@ -469,16 +509,17 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     }
 
     /**
-     * 
-     * @param workflow
-     * @param stepId
-     * @param waitFor
-     * @param vplexSystem
-     * @param cgURI
-     * @param cgName
-     * @param clusterName
-     * @param setInactive
-     * @param rollbackMethod
+     * Add step method for removing a VPlex consistency group.
+     *
+     * @param workflow the workflow.
+     * @param stepId the step ID.
+     * @param waitFor the wait for.
+     * @param vplexSystem the VPlex storage system.
+     * @param cgURI the consistency group URI.
+     * @param cgName the consistency group name.
+     * @param clusterName the cluster name.
+     * @param setInactive whether or not to set the BlockConsistencyGroup to inactive.
+     * @param rollbackMethod the rollback method
      */
     public void addStepForRemoveVPlexCG(Workflow workflow, String stepId,
             String waitFor, StorageSystem vplexSystem, URI cgURI, String cgName,
@@ -496,13 +537,13 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     /**
      * The method called by the workflow to remove VPLEX volumes from a VPLEX
      * consistency group.
-     * 
+     *
      * @param vplexURI The URI of the VPLEX storage system.
      * @param cgURI The URI of the consistency group.
      * @param vplexVolumeURIs The URIs of the volumes to be removed from the
      *            consistency group.
      * @param stepId The workflow step id.
-     * 
+     *
      * @throws WorkflowException When an error occurs updating the workflow step
      *             state.
      */
@@ -570,12 +611,12 @@ public abstract class AbstractConsistencyGroupManager implements ConsistencyGrou
     /**
      * A method that creates the workflow method for removing VPLEX volumes from a
      * consistency group.
-     * 
+     *
      * @param vplexURI The URI of the VPLEX storage system.
      * @param cgURI The URI of the consistency group.
      * @param vplexVolumeURIs The URIs of the volumes to be removed from the
      *            consistency group.
-     * 
+     *
      * @return A reference to the workflow method to remove VPLEX volumes from a
      *         consistency group.
      */

@@ -717,7 +717,7 @@ public class BucketACLUtility {
         // below code is to validate domain by splitting backslash
         if (bucketACE.getDomain() != null && bucketACE.getUser() != null) {
 
-            if (bucketACE.getUser().contains("\\")) {
+            if (bucketACE.getUser().contains("@")) {
                 bucketACE.cancelNextStep(BucketACLOperationErrorType.MULTIPLE_DOMAINS_FOUND);
                 _log.error("Multiple Domains found. Please provide either in user or in domain field.");
 
@@ -725,7 +725,7 @@ public class BucketACLUtility {
         }
         if (bucketACE.getDomain() != null && bucketACE.getGroup() != null) {
 
-            if (bucketACE.getGroup().contains("\\")) {
+            if (bucketACE.getGroup().contains("@")) {
                 bucketACE.cancelNextStep(BucketACLOperationErrorType.MULTIPLE_DOMAINS_FOUND);
                 _log.error("Multiple Domains found. Please provide either in group or in domain field.");
 
@@ -733,7 +733,7 @@ public class BucketACLUtility {
         }
         if (bucketACE.getDomain() != null && bucketACE.getCustomGroup() != null) {
 
-            if (bucketACE.getCustomGroup().contains("\\")) {
+            if (bucketACE.getCustomGroup().contains("@")) {
                 bucketACE.cancelNextStep(BucketACLOperationErrorType.MULTIPLE_DOMAINS_FOUND);
                 _log.error("Multiple Domains found. Please provide either in customgroup or in domain field.");
 

@@ -6,6 +6,7 @@
 package com.emc.storageos.systemservices.impl.security;
 
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceUnavailableException;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
@@ -23,12 +24,28 @@ public class IPSecInitialRotate implements Runnable {
     private IPsecManager ipsecMgr;
     private CoordinatorClientExt coordinator;
     private IPsecConfig ipsecConfig;
+    private DrUtil drUtil;
 
-    private int IPSEC_ROTATION_RETRY_INTERVAL = 5;  //seconds
+    private int IPSEC_ROTATION_RETRY_INTERVAL = 10;  //seconds
 
     @Override
     public void run() {
-
+        if (drUtil.isMultivdc()) {
+            log.info("Skip ipsec key initial rotation for multi-vdc configuration");
+            return;
+        }
+        
+        if (drUtil.isMultisite()) {
+            log.info("Skip ipsec key initial rotation for multi-site DR configuration");
+            return;
+        }
+        
+        String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
+        if (StringUtils.isBlank(preSharedKey)) {
+            log.info("IPsec key has been initialized");
+            return;
+        }
+        
         while (true) {
             try {
                 InterProcessLock lock = null;
@@ -36,16 +53,15 @@ public class IPSecInitialRotate implements Runnable {
                     lock = coordinator.getCoordinatorClient().getSiteLocalLock("ipseclock");
                     lock.acquire();
                     log.info("Acquired the lock {}", "ipseclock");
-
-                    ipsecMgr.verifyClusterIsStable();
-
-                    String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
+                    preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
                     if (StringUtils.isBlank(preSharedKey)) {
-                        log.info("No pre shared key in zk, generate a new key");
-                        ipsecMgr.rotateKey(true);
-                        return;
+                        if (drUtil.isAllSitesStable()) {
+                            log.info("No pre shared key in zk, generate a new key");
+                            ipsecMgr.rotateKey(true);
+                            return;
+                        }
                     } else {
-                        log.info("First ipsec key found in zk. No need to regenerate it");
+                        log.info("IPsec key has been initialized. No need to regenerate it");
                         return;
                     }
                 } finally {
@@ -54,7 +70,7 @@ public class IPSecInitialRotate implements Runnable {
             } catch (ServiceUnavailableException suex) {
                 log.warn("cluster is not stable currently.");
             } catch (Exception ex) {
-                log.warn("error when run ipsec initial rotation: " + ex.getMessage());
+                log.warn("error when run ipsec initial rotation: ", ex);
             }
 
             try {

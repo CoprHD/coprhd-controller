@@ -98,29 +98,38 @@ public class DrUtil {
      * @param site
      */
     public void recordDrOperationStatus(Site site) {
-        if (isDrOperationRecorded(site)) {
+        recordDrOperationStatus(site.getUuid(), site.getState());
+    }
+
+    public void recordDrOperationStatus(String siteId, SiteState state) {
+        if (isDrOperationRecorded(siteId, state)) {
             return;
         }
         try (InterProcessLockHolder lock = new InterProcessLockHolder(coordinator, RECORD_AUDITLOG_LOCK, log)) {
-            if (isDrOperationRecorded(site)) {
+            if (isDrOperationRecorded(siteId, state)) {
+                return;
+            }
+            if (siteId == null || siteId.isEmpty() || state == null || !state.isDROperationOngoing()) {
+                log.error("Can't record DR operation status due to Illegal site state, siteId: {}, state: {}", siteId, state);
                 return;
             }
             DrOperationStatus operation = new DrOperationStatus();
-            operation.setSiteUuid(site.getUuid());
-            operation.setSiteState(site.getState());
+            operation.setSiteUuid(siteId);
+            operation.setSiteState(state);
             coordinator.persistServiceConfiguration(operation.toConfiguration());
             log.info("DR operation status has been recorded: {}", operation.toString());
         } catch (Exception e) {
-            log.error("Error happened when recording auditlog for DR operation for site {}, state: {}", site.toBriefString(), site.getState(), e);
+            log.error("Error happened when recording auditlog for DR operation for site {}, state: {}", siteId, state, e);
         }
     }
 
-    private boolean isDrOperationRecorded(Site site) {
-        DrOperationStatus status = new DrOperationStatus(coordinator.queryConfiguration(DrOperationStatus.CONFIG_KIND, site.getUuid()));
-        String siteId = status.getSiteUuid();
-        SiteState siteState = status.getSiteState();
-        if (siteId != null && siteState != null && siteId.equals(site.getUuid()) && siteState == site.getState()) {
-            log.info("DR operation status {} for site {} has been recorded by another node", site.getState(), site.getUuid());
+    private boolean isDrOperationRecorded(String siteId, SiteState state) {
+        if (siteId == null || siteId.isEmpty() || state == null || !state.isDROperationOngoing()) {
+            return false;
+        }
+        DrOperationStatus status = new DrOperationStatus(coordinator.queryConfiguration(DrOperationStatus.CONFIG_KIND, siteId));
+        if (status.getSiteState() == state) {
+            log.info("DR operation status {} for site {} has been recorded by another node", siteId, state);
             return true;
         }
         return false;

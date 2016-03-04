@@ -333,7 +333,7 @@ public abstract class VdcOpHandler {
                     return;
                 } else {
                     log.info("Waiting for completion of site removal from acitve site");
-                    while (drUtil.hasSiteInState(SiteState.ACTIVE) && drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
+                    while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING) && drUtil.getLocalSite().getState() != SiteState.STANDBY_PAUSED) {
                         log.info("Waiting for completion of site removal from acitve site");
                         retrySleep();
                     }

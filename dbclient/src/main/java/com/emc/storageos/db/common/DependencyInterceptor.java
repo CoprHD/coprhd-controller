@@ -90,7 +90,9 @@ public class DependencyInterceptor {
 		Annotation a = this.getRelationAnnotation(field);
 		if (a instanceof RelationIndex) {
 			return ((RelationIndex) a).types().length > 0;
-		} else if (a instanceof NamedRelationIndex) {
+		}
+		
+		if (a instanceof NamedRelationIndex) {
 			return ((NamedRelationIndex) a).types().length > 0;
 		}
 		

@@ -666,6 +666,9 @@ public class BucketACLUtility {
     private void verifyUserGroupCustomgroup(BucketACE bucketACE) {
 
         String userOrGroupOrCustomgroup = null;
+        String USER = "user";
+        String GROUP = "group";
+        String CUSTOMGROUP = "customgroup";
 
         if (bucketACE == null) {
             return;
@@ -694,11 +697,11 @@ public class BucketACLUtility {
 
             domain = domain.toLowerCase();
             if (bucketACE.getUser() != null) {
-                userOrGroupOrCustomgroup = domain + bucketACE.getUser().toLowerCase();
+                userOrGroupOrCustomgroup = domain + bucketACE.getUser().toLowerCase() + USER;
             } else if (bucketACE.getGroup() != null) {
-                userOrGroupOrCustomgroup = domain + bucketACE.getGroup().toLowerCase();
+                userOrGroupOrCustomgroup = domain + bucketACE.getGroup().toLowerCase() + GROUP;
             } else {
-                userOrGroupOrCustomgroup = domain + bucketACE.getCustomGroup().toLowerCase();
+                userOrGroupOrCustomgroup = domain + bucketACE.getCustomGroup().toLowerCase() + CUSTOMGROUP;
             }
         }
 

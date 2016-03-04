@@ -134,6 +134,7 @@ import com.google.common.collect.Table.Cell;
         ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 public class BlockConsistencyGroupService extends TaskResourceService {
 
+    private static final String BLOCKSERVICEAPIIMPL_GROUP = "group";
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
     private static final int CG_MAX_LIMIT = 64;
     private static final String FULL_COPY = "Full copy";
@@ -180,7 +181,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         } else if (cg.checkForType(Types.VPLEX)) {
             blockServiceApiImpl = getBlockServiceImpl(BlockConsistencyGroup.Types.VPLEX.toString().toLowerCase());
         } else {
-            blockServiceApiImpl = getBlockServiceImpl("group");
+            blockServiceApiImpl = getBlockServiceImpl(BLOCKSERVICEAPIIMPL_GROUP);
         }
         return blockServiceApiImpl;
     }
@@ -198,7 +199,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 systemType.equals(DiscoveredDataObject.Type.vplex.name())) {
             blockServiceApiImpl = getBlockServiceImpl(systemType);
         } else {
-            blockServiceApiImpl = getBlockServiceImpl("group");
+            blockServiceApiImpl = getBlockServiceImpl(BLOCKSERVICEAPIIMPL_GROUP);
         }
         return blockServiceApiImpl;
     }
@@ -378,7 +379,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             // the consistency groups on the system. If the consistency group
             // has not been created on the system or the system is not a VPlex
             // revert to the default.
-            BlockServiceApi blockServiceApi = getBlockServiceImpl("group");
+            BlockServiceApi blockServiceApi = getBlockServiceImpl(BLOCKSERVICEAPIIMPL_GROUP);
             if (storageSystem != null) {
                 String systemType = storageSystem.getSystemType();
                 if (DiscoveredDataObject.Type.vplex.name().equals(systemType)) {
@@ -539,19 +540,19 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * 
      * @param consistencyGroup consistency group object
      * @param param incoming request parameters
-     * @param _dbClient dbclient
+     * @param dbClient dbclient
      */
     private void validateVolumesInReplicationGroups(BlockConsistencyGroup consistencyGroup, BlockConsistencyGroupSnapshotCreate param,
-            DbClient _dbClient) {
+            DbClient dbClient) {
 
         // Get all of the volumes from the consistency group
         Iterator<Volume> volumeIterator = null;
         if (param.getVolumes() == null || param.getVolumes().isEmpty()) {
             URIQueryResultList uriQueryResultList = new URIQueryResultList();
-            _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
-            volumeIterator = _dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
+            dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()), uriQueryResultList);
+            volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
         } else {
-            volumeIterator = _dbClient.queryIterativeObjects(Volume.class, param.getVolumes());
+            volumeIterator = dbClient.queryIterativeObjects(Volume.class, param.getVolumes());
         }
         
         if (volumeIterator == null || !volumeIterator.hasNext()) {
@@ -565,12 +566,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
 
             // If it's a VPLEX volume, check both backing volumes to make sure they have replication group instance set
-            if (volume.isVPlexVolume(_dbClient)) {
-                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient);
+            if (volume.isVPlexVolume(dbClient)) {
+                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient);
                 if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
                     throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
                 }
-                backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
+                backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                 if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
                     throw APIException.badRequests.cgReplicationNotAllowedMissingReplicationGroup(backendVolume.getLabel());
                 }

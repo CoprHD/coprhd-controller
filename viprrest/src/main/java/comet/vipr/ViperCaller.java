@@ -167,8 +167,6 @@ public class ViperCaller {
     
     public boolean doExport(URI sourceVolumeURI, URI hostURI, URI targetVirtualPoolId){
         
-       
-        
         boolean result =false;
         Tasks<VolumeRestRep> volumeTask = createVolume(sourceVolumeURI, targetVirtualPoolId);
         
@@ -187,6 +185,8 @@ public class ViperCaller {
     }
     
     public Tasks<VolumeRestRep> migrate(URI hostURI, URI sourceVolumeURI, URI targetVolumeURI){
+        
+        System.out.println(" Value is host : "+ hostURI + " Source URI "+ sourceVolumeURI + " volume A"+targetVolumeURI);
        
        return client.blockVolumes().ppmigrate(sourceVolumeURI, new VolumeMigrate(hostURI, sourceVolumeURI, targetVolumeURI));
     }

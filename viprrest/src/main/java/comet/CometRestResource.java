@@ -152,7 +152,6 @@ public class CometRestResource {
         URI targetVpool=new URI(targetVpoolId.trim());
         
         
-        Tasks<VolumeRestRep> volumeTasks = vipr.migrate(hostURI, sourceVolumeURI, targetVpool);
         boolean result = vipr.doExport(sourceVolumeURI, hostURI, targetVpool);
 
         System.out.println( "Host " +host + " sourceVolume "+sourceVolume+ " targetVolume"+targetVpoolId);

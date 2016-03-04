@@ -106,4 +106,13 @@ public class IPSecInitialRotate implements Runnable {
     public void setIpsecMgr(IPsecManager ipsecMgr) {
         this.ipsecMgr = ipsecMgr;
     }
+
+    public DrUtil getDrUtil() {
+        return drUtil;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
+    
 }

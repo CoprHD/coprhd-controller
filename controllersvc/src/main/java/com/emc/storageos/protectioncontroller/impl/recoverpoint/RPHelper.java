@@ -71,6 +71,7 @@ import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.google.common.base.Joiner;
@@ -1819,7 +1820,20 @@ public class RPHelper {
      *
      * @return true if this is a protection based snapshot, false otherwise.
      */
-    public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
+    public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType, DbClient dbClient) {
+    	 //if volume is part of CG, and is snapshot type is not RP, then always create native Array snaps
+    	String rgName = volume.getReplicationGroupInstance();
+    	 if (volume.isVPlexVolume(dbClient)) {
+             Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+             if (backendVol != null && !backendVol.getInactive()) {
+            	 rgName = backendVol.getReplicationGroupInstance();
+             }
+         }
+         if (NullColumnValueGetter.isNotNullValue(rgName) &&
+        		 !snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
+             return false;
+         }
+    	 
         // This is a protection based snapshot request if:
         // The volume allows for bookmarking (it's under protection) and
         // - The param either asked for a bookmark, or

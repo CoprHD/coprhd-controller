@@ -352,7 +352,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // RP + VPlex CGs cannot be be deleted without VPlex controller intervention.
         if (consistencyGroup.getTypes().contains(Types.SRDF.toString()) ||
                 (consistencyGroup.getTypes().contains(Types.RP.toString()) &&
-                !consistencyGroup.getTypes().contains(Types.VPLEX.toString())) ||
+                        !consistencyGroup.getTypes().contains(Types.VPLEX.toString()))
+                ||
                 deleteUncreatedConsistencyGroup(consistencyGroup)) {
             final URIQueryResultList cgVolumesResults = new URIQueryResultList();
             _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
@@ -478,8 +479,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (!param.getVolumes().isEmpty()) {
             // Volume group snapshot
             // group volumes by backend storage system and replication group
-            storageRgToVolumes = BlockServiceUtils.
-                    getReplicationGroupVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
+            storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(param.getVolumes(), consistencyGroupId, _dbClient, uriInfo);
         } else {
             // CG snapshot
             storageRgToVolumes = BlockServiceUtils.getReplicationGroupVolumes(
@@ -767,7 +767,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         auditBlockConsistencyGroup(OperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
-                        .toString(), snapshot.getLabel());
+                        .toString(),
+                snapshot.getLabel());
         return toTask(snapshot, task, op);
     }
 
@@ -845,14 +846,41 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         addConsistencyGroupTask(consistencyGroup, response, task,
                 ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT);
 
-        Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
-        BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
-
-        blockServiceApiImpl.deleteSnapshot(snapshot, snapshots, task, VolumeDeleteTypeEnum.FULL.name());
+        try {
+            Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
+            BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
+            blockServiceApiImpl.deleteSnapshot(snapshot, snapshots, task, VolumeDeleteTypeEnum.FULL.name());
+        } catch (APIException | InternalException e) {
+            String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snapshot.getId(), e.getMessage());
+            _log.error(errorMsg);
+            for (TaskResourceRep taskResourceRep : response.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(errorMsg);
+                @SuppressWarnings({ "unchecked" })
+                Class<? extends DataObject> clazz = (Class<? extends DataObject>) URIUtil
+                        .getModelClass(taskResourceRep.getResource().getId());
+                _dbClient.error(clazz, taskResourceRep.getResource().getId(), task, e);
+            }
+            throw e;
+        } catch (Exception e) {
+            String errorMsg = String.format("Exception attempting to delete snapshot %s: %s", snapshot.getId(), e.getMessage());
+            _log.error(errorMsg);
+            APIException apie = APIException.internalServerErrors.genericApisvcError(errorMsg, e);
+            for (TaskResourceRep taskResourceRep : response.getTaskList()) {
+                taskResourceRep.setState(Operation.Status.error.name());
+                taskResourceRep.setMessage(apie.getMessage());
+                @SuppressWarnings("unchecked")
+                Class<? extends DataObject> clazz = (Class<? extends DataObject>) URIUtil
+                        .getModelClass(taskResourceRep.getResource().getId());
+                _dbClient.error(clazz, taskResourceRep.getResource().getId(), task, apie);
+            }
+            throw apie;
+        }
 
         auditBlockConsistencyGroup(OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
-                        .toString(), snapshot.getLabel());
+                        .toString(),
+                snapshot.getLabel());
 
         return response;
     }
@@ -1067,7 +1095,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         StorageOSUser user = getUserFromContext();
         if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user, project.getId(),
-                ACL.OWN, ACL.ALL))) {
+                        ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
@@ -1573,8 +1601,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Path("/{id}/protection/snapshot-sessions/{sid}/link-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList linkTargetVolumes(@PathParam("id") URI id,
-                                      @PathParam("sid") URI sessionId,
-                                      SnapshotSessionLinkTargetsParam param) {
+            @PathParam("sid") URI sessionId,
+            SnapshotSessionLinkTargetsParam param) {
         validateSessionPartOfConsistencyGroup(id, sessionId);
         return getSnapshotSessionManager().linkTargetVolumesToSnapshotSession(sessionId, param);
     }
@@ -1627,8 +1655,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Path("/{id}/protection/snapshot-sessions/{sid}/unlink-targets")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskResourceRep unlinkTargetVolumesForSession(@PathParam("id") URI id,
-                                                         @PathParam("sid") URI sessionId,
-                                                         SnapshotSessionUnlinkTargetsParam param) {
+            @PathParam("sid") URI sessionId,
+            SnapshotSessionUnlinkTargetsParam param) {
         validateSessionPartOfConsistencyGroup(id, sessionId);
         return getSnapshotSessionManager().unlinkTargetVolumesFromSnapshotSession(sessionId, param);
     }
@@ -1637,9 +1665,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * This method is called when a linked BlockSnapshot for a BlockSnapshotSession is passed to
      * {@link #deactivateConsistencyGroupSnapshot(URI, URI)} and we must instead unlink&delete it.
      *
-     * @param session   The BlockSnapshotSession.
-     * @param snapshot  The BlockSnapshot.
-     * @return          TaskList wrapping the single TaskResourceRep.
+     * @param session The BlockSnapshotSession.
+     * @param snapshot The BlockSnapshot.
+     * @return TaskList wrapping the single TaskResourceRep.
      */
     private TaskList deactivateAndUnlinkTargetVolumesForSession(BlockSnapshotSession session, BlockSnapshot snapshot) {
         SnapshotSessionUnlinkTargetParam unlink = new SnapshotSessionUnlinkTargetParam(snapshot.getId(), true);
@@ -2417,7 +2445,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.snapshotSessionIsNotForConsistencyGroup(session.getLabel(), cg.getLabel());
         }
     }
-    
+
     /**
      * Creates tasks against consistency groups associated with a request and adds them to the given task list.
      *

@@ -41,6 +41,34 @@ import socket
 import viprcli
 _logger = Logger()
 
+def retry_wrapper(func):
+    def try_and_retry(*args, **kwargs):
+        retry = False
+        try:
+            return func(*args, **kwargs)
+        except vipr_utils.SOSError as e:
+            # if we got an http error and
+            # the string contains 401 or if the string contains the word cookie
+            if (e.err_code == vipr_utils.SOSError.HTTP_ERR and
+			    (e.err_text.find('401') != -1 or
+				 e.err_text.lower().find('cookie') != -1)):
+				retry = True
+                EMCViPRDriverCommon.AUTHENTICATED = False
+            else:
+                exception_message = "\nViPR Exception: %s\nStack Trace:\n%s" \
+                    % (e.err_text, traceback.format_exc())
+                raise exception.VolumeBackendAPIException(
+				    data=exception_message)
+        except Exception:
+            exception_message = "\nGeneral Exception: %s\nStack Trace:\n%s" \
+                % (sys.exc_info()[0], traceback.format_exc())
+            raise exception.VolumeBackendAPIException(
+                data=exception_message)
+        if retry:
+            return func(*args, **kwargs)
+    return try_and_retry
+
+
 class CoprHDCLIDriver(object):
 
     OPENSTACK_TAG = 'coprhdflocker'
@@ -146,7 +174,7 @@ class CoprHDCLIDriver(object):
            return volumestatus(name=volumedetails['name'],size=volumedetails['provisioned_capacity_gb'],attached_to=None)
         except utils.SOSError:
                     Message.new(Debug="coprhd get volume details failed").write(_logger)
-   
+    @retry_wrapper
     def list_volume(self):
         self.authenticate_user()
         volumes = []
@@ -180,7 +208,7 @@ class CoprHDCLIDriver(object):
             Message.new(Debug="coprhd list volumes failed").write(_logger)
         return volumes
         
-    #@retry_wrapper
+    @retry_wrapper
     def create_volume(self, vol, size,profile_name=None):
         self.authenticate_user()
         Message.new(Debug="coprhd create_volume").write(_logger)
@@ -214,7 +242,8 @@ class CoprHDCLIDriver(object):
             else:
                 with excutils.save_and_reraise_exception():
                     Message.new(Debug="coprhd create_volume failed").write(_logger)
-    
+
+    @retry_wrapper
     def unexport_volume(self, vol):
         self.authenticate_user()
         self.exportgroup_obj.exportgroup_remove_volumes(
@@ -226,6 +255,7 @@ class CoprHDCLIDriver(object):
                 None,
                 None)
 
+    @retry_wrapper
     def export_volume(self, vol):
         self.authenticate_user()
         Message.new(Info="coprhd export_volume").write(_logger)
@@ -238,6 +268,7 @@ class CoprHDCLIDriver(object):
                 None,
                 None)
 
+    @retry_wrapper
     def delete_volume(self, vol):
         self.authenticate_user()
         try:

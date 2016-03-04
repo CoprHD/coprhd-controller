@@ -96,6 +96,15 @@ public class ScaleIOHelper {
     }
 
     /**
+     * Compare domain name and system name
+     *
+     * @param domainName
+     * @param systemName
+     */
+    public static Boolean compare(String domainName, String systemName) {
+        return domainName.equalsIgnoreCase(systemName);
+    }
+    /**
      * Check if all clones are from same consistency group
      *
      * @param clones

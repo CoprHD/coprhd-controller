@@ -112,6 +112,7 @@ angular.module('tags').directive({
              	if(isRetrySite({'uuid': scope.row.id})){
 					scope.isRetrySite = true;
 				}
+             	scope.isFailover = false;
              }
         	 
         	 if(scope.row.status.toUpperCase() == "ACTIVE"){

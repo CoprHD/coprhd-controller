@@ -491,7 +491,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             for (URI uri : snapSessions) {
                 BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, uri);
                 if (snapSession != null && !snapSession.getInactive()) {
-                    log.info("Marking snap session in-active: {}", snapSession.getLabel());
+                    log.info("Marking snapshot session in-active: {}", snapSession.getLabel());
                     snapSession.setInactive(true);
                     _dbClient.updateObject(snapSession);
                 }

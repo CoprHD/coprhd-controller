@@ -93,6 +93,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCleanupMetaVolumeMembersJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVolumeJob;
@@ -624,14 +625,16 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                         }
                         removeVolumeFromConsistencyGroup(storageSystem, volume);
                     }
+                    // for VMAX3, delete the associated snapshot sessions before deleting the volume
+                    // volume may be removed from CG which has group session
+                    if (storageSystem.checkIfVmax3()) {
+                        cleanupAnyBackupSnapshots(storageSystem, volume);
+                    }
                 } else {
                     // for VMAX3, clean up unlinked snapshot session, which is possible for ingested volume
                     if (storageSystem.deviceIsType(Type.vnxblock) || storageSystem.checkIfVmax3()) {
                         cleanupAnyBackupSnapshots(storageSystem, volume);
                     }
-                }
-                // for VMAX3, clean up the snapshot session for volume which is removed from group snap session
-                if (storageSystem.checkIfVmax3()) {
                 }
                 if (storageSystem.deviceIsType(Type.vmax) && !storageSystem.checkIfVmax3()) {
                     // VMAX2 - remove volume from Storage Groups if volume is not in any MaskingView

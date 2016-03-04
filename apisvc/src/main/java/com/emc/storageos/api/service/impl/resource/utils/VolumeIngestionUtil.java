@@ -1291,7 +1291,7 @@ public class VolumeIngestionUtil {
                             // need to check for several matching properties
                             URI storageControllerUri = cg.getStorageController();
                             URI virtualArrayUri = cg.getVirtualArray();
-                            if (null != storageControllerUri && null != virtualArrayUri) {
+                            if (!NullColumnValueGetter.isNullURI(storageControllerUri) && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                                 if (storageControllerUri.equals(storageSystem.getId()) &&
                                         virtualArrayUri.equals(varrayUri)) {
                                     _logger.info("Found a matching BlockConsistencyGroup {} "
@@ -3652,7 +3652,7 @@ public class VolumeIngestionUtil {
                     }
                     URI storageControllerUri = cg.getStorageController();
                     URI virtualArrayUri = cg.getVirtualArray();
-                    if (null == storageControllerUri && null == virtualArrayUri) {
+                    if (NullColumnValueGetter.isNullURI(storageControllerUri) && NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                         potentialUnclaimedCg = cg;
                     }
                 }
@@ -3717,7 +3717,7 @@ public class VolumeIngestionUtil {
                 URI storageControllerUri = cg.getStorageController();
                 URI virtualArrayUri = cg.getVirtualArray();
                 // need to check for several matching properties
-                if (null != storageControllerUri && null != virtualArrayUri) {
+                if (!NullColumnValueGetter.isNullURI(storageControllerUri) && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                     if (storageControllerUri.equals(storageSystem.getId()) &&
                             virtualArrayUri.equals(varrayUri)) {
                         _logger.info("Found a matching BlockConsistencyGroup {} "

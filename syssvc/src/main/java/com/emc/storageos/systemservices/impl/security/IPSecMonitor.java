@@ -120,11 +120,23 @@ public class IPSecMonitor implements Runnable {
                 localRepository.reconfigProperties("ipsec");
                 localRepository.reload("ipsec");
             } else {
-                log.info("local already has latest ipsec key, skip syncing");
+                log.info("Local already has latest ipsec key, checking local ...");
+                LocalRepository localRepository = LocalRepository.getInstance();
+                if (localRepository.isLocalIpsecConfigSynced()) {
+                    localRepository.reconfigProperties("ipsec");
+                }
+                localRepository.reload("ipsec");
             }
-            log.info("step 4: ipsec check finish");
+
+            log.info("Step 4: rechecking ipsec status ...");
+            problemNodes = LocalRepository.getInstance().checkIpsecConnection();
+            if (problemNodes == null || problemNodes.length == 0) {
+                log.info("All connections issuses are fixed.");
+            } else {
+                log.info("ipsec still has problems on : " + Arrays.toString(problemNodes));
+            }
         } catch (Exception ex) {
-            log.warn("error when run ipsec monitor: " + ex.getMessage());
+            log.warn("error when run ipsec monitor: ", ex);
         }
     }
 
@@ -154,6 +166,7 @@ public class IPSecMonitor implements Runnable {
                 }
 
                 if (props == null) {
+                    log.warn("Failed to get ipsec properties from the node {}", node);
                     continue;
                 }
 

@@ -347,6 +347,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         ArgValidator.checkReference(BlockConsistencyGroup.class, id,
                 checkForDelete(consistencyGroup));
         String task = UUID.randomUUID().toString();
+        TaskResourceRep taskRep = null;
 
         // srdf/rp cgs can be deleted from vipr only if there are no more volumes associated.
         // If the consistency group is inactive or has yet to be created on
@@ -367,7 +368,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     _permissionsHelper.getObjectById(storageSystemURI, StorageSystem.class) : null;
 
             // Only contact the controller for VPLEX storage systems
-            if (!storageSystem.getSystemType().equalsIgnoreCase(Type.vplex.name())) {
+            if (storageSystem == null || !storageSystem.getSystemType().equalsIgnoreCase(Type.vplex.name())) {
                 continue;
             }
                     
@@ -384,15 +385,36 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 }
                 _log.info(String.format("BlockConsistencyGroup %s is associated to StorageSystem %s. Going to delete it on that array.",
                         consistencyGroup.getLabel(), storageSystem.getNativeGuid()));
+                
+                // TODO: We need to rewrite delete consistency group to serialize all of the delete CG operations
+                // so they don't bump into each other.  For now, we'll hack it.
+                //
+                // COP-21149: Need to serialize and return one task object to caller that completes when all of the
+                // underlying controller operations are complete.  Fortunately the underlying operations already check
+                // for "more" vplex's in the list and will not deactivate the CG, so the last one should perform the
+                // delete properly.
+                if (taskRep != null) {
+                    try {
+                        // Need to be careful here because the API only allows so much time before it times out
+                        Thread.sleep(30000);
+                    } catch (InterruptedException e) {
+                        Thread.interrupted();
+                    }
+                }
+                
                 // Otherwise, invoke operation to delete CG from the array.
-                return blockServiceApi.deleteConsistencyGroup(storageSystem, consistencyGroup, task);
+                taskRep = blockServiceApi.deleteConsistencyGroup(storageSystem, consistencyGroup, task);
             }
         }
 
-        _log.info(String.format("BlockConsistencyGroup %s was not associated with any storage. Deleting it from ViPR only if empty.",
+        if (taskRep == null) {
+            _log.info(String.format("BlockConsistencyGroup %s was not associated with any storage. Deleting it from ViPR only if empty.",
                 consistencyGroup.getLabel()));
-        validateVolumesAndDeleteCG(consistencyGroup);
-        return finishDeactivateTask(consistencyGroup, task);
+            validateVolumesAndDeleteCG(consistencyGroup);
+            return finishDeactivateTask(consistencyGroup, task);
+        }
+        
+        return taskRep;
     }
 
     private void validateVolumesAndDeleteCG(final BlockConsistencyGroup consistencyGroup) {

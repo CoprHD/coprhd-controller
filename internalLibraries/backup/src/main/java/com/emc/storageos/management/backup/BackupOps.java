@@ -384,46 +384,8 @@ public class BackupOps {
         checkBackup(infoPropertyFile, isGeo);
     }
 
-    /*
-    public Map<URI,List<File>> getUploadFiles(File backupFolder) throws UnknownHostException, URISyntaxException {
-        File[] backupFiles = getBackupFiles(backupFolder);
-
-        if (backupFiles == null) {
-            String errMsg = String.format("The %s contains no backup files", backupFolder.getAbsolutePath());
-            throw new RuntimeException(errMsg);
-        }
-
-        Map<URI, List<File>> filesMap= new HashMap();
-        Map<String, URI > nodes = getNodesInfo();
-        log.info("nodes to upload{}", nodes);
-        String localHostName = InetAddress.getLocalHost().getHostName();
-        for (Map.Entry<String, URI> node : nodes.entrySet()) {
-
-            String hostname = toHostName(node.getKey());
-            if (hostname.equals(localHostName)) {
-                //already downloaded on this node, no need to download again
-                continue;
-            }
-
-            List<File> files = new ArrayList();
-
-            for (File f : backupFiles) {
-                if (belongToNode(f, hostname)) {
-                    files.add(f);
-                }
-            }
-
-            filesMap.put(node.getValue(), files);
-        }
-
-        log.info("lbye filesMap={}", filesMap);
-        return filesMap;
-    }
-    */
-
     public List<URI> getOtherNodes() throws URISyntaxException, UnknownHostException {
         Map<String, URI> nodes = getNodesInfo();
-        log.info("nodes: {}", nodes);
         String localHostName = InetAddress.getLocalHost().getHostName();
         List<URI> uris = new ArrayList();
         for (Map.Entry<String, URI> node : nodes.entrySet()) {
@@ -434,14 +396,11 @@ public class BackupOps {
 
             uris.add(node.getValue());
         }
-
-        log.info("lbye uris={}", uris);
         return uris;
     }
 
     public URI getMyURI() throws URISyntaxException, UnknownHostException {
         Map<String, URI> nodes = getNodesInfo();
-        log.info("nodes: {}", nodes);
         String localHostName = InetAddress.getLocalHost().getHostName();
         for (Map.Entry<String, URI> node : nodes.entrySet()) {
             String hostname = toHostName(node.getKey());
@@ -450,7 +409,7 @@ public class BackupOps {
             }
         }
 
-        log.error("lbye can't find my URI localhost={}", localHostName);
+        log.error("Can't find my URI localhost={}", localHostName);
         
         return null;
     }
@@ -593,30 +552,24 @@ public class BackupOps {
      * Persist download status to ZK
      */
     public void setBackupFileSize(String backupName, long size) {
-        updateRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, size, 0, false, null, true);
+        updateRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, null, size, 0, false, null, true);
     }
 
     public void setBackupFileNames(String backupName, List<String> filenames) {
-        updateRestoreStatus(backupName, null, 0, 0, false, filenames, true);
+        updateRestoreStatus(backupName, null, null, 0, 0, false, filenames, true);
     }
 
-    /*
-    public void setInternalUploadFileCount(String backupName, int count) {
-        log.info("lbyx file upload backupName={} count={}", backupName, count);
-        updateRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, 0, 0, false, count, true);
-    }
-    */
-
-    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, boolean increaseCompleteNumber) {
-        updateRestoreStatus(backupName, s, 0, 0, increaseCompleteNumber, null, true);
+    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, String details, boolean increaseCompleteNumber) {
+        updateRestoreStatus(backupName, s, details, 0, 0, increaseCompleteNumber, null, true);
     }
 
     public void updateDownloadSize(String backupName, long size) {
-        updateRestoreStatus(backupName, null, 0, size, false, null, false);
+        updateRestoreStatus(backupName, null, null, 0, size, false, null, false);
     }
 
-    private void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
-                                              boolean increaseCompletedNodeNumber, List<String> backupfileNames, boolean doLog) {
+    private void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, String details,
+                                     long backupSize, long increasedSize, boolean increaseCompletedNodeNumber,
+                                     List<String> backupfileNames, boolean doLog) {
         InterProcessLock lock = null;
         try {
             lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
@@ -638,7 +591,7 @@ public class BackupOps {
             s.setBackupName(backupName);
 
             if (status != null) {
-                s.setStatus(status);
+                s.setStatusWithDetails(status, details);
             }
 
             if (backupSize > 0) {
@@ -777,7 +730,7 @@ public class BackupOps {
         }
 
         if (!isLocal) {
-            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, false);
+            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, "Download canceled", false);
             log.info("Persist the cancel flag into ZK");
         }
     }
@@ -1148,20 +1101,16 @@ public class BackupOps {
     }
 
     public boolean isDownloadInProgress() {
-        log.info("lbye");
         try {
             CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
 
             String path = getDownloadOwnerPath();
-            log.info("lbye path={}", path);
+            log.info("Download zk path={}", path);
             List<String> downloaders = client.getChildren(path);
-            log.info("lbye downloaders={}", downloaders);
             return (downloaders != null) && (!downloaders.isEmpty());
         }catch(KeeperException.NoNodeException e) {
-            log.info("lbye1");
             return false; // no downloading is running
         } catch (Exception e) {
-            log.info("lbye2");
             log.error("Failed to check downloading tasks e=",e);
             throw BackupException.fatals.failedToReadZkInfo(e);
         }
@@ -1169,24 +1118,23 @@ public class BackupOps {
 
     private String getMyDownloadingZKPath() {
         String downloadersPath = getDownloadOwnerPath();
-        CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient; //TODO
+        CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
         CoordinatorClientInetAddressMap addrMap = client.getInetAddessLookupMap();
         String myNodeId= addrMap.getNodeId();
-        log.info("downloaderPath={} myNodeId={}", downloadersPath, myNodeId);
         return downloadersPath+"/"+myNodeId;
     }
 
     public void registerDownloader() throws Exception {
         String path = getMyDownloadingZKPath();
-        CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient; //TODO
-        log.info("lbyc create node zk path={}", path);
+        CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
+        log.info("register downloader: {}", path);
         client.createEphemeralNode(path, null);
     }
 
     public void unregisterDownloader() throws Exception {
         String path = getMyDownloadingZKPath();
+        log.info("unregister downloader: {}", path);
         CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
-        log.info("lbyc delete node zk path={}", path);
         client.deleteNode(path);
     }
 

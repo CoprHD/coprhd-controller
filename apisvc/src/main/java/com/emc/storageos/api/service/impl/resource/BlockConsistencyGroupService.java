@@ -417,6 +417,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         return taskRep;
     }
 
+    /**
+     * Validate there are no remaining volumes in a CG and delete the CG if it's empty.
+     * Throw a validation exception if there are volumes in the CG.
+     * 
+     * @param consistencyGroup consistency group database object
+     */
     private void validateVolumesAndDeleteCG(final BlockConsistencyGroup consistencyGroup) {
         final URIQueryResultList cgVolumesResults = new URIQueryResultList();
         _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),

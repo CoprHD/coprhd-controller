@@ -446,7 +446,7 @@ public class BackupService {
     @POST
     @Path("internal/pull")
     public Response downloadBackupFile(@QueryParam("backupname") String backupName, @QueryParam("endpoint") URI endpoint) {
-        log.info("lbyf To download files of backupname={} endpoint={}", backupName, endpoint);
+        log.info("To download files of backupname={} endpoint={}", backupName, endpoint);
 
         downloadTask = new DownloadExecutor(backupName, backupOps, endpoint);
         Thread downloadThread = new Thread(downloadTask);
@@ -487,7 +487,7 @@ public class BackupService {
     @Path("pull/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response pullBackup(@QueryParam("file") String backupName ) {
-        log.info("lbye To pull the backup file {}", backupName);
+        log.info("To pull the backup file {}", backupName);
 
         checkExternalServer();
 
@@ -537,9 +537,9 @@ public class BackupService {
         s.setBackupName(backupName);
         s.setBackupSize(size);
 
-        log.info("lbya init backup/restore status:",s);
+        log.info("Init backup/restore status:", s);
 
-        s.setStatus(BackupRestoreStatus.Status.DOWNLOADING);
+        s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
         backupOps.persistBackupRestoreStatus(s, false, true);
     }
 
@@ -556,10 +556,7 @@ public class BackupService {
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", restoreURL, endpoint);
             log.error(errMsg);
-            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
-            s.setMessage(errMsg);
-            backupOps.setRestoreStatus(backupName, s, false);
-            throw SysClientException.syssvcExceptions.restoreFailed(backupName, errMsg);
+            setRestoreFailed(backupName, errMsg);
         }
     }
 
@@ -668,8 +665,7 @@ public class BackupService {
 
     private Response setRestoreFailed(String backupName, String msg) {
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
-        s.setMessage(msg);
-        backupOps.setRestoreStatus(backupName, s, false);
+        backupOps.setRestoreStatus(backupName, s, msg, false);
         throw SyssvcException.syssvcExceptions.restoreFailed(backupName, msg);
     }
 
@@ -682,11 +678,12 @@ public class BackupService {
     @Path("restore/status")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public BackupRestoreStatus queryRestoreStatus(@QueryParam("backupname") String backupName, @QueryParam("isLocal") boolean isLocal) {
+    public BackupRestoreStatus queryRestoreStatus(@QueryParam("backupname") String backupName,
+                                                  @QueryParam("isLocal") @DefaultValue("false") boolean isLocal) {
         log.info("Query restore status backupName={} isLocal={}", backupName, isLocal);
         BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, isLocal);
 
-        log.info("lbyb backup/restore status:{}", status);
+        log.info("The backup/restore status:{}", status);
         return status;
     }
 

@@ -7,6 +7,7 @@ package com.emc.vipr.model.sys.backup;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -23,6 +24,7 @@ public class BackupRestoreStatus {
     private static final String KEY_BACKUP_SIZE = "backupSize";
     private static final String KEY_DOWNLOAD_SIZE = "downloadSize";
     private static final String KEY_STATUS = "status";
+    private static final String KEY_DETAILS_MSG = "details";
     private static final String KEY_NODE_COMPLETED= "nodeCompleted";
     private static final String KEY_FILE_NAMES= "filenames";
     private static final String FILE_NAME_SEPARATOR= ":";
@@ -32,7 +34,7 @@ public class BackupRestoreStatus {
     private long backupSize = 0;
     private long downloadSize = 0;
     private Status status = Status.READY;
-    // private int filesToDownloadCount = 0;
+    private String details = "";
     private int nodeCompleted = 0;
     private boolean isGeo = false;
     private List<String> backupFileNames = new ArrayList();
@@ -54,31 +56,21 @@ public class BackupRestoreStatus {
         return status;
     }
 
-    public void setStatus(Status status) {
-        this.status = status;
+    @XmlElement (name = "details")
+    public String getDetails() {
+        return details;
     }
 
-    /*
-    public int getFilesToDownloadCount() {
-        return filesToDownloadCount;
+    public void setStatusWithDetails(Status s, String details) {
+        status = s;
+        this.details = details != null ? details : s.getMessage();
     }
-
-    public void setFilesDownloadedCount(int count) {
-        filesToDownloadCount = count;
-    }
-
-    public void decreaseFilesDownloaded() {
-        log.info("lbyx decrease count {} stack=", filesToDownloadCount, new Throwable());
-        filesToDownloadCount--;
-    }
-    */
 
     public int getNodeCompleted() {
         return nodeCompleted;
     }
 
     public void increaseNodeCompleted() {
-        log.info("lbyu {} stack=", nodeCompleted, new Throwable());
         nodeCompleted++;
     }
 
@@ -129,26 +121,27 @@ public class BackupRestoreStatus {
             return cancellable;
         }
 
-        public boolean removeDownloadFiles() {
-            return removeDownloadedFiles;
-        }
-
         public boolean removeListener() {
             return removeListener;
         }
 
+        /*
         public void setMessage(String msg) {
             message = msg;
         }
+        */
 
         public String getMessage () {
             return message;
         }
 
+        /*
         @Override
         public String toString() {
+
             return getMessage();
         }
+        */
     }
 
     @XmlElement(name = "download_size")
@@ -161,7 +154,7 @@ public class BackupRestoreStatus {
     }
 
     @XmlElement(name = "backup_size")
-    public long getBackupSize() {
+    public Long getBackupSize() {
         return backupSize;
     }
 
@@ -180,21 +173,11 @@ public class BackupRestoreStatus {
         map.put(KEY_BACKUP_SIZE, Long.toString(backupSize));
         map.put(KEY_DOWNLOAD_SIZE, Long.toString(downloadSize));
         map.put(KEY_STATUS, status.name());
-        //map.put(KEY_NODE_COMPLETED, Integer.toString(filesToDownloadCount));
+        map.put(KEY_DETAILS_MSG, details);
         map.put(KEY_NODE_COMPLETED, Integer.toString(nodeCompleted));
         map.put(KEY_IS_GEO_ENV, Boolean.toString(isGeo));
 
-        /*
-        StringBuilder builder = new StringBuilder();
-        for (String name : backupFileNames ) {
-            builder.append(name);
-            builder.append(FILE_NAME_SEPARATOR);
-        }
-
-        String names = builder.toString();
-        */
         String names = String.join(FILE_NAME_SEPARATOR, backupFileNames);
-        log.info("lbya backup files={}", names);
         map.put(KEY_FILE_NAMES, names);
 
         return map;
@@ -221,15 +204,16 @@ public class BackupRestoreStatus {
                 case KEY_STATUS:
                     status = Status.valueOf(value);
                     break;
+                case KEY_DETAILS_MSG:
+                    details = value;
+                    break;
                 case KEY_NODE_COMPLETED:
-                    //filesToDownloadCount = Integer.parseInt(value);
                     nodeCompleted = Integer.parseInt(value);
                     break;
                 case KEY_FILE_NAMES:
                     String[] names = value.split(FILE_NAME_SEPARATOR);
 
                     backupFileNames = Arrays.asList(names);
-                    log.info("lby value={} filenames={}", value, backupFileNames);
                     break;
                 case KEY_IS_GEO_ENV:
                     isGeo = Boolean.valueOf(value);
@@ -248,14 +232,15 @@ public class BackupRestoreStatus {
           .append(", downloadSize:")
           .append(getDownoadSize())
           .append(", filesDownloaded:")
-          //.append(getFilesToDownloadCount())
           .append(getBackupFileNames())
-          .append(" nodesCompleted:")
+          .append(", nodesCompleted:")
           .append(nodeCompleted)
           .append(", isGeo:")
           .append(isGeo())
           .append(", status:")
-          .append(getStatus());
+          .append(getStatus())
+          .append(", details:")
+          .append(details);
 
         return sb.toString();
     }

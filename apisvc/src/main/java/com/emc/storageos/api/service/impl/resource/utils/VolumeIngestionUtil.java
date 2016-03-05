@@ -1442,8 +1442,8 @@ public class VolumeIngestionUtil {
 
         Map<String, Integer> wwnToHluMap = extractWwnToHluMap(eligibleMask, dbClient);
 
-        ExportMask exportMask = ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(), 
-                exportMaskLabel, allInitiators, null, storagePortUris, eligibleMask.getZoningMap(), volume, 
+        ExportMask exportMask = ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(),
+                exportMaskLabel, allInitiators, null, storagePortUris, eligibleMask.getZoningMap(), volume,
                 eligibleMask.getUnmanagedInitiatorNetworkIds(), eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
 
         // remove unmanaged mask if created if the block object is not marked as internal
@@ -1486,19 +1486,21 @@ public class VolumeIngestionUtil {
     /**
      * Validate the unmanaged export mask is a mask that aligns with the host/cluster initiators provided.
      * If they do match, they will eventually be fed into the export group.
-     * 
+     *
      * @param dbClient dbclient
-     * @param exportGroup export group.  Used for error messages only
+     * @param exportGroup export group. Used for error messages only
      * @param computeInitiators list of initiators
      * @param unManagedExportMask unmanaged export mask
      * @param errorMessages error messages
      * @return true if the export mask is aligned to the export group.
      */
-    public static boolean validateExportMaskMatchesComputeResourceInitiators(DbClient dbClient, ExportGroup exportGroup, StringSet computeInitiators,
+    public static boolean validateExportMaskMatchesComputeResourceInitiators(DbClient dbClient, ExportGroup exportGroup,
+            StringSet computeInitiators,
             UnManagedExportMask unManagedExportMask, List<String> errorMessages) {
         // Validate future export group initiators
         if (computeInitiators == null) {
-            String errorMessage = String.format("ExportGroup %s has no initiators and therefore unmanaged export mask %s can't be ingested with it.",
+            String errorMessage = String.format(
+                    "ExportGroup %s has no initiators and therefore unmanaged export mask %s can't be ingested with it.",
                     exportGroup.getLabel(), unManagedExportMask.getMaskName());
             errorMessages.add(errorMessage.toString());
             return false;
@@ -1506,7 +1508,8 @@ public class VolumeIngestionUtil {
 
         // Validate unmanaged export mask initiators
         if (unManagedExportMask.getKnownInitiatorUris() == null) {
-            String errorMessage = String.format("Unmanaged export mask %s has no initiators and therefore it can't be ingested.  (ExportGroup: %s)",
+            String errorMessage = String.format(
+                    "Unmanaged export mask %s has no initiators and therefore it can't be ingested.  (ExportGroup: %s)",
                     unManagedExportMask.getMaskName(), exportGroup.getLabel());
             errorMessages.add(errorMessage.toString());
             return false;
@@ -1514,14 +1517,16 @@ public class VolumeIngestionUtil {
 
         // If you find the compute resource contains some initiators in the unmanaged export mask, go ahead and process it.
         if (StringSetUtil.hasIntersection(unManagedExportMask.getKnownInitiatorUris(), computeInitiators)) {
-            String message = String.format("Unmanaged export mask has initiators that match the export group (%s) initiators and therefore will be attempted to be ingested.",
+            String message = String.format(
+                    "Unmanaged export mask has initiators that match the export group (%s) initiators and therefore will be attempted to be ingested.",
                     unManagedExportMask.getMaskName(), exportGroup.getLabel());
             _logger.info(message);
             return true;
         }
-        
-        // Probably the most common scenario.  Don't try to ingest an export mask that doesn't match the export group's initiators.
-        String errorMessage = String.format("ExportGroup %s has no initiators that match unmanaged export mask %s and therefore can't be ingested with it.",
+
+        // Probably the most common scenario. Don't try to ingest an export mask that doesn't match the export group's initiators.
+        String errorMessage = String.format(
+                "ExportGroup %s has no initiators that match unmanaged export mask %s and therefore can't be ingested with it.",
                 exportGroup.getLabel(), unManagedExportMask.getMaskName());
         errorMessages.add(errorMessage.toString());
         return false;
@@ -1729,7 +1734,7 @@ public class VolumeIngestionUtil {
             _logger.info("adding volume {} to export group {}", volume.forDisplay(), exportGroup.forDisplay());
             exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
         } else {
-            _logger.info("volume {} is partially ingested, so not adding to export group {}", 
+            _logger.info("volume {} is partially ingested, so not adding to export group {}",
                     volume.forDisplay(), exportGroup.forDisplay());
         }
 
@@ -2246,7 +2251,7 @@ public class VolumeIngestionUtil {
     /**
      * Verifies that the given ExportGroup matches the rest of the parameters.
      * ComputeResource URI and resourceType are only check if both are non-null
-     * 
+     *
      * @param exportGroupToCheck the ExportGroup to check
      * @param exportGroupLabel the name of the ExportGroup
      * @param project the URI of the ExportGroup's Project
@@ -2255,7 +2260,7 @@ public class VolumeIngestionUtil {
      * @param resourceType the ExportGroup's resource type (optional)
      * @return true if the exportGroupToCheck is a match for the rest of the parameters
      */
-    public static boolean verifyExportGroupMatches(ExportGroup exportGroupToCheck, String exportGroupLabel, 
+    public static boolean verifyExportGroupMatches(ExportGroup exportGroupToCheck, String exportGroupLabel,
             URI project, URI vArray, URI computeResource, String resourceType) {
 
         if (exportGroupToCheck != null) {
@@ -2293,7 +2298,7 @@ public class VolumeIngestionUtil {
 
         return true;
     }
-    
+
     /**
      * Verify a matching ExportGroup exists for the given parameters.
      *
@@ -2304,7 +2309,8 @@ public class VolumeIngestionUtil {
      * @param dbClient a reference to the database client
      * @return an ExportGroup if already available in the database
      */
-    public static ExportGroup verifyExportGroupExists(URI project, URI computeResource, URI vArray, String resourceType,
+    public static ExportGroup verifyExportGroupExists(IngestionRequestContext requestContext, URI project, URI computeResource, URI vArray,
+            String resourceType,
             DbClient dbClient) {
 
         List<URI> exportGroupUris = dbClient.queryByConstraint(ContainmentConstraint.Factory.getProjectExportGroupConstraint(project));
@@ -2313,26 +2319,35 @@ public class VolumeIngestionUtil {
         if (null == exportGroups || exportGroups.isEmpty()) {
             return null;
         }
-        for (ExportGroup exportGroup : exportGroups) {
-            if (exportGroup.getVirtualArray().equals(vArray)) {
+        ExportGroup exportGroup = null;
+        for (ExportGroup eg : exportGroups) {
+            if (eg.getVirtualArray().equals(vArray)) {
 
                 if (ExportGroup.ExportGroupType.Host.toString().equalsIgnoreCase(resourceType)) {
-                    if (exportGroup.hasHost(computeResource) &&
-                            !ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(exportGroup.getType())) {
-                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", exportGroup.getId());
-                        return exportGroup;
+                    if (eg.hasHost(computeResource) &&
+                            !ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(eg.getType())) {
+                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", eg.getId());
+                        exportGroup = eg;
                     }
                 } else if (ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(resourceType)) {
-                    if (exportGroup.hasCluster(computeResource)) {
-                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", exportGroup.getId());
-                        return exportGroup;
+                    if (eg.hasCluster(computeResource)) {
+                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", eg.getId());
+                        exportGroup = eg;
                     }
                 }
 
             }
         }
 
-        return null;
+        if (exportGroup != null) {
+            DataObject alreadyLoadedExportGroup = requestContext.findInUpdatedObjects(exportGroup.getId());
+            if (alreadyLoadedExportGroup != null && (alreadyLoadedExportGroup instanceof ExportGroup)) {
+                _logger.info("Found an already loaded export group");
+                exportGroup = (ExportGroup) alreadyLoadedExportGroup;
+            }
+        }
+
+        return exportGroup;
     }
 
     /**
@@ -2347,30 +2362,41 @@ public class VolumeIngestionUtil {
      * @param dbClient dbclient
      * @return export group
      */
-    public static ExportGroup verifyExportGroupExists(URI project, StringSet knownInitiatorUris, URI vArray, DbClient dbClient) {
+    public static ExportGroup verifyExportGroupExists(IngestionRequestContext requestContext, URI project, StringSet knownInitiatorUris,
+            URI vArray, DbClient dbClient) {
+        ExportGroup exportGroup = null;
+
         for (String initiatorIdStr : knownInitiatorUris) {
             AlternateIdConstraint constraint = AlternateIdConstraint.Factory.getExportGroupInitiatorConstraint(initiatorIdStr);
             URIQueryResultList egUris = new URIQueryResultList();
             dbClient.queryByConstraint(constraint, egUris);
             List<ExportGroup> queryExportGroups = dbClient.queryObject(ExportGroup.class, egUris);
-            for (ExportGroup exportGroup : queryExportGroups) {
-                if (!exportGroup.getProject().getURI().equals(project)) {
+            for (ExportGroup eg : queryExportGroups) {
+                if (!eg.getProject().getURI().equals(project)) {
                     continue;
                 }
 
-                if (!exportGroup.getVirtualArray().equals(vArray)) {
+                if (!eg.getVirtualArray().equals(vArray)) {
                     continue;
                 }
 
                 if (queryExportGroups.size() > 1) {
                     _logger.info("More than one export group contains the initiator(s) requested.  Choosing the first one: "
-                            + exportGroup.getId().toString());
+                            + eg.getId().toString());
                 }
-                return exportGroup;
+                exportGroup = eg;
             }
-
         }
-        return null;
+
+        if (exportGroup != null) {
+            DataObject alreadyLoadedExportGroup = requestContext.findInUpdatedObjects(exportGroup.getId());
+            if (alreadyLoadedExportGroup != null && (alreadyLoadedExportGroup instanceof ExportGroup)) {
+                _logger.info("Found an already loaded export group");
+                exportGroup = (ExportGroup) alreadyLoadedExportGroup;
+            }
+        }
+
+        return exportGroup;
     }
 
     /**
@@ -2830,7 +2856,6 @@ public class VolumeIngestionUtil {
         // for each block object, get the corresponding unmanaged volume.
         _logger.info("clearInternalFlags for blockObject " + blockObject.forDisplay());
 
-        List<UnManagedExportMask> uemsToPersist = new ArrayList<UnManagedExportMask>();
         String unmanagedVolumeGUID = blockObject.getNativeGuid().replace(VOLUME, UNMANAGEDVOLUME);
         List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID));
@@ -2884,16 +2909,25 @@ public class VolumeIngestionUtil {
                         if (null == normalizedWWN) {
                             throw IngestionException.exceptions.exportedVolumeIsMissingWwn(unManagedVolume.getLabel());
                         }
+                        boolean foundExportMask = false;
                         if (exportMask.hasAnyExistingVolumes() && exportMask.getExistingVolumes().containsKey(normalizedWWN)) {
                             _logger.info(
                                     "Removing block object {} from existing volumes and adding to user created volumes of export mask {}",
                                     blockObject.getNativeGuid(), exportMask.getMaskName());
                             exportMask.removeFromExistingVolumes(blockObject);
                             exportMask.addToUserCreatedVolumes(blockObject);
+                            updatedObjects.add(exportMask);
+                            foundExportMask = true;
                             exportGroups.addAll(ExportMaskUtils.getExportGroups(dbClient, exportMask));
                         }
+                        if (foundExportMask) {
+                            _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
+                                    unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
+                            unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
+                            unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
+                            updatedObjects.add(unManagedExportMask);
+                        }
                     }
-                    updatedObjects.addAll(exportMasks);
 
                     // Add the block object to the export groups corresponding to the export masks
                     for (ExportGroup exportGroup : exportGroups) {
@@ -2906,18 +2940,14 @@ public class VolumeIngestionUtil {
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
                             _logger.info("Adding block object {} to export group {}", blockObject.getNativeGuid(), exportGroup.getLabel());
                             exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
+                            updatedObjects.add(exportGroup);
                         }
                     }
-                    updatedObjects.addAll(exportGroups);
-                    _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
-                            unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
-                    unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
-                    unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
+
                 }
             } else {
                 _logger.info("No unmanaged export masks found for the unmanaged volume {}", unManagedVolumes.get(0).getNativeGuid());
             }
-            updatedObjects.addAll(uemsToPersist);
 
             if (canDeleteUnManagedVolume(unManagedVolume)) {
                 _logger.info("Set unmanaged volume inactive: {}", unManagedVolume.forDisplay());
@@ -3511,10 +3541,10 @@ public class VolumeIngestionUtil {
                 Map<String, BlockObject> createdMap = null;
                 Map<String, List<DataObject>> updatedMap = null;
                 if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
-                    createdMap = ((RpVplexVolumeIngestionContext)
-                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getBlockObjectsToBeCreatedMap();  
-                    updatedMap = ((RpVplexVolumeIngestionContext)
-                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getDataObjectsToBeUpdatedMap();  
+                    createdMap = ((RpVplexVolumeIngestionContext) requestContext.getVolumeContext()).getVplexVolumeIngestionContext()
+                            .getBlockObjectsToBeCreatedMap();
+                    updatedMap = ((RpVplexVolumeIngestionContext) requestContext.getVolumeContext()).getVplexVolumeIngestionContext()
+                            .getDataObjectsToBeUpdatedMap();
                 }
 
                 for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
@@ -3573,18 +3603,18 @@ public class VolumeIngestionUtil {
      *
      * @param unManagedVolume - UnManagedVolume object.
      * @param blockObj - Ingested BlockObject
-     * @param vpool - VirtualPool in which unManagedVolume is getting ingested.
-     * @param projectUri - Project in which unManagedVolume is getting ingested.
-     * @param tenantUri - Tenant in which unManagedVolume is getting ingested.
-     * @param varrayUri - Varray in which unManagedVolume is getting ingested.
-     * @param umcgsToUpdate - UnManagedConsistencyGroup's to update.
+     * @param context - current unManagedVolume Ingestion context.
      * @param dbClient - dbClient instance.
      * @return BlockConsistencyGroup
      */
     public static BlockConsistencyGroup getBlockObjectConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
-            VirtualPool vpool, URI projectUri, URI tenantUri, URI varrayUri, List<UnManagedConsistencyGroup> umcgsToUpdate,
-            DbClient dbClient) {
+            IngestionRequestContext context, DbClient dbClient) {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
+        // Check if the UnManagedConsistencyGroup is present in the volume context which should have the updated info
+        UnManagedConsistencyGroup umcgInContext = context.findUnManagedConsistencyGroup(umcg.getLabel());
+        if (umcgInContext != null) {
+            umcg = umcgInContext;
+        }
 
         // In the case where IS_VOLUME_IN_CONSISTENCYGROUP flag is set to TRUE, but there is no UnManagedConsistencyGroup, we
         // can't perform this check fully and need to return null. This will occur with VMAX/VNX volumes in CGs until we have
@@ -3595,7 +3625,7 @@ public class VolumeIngestionUtil {
                     " as there is not enough information to put this volume in a CG by itself.", unManagedVolume.getNativeGuid());
             return null;
         }
-
+        List<UnManagedConsistencyGroup> umcgsToUpdate = context.getVolumeContext().getUmCGObjectsToUpdate();
         boolean isLastUmvToIngest = isLastUnManagedVolumeToIngest(umcg, unManagedVolume);
         boolean isVplexOrRPProtected = isRPOrVplexProtected(unManagedVolume);
         if (isVplexOrRPProtected || !isLastUmvToIngest) {
@@ -3605,6 +3635,15 @@ public class VolumeIngestionUtil {
             _logger.info("Remaining volumes in CG to ingest: {}", umcg.getUnManagedVolumesMap());
             // set ReplicationGroupInstance in the block object.
             blockObj.setReplicationGroupInstance(umcg.getLabel());
+            if (blockObj instanceof BlockSnapshot) {
+                // Check if the unmanaged volume has SNAPSHOT_CONSISTENCY_GROUP_NAME property populated. If yes,
+                // use that for replicationGroupInstance
+                String snapsetName = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedVolumeInformation.SNAPSHOT_CONSISTENCY_GROUP_NAME.toString(), unManagedVolume.getVolumeInformation());
+                if (snapsetName != null && !snapsetName.isEmpty()) {
+                    blockObj.setReplicationGroupInstance(snapsetName);
+                }
+            }
             updateVolumeInUnManagedConsistencyGroup(umcg, unManagedVolume, blockObj);
             umcgsToUpdate.add(umcg);
             return null;
@@ -3627,7 +3666,10 @@ public class VolumeIngestionUtil {
 
         _logger.info("UnManagedVolume {} is added to consistency group {}",
                 unManagedVolume.getLabel(), cgName);
-
+        URI projectUri = context.getProject().getId();
+        URI tenantUri = context.getTenant().getId();
+        URI varrayUri = context.getVarray(unManagedVolume).getId();
+        VirtualPool vpool = context.getVpool(unManagedVolume);
         if (!vpool.getMultivolumeConsistency()) {
             _logger.warn("The requested Virtual Pool {} does not have "
                     + "the Multi-Volume Consistency flag set, and this volume "
@@ -3646,8 +3688,8 @@ public class VolumeIngestionUtil {
             BlockConsistencyGroup potentialUnclaimedCg = null;
             if (!groups.isEmpty()) {
                 for (BlockConsistencyGroup cg : groups) {
-                    if (validateCGProjectDetails(cg, storageSystem, projectUri, tenantUri, varrayUri, unManagedVolume.getLabel(),
-                            cgName, dbClient)) {
+                    if (validateCGProjectDetails(cg, storageSystem, projectUri, tenantUri, varrayUri, unManagedVolume.getLabel(), cgName,
+                            dbClient)) {
                         return cg;
                     }
                     URI storageControllerUri = cg.getStorageController();
@@ -3663,6 +3705,9 @@ public class VolumeIngestionUtil {
             // virtual array. this would indicate the user created the CG, but hadn't
             // used it yet in creating a volume
             if (null != potentialUnclaimedCg) {
+                potentialUnclaimedCg.addConsistencyGroupTypes(Types.LOCAL.name());
+                potentialUnclaimedCg.setStorageController(storageSystem.getId());
+                potentialUnclaimedCg.setVirtualArray(varrayUri);
                 return potentialUnclaimedCg;
             }
 

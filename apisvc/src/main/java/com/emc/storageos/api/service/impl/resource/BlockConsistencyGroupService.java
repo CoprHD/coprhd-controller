@@ -27,12 +27,14 @@ import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
@@ -337,7 +339,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep deleteConsistencyGroup(@PathParam("id") final URI id)
+    public TaskResourceRep deleteConsistencyGroup(@PathParam("id") final URI id,
+                                                  @DefaultValue("FULL") @QueryParam("type") String type)
             throws InternalException {
         // Query for the given id
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
@@ -349,32 +352,25 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // If the consistency group is inactive or has yet to be created on
         // a storage system, then the deletion is not controller specific.
 
-        // RP + VPlex CGs cannot be be deleted without VPlex controller intervention.
-        if (consistencyGroup.getTypes().contains(Types.SRDF.toString()) ||
-                (consistencyGroup.getTypes().contains(Types.RP.toString()) &&
-                        !consistencyGroup.getTypes().contains(Types.VPLEX.toString()))
-                ||
-                deleteUncreatedConsistencyGroup(consistencyGroup)) {
-            final URIQueryResultList cgVolumesResults = new URIQueryResultList();
-            _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
-                    cgVolumesResults);
-            while (cgVolumesResults.iterator().hasNext()) {
-                Volume volume = _dbClient.queryObject(Volume.class, cgVolumesResults.iterator().next());
-                if (!volume.getInactive()) {
-                    throw APIException.badRequests.deleteOnlyAllowedOnEmptyCGs(
-                            consistencyGroup.getTypes().toString());
-                }
-            }
-            consistencyGroup.setStorageController(null);
-            consistencyGroup.setInactive(true);
-            _dbClient.updateObject(consistencyGroup);
+        // VPlex CGs cannot be be deleted without VPlex controller intervention unless inventory-only is specified
+        if (!consistencyGroup.getTypes().contains(Types.VPLEX.toString()) ||
+             deleteUncreatedConsistencyGroup(consistencyGroup) ||
+             VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
+            validateVolumesAndDeleteCG(consistencyGroup);
             return finishDeactivateTask(consistencyGroup, task);
         }
 
-        if (!NullColumnValueGetter.isNullURI(consistencyGroup.getStorageController())) {
-            final StorageSystem storageSystem = consistencyGroup.created() ? 
-                    _permissionsHelper.getObjectById(consistencyGroup.getStorageController(), StorageSystem.class) : null;
+        for (String storageSystemId : consistencyGroup.getSystemConsistencyGroups().keySet()) {
+            URI storageSystemURI = URI.create(storageSystemId);
 
+            final StorageSystem storageSystem = consistencyGroup.created() ? 
+                    _permissionsHelper.getObjectById(storageSystemURI, StorageSystem.class) : null;
+
+            // Only contact the controller for VPLEX storage systems
+            if (!storageSystem.getSystemType().equalsIgnoreCase(Type.vplex.name())) {
+                continue;
+            }
+                    
             // If the consistency group has been created, and the system
             // is a VPlex, then we need to do VPlex related things to destroy
             // the consistency groups on the system. If the consistency group
@@ -392,9 +388,27 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 return blockServiceApi.deleteConsistencyGroup(storageSystem, consistencyGroup, task);
             }
         }
-        _log.info(String.format("BlockConsistencyGroup %s was not associated with any storage. Deleting it from ViPR only.",
+
+        _log.info(String.format("BlockConsistencyGroup %s was not associated with any storage. Deleting it from ViPR only if empty.",
                 consistencyGroup.getLabel()));
+        validateVolumesAndDeleteCG(consistencyGroup);
         return finishDeactivateTask(consistencyGroup, task);
+    }
+
+    private void validateVolumesAndDeleteCG(final BlockConsistencyGroup consistencyGroup) {
+        final URIQueryResultList cgVolumesResults = new URIQueryResultList();
+        _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
+                cgVolumesResults);
+        while (cgVolumesResults.iterator().hasNext()) {
+            Volume volume = _dbClient.queryObject(Volume.class, cgVolumesResults.iterator().next());
+            if (!volume.getInactive()) {
+                throw APIException.badRequests.deleteOnlyAllowedOnEmptyCGs(
+                        consistencyGroup.getTypes().toString());
+            }
+        }
+        consistencyGroup.setStorageController(null);
+        consistencyGroup.setInactive(true);
+        _dbClient.updateObject(consistencyGroup);
     }
 
     /**

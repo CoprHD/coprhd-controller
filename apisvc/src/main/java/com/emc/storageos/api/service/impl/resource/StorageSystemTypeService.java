@@ -95,7 +95,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 		while (iter.hasNext()) {
 			StorageSystemType ssType = iter.next();
 			if (storageType == null || storageType.equals(ssType.getStorageType())) {
-				list.getStorageSystemTypes().add(map(ssType)); // DbObjectMapper.toNamedRelatedResource
+				list.getStorageSystemTypes().add(map(ssType));
 			}
 		}
 		return list;

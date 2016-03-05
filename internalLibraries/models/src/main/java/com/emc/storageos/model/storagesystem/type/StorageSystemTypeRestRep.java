@@ -19,7 +19,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 
 	private String storageSystemTypeName;
 	private String storageType;
-	private String id;
+	private String storageTypeId;
 	private boolean isSmiProvider = false;
 
 	public StorageSystemTypeRestRep() {
@@ -28,11 +28,11 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	// TODO remove 2 methods
 	@XmlElement(name = "type_id")
 	public String getStorageSystemTypeId() {
-		return id;
+		return storageTypeId;
 	}
 
-	public void setStorageSystemTypeId(String id) {
-		this.id = id;
+	public void setStorageSystemTypeId(String storageTypeId) {
+		this.storageTypeId = storageTypeId;
 	}
 
 	@XmlElement(name = "type_name")
@@ -66,7 +66,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("StorageSystemTypeRestRep [type_id=");
-		builder.append(id);
+		builder.append(storageTypeId);
 		builder.append(", type_name=");
 		builder.append(storageSystemTypeName);
 		builder.append(", type_type=");

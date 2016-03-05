@@ -36,7 +36,7 @@ import static com.emc.storageos.api.mapper.SystemsMapper.map;
 /**
  * StorageSystemTypes resource implementation
  */
-@Path("/storagesystemtypes")
+@Path("/storagesystemtype")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = { Role.SYSTEM_ADMIN,
 		Role.RESTRICTED_SYSTEM_ADMIN })
 
@@ -229,7 +229,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 		for (String file : storageArrayFile) {
 			StorageSystemType ssType = new StorageSystemType();
-			ssType.setId(URIUtil.createId(StorageSystemType.class));
+			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+			ssType.setId(ssTyeUri);
+			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(file);
 			ssType.setStorageType("file");
 			ssType.setIsSmiProvider(false);
@@ -238,7 +240,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 		for (String file : storageProviderFile) {
 			StorageSystemType ssType = new StorageSystemType();
-			ssType.setId(URIUtil.createId(StorageSystemType.class));
+			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+			ssType.setId(ssTyeUri);
+			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(file);
 			ssType.setStorageType("file");
 			ssType.setIsSmiProvider(true);
@@ -247,7 +251,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 		for (String block : storageArrayBlock) {
 			StorageSystemType ssType = new StorageSystemType();
-			ssType.setId(URIUtil.createId(StorageSystemType.class));
+			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+			ssType.setId(ssTyeUri);
+			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(block);
 			ssType.setStorageType("block");
 			ssType.setIsSmiProvider(false);
@@ -256,7 +262,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 		for (String block : storageProviderBlock) {
 			StorageSystemType ssType = new StorageSystemType();
-			ssType.setId(URIUtil.createId(StorageSystemType.class));
+			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+			ssType.setId(ssTyeUri);
+			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(block);
 			ssType.setStorageType("block");
 			ssType.setIsSmiProvider(true);
@@ -265,7 +273,9 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 		for (String object : storageArrayObject) {
 			StorageSystemType ssType = new StorageSystemType();
-			ssType.setId(URIUtil.createId(StorageSystemType.class));
+			URI ssTyeUri = URIUtil.createId(StorageSystemType.class);
+			ssType.setId(ssTyeUri);
+			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(object);
 			ssType.setStorageType("object");
 			ssType.setIsSmiProvider(false);

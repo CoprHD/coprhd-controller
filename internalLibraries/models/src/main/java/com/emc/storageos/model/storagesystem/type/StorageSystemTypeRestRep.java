@@ -13,67 +13,67 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
-@XmlRootElement(name = "storagesystem_type")
 @XmlAccessorType(XmlAccessType.PROPERTY)
+@XmlRootElement(name = "storagesystem_type")
 public class StorageSystemTypeRestRep extends DataObjectRestRep {
 
-    private String storageSystemTypeName;
-    private String storageType;
-    private String id;
-    private boolean isSmiProvider = false;
-    
-    public StorageSystemTypeRestRep() {
-    }
+	private String storageSystemTypeName;
+	private String storageType;
+	private String id;
+	private boolean isSmiProvider = false;
 
-    // TODO remove 2 methods
-    @XmlElement(name = "type_id")
-    public String getStorageSystemTypeId() {
-        return id;
-    }
+	public StorageSystemTypeRestRep() {
+	}
 
-    public void setStorageSystemTypeId(String id) {
-    	this.id = id;
-    }
+	// TODO remove 2 methods
+	@XmlElement(name = "type_id")
+	public String getStorageSystemTypeId() {
+		return id;
+	}
 
-    @XmlElement(name = "type_name")
-    public String getStorageSystemTypeName() {
-        return storageSystemTypeName;
-    }
+	public void setStorageSystemTypeId(String id) {
+		this.id = id;
+	}
 
-    public void setStorageSystemTypeName(String storageSystemTypeName) {
-        this.storageSystemTypeName = storageSystemTypeName;
-    }
+	@XmlElement(name = "type_name")
+	public String getStorageSystemTypeName() {
+		return storageSystemTypeName;
+	}
 
-    @XmlElement(name = "type_type")
-    public String getStorageType() {
-        return storageType;
-    }
+	public void setStorageSystemTypeName(String storageSystemTypeName) {
+		this.storageSystemTypeName = storageSystemTypeName;
+	}
 
-    public void setStorageType(String storageType) {
-        this.storageType = storageType;
-    }
+	@XmlElement(name = "type_type")
+	public String getStorageType() {
+		return storageType;
+	}
 
-    @XmlElement(name = "isSmiProvider")
-    public boolean getIsSmiProvider() {
-        return isSmiProvider;
-    }
+	public void setStorageType(String storageType) {
+		this.storageType = storageType;
+	}
 
-    public void setIsSmiProvider(boolean isSmiProvider) {
-        this.isSmiProvider = isSmiProvider;
-    }
+	@XmlElement(name = "isSmiProvider")
+	public boolean getIsSmiProvider() {
+		return isSmiProvider;
+	}
 
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("StorageSystemTypeRestRep [type_id=");
-        builder.append(id);
-        builder.append(", type_name=");
-        builder.append(storageSystemTypeName);
-        builder.append(", type_type=");
-        builder.append(storageType);
-        builder.append(", isSmiProvider=");
-        builder.append(isSmiProvider);
-        builder.append("]");
-        return builder.toString();
-    }
+	public void setIsSmiProvider(boolean isSmiProvider) {
+		this.isSmiProvider = isSmiProvider;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("StorageSystemTypeRestRep [type_id=");
+		builder.append(id);
+		builder.append(", type_name=");
+		builder.append(storageSystemTypeName);
+		builder.append(", type_type=");
+		builder.append(storageType);
+		builder.append(", isSmiProvider=");
+		builder.append(isSmiProvider);
+		builder.append("]");
+		return builder.toString();
+	}
 }

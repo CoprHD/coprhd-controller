@@ -2960,7 +2960,7 @@ recoverpoint_ingest_test()
 
     # Delete the volume and CG
     run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
-    run blockconsistencygroup delete ${RECOVERPOINT_INGEST_VOL1_CG}
+    run blockconsistencygroup delete ${RECOVERPOINT_INGEST_VOL1_CG} --vipronly
 
     # Simulator will create a CG with a random value.  We don't have/need such a thing for HW setups
     if [ "${RECOVERPOINT_INGEST_VOL1_CG}" = "" ]; then
@@ -3061,7 +3061,7 @@ recoverpoint_ingest_test()
 
     # Inventory-only remove of RP volume 
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly
-    run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
+    run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG} --vipronly
 
     # Run discovery
     recoverpoint_ingest_discovery
@@ -3105,7 +3105,7 @@ recoverpoint_ingest_test()
     # Verify the CG got created; fail script if this fails.
     run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
 
-    # Inventory-only remove of RP volume
+    # Real removal of volume/CG
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --wait
     run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
 }
@@ -3136,7 +3136,7 @@ recoverpoint_ingest_export_test()
     # Inventory-only delete the volume, export, and CG
     run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} --vipronly
     run export_group delete ${PROJECT}/EG${vpool}
-    run blockconsistencygroup delete ${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
+    run blockconsistencygroup delete ${RECOVERPOINT_INGEST_EXPORT_VOL1_CG} --vipronly
 
     # Simulator will create a CG with a random value.  We don't have/need such a thing for HW setups
     if [ "${RECOVERPOINT_INGEST_VOL1_CG}" = "" ]; then
@@ -3230,7 +3230,7 @@ recoverpoint_ingest_export_test()
     #run blocksnapshot activate ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
     #run blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
 
-    # Inventory-only remove of RP volume
+    # Real removal of volume/CG
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --wait
     run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
 }

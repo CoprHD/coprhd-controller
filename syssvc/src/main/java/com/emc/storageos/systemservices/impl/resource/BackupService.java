@@ -453,6 +453,7 @@ public class BackupService {
         downloadTask = new DownloadExecutor(backupName, backupOps, endpoint);
         Thread downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
+        downloadThread.setName("PullBackupFromOtherNode");
         downloadThread.start();
 
         return Response.status(202).build();
@@ -506,6 +507,7 @@ public class BackupService {
 
             Thread downloadThread = new Thread(downloadTask);
             downloadThread.setDaemon(true);
+            downloadThread.setName("PullBackupFromRemoteServer");
             downloadThread.start();
 
             auditBackup(OperationTypeEnum.PULL_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, backupName);
@@ -524,29 +526,35 @@ public class BackupService {
     private void initDownload(String backupName) {
         log.info("init download");
         SchedulerConfig cfg = backupScheduler.getCfg();
+
+        //Step1: get the size of compressed backup file from server
         long size = 0;
         try {
             FtpClient client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
             size = client.getFileSize(backupName);
         }catch(Exception  e) {
             log.warn("Failed to get the backup file size, e=", e);
-            throw new RuntimeException(e);
+            throw BackupException.fatals.failedToGetBackupSize(backupName, e);
         }
 
+        //Step2: init status
         BackupRestoreStatus s = new BackupRestoreStatus();
         s.setBackupName(backupName);
+        s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
+        Map<String, Long> downloadSize = new HashMap();
         try {
+            // since all we know is the size of the backup file,
+            // we use it as the download size for now.
+            // after downloaded and unzipped the backup file,
+            // we'll adjust the download size (in DownloadExecutor.postDownload())
             String localHostName = InetAddress.getLocalHost().getHostName();
-            Map<String, Long> downloadSize = new HashMap();
             downloadSize.put(localHostName, size);
             s.setSizeToDownload(downloadSize);
         }catch(UnknownHostException e) {
             log.error("Failed to set the download size e={}", e.getMessage());
+            throw new RuntimeException(e);
         }
 
-        log.info("Init backup/restore status:", s);
-
-        s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
         backupOps.persistBackupRestoreStatus(s, false, true);
     }
 

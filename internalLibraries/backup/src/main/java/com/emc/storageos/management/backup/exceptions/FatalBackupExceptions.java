@@ -69,6 +69,10 @@ public interface FatalBackupExceptions {
     public FatalBackupException failedToDeleteBackupFile(final String backupFile,
             final Throwable cause);
 
+    @DeclareServiceCode(ServiceCode.BACKUP_INTERNAL_ERROR)
+    public FatalBackupException failedToGetBackupSize(final String backupName,
+                                                      final Throwable cause);
+
     @DeclareServiceCode(ServiceCode.BACKUP_CONNECTION_FAILED)
     public FatalBackupException failedToGetHost(final String host, final Throwable cause);
 

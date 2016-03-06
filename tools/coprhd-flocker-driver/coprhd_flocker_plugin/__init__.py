@@ -13,7 +13,7 @@ def api_factory(cluster_id, **kwargs):
                                   varray=kwargs[u'varray'],cookiedir=kwargs[u'cookiedir'],
                                   vpool=kwargs[u'vpool'],vpool_platinum=kwargs[u'vpool_platinum'],vpool_gold=kwargs[u'vpool_gold'],
                                   vpool_silver=kwargs[u'vpool_silver'],vpool_bronze=kwargs[u'vpool_bronze'],
-                                  hostexportgroup=kwargs[u'hostexportgroup'])
+                                  hostexportgroup=kwargs[u'hostexportgroup'],coprhdcli_security_file=kwargs[u'coprhdcli_security_file'])
 
 
 FLOCKER_BACKEND = BackendDescription(

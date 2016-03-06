@@ -649,7 +649,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
         for (Volume volume : volumes) {
-            if (volume.getReplicationGroupInstance() != null) {
+            if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                 groupNames.add(volume.getReplicationGroupInstance());
             }
         }

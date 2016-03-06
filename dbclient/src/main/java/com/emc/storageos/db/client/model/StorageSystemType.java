@@ -12,7 +12,7 @@ public class StorageSystemType extends DataObject {
 	private String storageTypeName;
 
 	// Storage type like Block, File or Object
-	private String storageType;
+	private String storageTypeType;
 
 	// Storage array is directly manage by CoprHD or thru SMI: Providers
 	private Boolean isSmiProvider = false;
@@ -30,14 +30,14 @@ public class StorageSystemType extends DataObject {
 		setChanged("storageTypeName");
 	}
 
-	@Name("storageType")
-	public String getStorageType() {
-		return storageType;
+	@Name("storageTypeType")
+	public String getStorageTypeType() {
+		return storageTypeType;
 	}
 
-	public void setStorageType(String storageType) {
-		this.storageType = storageType;
-		setChanged("storageType");
+	public void setStorageTypeType(String storageType) {
+		this.storageTypeType = storageType;
+		setChanged("storageTypeType");
 	}
 
 	@Name("isSmiProvider")
@@ -50,7 +50,7 @@ public class StorageSystemType extends DataObject {
 		setChanged("isSmiProvider");
 	}
 	
-	@Name("storageId")
+	@Name("storageTypeId")
 	public String getStorageTypeId() {
 		return storageTypeId;
 	}

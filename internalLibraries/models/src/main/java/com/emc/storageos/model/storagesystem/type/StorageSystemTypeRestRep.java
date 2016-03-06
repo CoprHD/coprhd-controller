@@ -17,8 +17,8 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 @XmlRootElement(name = "storagesystem_type")
 public class StorageSystemTypeRestRep extends DataObjectRestRep {
 
-	private String storageSystemTypeName;
-	private String storageType;
+	private String storageTypeName;
+	private String storageTypeType;
 	private String storageTypeId;
 	private boolean isSmiProvider = false;
 
@@ -26,31 +26,31 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	}
 
 	// TODO remove 2 methods
-	@XmlElement(name = "type_id")
-	public String getStorageSystemTypeId() {
+	@XmlElement(name = "storage_type_id")
+	public String getStorageTypeId() {
 		return storageTypeId;
 	}
 
-	public void setStorageSystemTypeId(String storageTypeId) {
+	public void setStorageTypeId(String storageTypeId) {
 		this.storageTypeId = storageTypeId;
 	}
 
-	@XmlElement(name = "type_name")
-	public String getStorageSystemTypeName() {
-		return storageSystemTypeName;
+	@XmlElement(name = "storage_type_name")
+	public String getStorageTypeName() {
+		return storageTypeName;
 	}
 
-	public void setStorageSystemTypeName(String storageSystemTypeName) {
-		this.storageSystemTypeName = storageSystemTypeName;
+	public void setStorageTypeName(String storageSystemTypeName) {
+		this.storageTypeName = storageSystemTypeName;
 	}
 
-	@XmlElement(name = "type_type")
-	public String getStorageType() {
-		return storageType;
+	@XmlElement(name = "storage_type_type")
+	public String getStorageTypeType() {
+		return storageTypeType;
 	}
 
 	public void setStorageType(String storageType) {
-		this.storageType = storageType;
+		this.storageTypeType = storageType;
 	}
 
 	@XmlElement(name = "isSmiProvider")
@@ -65,12 +65,12 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("StorageSystemTypeRestRep [type_id=");
+		builder.append("StorageSystemTypeRestRep [storage_type_id=");
 		builder.append(storageTypeId);
-		builder.append(", type_name=");
-		builder.append(storageSystemTypeName);
-		builder.append(", type_type=");
-		builder.append(storageType);
+		builder.append(", storage_type_name=");
+		builder.append(storageTypeName);
+		builder.append(", storage_type_type=");
+		builder.append(storageTypeType);
 		builder.append(", isSmiProvider=");
 		builder.append(isSmiProvider);
 		builder.append("]");

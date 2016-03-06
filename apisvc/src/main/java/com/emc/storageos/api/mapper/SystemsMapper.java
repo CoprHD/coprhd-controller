@@ -21,7 +21,6 @@ import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
-import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
@@ -39,7 +38,6 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
-import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.object.ObjectNamespaceRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeyAddRestRep;
 import com.emc.storageos.model.object.ObjectUserSecretKeysRestRep;
@@ -440,9 +438,10 @@ public class SystemsMapper {
             return null;
         }
         
-        to.setStorageSystemTypeName(from.getStorageTypeName());
-        to.setStorageType(from.getStorageType());
+        to.setStorageTypeName(from.getStorageTypeName());
+        to.setStorageType(from.getStorageTypeType());
         to.setIsSmiProvider(from.getIsSmiProvider());
+        to.setStorageTypeId(from.getStorageTypeId());
         return to;
     }
     
@@ -452,9 +451,10 @@ public class SystemsMapper {
         }
         
         StorageSystemTypeRestRep to = new StorageSystemTypeRestRep();
-        to.setStorageSystemTypeName(from.getStorageTypeName());
-        to.setStorageType(from.getStorageType());
+        to.setStorageTypeName(from.getStorageTypeName());
+        to.setStorageType(from.getStorageTypeType());
         to.setIsSmiProvider(from.getIsSmiProvider());
+        to.setStorageTypeId(from.getStorageTypeId());
         return to;
     }
 }

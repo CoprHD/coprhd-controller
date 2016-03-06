@@ -89,12 +89,16 @@ public class StorageSystemTypeService extends TaskResourceService {
 		}
 
 		List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
+
 		StorageSystemTypeList list = new StorageSystemTypeList();
 
 		Iterator<StorageSystemType> iter = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
 		while (iter.hasNext()) {
 			StorageSystemType ssType = iter.next();
-			if (storageType == null || storageType.equals(ssType.getStorageType())) {
+			if (ssType.getStorageTypeId() == null) {
+				ssType.setStorageTypeId(ssType.getId().toString());
+			}
+			if (storageType == null || storageType.equals(ssType.getStorageTypeType())) {
 				list.getStorageSystemTypes().add(map(ssType));
 			}
 		}
@@ -130,13 +134,13 @@ public class StorageSystemTypeService extends TaskResourceService {
 		ssType.setId(URIUtil.createId(StorageSystemType.class));
 
 		ssType.setStorageTypeName(param.getName());
-		ssType.setStorageType(param.getStorageType());
+		ssType.setStorageTypeType(param.getStorageType());
 		ssType.setIsSmiProvider(param.getIsProvider());
 
 		_dbClient.createObject(ssType);
 
 		auditOp(OperationTypeEnum.ADD_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
-				ssType.getId().toString(), ssType.getStorageTypeName(), ssType.getStorageType());
+				ssType.getId().toString(), ssType.getStorageTypeName(), ssType.getStorageTypeType());
 		return map(ssType);
 	}
 
@@ -162,7 +166,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 		_dbClient.markForDeletion(sstype);
 
 		auditOp(OperationTypeEnum.REMOVE_STORAGE_SYSTEM_TYPE, true, AuditLogManager.AUDITOP_BEGIN,
-				sstype.getId().toString(), sstype.getStorageTypeName(), sstype.getStorageType());
+				sstype.getId().toString(), sstype.getStorageTypeName(), sstype.getStorageTypeType());
 		return Response.ok().build();
 
 	}
@@ -233,7 +237,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(file);
-			ssType.setStorageType("file");
+			ssType.setStorageTypeType("file");
 			ssType.setIsSmiProvider(false);
 			_dbClient.createObject(ssType);
 		}
@@ -244,7 +248,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(file);
-			ssType.setStorageType("file");
+			ssType.setStorageTypeType("file");
 			ssType.setIsSmiProvider(true);
 			_dbClient.createObject(ssType);
 		}
@@ -255,7 +259,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(block);
-			ssType.setStorageType("block");
+			ssType.setStorageTypeType("block");
 			ssType.setIsSmiProvider(false);
 			_dbClient.createObject(ssType);
 		}
@@ -266,7 +270,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(block);
-			ssType.setStorageType("block");
+			ssType.setStorageTypeType("block");
 			ssType.setIsSmiProvider(true);
 			_dbClient.createObject(ssType);
 		}
@@ -277,7 +281,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(object);
-			ssType.setStorageType("object");
+			ssType.setStorageTypeType("object");
 			ssType.setIsSmiProvider(false);
 			_dbClient.createObject(ssType);
 		}

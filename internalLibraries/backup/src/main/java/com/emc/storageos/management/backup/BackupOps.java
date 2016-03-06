@@ -40,9 +40,7 @@ import com.emc.storageos.management.backup.util.FtpClient;
 import com.emc.vipr.model.sys.backup.BackupInfo;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.curator.utils.EnsurePath;
 import org.apache.zookeeper.KeeperException;
-import org.omg.CORBA.SystemException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -288,6 +286,30 @@ public class BackupOps {
         return new File(BackupConstants.RESTORE_DIR, backupFolder);
     }
 
+    public Map<String, Long> getDownloadSize(String backupName) {
+        Map<String, Long> downloadSize = new HashMap();
+
+        File folder = getDownloadDirectory(backupName);
+        File[] files = getBackupFiles(folder);
+
+        try {
+            Map<String, URI> nodes = getNodesInfo();
+            for (Map.Entry<String, URI> node : nodes.entrySet()) {
+                String hostname = toHostName(node.getKey());
+                long size = 0;
+                for (File f : files) {
+                    if (belongToNode(f, hostname)) {
+                        size += f.length();
+                    }
+                }
+                downloadSize.put(hostname, size);
+            }
+        }catch(URISyntaxException e) {
+            log.error("Failed to set download size e=", e.getMessage());
+        }
+
+        return downloadSize;
+    }
     /**
      * Create backup file on all nodes
      * 
@@ -519,7 +541,7 @@ public class BackupOps {
 
     public void persistCurrentBackupInfo(String backupName, boolean isLocal) {
         ConfigurationImpl config = new ConfigurationImpl();
-        config.setKind(BackupConstants.BACKUP_RESTORE_STATUS);
+        config.setKind(BackupConstants.PULL_RESTORE_STATUS);
         config.setId(Constants.GLOBAL_ID);
         config.setConfig(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY, backupName);
         config.setConfig(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY, Boolean.toString(isLocal));
@@ -535,7 +557,7 @@ public class BackupOps {
 
     private Map<String, String> getCurrentBackupInfo() {
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
-                BackupConstants.BACKUP_RESTORE_STATUS, Constants.GLOBAL_ID);
+                BackupConstants.PULL_RESTORE_STATUS, Constants.GLOBAL_ID);
 
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
@@ -551,24 +573,24 @@ public class BackupOps {
     /**
      * Persist download status to ZK
      */
-    public void setBackupFileSize(String backupName, long size) {
+    public void setDownloadSize(String backupName, Map<String, Long> size) {
         updateRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, null, size, 0, false, null, true);
     }
 
     public void setBackupFileNames(String backupName, List<String> filenames) {
-        updateRestoreStatus(backupName, null, null, 0, 0, false, filenames, true);
+        updateRestoreStatus(backupName, null, null, null, 0, false, filenames, true);
     }
 
     public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, String details, boolean increaseCompleteNumber) {
-        updateRestoreStatus(backupName, s, details, 0, 0, increaseCompleteNumber, null, true);
+        updateRestoreStatus(backupName, s, details, null, 0, increaseCompleteNumber, null, true);
     }
 
     public void updateDownloadSize(String backupName, long size) {
-        updateRestoreStatus(backupName, null, null, 0, size, false, null, false);
+        updateRestoreStatus(backupName, null, null, null, size, false, null, false);
     }
 
     private void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, String details,
-                                     long backupSize, long increasedSize, boolean increaseCompletedNodeNumber,
+                                     Map<String, Long>downloadSize, long increasedSize, boolean increaseCompletedNodeNumber,
                                      List<String> backupfileNames, boolean doLog) {
         InterProcessLock lock = null;
         try {
@@ -594,13 +616,17 @@ public class BackupOps {
                 s.setStatusWithDetails(status, details);
             }
 
-            if (backupSize > 0) {
-                s.setBackupSize(backupSize);
+            if (downloadSize != null) {
+                s.setSizeToDownload(downloadSize);
             }
 
             if (increasedSize > 0) {
-                long newSize = s.getDownoadSize() + increasedSize;
-                s.setDownoadSize(newSize);
+                try {
+                    String localHostName = InetAddress.getLocalHost().getHostName();
+                    s.increaseDownloadedSize(localHostName, increasedSize);
+                }catch (UnknownHostException e) {
+                    log.error("Failed to set downloaded size e=", e);
+                }
             }
 
             if (increaseCompletedNodeNumber) {
@@ -1436,13 +1462,16 @@ public class BackupOps {
      * @throws IOException
      */
     public BackupInfo getBackupInfo(String backupName, String serverUri, String username, String password) throws IOException {
-        log.info("backup={} server={} user={} password={}", new Object[] {backupName, serverUri, username, password});
+        log.info("To get backup info of {} from server={} ", backupName, serverUri);
 
         File backupFolder= getDownloadDirectory(backupName);
         try {
             checkBackup(backupFolder);
             log.info("The backup {} for this node has already been downloaded", backupName);
-            return getBackupInfo(backupFolder, false);
+            BackupInfo info = getBackupInfo(backupFolder, false);
+            info.setRestoreStatus(queryBackupRestoreStatus(backupName, false));
+            log.info("lby backupInfo={}", info);
+            return info;
         } catch (Exception e) {
             // The backup has not been downloaded yet or is invalid, query from the server
         }
@@ -1521,7 +1550,6 @@ public class BackupOps {
         }
 
         backupInfo.setFileSize(size);
-        backupInfo.setRestoreStatus(queryBackupRestoreStatus(backupName, isLocal));
 
         return backupInfo;
     }

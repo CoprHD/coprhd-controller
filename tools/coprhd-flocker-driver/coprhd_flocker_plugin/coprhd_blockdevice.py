@@ -113,7 +113,15 @@ class CoprHDCLIDriver(object):
             
     def authenticate_user(self):
          
-         if( (self.coprhdcli_security_file is not '')
+        # we should check to see if we are already authenticated before blindly
+        # doing it again
+        if CoprHDCLIDriver.AUTHENTICATED is False:
+            utils.COOKIE = None
+            obj = auth.Authentication(
+                self.coprhdhost,
+                self.port)
+            cookiedir = self.cookiedir
+            if( (self.coprhdcli_security_file is not '')
                and (self.coprhdcli_security_file is not None)):
                 from Crypto.Cipher import ARC4
                 import getpass
@@ -124,15 +132,6 @@ class CoprHDCLIDriver(object):
                 cipher_text = security_file.readline().rstrip()
                 self.password = obj1.decrypt(cipher_text)
                 security_file.close()
-                        
-        # we should check to see if we are already authenticated before blindly
-        # doing it again
-        if CoprHDCLIDriver.AUTHENTICATED is False:
-            utils.COOKIE = None
-            obj = auth.Authentication(
-                self.coprhdhost,
-                self.port)
-            cookiedir = self.cookiedir
             obj.authenticate_user(self.username,
                                   self.password,
                                   cookiedir,

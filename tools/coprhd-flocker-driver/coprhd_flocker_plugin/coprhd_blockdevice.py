@@ -75,7 +75,7 @@ class CoprHDCLIDriver(object):
     AUTHENTICATED = False
     def __init__(self, coprhdhost, 
                  port, username, password, tenant, 
-                 project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup):
+                 project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file):
         self.coprhdhost = coprhdhost
         self.port =  port
         self.username = username
@@ -90,6 +90,7 @@ class CoprHDCLIDriver(object):
         self.vpool_silver=vpool_silver
         self.vpool_bronze=vpool_bronze
         self.hostexportgroup = hostexportgroup
+        self.coprhdcli_security_file = coprhdcli_security_file
         self.host = unicode(socket.gethostname())
         self.stats = {'driver_version': '1.0',
                       'free_capacity_gb': 'unknown',
@@ -111,6 +112,19 @@ class CoprHDCLIDriver(object):
             self.port)
             
     def authenticate_user(self):
+         
+         if( (self.coprhdcli_security_file is not '')
+               and (self.coprhdcli_security_file is not None)):
+                from Crypto.Cipher import ARC4
+                import getpass
+                obj1 = ARC4.new(getpass.getuser())
+                security_file = open(self.coprhdcli_security_file, 'r')
+                cipher_text = security_file.readline().rstrip()
+                self.username = obj1.decrypt(cipher_text)
+                cipher_text = security_file.readline().rstrip()
+                self.password = obj1.decrypt(cipher_text)
+                security_file.close()
+                        
         # we should check to see if we are already authenticated before blindly
         # doing it again
         if CoprHDCLIDriver.AUTHENTICATED is False:
@@ -535,12 +549,12 @@ class CoprHDBlockDeviceAPI(object):
         return volumes
 
 def configuration(coprhdhost, port, username, password, tenant,
-                           project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup):
+                           project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file):
     """
     :return:CoprHDBlockDeviceAPI object
     """
     return CoprHDBlockDeviceAPI(
         coprhdcliconfig=CoprHDCLIDriver(coprhdhost, 
         port, username, password, tenant, 
-        project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup),allocation_unit=1
+        project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file),allocation_unit=1
     )

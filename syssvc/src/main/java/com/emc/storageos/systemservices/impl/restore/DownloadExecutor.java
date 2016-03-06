@@ -51,6 +51,7 @@ public final class DownloadExecutor implements  Runnable {
     private volatile  boolean isCanceled = false;
 
     public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
+        /*
         if (cfg.uploadUrl == null) {
             try {
                 cfg.reload();
@@ -59,6 +60,7 @@ public final class DownloadExecutor implements  Runnable {
                 throw new RuntimeException(e);
             }
         }
+        */
 
         client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
         remoteBackupFileName = backupZipFileName;
@@ -178,7 +180,13 @@ public final class DownloadExecutor implements  Runnable {
         }catch (InterruptedException e) {
             log.info("The downloading thread has been interrupted");
         }catch (Exception e) {
-            log.info("isCanceled={}", isCanceled);
+            log.info("lby isCanceled={}", isCanceled);
+
+            if (fromRemoteServer) {
+                log.error("Failed to pull backup file from remote server e=", e);
+            }else {
+                log.error("Failed to pull backup file from other node e=", e);
+            }
 
             Status s = Status.DOWNLOAD_FAILED;
 
@@ -189,11 +197,6 @@ public final class DownloadExecutor implements  Runnable {
 
             backupOps.setRestoreStatus(remoteBackupFileName, s, e.getMessage(), false);
 
-            if (fromRemoteServer) {
-                log.error("Failed to pull backup file from remote server e=", e);
-            }else {
-                log.error("Failed to pull backup file from other node e=", e);
-            }
         }finally {
             try {
                 backupOps.unregisterDownloader();
@@ -291,48 +294,54 @@ public final class DownloadExecutor implements  Runnable {
         BackupRestoreStatus restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
         log.info("In postDownload status={}", restoreStatus);
 
-        if (backupOps.shouldHaveBackupData()) {
-            try {
-                List<String> filenames = validBackup();
-                backupOps.setBackupFileNames(remoteBackupFileName, filenames);
+        try {
+            File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
 
-                Map<String, Long> downloadSize = backupOps.getDownloadSize(remoteBackupFileName);
+            // valid downloaded backup
+            backupOps.checkBackup(downloadedDir);
 
-                BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
+            List<String> filenames = backupOps.getBackupFileNames(downloadedDir);
 
-                // since all files has been downloaded to current node,
-                // adjust the download size of current node
-                String localHostName = InetAddress.getLocalHost().getHostName();
+            backupOps.setBackupFileNames(remoteBackupFileName, filenames);
 
-                File downloadDir = backupOps.getDownloadDirectory(remoteBackupFileName);
-                File[] backupFiles = downloadDir.listFiles();
-                long size = 0;
+            // since all files has been downloaded/unzipped to current node,
+            // calculate the size to download on each node
+            // on current node, since all files have been downloaded
+            // set the size-to-download = downloaded-size
 
-                for (File f : backupFiles) {
-                    size += f.length();
-                }
+            // calculate the size to be downloaded on each node
+            Map<String, Long> downloadSize = backupOps.getDownloadSize(remoteBackupFileName);
 
-                downloadSize.put(localHostName, size);
+            // adjust the size of downloading on the current node
+            // it was set to size of zipped file before downloading, we should adjust it
+            // to the size of the unzipped file
+            BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
 
-                s.setSizeToDownload(downloadSize);
-                Map<String, Long> downloadedSize = s.getDownoadedSize();
+            String localHostName = InetAddress.getLocalHost().getHostName();
 
-                if (downloadedSize.isEmpty()) {
-                    s.increaseDownloadedSize(localHostName, size);
-                }
+            // get the size of the downloaded&unzipped files
+            // File downloadDir = backupOps.getDownloadDirectory(remoteBackupFileName);
+            long size = FileUtils.sizeOfDirectory(downloadedDir);
 
-                log.info("Adjusted whole size={} downloadedSize={}", downloadSize, downloadedSize);
+            // set the download size of current node to the size of the downloaded directory
+            downloadSize.put(localHostName, size);
 
-                backupOps.persistBackupRestoreStatus(s, false, true);
-                if (fromRemoteServer) {
-                    notifyOtherNodes(remoteBackupFileName);
-                }
-            }catch (Exception e) {
-                log.error("Invalid backup e=", e);
-                Status s = Status.DOWNLOAD_FAILED;
-                backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false);
-                return;
-            }
+            s.setSizeToDownload(downloadSize);
+
+            // set the downloaded size to the size of the downloaded directory
+            Map<String, Long> downloadedSize = s.getDownoadedSize();
+            s.setDownloadedSize(localHostName, size);
+
+            log.info("Adjusted whole size={} downloadedSize={}", downloadSize, downloadedSize);
+
+            backupOps.persistBackupRestoreStatus(s, false, true);
+
+            notifyOtherNodes(remoteBackupFileName);
+        }catch (Exception e) {
+            log.error("Invalid backup e=", e);
+            Status s = Status.DOWNLOAD_FAILED;
+            backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false);
+            return;
         }
 
         updateRestoreStatus();
@@ -341,25 +350,9 @@ public final class DownloadExecutor implements  Runnable {
     private void updateRestoreStatus() {
         BackupRestoreStatus restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
         Status s = restoreStatus.getStatus();
-        if ( s == Status.DOWNLOADING) {
-            long nodeNumber = backupOps.getHosts().size();
-            if (restoreStatus.getNodeCompleted() == nodeNumber ) {
-                s = Status.DOWNLOAD_SUCCESS;
-            }
-        }
-
-        log.info("set restore status to {}",s);
-        backupOps.setRestoreStatus(remoteBackupFileName, s, null, false);
-
         if (s == Status.DOWNLOAD_SUCCESS || s == Status.DOWNLOAD_CANCELLED || s == Status.DOWNLOAD_FAILED ) {
             backupOps.clearCurrentBackupInfo();
         }
-    }
-
-    private List<String> validBackup() throws Exception {
-        File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
-        backupOps.checkBackup(downloadedDir);
-        return backupOps.getBackupFileNames(downloadedDir);
     }
 
     private void notifyOtherNodes(String backupName) {
@@ -377,8 +370,6 @@ public final class DownloadExecutor implements  Runnable {
             }
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", pushUri, endpoint);
-            log.error(errMsg);
-            log.error("e=",e);
             backupOps.setRestoreStatus(backupName, Status.DOWNLOAD_FAILED, e.getMessage(), false);
             throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
         }

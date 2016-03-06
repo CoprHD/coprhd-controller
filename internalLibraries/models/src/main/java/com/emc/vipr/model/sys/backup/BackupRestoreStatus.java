@@ -154,6 +154,10 @@ public class BackupRestoreStatus {
         downloadedSize.put(node, s);
     }
 
+    public void setDownloadedSize(String node, long size) {
+        downloadedSize.put(node, size);
+    }
+
     @XmlElement(name = "size_to_download")
     public Map<String, Long> getSizeToDownload() {
         return sizeToDownload;

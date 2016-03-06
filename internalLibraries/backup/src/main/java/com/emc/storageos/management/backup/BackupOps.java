@@ -438,12 +438,13 @@ public class BackupOps {
 
     public List<String> getBackupFileNames(File backupFolder) throws UnknownHostException, URISyntaxException {
         File[] backupFiles = getBackupFiles(backupFolder);
-        List<String> filenames = new ArrayList();
 
         if (backupFiles == null) {
             String errMsg = String.format("The %s contains no backup files", backupFolder.getAbsolutePath());
             throw new RuntimeException(errMsg);
         }
+
+        List<String> filenames = new ArrayList();
 
         for (File f : backupFiles) {
             filenames.add(f.getName());
@@ -589,7 +590,7 @@ public class BackupOps {
         updateRestoreStatus(backupName, null, null, null, size, false, null, false);
     }
 
-    private void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, String details,
+    public void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, String details,
                                      Map<String, Long>downloadSize, long increasedSize, boolean increaseCompletedNodeNumber,
                                      List<String> backupfileNames, boolean doLog) {
         InterProcessLock lock = null;
@@ -602,6 +603,10 @@ public class BackupOps {
             }
 
             BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
+
+            if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+                return;
+            }
 
             if ( status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
                 if (!s.getStatus().canBeCanceled()) {
@@ -637,7 +642,18 @@ public class BackupOps {
                 s.setBackupFileNames(backupfileNames);
             }
 
+            if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOADING) {
+                long nodeNumber = getHosts().size();
+                if (s.getNodeCompleted() == nodeNumber ) {
+                    s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, null);
+                }
+            }
+
             persistBackupRestoreStatus(s, false, doLog);
+
+            if (doLog) {
+                log.info("Persist backup restore status {} to zk successfully", s);
+            }
         }finally {
             if (doLog) {
                 log.info("To release lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
@@ -645,9 +661,6 @@ public class BackupOps {
             releaseLock(lock);
         }
 
-        if (doLog) {
-            log.info("Persist backup restore status to zk successfully");
-        }
     }
 
     public void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal, boolean doLog) {
@@ -1202,7 +1215,7 @@ public class BackupOps {
             lock.release();
             log.info("Release lock successful");
         } catch (Exception ignore) {
-            log.error("Release lock failed", ignore);
+            log.warn("Release lock failed", ignore);
         }
     }
 

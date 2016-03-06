@@ -12,6 +12,8 @@ import java.io.PipedOutputStream;
 import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -241,7 +243,7 @@ public class BackupService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public BackupInfo queryBackupInfo(@QueryParam("name") String backupFileName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
-        log.info("Received query backup on external server request, file name={} isLocal={}", backupFileName, isLocal);
+        log.info("Query backup info backupFileName={} isLocal={}", backupFileName, isLocal);
         try {
             if (isLocal) {
                 //query info of a local backup
@@ -460,12 +462,11 @@ public class BackupService {
     @Path("internal/pull-file/")
     @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response getBackupFile(@QueryParam("backupname") String backupName, @QueryParam("filename") String filename) {
-        log.info("lbyf get backup file {} from {}", filename, backupName);
+        log.info("Get backup file {} from {}", filename, backupName);
 
         File downloadDir = backupOps.getDownloadDirectory(backupName);
         File backupFile = new File(downloadDir, filename);
 
-        log.info("lbyf file={}", backupFile.getAbsolutePath());
         final InputStream in;
         try {
             in = new FileInputStream(backupFile);
@@ -508,7 +509,6 @@ public class BackupService {
             downloadThread.start();
 
             auditBackup(OperationTypeEnum.PULL_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, backupName);
-            log.info("done");
         }
 
         return Response.status(202).build();
@@ -535,7 +535,14 @@ public class BackupService {
 
         BackupRestoreStatus s = new BackupRestoreStatus();
         s.setBackupName(backupName);
-        s.setBackupSize(size);
+        try {
+            String localHostName = InetAddress.getLocalHost().getHostName();
+            Map<String, Long> downloadSize = new HashMap();
+            downloadSize.put(localHostName, size);
+            s.setSizeToDownload(downloadSize);
+        }catch(UnknownHostException e) {
+            log.error("Failed to set the download size e={}", e.getMessage());
+        }
 
         log.info("Init backup/restore status:", s);
 

@@ -15,7 +15,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import javax.ws.rs.core.MediaType;
@@ -144,8 +144,7 @@ public final class DownloadExecutor implements  Runnable {
         }
     }
 
-    private void updateDownloadSize(long size) {
-        log.info("Increase pullBackupFilesFromRemoteServer size ={}", size);
+    private void updateDownloadedSize(long size) {
         backupOps.updateDownloadSize(remoteBackupFileName, size);
     }
 
@@ -154,6 +153,12 @@ public final class DownloadExecutor implements  Runnable {
         InterProcessLock lock = null;
 
         try {
+            BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
+            if (s.isNotSuccess() || s.getStatus() == Status.DOWNLOAD_CANCELLED) {
+                log.info("Download {} has been failed or canceled, no need to start it on this node", remoteBackupFileName);
+                return;
+            }
+
             registerListener();
 
             backupOps.registerDownloader();
@@ -163,15 +168,10 @@ public final class DownloadExecutor implements  Runnable {
                 return;
             }
 
+            /*
             lock = backupOps.getLock(BackupConstants.RESTORE_LOCK,
                     -1, TimeUnit.MILLISECONDS); // -1= no timeout
-
-
-            BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-            if (s.isNotSuccess() || s.getStatus() == Status.DOWNLOAD_CANCELLED) {
-                log.info("Download failed or canceled to pullBackupFilesFromRemoteServer {}, no need to start it on this node", remoteBackupFileName);
-                return;
-            }
+                    */
 
             pullBackupFilesFromRemoteServer();
             postDownload();
@@ -201,8 +201,10 @@ public final class DownloadExecutor implements  Runnable {
                 log.error("Failed to remove listener e=",ex);
             }
 
+            /*
             log.info("To release lock {}", BackupConstants.RESTORE_LOCK);
             backupOps.releaseLock(lock);
+            */
         }
     }
 
@@ -247,9 +249,8 @@ public final class DownloadExecutor implements  Runnable {
     }
 
     private void pullBackupFilesFromRemoteServer() throws IOException, InterruptedException {
-        log.info("pull backup files from remote server start");
+        log.info("pull backup files in {} from remote server start", remoteBackupFileName);
 
-        log.info("Persist current backup info {}", remoteBackupFileName);
         backupOps.persistCurrentBackupInfo(remoteBackupFileName, false);
 
         ZipInputStream zin = getDownloadStream();
@@ -260,17 +261,17 @@ public final class DownloadExecutor implements  Runnable {
         try {
             backupOps.checkBackup(backupFolder);
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
-            // postDownload();
-            return; //already downloaded, no need to pullBackupFilesFromRemoteServer again
+            return; //no need to download again
         } catch (Exception e) {
-            // no backup or invalid backup, so pullBackupFilesFromRemoteServer it again
+            // no backup or invalid backup, so download it again
         }
 
         byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
         ZipEntry zentry = zin.getNextEntry();
         while (zentry != null) {
-            log.info("Download remote backup file {} from remote server", zentry.getName());
-            pullBackupFileFromRemoteServer(backupFolder, zentry.getName(), in, buf);
+            String filename = zentry.getName();
+            log.info("Download remote backup file {}", filename);
+            pullBackupFileFromRemoteServer(backupFolder, filename, in, buf);
             zentry = zin.getNextEntry();
         }
 
@@ -295,6 +296,34 @@ public final class DownloadExecutor implements  Runnable {
                 List<String> filenames = validBackup();
                 backupOps.setBackupFileNames(remoteBackupFileName, filenames);
 
+                Map<String, Long> downloadSize = backupOps.getDownloadSize(remoteBackupFileName);
+
+                BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
+
+                // since all files has been downloaded to current node,
+                // adjust the download size of current node
+                String localHostName = InetAddress.getLocalHost().getHostName();
+
+                File downloadDir = backupOps.getDownloadDirectory(remoteBackupFileName);
+                File[] backupFiles = downloadDir.listFiles();
+                long size = 0;
+
+                for (File f : backupFiles) {
+                    size += f.length();
+                }
+
+                downloadSize.put(localHostName, size);
+
+                s.setSizeToDownload(downloadSize);
+                Map<String, Long> downloadedSize = s.getDownoadedSize();
+
+                if (downloadedSize.isEmpty()) {
+                    s.increaseDownloadedSize(localHostName, size);
+                }
+
+                log.info("Adjusted whole size={} downloadedSize={}", downloadSize, downloadedSize);
+
+                backupOps.persistBackupRestoreStatus(s, false, true);
                 if (fromRemoteServer) {
                     notifyOtherNodes(remoteBackupFileName);
                 }
@@ -387,7 +416,7 @@ public final class DownloadExecutor implements  Runnable {
             int length;
             while ((length = in.read(buffer)) > 0) {
                 out.write(buffer, 0, length);
-                updateDownloadSize(length);
+                updateDownloadedSize(length);
             }
         } catch(IOException e) {
             log.error("Failed to download file {} e=", backupFileName, e);

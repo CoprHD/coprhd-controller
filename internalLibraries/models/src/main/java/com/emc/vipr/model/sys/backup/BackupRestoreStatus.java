@@ -7,7 +7,6 @@ package com.emc.vipr.model.sys.backup;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -21,18 +20,27 @@ import org.slf4j.LoggerFactory;
 public class BackupRestoreStatus {
     private static final Logger log = LoggerFactory.getLogger(BackupRestoreStatus.class);
     private static final String KEY_BACKUP_NAME = "backupName";
-    private static final String KEY_BACKUP_SIZE = "backupSize";
-    private static final String KEY_DOWNLOAD_SIZE = "downloadSize";
+    private static final String KEY_PULL_SIZE = "pullSize";
+    private static final String KEY_DOWNLOADED_SIZE = "downloadedSize";
     private static final String KEY_STATUS = "status";
     private static final String KEY_DETAILS_MSG = "details";
     private static final String KEY_NODE_COMPLETED= "nodeCompleted";
     private static final String KEY_FILE_NAMES= "filenames";
     private static final String FILE_NAME_SEPARATOR= ":";
+    private static final String KEY_VALUE_SEPARATOR= "=";
+    private static final String MAP_ENTRY_SEPARATOR= ":";
     private static final String KEY_IS_GEO_ENV= "isGeo";
 
     private String backupName;
-    private long backupSize = 0;
-    private long downloadSize = 0;
+
+    //key=hostname e.g. vipr1, vipr2 ...
+    //value= the number of bytes to be downloaded on this node
+    private Map<String, Long> sizeToDownload = new HashMap();
+
+    //key=hostname e.g. vipr1, vipr2 ...
+    //value= the number of bytes to has been downloaded on this node
+    private Map<String, Long> downloadedSize = new HashMap();
+
     private Status status = Status.READY;
     private String details = "";
     private int nodeCompleted = 0;
@@ -122,44 +130,37 @@ public class BackupRestoreStatus {
         }
 
         public boolean removeListener() {
+
             return removeListener;
         }
-
-        /*
-        public void setMessage(String msg) {
-            message = msg;
-        }
-        */
 
         public String getMessage () {
             return message;
         }
+    }
 
-        /*
-        @Override
-        public String toString() {
+    @XmlElement(name = "downloaded_size")
+    public Map<String, Long> getDownoadedSize() {
+        return downloadedSize;
+    }
 
-            return getMessage();
+    public void increaseDownloadedSize(String node, long size) {
+        Long s = downloadedSize.get(node);
+        if (s == null) {
+            s = (long)0;
         }
-        */
+
+        s += size;
+        downloadedSize.put(node, s);
     }
 
-    @XmlElement(name = "download_size")
-    public long getDownoadSize() {
-        return downloadSize;
+    @XmlElement(name = "size_to_download")
+    public Map<String, Long> getSizeToDownload() {
+        return sizeToDownload;
     }
 
-    public void setBackupSize(long size) {
-        backupSize = size;
-    }
-
-    @XmlElement(name = "backup_size")
-    public Long getBackupSize() {
-        return backupSize;
-    }
-
-    public void setDownoadSize(long size) {
-        downloadSize = size;
+    public void setSizeToDownload(Map<String, Long> sizes) {
+        sizeToDownload = sizes;
     }
 
     public boolean isNotSuccess() {
@@ -170,8 +171,15 @@ public class BackupRestoreStatus {
     public Map<String, String> toMap() {
         Map<String, String> map = new HashMap();
         map.put(KEY_BACKUP_NAME, backupName);
-        map.put(KEY_BACKUP_SIZE, Long.toString(backupSize));
-        map.put(KEY_DOWNLOAD_SIZE, Long.toString(downloadSize));
+
+        String str = toString(sizeToDownload);
+        log.info("To persist whole size to download={}", str);
+        map.put(KEY_PULL_SIZE, str);
+
+        str = toString(downloadedSize);
+        log.info("To persist downloaded size={}", str);
+        map.put(KEY_DOWNLOADED_SIZE, str);
+
         map.put(KEY_STATUS, status.name());
         map.put(KEY_DETAILS_MSG, details);
         map.put(KEY_NODE_COMPLETED, Integer.toString(nodeCompleted));
@@ -179,6 +187,36 @@ public class BackupRestoreStatus {
 
         String names = String.join(FILE_NAME_SEPARATOR, backupFileNames);
         map.put(KEY_FILE_NAMES, names);
+
+        return map;
+    }
+
+    private String toString(Map<String, Long> map) {
+        StringBuilder builder = new StringBuilder();
+        for (Map.Entry<String, Long> s : map.entrySet()) {
+            builder.append(MAP_ENTRY_SEPARATOR);
+            builder.append(s.getKey());
+            builder.append(KEY_VALUE_SEPARATOR);
+            builder.append(s.getValue());
+        }
+
+        return builder.toString();
+    }
+
+    private Map<String, Long> toMap(String s) {
+        Map<String, Long> map = new HashMap();
+
+        if (s.isEmpty()) {
+            return map;
+        }
+
+        String str = s.substring(1); //skip leading MAP_ENTRY_SEPARATOR
+        String[] entries = str.split(MAP_ENTRY_SEPARATOR);
+
+        for (String entry : entries) {
+            String[] e = entry.split(KEY_VALUE_SEPARATOR);
+            map.put(e[0], Long.parseLong(e[1]));
+        }
 
         return map;
     }
@@ -195,11 +233,13 @@ public class BackupRestoreStatus {
                 case KEY_BACKUP_NAME:
                     backupName = value;
                     break;
-                case KEY_BACKUP_SIZE:
-                    backupSize = Long.parseLong(value);
+                case KEY_PULL_SIZE:
+                    log.info("get whole size from zk={}", value);
+                    sizeToDownload = toMap(value);
                     break;
-                case KEY_DOWNLOAD_SIZE:
-                    downloadSize = Long.parseLong(value);
+                case KEY_DOWNLOADED_SIZE:
+                    log.info("get downloaded size={}", value);
+                    downloadedSize = toMap(value);
                     break;
                 case KEY_STATUS:
                     status = Status.valueOf(value);
@@ -226,19 +266,19 @@ public class BackupRestoreStatus {
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("BackupName:")
-          .append(getBackupName())
-          .append(", backupSize:")
-          .append(getBackupSize())
-          .append(", downloadSize:")
-          .append(getDownoadSize())
+          .append(backupName)
+          .append(", size to download:")
+          .append(sizeToDownload)
+          .append(", downloaded size:")
+          .append(downloadedSize)
           .append(", filesDownloaded:")
-          .append(getBackupFileNames())
+          .append(backupFileNames)
           .append(", nodesCompleted:")
           .append(nodeCompleted)
           .append(", isGeo:")
-          .append(isGeo())
+          .append(isGeo)
           .append(", status:")
-          .append(getStatus())
+          .append(status)
           .append(", details:")
           .append(details);
 

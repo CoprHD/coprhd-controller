@@ -7,6 +7,7 @@ package controllers;
 import static controllers.Common.flashException;
 
 import java.util.List;
+import java.util.Map;
 
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupInfo;
@@ -15,6 +16,8 @@ import models.datatable.BackupDataTable.Type;
 
 import org.apache.commons.lang.StringUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.data.binding.As;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -40,6 +43,7 @@ import controllers.util.FlashException;
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class Backup extends Controller {
+    private static final Logger log = LoggerFactory.getLogger(Backup.class);
 
     protected static final String SAVED_SUCCESS = "backup.save.success";
     protected static final String DELETED_SUCCESS = "backup.delete.success";
@@ -85,6 +89,7 @@ public class Backup extends Controller {
                 if (StringUtils.isNotBlank(id)) {
                     BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
                     BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
+                    log.info("lbyg0 backupInfo={}", backupInfo);
                     if (backupInfo.getCreateTime() != 0) {
                         backup.creationtime = backupInfo.getCreateTime();
                     }
@@ -191,6 +196,7 @@ public class Backup extends Controller {
 
     public static void getRestoreStatus(String id, Type type) {
         BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
+        log.info("lbygg status={}", status);
         renderJSON(new RestoreStatus(status));
     }
 
@@ -266,13 +272,23 @@ public class Backup extends Controller {
 
         public RestoreStatus(BackupRestoreStatus origin) {
             this.backupName = origin.getBackupName();
-            this.backupSize = origin.getBackupSize();
-            this.downloadSize = origin.getDownoadSize();
+            Map<String, Long> map = origin.getSizeToDownload();
+            log.info("lbyg size to download={}", map);
+            backupSize = 0;
+            for (Map.Entry<String, Long> size : map.entrySet()) {
+                backupSize += size.getValue();
+            }
+
+            downloadSize = 0;
+            map = origin.getDownoadedSize();
+            log.info("lbyg downloaded size={}", map);
+            for (Map.Entry<String, Long> size : map.entrySet()) {
+                downloadSize += size.getValue();
+            }
+
             this.status = origin.getStatus();
             this.isGeo = origin.isGeo();
             this.message = origin.getStatus().getMessage();
         }
-
     }
-
 }

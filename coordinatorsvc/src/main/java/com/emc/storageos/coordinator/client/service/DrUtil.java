@@ -625,6 +625,15 @@ public class DrUtil {
     }
 
     /**
+     * Check if it is a multi-site DR configuration 
+     * 
+     * @return true if there are more than 1 site
+     */
+    public boolean isMultisite() {
+        return listSites().size() > 1;
+    }
+    
+    /**
      * Get all vdc ids except local vdc
      * 
      * @return list of vdc ids

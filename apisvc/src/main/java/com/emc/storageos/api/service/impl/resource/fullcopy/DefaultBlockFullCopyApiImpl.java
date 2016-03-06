@@ -107,6 +107,9 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             aFCSource = fcSourceObj;
             // volumes in VolumeGroup can be from different vArrays
             varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
+            if (null != fcSourceObj.getReplicationGroupInstance()) {
+            	name = name + "-" + fcSourceObj.getReplicationGroupInstance();
+            } 
             String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(

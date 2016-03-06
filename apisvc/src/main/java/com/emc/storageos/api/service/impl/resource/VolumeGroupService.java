@@ -625,34 +625,6 @@ public class VolumeGroupService extends TaskResourceService {
             // send create request after validating all volumes
             String name = param.getName();
             
-            Map<URI, List<URI>> cgToVolUris = ControllerUtils.groupVolumeURIsByCG(volumesInRequest);
-            Set<Entry<URI, List<URI>>> entrySet = cgToVolUris.entrySet();
-            for (Entry<URI, List<URI>> entry : entrySet) {
-                URI cgUri = entry.getKey();
-                log.info("Create snapshot with consistency group {}", cgUri);
-                try {
-                    BlockConsistencyGroupSnapshotCreate cgSnapshotParam = new BlockConsistencyGroupSnapshotCreate(
-                            name, entry.getValue(), param.getCreateInactive(), param.getReadOnly());
-                    TaskList cgTaskList = _blockConsistencyGroupService.createConsistencyGroupSnapshot(cgUri, cgSnapshotParam);
-                    List<TaskResourceRep> taskResourceRepList = cgTaskList.getTaskList();
-                    if (taskResourceRepList != null && !taskResourceRepList.isEmpty()) {
-                        for (TaskResourceRep taskResRep : taskResourceRepList) {
-                            taskList.addTask(taskResRep);
-                        }
-                    }
-                } catch (InternalException | APIException e) {
-                    log.error("Exception when creating snapshot for consistency group {}", cgUri, e);
-                    BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
-                    TaskResourceRep task = BlockServiceUtils.createFailedTaskOnCG(_dbClient, cg,
-                            ResourceOperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT, e);
-                    taskList.addTask(task);
-                } catch (Exception ex) {
-                    log.error("Unexpected Exception occurred when creating snapshot for consistency group {}",
-                            cgUri, ex);
-                }
-            }
-            
-            
             for (Volume volume : volumesInRequest) {
                 // set Flag in Volume so that we will know about partial request during processing.
                 volume.addInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);

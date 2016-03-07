@@ -377,6 +377,8 @@ public class BlockSnapshotSessionManager {
             Set<URI> uris = snapshotMap.keySet();
             snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
+        // persist copyMode changes
+        _dbClient.updateObject(preparedObjects);
 
         preparedObjects.add(snapSession);
 
@@ -468,6 +470,8 @@ public class BlockSnapshotSessionManager {
             Set<URI> uris = snapshotMap.keySet();
             snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
+        // persist copyMode changes
+        _dbClient.updateObject(preparedObjects);
 
         // Create and link new targets to the snapshot session.
         try {

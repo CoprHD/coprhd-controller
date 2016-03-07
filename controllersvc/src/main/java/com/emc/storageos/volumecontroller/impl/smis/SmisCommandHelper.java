@@ -6681,7 +6681,7 @@ public class SmisCommandHelper implements SmisConstants {
      * @return A List of CIMObjectPaths for SettingsDefineState instances
      * @throws WBEMException
      */
-    public List<CIMObjectPath> getSettingsDefineStateFromSource(
+    private List<CIMObjectPath> getSettingsDefineStateFromSource(
             StorageSystem storage, BlockObject blockObject)
             throws WBEMException {
         List<CIMObjectPath> settingsDefineStatePaths = new ArrayList<>();

@@ -100,6 +100,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VplexMirror;
@@ -912,9 +913,12 @@ public class BlockService extends TaskResourceService {
                             }
                         }
 
-                        // Ensure the replication mode is not null and is the same as the existing vpool
-                        if (requestedVpool.getRpCopyMode() == null ||
-                                !requestedVpool.getRpCopyMode().equals(existingVpool.getRpCopyMode())) {
+                        // Ensure the replication mode is logically equivalent 
+                        String requestedRpCopyMode = NullColumnValueGetter.isNullValue(requestedVpool.getRpCopyMode()) ?
+                                RPCopyMode.ASYNCHRONOUS.name() : requestedVpool.getRpCopyMode();
+                        String existingRpCopyMode = NullColumnValueGetter.isNullValue(existingVpool.getRpCopyMode()) ?
+                                RPCopyMode.ASYNCHRONOUS.name() : existingVpool.getRpCopyMode();
+                        if (requestedRpCopyMode.equalsIgnoreCase(existingRpCopyMode)) {
                             throw APIException.badRequests.vPoolRPCopyModeNotCompatibleForCG(consistencyGroup.getLabel());
                         }
                     }

@@ -67,7 +67,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 processSnapshot(createdSnap, snap, storage);
             }
 
-            dbClient.persistObject(snap);
+            dbClient.updateObject(snap);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot creation failed", e);
@@ -185,6 +185,8 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         boolean isReadOnly = XtremIOConstants.XTREMIO_READ_ONLY_TYPE.equals(xioSnap.getSnapshotType()) ? Boolean.TRUE : Boolean.FALSE;
         snapObj.setIsReadOnly(isReadOnly);
         snapObj.setIsSyncActive(true);
+        snapObj.setProvisionedCapacity(Long.parseLong(xioSnap.getAllocatedCapacity()) * 1024);
+        snapObj.setAllocatedCapacity(Long.parseLong(xioSnap.getAllocatedCapacity()) * 1024);
     }
 
     @Override
@@ -211,7 +213,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             }
             snapshotObj.setIsSyncActive(false);
             snapshotObj.setInactive(true);
-            dbClient.persistObject(snapshotObj);
+            dbClient.updateObject(snapshotObj);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot deletion failed", e);
@@ -234,11 +236,11 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 client.deleteSnapshotSet(snapsetName, clusterName);
             }
             // Set inactive=true for all snapshots in the snap
-            List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, dbClient);
+            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, dbClient);
             for (BlockSnapshot snap : snapshots) {
                 snap.setIsSyncActive(false);
                 snap.setInactive(true);
-                dbClient.persistObject(snap);
+                dbClient.updateObject(snap);
             }
             taskCompleter.ready(dbClient);
         } catch (Exception e) {

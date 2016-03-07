@@ -120,6 +120,7 @@ render.uploadAndRestoreProgressIcon = function(o, val) {
 	    }
 	    var labels = {
 	        'NOT_STARTED': 'label-default',
+	        'READY': 'label-default',
 	        'IN_PROGRESS': 'label-info',
 	        'FAILED':   'label-danger',
 	        'DONE':    'label-success',
@@ -135,6 +136,7 @@ render.uploadAndRestoreProgressIcon = function(o, val) {
         }
 	    var icons = {
 	        'NOT_STARTED':     'glyphicon glyphicon-time',
+	        'READY':     'glyphicon glyphicon-time',
 	        'IN_PROGRESS': 'glyphicon glyphicon-refresh rotate',
 	        'DONE':    'glyphicon glyphicon-ok',
 	        'CANCELLED': 'glyphicon glyphicon-warning-sign',
@@ -159,6 +161,7 @@ render.uploadAndRestoreProgressMessage = function(o, val) {
     }
     var messages = {
         'NOT_STARTED':     Messages.get("renderFunctions.backupupload.status.notstarted"),
+        'READY':     Messages.get("renderFunctions.backupupload.status.ready"),
         'IN_PROGRESS':   Messages.get("renderFunctions.backupupload.status.progress"),
         'FAILED': Messages.get("renderFunctions.backupupload.status.failed"),
         'DONE':    Messages.get("renderFunctions.backupupload.status.done"),

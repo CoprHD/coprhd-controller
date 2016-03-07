@@ -95,6 +95,7 @@ import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy.IG_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
@@ -4223,16 +4224,6 @@ public class SmisCommandHelper implements SmisConstants {
         return id;
     }
 
-
-    public String getConsistencyGroupName(BlockObject bo, StorageSystem storageSystem) {
-        if (bo.getConsistencyGroup() == null) {
-            return null;
-        }
-        final BlockConsistencyGroup group =
-                _dbClient.queryObject(BlockConsistencyGroup.class, bo.getConsistencyGroup());
-        return getConsistencyGroupName(group, storageSystem);
-    }
-
     public String getConsistencyGroupName(final BlockConsistencyGroup group,
             final StorageSystem storageSystem) {
         String groupName = null;
@@ -6752,7 +6743,7 @@ public class SmisCommandHelper implements SmisConstants {
     public List<CIMObjectPath> getSettingsDefineStateFromSourceGroup(
             StorageSystem storage, BlockObject groupMember) throws WBEMException {
         List<CIMObjectPath> settingsDefineStatePaths = new ArrayList<>();
-        String groupName = getConsistencyGroupName(groupMember, storage);
+        String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(groupMember, _dbClient);
         CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(storage,
                 groupName);
 
@@ -7165,11 +7156,9 @@ public class SmisCommandHelper implements SmisConstants {
     // TODO Constantize these strings
 
     public CIMArgument[] fabricateSourceGroupSynchronizationAspectInputArguments(StorageSystem system,
-            BlockConsistencyGroup cg,
-            String sessionLabel) {
+            String repGrpName, String sessionLabel) {
         List<String> addSFSEntries = new ArrayList<>();
         addSFSEntries.add("AddSFSEntries");
-        String repGrpName = cg.getCgNameOnStorageSystem(system.getId());
         addSFSEntries.add(formatSessionLabelForFabrication(system.getSerialNumber(), repGrpName, sessionLabel));
         return new CIMArgument[] {
                 _cimArgument.stringArray("SFSEntries", addSFSEntries.toArray(new String[addSFSEntries.size()]))

@@ -72,7 +72,6 @@ import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -710,7 +709,7 @@ public class BlockService extends TaskResourceService {
 
         // CQECC00604134
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
-    
+
         // Get and validate the project.
         Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
         ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
@@ -837,7 +836,7 @@ public class BlockService extends TaskResourceService {
             if (consistencyGroup.creationInitiated()) {
                 if (!consistencyGroup.getRequestedTypes().containsAll(requestedTypes)) {
                     throw APIException.badRequests.consistencyGroupIsNotCompatibleWithRequest(
-                            consistencyGroup.getId(), consistencyGroup.getTypes().toString(), requestedTypes.toString());
+                            consistencyGroup.getId(), consistencyGroup.getRequestedTypes().toString(), requestedTypes.toString());
                 }
             }
 
@@ -911,6 +910,12 @@ public class BlockService extends TaskResourceService {
                                 // The target virtual arrays are not compatible with the CG
                                 throw APIException.badRequests.vPoolTargetVarraysNotCompatibleForCG(consistencyGroup.getLabel());
                             }
+                        }
+
+                        // Ensure the replication mode is not null and is the same as the existing vpool
+                        if (requestedVpool.getRpCopyMode() == null ||
+                                !requestedVpool.getRpCopyMode().equals(existingVpool.getRpCopyMode())) {
+                            throw APIException.badRequests.vPoolRPCopyModeNotCompatibleForCG(consistencyGroup.getLabel());
                         }
                     }
                 }
@@ -1071,7 +1076,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Verify that new volumes can be created in the passed consistency group.
-     * 
+     *
      * @param consistencyGroup A reference to the consistency group.
      * @param cgVolumes The volumes in the consistency group.
      */
@@ -2156,17 +2161,22 @@ public class BlockService extends TaskResourceService {
         // Don't operate on VPLEX backend volumes or RP journal volumes.
         BlockServiceUtils.validateNotAnInternalBlockObject(requestedVolume, false);
 
-        validateSourceVolumeHasExported(requestedVolume);
-
-        // Make sure that we don't have some pending
-        // operation against the volume
-        checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
-
         // Set default type, if not set at all.
         if (param.getType() == null) {
             param.setType(TechnologyType.NATIVE.toString());
         }
         String snapshotType = param.getType();
+
+        if (param.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
+            // Don't allow snapshots on single volumes that are in consistency groups, but don't have replication group instance set
+            BlockServiceUtils.validateNotInCG(requestedVolume, _dbClient, true);
+        }    
+        
+        validateSourceVolumeHasExported(requestedVolume);
+
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
 
         // Set whether or not the snapshot be activated when created.
         Boolean createInactive = Boolean.FALSE;
@@ -3643,11 +3653,15 @@ public class BlockService extends TaskResourceService {
             // all volume in CG must have been passed.
             _log.info("Verify all volumes in CG {}:{}", cg.getId(), cg.getLabel());
             URI storageId = cg.getStorageController();
-            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
-            if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
-                // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
-                if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
-                    throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+            if (!NullColumnValueGetter.isNullURI(storageId)) {
+                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
+                if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                    // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
+                    if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
+                        throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+                    }
+                } else {
+                    verifyVolumesInCG(volumes, cgVolumes);
                 }
             } else {
                 verifyVolumesInCG(volumes, cgVolumes);
@@ -3872,14 +3886,14 @@ public class BlockService extends TaskResourceService {
          * 4. Add SRDF
          */
         if (volume.getApplication(_dbClient) != null) {
-            //Move into VPLEX
+            // Move into VPLEX
             if (!VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) && VirtualPool.vPoolSpecifiesHighAvailability(newVpool)) {
                 notSuppReasonBuff.append("Non VPLEX volumes in applications cannot be moved into VPLEX pools");
                 throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),
                         notSuppReasonBuff.toString());
             }
 
-            //Add recoverPoint
+            // Add recoverPoint
             if (!VirtualPool.vPoolSpecifiesProtection(currentVpool)
                     && VirtualPool.vPoolSpecifiesProtection(newVpool)) {
                 notSuppReasonBuff.append("Non RP volumes in applications cannot be moved into RP pools");
@@ -3887,8 +3901,8 @@ public class BlockService extends TaskResourceService {
                         notSuppReasonBuff.toString());
             }
 
-            //Remove RecoverPoint
-            if(VirtualPool.vPoolSpecifiesProtection(currentVpool)
+            // Remove RecoverPoint
+            if (VirtualPool.vPoolSpecifiesProtection(currentVpool)
                     && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {
                 notSuppReasonBuff.append("RP volumes in applications cannot be moved into non RP pools");
                 throw APIException.badRequests.changeToVirtualPoolNotSupported(newVpool.getLabel(),

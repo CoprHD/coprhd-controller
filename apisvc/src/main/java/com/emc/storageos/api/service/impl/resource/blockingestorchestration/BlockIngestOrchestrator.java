@@ -333,7 +333,7 @@ public abstract class BlockIngestOrchestrator {
 
         BlockConsistencyGroup cg = getConsistencyGroup(unManagedVolume, volume, requestContext, _dbClient);
         if (null != cg) {
-            requestContext.getCGObjectsToCreateMap().put(cg.getLabel(), cg);
+            requestContext.getVolumeContext().getCGObjectsToCreateMap().put(cg.getLabel(), cg);
             decorateCGInfoInVolumes(cg, volume, requestContext, unManagedVolume);
         }
         if (null != autoTierPolicyId) {
@@ -354,26 +354,6 @@ public abstract class BlockIngestOrchestrator {
      */
     protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject blockObject, IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume) {
-    }
-
-    /**
-     * Returns the UnManagedConsistencyGroup in the context for the given CG.
-     *
-     * @param cg - cg object
-     * @param requestContext - current context of unmanagedVolume
-     * @return
-     */
-    protected UnManagedConsistencyGroup getUnManagedConsistencyGroupFromContext(BlockConsistencyGroup cg,
-            IngestionRequestContext requestContext) {
-        List<UnManagedConsistencyGroup> umcgList = requestContext.getUmCGObjectsToUpdate();
-        if (null != umcgList && !umcgList.isEmpty()) {
-            for (UnManagedConsistencyGroup umcg : umcgList) {
-                if (umcg.getLabel().equalsIgnoreCase(cg.getLabel())) {
-                    return umcg;
-                }
-            }
-        }
-        return null;
     }
 
     /*
@@ -849,10 +829,10 @@ public abstract class BlockIngestOrchestrator {
     private void setupParentReplicaRelationships(UnManagedVolume currentUnmanagedVolume,
             Map<BlockObject, List<BlockObject>> parentReplicaMap, IngestionRequestContext requestContext,
             List<UnManagedVolume> processedUnManagedVolumes) {
-        List<DataObject> updateObjects = requestContext.getObjectsToBeUpdatedMap().get(currentUnmanagedVolume.getNativeGuid());
+        List<DataObject> updateObjects = requestContext.getDataObjectsToBeUpdatedMap().get(currentUnmanagedVolume.getNativeGuid());
         if (updateObjects == null) {
             updateObjects = new ArrayList<DataObject>();
-            requestContext.getObjectsToBeUpdatedMap().put(currentUnmanagedVolume.getNativeGuid(), updateObjects);
+            requestContext.getDataObjectsToBeUpdatedMap().put(currentUnmanagedVolume.getNativeGuid(), updateObjects);
         }
         for (BlockObject parent : parentReplicaMap.keySet()) {
             // clear the parent internal flags
@@ -880,7 +860,7 @@ public abstract class BlockIngestOrchestrator {
                 fullyIngestedVolume = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient);
                 // If fully ingested, then setup the RP CG too.
                 if (fullyIngestedVolume) {
-                    VolumeIngestionUtil.setupRPCG(requestContext, umpset, updateObjects, _dbClient);
+                    VolumeIngestionUtil.setupRPCG(requestContext, umpset, currentUnmanagedVolume, updateObjects, _dbClient);
                 } else { // else mark the volume as internal. This will be marked visible when the RP CG is ingested
                     parent.addInternalFlags(INTERNAL_VOLUME_FLAGS);
                 }

@@ -1089,7 +1089,7 @@ class Fileshare(object):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         parms = {
-                     'delete_type' : "REMOTE_MIRROR"}
+                     'delete_type' : "FULL"}
 
         body = json.dumps(parms)
         (s, h) = common.service_json_request(

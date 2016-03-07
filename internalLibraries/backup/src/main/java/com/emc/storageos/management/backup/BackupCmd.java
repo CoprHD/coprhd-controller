@@ -310,5 +310,4 @@ public class BackupCmd {
             log.error("Failed to operate the log file {}. e={}",logFile,e);
         }
     }
-
 }

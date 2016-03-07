@@ -47,17 +47,8 @@ public class IngestExportStrategy {
     public <T extends BlockObject> T ingestExportMasks(UnManagedVolume unManagedVolume,
             T blockObject, IngestionRequestContext requestContext) throws IngestionException {
 
+        _logger.info("ingesting export masks for requestContext " + requestContext.getCurrentUnmanagedVolume());
         if (null != requestContext.getExportGroup()) {
-
-            // refresh ExportGroup
-            URI exportGroupUri = requestContext.getExportGroup().getId();
-            if (exportGroupUri != null) {
-                ExportGroup existingGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
-                if (null != existingGroup) {
-                    requestContext.setExportGroup(existingGroup);
-                    requestContext.setExportGroupCreated(false);
-                }
-            }
 
             if (null != unManagedVolume.getUnmanagedExportMasks() && !unManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 List<URI> unManagedMaskUris = new ArrayList<URI>(Collections2.transform(
@@ -113,7 +104,7 @@ public class IngestExportStrategy {
                             }
                             // If fully ingested, then setup the RP CG too.
                             if (VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient)) {
-                                VolumeIngestionUtil.setupRPCG(requestContext, umpset, updateObjects, _dbClient);
+                                VolumeIngestionUtil.setupRPCG(requestContext, umpset, unManagedVolume, updateObjects, _dbClient);
                             } else { // else mark the volume as internal. This will be marked visible when the RP CG is ingested
                                 blockObject.addInternalFlags(BlockRecoverPointIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
                             }

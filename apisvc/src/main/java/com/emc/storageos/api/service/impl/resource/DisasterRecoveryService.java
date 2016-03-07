@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import com.emc.storageos.coordinator.client.model.SiteNetworkState;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState.NetworkHealth;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
@@ -55,7 +57,6 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
-import com.emc.storageos.coordinator.client.model.Site.NetworkHealth;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -164,8 +165,8 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Attach one fresh install site to this acitve site as standby
-     * Or attach a acitve site for the local standby site when it's first being added.
+     * Attach one fresh install site to this active site as standby
+     * Or attach a active site for the local standby site when it's first being added.
      * 
      * @param param site detail information
      * @return site response information
@@ -325,7 +326,7 @@ public class DisasterRecoveryService {
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN }, blockProxies = true)
     @ExcludeLicenseCheck
     public Response syncSites(SiteConfigParam configParam) {
-        log.info("sync sites from acitve site");
+        log.info("sync sites from active site");
 
         return initStandby(configParam);
     }
@@ -398,7 +399,7 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * Get all sites including standby and acitve
+     * Get all sites including standby and active
      * 
      * @return site list contains all sites with detail information
      */
@@ -411,15 +412,15 @@ public class DisasterRecoveryService {
         SiteList standbyList = new SiteList();
 
         for (Site site : drUtil.listSites()) {
-            standbyList.getSites().add(siteMapper.map(site));
+            standbyList.getSites().add(siteMapper.mapWithNetwork(site, drUtil));
         }
         return standbyList;
     }
 
     /**
-     * Check if current site is acitve site
+     * Check if current site is active site
      * 
-     * @return SiteActive true if current site is acitve else false
+     * @return SiteActive true if current site is active else false
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -432,6 +433,7 @@ public class DisasterRecoveryService {
             Site localSite = drUtil.getLocalSite();
             isActiveSite.setIsActive(localSite.getState() == SiteState.ACTIVE);
             isActiveSite.setLocalSiteName(localSite.getName());
+            isActiveSite.setLocalUuid(localSite.getUuid());
             return isActiveSite;
         } catch (Exception e) {
             log.error("Can't get site is Active or Standby");
@@ -455,9 +457,31 @@ public class DisasterRecoveryService {
 
         try {
             Site site = drUtil.getSiteFromLocalVdc(uuid);
-            return siteMapper.map(site);
+            return siteMapper.mapWithNetwork(site, drUtil);
         } catch (Exception e) {
             log.error("Can't find site with specified site ID {}", uuid);
+            throw APIException.badRequests.siteIdNotFound();
+        }
+    }
+    
+    /**
+     * Get local site
+     * 
+     * @return site response with detail information
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/local")
+    public SiteRestRep getSite() {
+        log.info("Begin to get local site");
+
+        try {
+            Site site = drUtil.getLocalSite();
+            return siteMapper.map(site);
+        } catch (Exception e) {
+            log.error("Can't find local site", e);
             throw APIException.badRequests.siteIdNotFound();
         }
     }
@@ -503,7 +527,7 @@ public class DisasterRecoveryService {
                 throw APIException.badRequests.siteIdNotFound();
             }
             if (site.getState().equals(SiteState.ACTIVE)) {
-                log.error("Unable to remove this site {}. It is acitve", siteId);
+                log.error("Unable to remove this site {}. It is active", siteId);
                 throw APIException.badRequests.operationNotAllowedOnActiveSite();
             }
             if (site.getState().isDROperationOngoing() && !site.getState().equals(SiteState.STANDBY_SYNCING)) {
@@ -771,8 +795,8 @@ public class DisasterRecoveryService {
             log.error("site {} is in state {}, should be STANDBY_PAUSED", uuid, standby.getState());
             throw APIException.badRequests.operationOnlyAllowedOnPausedSite(standby.getName(), standby.getState().toString());
         }
-        
-        if (standby.getNetworkHealth() == NetworkHealth.BROKEN) {
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(uuid);
+        if (networkState.getNetworkHealth() == NetworkHealth.BROKEN) {
             throw APIException.internalServerErrors.siteConnectionBroken(standby.getName(), "Network health state is broken.");
         }
 
@@ -907,7 +931,7 @@ public class DisasterRecoveryService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN,
-            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/{uuid}/retry")
     public SiteRestRep retryOperation(@PathParam("uuid") String uuid) {
         log.info("Begin to get site error by uuid {}", uuid);
@@ -996,10 +1020,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * This API will do switchover to target new acitve site according passed in site UUID. After failover, old acitve site will
-     * work as normal standby site and target site will be promoted to acitve. All site will update properties to trigger reconfig.
+     * This API will do switchover to target new active site according passed in site UUID. After failover, old active site will
+     * work as normal standby site and target site will be promoted to active. All site will update properties to trigger reconfig.
      * 
-     * @param uuid target new acitve site UUID
+     * @param uuid target new active site UUID
      * @return return accepted response if operation is successful
      */
     @POST
@@ -1147,10 +1171,10 @@ public class DisasterRecoveryService {
     }
 
     /**
-     * This API will do failover from standby site. This operation is only allowed when acitve site is down.
-     * After failover, this standby site will be promoted to acitve site.
+     * This API will do failover from standby site. This operation is only allowed when active site is down.
+     * After failover, this standby site will be promoted to active site.
      * 
-     * @param uuid target new acitve site UUID
+     * @param uuid target new active site UUID
      * @return return accepted response if operation is successful
      */
     @POST
@@ -1373,16 +1397,18 @@ public class DisasterRecoveryService {
     }
 
     private boolean isDataSynced(Site site) {
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(site.getUuid());
         if (site.getState().equals(SiteState.ACTIVE)) {
             return true;
-        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !Site.NetworkHealth.BROKEN.equals(site.getNetworkHealth())) {
+        } else if (site.getState().equals(SiteState.STANDBY_SYNCED) && !NetworkHealth.BROKEN.equals(networkState.getNetworkHealth())) {
             return true;
         }
         return false;
     }
 
     private Date getLastSyncTime(Site site) {
-        if (site.getNetworkHealth() == NetworkHealth.BROKEN) {
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(site.getUuid());
+        if (networkState.getNetworkHealth() == NetworkHealth.BROKEN) {
             return null;
         }
         if (site.getState() == SiteState.STANDBY_PAUSED) {
@@ -1412,7 +1438,7 @@ public class DisasterRecoveryService {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
-            standbyDetails.setNetworkLatencyInMs(standby.getNetworkLatencyInMs());
+            standbyDetails.setNetworkLatencyInMs(drUtil.getSiteNetworkState(uuid).getNetworkLatencyInMs());
             Date lastSyncTime = getLastSyncTime(standby);
             if (lastSyncTime != null) {
                 standbyDetails.setLastSyncTime(lastSyncTime);
@@ -1615,7 +1641,7 @@ public class DisasterRecoveryService {
     }
 
     /*
-     * Internal method to check whether failover from acitve to standby is allowed
+     * Internal method to check whether failover from active to standby is allowed
      */
     protected void precheckForSwitchover(String standbyUuid) {
         Site standby = null;
@@ -1706,7 +1732,7 @@ public class DisasterRecoveryService {
         String myNodeId = addrLookupMap.getNodeId();
         String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
         log.info("Local coordinator mode is {}", coordinatorMode);
-        if (DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
+        if (coordinatorMode == null || DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(coordinatorMode) || DrUtil.ZOOKEEPER_MODE_READONLY.equals(coordinatorMode)) {
             log.info("Active site is available now, can't do failover");
             throw APIException.internalServerErrors.failoverPrecheckFailed(standbyName, "Active site is available now, can't do failover");
         }
@@ -1924,7 +1950,8 @@ public class DisasterRecoveryService {
     }
     
     private void checkSiteConnectivity(Site site) {
-        if (site.getNetworkHealth() == NetworkHealth.BROKEN) {
+        SiteNetworkState networkState = drUtil.getSiteNetworkState(site.getUuid());
+        if (networkState.getNetworkHealth() == NetworkHealth.BROKEN) {
             throw APIException.internalServerErrors.siteConnectionBroken(site.getName(), "Network health state is broken.");
         }
         

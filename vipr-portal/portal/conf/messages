@@ -664,14 +664,6 @@ applicationGroup.list.title=Applications
 applicationGroup.name=Application Name
 applicationGroup.description=Description	
 applicationGroup.role=Role
-applicationGroup.deleteConfirm=Are you sure you want to delete the Application(s).
-applicationGroup.create.title=Create Application
-applicationGroup.edit.title=Edit Application
-applicationGroup.create.description=Enter information needed for an Application
-applicationGroup.save.success=Saved '%s'
-
-applicationGroup.deleted=Application(s) deleted successfully
-applicationGroup.unknown=Unknown Application with ID '%s'
 applicationGroup.resources.title=Application
 
 # Custom Config

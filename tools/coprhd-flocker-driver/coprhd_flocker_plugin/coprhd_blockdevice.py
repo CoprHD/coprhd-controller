@@ -57,8 +57,7 @@ def retry_wrapper(func):
             else:
                 exception_message = "\nViPR Exception: %s\nStack Trace:\n%s" \
                     % (e.err_text, traceback.format_exc())
-                raise exception.VolumeBackendAPIException(
-				    data=exception_message)
+                raise utils.SOSError(utils.SOSError.SOS_FAILURE_ERR,"Exception is : "+exception_message)
         except Exception:
             exception_message = "\nGeneral Exception: %s\nStack Trace:\n%s" \
                 % (sys.exc_info()[0], traceback.format_exc())
@@ -110,7 +109,7 @@ class CoprHDCLIDriver(object):
         self.project_obj = coprhdproject.Project(
             self.coprhdhost,
             self.port)
-            
+    @retry_wrapper    
     def authenticate_user(self):
          
         # we should check to see if we are already authenticated before blindly
@@ -137,7 +136,7 @@ class CoprHDCLIDriver(object):
                                   cookiedir,
                                   None)
             CoprHDCLIDriver.AUTHENTICATED = True
-
+    @retry_wrapper
     def get_volume_lunid(self, vol):
         self.authenticate_user()
         Message.new(Info="coprhd-get_volume_lunid" + vol).write(_logger)
@@ -162,7 +161,7 @@ class CoprHDCLIDriver(object):
            return 
         except utils.SOSError:
                     Message.new(Debug="coprhd-get_volume_lunid failed").write(_logger)
-                    
+    @retry_wrapper                
     def get_volume_details(self, vol):
         self.authenticate_user()
         Message.new(Info="coprhd-get-volume-details" + vol).write(_logger)

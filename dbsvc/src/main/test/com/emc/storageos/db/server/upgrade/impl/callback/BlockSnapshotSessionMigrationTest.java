@@ -61,8 +61,9 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
     @BeforeClass
     public static void setup() throws IOException {
 
-        customMigrationCallbacks.put("2.4", new ArrayList<BaseCustomMigrationCallback>() {
+        customMigrationCallbacks.put("3.0", new ArrayList<BaseCustomMigrationCallback>() {
             private static final long serialVersionUID = 1L;
+
             {
                 // Add your implementation of migration callback below.
                 add(new BlockSnapshotSessionMigration());
@@ -77,7 +78,7 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
      */
     @Override
     protected String getSourceVersion() {
-        return "2.4";
+        return "3.0";
     }
 
     /**
@@ -85,7 +86,7 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
      */
     @Override
     protected String getTargetVersion() {
-        return "2.5";
+        return "3.0";
     }
 
     /**

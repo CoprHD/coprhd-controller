@@ -119,7 +119,7 @@ public class DrUtil {
             coordinator.persistServiceConfiguration(operation.toConfiguration());
             log.info("DR operation status has been recorded: {}", operation.toString());
         } catch (Exception e) {
-            log.error(String.format("Error happened when recording auditlog for DR operation for site %s, state: %s", siteId, state), e);
+            log.error(String.format("Error happened when recording auditlog for DR operation for site %s, state: %s", siteId, state.name()), e);
         }
     }
 

@@ -5,6 +5,7 @@
 
 package com.emc.storageos.management.backup;
 
+import org.apache.cassandra.cql3.Lists;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -17,13 +18,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
 import java.text.Format;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-
-//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
+import java.util.*;
 //This is a CLI application and main method will not be called by multiple threads
 @SuppressWarnings("squid:S2444")
 public class BackupCmd {
@@ -33,6 +34,7 @@ public class BackupCmd {
     private static final Options options = new Options();
     private static final String TOOL_NAME = "bkutils";
     private static final String ONLY_RESTORE_SITE_ID = "osi";
+    private static final String LOG_EXT = ".log";
     private static BackupOps backupOps;
     private static CommandLine cli;
     private static RestoreManager restoreManager;
@@ -136,6 +138,8 @@ public class BackupCmd {
     }
 
     private static void init(String[] args) {
+        initLogPermission();
+
         initCommandLine(args);
         initRestoreManager();
 
@@ -277,4 +281,31 @@ public class BackupCmd {
         int quota = backupOps.getQuotaGb();
         System.out.println(String.format("Quota of backup is: %d GB", quota));
     }
+
+    private static void initLogPermission() {
+        String homeDir =System.getProperty("product.home");
+        StringBuilder sb = new StringBuilder().append(homeDir).append(File.separator)
+                .append("logs").append(File.separator).append(TOOL_NAME).append(LOG_EXT);
+        File logFile = new File(sb.toString());
+        //check if bkutils.log permission is 644
+        Set<PosixFilePermission> perms = new HashSet<PosixFilePermission>();
+        perms.add(PosixFilePermission.OWNER_READ);
+        perms.add(PosixFilePermission.OWNER_WRITE);
+        perms.add(PosixFilePermission.GROUP_READ);
+        perms.add(PosixFilePermission.OTHERS_READ);
+        try{
+            if (logFile.exists()) {
+                Set<PosixFilePermission> permsRead = Files.getPosixFilePermissions(logFile.toPath());
+                if (perms.equals(permsRead)) {
+                    return;
+                }
+            }else {
+                boolean blnCreated = logFile.createNewFile();
+            }
+            Files.setPosixFilePermissions(logFile.toPath(),perms);
+        }catch (IOException e ) {
+            log.error("Failed to operate the log file {}. e={}",logFile,e);
+        }
+    }
+
 }

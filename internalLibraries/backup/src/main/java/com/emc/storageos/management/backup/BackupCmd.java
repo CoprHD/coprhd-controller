@@ -26,6 +26,8 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
 //This is a CLI application and main method will not be called by multiple threads

@@ -59,6 +59,10 @@ public class Site {
     public SiteRestRep getSite(String uuid) {
         return client.get(SiteRestRep.class, PathConstants.SITE_URL + "/" + uuid);
     }
+    
+    public SiteRestRep getLocalSite() {
+        return client.get(SiteRestRep.class, PathConstants.SITE_URL + "/local");
+    }
 
     public SiteList listAllSites() {
         return client.get(SiteList.class, PathConstants.SITE_URL);

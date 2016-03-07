@@ -125,7 +125,7 @@ public class UpgradeService {
         }
 
         // check if all DR sites are in stable or paused status
-        checkClusterState();
+        checkClusterState(true);
 
         List<SoftwareVersion> available = null;
         try {
@@ -252,7 +252,8 @@ public class UpgradeService {
         } catch (InvalidSoftwareVersionException e) {
             throw APIException.badRequests.parameterIsNotValid("version");
         }
-        checkClusterState();
+        // do not proceed if there's paused sites.
+        checkClusterState(false);
         RepositoryInfo repoInfo = null;
         try {
             repoInfo = _coordinator.getTargetInfo(RepositoryInfo.class);
@@ -306,10 +307,10 @@ public class UpgradeService {
         return toClusterResponse(clusterInfo);
     }
 
-    private void checkClusterState() {
+    private void checkClusterState(boolean skipPausedSites) {
         for (Site site : drUtil.listSites()) {
             // don't check cluster state for paused sites.
-            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+            if (skipPausedSites && site.getState() == SiteState.STANDBY_PAUSED) {
                 continue;
             }
             int nodeCount = site.getNodeCount();

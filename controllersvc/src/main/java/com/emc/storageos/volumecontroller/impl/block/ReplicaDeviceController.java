@@ -903,6 +903,20 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         log.info(String.format("Step created for remove clones [%s] from group on device [%s]",
                 Joiner.on("\t").join(cloneList), storage));
 
+        // delete replication group from array if no more clones in the group.
+        if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, repGroupName, cloneList, storage)) {
+            log.info(String.format("Adding step to delete the replication group %s", repGroupName));
+            Volume clone = _dbClient.queryObject(Volume.class, cloneList.get(0));
+            URI sourceId = clone.getAssociatedSourceVolume();
+            Volume sourceVol = _dbClient.queryObject(Volume.class, sourceId);
+            String sourceRepGroupName = sourceVol.getReplicationGroupInstance();
+            waitFor = workflow.createStep(BlockDeviceController.DELETE_GROUP_STEP_GROUP,
+                    String.format("Deleting replication group  %s", repGroupName),
+                    waitFor, storage, storageSystem.getSystemType(),
+                    BlockDeviceController.class,
+                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, false, false, sourceRepGroupName),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
+        }
         return waitFor;
     }
 
@@ -1222,7 +1236,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 return waitFor;
             }
 
-            boolean isRemoveAllFromCG = ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumes);
+            boolean isRemoveAllFromCG = ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, volumeList, firstVolume.getStorageController());
             log.info("isRemoveAllFromCG {}", isRemoveAllFromCG);
             if (checkIfCGHasCloneReplica(volumes)) {
                 log.info("Adding steps to process clones for removing volumes");

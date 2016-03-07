@@ -32,7 +32,7 @@ public class FtpClient {
     public ProcessBuilder getBuilder() {
         boolean isExplicit = startsWithIgnoreCase(uri, BackupConstants.FTPS_URL_PREFIX);
 
-        String passwordStr = (password == null) ? password : password.substring(0, 1) + "xxx";
+        String passwordStr = (password == null) ? password : password.substring(0, 1) + "***";
         ProcessBuilder builder = new ProcessBuilder("curl", "-sSk", "-u", String.format("%s:%s",
                 username, passwordStr));
         if (!isExplicit) {

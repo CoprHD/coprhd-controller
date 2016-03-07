@@ -5,6 +5,7 @@
 package com.emc.storageos.systemservices.impl.security;
 
 import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.security.SecurityDisabler;
 import com.emc.storageos.security.authorization.*;
@@ -28,8 +29,10 @@ import java.util.Set;
  * Class implements ResourceFilterFactory to add permissions filter where needed
  */
 public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFactory {
-    private static final List<String> FORBIDDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery");
+    private static final List<String> FORBIDDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery", "control/cluster/ipreconfig");
     private static final List<String> READ_ONLY_PATHS = Arrays.asList("ipsec");
+    private static final List<String> CONFIG_PATHS = Arrays.asList("config");
+
     private static final List<String> WRITE_METHODS = Arrays.asList("PUT", "POST");
 
     private BasePermissionsHelper _permissionsHelper;
@@ -149,6 +152,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
             if (isForbidden(request)) {
                 throw APIException.forbidden.disallowOperationOnDrStandby(drUtil.getActiveSite().getVipEndPoint());
             }
+
             return request;
         }
 
@@ -158,6 +162,11 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
             }
 
             if (isPathInReadOnly(request.getPath()) && isWrite(request.getMethod())) {
+                return true;
+            }
+
+            if (isConfigurationPath(request.getPath()) &&
+                    !drUtil.getLocalSite().getState().equals(SiteState.STANDBY_SYNCED)) {
                 return true;
             }
 
@@ -175,6 +184,15 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
 
         private boolean isPathInReadOnly(String path) {
             for (String forbid : READ_ONLY_PATHS) {
+                if (path.startsWith(forbid)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isConfigurationPath(String path) {
+            for (String forbid : CONFIG_PATHS) {
                 if (path.startsWith(forbid)) {
                     return true;
                 }

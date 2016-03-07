@@ -21,6 +21,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	private String storageTypeType;
 	private String storageTypeId;
 	private boolean isSmiProvider = false;
+	private String storageTypeDispName;
 
 	public StorageSystemTypeRestRep() {
 	}
@@ -60,6 +61,15 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 
 	public void setIsSmiProvider(boolean isSmiProvider) {
 		this.isSmiProvider = isSmiProvider;
+	}
+
+	@XmlElement(name = "storage_type_disp_name")
+	public String getStorageTypeDispName() {
+		return storageTypeDispName;
+	}
+
+	public void setStorageTypeDispName(String storageTypeDispName) {
+		this.storageTypeDispName = storageTypeDispName;
 	}
 
 	@Override

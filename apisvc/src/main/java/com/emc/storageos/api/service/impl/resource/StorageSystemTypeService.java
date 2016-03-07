@@ -2,6 +2,7 @@ package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import javax.ws.rs.Consumes;
@@ -43,8 +44,24 @@ import static com.emc.storageos.api.mapper.SystemsMapper.map;
 public class StorageSystemTypeService extends TaskResourceService {
 
 	private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
-
 	private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
+
+	private static final String ISILON = "isilon";
+	private static final String VNX_BLOCK = "vnxblock";
+	private static final String VNXe = "vnxe";
+	private static final String VNX_FILE = "vnxfile";
+	private static final String VMAX = "vmax";
+	private static final String NETAPP = "netapp";
+	private static final String NETAPPC = "netappc";
+	private static final String HITACHI = "hds";
+	private static final String IBMXIV = "ibmxiv";
+	private static final String VPLEX = "vplex";
+	private static final String OPENSTACK = "openstack";
+	private static final String SCALEIO = "scaleio";
+	private static final String SCALEIOAPI = "scaleioapi";
+	private static final String XTREMIO = "xtremio";
+	private static final String DATA_DOMAIN = "datadomain";
+	private static final String ECS = "ecs";
 
 	/**
 	 * Show compute image attribute.
@@ -213,23 +230,39 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 	private void addDefaultStorageSystemTypes() {
 		// Default File arrays
-		List<String> storageArrayFile = asList("EMC VNX File", "EMC Isilon", "NetApp 7-mode", "NetApp Cluster-mode");
+		List<String> storageArrayFile = asList(VNX_FILE, ISILON, NETAPP, NETAPPC);
 
 		// Default Provider for File
-		List<String> storageProviderFile = asList("ScaleIO Gateway");
+		List<String> storageProviderFile = asList(SCALEIOAPI);
 
 		// Default block arrays
-		List<String> storageArrayBlock = asList("EMC VNX Block", "EMC VNXe");
+		List<String> storageArrayBlock = asList(VNX_BLOCK, VNXe);
 
 		// Default Storage provider for Block
-		List<String> storageProviderBlock = asList("Storage Provider for EMC VMAX, VNX Block",
-				"Storage Provider for Hitachi storage systems", "Storage Provider for EMC VPLEX",
-				"Storage Provider for Third-party block storage systems", "Block Storage Powered by ScaleIO",
-				"Storage Provider for Data Domain Management Center", "Storage Provider for IBM XIV",
-				"Storage Provider for EMC XtremIO");
+		List<String> storageProviderBlock = asList(VMAX, HITACHI, VPLEX, OPENSTACK, SCALEIO, DATA_DOMAIN, IBMXIV,
+				XTREMIO);
 
 		// Default object arrays
-		List<String> storageArrayObject = asList("EMC Elastic Cloud Storage");
+		List<String> storageArrayObject = asList(ECS);
+
+		// Name of Array and its Display Name mapping
+		HashMap<String, String> nameDisplayNameMap = new HashMap<String, String>();
+		nameDisplayNameMap.put(VNX_FILE, "EMC VNX File");
+		nameDisplayNameMap.put(ISILON, "EMC Isilon");
+		nameDisplayNameMap.put(NETAPP, "NetApp 7-mode");
+		nameDisplayNameMap.put(NETAPPC, "NetApp Cluster-mode");
+		nameDisplayNameMap.put(SCALEIOAPI, "ScaleIO Gateway");
+		nameDisplayNameMap.put(VNX_BLOCK, "EMC VNX Block");
+		nameDisplayNameMap.put(VNXe, "EMC VNXe");
+		nameDisplayNameMap.put(VMAX, "Storage Provider for EMC VMAX or VNX Block");
+		nameDisplayNameMap.put(HITACHI, "Storage Provider for Hitachi storage systems");
+		nameDisplayNameMap.put(VPLEX, "Storage Provider for EMC VPLEX");
+		nameDisplayNameMap.put(OPENSTACK, "Storage Provider for Third-party block storage systems");
+		nameDisplayNameMap.put(SCALEIO, "Block Storage Powered by ScaleIO");
+		nameDisplayNameMap.put(DATA_DOMAIN, "Storage Provider for Data Domain Management Center");
+		nameDisplayNameMap.put(IBMXIV, "Storage Provider for IBM XIV");
+		nameDisplayNameMap.put(XTREMIO, "Storage Provider for EMC XtremIO");
+		nameDisplayNameMap.put(ECS, "EMC Elastic Cloud Storage");
 
 		for (String file : storageArrayFile) {
 			StorageSystemType ssType = new StorageSystemType();
@@ -237,6 +270,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(file);
+			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
 			ssType.setStorageTypeType("file");
 			ssType.setIsSmiProvider(false);
 			_dbClient.createObject(ssType);
@@ -248,6 +282,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(file);
+			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
 			ssType.setStorageTypeType("file");
 			ssType.setIsSmiProvider(true);
 			_dbClient.createObject(ssType);
@@ -259,6 +294,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(block);
+			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
 			ssType.setStorageTypeType("block");
 			ssType.setIsSmiProvider(false);
 			_dbClient.createObject(ssType);
@@ -270,6 +306,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(block);
+			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
 			ssType.setStorageTypeType("block");
 			ssType.setIsSmiProvider(true);
 			_dbClient.createObject(ssType);
@@ -281,6 +318,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setId(ssTyeUri);
 			ssType.setStorageTypeId(ssTyeUri.toString());
 			ssType.setStorageTypeName(object);
+			ssType.setStorageTypeDispName(nameDisplayNameMap.get(object));
 			ssType.setStorageTypeType("object");
 			ssType.setIsSmiProvider(false);
 			_dbClient.createObject(ssType);

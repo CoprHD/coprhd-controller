@@ -11,12 +11,15 @@ public class StorageSystemType extends DataObject {
 	// Name of Storage Type, like VMAX, VNX, Isilion
 	private String storageTypeName;
 
+	// Display Name of Storage Type, like VMAX, VNX, Isilion
+	private String storageTypeDispName;
+
 	// Storage type like Block, File or Object
 	private String storageTypeType;
 
 	// Storage array is directly manage by CoprHD or thru SMI: Providers
 	private Boolean isSmiProvider = false;
-	
+
 	// Storage array URI in string
 	private String storageTypeId;
 
@@ -28,6 +31,16 @@ public class StorageSystemType extends DataObject {
 	public void setStorageTypeName(String name) {
 		this.storageTypeName = name;
 		setChanged("storageTypeName");
+	}
+
+	@Name("storageTypeDispName")
+	public String getStorageTypeDispName() {
+		return storageTypeDispName;
+	}
+
+	public void setStorageTypeDispName(String name) {
+		this.storageTypeDispName = name;
+		setChanged("storageTypeDispName");
 	}
 
 	@Name("storageTypeType")
@@ -49,7 +62,7 @@ public class StorageSystemType extends DataObject {
 		this.isSmiProvider = isSmiProvider;
 		setChanged("isSmiProvider");
 	}
-	
+
 	@Name("storageTypeId")
 	public String getStorageTypeId() {
 		return storageTypeId;
@@ -59,9 +72,9 @@ public class StorageSystemType extends DataObject {
 		this.storageTypeId = storageId;
 		setChanged("storageTypeId");
 	}
-	
-    public static enum StorageType {
-        block, file, object
-    }
+
+	public static enum StorageType {
+		block, file, object
+	}
 
 }

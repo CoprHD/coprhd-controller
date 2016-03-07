@@ -420,7 +420,6 @@ public class LDAPsources extends ViprResourceController {
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
 
-            //if (StringUtils.equals(AuthSourceType.ad.name(), mode) || StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
         	if (StringUtils.equals(AuthSourceType.ad.name(), mode)) {
                 Validation.required(fieldName + ".groupAttribute", groupAttribute);
             }

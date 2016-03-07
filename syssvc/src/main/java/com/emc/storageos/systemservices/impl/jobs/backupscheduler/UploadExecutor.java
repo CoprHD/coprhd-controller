@@ -133,11 +133,11 @@ public class UploadExecutor {
         for (String tag : toUpload) {
             String errMsg = tryUpload(tag);
             if (errMsg == null) {
-                log.info("Upload backup {} successfully", tag);
+                log.info("Upload backup {} to {} successfully", tag, uploader.cfg.uploadUrl);
                 this.cfg.uploadedBackups.add(tag);
                 succUploads.add(tag);
             } else {
-                log.info("Upload backup {} failed", tag);
+                log.error("Upload backup {} to {} failed", tag, uploader.cfg.uploadUrl);
                 failureUploads.add(tag);
                 errMsgs.add(errMsg);
             }

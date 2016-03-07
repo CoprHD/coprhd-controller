@@ -1123,9 +1123,8 @@ public class BlockStorageUtils {
         Table<URI, String, BlockSnapshotSessionRestRep> storageRgToVolumes = HashBasedTable.create();
         for (NamedRelatedResourceRep volumeUri : volumeUris) {
             BlockSnapshotSessionRestRep snapshotSession = execute(new GetBlockSnapshotSession(volumeUri.getId()));
-            VolumeRestRep volume = execute(new GetBlockVolume(snapshotSession.getParent().getId()));
-            String rgName = volume.getReplicationGroupInstance();
-            URI storage = volume.getStorageController();
+            String rgName = snapshotSession.getReplicationGroupInstance();
+            URI storage = snapshotSession.getStorageController();
             if (!storageRgToVolumes.contains(storage, rgName)) {
                 storageRgToVolumes.put(storage, rgName, snapshotSession);
             }

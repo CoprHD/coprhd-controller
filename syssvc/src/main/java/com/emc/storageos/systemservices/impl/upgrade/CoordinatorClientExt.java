@@ -638,8 +638,8 @@ public class CoordinatorClientExt {
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(ConfigVersion.class,
                     CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             Site site = drUtil.getSiteFromLocalVdc(siteId);
-            ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId,
-                    site.getNodeCount());
+            ClusterInfo.ClusterState controlNodesState = _coordinator.getControlNodesState(siteId
+            );
 
             // if backCompatPreYoda flag is true, it's still in the middle of yoda upgrade. Probably it is 
             // rotating ipsec key. We should report upgrade in progress on UI

@@ -314,8 +314,7 @@ public class UpgradeService {
                 continue;
             }
             int nodeCount = site.getNodeCount();
-            ClusterInfo.ClusterState state = _coordinator.getCoordinatorClient().getControlNodesState(site.getUuid(),
-                    nodeCount);
+            ClusterInfo.ClusterState state = _coordinator.getCoordinatorClient().getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 _log.error("Site {} is not stable: {}", site.getUuid(), state);
                 throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), state.toString());

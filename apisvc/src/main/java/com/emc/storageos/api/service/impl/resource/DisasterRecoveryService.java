@@ -70,8 +70,6 @@ import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
 import com.emc.storageos.db.common.DbConfigConstants;
-import com.emc.storageos.geomodel.VdcNatCheckParam;
-import com.emc.storageos.geomodel.VdcNatCheckResponse;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
@@ -1445,7 +1443,7 @@ public class DisasterRecoveryService {
             }
             standbyDetails.setDataSynced(isDataSynced(standby));
 
-            ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount());
+            ClusterInfo.ClusterState clusterState = coordinator.getControlNodesState(standby.getUuid());
             if(clusterState != null) {
                 standbyDetails.setClusterState(clusterState.toString());
             }
@@ -1493,7 +1491,7 @@ public class DisasterRecoveryService {
             }
             int nodeCount = site.getNodeCount();
 
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             // state could be null
             if (!ClusterInfo.ClusterState.STABLE.equals(state)) {
                 log.error("Site {} is not stable {}", site.getUuid(), Objects.toString(state));
@@ -1671,7 +1669,7 @@ public class DisasterRecoveryService {
 
         List<Site> existingSites = drUtil.listSites();
         for (Site site : existingSites) {
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),
@@ -1719,7 +1717,7 @@ public class DisasterRecoveryService {
         }
 
         // Current site is stable
-        ClusterInfo.ClusterState state = coordinator.getControlNodesState(standbyUuid, standby.getNodeCount());
+        ClusterInfo.ClusterState state = coordinator.getControlNodesState(standbyUuid);
         if (state != ClusterInfo.ClusterState.STABLE) {
             log.info("Site {} is not stable {}", standby.getName(), state);
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
@@ -1783,7 +1781,7 @@ public class DisasterRecoveryService {
                 continue;
             }
 
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.internalServerErrors.addStandbyPrecheckFailed(String.format("Site %s is not stable", site.getName()));
@@ -1913,7 +1911,7 @@ public class DisasterRecoveryService {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not up");
         }
         
-        if (coordinator.getControlNodesState(standby.getUuid(), standby.getNodeCount()) != ClusterInfo.ClusterState.STABLE) {
+        if (coordinator.getControlNodesState(standby.getUuid()) != ClusterInfo.ClusterState.STABLE) {
             throw APIException.internalServerErrors.switchoverPrecheckFailed(standby.getName(), "Standby site is not stable");
         }
         
@@ -1929,7 +1927,7 @@ public class DisasterRecoveryService {
                 throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(), "Standby site is not synced or paused");
             }
             
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), site.getNodeCount());
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (site.getState() != SiteState.STANDBY_PAUSED && state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.internalServerErrors.switchoverPrecheckFailed(site.getName(),

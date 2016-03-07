@@ -615,7 +615,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         volume.getOpStatus().put(task, op);
 
         // Persist the volume in the db
-        _dbClient.persistObject(volume);
+        _dbClient.updateObject(volume);
 
         _log.info(String.format("Created task of type [%s] for volume [%s]", type.name(), volume.getLabel()));
 
@@ -684,7 +684,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             cgTargetVolumes = RPHelper.getCgVolumes(_dbClient, consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
 
             if (!cgSourceVolumes.isEmpty()) {
-                boolean isAdditionalSourceJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(vpool.getJournalSize(),
+                boolean isAdditionalSourceJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(vpool.getJournalSize(),
                         consistencyGroup, param.getSize(),
                         numberOfVolumesInRequest,
                         sourceCopyName);
@@ -821,7 +821,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // journal volume operation
                 if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
                     VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
-                    boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(
+                    boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(
                             protectionSettings.getJournalSize(), consistencyGroup, param.getSize(),
                             numberOfVolumesInRequest,
                             targetJournalRec.getInternalSiteName());
@@ -1667,7 +1667,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Create the volume in the db
             _dbClient.createObject(volume);
         } else {
-            _dbClient.updateAndReindexObject(volume);
+            _dbClient.updateObject(volume);
         }
 
         // Keep track of target volumes associated with the source volume
@@ -1676,7 +1676,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 sourceVolume.setRpTargets(new StringSet());
             }
             sourceVolume.getRpTargets().add(volume.getId().toString());
-            _dbClient.updateAndReindexObject(sourceVolume);
+            _dbClient.updateObject(sourceVolume);
         }
 
         return volume;
@@ -2320,7 +2320,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             for (URI volumeURI : replicationSetVolumes) {
                 Volume rpVolume = _dbClient.queryObject(Volume.class, volumeURI);
                 rpVolume.setCapacity(originalVolumeSize);
-                _dbClient.persistObject(rpVolume);
+                _dbClient.updateObject(rpVolume);
 
                 // Reset the backing volumes as well, if they exist
                 if (rpVolume.getAssociatedVolumes() != null
@@ -2329,7 +2329,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     for (String backingVolumeStr : rpVolume.getAssociatedVolumes()) {
                         Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backingVolumeStr));
                         backingVolume.setCapacity(originalVolumeSize);
-                        _dbClient.persistObject(backingVolume);
+                        _dbClient.updateObject(backingVolume);
                     }
                 }
             }
@@ -3305,7 +3305,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
                 // Save the internal site name to the backing volume, will need this for exporting later
                 backingVolume.setInternalSiteName(rpSite);
-                _dbClient.persistObject(backingVolume);
+                _dbClient.updateObject(backingVolume);
                 _log.info(String.format("Backing volume [%s] internal site name set to [%s]", backingVolume.getLabel(), rpSite));
             }
         } else if (exportToHASideOnly) {
@@ -3323,7 +3323,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // Save the internal site name to the HA backing volume, this will be needed
                     // for exporting the HA side/leg later in RPDeviceController
                     backingVolume.setInternalSiteName(primaryRecommendation.getInternalSiteName());
-                    _dbClient.persistObject(backingVolume);
+                    _dbClient.updateObject(backingVolume);
                     _log.info(String.format("Backing volume [%s] internal site name set to [%s]",
                             backingVolume.getLabel(), primaryRecommendation.getInternalSiteName()));
                     break;

@@ -10959,10 +10959,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
                 // that are RP source volumes.
                 for (BlockObject vplexVolume : allVplexVolumesInRG) {
-                    String personality = ((Volume) vplexVolume).getPersonality();
-                    if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
-                        vplexVolumes.add((Volume) vplexVolume);
-                    }
+                	 //RP target and sources restore is supported
+                     vplexVolumes.add((Volume) vplexVolume);
                 }
             }
 

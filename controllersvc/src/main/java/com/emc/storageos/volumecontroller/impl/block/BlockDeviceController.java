@@ -239,6 +239,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public static final String UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME = "UPDATE_VOLUMES_FOR_APPLICATION_WS";
     private static final String REMOVE_VOLUMES_FROM_CG_STEP_GROUP = "REMOVE_VOLUMES_FROM_CG";
     private static final String UPDATE_VOLUMES_STEP_GROUP = "UPDATE_VOLUMES";
+    public static final String DELETE_GROUP_STEP_GROUP = "DELETE_GROUP";
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -6378,5 +6379,48 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     rollbackMethodNullMethod(), null);
         }
         return waitFor;
+    }
+    
+    /**
+     * Create a method for workflow to delete array clone replication group
+     * @param storage storage system
+     * @param consistencyGroup consistency group URI
+     * @param groupName clone group name
+     * @param keepRGName 
+     * @param markInactive
+     * @param sourceGroupName source group name
+     * @return the created workflow Method
+     */
+    public Workflow.Method deleteReplicationGroupMethod(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName, 
+            Boolean markInactive, String sourceGroupName) {
+        return new Workflow.Method("deleteReplicationGroup", storage, consistencyGroup, groupName, keepRGName, markInactive, sourceGroupName);
+    }
+    
+    /**
+     * Delete array clone replication group
+     * @param storage storage system
+     * @param consistencyGroup consistency group URI
+     * @param groupName clone group name
+     * @param keepRGName 
+     * @param markInactive
+     * @param sourceGroupName source group name
+     * @return the created workflow Method
+     */
+    public void deleteReplicationGroup(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceGroupName, String opId) throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);
+            getDevice(storageObj.getSystemType()).doDeleteConsistencyGroup(storageObj, consistencyGroup, groupName, keepRGName, markInactive, 
+                    sourceGroupName, completer);
+        } catch (Exception e) {
+            if (completer != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                completer.error(_dbClient, serviceError);
+            }
+            throw DeviceControllerException.exceptions.deleteConsistencyGroupFailed(e);
+        }
     }
 }

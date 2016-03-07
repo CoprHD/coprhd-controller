@@ -1291,7 +1291,8 @@ public class VolumeIngestionUtil {
                             // need to check for several matching properties
                             URI storageControllerUri = cg.getStorageController();
                             URI virtualArrayUri = cg.getVirtualArray();
-                            if (!NullColumnValueGetter.isNullURI(storageControllerUri) && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
+                            if (!NullColumnValueGetter.isNullURI(storageControllerUri)
+                                    && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                                 if (storageControllerUri.equals(storageSystem.getId()) &&
                                         virtualArrayUri.equals(varrayUri)) {
                                     _logger.info("Found a matching BlockConsistencyGroup {} "
@@ -1329,6 +1330,7 @@ public class VolumeIngestionUtil {
                 cg.setLabel(cgName);
                 cg.setProject(new NamedURI(projectUri, cgName));
                 cg.setTenant(new NamedURI(tenantUri, cgName));
+                cg.setArrayConsistency(false);
                 cg.addConsistencyGroupTypes(Types.VPLEX.name());
                 cg.setStorageController(storageSystem.getId());
                 cg.setVirtualArray(varrayUri);
@@ -2302,6 +2304,7 @@ public class VolumeIngestionUtil {
     /**
      * Verify a matching ExportGroup exists for the given parameters.
      *
+     * @param requestContext current unManagedVolume Ingestion context.
      * @param project the Project URI
      * @param computeResource the ComputeResource URI
      * @param vArray the VirtualArray URI
@@ -2328,11 +2331,13 @@ public class VolumeIngestionUtil {
                             !ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(eg.getType())) {
                         _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", eg.getId());
                         exportGroup = eg;
+                        break;
                     }
                 } else if (ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(resourceType)) {
                     if (eg.hasCluster(computeResource)) {
                         _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", eg.getId());
                         exportGroup = eg;
+                        break;
                     }
                 }
 
@@ -2356,6 +2361,7 @@ public class VolumeIngestionUtil {
      * Note: Once it finds an export group associated with any initiator, it returns that export group. This may not
      * be what the caller wants.
      *
+     * @param requestContext current unManagedVolume Ingestion context.
      * @param project project
      * @param knownInitiatorUris initiators list
      * @param vArray virtual array
@@ -2385,6 +2391,7 @@ public class VolumeIngestionUtil {
                             + eg.getId().toString());
                 }
                 exportGroup = eg;
+                break;
             }
         }
 
@@ -3504,6 +3511,7 @@ public class VolumeIngestionUtil {
         types.add(BlockConsistencyGroup.Types.RP.toString());
         cg.setRequestedTypes(types);
         cg.setTypes(types);
+        cg.setArrayConsistency(false);
         cg.setTenant(project.getTenantOrg());
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
         _logger.info("Created new block consistency group: " + cg.getId().toString());
@@ -3727,6 +3735,7 @@ public class VolumeIngestionUtil {
             cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cgName);
             cg.setStorageController(storageSystem.getId());
             cg.setVirtualArray(varrayUri);
+            cg.setArrayConsistency(false);
             return cg;
         }
     }
@@ -3971,7 +3980,7 @@ public class VolumeIngestionUtil {
 
         RecoverPointVolumeIngestionContext rpContext = null;
 
-        // the RP volume ingestion context will take care of persisting the 
+        // the RP volume ingestion context will take care of persisting the
         // new objects and deleting the old UnManagedProtectionSet
         if (requestContext instanceof RecoverPointVolumeIngestionContext) {
             rpContext = (RecoverPointVolumeIngestionContext) requestContext;

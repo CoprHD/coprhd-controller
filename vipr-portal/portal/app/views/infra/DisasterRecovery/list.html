@@ -33,7 +33,7 @@
 	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span>
 #{/elseif}
 
-#{if !isActiveSite && controllers.infra.DisasterRecovery.getLocalSiteState() == "STANDBY_PAUSED"}
+#{if !isActiveSite && controllers.infra.DisasterRecovery.getLocalSiteState() == "STANDBY_PAUSED" }
 	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteDataNotConsistentWarning'}</span>
 #{/if}
 
@@ -68,7 +68,8 @@ var standbyresumeUrl = #{jsAction @resume(':uuid', showPauseButton) /}
 var standbytestUrl = #{jsAction @test(':uuid') /}
 var standbyfailoverUrl = #{jsAction @switchover(':uuid') /}
 var standbyretryUrl = #{jsAction @retry(':uuid') /}
-var isRetrySite = #{jsAction @isRetrySite(':uuid')/};
+var isRetrySite = #{jsAction @isRetrySite(':uuid')/}
+var localUuId = "${localSiteUuid}";
 
 angular.module('tags').directive({
 	actions: function() {
@@ -88,13 +89,22 @@ angular.module('tags').directive({
 
         	 if(scope.row.status.toUpperCase() == "STANDBY_SYNCED"){
 				scope.isPauseSite = true;
-				scope.isFailover = true;
+				#{if isActiveSite }
+					scope.isFailover = true;
+				#{/if}
+				#{else}
+					if(scope.row.id == localUuId) {
+						scope.isFailover = true;
+					}
+				#{/else}
              }
         	 
         	 if(scope.row.status.toUpperCase() == "STANDBY_PAUSED"){
 				scope.isResumeSite = true;
 				#{if !isActiveSite }
-					scope.isFailover = true;
+					if(scope.row.id == localUuId) {
+						scope.isFailover = true;
+					}
 				#{/if}
              }
 
@@ -102,6 +112,7 @@ angular.module('tags').directive({
              	if(isRetrySite({'uuid': scope.row.id})){
 					scope.isRetrySite = true;
 				}
+             	scope.isFailover = false;
              }
         	 
         	 if(scope.row.status.toUpperCase() == "ACTIVE"){

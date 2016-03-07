@@ -93,6 +93,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCleanupMetaVolumeMembersJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVolumeJob;
@@ -623,6 +624,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             cleanupAnyGroupBackupSnapshots(storageSystem, volume);
                         }
                         removeVolumeFromConsistencyGroup(storageSystem, volume);
+                    }
+                    // for VMAX3, delete the associated snapshot sessions before deleting the volume
+                    // volume may be removed from CG which has group session
+                    if (storageSystem.checkIfVmax3()) {
+                        cleanupAnyBackupSnapshots(storageSystem, volume);
                     }
                 } else {
                     // for VMAX3, clean up unlinked snapshot session, which is possible for ingested volume
@@ -2464,7 +2470,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             if (!storage.deviceIsType(Type.vnxblock)) {
                 BlockObject replica = BlockObject.fetch(_dbClient, blockObjects.get(0));
-                CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, replica.getReplicationGroupInstance(),
+                CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage,
+                        _helper.extractGroupName(replica.getReplicationGroupInstance()),
                         SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
 
                 List<URI> replicasPartOfGroup = _helper.findVolumesInReplicationGroup(storage, maskingGroupPath, blockObjects);

@@ -1069,7 +1069,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         BlockConsistencyGroup targetCG = _dbClient.queryObject(
                                 BlockConsistencyGroup.class, cgUri);
                         if (null != targetCG && (null == targetCG.getTypes()
-                                || null == targetCG.getStorageController())) {
+                                || NullColumnValueGetter.isNullURI(targetCG.getStorageController()))) {
                             _log.info("Set target CG {} inactive", targetCG.getLabel());
                             targetCG.setInactive(true);
                             _dbClient.persistObject(targetCG);
@@ -5553,12 +5553,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param waitFor the wait for
      * @return the stepId
      */
-    public String addStepToCreateSnapshotSession(Workflow workflow, URI systemURI, BlockSnapshotSession session,
+    public String addStepToCreateSnapshotSession(Workflow workflow, URI systemURI, URI session,
             String repGroupName, String waitFor) {
         String stepId = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOT_SESSION_STEP_GROUP,
                 String.format("Creating block snapshot session"),
                 waitFor, systemURI, getDeviceType(systemURI), getClass(),
-                createBlockSnapshotSessionMethod(systemURI, session.getId(), repGroupName),
+                createBlockSnapshotSessionMethod(systemURI, session, repGroupName),
                 rollbackMethodNullMethod(), null);
         return stepId;
     }

@@ -271,12 +271,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private RPStatisticsHelper _rpStatsHelper;
     private RecordableEventManager _eventManager;
     private ControllerLockingService _locker;
-    
+
     @Autowired
     private BlockDeviceController _blockDeviceController;
     
     @Autowired
     private VPlexDeviceController _vplexDeviceController;
+
+    private Map<URI, Set<URI>> exportGroupVolumesAdded;
+    private List<URI> exportGroupsCreated;
 
     @Autowired
     private AuditLogManager _auditMgr;
@@ -1018,6 +1021,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // The workflow service now provides a rollback facility for a child workflow. It rolls back every step in an already
         // (successfully) completed child workflow. The child workflow is located by the parentWorkflow URI and exportOrchestrationStepId.
         _workflowService.rollbackChildWorkflow(parentWorkflow, exportOrchestrationStepId, token);
+        
+        // Lastly, rollback ViPR level RP export group changes
+        rollbackRPExportGroups();
+        
         return true;
     }
 
@@ -1028,7 +1035,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Workflow workflow = null;
         boolean lockException = false;
         Map<URI, Set<URI>> exportGroupVolumesAdded = new HashMap<URI, Set<URI>>();
-        final String COMPUTE_RESOURCE_CLUSTER = "cluster";
+	exportGroupsCreated = new ArrayList<URI>();
+	final String COMPUTE_RESOURCE_CLUSTER = "cluster";
         try {
             // Generate the Workflow.
             workflow = _workflowService.getNewWorkflow(this,
@@ -1218,6 +1226,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     exportGroup.addInitiators(initiatorSet);
                     exportGroup.setNumPaths(numPaths);
                     _dbClient.createObject(exportGroup);
+                    // Keep track of newly created EGs in case of rollback
+                    exportGroupsCreated.add(exportGroup.getId());
                 } else {
                     _dbClient.updateObject(exportGroup);
                 }
@@ -1275,17 +1285,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         } catch (Exception ex) {
             _log.error("Could not create volumes: " + volUris, ex);
 
-            // Rollback volumes that has been added/persisted to export groups
-            if (!exportGroupVolumesAdded.isEmpty()) {
-                for (Entry<URI, Set<URI>> entry : exportGroupVolumesAdded.entrySet()) {
-                    if (entry.getValue() != null && !entry.getValue().isEmpty()) {
-                        ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, entry.getKey());
-                        _log.info(String.format("Removing volumes %s from ExportGroup %s.", entry.getValue(), entry.getKey()));
-                        exportGroup.removeVolumes(new ArrayList<URI>(entry.getValue()));
-                        _dbClient.updateObject(exportGroup);
-                    }
-                }
-            }
+            // Rollback ViPR level RP export group changes
+            rollbackRPExportGroups();
 
             if (workflow != null) {
                 _workflowService.releaseAllWorkflowLocks(workflow);
@@ -1304,6 +1305,41 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         _log.info("End adding RP Export Volumes steps.");
         return true;
+    }
+    
+    /**
+     * ViPR level deletion/update of any RP Export Groups that are newly created. If they are pre-existing,
+     * then we simply want to remove any volume references that had been added to those Export Groups. 
+     */
+    private void rollbackRPExportGroups() {
+        // Rollback any newly created export groups
+        if (exportGroupsCreated != null && !exportGroupsCreated.isEmpty()) {
+            for (URI exportGroupURI : exportGroupsCreated) {
+                ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, exportGroupURI);
+                if (exportGroup != null && !exportGroup.getInactive()) {
+                    _log.info(String.format("Marking ExportGroup [%s](%s) for deletion.", exportGroup.getLabel(), exportGroup.getId()));
+                    _dbClient.markForDeletion(exportGroup);
+                }
+            }
+        }  
+        
+        // Rollback any volumes that have been added/persisted to existing export groups
+        if (exportGroupVolumesAdded != null && !exportGroupVolumesAdded.isEmpty()) {
+            for (Entry<URI, Set<URI>> entry : exportGroupVolumesAdded.entrySet()) {
+                if (entry.getValue() != null && !entry.getValue().isEmpty()) {
+                    if (exportGroupsCreated != null && !exportGroupsCreated.isEmpty()) {
+                        if (exportGroupsCreated.contains(entry.getKey())) {
+                            // We already marked this EG for deletion, so keep going.
+                            continue;
+                        }
+                    }
+                    ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, entry.getKey());
+                    _log.info(String.format("Removing volumes (%s) from ExportGroup (%s).", entry.getValue(), entry.getKey()));
+                    exportGroup.removeVolumes(new ArrayList<URI>(entry.getValue()));
+                    _dbClient.updateObject(exportGroup);
+                }
+            }
+        }              
     }
 
     /**

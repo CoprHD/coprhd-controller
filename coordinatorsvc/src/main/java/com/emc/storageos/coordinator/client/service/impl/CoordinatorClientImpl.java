@@ -237,7 +237,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         vdcConfig.setId(vdcShortId);
         persistServiceConfiguration(vdcConfig);
 
-        // insert DR acitve site info to ZK
+        // insert DR active site info to ZK
         Site site = new Site();
         site.setUuid(getSiteId());
         site.setName("Default Active Site");
@@ -621,7 +621,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 }
             }
         } catch (final Exception e) {
-            log.info("Failed to persist service configuration e=",e);
+            log.error("Failed to persist service configuration e=",e);
             throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
         }
     }

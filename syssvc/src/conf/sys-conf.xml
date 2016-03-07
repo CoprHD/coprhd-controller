@@ -240,7 +240,7 @@
         <property name="nodeCount" ref="nodeCount" />
         <property name="powerOffStateChangeTimeout" value="120000" />
         <property name="powerOffStateProbeInterval" value="3000" />
-        <property name="loopInterval"  value="600000" />
+        <property name="loopInterval"  value="300000" />
         <property name="retryInterval"  value="4000" />
         <property name="ipsecConfig" ref="ipsecConfig" />
         <property name="drUtil" ref="drUtil" />
@@ -454,6 +454,7 @@
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="ipsecConfig" ref="ipsecConfig" />
         <property name="ipsecMgr" ref="ipsecMgr" />
+        <property name="drUtil" ref="drUtil" />
     </bean>
 
     <bean id="backupUploadJobProducer" class="com.emc.storageos.systemservices.impl.jobs.common.JobProducer" init-method="startQueue" destroy-method="stopQueue">

@@ -138,7 +138,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 driverVolume.setDisplayName(volume.getLabel());
                 if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
                     BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
-                    driverVolume.setConsistencyGroup(cg.getLabel());
+                    driverVolume.setConsistencyGroup(cg.getNativeId());
                 }
 
                 driverVolumes.add(driverVolume);
@@ -835,22 +835,25 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         _log.info("Delete consistency group: STARTED...");
 
         BlockConsistencyGroup consistencyGroup = null;
-        String groupName = null;
+        String groupNativeId = null;
+        String groupDisplayName = null;
         boolean isDeleteForBlockCG = true;
 
         try {
             if (!NullColumnValueGetter.isNullURI(consistencyGroupId)) {
                 consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroupId);
-                groupName = consistencyGroup != null ? consistencyGroup.getLabel() : replicationGroupName;
+                groupDisplayName = consistencyGroup != null ? consistencyGroup.getLabel() : replicationGroupName;
+                groupNativeId = consistencyGroup != null ? consistencyGroup.getNativeId() : replicationGroupName;
                 if (consistencyGroup == null) {
                     isDeleteForBlockCG = false;
                 }
             } else {
-                groupName = replicationGroupName;
+                groupDisplayName = replicationGroupName;
+                groupNativeId = replicationGroupName;
                 isDeleteForBlockCG = false;
             }
 
-            if (groupName == null || groupName.isEmpty()) {
+            if (groupNativeId == null || groupNativeId.isEmpty()) {
                 String msg = String.format("doDeleteConsistencyGroup -- There is no consistency group or replication group to delete.");
                 _log.info(msg);
                 taskCompleter.ready(dbClient);
@@ -858,14 +861,15 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             }
 
             if (isDeleteForBlockCG) {
-                _log.info("Deleting consistency group: storage system {}, group {}", storageSystem.getNativeId(), groupName );
+                _log.info("Deleting consistency group: storage system {}, group {}", storageSystem.getNativeId(), groupDisplayName );
             } else {
-                _log.info("Deleting system replication group: storage system {}, group {}", storageSystem.getNativeId(), groupName );
+                _log.info("Deleting system replication group: storage system {}, group {}", storageSystem.getNativeId(), groupDisplayName );
             }
 
             // prepare driver consistency group
             VolumeConsistencyGroup driverCG = new VolumeConsistencyGroup();
-            driverCG.setDisplayName(groupName);
+            driverCG.setDisplayName(groupDisplayName);
+            driverCG.setNativeId(groupNativeId);
             driverCG.setStorageSystemId(storageSystem.getNativeId());
 
             // call driver
@@ -875,7 +879,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
             // todo: need to implement support for async case.
             if (task.getStatus() == DriverTask.TaskStatus.READY) {
                 if (consistencyGroup != null) {
-                    consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageSystem.getId()), groupName);
+                    consistencyGroup.removeSystemConsistencyGroup(URIUtil.asString(storageSystem.getId()), groupDisplayName);
                     if (markInactive) {
                         consistencyGroup.setInactive(true);
                     }

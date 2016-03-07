@@ -470,7 +470,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
     private void prepareVolumes(StorageSystem storage, List<URI> volumeUris, List<StorageVolume> driverVolumes) {
 
         for (URI volumeUri : volumeUris) {
-            Volume volume = dbClient.queryObject(Volume.class, volumeUri);
+            BlockObject volume = (BlockObject)dbClient.queryObject(volumeUri);
             StorageVolume driverVolume = createDriverVolume(storage, volume);
             driverVolumes.add(driverVolume);
         }

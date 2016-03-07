@@ -5,6 +5,7 @@
 package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.services.util.StorageDriverManager;
+import org.springframework.context.ApplicationContext;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -18,8 +19,17 @@ public class DiscoveredDataObject extends DataObject {
     // Indicates if the object is Southbound driver managed.
     private Boolean _isDriverManaged = false;
 
-    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
-                                              getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+    private static StorageDriverManager storageDriverManager = null;
+    static {
+        // This class can be used in test setups without application context.
+        // Ex. DB migration test framework.
+        ApplicationContext context = StorageDriverManager.getApplicationContext();
+        if (context != null) {
+            storageDriverManager = (StorageDriverManager)StorageDriverManager.
+                    getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        }
+    }
+
     // known device types
     public static class Type implements Serializable {
         private static final long serialVersionUID = 1L;

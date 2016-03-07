@@ -309,7 +309,7 @@ public class BackupCmd {
             }
             Files.setPosixFilePermissions(logFile.toPath(),perms);
         }catch (IOException e ) {
-            log.error("Failed to operate the log file {}. e={}",logFile,e);
+            log.error("Failed to operate the log file {}. e=", logFile, e);
         }
     }
 }

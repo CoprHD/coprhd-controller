@@ -1758,7 +1758,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
                 if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
                     //  if deleting full copy replication group, we need to remove the EMCSFSEntries first
-                    _helper.removeSFSEntryForCloneReplicationGroup(storage, replicationSvc, replicationGroupName,
+                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName,
                             sourceReplicationGroup);
                     
                 }

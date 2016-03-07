@@ -7193,37 +7193,38 @@ public class SmisCommandHelper implements SmisConstants {
     }
     
     /**
-     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone replication group name 
-     * and source replication group name, then remove it. This operation is necessary before deleting a attached clone replication group. 
+     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group name 
+     * and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost replication group. 
      * @param system 
      * @param replicationSvc
-     * @param cloneReplicationGroupName
+     * @param replicaReplicationGroupName
      * @param sourceReplicationGroupName
      * @return
      */
-    public void removeSFSEntryForCloneReplicationGroup(StorageSystem system,
+    public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
             CIMObjectPath replicationSvc,
-            String cloneReplicationGroupName,
+            String replicaReplicationGroupName,
             String sourceReplicationGroupName) {
         List<String>sfsEntries = getEMCSFSEntries(system, replicationSvc);
-        String entryLabel = formatCloneLabelForSFSEntry(system.getSerialNumber(), cloneReplicationGroupName, sourceReplicationGroupName);
-        List<String> removeEntries = new ArrayList<String>();
+        String entryLabel = formatReplicaLabelForSFSEntry(system.getSerialNumber(), replicaReplicationGroupName, sourceReplicationGroupName);
+        String removeEntry = null;
         if (sfsEntries != null && !sfsEntries.isEmpty()) {
             for (String entry : sfsEntries) {
                 if (entry.contains(entryLabel)) {
-                    removeEntries.add(entry);
+                    removeEntry = entry;
                     break;
                 }
             }
         }
-        if (removeEntries.isEmpty()) {
-            _log.info(String.format("The SFS entry is not found for the clone group %s and source group %s", cloneReplicationGroupName, 
+        if (removeEntry == null) {
+            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName, 
                     sourceReplicationGroupName));
             return;
         }
+
         try {
             CIMArgument[] inArgs = new CIMArgument[] {
-                    _cimArgument.stringArray("SFSEntries", removeEntries.toArray(new String[removeEntries.size()]))};
+                    _cimArgument.stringArray("SFSEntries", new String[]{removeEntry})};
             CIMArgument[] outArgs = new CIMArgument[5];
             invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
         } catch (WBEMException e) {
@@ -7233,14 +7234,14 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * Construct a String using clone replication group name and source replication group name for searching the EMCSFSEntries.
+     * Construct a String using clone/snapshot replication group name and source replication group name for searching the EMCSFSEntries.
      * @param systemSerial array serial number
-     * @param cloneReplicationGroupName - clone replication group name
+     * @param replicaReplicationGroupName - clone/snapshot replication group name
      * @param sourceRGName - source replication group name
      * @return constructed string
      */
-    private String formatCloneLabelForSFSEntry(String systemSerial, String cloneReplicationGroupName, String sourceRGName) {
-        return String.format("%s+%s#%s+%s#", systemSerial, sourceRGName, systemSerial, cloneReplicationGroupName);
+    private String formatReplicaLabelForSFSEntry(String systemSerial, String replicaReplicationGroupName, String sourceRGName) {
+        return String.format("%s+%s#%s+%s#", systemSerial, sourceRGName, systemSerial, replicaReplicationGroupName);
     }
 
     /**

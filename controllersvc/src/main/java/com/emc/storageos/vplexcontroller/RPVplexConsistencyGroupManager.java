@@ -355,7 +355,7 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
         client.addVolumesToConsistencyGroup(cgName, vplexVolumeNames);
         log.info("Added volumes to consistency group.");
 
-        dbClient.persistObject(vplexVolumes);
+        dbClient.updateObject(vplexVolumes);
     }
 
     /**

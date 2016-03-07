@@ -479,21 +479,25 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                         continue;
                     }
 
-                    // Create the BLOCK_DATA descriptor with the correct info
-                    // for creating the CG and adding the backing volume to it.
-                    VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                            assocVolume.getStorageController(), assocVolume.getId(), null,
-                            rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
-                    blockDataDescriptors.add(blockDataDesc);
-
-                    // Good time to update the backing volume with it's new CG
-                    assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
-                    s_dbClient.updateObject(assocVolume);
-
-                    s_logger.info(
-                            String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
-                                    assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(),
-                                    assocVolume.getStorageController()));
+                    // Only add the change vpool volume's backend volumes to the backend CGs if the getReplicationGroupInstance
+                    // field has been populated during the API prepare volume steps.
+                    if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) {
+                        // Create the BLOCK_DATA descriptor with the correct info
+                        // for creating the CG and adding the backing volume to it.
+                        VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                                assocVolume.getStorageController(), assocVolume.getId(), null,
+                                rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
+                        blockDataDescriptors.add(blockDataDesc);
+    
+                        // Good time to update the backing volume with it's new CG
+                        assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
+                        s_dbClient.updateObject(assocVolume);
+    
+                        s_logger.info(
+                                String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
+                                        assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(),
+                                        assocVolume.getStorageController()));
+                    }
                 }
             }
         }

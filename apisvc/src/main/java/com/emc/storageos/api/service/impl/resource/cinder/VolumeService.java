@@ -431,7 +431,6 @@ public class VolumeService extends TaskResourceService {
         if (sourceVolId != null)
         {
             _log.debug("Creating New Volume from Volume : Source volume ID ={}", sourceVolId);
-            //Volume sourceVolume = findVolume(sourceVolId, openstackTenantId);
             if (sourceVolume != null) {
                 tasklist = volumeClone(name, project, sourceVolId, varray, volumeCount, sourceVolume, blkFullCpManager);
             } else {
@@ -848,8 +847,9 @@ public class VolumeService extends TaskResourceService {
 
     /* Get vpool from the given label */
     private VirtualPool getVpool(String vpoolName) {
-        if (vpoolName == null)
+        if ( (vpoolName == null) || (vpoolName.length()==0) )
             return null;
+
         URIQueryResultList uris = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 PrefixConstraint.Factory.getLabelPrefixConstraint(

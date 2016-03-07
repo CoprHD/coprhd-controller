@@ -73,7 +73,8 @@ public class DisasterRecovery extends ViprResourceController {
     public static void list() {
         DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
         boolean showPauseButton = false;
-        render(dataTable, showPauseButton);
+        String localSiteUuid = DisasterRecoveryUtils.getLocalUuid();
+        render(dataTable, showPauseButton, localSiteUuid);
     }
 
     @FlashException("list")
@@ -262,6 +263,10 @@ public class DisasterRecovery extends ViprResourceController {
     public static boolean isActiveSite() {
         return DisasterRecoveryUtils.isActiveSite();
     }
+    
+    public static boolean isMultiDrSite() {
+        return DisasterRecoveryUtils.isMultiDrSite();
+    }
 
     public static boolean isRetrySite(String uuid) {
         SiteErrorResponse error = DisasterRecoveryUtils.getSiteError(uuid);
@@ -284,6 +289,11 @@ public class DisasterRecovery extends ViprResourceController {
 
     private static boolean isActiveSiteState(SiteState state) {
         return activeStates.contains(state);
+    }
+    
+    public static String getLocalSiteState() {
+        SiteRestRep site = DisasterRecoveryUtils.getLocalSite();
+        return site != null ? site.getState() : "";
     }
 
     public static void errorDetails(String id) {
@@ -351,7 +361,7 @@ public class DisasterRecovery extends ViprResourceController {
             return new StandByInfo(provider);
         }
     }
-
+    
     // Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.
     @SuppressWarnings("squid:S2068")
     public static class DisasterRecoveryForm {

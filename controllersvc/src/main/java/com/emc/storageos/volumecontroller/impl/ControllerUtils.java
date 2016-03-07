@@ -13,6 +13,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,7 +74,9 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.emc.storageos.volumecontroller.logging.BournePatternConverter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Table;
 
 /**
  * Utilities class encapsulates controller utility methods.
@@ -808,7 +811,7 @@ public class ControllerUtils {
 
     /**
      * Takes in a list of URIs, queries using Iterative method and returns list of volume objects.
-     *
+     * 
      * @param dbClient the db client
      * @param volumeURIs the volume uris
      * @return the list of volume objects
@@ -874,7 +877,7 @@ public class ControllerUtils {
 
     /**
      * Gets the volumes part of a given consistency group.
-     *
+     * 
      */
     public static List<Volume> getVolumesPartOfCG(URI cgURI, DbClient dbClient) {
         List<Volume> volumes = new ArrayList<Volume>();
@@ -897,7 +900,8 @@ public class ControllerUtils {
      * Gets the volumes part of a given replication group.
      * TODO look at below method (getVolumesPartOfRG()) while correcting this.
      */
-    public static List<Volume> getVolumesPartOfRG(StorageSystem storage, URI cgURI /* TODO - use replicaitonGroupInstance */, DbClient dbClient) {
+    public static List<Volume> getVolumesPartOfRG(StorageSystem storage, URI cgURI /* TODO - use replicaitonGroupInstance */,
+            DbClient dbClient) {
         List<Volume> volumes = new ArrayList<Volume>();
         final BlockConsistencyGroup group =
                 dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
@@ -926,7 +930,7 @@ public class ControllerUtils {
      * Gets the volumes part of a given replication group.
      * TODO remove this method when the above method (getVolumesPartOfRG) takes in RepGroup name instead of CG
      * and add system check.
-     *
+     * 
      * @param system the storage system where the replication group resides
      * @param replicationGroupInstance the replication group instance
      * @param dbClient the db client
@@ -992,9 +996,14 @@ public class ControllerUtils {
 
     /**
      * Gets the snapshots part of a given replication group.
+     * Check storage system just in case same replication group name could be found on different arrays
+     * 
+     * @param replicationGroupInstance
+     * @param storage
+     * @param dbClient
      */
     public static List<BlockSnapshot> getSnapshotsPartOfReplicationGroup(
-            String replicationGroupInstance, DbClient dbClient) {
+            String replicationGroupInstance, URI storage, DbClient dbClient) {
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -1004,11 +1013,56 @@ public class ControllerUtils {
                 uriQueryResultList);
         while (snapIterator.hasNext()) {
             BlockSnapshot snapshot = snapIterator.next();
-            if (snapshot != null && !snapshot.getInactive()) {
+            if (snapshot != null && !snapshot.getInactive() && storage.equals(snapshot.getStorageController())) {
                 snapshots.add(snapshot);
             }
         }
         return snapshots;
+    }
+
+    /**
+     * Gets the snapshots part of a given replication group.
+     * 
+     * @param snapshot
+     * @param dbClient
+     * @return snapshot list
+     */
+    public static List<BlockSnapshot> getSnapshotsPartOfReplicationGroup(BlockSnapshot snapshot, DbClient dbClient) {
+        if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+            return getSnapshotsPartOfReplicationGroup(snapshot.getReplicationGroupInstance(), snapshot.getStorageController(), dbClient);
+        }
+        return new ArrayList<BlockSnapshot>(Arrays.asList(snapshot));
+    }
+
+    /**
+     * Filters the CG volumes by given Replication Group name and system.
+     *
+     * @param cgVolumes the cg volumes
+     * @param rgName the replication group name
+     * @param system the system
+     * @param dbClient the db client
+     * @return volumes belonging to given replication group and system in a CG
+     */
+    public static List<BlockObject> getAllVolumesForRGInCG(List<Volume> cgVolumes, String rgName,
+            URI system, DbClient dbClient) {
+        List<BlockObject> cgVolumesInRG = new ArrayList<BlockObject>();
+        // get only those volumes belonging to given RG name
+        if (NullColumnValueGetter.isNotNullValue(rgName)) {
+            for (Volume vol : cgVolumes) {
+                String volRGName = vol.getReplicationGroupInstance();
+                URI systemForVolume = vol.getStorageController();
+                if (vol.isVPlexVolume(dbClient)) {
+                    // get RG name from back end volume
+                    Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume(vol, true, dbClient);
+                    volRGName = srcBEVolume.getReplicationGroupInstance();
+                    systemForVolume = srcBEVolume.getStorageController();
+                }
+                if (rgName.equals(volRGName) && systemForVolume.toString().equals(system.toString())) {
+                    cgVolumesInRG.add(vol);
+                }
+            }
+        }
+        return cgVolumesInRG;
     }
 
     /**
@@ -1069,10 +1123,10 @@ public class ControllerUtils {
 
     /**
      * Check if CG has any group relationship
-     *
+     * 
      * Note - on array side, if replica has been removed from replication group, but source volume has not been removed from CG yet,
      * the CG will not have group relationship until the source volume get removed from the CG.
-     *
+     * 
      * As a result, getting associator names cannot be used to check if CG has group relationship.
      */
     public static boolean checkCGHasGroupRelationship(StorageSystem storage, URI cgURI, DbClient dbClient) {
@@ -1131,7 +1185,7 @@ public class ControllerUtils {
 
     /**
      * Gets snapshot replication group names from source volumes in CG.
-     *
+     * 
      * @param volumes
      * @param dbClient
      * @return
@@ -1243,7 +1297,7 @@ public class ControllerUtils {
      * Returns true, if a snapshot is part of a consistency group, false otherwise.
      * In addition to this, if a non-null {@link TaskCompleter} is provided the {@BlockConsistencyGroup} instance
      * added to it.
-     *
+     * 
      * @param snapshots List of snapshot URI's
      * @param dbClient DbClient instance
      * @param completer Optional TaskCompleter instance.
@@ -1265,7 +1319,7 @@ public class ControllerUtils {
      * Returns true, if the clone is part of a consistency group, false otherwise.
      * In addition to this, if a non-null {@link TaskCompleter} is provided the {@BlockConsistencyGroup} instance
      * added to it.
-     *
+     * 
      * @param clone URI of the clone/fullcopy
      * @param dbClient DbClient instance
      * @param completer Optional TaskCompleter instance.
@@ -1295,7 +1349,7 @@ public class ControllerUtils {
 
     /**
      * Check whether the given volume is vmax volume and vmax managed by SMI 8.0.3
-     *
+     * 
      * @param mirrors
      * @param dbClient
      * @param completer Optional TaskCompleter instance.
@@ -1326,7 +1380,7 @@ public class ControllerUtils {
 
     /**
      * Check whether the given volume is VNX volume
-     *
+     * 
      * @param volume
      * @param dbClient
      * @return
@@ -1338,7 +1392,7 @@ public class ControllerUtils {
 
     /**
      * Check whether the given volume is XtremIO volume
-     *
+     * 
      * @param volume
      * @param dbClient
      * @return
@@ -1350,7 +1404,7 @@ public class ControllerUtils {
 
     /**
      * Check whether the given volume is not in a real replication group
-     *
+     * 
      * @param volume
      * @param dbClient
      * @return
@@ -1373,14 +1427,14 @@ public class ControllerUtils {
         }
         return generateReplicationGroupName(storage, cg, replicationGroupName, dbClient);
     }
-    
+
     public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName, DbClient dbClient) {
         String groupName = replicationGroupName;
-        
+
         if (storage.deviceIsType(Type.vnxblock) && cg.getArrayConsistency()) {
             return cg.getCgNameOnStorageSystem(storage.getId());
         }
-        
+
         if (groupName == null && cg != null) {
             // if there is only one system cg name for this storage system, use this; it may be different than the label
             if (cg.getSystemConsistencyGroups() != null && storage != null) {
@@ -1393,20 +1447,23 @@ public class ControllerUtils {
             } else {
                 groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
             }
-        }
-
-        // Check to see if there's already a groupName associated with the existing volumes
-        // Get all of the volumes associated with this consistency group, look for your storage system
-        // If the replicationGroupInstance is filled-in, go with that.
-        List<Volume> volumes = RPHelper.getAllCgVolumes(cg.getId(), dbClient);
-        for (Volume volume : volumes) {
-            if (volume.getStorageController().equals(storage.getId())) {
-                String volumeCGName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, dbClient);
-                if (NullColumnValueGetter.isNotNullValue(volumeCGName)) {
-                    groupName = volumeCGName;
+            
+            //TEMPORARY FIX to solve both Application & Non-appication use cases
+            // Check to see if there's already a groupName associated with the existing volumes
+            // Get all of the volumes associated with this consistency group, look for your storage system
+            // If the replicationGroupInstance is filled-in, go with that.
+            List<Volume> volumes = RPHelper.getAllCgVolumes(cg.getId(), dbClient);
+            for (Volume volume : volumes) {
+                if (volume.getStorageController().equals(storage.getId())) {
+                    String volumeCGName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, dbClient);
+                    if (NullColumnValueGetter.isNotNullValue(volumeCGName)) {
+                        groupName = volumeCGName;
+                    }
                 }
             }
         }
+
+        
         
         return groupName;
     }
@@ -1416,11 +1473,12 @@ public class ControllerUtils {
      * This is required when we try to create a new snapshot when the existing source volumes have snapshots.
      * 
      * @param repGroupName
+     * @param storage
      * @param dbClient
      * @return
      */
-    public static String getSnapSetLabelFromExistingSnaps(String repGroupName, DbClient dbClient) {
-        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, dbClient);
+    public static String getSnapSetLabelFromExistingSnaps(String repGroupName, URI storage, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = getSnapshotsPartOfReplicationGroup(repGroupName, storage, dbClient);
         String existingSnapSnapSetLabel = null;
         if (null != snapshots && !snapshots.isEmpty()) {
             existingSnapSnapSetLabel = snapshots.get(0).getSnapsetLabel();
@@ -1472,12 +1530,15 @@ public class ControllerUtils {
 
     /*
      * Check CG contains all and only volumes provided
-     *
+     * 
      * Assumption - all volumes provided are in the CG
-     *
+     * 
      * @param dbClient
+     * 
      * @param cg
+     * 
      * @param volumes
+     * 
      * @return boolean
      */
     public static boolean cgHasNoOtherVolume(DbClient dbClient, URI cg, List<?> volumes) {
@@ -1510,7 +1571,7 @@ public class ControllerUtils {
     /**
      * Returns true if the request is made for subset of array groups within the Volume Group.
      * For Partial request, PARTIAL Flag was set on the requested Volume.
-     *
+     * 
      * @param dbClient the db client
      * @param volume the volume
      * @return true, if the request is Partial
@@ -1552,7 +1613,7 @@ public class ControllerUtils {
     /**
      * Returns true if the request is made for subset of array groups within the Volume Group.
      * For Partial request, PARTIAL Flag was set on the requested Volume.
-     *
+     * 
      * @param dbClient the db client
      * @param volumes the volumes
      * @return true, if the request is Partial
@@ -1570,7 +1631,7 @@ public class ControllerUtils {
 
     /**
      * Get volume group's volumes.
-     *
+     * 
      * @param volumeGroup
      * @return The list of volumes in volume group
      */
@@ -1582,9 +1643,9 @@ public class ControllerUtils {
 
     /**
      * Group volumes by array group + storage system Id. For VPLEX virtual volumes, group them by backend src volumes's array group.
-     *
+     * 
      * @param volumes the volumes
-     * @param dbClient dbCLient instance
+     * @param dbClient dbClient instance
      * @return the map of array group to volumes
      */
     public static Map<String, List<Volume>> groupVolumesByArrayGroup(List<Volume> volumes, DbClient dbClient) {
@@ -1600,6 +1661,7 @@ public class ControllerUtils {
                     storage = backedVol.getStorageController().toString();
                 }
             }
+
             if (NullColumnValueGetter.isNullValue(repGroupName)) {
                 repGroupName = "";
             }
@@ -1612,14 +1674,124 @@ public class ControllerUtils {
         return arrayGroupToVolumes;
     }
 
+    /**
+     * Group volume URIs by consistency group.
+     * 
+     * @param volumes the volumes
+     * @return the map of consistency group to volume URIs
+     */
+    public static Map<URI, List<URI>> groupVolumeURIsByCG(List<Volume> volumes) {
+        Map<URI, List<URI>> cgToVolUris = new HashMap<URI, List<URI>>();
+        for (Volume volume : volumes) {
+            if (volume.isInCG()) {
+                URI cg = volume.getConsistencyGroup();
+                if (!cgToVolUris.containsKey(cg)) {
+                    cgToVolUris.put(cg, new ArrayList<URI>());
+                }
+
+                cgToVolUris.get(cg).add(volume.getId());
+            }
+        }
+
+        return cgToVolUris;
+    }
+
+    /**
+     * Gets all snapshots for the given set name.
+     */
+    public static List<BlockSnapshot> getVolumeGroupSnapshots(URI volumeGroupId, String snapsetLabel, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        if (snapsetLabel != null) {
+            URIQueryResultList list = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                    getBlockSnapshotsBySnapsetLabel(snapsetLabel), list);
+            Iterator<BlockSnapshot> iter = dbClient.queryIterativeObjects(BlockSnapshot.class, list);
+            while (iter.hasNext()) {
+                BlockSnapshot snapshot = iter.next();
+                if (isSourceInVoumeGroup(snapshot, volumeGroupId, dbClient)) {
+                    snapshots.add(snapshot);
+                }
+            }
+        }
+
+        return snapshots;
+    }
+
+    /*
+     * For each storage system and RG, get one snapshot
+     * 
+     * @param snapshots List of snapshots
+     * 
+     * @return table with storage URI, replication group name, and snapshot
+     */
+    public static Table<URI, String, BlockSnapshot> getSnapshotForStorageReplicationGroup(List<BlockSnapshot> snapshots) {
+        Table<URI, String, BlockSnapshot> storageRgToSnapshot = HashBasedTable.create();
+        for (BlockSnapshot snapshot : snapshots) {
+            URI storage = snapshot.getStorageController();
+            String rgName = snapshot.getReplicationGroupInstance();
+            if (!storageRgToSnapshot.contains(storage, rgName)) {
+                storageRgToSnapshot.put(storage, rgName, snapshot);
+            }
+        }
+
+        return storageRgToSnapshot;
+    }
+
+    /*
+     * For each storage system and RG, get one snapshot session
+     * 
+     * @param snapshot sessions List of snapshot sessions
+     * 
+     * @return table with storage URI, replication group name, and snapshot session
+     */
+    public static Table<URI, String, BlockSnapshotSession>
+            getSnapshotSessionForStorageReplicationGroup(List<BlockSnapshotSession> sessions, DbClient dbClient) {
+        Table<URI, String, BlockSnapshotSession> storageRgToSession = HashBasedTable.create();
+        for (BlockSnapshotSession session : sessions) {
+            URI storage = session.getStorageController();
+            String rgName = session.getReplicationGroupInstance();
+            if (!storageRgToSession.contains(storage, rgName)) {
+                storageRgToSession.put(storage, rgName, session);
+            }
+        }
+
+        return storageRgToSession;
+    }
+
+    /**
+     * Check if source of the snapshot is in the volume group
+     * 
+     * @param snapshot
+     * @param voluemGroupId
+     * @param dbClient
+     */
+    public static boolean isSourceInVoumeGroup(BlockSnapshot snapshot, URI volumeGroupId, DbClient dbClient) {
+        Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
+        if (volume != null && !volume.getInactive()) {
+            if (volume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+                return true;
+            }
+
+            Volume vplexVolume = Volume.fetchVplexVolume(dbClient, volume);
+            if (vplexVolume != null && !vplexVolume.getInactive() && vplexVolume.getVolumeGroupIds().contains(volumeGroupId.toString())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /*
      * Check replicationGroup contains all and only volumes provided
-     *
+     * 
      * Assumption - all volumes provided are in the same replicationGroup
-     *
+     * 
      * @param dbClient
+     * 
      * @param rpName replication group name
+     * 
      * @param volumes volumes in the same replication group
+     * 
      * @return boolean
      */
     public static boolean replicationGroupHasNoOtherVolume(DbClient dbClient, String rpName, Collection<URI> volumes, URI storage) {
@@ -1638,10 +1810,9 @@ public class ControllerUtils {
         return rpVolumeCount == volumes.size();
     }
 
-
     /**
      * gets the application volume group for this CG and group name if it exists
-     *
+     * 
      * @param dbClient
      *            dbClient to query objects from db
      * @param consistencyGroup
@@ -1686,7 +1857,7 @@ public class ControllerUtils {
 
     /**
      * Return snapshot sessions based on the given snapshot session instance.
-     *
+     * 
      * @param instance
      * @param dbClient
      * @return

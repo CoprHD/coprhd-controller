@@ -761,7 +761,7 @@ def snapshot_parser(subcommand_parsers, common_parser):
     sscreate_parser.add_argument('-createinactive', '-ci',
                                  dest='createinactive',
                                  action='store_true',
-                                 help='Create snaphsot with inactive state')
+                                 help='Create snapshot with inactive state')
 
     #snapshot list
     sslist_parser = subcommand_parsers.add_parser(

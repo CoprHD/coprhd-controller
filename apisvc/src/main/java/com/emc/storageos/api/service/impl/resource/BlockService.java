@@ -2161,17 +2161,22 @@ public class BlockService extends TaskResourceService {
         // Don't operate on VPLEX backend volumes or RP journal volumes.
         BlockServiceUtils.validateNotAnInternalBlockObject(requestedVolume, false);
 
-        validateSourceVolumeHasExported(requestedVolume);
-
-        // Make sure that we don't have some pending
-        // operation against the volume
-        checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
-
         // Set default type, if not set at all.
         if (param.getType() == null) {
             param.setType(TechnologyType.NATIVE.toString());
         }
         String snapshotType = param.getType();
+
+        if (param.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
+            // Don't allow snapshots on single volumes that are in consistency groups, but don't have replication group instance set
+            BlockServiceUtils.validateNotInCG(requestedVolume, _dbClient, true);
+        }    
+        
+        validateSourceVolumeHasExported(requestedVolume);
+
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
 
         // Set whether or not the snapshot be activated when created.
         Boolean createInactive = Boolean.FALSE;
@@ -3648,11 +3653,15 @@ public class BlockService extends TaskResourceService {
             // all volume in CG must have been passed.
             _log.info("Verify all volumes in CG {}:{}", cg.getId(), cg.getLabel());
             URI storageId = cg.getStorageController();
-            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
-            if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
-                // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
-                if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
-                    throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+            if (!NullColumnValueGetter.isNullURI(storageId)) {
+                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
+                if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                    // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
+                    if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
+                        throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+                    }
+                } else {
+                    verifyVolumesInCG(volumes, cgVolumes);
                 }
             } else {
                 verifyVolumesInCG(volumes, cgVolumes);

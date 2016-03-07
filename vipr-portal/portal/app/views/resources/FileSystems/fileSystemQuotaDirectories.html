@@ -1,5 +1,19 @@
+<script type="text/javascript"> 
+
+	function expand(param) {
+		$(param).parent().parent().next('tr').toggle();
+		$(param).hide();
+		$(param).next().show();
+	}
+	function collapse(param) {
+		$(param).parent().parent().next('tr').toggle();
+		$(param).prev().show();
+		$(param).hide();
+	}
+	
+</script>
 #{if quotas}
-	<table class='table table-condensed table-striped'>
+	<table class='table table-condensed table-striped' id="quotaTable">
 		<thead>
 			<tr>
 				<th style="width: 24px;"></th>
@@ -10,28 +24,14 @@
 				<th style="text-align: right;">&{'resources.actions'}</th>
 			</tr>
 		</thead>
-		<script type="text/javascript"> 
 		
-		$('.expandable').click(function(){
-			$(this).parent().next(".quotadesc").toggle();
-			if ( $(this).parent().next(".quotadesc").css('display') == 'none' ){
-				$(this).find('span.collapsed').show();
-				$(this).find('span.expanded').hide();
-			}
-			else{
-				$(this).find('span.collapsed').hide();
-				$(this).find('span.expanded').show();
-			}
-		});
-	
-	  </script>
 		<tbody>
 			#{list items:quotas, as:'quota'}
-			<tr class="quotainfo">
-				<td class="expandable" style="width: 24px;">
-				#{if !(quota.notificationLimit == 0) || !(quota.softLimit == 0) || !(quota.softGrace == 0)}
-				<span class="collapsed" style="cursor: pointer;">#{icon 'chevron-right'/}</span> 
-				<span class="expanded" style="display: none;cursor: pointer;">#{icon 'chevron-down'/}</span>
+			<tr>
+				<td style="width: 24px;">
+				#{if quota.notificationLimit != 0 || quota.softLimit != 0 || quota.softGrace != 0} 
+				<span style="cursor: pointer;" onclick="expand(this)">#{icon 'chevron-right'/}</span> 
+				<span style="display: none;cursor: pointer;" onclick="collapse(this)">#{icon 'chevron-down'/}</span>
 				#{/if}
 				</td>
 				<td><img src="/public/img/assets/QuotaDirectory.png" style="width: 32px;" />${quota.name}</td>
@@ -45,8 +45,8 @@
 					onclick="return confirm('&{'resources.filesystem.quota.delete.confirm'}')">&{'button.delete'}</a>
 				</td>
 			</tr>
-			<tr class="quotadesc" style="display: none;">
-				#{if !(quota.notificationLimit == 0) || !(quota.softLimit == 0) || !(quota.softGrace == 0)}
+			<tr hidden>
+				#{if quota.notificationLimit != 0 || quota.softLimit != 0 || quota.softGrace != 0}
 				<td colspan="8">
 					<dl class="dl-horizontal">
 						<dt>&{'resources.filesystem.quota.notificationLimit'}:</dt>

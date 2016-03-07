@@ -329,7 +329,7 @@ public final class DownloadExecutor implements  Runnable {
             s.setSizeToDownload(downloadSize);
 
             // set the downloaded size to the size of the downloaded directory
-            Map<String, Long> downloadedSize = s.getDownoadedSize();
+            Map<String, Long> downloadedSize = s.getDownloadedSize();
             s.setDownloadedSize(localHostName, size);
 
             log.info("Adjusted whole size={} downloadedSize={}", downloadSize, downloadedSize);

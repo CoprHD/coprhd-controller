@@ -6344,58 +6344,5 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
        }
 
        return waitFor;
-    }    
-
-    /**
-     * To convert real VNX replication group to virtual one when adding the VNX volume to an application.
-     *
-     * @param workflow
-     * @param completer
-     * @param vnxVolumeList VNX volumes to convert replication group
-     * @param waitForStep
-     * @param opId
-     * @return the step string
-     * @throws ControllerException
-     */
-    public String addStepsForConvertVNXReplicationGroup(Workflow workflow, List<Volume> vnxVolumeList,
-            String waitForStep, String opId) throws ControllerException {
-        String waitFor = waitForStep;
-
-        // Sort the volumes by replication group
-        Map<String, List<URI>> allVolumeMap = new HashMap<String, List<URI>>();
-        for (Volume volume : vnxVolumeList) {
-            String key = volume.getStorageController().toString() + volume.getReplicationGroupInstance().toString();
-            List<URI> vols = allVolumeMap.get(key);
-            if (vols == null) {
-                vols = new ArrayList<URI>();
-                allVolumeMap.put(key, vols);
-            }
-            vols.add(volume.getId());
-        }
-        for (List<URI> volumes : allVolumeMap.values()) {
-            Volume firstVol = _dbClient.queryObject(Volume.class, volumes.get(0));
-            URI storage = firstVol.getStorageController();
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-            URI cguri = firstVol.getConsistencyGroup();
-            String rgName = firstVol.getReplicationGroupInstance();
-            // remove volumes from array replication group, and delete the group, but keep volumes reference
-            waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                    String.format("Removing volumes from consistency group %s", rgName),
-                    waitFor, storage, storageSystem.getSystemType(),
-                    this.getClass(),
-                    removeFromConsistencyGroupMethod(storage, cguri, volumes, true),
-                    rollbackMethodNullMethod(), null);
-
-            if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, rgName, volumes, storage)) {
-                // remove replication group
-                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                        String.format("Deleting replication group %s", rgName),
-                        waitFor, storage, storageSystem.getSystemType(),
-                        this.getClass(),
-                        deleteConsistencyGroupMethod(storage, cguri, rgName, true, false),
-                        rollbackMethodNullMethod(), null);
-            }
-        }
-        return waitFor;
     }
 }

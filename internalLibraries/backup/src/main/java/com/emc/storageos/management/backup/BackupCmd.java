@@ -305,7 +305,7 @@ public class BackupCmd {
                     return;
                 }
             }else {
-                boolean blnCreated = logFile.createNewFile();
+                log.info("Starting bkutils...");
             }
             Files.setPosixFilePermissions(logFile.toPath(),perms);
         }catch (IOException e ) {

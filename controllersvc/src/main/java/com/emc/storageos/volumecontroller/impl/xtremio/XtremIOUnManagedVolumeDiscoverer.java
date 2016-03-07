@@ -64,6 +64,9 @@ import com.google.common.collect.Lists;
 
 public class XtremIOUnManagedVolumeDiscoverer {
 
+    private static final String RP_SNAPSHOT_CRITERIA3 = "_SMP";
+    private static final String RP_SNAPSHOT_CRITERIA2 = ".RP_";
+    private static final String RP_SNAPSHOT_CRITERIA1 = "._RP_";
     private static final Logger log = LoggerFactory.getLogger(XtremIOUnManagedVolumeDiscoverer.class);
     private static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
@@ -126,7 +129,16 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 log.warn("Skipping snapshot as it is null for volume {}", parentGUID);
                 continue;
             }
+            
+            // If this name is a trigger/match for RP automated snapshots, ignore it as well
+            String snapName = (String)snapNameToProcess;
+            if ((snapName.contains(RP_SNAPSHOT_CRITERIA1) || snapName.contains(RP_SNAPSHOT_CRITERIA2)) && snapName.contains(RP_SNAPSHOT_CRITERIA3)) {
+                log.warn("Skipping snapshot {} because it is internal to RP for volume {}", snapName, parentGUID);
+                continue;
+            }
+            
             XtremIOVolume snap = xtremIOClient.getSnapShotDetails(snapNameToProcess.toString(), xioClusterName);
+            
             UnManagedVolume unManagedVolume = null;
             boolean isExported = !snap.getLunMaps().isEmpty();
             String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
@@ -312,26 +324,31 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
                         StringSet discoveredSnaps = discoverVolumeSnaps(storageSystem, volume.getSnaps(), unManagedVolumeNatvieGuid,
                                 parentMatchedVPools, xtremIOClient, xioClusterName, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
-                        // set the HAS_REPLICAS property
-                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                                TRUE);
-                        StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
-                        if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
-                            log.debug("Snaps :" + Joiner.on("\t").join(discoveredSnaps));
-                            if (null != discoveredSnaps && discoveredSnaps.isEmpty()) {
-                                // replace with empty string set doesn't work, hence added explicit code to remove all
-                                unManagedVolumeInformation.get(
-                                        SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
+                        if (!discoveredSnaps.isEmpty()) {
+                            // set the HAS_REPLICAS property
+                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
+                                    TRUE);
+                            StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
+                            if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SNAPSHOTS.toString())) {
+                                log.debug("Snaps :" + Joiner.on("\t").join(discoveredSnaps));
+                                if (null != discoveredSnaps && discoveredSnaps.isEmpty()) {
+                                    // replace with empty string set doesn't work, hence added explicit code to remove all
+                                    unManagedVolumeInformation.get(
+                                            SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
+                                } else {
+                                    // replace with new StringSet
+                                    unManagedVolumeInformation.get(
+                                            SupportedVolumeInformation.SNAPSHOTS.toString()).replace(discoveredSnaps);
+                                    log.info("Replaced snaps :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
+                                            SupportedVolumeInformation.SNAPSHOTS.toString())));
+                                }
                             } else {
-                                // replace with new StringSet
-                                unManagedVolumeInformation.get(
-                                        SupportedVolumeInformation.SNAPSHOTS.toString()).replace(discoveredSnaps);
-                                log.info("Replaced snaps :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
-                                        SupportedVolumeInformation.SNAPSHOTS.toString())));
+                                unManagedVolumeInformation.put(
+                                        SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
                             }
                         } else {
-                            unManagedVolumeInformation.put(
-                                    SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
+                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
+                                    FALSE);
                         }
                     } else {
                         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
@@ -585,67 +602,17 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                     SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
                                     TRUE);
                         } else {
-                            // Specific to XIO. The snapshot will be in the same lunmap as the regular volumes. Ignore this volume in ViPR.
-                            String isSnapShot = hostUnManagedVol.getVolumeCharacterstics().get(
-                                    SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString());
-                            if (isSnapShot != null && isSnapShot.equalsIgnoreCase("true")) {
-                                // Gather the parent unmanaged native GUID from the snapshot
-                                StringSet parentNativeGuidSet = hostUnManagedVol.getVolumeInformation().get(
-                                        SupportedVolumeInformation.LOCAL_REPLICA_SOURCE_VOLUME.toString());
-                                if (parentNativeGuidSet != null && !parentNativeGuidSet.isEmpty()) {
-                                    // Find the volume associated with that native GUID
-                                    String parentNativeGuid = parentNativeGuidSet.iterator().next();
-                                    List<String> rpSnaps = rpVolumeSnapMap.get(parentNativeGuid);
-                                    if (rpSnaps == null) {
-                                        rpSnaps = new ArrayList<String>();
-                                        rpVolumeSnapMap.put(parentNativeGuid, rpSnaps);
-                                    }
-                                    rpSnaps.add(hostUnManagedVol.getNativeGuid());
-                                }
-
-                                dbClient.markForDeletion(hostUnManagedVol);
-                                hostUnManagedVol = null;
-                            } else {
-                                log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
-                                hostUnManagedVol.putVolumeCharacterstics(
-                                        SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
-                                        TRUE);
-                                rpVolumeMap.put(hostUnManagedVol.getNativeGuid(), hostUnManagedVol);
-                            }
+                            log.info("unmanaged volume {} is an RP volume", hostUnManagedVol.getLabel());
+                            hostUnManagedVol.putVolumeCharacterstics(
+                                    SupportedVolumeCharacterstics.IS_RECOVERPOINT_ENABLED.toString(),
+                                    TRUE);
+                            rpVolumeMap.put(hostUnManagedVol.getNativeGuid(), hostUnManagedVol);
                         }
 
                         if (hostUnManagedVol != null) {
                             mask.getUnmanagedVolumeUris().add(hostUnManagedVol.getId().toString());
                             unManagedExportVolumesToUpdate.add(hostUnManagedVol);
                         }
-                    }
-
-                    // update the RP volumes with snap to remove the rp snaps and update the HAS_REPLICAS if required
-                    for (String rpVolumeGUID : rpVolumeSnapMap.keySet()) {
-                        UnManagedVolume volume = rpVolumeMap.get(rpVolumeGUID);
-                        if (volume == null) {
-                            // The parent is already managed by CoprHD
-                            continue;
-                        }
-
-                        // Remove the reference of the snapshot from the snapshot list.
-                        if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()) != null) {
-                            String key = SupportedVolumeInformation.SNAPSHOTS.toString();
-                            for (String rpSnap : rpVolumeSnapMap.get(rpVolumeGUID)) {
-                                volume.getVolumeInformation().get(key).remove(rpSnap);
-                            }
-
-                            // If it's the last snapshot, remove the whole key.
-                            if (volume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).isEmpty()) {
-                                volume.getVolumeInformation().remove(SupportedVolumeInformation.SNAPSHOTS.toString());
-                                // TODO: Also check for mirrors, if XIO has that sort of thing, before shutting off HAS_REPLICAS
-                                volume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
-                            }
-                        } else {
-                            volume.putVolumeCharacterstics(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
-                        }
-
-                        dbClient.updateObject(volume);
                     }
                 }
             }

@@ -299,16 +299,14 @@ public class BackupCmd {
         perms.add(PosixFilePermission.GROUP_READ);
         perms.add(PosixFilePermission.OTHERS_READ);
         try{
-            if (logFile.exists()) {
-                Set<PosixFilePermission> permsRead = Files.getPosixFilePermissions(logFile.toPath());
-                if (perms.equals(permsRead)) {
-                    return;
-                }
-            }else {
+            if (!logFile.exists()) {
                 log.info("Starting bkutils...");
             }
-            Files.setPosixFilePermissions(logFile.toPath(),perms);
-        }catch (IOException e ) {
+            Set<PosixFilePermission> permsRead = Files.getPosixFilePermissions(logFile.toPath());
+            if (!perms.equals(permsRead)) {
+                Files.setPosixFilePermissions(logFile.toPath(), perms);
+            }
+        }catch (IOException e) {
             log.error("Failed to operate the log file {}. e=", logFile, e);
         }
     }

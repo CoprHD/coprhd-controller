@@ -762,10 +762,7 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_LOCAL };
-        String[] ips = exec(prefix, cmd);
-
         final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
-
         _log.debug(prefix + result);
 
         return result.getExitValue() == 0;

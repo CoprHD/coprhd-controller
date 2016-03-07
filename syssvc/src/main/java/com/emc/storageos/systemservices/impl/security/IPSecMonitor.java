@@ -95,11 +95,12 @@ public class IPSecMonitor implements Runnable {
             log.info("step 1: start checking ipsec connections");
             String[] problemNodes = LocalRepository.getInstance().checkIpsecConnection();
 
-            if (problemNodes == null || problemNodes.length == 0) {
+            if (problemNodes == null || problemNodes.length == 0 || problemNodes[0].isEmpty()) {
                 log.info("all connections are good, skip ipsec sync step");
                 return;
             }
-            log.info("problem nodes are: " + Arrays.toString(problemNodes));
+
+            log.info("Found problem nodes which are: " + Arrays.toString(problemNodes));
 
             log.info("step 2: get latest ipsec properties of the no connection nodes");
             Map<String, String> latest = getLatestIPSecProperties(problemNodes);
@@ -131,7 +132,7 @@ public class IPSecMonitor implements Runnable {
             log.info("Step 4: rechecking ipsec status ...");
             problemNodes = LocalRepository.getInstance().checkIpsecConnection();
             if (problemNodes == null || problemNodes.length == 0) {
-                log.info("All connections issuses are fixed.");
+                log.info("All connections issues are fixed.");
             } else {
                 log.info("ipsec still has problems on : " + Arrays.toString(problemNodes));
             }

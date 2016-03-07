@@ -1895,6 +1895,20 @@ public class ControllerUtils {
         return false;
     }
 
+    /*
+     * Check if non CG volume has snapshot session
+     *
+     * @param volumeUri
+     * @param dbClient
+     * @return true if has session, false otherwise
+     */
+    public static boolean checkIfVolumeHasSnapshotSession(URI volumeUri, DbClient dbClient) {
+        List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class,
+                ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeUri));
+        return !sessions.isEmpty();
+    }
+
     /**
      * Return snapshot sessions based on the given snapshot session instance.
      * 

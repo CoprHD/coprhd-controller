@@ -3191,10 +3191,26 @@ public class VolumeGroupService extends TaskResourceService {
                 // check to see if the volume in the request is already in a replication group
                 if (param.getAddVolumesList().getReplicationGroupName() != null) {
                     String replicationGroupInstance = volume.getReplicationGroupInstance();
+                    boolean isVPlexWithNoReplica = true;
                     if (volume.isVPlexVolume(dbClient)) {
-                        replicationGroupInstance = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient).getReplicationGroupInstance();
+                        Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                        if (backendVol != null && !backendVol.getInactive()) {
+                            replicationGroupInstance = backendVol.getReplicationGroupInstance();
+                            // should check VMAX3 snapshot session as well
+                            if (volume.getFullCopies() != null && !volume.getFullCopies().isEmpty() ||
+                                    ControllerUtils.checkIfVolumeHasSnapshot(backendVol, dbClient)) {
+                                isVPlexWithNoReplica = false;
+                            }
+                        }
                     }
-                    if (NullColumnValueGetter.isNotNullValue(replicationGroupInstance)) {
+
+                    // If volume is already in RG, and
+                    // 1. the volume is VPlex backend volume, and
+                    // 2. the RG doesn't have any replica, and
+                    // 3. not all volumes the in the RG are in the addVolumesList
+                    // then a new replication group is needed
+                    // check of #3 would be complex, ignore it for now
+                    if (NullColumnValueGetter.isNotNullValue(replicationGroupInstance) && !isVPlexWithNoReplica) {
                         throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                                 String.format(
                                         "the volume is already a member of an array replication group: %s; Application Sub Group should be left blank",

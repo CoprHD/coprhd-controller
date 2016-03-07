@@ -11187,6 +11187,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         Workflow workflow = _workflowService.getNewWorkflow(this, UPDATE_VOLUMEGROUP_WF_NAME,
                 false, opId);
         Set<URI> cgs = new HashSet<URI>();
+        List<Volume> vnxVolumes = new ArrayList<Volume>();
         try {
             List<URI> allRemoveBEVolumes = new ArrayList<URI>();
             if (removeVolumeList != null && !removeVolumeList.isEmpty()) {
@@ -11200,7 +11201,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     cgs.add(vol.getConsistencyGroup());
                     StringSet backends = vol.getAssociatedVolumes();
                     if (backends == null) {
-                        _log.info(String.format("The volume: %s do not have backend volumes. Skip it.", vol.getLabel()));
+                        _log.info(String.format("The volume: %s do not have backend volumes. Skip it.", voluri));
                         continue;
                     }
                     for (String backendId : backends) {
@@ -11217,11 +11218,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
                 for (URI addVol : addVols) {
                     Volume addVplexVol = getDataObject(Volume.class, addVol, _dbClient);
-                    if (addVplexVol == null || addVplexVol.getInactive()) {
-                        _log.info(String.format("The volume: %s has been deleted. Skip it.", addVol));
-                        continue;
-                    }
-
                     cgs.add(addVplexVol.getConsistencyGroup());
                     StringSet backends = addVplexVol.getAssociatedVolumes();
                     if (backends == null) {
@@ -11231,8 +11227,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     for (String backendId : backends) {
                         URI backUri = URI.create(backendId);
                         Volume backVol = getDataObject(Volume.class, backUri, _dbClient);
-                        if (backVol != null && !backVol.getInactive()) {
-                            allAddBEVolumes.add(backUri);
+                        String backRG = backVol.getReplicationGroupInstance();
+                        if (NullColumnValueGetter.isNotNullValue(backRG) &&
+                                ControllerUtils.isVnxVolume(backVol, _dbClient)) {
+                            // This is a VNX volume and it is in a RG, need to convert the real RG to virtual one.
+                            vnxVolumes.add(backVol);
+                        } else if (NullColumnValueGetter.isNullValue(backRG)) {
+                            allAddBEVolumes.add(URI.create(backendId));
                         }
                     }
                 }
@@ -11242,6 +11243,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             addBEVolList.setReplicationGroupName(addVolList.getReplicationGroupName());
             addBEVolList.setConsistencyGroup(addVolList.getConsistencyGroup());
 
+            // add step for convert VNX replication group
+            if (!vnxVolumes.isEmpty()) {
+                _log.info("Creating step to convert VNX RG");
+                waitFor = _blockDeviceController.addStepsForConvertVNXReplicationGroup(workflow, vnxVolumes, waitFor, opId);
+            }
             // add steps for add source and remove vols
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addBEVolList, allRemoveBEVolumes, waitFor, opId);
 

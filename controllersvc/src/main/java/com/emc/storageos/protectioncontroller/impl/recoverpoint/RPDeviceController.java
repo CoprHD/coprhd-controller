@@ -115,6 +115,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -6022,7 +6023,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @see com.emc.storageos.protectioncontroller.RPController#updateApplication(java.net.URI, com.emc.storageos.volumecontroller.ApplicationAddVolumeList, java.util.List, java.net.URI, java.lang.String)
      */
     @Override
-    public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumeURIs, URI applicationId,
+    public void updateApplication(URI systemURI, ApplicationAddVolumeList addVolList, List<URI> removeVolumesURI, URI applicationId,
             String taskId) {
         
         // get all source and target devices
@@ -6036,40 +6037,45 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         try {
             Set<URI> impactedCGs = new HashSet<URI>();
             List<URI> allRemoveVolumes = new ArrayList<URI>();
-            Set<URI> removeVolumeSet = new HashSet<URI>();
-            if (removeVolumeURIs != null && !removeVolumeURIs.isEmpty()) {
+            HashSet<URI> removeVolumeSet = new HashSet<URI>();
+            List<URI> vplexVolumes = new ArrayList<URI>();
+            if (removeVolumesURI != null && !removeVolumesURI.isEmpty()) {
                 // get source and target volumes to be removed from the application
-                removeVolumeSet = RPHelper.getReplicationSetVolumes(removeVolumeURIs, _dbClient);
+                List<URI> allVolumes = RPHelper.getReplicationSetVolumes(removeVolumesURI, _dbClient);
+                removeVolumeSet.addAll(allVolumes);
                 for (URI removeUri : removeVolumeSet) {
                     Volume removeVol = _dbClient.queryObject(Volume.class, removeUri);
                     URI cguri = removeVol.getConsistencyGroup();
                     impactedCGs.add(cguri);
-                    addBackendVolumes(removeVol, false, allRemoveVolumes, null);
+                    addBackendVolumes(allRemoveVolumes, removeVol, null, false, applicationId, null);
                 }
             }
             
-            List<URI> vplexVolumes = new ArrayList<URI>();
-            Set<URI> addVolumeSet = new HashSet<URI>();
+            List<Volume> vnxVolumes = new ArrayList<Volume>();
+            Set<URI> allAddVolumes = new HashSet<URI>();
             ApplicationAddVolumeList addSourceVols = new ApplicationAddVolumeList();
             ApplicationAddVolumeList addTargetVols = new ApplicationAddVolumeList();
             if (addVolList != null && addVolList.getVolumes() != null && !addVolList.getVolumes().isEmpty()) {
                 URI addVolCg = null;
                 // get source and target volumes to be added the application
-                addVolumeSet = RPHelper.getReplicationSetVolumes(addVolList.getVolumes(), _dbClient);
+                List<URI> addVolumes = RPHelper.getReplicationSetVolumes(addVolList.getVolumes(), _dbClient);
+                allAddVolumes.addAll(addVolumes);
                 // split up add volumes list by source and target
                 List<URI> allAddSourceVolumes = new ArrayList<URI>();
                 List<URI> allAddTargetVolumes = new ArrayList<URI>();
-                for (URI volUri : addVolumeSet) {
+                for (URI volUri : allAddVolumes) {
                     Volume vol = _dbClient.queryObject(Volume.class, volUri);
                     URI cguri = vol.getConsistencyGroup();
                     if (addVolCg == null && cguri != null) {
                         addVolCg = cguri;
                     }
                     impactedCGs.add(cguri);
-                    if (vol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
-                        addBackendVolumes(vol, true, allAddSourceVolumes, vplexVolumes);
-                    } else if (vol.checkPersonality(Volume.PersonalityTypes.TARGET.name())) {
-                        addBackendVolumes(vol, true, allAddTargetVolumes, vplexVolumes);
+                    if (!NullColumnValueGetter.isNullValue(vol.getPersonality())
+                            && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                        addBackendVolumes(allAddSourceVolumes, vol, vnxVolumes, true, applicationId, vplexVolumes);
+                    } else if (!NullColumnValueGetter.isNullValue(vol.getPersonality())
+                            && vol.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
+                        addBackendVolumes(allAddTargetVolumes, vol, vnxVolumes, true, applicationId, vplexVolumes);
                     }
                 }
                 
@@ -6082,14 +6088,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 addTargetVols.setVolumes(allAddTargetVolumes);
             }
 
+            VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, applicationId);
+            _log.info(String.format("Creating steps for adding and removing RP volumes to the application %s", application.getLabel()));
+
             // Get a new workflow to execute the volume group update.
             Workflow workflow = _workflowService.getNewWorkflow(this, BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, taskId);
             
             // create the completer add the steps and execute the plan.
-            completer = new VolumeGroupUpdateTaskCompleter(applicationId, addVolumeSet, removeVolumeSet, impactedCGs, taskId);
+            completer = new VolumeGroupUpdateTaskCompleter(applicationId, allAddVolumes, removeVolumeSet, impactedCGs, taskId);
 
-            // add steps for add source and remove vols
+            // add step for convert VNX replication group
             String waitFor = null;
+            if (!vnxVolumes.isEmpty()) {
+                _log.info("Creating step to convert VNX RG");
+                waitFor = _blockDeviceController.addStepsForConvertVNXReplicationGroup(workflow, vnxVolumes, waitFor, taskId);
+            }
+            // add steps for add source and remove vols
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addSourceVols, allRemoveVolumes, waitFor, taskId);
             
             // add steps for add target vols
@@ -6100,7 +6114,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
             
             _log.info("Executing workflow plan {}", BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
-            String successMessage = String.format("Update application successful for %s", applicationId.toString());
+            String successMessage = String.format("Update application successful for %s", application.getLabel());
             workflow.executePlan(completer, successMessage);
         } catch (Exception e) {
             _log.error("Exception while updating the application", e);
@@ -6112,24 +6126,71 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
     
     /**
-     * @param volume The volume will be processed
-     * @param isAdd if the volume is for add or remove
+     * Add block(backend) volumes if the volume is a VPLEX volume to the Block volume list to call to BlockDeviceController.
+     * If the volume's backend volume is in a replication group, it would not add to the list, but just update the volume and its task.
+     * 
      * @param allVolumes output all block volume list
-     * @param vplexVolumes output all vplex volumes whose backend volumess are not in RG
+     * @param volume The volume will be processed
+     * @param vnxVolumes output VNX backend volumes
+     * @param isAdd if the volume is for add or remove
+     * @param application the application the volume will be add/remove
+     * @param vplexVolumes output all vplex volumes
      */
-    private void addBackendVolumes(Volume volume, boolean isAdd, List<URI> allVolumes, List<URI>vplexVolumes) {
+    private void addBackendVolumes(List<URI> allVolumes, Volume volume, List<Volume> vnxVolumes, boolean isAdd, URI application,
+            List<URI> vplexVolumes) {
         if (RPHelper.isVPlexVolume(volume)) {
             StringSet backends = volume.getAssociatedVolumes();
+            boolean notInRG = true;
             for (String backendId : backends) {
-                URI backendUri = URI.create(backendId);
-                allVolumes.add(backendUri);
-                if (isAdd) {
-                    Volume backVol = _dbClient.queryObject(Volume.class, backendUri);
-                    if (backVol != null && !backVol.getInactive() && NullColumnValueGetter.isNullValue(backVol.getReplicationGroupInstance())) {
-                        vplexVolumes.add(volume.getId());
+                if (!isAdd) {
+                    allVolumes.add(URI.create(backendId));
+                } else {
+                    Volume backVol = _dbClient.queryObject(Volume.class, URI.create(backendId));
+                    String rgName = backVol.getReplicationGroupInstance();
+                    if (NullColumnValueGetter.isNotNullValue(rgName) &&
+                            ControllerUtils.isVnxVolume(backVol, _dbClient)) {
+                        vnxVolumes.add(backVol);
+                    } else if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                        // the back end volumes is in a replication group. just update the volume's volumeGroupIds attribute
+                        StringSet applications = volume.getVolumeGroupIds();
+                        if (applications == null) {
+                            applications = new StringSet();
+                        }
+                        applications.add(application.toString());
+                        volume.setVolumeGroupIds(applications);
+
+                        // handle full copy. If the volume is in RG, set fullCopySetName in the full copy
+                        StringSet fullcopies = volume.getFullCopies();
+                        if (fullcopies != null && !fullcopies.isEmpty()) {
+                            List<Volume> fullCopiesToUpdate = new ArrayList<Volume>();
+                            for (String fullCopyId : fullcopies) {
+                                Volume fullCopy = _dbClient.queryObject(Volume.class, URI.create(fullCopyId));
+                                if (fullCopy != null && !fullCopy.getInactive()) {
+                                    Volume fullCopyBack = VPlexUtil.getVPLEXBackendVolume(fullCopy, true, _dbClient);
+                                    String groupName = fullCopyBack.getReplicationGroupInstance();
+                                    if (NullColumnValueGetter.isNullValue(groupName)) {
+                                        throw DeviceControllerException.exceptions.recoverpoint.failedToAddVolumeToApplication(
+                                                volume.getLabel(),
+                                                "the volume is in a replication group, but its full copy is not.");
+                                    }
+                                    fullCopy.setFullCopySetName(groupName);
+                                    fullCopiesToUpdate.add(fullCopy);
+                                }
+                            }
+                            if (!fullCopiesToUpdate.isEmpty()) {
+                                _dbClient.updateObject(fullCopiesToUpdate);
+                            }
+                        }
+                        _dbClient.updateObject(volume);
+                        notInRG = false;
                         break;
+                    } else {
+                        allVolumes.add(backVol.getId());
                     }
                 }
+            }
+            if (isAdd && notInRG) {
+                vplexVolumes.add(volume.getId());
             }
         } else {
             allVolumes.add(volume.getId());

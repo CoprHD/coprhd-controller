@@ -42,8 +42,6 @@ public class SeedProviderImpl implements SeedProvider {
     private String _id;
     private CoordinatorClientImpl _client;
     private List<String> extraSeeds = new ArrayList<>();
-    private boolean useSeedsInLocalSite;
-    private DrUtil drUtil;
     
     /**
      * This constructor's argument is from cassandral's yaml configuration. Here is an example
@@ -108,8 +106,6 @@ public class SeedProviderImpl implements SeedProvider {
         }
         client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
-        drUtil = new DrUtil(client);
-        useSeedsInLocalSite = drUtil.isActiveSite() ||  SiteState.ACTIVE_DEGRADED.equals(drUtil.getLocalSite().getState());
         
         _client = client;
     }
@@ -138,30 +134,27 @@ public class SeedProviderImpl implements SeedProvider {
                     seeds.add(InetAddress.getByName(seed));
                 }
             }
-            // On DR standby site, only use seeds from active site. On active site
-            // we use local seeds
-            if (useSeedsInLocalSite) {
-                for (int i = 0; i < configs.size(); i++) {
-                    Configuration config = configs.get(i);
-                    // Bypasses item of "global" and folders of "version", just check db configurations.
-                    if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
-                        continue;
+
+            for (int i = 0; i < configs.size(); i++) {
+                Configuration config = configs.get(i);
+                // Bypasses item of "global" and folders of "version", just check db configurations.
+                if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
+                    continue;
+                }
+                String nodeId = config.getConfig(DbConfigConstants.NODE_ID);
+                if (!Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT)) ||
+                        (!config.getId().equals(_id) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED)))) {
+                    // all non autobootstrap nodes + other nodes are used as seeds
+                    InetAddress ip = null;
+                    if (nodeMap != null) {
+                        String ipAddress = nodeMap.getConnectableInternalAddress(nodeId);
+                        _logger.debug("ip[" + i + "]: " + ipAddress);
+                        ip = InetAddress.getByName(ipAddress);
+                    } else {
+                        ip = InetAddress.getByName(nodeId);
                     }
-                    String nodeId = config.getConfig(DbConfigConstants.NODE_ID);
-                    if (!Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT)) ||
-                            (!config.getId().equals(_id) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED)))) {
-                        // all non autobootstrap nodes + other nodes are used as seeds
-                        InetAddress ip = null;
-                        if (nodeMap != null) {
-                            String ipAddress = nodeMap.getConnectableInternalAddress(nodeId);
-                            _logger.debug("ip[" + i + "]: " + ipAddress);
-                            ip = InetAddress.getByName(ipAddress);
-                        } else {
-                            ip = InetAddress.getByName(nodeId);
-                        }
-                        seeds.add(ip);
-                        _logger.info("Seed {}", ip);
-                    }
+                    seeds.add(ip);
+                    _logger.info("Seed {}", ip);
                 }
             }
 

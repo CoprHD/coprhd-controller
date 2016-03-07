@@ -62,7 +62,7 @@ nav.block.volumes=Volumes
 nav.block.consistencygroups=Consistency Groups
 nav.block.exportgroups=Export Groups
 nav.block.snapshots=Block Snapshots
-nav.block.snapshotsessions=Block Snapshot Sessions
+nav.block.snapshotsessions=Snap Sessions
 nav.block.virtualPools=Block Virtual Pools
 nav.block.app=Applications
 nav.file=File
@@ -3085,7 +3085,7 @@ affectedResources.blockSnapshot.wwn=WWN
 affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
 
-affectedResources.blockSnapshotSession=Block Snapshot Session
+affectedResources.blockSnapshotSession=Snap Session
 affectedResources.blockSnapshotSession.image=serviceCatalog/Snapshot.png
 affectedResources.blockSnapshotSession.name=Name
 affectedResources.blockSnapshotSession.creationTime=Creation Time
@@ -3238,7 +3238,7 @@ resources.volumes.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The
 resources.volumes.deactivate=Created %s tasks to delete volumes.
 resources.volume.deactivate=Created task to delete volume.
 resources.volume.snapshots=Snapshots
-resources.volume.snapshot.sessions=Snapshot Sessions
+resources.volume.snapshot.sessions=Snap Sessions
 resources.volume.continuouscopies=Continuous Copies
 resources.volume.fullcopies=Full Copies
 resources.volume.migrations=Migrations
@@ -3361,16 +3361,16 @@ resources.snapshot.deactivate=Task created to deactivate snapshot with id:[%s]. 
 
 resources.snapshot.session.unknown=Unknown Snapshot Session with ID '%s'
 resources.snapshot.session.name=Name
-resources.snapshot.sessions=Block Snapshot Sessions
-resources.snapshot.session.deleteLink=Delete Snapshot Session
-resources.snapshot.session.targets=Linked Targets
-resources.snapshot.session.targets.none=No Linked Targets
+resources.snapshot.sessions=Snap Sessions
+resources.snapshot.session.deleteLink=Delete Snap Session
+resources.snapshot.session.targets=Snapshot Targets
+resources.snapshot.session.targets.none=No Snapshot Targets
 resources.snapshot.session.unlink=Unlink
 resources.snapshot.session.unlinkDelete=With Delete
 resources.snapshot.session.unlinkNoDelete=Without Delete
 resources.snapshot.session.relink=Relink
-resources.snapshot.session.relink.success=Task created to relink Snapshot Session Target on %s. Please check task list for an updated status.
-resources.snapshot.session.unlink.success=Task created to unlink Snapshot Session Target on %s. Please check task list for an updated status.
+resources.snapshot.session.relink.success=Task created to relink Snap Session Target on %s. Please check task list for an updated status.
+resources.snapshot.session.unlink.success=Task created to unlink Snap Session Target on %s. Please check task list for an updated status.
 
 resources.filesystems=File Systems
 resources.filesystems.error=File System Not Found
@@ -3420,7 +3420,6 @@ resources.filesystem.mirroring.virtualArray=Virtual Array
 resources.filesystem.mirroring.fileSystem=File System
 resources.filesystem.mirroring.status=Mirror Status
 resources.filesystem.policy.name=Policy Name
-resources.filesystem.snapshot.pattern=Snapshot Pattern
 resources.filesystem.snapshot.policy.assign=Assign Policy
 resources.filesystem.policy.none=No Policies
 resources.filesystem.policy.unassign.confirm=Are you sure you want to unassign this policy  from the file system?
@@ -3673,6 +3672,8 @@ snapshots.volume=Volume
 snapshots.createdDate=Date Created
 snapshots.lun=Lun
 snapshots.actions=Action
+snapshots.expires=Date Expires
+snapshots.created=Date Created
 
 exportGroups.name=Export Group Name
 exportGroups.type=Type
@@ -3685,7 +3686,7 @@ volumes.varray=Virtual Array
 volumes.protocols=Protocols
 volumes.consistencygroup=Consistency Group
 volumes.wwn=WWN
-volumes.replicationGroup=Replication Group
+volumes.replicationGroup=Sub Group
 volumes.associatedVolumeRG=Source Replication Group
 
 fileSystems.name=File System Name
@@ -3762,6 +3763,7 @@ button.addExportRule=Add Export Rule
 button.updateAcl=Access Control
 button.addNfsAcl=Add Access Controls
 button.assignPolicy=Assign Policy
+button.snapshotsList=Snapshot List
 button.unassignPolicy=Unassign Policy
 button.addSubDir=Add Share
 button.duplicate=Duplicate
@@ -4376,6 +4378,8 @@ nfsAccessControlList.type=Type
 nfsAccessControlList.domain=Domain
 nfsAccessControlList.permissionType=Permissions Type
 nfs.subdirectory=Sub Directory
+
+schedule.filepolicy.snapshot=File Policy Snapshots
 
 
 

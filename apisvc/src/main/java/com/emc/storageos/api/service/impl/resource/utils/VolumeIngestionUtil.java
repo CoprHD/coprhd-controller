@@ -626,7 +626,7 @@ public class VolumeIngestionUtil {
      * @return boolean indicating if the resource is part of a consistency group
      */
     public static boolean checkUnManagedResourceAddedToConsistencyGroup(UnManagedVolume unManagedVolume) {
-        _logger.info("Determining if the unmanaged volume {} is belongs to an unmanaged consistency group", unManagedVolume.getLabel());
+        _logger.info("Determining if the unmanaged volume {} belongs to an unmanaged consistency group", unManagedVolume.getLabel());
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isVolumeAddedToConsistencyGroup = unManagedVolumeCharacteristics
                 .get(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());
@@ -1249,7 +1249,7 @@ public class VolumeIngestionUtil {
                 SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(),
                 unManagedVolume.getVolumeInformation());
 
-        // Don't create CG if the vplex is behind RP. Add a check here.
+        // Don't create CG if the vplex is behind RP
         if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
             StringSet clusterEntries = PropertySetterUtil.extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString(),
@@ -1291,7 +1291,7 @@ public class VolumeIngestionUtil {
                             // need to check for several matching properties
                             URI storageControllerUri = cg.getStorageController();
                             URI virtualArrayUri = cg.getVirtualArray();
-                            if (null != storageControllerUri && null != virtualArrayUri) {
+                            if (!NullColumnValueGetter.isNullURI(storageControllerUri) && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                                 if (storageControllerUri.equals(storageSystem.getId()) &&
                                         virtualArrayUri.equals(varrayUri)) {
                                     _logger.info("Found a matching BlockConsistencyGroup {} "
@@ -1726,7 +1726,11 @@ public class VolumeIngestionUtil {
 
         // Do not add the block object to the export group if it is partially ingested
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
+            _logger.info("adding volume {} to export group {}", volume.forDisplay(), exportGroup.forDisplay());
             exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
+        } else {
+            _logger.info("volume {} is partially ingested, so not adding to export group {}", 
+                    volume.forDisplay(), exportGroup.forDisplay());
         }
 
         if (volume instanceof Volume) {
@@ -2239,6 +2243,57 @@ public class VolumeIngestionUtil {
 
     }
 
+    /**
+     * Verifies that the given ExportGroup matches the rest of the parameters.
+     * ComputeResource URI and resourceType are only check if both are non-null
+     * 
+     * @param exportGroupToCheck the ExportGroup to check
+     * @param exportGroupLabel the name of the ExportGroup
+     * @param project the URI of the ExportGroup's Project
+     * @param vArray the URI of the ExportGroup's VirtualArray
+     * @param computeResource the URI of the ExportGroup's ComputeResource (optional)
+     * @param resourceType the ExportGroup's resource type (optional)
+     * @return true if the exportGroupToCheck is a match for the rest of the parameters
+     */
+    public static boolean verifyExportGroupMatches(ExportGroup exportGroupToCheck, String exportGroupLabel, 
+            URI project, URI vArray, URI computeResource, String resourceType) {
+
+        if (exportGroupToCheck != null) {
+            if (!exportGroupToCheck.getLabel().equals(exportGroupLabel)) {
+                _logger.info("export group label mismatch: {} and {}", exportGroupToCheck.getLabel(), exportGroupLabel);
+                return false;
+            }
+            if (!exportGroupToCheck.getProject().getURI().equals(project)) {
+                _logger.info("export group project mismatch: {} and {}", exportGroupToCheck.getProject().getURI(), project);
+                return false;
+            }
+            if (!exportGroupToCheck.getVirtualArray().equals(vArray)) {
+                _logger.info("export group varray mismatch: {} and {}", exportGroupToCheck.getLabel(), exportGroupLabel);
+                return false;
+            }
+
+            // optionally check compute resource and resource type
+            if (computeResource != null && resourceType != null) {
+                if (ExportGroup.ExportGroupType.Host.toString().equalsIgnoreCase(resourceType)) {
+                    if (exportGroupToCheck.hasHost(computeResource) &&
+                            !ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(exportGroupToCheck.getType())) {
+                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", exportGroupToCheck.getId());
+                        return true;
+                    }
+                } else if (ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(resourceType)) {
+                    if (exportGroupToCheck.hasCluster(computeResource)) {
+                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", exportGroupToCheck.getId());
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+    
     /**
      * Verify a matching ExportGroup exists for the given parameters.
      *
@@ -3597,7 +3652,7 @@ public class VolumeIngestionUtil {
                     }
                     URI storageControllerUri = cg.getStorageController();
                     URI virtualArrayUri = cg.getVirtualArray();
-                    if (null == storageControllerUri && null == virtualArrayUri) {
+                    if (NullColumnValueGetter.isNullURI(storageControllerUri) && NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                         potentialUnclaimedCg = cg;
                     }
                 }
@@ -3662,7 +3717,7 @@ public class VolumeIngestionUtil {
                 URI storageControllerUri = cg.getStorageController();
                 URI virtualArrayUri = cg.getVirtualArray();
                 // need to check for several matching properties
-                if (null != storageControllerUri && null != virtualArrayUri) {
+                if (!NullColumnValueGetter.isNullURI(storageControllerUri) && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                     if (storageControllerUri.equals(storageSystem.getId()) &&
                             virtualArrayUri.equals(varrayUri)) {
                         _logger.info("Found a matching BlockConsistencyGroup {} "
@@ -3824,11 +3879,12 @@ public class VolumeIngestionUtil {
      *
      * @param requestContext current unManagedVolume Ingestion context.
      * @param umpset Unmanaged protection set for which a protection set has to be created
+     * @param unManagedVolume the current iterating UnManagedVolume
      * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, List<DataObject> updatedObjects,
-            DbClient dbClient) {
+    public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, UnManagedVolume unManagedVolume,
+            List<DataObject> updatedObjects, DbClient dbClient) {
         _logger.info("Ingesting all volumes associated with RP consistency group");
 
         ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(requestContext, umpset, dbClient);
@@ -3868,15 +3924,17 @@ public class VolumeIngestionUtil {
         RecoverPointVolumeIngestionContext rpContext = null;
 
         // the RP volume ingestion context will take care of persisting the 
-        // new objects and deleting the old UnManagedProtectionSet 
+        // new objects and deleting the old UnManagedProtectionSet
         if (requestContext instanceof RecoverPointVolumeIngestionContext) {
-            rpContext = (RecoverPointVolumeIngestionContext)requestContext;
-        } else if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
-            rpContext = (RecoverPointVolumeIngestionContext)requestContext.getVolumeContext();
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext;
+        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
         }
 
         if (rpContext != null) {
+            _logger.info("setting managed BlockConsistencyGroup on RecoverPoint context {} to {}", rpContext, cg);
             rpContext.setManagedBlockConsistencyGroup(cg);
+            _logger.info("setting managed ProtectionSet on RecoverPoint context {} to {}", rpContext, pset);
             rpContext.setManagedProtectionSet(pset);
         }
     }

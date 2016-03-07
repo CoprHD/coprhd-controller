@@ -148,6 +148,11 @@ public class DisasterRecoveryUtils {
         SiteActive siteCheck = checkActiveSite();
         return siteCheck.getLocalSiteName();
     }
+    
+    public static String getLocalUuid() {
+        SiteActive siteCheck = checkActiveSite();
+        return siteCheck.getLocalUuid();
+    }
 
     public static SiteErrorResponse getSiteError(String uuid) {
         return getViprClient().site().getSiteError(uuid);
@@ -161,8 +166,15 @@ public class DisasterRecoveryUtils {
         return getViprClient().site().getSiteDetails(uuid);
     }
     
-    public static String getLocalSiteState() {
-        CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
-        return getViprClient().site().getSite(coordinatorClient.getSiteId()).getState();
+    public static SiteRestRep getLocalSite() {
+        return getViprClient().site().getLocalSite();
+    }
+    
+    public static boolean isMultiDrSite() {
+        int sitecount = getSiteCount();
+        if(sitecount > 1) {
+            return true;
+        }
+        return false;
     }
 }

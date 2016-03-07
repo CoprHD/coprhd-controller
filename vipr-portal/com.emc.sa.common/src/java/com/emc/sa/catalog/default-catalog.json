@@ -4,6 +4,65 @@
   "description": "root.description",
   "categories": [
     {
+      "title": "applicationservices.title",
+      "image": "icon_application.png",
+      "description": "applicationservices.description",
+      "services": [
+        {
+          "image": "icon_application_add_volumes.png",
+          "baseService": "AddVolumesToApplication"
+        },
+        {
+          "image": "icon_application_remove_volumes.png",
+          "baseService": "RemoveVolumesFromApplication"
+        },
+        {
+          "image": "icon_application_create_full_copy.png",
+          "baseService": "CreateCloneOfApplication"
+        },
+        {
+          "image": "icon_application_remove_full_copy.png",
+          "baseService": "RemoveApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_detach_full_copy.png",
+          "baseService": "DetachApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_restore_full_copy.png",
+          "baseService": "RestoreApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_resych_full_copy.png",
+          "baseService": "ResynchronizeApplicationFullCopy"
+        },
+        {
+          "image": "icon_application_create_snapshot.png",
+          "baseService": "CreateSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_restore_snapshot.png",
+          "baseService": "RestoreSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_resynchronize_snapshot.png",
+          "baseService": "ResynchronizeSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_remove_snapshot.png",
+          "baseService": "DeleteSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_link_snapshot.png",
+          "baseService": "LinkSnapshotOfApplication"
+        },
+        {
+          "image": "icon_application_unlink_snapshot.png",
+          "baseService": "UnlinkSnapshotOfApplication"
+        }
+      ]
+    },
+    {
       "title": "block.title",
       "image": "icon_host.png",
       "description": "block.description",
@@ -568,65 +627,6 @@
         {
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
-        }
-      ]
-    },
-    {
-      "title": "applicationservices.title",
-      "image": "icon_application.png",
-      "description": "applicationservices.description",
-      "services": [
-        {
-          "image": "icon_application_add_volumes.png",
-          "baseService": "AddVolumesToApplication"
-        },
-        {
-          "image": "icon_application_remove_volumes.png",
-          "baseService": "RemoveVolumesFromApplication"
-        },
-        {
-          "image": "icon_application_create_full_copy.png",
-          "baseService": "CreateCloneOfApplication"
-        },
-        {
-          "image": "icon_application_remove_full_copy.png",
-          "baseService": "RemoveApplicationFullCopy"
-        },
-        {
-          "image": "icon_application_detach_full_copy.png",
-          "baseService": "DetachApplicationFullCopy"
-        },
-        {
-          "image": "icon_application_restore_full_copy.png",
-          "baseService": "RestoreApplicationFullCopy"
-        },
-        {
-          "image": "icon_application_resych_full_copy.png",
-          "baseService": "ResynchronizeApplicationFullCopy"
-        },
-        {
-          "image": "icon_application_create_snapshot.png",
-          "baseService": "CreateSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_restore_snapshot.png",
-          "baseService": "RestoreSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_resynchronize_snapshot.png",
-          "baseService": "ResynchronizeSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_remove_snapshot.png",
-          "baseService": "DeleteSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_link_snapshot.png",
-          "baseService": "LinkSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_unlink_snapshot.png",
-          "baseService": "UnlinkSnapshotOfApplication"
         }
       ]
     }

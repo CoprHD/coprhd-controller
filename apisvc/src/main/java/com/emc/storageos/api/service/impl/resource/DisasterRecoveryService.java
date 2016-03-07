@@ -959,6 +959,17 @@ public class DisasterRecoveryService {
 
             coordinator.startTransaction();
             standby.setState(standby.getLastState());
+
+            //Failover requires setting old active site to last state as well.
+            if (standby.getState() == SiteState.STANDBY_FAILING_OVER) {
+               for (Site site: drUtil.listSites()){
+                   if (site.getLastState() == SiteState.ACTIVE_FAILING_OVER){
+                       site.setState(SiteState.ACTIVE_FAILING_OVER);
+                       coordinator.persistServiceConfiguration(site.toConfiguration());
+                   }
+               }
+            }
+
             coordinator.persistServiceConfiguration(standby.toConfiguration());
             log.info("Notify all sites for reconfig");
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();

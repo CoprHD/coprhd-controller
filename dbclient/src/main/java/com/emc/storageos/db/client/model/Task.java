@@ -59,7 +59,8 @@ public class Task extends DataObject {
     public Task() {
     }
 
-    @NamedRelationIndex(cf = "TaskResource")
+    @NamedRelationIndex(cf = "TaskResource", types={Volume.class, BlockSnapshot.class, VolumeGroup.class, 
+    		BlockConsistencyGroup.class, Host.class, ExportGroup.class, FileShare.class, Snapshot.class})
     @Name("resource")
     public NamedURI getResource() {
         return resource;

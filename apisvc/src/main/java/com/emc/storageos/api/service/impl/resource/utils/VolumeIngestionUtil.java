@@ -1330,6 +1330,7 @@ public class VolumeIngestionUtil {
                 cg.setLabel(cgName);
                 cg.setProject(new NamedURI(projectUri, cgName));
                 cg.setTenant(new NamedURI(tenantUri, cgName));
+                cg.setArrayConsistency(false);
                 cg.addConsistencyGroupTypes(Types.VPLEX.name());
                 cg.setStorageController(storageSystem.getId());
                 cg.setVirtualArray(varrayUri);
@@ -3507,6 +3508,7 @@ public class VolumeIngestionUtil {
         types.add(BlockConsistencyGroup.Types.RP.toString());
         cg.setRequestedTypes(types);
         cg.setTypes(types);
+        cg.setArrayConsistency(false);
         cg.setTenant(project.getTenantOrg());
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
         _logger.info("Created new block consistency group: " + cg.getId().toString());
@@ -3730,6 +3732,7 @@ public class VolumeIngestionUtil {
             cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cgName);
             cg.setStorageController(storageSystem.getId());
             cg.setVirtualArray(varrayUri);
+            cg.setArrayConsistency(false);
             return cg;
         }
     }

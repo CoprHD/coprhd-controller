@@ -286,16 +286,20 @@ public class BackupOps {
         return new File(BackupConstants.RESTORE_DIR, backupFolder);
     }
 
-    public Map<String, Long> getDownloadSize(String backupName) {
+    public Map<String, Long> getInternalDownloadSize(String backupName) {
         Map<String, Long> downloadSize = new HashMap();
 
         File folder = getDownloadDirectory(backupName);
         File[] files = getBackupFiles(folder);
 
         try {
+            String localHostName = InetAddress.getLocalHost().getHostName();
             Map<String, URI> nodes = getNodesInfo();
             for (Map.Entry<String, URI> node : nodes.entrySet()) {
                 String hostname = toHostName(node.getKey());
+                if (hostname.equals(localHostName)) {
+                    continue; // zip file has already been downloaded
+                }
                 long size = 0;
                 for (File f : files) {
                     if (belongToNode(f, hostname)) {
@@ -304,7 +308,7 @@ public class BackupOps {
                 }
                 downloadSize.put(hostname, size);
             }
-        }catch(URISyntaxException e) {
+        }catch(URISyntaxException | UnknownHostException e) {
             log.error("Failed to set download size e=", e.getMessage());
         }
 
@@ -1155,6 +1159,22 @@ public class BackupOps {
         }
     }
 
+    public boolean isDownloadComplete(String backupName) {
+        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
+        if ( s.getStatus() != BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+            return false;
+        }
+
+        File downloadFolder = getDownloadDirectory(backupName);
+
+        try {
+            checkBackup(downloadFolder);
+        }catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+
     private String getMyDownloadingZKPath() {
         String downloadersPath = getDownloadOwnerPath();
         CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
@@ -1483,7 +1503,6 @@ public class BackupOps {
             log.info("The backup {} for this node has already been downloaded", backupName);
             BackupInfo info = getBackupInfo(backupFolder, false);
             info.setRestoreStatus(queryBackupRestoreStatus(backupName, false));
-            log.info("lby backupInfo={}", info);
             return info;
         } catch (Exception e) {
             // The backup has not been downloaded yet or is invalid, query from the server

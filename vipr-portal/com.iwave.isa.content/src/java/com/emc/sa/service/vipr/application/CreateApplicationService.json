@@ -1,6 +1,6 @@
 {
-  baseKey:"AddVolumesToApplication.Application",
-  serviceId:"AddVolumesToApplication",
+  baseKey:"CreateApplication.Application",
+  serviceId:"CreateApplication",
   fields:{
   
     name:{

@@ -1141,7 +1141,7 @@ public class RPHelper {
      * @param cg The ViPR CG
      * @param size The size requested
      * @param volumeCount Number of volumes in the request
-     * @param copyName The RP Copy Internal Site Name
+     * @param copyName The RP copy name
      * @return true if an additional journal is required, false otherwise.
      */
     public boolean isAdditionalJournalRequiredForRPCopy(String journalPolicy, BlockConsistencyGroup cg, String size, Integer volumeCount,

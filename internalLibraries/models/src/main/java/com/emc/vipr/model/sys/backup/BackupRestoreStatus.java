@@ -140,7 +140,7 @@ public class BackupRestoreStatus {
     }
 
     @XmlElement(name = "downloaded_size")
-    public Map<String, Long> getDownoadedSize() {
+    public Map<String, Long> getDownloadedSize() {
         return downloadedSize;
     }
 

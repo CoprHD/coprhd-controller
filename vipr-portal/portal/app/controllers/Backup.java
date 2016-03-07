@@ -164,7 +164,7 @@ public class Backup extends Controller {
         if (type == Type.REMOTE) { // pull first if remote backup set
             BackupUtils.pullBackup(id);
         }
-        
+
         BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
         renderArgs.put("status", status);
         renderArgs.put("id", id);
@@ -280,7 +280,7 @@ public class Backup extends Controller {
             }
 
             downloadSize = 0;
-            map = origin.getDownoadedSize();
+            map = origin.getDownloadedSize();
             log.info("lbyg downloaded size={}", map);
             for (Map.Entry<String, Long> size : map.entrySet()) {
                 downloadSize += size.getValue();

@@ -4320,7 +4320,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMethodNullMethod(), null);
 
                 // call ReplicaDeviceController
-                waitFor = _replicaDeviceController.addStepsForAddingVolumesToCG(workflow, waitFor, consistencyGroup, addVolumesList,
+                waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, addVolumesList,
                         groupName, task);
             }
 

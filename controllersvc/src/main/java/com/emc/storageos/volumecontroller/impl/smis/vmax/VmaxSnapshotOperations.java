@@ -237,8 +237,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                         _helper.invokeMethodSynchronously(storage, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
                                 inArgsDetach, outArgsDetach, null);
                     }
-                    // delete the unlinked target
-
                 }
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.callModifyReplica(storage, _helper.getDeleteSnapshotSynchronousInputArguments(syncObjectPath), outArgs);

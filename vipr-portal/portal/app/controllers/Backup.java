@@ -161,15 +161,15 @@ public class Backup extends Controller {
     }
 
     public static void restore(String id, Type type) {
+        if (type == Type.REMOTE) { // pull first if remote backup set
+            BackupUtils.pullBackup(id);
+        }
+        
         BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
         renderArgs.put("status", status);
         renderArgs.put("id", id);
         renderArgs.put("type", type);
 
-        if (type == Type.REMOTE) { // pull first if remote backup set
-            BackupUtils.pullBackup(id);
-        }
-        
         render();
     }
 

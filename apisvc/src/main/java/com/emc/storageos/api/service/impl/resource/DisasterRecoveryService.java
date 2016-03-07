@@ -1236,12 +1236,17 @@ public class DisasterRecoveryService {
             //reconfig other standby sites
             for (Site site : allStandbySites) {
                 if (!site.getUuid().equals(uuid)) {
-                    try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
-                        client.setCoordinatorClient(coordinator);
-                        client.setKeyGenerator(apiSignatureGenerator);
-                        client.failover(uuid, oldActiveSite.getUuid(), vdcTargetVersion);
-                    } catch (Exception e){
-                        log.error("Failed to do failover for site {}, ignore it for failover", site.toBriefString());
+                    if (site.getState() == SiteState.STANDBY_REMOVING) {
+                        site.setState(SiteState.STANDBY_ERROR);
+                        coordinator.persistServiceConfiguration(site.toConfiguration());
+                    } else {
+                        try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
+                            client.setCoordinatorClient(coordinator);
+                            client.setKeyGenerator(apiSignatureGenerator);
+                            client.failover(uuid, oldActiveSite.getUuid(), vdcTargetVersion);
+                        } catch (Exception e){
+                            log.error("Failed to do failover for site {}, ignore it for failover", site.toBriefString());
+                        }
                     }
                     // update the vdc config version on the new active site.
                     drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_FAILOVER, vdcTargetVersion,

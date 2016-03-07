@@ -72,18 +72,27 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
     }
     
     private void checkDb() {
-        DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper();
-        helper.setDbClient((DbClientImpl)dbClient);
-        DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
-        try {
-            int corruptedCount = checker.check();
-            if (corruptedCount > 0) {
-                log.warn("Corrupted db rows found {}", corruptedCount);
+        Runnable checkDBTask = new Runnable() {
+
+            @Override
+            public void run() {
+                DbConsistencyCheckerHelper helper = new DbConsistencyCheckerHelper();
+                helper.setDbClient((DbClientImpl)dbClient);
+                DbConsistencyChecker checker = new DbConsistencyChecker(helper, true);
+                try {
+                    int corruptedCount = checker.check();
+                    if (corruptedCount > 0) {
+                        log.warn("Corrupted db rows found {}", corruptedCount);
+                    }
+                } catch (Exception ex) {
+                    log.error("Unexpected error during db consistency check", ex);
+                    throw new IllegalStateException(ex);
+                }
             }
-        } catch (Exception ex) {
-            log.error("Unexpected error during db consistency check", ex);
-            throw new IllegalStateException(ex);
-        }
+        };
+        
+        Thread checkDBThread = new Thread(checkDBTask);
+        checkDBThread.start();
     }
     
     private void checkPersistentLocks() {

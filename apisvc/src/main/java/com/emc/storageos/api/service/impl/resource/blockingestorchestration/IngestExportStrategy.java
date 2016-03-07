@@ -114,9 +114,10 @@ public class IngestExportStrategy {
 
                         unManagedVolume.setInactive(true);
                         requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
+                    } else {
+                        // If the unmanaged volume is not marked for deletion, then it should be updated with the changes done.
+                        requestContext.addDataObjectToUpdate(unManagedVolume, unManagedVolume);
                     }
-                    // If the unmanaged volume is not marked for deletion, then it should be updated with the changes done.
-                    requestContext.addDataObjectToUpdate(unManagedVolume, unManagedVolume);
                     return blockObject;
                 } else {
                     if (null != errorMessages && !errorMessages.isEmpty()) {

@@ -5,7 +5,6 @@
 
 package com.emc.storageos.management.backup;
 
-import org.apache.cassandra.cql3.Lists;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.HelpFormatter;
@@ -24,7 +23,11 @@ import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.text.Format;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+//Suppress Sonar violation of Lazy initialization of static fields should be synchronized
 //This is a CLI application and main method will not be called by multiple threads
 @SuppressWarnings("squid:S2444")
 public class BackupCmd {

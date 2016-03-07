@@ -1693,6 +1693,29 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, null, taskCompleter);
+    }
+    /**
+     * Attempts to delete a system consistency group via an SMI-S provider, if it exists.
+     * Since a {@link BlockConsistencyGroup} may reference multiple system consistency groups, attempt to remove its
+     * reference, in addition to updating the types field.
+     * 
+     * This method may be called as part of a workflow rollback.
+     * 
+     * @param storage StorageSystem
+     * @param consistencyGroupId BlockConsistencyGroup URI
+     * @param replicationGroupName name of the replication group to be deleted
+     * @param keepRGName Boolean if true, ViPR will keep group name for CG
+     * @param markInactive True, if the user initiated removal of the BlockConsistencyGroup
+     * @param sourceReplicatoinGroup source replication group name
+     * @param taskCompleter TaskCompleter
+
+     * @throws DeviceControllerException
+     */
+    //@Override
+    public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,  String sourceReplicationGroup, 
+            final TaskCompleter taskCompleter) throws DeviceControllerException {
 
         ServiceError serviceError = null;
         URI systemURI = storage.getId();
@@ -1739,6 +1762,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     cleanupAnyGroupBackupSnapshots(storage, cgPath);
                 }
 
+                if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
+                    //  if deleting full copy replication group, we need to remove the EMCSFSEntries first
+                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName,
+                            sourceReplicationGroup);
+                    
+                }
                 // Invoke the deletion of the consistency group
                 CIMArgument[] inArgs;
                 CIMArgument[] outArgs = new CIMArgument[5];

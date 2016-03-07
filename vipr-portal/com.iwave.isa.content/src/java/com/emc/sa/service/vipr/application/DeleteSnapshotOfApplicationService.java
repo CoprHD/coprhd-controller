@@ -16,7 +16,6 @@ import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotForApplication;
 import com.emc.sa.service.vipr.application.tasks.DeleteSnapshotSessionForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.vipr.client.Tasks;
 
 @Service("DeleteSnapshotOfApplication")
@@ -38,15 +37,15 @@ public class DeleteSnapshotOfApplicationService extends ViPRService {
     public void execute() throws Exception {
 
         // get list of volumes in application
-        NamedVolumesList applicationVolumes = getClient().application().getVolumeByApplication(applicationId);
         Tasks<? extends DataObjectRestRep> tasks = null;
 
         if (snapshotType != null && snapshotType.equalsIgnoreCase(BlockProvider.SNAPSHOT_SESSION_TYPE_VALUE)) {
-            List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroup(applicationId, applicationCopySet,
-                    applicationVolumes, subGroups);
+            List<URI> snapshotSessionIds = BlockStorageUtils.getSingleSnapshotSessionPerSubGroupAndStorageSystem(applicationId,
+                    applicationCopySet,
+                    subGroups);
             tasks = execute(new DeleteSnapshotSessionForApplication(applicationId, snapshotSessionIds));
         } else {
-            List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, applicationVolumes,
+            List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroupAndStorageSystem(applicationId, applicationCopySet,
                     subGroups);
             tasks = execute(new DeleteSnapshotForApplication(applicationId, snapshotIds));
         }

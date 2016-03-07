@@ -6040,7 +6040,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (removeVolumeURIs != null && !removeVolumeURIs.isEmpty()) {
                 // get source and target volumes to be removed from the application
                 removeVolumeSet = RPHelper.getReplicationSetVolumes(removeVolumeURIs, _dbClient);
-                for (URI removeUri : allRemoveVolumes) {
+                for (URI removeUri : removeVolumeSet) {
                     Volume removeVol = _dbClient.queryObject(Volume.class, removeUri);
                     URI cguri = removeVol.getConsistencyGroup();
                     impactedCGs.add(cguri);

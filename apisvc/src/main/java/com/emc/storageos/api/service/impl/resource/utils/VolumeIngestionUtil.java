@@ -2929,10 +2929,12 @@ public class VolumeIngestionUtil {
                         }
                     }
 
+                    _logger.info("exportGroupType is " + exportGroupType);
                     // Add the block object to the export groups corresponding to the export masks
                     for (ExportGroup exportGroup : exportGroups) {
-                        _logger.info("Processing exportGroup {} to add block object", exportGroup.getId());
+                        _logger.info("Processing exportGroup {} to add block object", exportGroup.forDisplay());
                         // only add to those export groups whose project and varray matches the block object
+                        _logger.info("exportGroup.getType() is " + exportGroup.getType());
                         boolean exportGroupTypeMatches = (null != exportGroupType)
                                 && exportGroupType.equalsIgnoreCase(exportGroup.getType());
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
@@ -3291,6 +3293,7 @@ public class VolumeIngestionUtil {
      */
     public static boolean validateAllVolumesInCGIngested(List<UnManagedVolume> ingestedUnManagedVolumes,
             UnManagedProtectionSet umpset, DbClient dbClient) {
+        _logger.info("validateAllVolumesInCGIngested for {} ", umpset.forDisplay());
         if (umpset == null) {
             _logger.warn("INGEST VALIDATION: unmanaged protection set is null");
             return false;

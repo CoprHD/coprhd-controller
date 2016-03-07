@@ -7,6 +7,7 @@ package com.emc.storageos.systemservices.impl.restore;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -125,10 +126,10 @@ public final class DownloadExecutor implements  Runnable {
 
             if (s.removeListener()) {
                 try {
-                    log.info("Remove pullBackupFilesFromRemoteServer listener");
+                    log.info("Remove pull listener");
                     backupOps.removeRestoreListener(downloadListener);
                 }catch (Exception e) {
-                    log.warn("Failed to remove pullBackupFilesFromRemoteServer and restore listener");
+                    log.warn("Failed to remove pull listener");
                 }
             }
         }
@@ -144,10 +145,6 @@ public final class DownloadExecutor implements  Runnable {
                 onRestoreStatusChange();
             }
         }
-    }
-
-    private void updateDownloadedSize(long size) {
-        backupOps.updateDownloadSize(remoteBackupFileName, size);
     }
 
     @Override
@@ -170,17 +167,12 @@ public final class DownloadExecutor implements  Runnable {
                 return;
             }
 
-            /*
-            lock = backupOps.getLock(BackupConstants.RESTORE_LOCK,
-                    -1, TimeUnit.MILLISECONDS); // -1= no timeout
-                    */
-
             pullBackupFilesFromRemoteServer();
             postDownload();
         }catch (InterruptedException e) {
             log.info("The downloading thread has been interrupted");
         }catch (Exception e) {
-            log.info("lby isCanceled={}", isCanceled);
+            log.info("isCanceled={}", isCanceled);
 
             if (fromRemoteServer) {
                 log.error("Failed to pull backup file from remote server e=", e);
@@ -203,11 +195,6 @@ public final class DownloadExecutor implements  Runnable {
             }catch (Exception ex) {
                 log.error("Failed to remove listener e=",ex);
             }
-
-            /*
-            log.info("To release lock {}", BackupConstants.RESTORE_LOCK);
-            backupOps.releaseLock(lock);
-            */
         }
     }
 
@@ -234,7 +221,7 @@ public final class DownloadExecutor implements  Runnable {
                                                    .get(new URI(uri), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 
             byte[] buffer = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
-            downloadBackupFile(downloadDir,filename, new BufferedInputStream(in), buffer);
+            persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true);
         } catch (URISyntaxException e) {
             log.error("Internal error occurred while prepareing get image URI: {}", e);
         }
@@ -256,9 +243,6 @@ public final class DownloadExecutor implements  Runnable {
 
         backupOps.persistCurrentBackupInfo(remoteBackupFileName, false);
 
-        ZipInputStream zin = getDownloadStream();
-        BufferedInputStream in = new BufferedInputStream(zin);
-
         File backupFolder= backupOps.getDownloadDirectory(remoteBackupFileName);
 
         try {
@@ -270,22 +254,38 @@ public final class DownloadExecutor implements  Runnable {
         }
 
         byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
-        ZipEntry zentry = zin.getNextEntry();
-        while (zentry != null) {
-            String filename = zentry.getName();
-            log.info("Download remote backup file {}", filename);
-            pullBackupFileFromRemoteServer(backupFolder, filename, in, buf);
-            zentry = zin.getNextEntry();
+        InputStream in = client.download(remoteBackupFileName);
+
+        //Step1: download the zip file
+        File zipFile = null;
+        try (BufferedInputStream bin = new BufferedInputStream(in)) {
+            zipFile = pullBackupFileFromRemoteServer(backupFolder, remoteBackupFileName, bin, buf);
         }
 
-        try {
+        //Step2: extract the zip file
+        try (ZipInputStream zin = new ZipInputStream(new FileInputStream(zipFile));  BufferedInputStream bzin = new BufferedInputStream(zin);) {
+            ZipEntry zentry = zin.getNextEntry();
+            while (zentry != null) {
+                String filename = zentry.getName();
+                log.info("Extract backup file {}", filename);
+                //pullBackupFileFromRemoteServer(backupFolder, filename, bzin, buf);
+                persistBackupFile(backupFolder, filename, bzin, buf, false);
+
+                if (isGeo == false) {
+                    isGeo = backupOps.isGeoBackup(filename);
+
+                    if (isGeo) {
+                        backupOps.setGeoFlag(remoteBackupFileName, false);
+                    }
+                }
+
+                zentry = zin.getNextEntry();
+            }
             zin.closeEntry();
-            in.close();
-        }catch (IOException e) {
-            log.debug("Failed to close the stream e", e);
-            // it's a known issue to use curl
-            //it's safe to ignore this exception here.
         }
+
+        //Step3: delete the downloaded zip file
+        zipFile.delete();
 
         backupOps.setRestoreStatus(remoteBackupFileName, null, null, true);
     }
@@ -300,6 +300,7 @@ public final class DownloadExecutor implements  Runnable {
             // valid downloaded backup
             backupOps.checkBackup(downloadedDir);
 
+            // persist the names of data files into the ZK
             List<String> filenames = backupOps.getBackupFileNames(downloadedDir);
 
             backupOps.setBackupFileNames(remoteBackupFileName, filenames);
@@ -309,30 +310,17 @@ public final class DownloadExecutor implements  Runnable {
             // on current node, since all files have been downloaded
             // set the size-to-download = downloaded-size
 
-            // calculate the size to be downloaded on each node
-            Map<String, Long> downloadSize = backupOps.getDownloadSize(remoteBackupFileName);
+            // calculate the size to be downloaded on other nodes
+            Map<String, Long> downloadSize = backupOps.getInternalDownloadSize(remoteBackupFileName);
 
-            // adjust the size of downloading on the current node
-            // it was set to size of zipped file before downloading, we should adjust it
-            // to the size of the unzipped file
             BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
 
-            String localHostName = InetAddress.getLocalHost().getHostName();
+            Map<String, Long> sizeToDownload = s.getSizeToDownload();
+            sizeToDownload.putAll(downloadSize);
+            s.setSizeToDownload(sizeToDownload);
 
-            // get the size of the downloaded&unzipped files
-            // File downloadDir = backupOps.getDownloadDirectory(remoteBackupFileName);
-            long size = FileUtils.sizeOfDirectory(downloadedDir);
 
-            // set the download size of current node to the size of the downloaded directory
-            downloadSize.put(localHostName, size);
-
-            s.setSizeToDownload(downloadSize);
-
-            // set the downloaded size to the size of the downloaded directory
-            Map<String, Long> downloadedSize = s.getDownoadedSize();
-            s.setDownloadedSize(localHostName, size);
-
-            log.info("Adjusted whole size={} downloadedSize={}", downloadSize, downloadedSize);
+            log.info("sizeToDownload={} downloadedSize={}", sizeToDownload, s.getDownloadedSize());
 
             backupOps.persistBackupRestoreStatus(s, false, true);
 
@@ -382,20 +370,12 @@ public final class DownloadExecutor implements  Runnable {
                 filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
     }
 
-    private void pullBackupFileFromRemoteServer(File downloadDir, String backupFileName,
+    private File pullBackupFileFromRemoteServer(File downloadDir, String backupFileName,
                                                 BufferedInputStream in, byte[] buffer) throws IOException {
-        if (isGeo == false) {
-            isGeo = backupOps.isGeoBackup(backupFileName);
-
-            if (isGeo) {
-                backupOps.setGeoFlag(remoteBackupFileName, false);
-            }
-        }
-
-        downloadBackupFile(downloadDir, backupFileName, in, buffer);
+        return persistBackupFile(downloadDir, backupFileName, in, buffer, true);
     }
 
-    private void downloadBackupFile(File downloadDir, String backupFileName, BufferedInputStream in, byte[] buffer) throws IOException {
+    private File persistBackupFile(File downloadDir, String backupFileName, BufferedInputStream in, byte[] buffer, boolean updateDownloadedSize) throws IOException {
         File file = new File(downloadDir, backupFileName);
         if (!file.exists()) {
             log.info("To create the new file {}", file.getAbsolutePath());
@@ -407,19 +387,16 @@ public final class DownloadExecutor implements  Runnable {
             int length;
             while ((length = in.read(buffer)) > 0) {
                 out.write(buffer, 0, length);
-                updateDownloadedSize(length);
+                if (updateDownloadedSize) {
+                    backupOps.updateDownloadSize(remoteBackupFileName, length);
+                }
             }
         } catch(IOException e) {
             log.error("Failed to download file {} e=", backupFileName, e);
             backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), true);
             throw e;
         }
-    }
 
-    private ZipInputStream getDownloadStream() throws IOException {
-        InputStream in = client.download(remoteBackupFileName);
-        ZipInputStream zin = new ZipInputStream(in);
-
-        return zin;
+        return file;
     }
 }

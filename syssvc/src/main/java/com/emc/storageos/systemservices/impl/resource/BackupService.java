@@ -13,6 +13,7 @@ import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.*;
 import java.util.zip.ZipEntry;
@@ -493,7 +494,9 @@ public class BackupService {
 
         checkExternalServer();
 
-        if (backupOps.isDownloadInProgress()) {
+        if (backupOps.isDownloadComplete(backupName)) {
+            log.info("The backup file {} has already been downloaded", backupName);
+        }else if (backupOps.isDownloadInProgress()) {
             String curBackupName = backupOps.getCurrentBackupName();
             if (!backupName.equals(curBackupName)) {
                 String errmsg = curBackupName + " is downloading";
@@ -541,16 +544,23 @@ public class BackupService {
         BackupRestoreStatus s = new BackupRestoreStatus();
         s.setBackupName(backupName);
         s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
-        Map<String, Long> downloadSize = new HashMap();
         try {
+            Map<String,URI> nodesInfo = backupOps.getNodesInfo();
+            int numberOfNodes = nodesInfo.size();
+            Map<String, Long> sizes = new HashMap(numberOfNodes);
+            for (int i =1; i <= numberOfNodes; i++) {
+                sizes.put("vipr"+i, (long)0);
+            }
+
+
             // since all we know is the size of the backup file,
             // we use it as the download size for now.
             // after downloaded and unzipped the backup file,
             // we'll adjust the download size (in DownloadExecutor.postDownload())
             String localHostName = InetAddress.getLocalHost().getHostName();
-            downloadSize.put(localHostName, size);
-            s.setSizeToDownload(downloadSize);
-        }catch(UnknownHostException e) {
+            sizes.put(localHostName, size);
+            s.setSizeToDownload(sizes);
+        }catch(UnknownHostException |URISyntaxException e) {
             log.error("Failed to set the download size e={}", e.getMessage());
             throw new RuntimeException(e);
         }

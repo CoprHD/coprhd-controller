@@ -140,7 +140,7 @@ public class BackupRestoreStatus {
     }
 
     @XmlElement(name = "downloaded_size")
-    public Map<String, Long> getDownoadedSize() {
+    public Map<String, Long> getDownloadedSize() {
         return downloadedSize;
     }
 
@@ -152,10 +152,6 @@ public class BackupRestoreStatus {
 
         s += size;
         downloadedSize.put(node, s);
-    }
-
-    public void setDownloadedSize(String node, long size) {
-        downloadedSize.put(node, size);
     }
 
     @XmlElement(name = "size_to_download")
@@ -269,21 +265,21 @@ public class BackupRestoreStatus {
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append("BackupName:")
+        sb.append("\nBackupName:")
           .append(backupName)
-          .append(", size to download:")
+          .append("\nsize to download:")
           .append(sizeToDownload)
-          .append(", downloaded size:")
+          .append("\ndownloaded size:")
           .append(downloadedSize)
-          .append(", filesDownloaded:")
+          .append("\nfilesDownloaded:")
           .append(backupFileNames)
-          .append(", nodesCompleted:")
+          .append("\nnodesCompleted:")
           .append(nodeCompleted)
-          .append(", isGeo:")
+          .append("\nisGeo:")
           .append(isGeo)
-          .append(", status:")
+          .append("\nstatus:")
           .append(status)
-          .append(", details:")
+          .append("\ndetails:")
           .append(details);
 
         return sb.toString();

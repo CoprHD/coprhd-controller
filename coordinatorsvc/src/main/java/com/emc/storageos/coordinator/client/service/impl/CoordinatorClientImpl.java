@@ -1495,7 +1495,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
 
         DrUtil drUtil = new DrUtil(this);
-        if (drUtil.getLocalSite().getState() == SiteState.STANDBY_ERROR) {
+        SiteState localSiteState = drUtil.getLocalSite().getState();
+        if (localSiteState == SiteState.STANDBY_ERROR) {
+            log.info("Control nodes' state DEGRADED since DR site state is STANDBY_ERROR");
             return ClusterInfo.ClusterState.DEGRADED;
         }
 
@@ -1515,8 +1517,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } else if (!differentConfigVersions.isEmpty()) {
             log.info("Control nodes' state UPDATING: {}", Strings.repr(targetPropertiesGiven));
             return ClusterInfo.ClusterState.UPDATING;
-        } else if (!differentVdcConfigVersions.isEmpty()){
+        } else if (!differentVdcConfigVersions.isEmpty()) {
             log.info("Control nodes' state UPDATING vdc config version: {}", Strings.repr(differentVdcConfigVersions));
+            return ClusterInfo.ClusterState.UPDATING;
+        } else if (localSiteState.isDROperationOngoing()) {
+            log.info("Control nodes' state UPDATING since DR operation ongoing: {}", localSiteState);
             return ClusterInfo.ClusterState.UPDATING;
         } else if (differentCurrents.isEmpty() && differentVersions.isEmpty()) {
             // check for the extra upgrading states

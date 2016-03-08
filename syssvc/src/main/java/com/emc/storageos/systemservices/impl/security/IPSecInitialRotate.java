@@ -66,9 +66,13 @@ public class IPSecInitialRotate implements Runnable {
                         return;
                     }
                 } finally {
-                    if (lock != null) {
-                        lock.release();
-                        log.info("Released the lock {}", ipsecLock);
+                    try {
+                        if (lock != null) {
+                            lock.release();
+                            log.info("Released the lock {}", ipsecLock);
+                        }
+                    } catch (Exception ex) {
+                        log.warn("error in releasing the lock {}", ipsecLock);
                     }
                 }
             } catch (ServiceUnavailableException suex) {

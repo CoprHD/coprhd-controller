@@ -3653,7 +3653,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             } else {
                 volsNotInCG.put(vvUri, backingVols);
             }
-            if ( backingVolsAreInCG) {
+            if (backingVolsAreInCG) {
                 // if the backing volumes are in a array cg, we need to verify that all virtual volumes from the
                 // same replication group are on the list to be added
                 String key = storageSystemUri.toString() + rpName;

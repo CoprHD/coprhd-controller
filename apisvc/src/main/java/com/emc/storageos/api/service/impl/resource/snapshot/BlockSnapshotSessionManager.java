@@ -22,12 +22,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
+
 
 
 
@@ -313,7 +315,7 @@ public class BlockSnapshotSessionManager {
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
         String newTargetsName = null;
-        String newTargetsCopyMode = CopyMode.nocopy.name();
+        String newTargetsCopyMode = BlockSnapshot.CopyMode.nocopy.name();
         SnapshotSessionNewTargetsParam linkedTargetsParam = param.getNewLinkedTargets();
         if (linkedTargetsParam != null) {
             newLinkedTargetsCount = linkedTargetsParam.getCount().intValue();
@@ -367,10 +369,16 @@ public class BlockSnapshotSessionManager {
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
 
         for (Map<URI, BlockSnapshot> snapshotMap : snapSessionSnapshots) {
+            //Set Copy Mode
+            for (Entry<URI, BlockSnapshot> entry : snapshotMap.entrySet()) {
+                entry.getValue().setCopyMode(newTargetsCopyMode);
+            }
             preparedObjects.addAll(snapshotMap.values());
             Set<URI> uris = snapshotMap.keySet();
             snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
+        // persist copyMode changes
+        _dbClient.updateObject(preparedObjects);
 
         preparedObjects.add(snapSession);
 
@@ -427,7 +435,7 @@ public class BlockSnapshotSessionManager {
         String newTargetsName = param.getNewLinkedTargets().getTargetName();
         String newTargetsCopyMode = param.getNewLinkedTargets().getCopyMode();
         if (newTargetsCopyMode == null) {
-            newTargetsCopyMode = CopyMode.nocopy.name();
+            newTargetsCopyMode = BlockSnapshot.CopyMode.nocopy.name();
         }
 
         // Validate that the requested new targets can be linked to the snapshot session.
@@ -454,10 +462,16 @@ public class BlockSnapshotSessionManager {
 
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
         for (Map<URI, BlockSnapshot> snapshotMap : snapshots) {
+            //Set Copy Mode
+            for (Entry<URI, BlockSnapshot> entry : snapshotMap.entrySet()) {
+                entry.getValue().setCopyMode(newTargetsCopyMode);
+            }
             preparedObjects.addAll(snapshotMap.values());
             Set<URI> uris = snapshotMap.keySet();
             snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
+        // persist copyMode changes
+        _dbClient.updateObject(preparedObjects);
 
         // Create and link new targets to the snapshot session.
         try {

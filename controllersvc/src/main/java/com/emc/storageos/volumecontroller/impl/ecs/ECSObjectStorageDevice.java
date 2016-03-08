@@ -52,8 +52,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
     private ECSApiFactory ecsApiFactory;
     private DbClient _dbClient;
-    private  final String PRODUCT_IDENT_PATH = "/opt/storageos/etc/product";
-
+    
     /**
      * Set ECS API factory
      * 
@@ -82,17 +81,20 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         ECSApi ecsApi = getAPI(storageObj);
         BiosCommandResult result = null;
         String bktNativeId = null, currentOwner=null;
+        String aceName = "";
         try {
             _log.info("Initiated for Bucket creation. Name : {} Namespace : {}", args.getName(), args.getNamespace());
             bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool());
             ecsApi.updateBucketRetention(args.getName(), args.getNamespace(), args.getRetentionPeriod());
             ecsApi.updateBucketQuota(args.getName(), args.getNamespace(), args.getNotSizeSQ(), args.getBlkSizeHQ());
             currentOwner = ecsApi.getBucketOwner(args.getName(), args.getNamespace());
+            aceName = currentOwner;
             
             //ECS throws error if we try to set new owner which is same as current owner
             //This would lead to confusion as if there is an error
             if (!currentOwner.equals(args.getOwner())) {
             	ecsApi.updateBucketOwner(args.getName(), args.getNamespace(), args.getOwner());
+                aceName = args.getOwner();
             }
             _log.info("Successfully created Bucket. Name : {} Namespace : {}", args.getName(), args.getNamespace());
             bucket.setNativeId(bktNativeId);
@@ -115,6 +117,9 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         String aclSupportedVersion = "acl_supported";
         bucket.setVersion(aclSupportedVersion);
         _dbClient.persistObject(bucket);
+        if (!bucket.getInactive()) {
+            persistDefaultBucketACEInDb(aceName, bucket, args);
+        }
         return result;
     }
 
@@ -338,10 +343,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         completeTask(bucket.getId(), taskId, "Successfully updated Bucket ACL.");
         return BiosCommandResult.createSuccessfulResult();
     }
-    
-    
 
-    @SuppressWarnings("deprecation")
     private void updateBucketACLInDB(BucketACLUpdateParams param, ObjectDeviceInputOutput args, Bucket bucket) {
 
         try {
@@ -672,6 +674,27 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             strBuff.append(perm).append("|");
         }
         return strBuff.substring(0, strBuff.length() - 1);
+    }
+    
+    private void persistDefaultBucketACEInDb(String bucketOwner, Bucket bucket, ObjectDeviceInputOutput args) {
+        BucketACLUpdateParams param = new BucketACLUpdateParams();
+        BucketACL acl = new BucketACL();
+        BucketACE defaultAce = new BucketACE();
+        String full_control = "read|write|execute|delete|privileged_write|full_control|read_acl|write_acl";
+        List<BucketACE> aclToAdd = Lists.newArrayList();
+        String[] userDomain = bucketOwner.split("@");
+        if (userDomain.length > 1) {
+            defaultAce.setUser(userDomain[0]);
+            defaultAce.setDomain(userDomain[1]);
+        } else {
+            defaultAce.setUser(bucketOwner);
+        }
+        defaultAce.setPermissions(full_control);
+        aclToAdd.add(defaultAce);
+        acl.setBucketACL(aclToAdd);
+        param.setAclToAdd(acl);
+        updateBucketACLInDB(param, args, bucket);
+
     }
 
 }

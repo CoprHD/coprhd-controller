@@ -1466,6 +1466,13 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
+    }
+    
+    @Override
     public String doAddStorageSystem(StorageSystem storage)
             throws DeviceControllerException {
         // TODO Auto-generated method stub
@@ -2527,14 +2534,14 @@ public class VNXeStorageDevice extends VNXeOperations
     }
     
     //file mirror related operations
-    public void doCreateMirror(StorageSystem storage, URI mirror, 
-    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
-    	throw DeviceControllerException.exceptions.operationNotSupported();
+    public void doCreateMirror(StorageSystem storage, URI mirror,
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
-    
-    public void doDeleteMirror(StorageSystem storage, URI mirror, 
-    		Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException{
-    	throw DeviceControllerException.exceptions.operationNotSupported();
+
+    public void doDeleteMirror(StorageSystem storage, URI mirror,
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
@@ -2607,6 +2614,12 @@ public class VNXeStorageDevice extends VNXeOperations
 
     @Override
     public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.vnxe.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.vnxe.operationNotSupported());
     }

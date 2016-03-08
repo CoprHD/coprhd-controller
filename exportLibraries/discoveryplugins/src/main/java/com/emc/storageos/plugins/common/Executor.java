@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.plugins.common;
 
+import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
+import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.commandgenerator.Command;
 import com.emc.storageos.plugins.common.commandgenerator.CommandGenerator;
@@ -184,6 +186,15 @@ public abstract class Executor {
                         if (errorCode == SMIPluginException.ERRORCODE_PROVIDER_NOT_SUPPORTED ||
                                 errorCode == SMIPluginException.ERRORCODE_FIRMWARE_NOT_SUPPORTED ||
                                 errorCode == SMIPluginException.ERRORCODE_OPERATIONFAILED) {
+                            throw e;
+                        }
+                    }
+                    // We want to fail this operation if any part of UnManagedVolume discovery is incomplete
+                    Object o = getKeyMap().get(Constants.ACCESSPROFILE);
+                    if (null != o && o instanceof AccessProfile) {
+                        AccessProfile accessProfile = (AccessProfile) o;
+                        if (Discovery_Namespaces.UNMANAGED_VOLUMES.name().equalsIgnoreCase(accessProfile.getnamespace())) {
+                            _LOGGER.error("Unmanaged volume discovery execution failed.");
                             throw e;
                         }
                     }

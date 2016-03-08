@@ -8,13 +8,25 @@ import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_SET_
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CLONE_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_FULL_COPY_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_SNAPSHOT_SESSION_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_CREATE_SNAPSHOT_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DEACTIVATE_SNAPSHOT_SESSION_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DEACTIVATE_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DELETE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_DETACH_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_FULL_COPY_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_CLUSTERS_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_GET_HOSTS_APP_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_LINK_SNAPSHOT_SESSION_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RELINK_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_FULL_COPY_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_SNAPSHOT_SESSION_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESTORE_SNAPSHOT_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SESSION_SET_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_SNAPSHOT_SET_URL;
+import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_UPDATE_APP_URL;
 import static com.emc.vipr.client.core.impl.PathConstants.APP_SUPPORT_VOLUME_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
@@ -25,6 +37,7 @@ import java.util.List;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.SnapshotList;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.application.VolumeGroupCopySetList;
 import com.emc.storageos.model.application.VolumeGroupCopySetParam;
@@ -35,7 +48,16 @@ import com.emc.storageos.model.application.VolumeGroupFullCopyRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupFullCopyResynchronizeParam;
 import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
+import com.emc.storageos.model.application.VolumeGroupSnapshotCreateParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotOperationParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionCreateParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionDeactivateParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionLinkTargetsParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRelinkTargetsParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRestoreParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.application.VolumeGroupUpdateParam;
+import com.emc.storageos.model.block.BlockSnapshotSessionList;
 import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
@@ -173,6 +195,32 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
     }
 
+    /**
+     * Creates a snapshot of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snapshots
+     * 
+     * @param id application id to create snapshot of
+     * @param input input parameters for create snapshot request
+     * @return list of tasks
+     */
+    public TaskList createSnapshotOfApplication(URI id, VolumeGroupSnapshotCreateParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_CREATE_SNAPSHOT_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Creates a snapshot session of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snap-sessions
+     * 
+     * @param id application id to create snapshot session of
+     * @param input input parameters for create snapshot session request
+     * @return list of tasks
+     */
+    public TaskList createSnapshotSessionOfApplication(URI id, VolumeGroupSnapshotSessionCreateParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_CREATE_SNAPSHOT_SESSION_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
     /*
      * Get full copies for application
      * GET /volume-groups/block/{id}/volumes
@@ -213,6 +261,110 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
     }
 
     /**
+     * Restores a snapshot of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snapshots/restore
+     * 
+     * @param id application id with snapshot
+     * @param input input parameters for application snapshot request
+     * @return list of tasks
+     */
+    public TaskList restoreApplicationSnapshot(URI id, VolumeGroupSnapshotOperationParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESTORE_SNAPSHOT_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Restores a snapshot session of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snap-sessions/restore
+     * 
+     * @param id application id with snapshot session
+     * @param input input parameters for application snapshot session request
+     * @return list of tasks
+     */
+    public TaskList restoreApplicationSnapshotSession(URI id, VolumeGroupSnapshotSessionRestoreParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESTORE_SNAPSHOT_SESSION_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Resynchronizes a snapshot of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snapshots/resynchronize
+     * 
+     * @param id application id with snapshot session
+     * @param input input parameters for application snapshot session request
+     * @return list of tasks
+     */
+    public TaskList resynchronizeApplicationSnapshot(URI id, VolumeGroupSnapshotOperationParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESYNCHRONIZE_SNAPSHOT_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Deactivates a snapshot session of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snap-sessions/deactivate
+     * 
+     * @param id application id with snapshot session
+     * @param input input parameters for application snapshot session request
+     * @return list of tasks
+     */
+    public TaskList deactivateApplicationSnapshotSession(URI id, VolumeGroupSnapshotSessionDeactivateParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_DEACTIVATE_SNAPSHOT_SESSION_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Deactivates a snapshot of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snapshots/deactivate
+     * 
+     * @param id application id with snapshot
+     * @param input input parameters for application snapshot session request
+     * @return list of tasks
+     */
+    public TaskList deactivateApplicationSnapshot(URI id, VolumeGroupSnapshotOperationParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_DEACTIVATE_SNAPSHOT_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Links a snapshot session of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snap-sessions/link-targets
+     * 
+     * @param id application id with snapshot session
+     * @param input input parameters for application snapshot session request
+     * @return list of tasks
+     */
+    public TaskList linkApplicationSnapshotSession(URI id, VolumeGroupSnapshotSessionLinkTargetsParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_LINK_SNAPSHOT_SESSION_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Relinks a snapshot session of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snap-sessions/relink-targets
+     * 
+     * @param id application id with snapshot session
+     * @param input input parameters for application snapshot session request
+     * @return list of tasks
+     */
+    public TaskList relinkApplicationSnapshotSession(URI id, VolumeGroupSnapshotSessionRelinkTargetsParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RELINK_SNAPSHOT_SESSION_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Unlinks a snapshot session of an application.
+     * API Call: POST /volume-groups/block/{id}/protection/snap-sessions/unlink-targets
+     * 
+     * @param id application id with snapshot session
+     * @param input input parameters for application snapshot session request
+     * @return list of tasks
+     */
+    public TaskList unlinkApplicationSnapshotSession(URI id, VolumeGroupSnapshotSessionUnlinkTargetsParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_UNLINK_SNAPSHOT_SESSION_URL);
+        return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
      * Restores a full copy of an application.
      * API Call: POST /volume-groups/block/{id}/protection/full-copies/restore
      * 
@@ -236,5 +388,40 @@ public class ApplicationSupport extends AbstractResources<VolumeGroupRestRep> {
     public TaskList resynchronizeApplicationFullCopy(URI id, VolumeGroupFullCopyResynchronizeParam input) {
         UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_RESYNCHRONIZE_FULL_COPY_URL);
         return client.postURI(TaskList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * Get copy-sets for snapVx for particular application
+     * GET: /volume-groups/block/{id}/protection/snapshot-sessions/copy-sets
+     */
+    public VolumeGroupCopySetList getVolumeGroupSnapsetSessionSets(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_SESSION_SET_URL, id);
+    }
+
+    /**
+     * Get copy-sets snapVx for copy-set for particular application
+     * POST: /volume-groups/block/{id}/protection/snapshot-sessions/copy-sets
+     */
+    public BlockSnapshotSessionList getVolumeGroupSnapshotSessionsByCopySet(URI id, VolumeGroupCopySetParam input) {
+        UriBuilder uriBuilder = client.uriBuilder(APP_SUPPORT_SESSION_SET_URL);
+        return client.postURI(BlockSnapshotSessionList.class, input, uriBuilder.build(id));
+    }
+
+    /**
+     * GET copy-sets for snapshots for particular application
+     * GET /volume-groups/block/{id}/protection/snapshots/copy-sets
+     * 
+     */
+    public VolumeGroupCopySetList getVolumeGroupSnapshotSets(URI id) {
+        return client.get(VolumeGroupCopySetList.class, APP_SUPPORT_SNAPSHOT_SET_URL, id);
+    }
+
+    /**
+     * Get Snapshots for a particular copy-set
+     * POST /volume-groups/block/{id}/protection/snapshots/copy-sets
+     */
+    public SnapshotList getVolumeGroupSnapshotsForSet(URI id, VolumeGroupCopySetParam input) {
+        UriBuilder uribuilder = client.uriBuilder(APP_SUPPORT_SNAPSHOT_SET_URL);
+        return client.postURI(SnapshotList.class, input, uribuilder.build(id));
     }
 }

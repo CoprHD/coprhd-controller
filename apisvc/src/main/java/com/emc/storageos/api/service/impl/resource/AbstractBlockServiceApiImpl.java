@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
-import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +34,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyz
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -80,9 +79,11 @@ import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.varray.VirtualArrayConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -1174,10 +1175,26 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         int count = 1;
         for (Volume volume : volumes) {
             // Attempt to create distinct labels here when creating >1 volumes (ScaleIO requirement)
+            String rgName = volume.getReplicationGroupInstance();
+            if (volume.isVPlexVolume(_dbClient)) {
+                Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), true, _dbClient);
+                if (backendVol != null && !backendVol.getInactive()) {
+                    rgName = backendVol.getReplicationGroupInstance();
+                }
+            }
+
             String label = snapshotName;
-            if (volumes.size() > 1) {
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                // There can be multiple RGs in a CG, in such cases generate unique name
+                if (volumes.size() > 1) {
+                    label = String.format("%s-%s-%s", snapshotName, rgName, count++);
+                } else {
+                    label = String.format("%s-%s", snapshotName, rgName);
+                }
+            } else if (volumes.size() > 1) {
                 label = String.format("%s-%s", snapshotName, count++);
             }
+
             BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, label);
             snapshot.setTechnologyType(snapshotType);
             snapshot.setOpStatus(new OpStatusMap());
@@ -1617,12 +1634,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // as the project for the consistency group.
         BlockConsistencyGroupUtils.verifyProjectForVolumeToBeAddedToCG(volume, cg,
                 _dbClient);
-
-        // No RP protected volumes can be added to a consistency group.
-        if (volume.getProtectionController() != null) {
-            throw APIException.badRequests
-                    .invalidParameterConsistencyGroupCannotAddProtectedVolume(volumeURI);
-        }
 
         // Verify that the volume is on the storage system for
         // the consistency group.

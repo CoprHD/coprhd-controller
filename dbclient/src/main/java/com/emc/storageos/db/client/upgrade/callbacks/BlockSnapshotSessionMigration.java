@@ -97,6 +97,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         snapshotSession.setSessionLabel(snapshot.getSnapsetLabel());
         snapshotSession.setParent(snapshot.getParent());
         snapshotSession.setProject(snapshot.getProject());
+        snapshotSession.setStorageController(snapshot.getStorageController());
         snapshotSession.setSessionInstance(snapshot.getSettingsInstance());
         StringSet linkedTargets = new StringSet();
         linkedTargets.add(snapshot.getId().toString());

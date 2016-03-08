@@ -444,11 +444,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                         String.format("The volume %s is not in a consistency group", volume.getLabel()));
             }
         }
-        
-        List<Volume> vgVols = CustomQueryUtility
-                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(application.getId().toString()));
-        boolean canCGHaveReplica = vgVols.isEmpty() ? true : false;
 
         Set<URI> appReadyCGUris = new HashSet<URI>();
         Set<Volume> appReadyCGVols = new HashSet<Volume>();
@@ -471,17 +466,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             if (!cgVolumeURIs.containsAll(cgVolsToAdd) || cgVolsToAdd.size() != cgVolumeURIs.size()) {
                 throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolume.getLabel(),
                         "not all volumes in consistency group are in the add volume list");
-            }
-
-            StringSet fullCopies = firstVolume.getFullCopies();
-            if ((fullCopies != null && !fullCopies.isEmpty()) || ControllerUtils.checkIfVolumeHasSnapshot(firstVolume, _dbClient)) {
-                if (canCGHaveReplica) {
-                    canCGHaveReplica = false; // only one CG can have replica
-                } else {
-                    // adding volumes with existing clones/snapshots is not supported when application is not empty, or two or more CGs in the order have replicas
-                    throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
-                            "Volume with replicas cannot be added if volume group is not empty, or volumes being added from other consistency group have replicas");
-                }
             }
 
             if (ControllerUtils.isVnxVolume(firstVolume, _dbClient) && !ControllerUtils.isNotInRealVNXRG(firstVolume, _dbClient)) {

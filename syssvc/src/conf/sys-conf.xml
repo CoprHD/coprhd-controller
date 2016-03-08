@@ -240,7 +240,7 @@
         <property name="nodeCount" ref="nodeCount" />
         <property name="powerOffStateChangeTimeout" value="120000" />
         <property name="powerOffStateProbeInterval" value="3000" />
-        <property name="loopInterval"  value="600000" />
+        <property name="loopInterval"  value="300000" />
         <property name="retryInterval"  value="4000" />
         <property name="ipsecConfig" ref="ipsecConfig" />
         <property name="drUtil" ref="drUtil" />
@@ -257,6 +257,7 @@
         		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
         		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
                 <entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
+                <entry key="dr_purge_data_revision" value-ref="vdcDrPurgeDataRevisionHandler"/>
         		<entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
         		<entry key="dr_failbackDegrade" value-ref="vdcDrFailbackDegradeHandler" />
                 <entry key="ip_change" value-ref="ipchangeHandler"/>
@@ -449,6 +450,13 @@
 
     <bean id="ipsecMonitor" class="com.emc.storageos.systemservices.impl.security.IPSecMonitor" />
 
+    <bean id="ipsecInitialRotate" class="com.emc.storageos.systemservices.impl.security.IPSecInitialRotate">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="ipsecConfig" ref="ipsecConfig" />
+        <property name="ipsecMgr" ref="ipsecMgr" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+
     <bean id="backupUploadJobProducer" class="com.emc.storageos.systemservices.impl.jobs.common.JobProducer" init-method="startQueue" destroy-method="stopQueue">
         <property name="coordinator" ref="coordinator"/>
         <property name="consumer" ref="backupUploadJobConsumer"/>
@@ -494,6 +502,14 @@
     </bean>
     
     <bean id="vdcDrChangeDataRevisionHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrChangeDataRevisionHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+    <bean id="vdcDrPurgeDataRevisionHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrPurgeDataRevisionHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>

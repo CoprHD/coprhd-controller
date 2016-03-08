@@ -1,5 +1,5 @@
 /**
- *  Copyright (c) 2008-2011 EMC Corporation
+ *  Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  *
  * This software contains the intellectual property of EMC Corporation
@@ -30,6 +30,10 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     // The id of the source consistency group, if any.
     private URI consistencyGroup;
 
+    // storage controller where this snapshot session is located
+    // There can be multiple Replication Groups from different storage in a consistency group
+    private URI _storageController;
+
     // The id of source Volume or BlockSnapshot for the array
     // snapshot session.
     private NamedURI _parent;
@@ -56,6 +60,15 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     // maintain this reference because it may not be navigable
     // using the API.
     private String _sessionInstance;
+
+    // Name reference of source replication group that the object belong to.
+    // There can be multiple array replication groups within a CG,
+    // this property shows the replication group for which this session was created within a CG.
+    private String _replicationGroupInstance;
+
+    // Snapshot Session set name which user provided while creating sessions for replication groups in a CG.
+    // There can be multiple array replication groups within a CG.
+    private String _sessionSetName;
 
     @RelationIndex(cf = "RelationIndex", type = BlockConsistencyGroup.class)
     @Name("consistencyGroup")
@@ -97,6 +110,17 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
         setChanged("project");
     }
 
+    @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
+    @Name("storageDevice")
+    public URI getStorageController() {
+        return _storageController;
+    }
+
+    public void setStorageController(URI storageController) {
+        _storageController = storageController;
+        setChanged("storageDevice");
+    }
+
     @RelationIndex(cf = "LinkedTargetsIndex", type = BlockSnapshot.class)
     @IndexByKey
     @Name("linkedTargets")
@@ -129,6 +153,28 @@ public class BlockSnapshotSession extends DataObject implements ProjectResourceS
     public void setSessionInstance(String sessionInstance) {
         _sessionInstance = sessionInstance;
         setChanged("sessionInstance");
+    }
+
+    @AlternateId("AltIdIndex")
+    @Name("replicationGroupInstance")
+    public String getReplicationGroupInstance() {
+        return _replicationGroupInstance;
+    }
+
+    public void setReplicationGroupInstance(String replicaGroupInstance) {
+        _replicationGroupInstance = replicaGroupInstance;
+        setChanged("replicationGroupInstance");
+    }
+
+    @AlternateId("AltIdIndex")
+    @Name("sessionSetName")
+    public String getSessionSetName() {
+        return _sessionSetName;
+    }
+
+    public void setSessionSetName(String sessionSetName) {
+        this._sessionSetName = sessionSetName;
+        setChanged("sessionSetName");
     }
 
     public boolean hasConsistencyGroup() {

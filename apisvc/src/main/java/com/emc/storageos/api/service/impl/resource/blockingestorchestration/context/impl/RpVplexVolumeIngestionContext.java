@@ -1,11 +1,16 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionContext {
@@ -77,4 +82,33 @@ public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionCo
         }
         return dataObject;
     }
+    
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
+     */
+    @Override
+    public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
+        ExportGroup exportGroup = _vplexVolumeIngestionContext.findExportGroup(
+                exportGroupLabel, project, varray, computeResource, resourceType);
+        if (exportGroup == null) {
+            exportGroup = super.findExportGroup(exportGroupLabel, project, varray, computeResource, resourceType);
+        }
+        return exportGroup;
+    }
+    
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllNewExportMasks()
+     */
+    @Override
+    public List<ExportMask> findAllNewExportMasks() {
+        List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
+
+        newExportMasks.addAll(super.findAllNewExportMasks());
+        newExportMasks.addAll(_vplexVolumeIngestionContext.findAllNewExportMasks());
+
+        return newExportMasks;
+    }
+
 }

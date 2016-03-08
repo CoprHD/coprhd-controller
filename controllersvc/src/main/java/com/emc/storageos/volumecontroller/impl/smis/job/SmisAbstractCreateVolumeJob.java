@@ -360,8 +360,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                 return;
             } else {
                 for (Volume volume : volumes) {
-                    String cgName =
-                            consistencyGroup.getCgNameOnStorageSystem(volume.getStorageController());
+                    String cgName = volume.getReplicationGroupInstance();
                     if (cgName == null) {
                         _log.info(String.format(
                                 "Skipping step addVolumesToConsistencyGroup: Volume %s (%s) does not reference an existing consistency group on array %s.",

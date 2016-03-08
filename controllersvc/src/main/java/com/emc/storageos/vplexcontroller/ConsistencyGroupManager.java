@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -83,7 +84,7 @@ public interface ConsistencyGroupManager {
      * @throws URISyntaxException
      * @throws Exception
      */
-    public void deleteConsistencyGroupVolume(URI vplexURI, Volume volume, String cgName) throws URISyntaxException, Exception;
+    public void deleteConsistencyGroupVolume(URI vplexURI, Volume volume, BlockConsistencyGroup cg) throws URISyntaxException, Exception;
 
     /**
      * Adds a VPlex volume to a VPlex consistency group.
@@ -109,7 +110,7 @@ public interface ConsistencyGroupManager {
      */
     public void removeVolumeFromCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean removeFromViPRCg) throws Exception;
 
-    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, String cgName) throws Exception;
+    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, BlockConsistencyGroup cg) throws Exception;
     
     /**
      * 

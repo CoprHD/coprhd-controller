@@ -397,7 +397,7 @@ public class StorageScheduler implements Scheduler {
         if (consistencyGroup != null) {
 
             URI cgStorageSystemURI = consistencyGroup.getStorageController();
-            if (cgStorageSystemURI != null && !NullColumnValueGetter.getNullURI().equals(cgStorageSystemURI)) {
+            if (!NullColumnValueGetter.isNullURI(cgStorageSystemURI)) {
                 StorageSystem cgStorageSystem = _dbClient.queryObject(StorageSystem.class, cgStorageSystemURI);
 
                 Set<String> storageSystemSet = new HashSet<String>();
@@ -412,7 +412,7 @@ public class StorageScheduler implements Scheduler {
                     if (!cgUris.isEmpty()) {
                         BlockConsistencyGroup targetCgGroup = _dbClient.queryObject(BlockConsistencyGroup.class, cgUris.get(0));
                         if (null != targetCgGroup && !targetCgGroup.getInactive() && null != targetCgGroup.getStorageController() &&
-                                !NullColumnValueGetter.getNullURI().equals(targetCgGroup.getStorageController())) {
+                                !NullColumnValueGetter.isNullURI(targetCgGroup.getStorageController())) {
                             storageSystemSet.add(targetCgGroup.getStorageController().toString());
                             provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
                             provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.multi_volume_consistency.name(), true);

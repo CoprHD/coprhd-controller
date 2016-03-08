@@ -153,12 +153,6 @@ public class MigrationHandlerImpl implements MigrationHandler {
      */
     @Override
     public boolean run() throws DatabaseException {
-        if (schemaUtil.isStandby()) {
-            // no migration on standby site
-            log.info("Migration does not run on standby");
-            return true;
-        } 
-        
         Date startTime = new Date();
         // set state to migration_init and wait for all nodes to reach this state
         setDbConfig(DbConfigConstants.MIGRATION_INIT);
@@ -169,6 +163,16 @@ public class MigrationHandlerImpl implements MigrationHandler {
         // dbsvc will wait for all dbsvc, and geodbsvc waits for all geodbsvc.
         statusChecker.waitForAllNodesMigrationInit();
 
+        if (schemaUtil.isStandby()) {
+            String currentSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+            if (!StringUtils.equals(currentSchemaVersion, targetVersion)) {
+                // no migration on standby site
+                log.info("Migration does not run on standby. Change current version to {}", targetVersion);
+                schemaUtil.setCurrentVersion(targetVersion);
+            }
+            return true;
+        } 
+        
         if (schemaUtil.isGeoDbsvc()) {
             boolean schemaVersionChanged = isDbSchemaVersionChanged();
 
@@ -272,10 +276,11 @@ public class MigrationHandlerImpl implements MigrationHandler {
 
                     persistSchema(targetVersion, DbSchemaChecker.marshalSchemas(currentSchema,
                             null));
+                    
+                    schemaUtil.dropUnusedCfsIfExists();
                     // set current version in zk
                     schemaUtil.setCurrentVersion(targetVersion);
                     log.info("current schema version is updated to {}", targetVersion);
-                    schemaUtil.dropUnusedCfsIfExists();
                 }
                 schemaUtil.setMigrationStatus(MigrationStatus.DONE);
                 // Remove migration checkpoint after done

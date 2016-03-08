@@ -12,6 +12,8 @@ import java.lang.Thread;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,10 +44,11 @@ public class Exec {
         private final String _stdOutput;
         private final String _stdError;
         private final Termination _termination;
+        private final Pattern _maskFilter;
 
         Result(final String[] cmd, final long timeout,
                 final int exitValue, final String stdOutput, final String stdError,
-                final Termination termination) {
+                final Termination termination, final Pattern maskFilter) {
         	if(cmd == null){
         		_cmd = new String[0];
         	}else{
@@ -57,6 +60,7 @@ public class Exec {
             _stdOutput = stdOutput;
             _stdError = stdError;
             _termination = termination;
+            _maskFilter = maskFilter;
         }
 
         public String[] getCmd() {
@@ -118,10 +122,25 @@ public class Exec {
             } else {
                 builder.append("null");
             }
+
+            // apply maskFilter to stand output
+            String maskedOutput = null;
+            if (_maskFilter != null) {
+                Matcher m = _maskFilter.matcher(_stdOutput.toString());
+                StringBuffer sb = new StringBuffer();
+                while (m.find()) {
+                    m.appendReplacement(sb, "***masked***");
+                }
+                m.appendTail(sb);
+                maskedOutput = sb.toString();
+            } else {
+                maskedOutput = _stdOutput.toString();
+            }
+
             builder.append(" timeout=").append(_timeout).append(" ms");
             builder.append(" terminated=").append(_termination);
             builder.append(" status=").append(_exitValue);
-            builder.append(" stdout=").append(Strings.repr(_stdOutput));
+            builder.append(" stdout=").append(Strings.repr(maskedOutput));
             builder.append(" stderr=").append(Strings.repr(_stdError));
             return builder.toString();
         }
@@ -136,15 +155,22 @@ public class Exec {
      * @return Exec.Result object
      */
     public static Result sudo(long timeout, String... args) {
+        return sudo(timeout, null, args);
+    }
+
+    /**
+     *  maskFilter is for masking any matched string when printing stdOutput in log file.
+     */
+    public static Result sudo(long timeout, Pattern maskFilter, String... args) {
         String userName = System.getProperty("user.name");
         if (userName.equals("root")) {
             // Root user does not need SUDO.
-            return exec(timeout, args);
+            return exec(timeout, maskFilter, args);
         }
         List<String> tmpList = new ArrayList(Arrays.asList(args));
         tmpList.add(0, "sudo");
         String[] newArray = tmpList.toArray(new String[tmpList.size()]);
-        return exec(timeout, newArray);
+        return exec(timeout, maskFilter, newArray);
     }
 
     /***
@@ -156,6 +182,11 @@ public class Exec {
      * @return Exec.Result object
      */
     public static Result exec(long timeout, String... args) {
+        return exec(timeout, null, args);
+    }
+
+
+    public static Result exec(long timeout, Pattern maskFilter, String... args) {
         List<String> cmdList = new ArrayList(Arrays.asList(args));
 
         final String[] cmd = cmdList.toArray(new String[cmdList.size()]);
@@ -198,17 +229,19 @@ public class Exec {
                 }
             }
 
+
+
             final int exitValue = p.exitValue();
             Result result = new Result(cmd, timeout,
                     p.exitValue(), stdOutput.toString(), stdError.toString(),
-                    (destroyed && exitValue != 0) ? Termination._TIMEOUT : Termination._NORMAL);
+                    (destroyed && exitValue != 0) ? Termination._TIMEOUT : Termination._NORMAL, maskFilter);
 
             _log.debug("exec(): " + result);
             return result;
         } catch (Exception e) {
             Result result = new Result(cmd, timeout,
                     _EXCEPTION_EXIT_VALUE, stdOutput.toString(), stdError.toString(),
-                    Termination._EXCEPTION);
+                    Termination._EXCEPTION, maskFilter);
             _log.error("exec(): " + result + " (" + e + ")");
             return result;
         } finally {

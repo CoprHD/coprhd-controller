@@ -4092,6 +4092,7 @@ class Bourne:
         for consistencyGroup in resource:
              if (consistencyGroup.get('match') == name):
                  return consistencyGroup.get('id')
+	raise Exception('bad consistency group name')
 
     def block_consistency_group_delete(self, group_uri):
         o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_DELETE.format(group_uri))

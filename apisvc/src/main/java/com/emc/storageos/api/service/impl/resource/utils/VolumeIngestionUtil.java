@@ -4009,20 +4009,22 @@ public class VolumeIngestionUtil {
             }
         }
 
-        Iterator<Volume> volumesItr = dbClient.queryIterativeObjects(Volume.class, URIUtil.toURIList(managedVolumesInDB));
-        while (volumesItr.hasNext()) {
-            Volume volume = volumesItr.next();
-            _logger.info("\tadding volume object " + volume.forDisplay());
-            volumes.add(volume);
-            updatedObjects.add(volume);
-            managedVolumesInDB.remove(volume.getId().toString());
-        }
+        if (!managedVolumesInDB.isEmpty()) {
+            Iterator<Volume> volumesItr = dbClient.queryIterativeObjects(Volume.class, URIUtil.toURIList(managedVolumesInDB));
+            while (volumesItr.hasNext()) {
+                Volume volume = volumesItr.next();
+                _logger.info("\tadding volume object " + volume.forDisplay());
+                volumes.add(volume);
+                updatedObjects.add(volume);
+                managedVolumesInDB.remove(volume.getId().toString());
+            }
 
-        for (String remainingVolumeId : managedVolumesInDB) {
-            BlockObject bo = requestContext.findCreatedBlockObject(URI.create(remainingVolumeId));
-            if (null != bo && bo instanceof Volume) {
-                _logger.info("\tadding volume object " + bo.forDisplay());
-                volumes.add((Volume) bo);
+            for (String remainingVolumeId : managedVolumesInDB) {
+                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(remainingVolumeId));
+                if (null != bo && bo instanceof Volume) {
+                    _logger.info("\tadding volume object " + bo.forDisplay());
+                    volumes.add((Volume) bo);
+                }
             }
         }
 

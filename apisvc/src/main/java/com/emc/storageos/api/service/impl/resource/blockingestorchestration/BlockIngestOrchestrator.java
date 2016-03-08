@@ -878,7 +878,7 @@ public abstract class BlockIngestOrchestrator {
         }
         for (BlockObject parent : parentReplicaMap.keySet()) {
             // clear the parent internal flags
-            VolumeIngestionUtil.clearInternalFlags(parent, updateObjects, _dbClient);
+            VolumeIngestionUtil.clearInternalFlags(requestContext, parent, updateObjects, _dbClient);
             // if no newly-created object can be found for the parent's native GUID
             // then that means this is an existing object from the database and should be
             // added to the collection of objects to be updated rather than created
@@ -923,7 +923,7 @@ public abstract class BlockIngestOrchestrator {
                 } else if (replica instanceof BlockSnapshot) {
                     VolumeIngestionUtil.setupSnapParentRelations(replica, parent, _dbClient);
                 }
-                VolumeIngestionUtil.clearInternalFlags(replica, updateObjects, _dbClient);
+                VolumeIngestionUtil.clearInternalFlags(requestContext, replica, updateObjects, _dbClient);
                 // Snaps/mirror/clones of RP volumes should be made visible only after the RP CG has been fully ingested.
                 if (isParentRPVolume && !fullyIngestedVolume) {
                     replica.addInternalFlags(INTERNAL_VOLUME_FLAGS);

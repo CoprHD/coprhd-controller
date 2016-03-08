@@ -979,4 +979,12 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return _parentRequestContext;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findDataObjectByType(java.lang.Class, java.net.URI)
+     */
+    @Override
+    public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id) {
+        return getRootIngestionRequestContext().findDataObjectByType(clazz, id);
+    }
+
 }

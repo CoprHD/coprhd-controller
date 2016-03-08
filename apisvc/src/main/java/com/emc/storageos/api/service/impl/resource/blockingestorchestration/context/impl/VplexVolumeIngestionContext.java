@@ -882,7 +882,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
                             updatedObjects = new HashSet<DataObject>();
                             getDataObjectsToBeUpdatedMap().put(mirrorVolume.getNativeGuid(), updatedObjects);
                         }
-                        VolumeIngestionUtil.clearInternalFlags(mirrorVolume, updatedObjects, _dbClient);
+                        VolumeIngestionUtil.clearInternalFlags(this, mirrorVolume, updatedObjects, _dbClient);
                         // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
                         mirrorVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
 
@@ -1158,4 +1158,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         return _parentRequestContext;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findDataObjectByType(java.lang.Class, java.net.URI)
+     */
+    @Override
+    public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id) {
+        return getRootIngestionRequestContext().findDataObjectByType(clazz, id);
+    }
 }

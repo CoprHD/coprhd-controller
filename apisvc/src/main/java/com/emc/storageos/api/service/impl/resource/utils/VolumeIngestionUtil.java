@@ -2859,18 +2859,16 @@ public class VolumeIngestionUtil {
      * @param updatedObjects a Set of DataObjects being updated related to the given BlockObject
      * @param dbClient a reference to the database client
      */
-    public static void clearInternalFlags(BlockObject blockObject, Set<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearInternalFlags(IngestionRequestContext requestContext, 
+            BlockObject blockObject, Set<DataObject> updatedObjects, DbClient dbClient) {
         // for each block object, get the corresponding unmanaged volume.
         _logger.info("clearInternalFlags for blockObject " + blockObject.forDisplay());
 
-        String unmanagedVolumeGUID = blockObject.getNativeGuid().replace(VOLUME, UNMANAGEDVOLUME);
-        List<URI> unmanagedVolumeUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVolumeInfoNativeIdConstraint(unmanagedVolumeGUID));
-        List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(UnManagedVolume.class, unmanagedVolumeUris);
         boolean isVplexBackendVolume = false;
         boolean isRPVolume = false;
-        if (unManagedVolumes != null && !unManagedVolumes.isEmpty()) {
-            UnManagedVolume unManagedVolume = unManagedVolumes.get(0);
+        UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
+
+        if (unManagedVolume != null) {
 
             // Check if this is a VPLEX backend volume, which we need to treat a little differently
             isVplexBackendVolume = VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume);
@@ -2887,9 +2885,15 @@ public class VolumeIngestionUtil {
             if (null != unmanagedExportMasks && !unmanagedExportMasks.isEmpty()) {
                 List<URI> unManagedMaskUris = new ArrayList<URI>(Collections2.transform(unmanagedExportMasks,
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
-                List<UnManagedExportMask> unManagedMasks = dbClient.queryObject(UnManagedExportMask.class, unManagedMaskUris);
+                List<UnManagedExportMask> unManagedMasks = new ArrayList<UnManagedExportMask>();
+                for (URI uri : unManagedMaskUris) {
+                    UnManagedExportMask uem = requestContext.findDataObjectByType(UnManagedExportMask.class, uri);
+                    if (uem != null) {
+                        unManagedMasks.add(uem);
+                    }
+                }
                 for (UnManagedExportMask unManagedExportMask : unManagedMasks) {
-                    Set<ExportMask> exportMasks = new HashSet<ExportMask>();
+                    Map<URI, ExportMask> exportMaskMap = new HashMap<URI, ExportMask>();
                     List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
                             unManagedExportMask.getKnownInitiatorUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
                     for (URI ini : initiatorUris) {
@@ -2899,10 +2903,12 @@ public class VolumeIngestionUtil {
                             continue;
                         }
                         for (URI eMaskUri : exportMaskUris) {
-                            ExportMask eMask = dbClient.queryObject(ExportMask.class, eMaskUri);
+                            ExportMask eMask = requestContext.findDataObjectByType(ExportMask.class, eMaskUri);
                             if (null != eMask && eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
-                                _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
-                                exportMasks.add(eMask);
+                                if (!exportMaskMap.containsKey(eMaskUri)) {
+                                    _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
+                                    exportMaskMap.put(eMaskUri, eMask);
+                                }
                             } else {
                                 _logger.info("Found Mask {} with matching initiator and unmatched Storage System. Skipping mask", eMaskUri);
                             }
@@ -2911,7 +2917,7 @@ public class VolumeIngestionUtil {
 
                     Set<ExportGroup> exportGroups = new HashSet<ExportGroup>();
                     // Remove the block object from existing volumes and add to the user created volumes of the export mask
-                    for (ExportMask exportMask : exportMasks) {
+                    for (ExportMask exportMask : exportMaskMap.values()) {
                         String normalizedWWN = BlockObject.normalizeWWN(blockObject.getWWN());
                         if (null == normalizedWWN) {
                             throw IngestionException.exceptions.exportedVolumeIsMissingWwn(unManagedVolume.getLabel());
@@ -2947,15 +2953,28 @@ public class VolumeIngestionUtil {
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
-                            _logger.info("Adding block object {} to export group {}", blockObject.getNativeGuid(), exportGroup.getLabel());
-                            exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
-                            updatedObjects.add(exportGroup);
+                            ExportGroup loadedGroup = requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId());
+                            if (loadedGroup == null) {
+                                loadedGroup = requestContext.findExportGroup(
+                                        exportGroup.getLabel(), exportGroup.getProject().getURI(), 
+                                        exportGroup.getVirtualArray(), null, null);
+                            }
+                            if (loadedGroup != null) {
+                                _logger.info("Adding block object {} to already-loaded export group {}", 
+                                        blockObject.getNativeGuid(), loadedGroup.getLabel());
+                                loadedGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
+                            } else {
+                                _logger.info("Adding block object {} to newly-loaded export group {}", 
+                                        blockObject.getNativeGuid(), exportGroup.getLabel());
+                                exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
+                                updatedObjects.add(exportGroup);
+                            }
                         }
                     }
 
                 }
             } else {
-                _logger.info("No unmanaged export masks found for the unmanaged volume {}", unManagedVolumes.get(0).getNativeGuid());
+                _logger.info("No unmanaged export masks found for the unmanaged volume {}", unManagedVolume.getNativeGuid());
             }
 
             if (canDeleteUnManagedVolume(unManagedVolume)) {
@@ -2964,7 +2983,7 @@ public class VolumeIngestionUtil {
             }
             updatedObjects.add(unManagedVolume);
         } else {
-            _logger.info("No unmanaged volume found for the object {}", blockObject.getNativeGuid());
+            _logger.info("No unmanaged volume found for the block object {}", blockObject.getNativeGuid());
         }
 
         blockObject.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);

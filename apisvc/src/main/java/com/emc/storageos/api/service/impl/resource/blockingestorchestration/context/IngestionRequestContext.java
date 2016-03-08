@@ -416,4 +416,7 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return the root, top-level IngestionRequestContext
      */
     public IngestionRequestContext getRootIngestionRequestContext();
+    
+    
+    <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id);
 }

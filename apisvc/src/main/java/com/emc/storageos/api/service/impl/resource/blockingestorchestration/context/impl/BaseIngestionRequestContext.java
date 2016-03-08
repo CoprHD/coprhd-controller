@@ -951,4 +951,60 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return this;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findObjectAnywhere(java.lang.Class, java.net.URI)
+     */
+    @Override
+    public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id) {
+
+        _logger.info("looking for {} object with id {}", clazz.toString(), id);
+
+        // check for DataObjects in already-loaded Updated Objects first
+        DataObject dob = this.findInUpdatedObjects(id);
+        if (clazz.isInstance(dob)) {
+            _logger.info("found in updated objects");
+            return (T) clazz.cast(dob);
+        }
+
+        // search for any already-loaded UnManagedVolume instances
+        if (clazz.equals(UnManagedVolume.class)) {
+
+            for (UnManagedVolume umv : this.findAllUnManagedVolumesToBeDeleted()) {
+                if (umv != null && umv.getId().equals(id)) {
+                    _logger.info("found in volumes to be deleted");
+                    return (T) clazz.cast(umv);
+                }
+            }
+
+            VolumeIngestionContext currentVolumeContext = getVolumeContext();
+            if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
+                UnManagedVolume umv = currentVolumeContext.getUnmanagedVolume();
+                if (umv != null && umv.getId().equals(id)) {
+                    _logger.info("found in current volume context");
+                    return (T) clazz.cast(umv);
+                }
+            }
+
+            for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+                if (volumeContext instanceof IngestionRequestContext) {
+                    UnManagedVolume umv = volumeContext.getUnmanagedVolume();
+                    if (umv != null && umv.getId().equals(id)) {
+                        _logger.info("found in already-processed volume context");
+                        return (T) clazz.cast(umv);
+                    }
+                }
+            }
+        }
+
+        // if we still haven't found it, load it from the database
+        T dataObject = _dbClient.queryObject(clazz, id);
+        if (dataObject != null) {
+            _logger.info("loaded object from database");
+            return (T) clazz.cast(dataObject);
+        }
+
+        _logger.info("could not find object");
+        return null;
+    }
+
 }

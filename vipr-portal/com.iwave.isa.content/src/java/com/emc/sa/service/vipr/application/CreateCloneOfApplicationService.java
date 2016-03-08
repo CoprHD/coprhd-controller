@@ -40,7 +40,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
     public void execute() throws Exception {
         NamedVolumesList volumesToUse = getVolumesBySite();
 
-        List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroup(volumesToUse, subGroups);
+        List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroupAndStorageSystem(volumesToUse, subGroups);
 
         Tasks<? extends DataObjectRestRep> tasks = execute(
                 new CreateCloneOfApplication(applicationId, name, volumeIds));

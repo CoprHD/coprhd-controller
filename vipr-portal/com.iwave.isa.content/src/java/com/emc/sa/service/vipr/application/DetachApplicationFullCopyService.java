@@ -31,7 +31,7 @@ public class DetachApplicationFullCopyService extends ViPRService {
     @Override
     public void execute() throws Exception {
 
-        List<URI> fullCopyIds = BlockStorageUtils.getSingleFullCopyPerSubGroup(applicationId, fullCopyName,
+        List<URI> fullCopyIds = BlockStorageUtils.getSingleFullCopyPerSubGroupAndStorageSystem(applicationId, fullCopyName,
                 subGroups);
 
         Tasks<? extends DataObjectRestRep> tasks = execute(new DetachApplicationFullCopy(applicationId, fullCopyIds));

@@ -31,7 +31,7 @@ public class ResynchronizeApplicationFullCopyService extends ViPRService {
     @Override
     public void execute() throws Exception {
 
-        List<URI> fullCopies = BlockStorageUtils.getSingleFullCopyPerSubGroup(applicationId, name,
+        List<URI> fullCopies = BlockStorageUtils.getSingleFullCopyPerSubGroupAndStorageSystem(applicationId, name,
                 subGroups);
         Tasks<? extends DataObjectRestRep> tasks = execute(new ResynchronizeApplicationFullCopy(applicationId, fullCopies));
 

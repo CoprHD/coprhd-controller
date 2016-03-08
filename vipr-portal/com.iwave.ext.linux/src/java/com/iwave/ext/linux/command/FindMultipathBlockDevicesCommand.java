@@ -13,7 +13,7 @@ public class FindMultipathBlockDevicesCommand extends LinuxResultsCommand<List<S
 
     public FindMultipathBlockDevicesCommand(String device) {
         StringBuilder sb = new StringBuilder();
-        sb.append("ls -1 /sys/block/*/holders/");
+        sb.append("ls -1 -d /sys/block/*/holders/");
         sb.append(device).append(" ");
         sb.append("| grep \"/sys/block\" ");
         sb.append("| sed 's/\\/sys\\/block\\/\\(.*\\)\\/holders\\/.*/\\1/'");

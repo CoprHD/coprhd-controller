@@ -18,15 +18,6 @@
         min:2,
         max:128
       }
-    },
-    
-    count: {
-      type:"number",
-      initialValue:1,
-      validation:{
-        min:1,
-        max:100
-      }
     }
   }
 }

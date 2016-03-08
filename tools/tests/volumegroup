@@ -18,6 +18,7 @@ usage()
 {
     echo "Usage: volumegroup [create | list | show | delete | update | add-volumes | remove-volumes | show-volumes]"
     echo "           create <name> <description> <role> <parent>"
+    echo "           create <name> <description> MOBILITY <migrationType> <migrationGroupBy> <parent>"
     echo "           list"
     echo "           show <name>"
     echo "           show-volumes <name>"
@@ -93,6 +94,10 @@ volume_group_create()
   
     if [[ $4 == "" ]]; then
         $VIPRCLI_CMD volumegroup create -n $1 -d $2 -r $3
+    elif [[ $3 == "MOBILITY" && $6 == "" ]]; then
+        $VIPRCLI_CMD volumegroup create -n $1 -d $2 -r $3 -mt $4 -mg $5
+    elif [[ $3 == "MOBILITY" ]]; then
+        $VIPRCLI_CMD volumegroup create -n $1 -d $2 -r $3 -mt $4 -mg $5 -parent $6
     else
         $VIPRCLI_CMD volumegroup create -n $1 -d $2 -r $3 -parent $4
     fi
@@ -124,7 +129,11 @@ volume_group_add_volumes()
 {
     echo "adding volumes to volume group ${1}"
     viprcli_authenticate >$ dev/null
-    if [ -n "$3" ]; then    
+    if [ -n "$4" ]; then
+        $VIPRCLI_CMD volumegroup update -n $1 -a $2 -cg $3 -rg $4
+        retval=$?
+        sleep 10
+    elif [ -n "$3" ]; then    
         $VIPRCLI_CMD volumegroup update -n $1 -a $2 -cg $3
         retval=$?
         sleep 10

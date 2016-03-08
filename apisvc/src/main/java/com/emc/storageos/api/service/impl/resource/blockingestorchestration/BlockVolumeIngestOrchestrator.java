@@ -8,7 +8,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,14 +26,12 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 
@@ -120,6 +117,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                         session.setSessionLabel(syncAspectName);
                         session.setParent(new NamedURI(volume.getId(), volume.getLabel()));
                         session.setProject(new NamedURI(requestContext.getProject().getId(), volume.getLabel()));
+                        session.setStorageController(volume.getStorageController());
                         session.setSessionInstance(syncAspectObjPath);
                         StringSet linkedTargetURIs = new StringSet();
                         URIQueryResultList snapshotQueryResults = new URIQueryResultList();
@@ -159,7 +157,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             String strategyKey = ReplicationStrategy.LOCAL.name() + "_" + VolumeType.SNAPSHOT.name();
             IngestStrategy ingestStrategy = ingestStrategyFactory.getIngestStrategy(IngestStrategyEnum.getIngestStrategy(strategyKey));
             snapshot = ingestStrategy.ingestBlockObjects(requestContext, BlockSnapshot.class);
-            requestContext.getObjectsToBeCreatedMap().put(snapshot.getNativeGuid(), snapshot);
+            requestContext.getBlockObjectsToBeCreatedMap().put(snapshot.getNativeGuid(), snapshot);
         }
 
         // Run this always when volume NO_PUBLIC_ACCESS
@@ -188,53 +186,6 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
         return clazz.cast(volume);
     }
 
-    /**
-     * Decorates the CG uri & replicationGroupName for all volumes in CG when ingested last regular volume in Unmanaged cg.
-     * This information will be used when decorating CG at the end of the ingestion process.
-     * 
-     * For each unmanaged volume in unmanaged cg,
-     * 1. We verify whether the BlockObject is available in the current createdBlockObjects in context or not.
-     * If it is available, then set the CG properties
-     * Else, verify in the current updatedBlockObjects in context.
-     * 2. If the blockObject is available in updateBlockObjects, then update CG properties.
-     * Else, blockObject might have ingested in previous requests, so, we should check from DB.
-     * If blockObject is in DB, update CG properties else log a warning message.
-     * 
-     */
-    @Override
-    protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject volume, IngestionRequestContext requestContext,
-            UnManagedVolume unManagedVolume) {
-        UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroupFromContext(cg, requestContext);
-        List<DataObject> blockObjectsToUpdate = new ArrayList<DataObject>();
-        if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
-            for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
-
-                BlockObject blockObject = requestContext.findCreatedBlockObject(managedVolumeEntry.getKey());
-                if (blockObject == null) {
-                    // Next look in the updated objects.
-                    blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(managedVolumeEntry.getKey()));
-                }
-                if (blockObject == null) {
-                    // Finally look in the DB itself. It may be from a previous ingestion operation.
-                    blockObject = BlockObject.fetch(_dbClient, URI.create(managedVolumeEntry.getValue()));
-                    // If blockObject is still not exists
-                    if (null == blockObject) {
-                        _logger.warn("Volume {} is not yet ingested. Hence skipping", managedVolumeEntry.getKey());
-                        continue;
-                    }
-                    blockObjectsToUpdate.add(blockObject);
-                }
-                blockObject.setConsistencyGroup(cg.getId());
-                blockObject.setReplicationGroupInstance(cg.getLabel());
-            }
-            if (!blockObjectsToUpdate.isEmpty()) {
-                requestContext.getObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
-            }
-        }
-        volume.setConsistencyGroup(cg.getId());
-        volume.setReplicationGroupInstance(cg.getLabel());
-    }
-
     @Override
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
         String associatedSourceVolume = PropertySetterUtil.extractValueFromStringSet(
@@ -250,25 +201,22 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
 
     /**
      * Following steps are performed as part of this method execution.
-     * 
+     *
      * @TODO refactor the code to modularize responsibilities.
-     * 
+     *
      *       1. Checks whether unManagedVolume is protected by RP or VPLEX, if yes we willn't create backend CG.
      *       2. For regular volumes in unManaged CG, we will create CG when ingesting last volume in unmanaged CG.
      *       3. When ingesting last regular volume in unmanaged CG, we will check whether CG already exists in DB for the same project &
      *       tenant.
      *       If yes, we will reuse it.
      *       Otherwise, we will create new BlockConsistencyGroup for the unmanaged consistencyGroup.
-     * 
+     *
      */
     @Override
     protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
             IngestionRequestContext context, DbClient dbClient) {
         if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-            return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, blockObj, context.getVpool(unManagedVolume),
-                    context.getProject().getId(), context.getTenant().getId(), context.getVarray(unManagedVolume).getId(),
-                    context.getUmCGObjectsToUpdate(),
-                    dbClient);
+            return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, blockObj, context, dbClient);
         }
         return null;
     }

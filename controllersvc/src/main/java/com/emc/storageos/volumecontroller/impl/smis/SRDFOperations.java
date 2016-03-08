@@ -528,7 +528,7 @@ public class SRDFOperations implements SmisConstants {
      * @param forceAdd
      * @param completer
      */
-    public void addVolumePairsToCg(StorageSystem system, List<URI> sourceURIs, URI remoteDirectorGroupURI, boolean forceAdd,
+    public void addVolumePairsToCg(StorageSystem system, List<URI> sourceURIs, URI remoteDirectorGroupURI,
             TaskCompleter completer) {
 
         RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, remoteDirectorGroupURI);
@@ -613,12 +613,8 @@ public class SRDFOperations implements SmisConstants {
             CIMInstance settingInstance = getReplicationSettingDataInstance(system, mode.getMode());
 
             @SuppressWarnings("rawtypes")
-            CIMArgument[] inArgs = helper.getAddSyncPairInputArguments(groupSynchronized, forceAdd, settingInstance,
+            CIMArgument[] inArgs = helper.getAddSyncPairInputArguments(groupSynchronized, settingInstance,
                     syncPairs.toArray(new CIMObjectPath[syncPairs.size()]));
-
-            if (forceAdd) {
-                log.info("There are replicas available for R1/R2, hence adding new volume pair(s) to CG with Force flag");
-            }
 
             helper.callModifyReplica(system, inArgs);
             completer.ready(dbClient);

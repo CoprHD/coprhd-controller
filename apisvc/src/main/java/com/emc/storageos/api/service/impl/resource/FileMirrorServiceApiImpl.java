@@ -280,9 +280,18 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
             StringBuilder fileLabelBuilder = null;
             VirtualPool targetVpool = vpool;
 
-            if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name())) {
-                fileLabelBuilder = new StringBuilder(sourceFileShare.getLabel()).append("-target-" + varray.getLabel());
+            String targetFsPrefix = sourceFileShare.getName();
+            if (cosCapabilities.getFileTargetCopyName() != null &&
+                    !cosCapabilities.getFileTargetCopyName().isEmpty()) {
+                targetFsPrefix = cosCapabilities.getFileTargetCopyName();
+            }
 
+            if (vpool.getFileReplicationType().equals(FileReplicationType.LOCAL.name())) {
+
+                // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
+                String varrayName = varray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
+                fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
+                _log.info("Target file system name {}", fileLabelBuilder.toString());
                 targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                         project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
                 // Set target file recommendations to target file system!!!
@@ -308,8 +317,11 @@ public class FileMirrorServiceApiImpl extends AbstractFileServiceApiImpl<FileMir
                     if (protectionSettings.getVirtualPool() != null) {
                         targetVpool = _dbClient.queryObject(VirtualPool.class, protectionSettings.getVirtualPool());
                     }
-                    fileLabelBuilder = new StringBuilder(sourceFileShare.getLabel())
-                            .append("-target-" + targetVArray.getLabel());
+
+                    // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
+                    String varrayName = targetVArray.getLabel().replaceAll("[^\\dA-Za-z\\_]", "");
+                    fileLabelBuilder = new StringBuilder(targetFsPrefix).append("-target-" + varrayName);
+                    _log.info("Target file system name {}", fileLabelBuilder.toString());
                     targetFileShare = prepareEmptyFileSystem(fileLabelBuilder.toString(), sourceFileShare.getCapacity(),
                             project, recommendation, tenantOrg, varray, vpool, targetVpool, flags, task);
 

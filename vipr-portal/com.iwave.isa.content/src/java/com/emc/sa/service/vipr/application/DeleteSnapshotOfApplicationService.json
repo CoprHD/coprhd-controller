@@ -1,0 +1,23 @@
+{
+  baseKey:"DeleteSnapshotOfApplication.Application",
+  serviceId:"DeleteSnapshotOfApplication",
+  fields:{
+  
+    application:{
+      type:"assetType.vipr.application"
+    },
+    
+    applicationSnapshotType:{
+      type:"assetType.vipr.applicationSnapshotType"
+    },
+    
+    applicationCopySets:{
+      type:"assetType.vipr.applicationCopySets"
+    },
+    
+    applicationSubGroup:{
+      type:"assetType.vipr.replicationGroup",
+      select:"many"
+    }
+  }
+}

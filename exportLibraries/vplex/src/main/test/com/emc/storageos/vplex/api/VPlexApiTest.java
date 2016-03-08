@@ -777,7 +777,7 @@ public class VPlexApiTest {
             for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
                 migrationNames.add(migrationInfo.getName());
             }
-            migrationInfoList = _client.commitMigrations(migrationNames, true, true, true);
+            migrationInfoList = _client.commitMigrations(vvName, migrationNames, true, true, true);
             Assert.assertEquals(migrationInfoList.size(), 1);
 
             // Clean up the virtual volume.
@@ -857,16 +857,18 @@ public class VPlexApiTest {
             // Wait until migrations complete and commit the migrations with
             // automatic clean and remove.
             Thread.sleep(15000);
-            List<String> migrationNames = new ArrayList<String>();
             for (VPlexMigrationInfo migrationInfo : migrationInfoList) {
+                List<String> migrationNames = new ArrayList<String>();
                 migrationNames.add(migrationInfo.getName());
+                List<VPlexMigrationInfo> committedMigrationInfoList = _client.commitMigrations(vvName, migrationNames, true, true, true);
+                Assert.assertEquals(committedMigrationInfoList.size(), 1);
+                VPlexMigrationInfo committedMigrationInfo = committedMigrationInfoList.get(0);
+                vvInfo = committedMigrationInfo.getVirtualVolumeInfo();
+                vvName = vvInfo.getName();
             }
-            migrationInfoList = _client.commitMigrations(migrationNames, true, true, true);
-            Assert.assertEquals(migrationInfoList.size(), 2);
 
             // Clean up the virtual volume. Use the second one as it will have the
             // fully update virtual volume name.
-            vvInfo = migrationInfoList.get(1).getVirtualVolumeInfo();
             Assert.assertEquals(vvNameBuilder.toString(), vvInfo.getName());
             _client.deleteVirtualVolume(vvInfo.getName(), true, true);
         } catch (Exception e) {
@@ -891,8 +893,9 @@ public class VPlexApiTest {
             String storageSystemGuid = tokenizer.nextToken();
             String volumeId = tokenizer.nextToken();
             String volumeNativeId = tokenizer.nextToken();
+            String transferSize = "8M";
             newVolumeInfo = new VolumeInfo(storageSystemGuid, "vmax", volumeId, volumeNativeId, false, Collections.<String> emptyList());
-            distVolInfo = _client.upgradeVirtualVolumeToDistributed(vvInfo, newVolumeInfo, true, true, "1");
+            distVolInfo = _client.upgradeVirtualVolumeToDistributed(vvInfo, newVolumeInfo, true, true, "1", transferSize);
             Assert.assertNotNull(distVolInfo);
             WaitOnRebuildResult goodRebuild = _client.waitOnRebuildCompletion(distVolInfo.getName());
             Assert.assertEquals(WaitOnRebuildResult.SUCCESS, goodRebuild);

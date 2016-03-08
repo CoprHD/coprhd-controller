@@ -526,7 +526,7 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
-    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup, boolean forceAdd,
+    public void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup,
             TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -791,5 +791,14 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     @Override
     public void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    
+    @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage,
+            URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceReplicationGroup, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
     }
 }

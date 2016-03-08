@@ -447,7 +447,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type, sync)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type, sync)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -467,7 +467,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -487,7 +487,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -507,7 +507,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
@@ -560,7 +560,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -581,7 +581,7 @@ class Volume(object):
             result of the action.
         '''
         vol_uri = self.volume_query(volume)
-        body = self.mirror_protection_copyparam(volume, mirrorvol, type)
+        body = self.mirror_protection_copyparam(volume, mirrorvol, "", type)
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -1317,6 +1317,12 @@ class Volume(object):
             common.list_tasks(self.__ipAddr, self.__port, "volume",
                               project_name, volume_name, task_id)
         )
+        
+    def list_unmanaged_tasks(self, project_name, volume_name=None, task_id=None):
+        return (
+            common.list_unmanaged_tasks(self.__ipAddr, self.__port, "volume",
+                              project_name, volume_name, task_id)
+        )
 
     def expand(self, name, new_size, sync=False,synctimeout=0):
 
@@ -1403,7 +1409,7 @@ class Volume(object):
             storageresTypeName = None
         return (storageresType, storageresTypeName)
 
-    def volume_clone_restore(self, resourceUri, name, sync):
+    def volume_clone_restore(self, resourceUri, name, sync, synctimeout):
         
         volumeUri = self.volume_query(name)
         
@@ -1424,11 +1430,11 @@ class Volume(object):
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
-            return self.check_for_sync(task,sync)
+            return self.check_for_sync(task,sync, synctimeout)
         else:
             return o
         
-    def volume_clone_resync(self, resourceUri, name, sync):
+    def volume_clone_resync(self, resourceUri, name, sync, synctimeout):
         
         volumeUri = self.volume_query(name)
         
@@ -1449,11 +1455,11 @@ class Volume(object):
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
-            return self.check_for_sync(task,sync)
+            return self.check_for_sync(task,sync, synctimeout)
         else:
             return o   
  
-    def volume_clone_activate(self, resourceUri, name, sync):
+    def volume_clone_activate(self, resourceUri, name, sync, synctimeout):
         
         volumeUri = self.volume_query(name)
         
@@ -1474,11 +1480,11 @@ class Volume(object):
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
-            return self.check_for_sync(task,sync)
+            return self.check_for_sync(task,sync, synctimeout)
         else:
             return o 
 
-    def volume_clone_detach(self, resourceUri, name, sync):
+    def volume_clone_detach(self, resourceUri, name, sync, synctimeout):
         
         volumeUri = self.volume_query(name)
         
@@ -1499,7 +1505,7 @@ class Volume(object):
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
-            return self.check_for_sync(task,sync)
+            return self.check_for_sync(task,sync, synctimeout)
         else:
             return o    
 
@@ -1522,7 +1528,7 @@ class Volume(object):
             return False
         
         
-    def volume_clone_deactivate(self, resourceUri, name, sync):
+    def volume_clone_deactivate(self, resourceUri, name, sync, synctimeout):
         
         volumeUri = self.volume_query(name)
         
@@ -1543,7 +1549,7 @@ class Volume(object):
         o = common.json_decode(s)
         if(sync):
             task = o["task"][0]
-            return self.check_for_sync(task ,sync)
+            return self.check_for_sync(task ,sync, synctimeout)
         else:
             return o  
         
@@ -1604,7 +1610,7 @@ class Volume(object):
         return o                            
         
      # Creates volume(s) from given source volume
-    def clone(self, new_vol_name, number_of_volumes, resourceUri, sync):
+    def clone(self, new_vol_name, number_of_volumes, resourceUri, sync, synctimeout):
         '''
         Makes REST API call to clone volume
         Parameters:
@@ -1661,7 +1667,7 @@ class Volume(object):
                             task["id"])
                     )
                 else:
-                    return self.check_for_sync(task, sync)
+                    return self.check_for_sync(task, sync, synctimeout)
         else:
             return o   
 
@@ -1996,7 +2002,8 @@ def clone_parser(subcommand_parsers, common_parser):
 
 
 def volume_clone(args):
-    
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     if(args.count > 1 and args.sync):
         raise SOSError(
@@ -2005,7 +2012,7 @@ def volume_clone(args):
             'bulk clone of volumes')
     try:
         resourceUri = get_clone_source_resource(obj, args, args.source_snapshot)
-        obj.clone(args.name, args.count, resourceUri, args.sync)
+        obj.clone(args.name, args.count, resourceUri, args.sync, args.synctimeout)
         return
     
     except SOSError as e:
@@ -2031,6 +2038,8 @@ def clone_restore_parser(subcommand_parsers, common_parser):
     
 # Restore Clone Function
 def volume_clone_restore(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     if(not args.tenant):
         args.tenant = ""
@@ -2041,7 +2050,7 @@ def volume_clone_restore(args):
         obj.volume_clone_restore(
             resourceUri,
             args.tenant + "/" + args.project + "/" + args.name,
-            args.sync)
+            args.sync, args.synctimeout)
         return
 
     except SOSError as e:
@@ -2074,6 +2083,8 @@ def clone_resync_parser(subcommand_parsers, common_parser):
     
 # Restore Clone Function
 def volume_clone_resync(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     if(not args.tenant):
         args.tenant = ""
@@ -2084,7 +2095,7 @@ def volume_clone_resync(args):
         obj.volume_clone_resync(
             resourceUri,
             args.tenant + "/" + args.project + "/" + args.name,
-            args.sync)
+            args.sync, args.synctimeout)
         return
 
     except SOSError as e:
@@ -2117,6 +2128,8 @@ def clone_activate_parser(subcommand_parsers, common_parser):
     
 # Restore Clone Function
 def volume_clone_activate(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     if(not args.tenant):
         args.tenant = ""
@@ -2127,7 +2140,7 @@ def volume_clone_activate(args):
         obj.volume_clone_activate(
             resourceUri,
             args.tenant + "/" + args.project + "/" + args.name,
-            args.sync)
+            args.sync, args.synctimeout)
         return
 
     except SOSError as e:
@@ -2160,6 +2173,8 @@ def clone_detach_parser(subcommand_parsers, common_parser):
     
 # Restore Clone Function
 def volume_clone_detach(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     if(not args.tenant):
         args.tenant = ""
@@ -2170,7 +2185,7 @@ def volume_clone_detach(args):
         obj.volume_clone_detach(
             resourceUri,
             args.tenant + "/" + args.project + "/" + args.name,
-            args.sync)
+            args.sync, args.synctimeout)
         return
 
     except SOSError as e:
@@ -2203,6 +2218,8 @@ def clone_deactivate_parser(subcommand_parsers, common_parser):
     
 # Restore Clone Function
 def volume_clone_deactivate(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Volume(args.ip, args.port)
     if(not args.tenant):
         args.tenant = ""
@@ -2213,7 +2230,7 @@ def volume_clone_deactivate(args):
         obj.volume_clone_deactivate(
             resourceUri,
             args.tenant + "/" + args.project + "/" + args.name,
-            args.sync)
+            args.sync, args.synctimeout)
         return
 
     except SOSError as e:
@@ -4024,6 +4041,80 @@ def volume_list_tasks(args):
             "volume",
             e.err_text,
             e.err_code)
+        
+def unmanaged_task_parser(subcommand_parsers, common_parser):
+    unmanaged_task_parser = subcommand_parsers.add_parser(
+        'unmanaged-tasks',
+        description='ViPR Volume List unmanaged tasks CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Show details of unmanaged volume tasks')
+    mandatory_args = unmanaged_task_parser.add_argument_group('mandatory arguments')
+
+    unmanaged_task_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    unmanaged_task_parser.add_argument('-name', '-n',
+                             dest='name',
+                             metavar='<volumename>',
+                             help='Name of volume')
+    unmanaged_task_parser.add_argument('-taskid', '-id',
+                             dest='id',
+                             metavar='<id>',
+                             help='Task ID')
+    unmanaged_task_parser.add_argument('-v', '-verbose',
+                             dest='verbose',
+                             action="store_true",
+                             help='List all tasks in verbose mode')
+
+    unmanaged_task_parser.set_defaults(func=volume_list_unmanaged_tasks)
+
+
+def volume_list_unmanaged_tasks(args):
+    obj = Volume(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        if(args.id):
+            res = obj.list_unmanaged_tasks(
+                args.tenant +
+                "/" +
+                args.project,
+                args.name,
+                args.id)
+            if(res):
+                return common.format_json_object(res)
+        elif(args.name):
+            res = obj.list_unmanaged_tasks(args.tenant + "/" + args.project, args.name)
+            if(res and len(res) > 0):
+                if(args.verbose):
+                    return common.format_json_object(res)
+                else:
+                    from common import TableGenerator
+                    TableGenerator(
+                        res, ["module/id", "name", "state"]).printTable()
+        else:
+            res = obj.list_unmanaged_tasks(args.tenant + "/" + args.project)
+            if(res and len(res) > 0):
+                if(not args.verbose):
+                    from common import TableGenerator
+                    TableGenerator(
+                        res, ["module/id", "name", "state"]).printTable()
+                else:
+                    return common.format_json_object(res)
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "unmanaged-tasks",
+            "volume",
+            e.err_text,
+            e.err_code)
 
 
 def expand_parser(subcommand_parsers, common_parser):
@@ -4362,6 +4453,9 @@ def volume_parser(parent_subparser, common_parser):
 
     # task list command parser
     task_parser(subcommand_parsers, common_parser)
+    
+    #unmanaged task list command parser
+    unmanaged_task_parser(subcommand_parsers, common_parser)
 
     # protection  command parser
     #protect_parser(subcommand_parsers, common_parser)

@@ -95,4 +95,9 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     public Class<? extends DataObject> getDataObjectType() {
         return entryType;
     }
+
+	@Override
+	public boolean isValid() {
+        return this.rowKey!=null && !this.rowKey.isEmpty();
+	}
 }

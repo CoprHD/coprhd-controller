@@ -507,11 +507,30 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            //if site is in observer restart dbsvc
-            restartDbsvcOnResumedSite();
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
             changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
+            // if site is in observer restart dbsvc
+            // move to the bottom so that it won't miss the data sync
+            restartDbsvcOnResumingSite();
+        }
+
+        private void restartDbsvcOnResumingSite() throws Exception {
+            Site site = drUtil.getLocalSite();
+
+            //check both state and last state so we know this is a retry
+            if (site.getState() == SiteState.STANDBY_SYNCING
+                    && site.getLastState() == SiteState.STANDBY_RESUMING) {
+                VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
+                        VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
+                barrier.enter();
+                try {
+                    localRepository.restart(Constants.GEODBSVC_NAME);
+                    localRepository.restart(Constants.DBSVC_NAME);
+                } finally {
+                    barrier.leave();
+                }
+            }
         }
     }
 
@@ -1066,24 +1085,6 @@ public abstract class VdcOpHandler {
             if (!allLeft) {
                 log.info("wait 1 minute, so all nodes be able to return from leave()");
                 Thread.sleep(IPSEC_RESTART_DELAY);
-            }
-        }
-    }
-
-    protected void restartDbsvcOnResumedSite() throws Exception {
-        Site site = drUtil.getLocalSite();
-
-        //check both state and last state so we know this is a retry
-        if (site.getState().equals(SiteState.STANDBY_RESUMING)
-                && site.getLastState().equals(SiteState.STANDBY_RESUMING)) {
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
-                    VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
-            barrier.enter();
-            try {
-                localRepository.restart(Constants.GEODBSVC_NAME);
-                localRepository.restart(Constants.DBSVC_NAME);
-            } finally {
-                barrier.leave();
             }
         }
     }

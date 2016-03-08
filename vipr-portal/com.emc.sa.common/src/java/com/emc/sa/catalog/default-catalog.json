@@ -23,50 +23,73 @@
         {
           "image": "icon_application_remove_volumes.png",
           "baseService": "RemoveVolumesFromApplication"
-        },
-        {
-          "image": "icon_application_create_full_copy.png",
-          "baseService": "CreateCloneOfApplication"
-        },
-        {
-          "image": "icon_application_remove_full_copy.png",
-          "baseService": "RemoveApplicationFullCopy"
-        },
-        {
-          "image": "icon_application_detach_full_copy.png",
-          "baseService": "DetachApplicationFullCopy"
-        },
-        {
-          "image": "icon_application_restore_full_copy.png",
-          "baseService": "RestoreApplicationFullCopy"
-        },
-        {
-          "image": "icon_application_resych_full_copy.png",
-          "baseService": "ResynchronizeApplicationFullCopy"
-        },
-        {
-          "image": "icon_application_create_snapshot.png",
-          "baseService": "CreateSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_restore_snapshot.png",
-          "baseService": "RestoreSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_resynchronize_snapshot.png",
-          "baseService": "ResynchronizeSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_remove_snapshot.png",
-          "baseService": "DeleteSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_link_snapshot.png",
-          "baseService": "LinkSnapshotOfApplication"
-        },
-        {
-          "image": "icon_application_unlink_snapshot.png",
-          "baseService": "UnlinkSnapshotOfApplication"
+        }
+       ],
+      "categories": [
+      {
+        "title": "backuprestore.title",
+        "image": "icon_application.png",
+        "description": "backuprestore.description",
+        "categories": [
+           {
+              "title": "fullcopy.title",
+              "image": "icon_application.png",
+              "description": "fullcopy.description",
+              "services": [
+                    {
+                      "image": "icon_application_create_full_copy.png",
+                      "baseService": "CreateCloneOfApplication"
+                    },
+                    {
+                      "image": "icon_application_remove_full_copy.png",
+                      "baseService": "RemoveApplicationFullCopy"
+                    },
+                    {
+                      "image": "icon_application_detach_full_copy.png",
+                      "baseService": "DetachApplicationFullCopy"
+                    },
+                    {
+                      "image": "icon_application_restore_full_copy.png",
+                      "baseService": "RestoreApplicationFullCopy"
+                    },
+                    {
+                      "image": "icon_application_resych_full_copy.png",
+                      "baseService": "ResynchronizeApplicationFullCopy"
+                    }
+               ]
+	       },
+	       {
+               "title": "snapshot.title",
+               "image": "icon_application.png",
+               "description": "snapshot.description",
+               "services": [
+                   {
+                      "image": "icon_application_create_snapshot.png",
+                      "baseService": "CreateSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_restore_snapshot.png",
+                      "baseService": "RestoreSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_resynchronize_snapshot.png",
+                      "baseService": "ResynchronizeSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_remove_snapshot.png",
+                      "baseService": "DeleteSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_link_snapshot.png",
+                      "baseService": "LinkSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_unlink_snapshot.png",
+                      "baseService": "UnlinkSnapshotOfApplication"
+                   }
+	           ]
+	        }
+          ]
         }
       ]
     },

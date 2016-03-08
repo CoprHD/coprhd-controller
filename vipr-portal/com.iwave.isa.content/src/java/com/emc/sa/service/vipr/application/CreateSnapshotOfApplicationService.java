@@ -36,9 +36,6 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.HIGH_AVAILABILITY)
     protected Boolean highAvailability;
 
-    @Param(ServiceParams.COUNT)
-    protected Integer count;
-
     @Param(ServiceParams.READ_ONLY)
     protected Boolean readOnly;
 

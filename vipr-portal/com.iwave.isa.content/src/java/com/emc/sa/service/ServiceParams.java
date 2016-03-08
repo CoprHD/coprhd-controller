@@ -44,6 +44,7 @@ public interface ServiceParams {
     public String VIRTUAL_POOL = "virtualPool";
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
     public String NAME = "name";
+    public String DESCRIPTION = "description";
     public String TYPE = "type";
     public String STORAGE_TYPE = "storageType";
     public String VOLUMES = "volumes";

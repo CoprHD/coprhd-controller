@@ -5,6 +5,7 @@
 package com.emc.storageos.zkutils;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,14 +15,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
+import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
@@ -39,6 +43,7 @@ public class ZkCmdHandler implements Watcher {
     private boolean turnOnPrintData = false;
     private ZooKeeper zk = null;
     private static final int SESSION_TIMEOUT = 3000;
+    private static final String DR_CONFIG_PATH = "/config/disasterRecoveryConfig/global";
 
     private CountDownLatch connectedSignal = new CountDownLatch(1);
 
@@ -69,6 +74,39 @@ public class ZkCmdHandler implements Watcher {
         ByteArrayOutputStream memStream = new ByteArrayOutputStream();
         IOUtils.copy(System.in, memStream);
         zk.setData(nodePath, memStream.toByteArray(), -1);
+    }
+
+    public void addDrConfig(String key, String value) throws Exception {
+        assureNodeExist(DR_CONFIG_PATH);
+        Properties config = new Properties();
+        config.load(new ByteArrayInputStream(zk.getData(DR_CONFIG_PATH, null, null)));
+        config.put(key, value);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        config.store(out, null);
+        zk.setData(DR_CONFIG_PATH, out.toByteArray(), -1);
+        System.out.println("Data after change:");
+        Properties newConfig = new Properties();
+        newConfig.load(new ByteArrayInputStream(zk.getData(DR_CONFIG_PATH, null, null)));
+        System.out.println(newConfig);
+    }
+
+    private void assureNodeExist(String path) throws Exception{
+        if (!path.startsWith("/")) {
+            throw new IllegalArgumentException(String.format("Invalid ZK path (should be full path): %s", path));
+        }
+        if (zk.exists(path, false) != null) {
+            return;
+        }
+        path = path.substring(1);
+        String[] paths = path.split("/");
+        StringBuilder builder = new StringBuilder();
+        for (String p : paths) {
+            builder.append("/" + p);
+            if (zk.exists(builder.toString(), false) == null) {
+                System.out.println("Creating path: " + builder.toString() + " ...");
+                zk.create(builder.toString(), "".getBytes(), Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+            }
+        }
     }
 
     /**

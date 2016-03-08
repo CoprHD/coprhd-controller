@@ -335,6 +335,7 @@ public class ObjectBuckets extends ResourceController {
             }
             if (GROUP.equalsIgnoreCase(uiType.trim())) {
                 bucketAce.setGroup(uiName.trim());
+
             }else if (CUSTOMGROUP.equalsIgnoreCase(uiType.trim())) {
                 bucketAce.setCustomGroup(uiName.trim());
             } else {

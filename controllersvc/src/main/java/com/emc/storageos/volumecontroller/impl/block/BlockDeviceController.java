@@ -213,9 +213,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME = "unlinkSnapshotSessionTargetsWF";
     private static final String RESTORE_SNAPSHOT_SESSION_WF_NAME = "restoreSnapshotSessionWF";
     private static final String DELETE_SNAPSHOT_SESSION_WF_NAME = "deleteSnapshotSessionWF";
-    private static final String CREATE_SNAPSHOT_SESSION_STEP_GROUP = "createSnapshotSession";
+    public static final String CREATE_SNAPSHOT_SESSION_STEP_GROUP = "createSnapshotSession";
     private static final String CREATE_SNAPSHOT_SESSION_METHOD = "createBlockSnapshotSession";
-    private static final String LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "LinkSnapshotSessionTarget";
+    public static final String LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "LinkSnapshotSessionTarget";
     private static final String LINK_SNAPSHOT_SESSION_TARGET_METHOD = "linkBlockSnapshotSessionTarget";
     private static final String LINK_SNAPSHOT_SESSION_TARGET_GROUP_METHOD = "linkBlockSnapshotSessionTargetGroup";
     private static final String RB_LINK_SNAPSHOT_SESSION_TARGET_METHOD = "rollbackLinkBlockSnapshotSessionTarget";
@@ -239,6 +239,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public static final String UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME = "UPDATE_VOLUMES_FOR_APPLICATION_WS";
     private static final String REMOVE_VOLUMES_FROM_CG_STEP_GROUP = "REMOVE_VOLUMES_FROM_CG";
     private static final String UPDATE_VOLUMES_STEP_GROUP = "UPDATE_VOLUMES";
+    public static final String DELETE_GROUP_STEP_GROUP = "DELETE_GROUP";
 
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
@@ -4320,7 +4321,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                         rollbackMethodNullMethod(), null);
 
                 // call ReplicaDeviceController
-                waitFor = _replicaDeviceController.addStepsForAddingVolumesToRG(workflow, waitFor, consistencyGroup, addVolumesList,
+                waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, addVolumesList,
                         groupName, task);
             }
 
@@ -4395,6 +4396,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return true;
     }
 
+    public String addStepToAddToConsistencyGroup(Workflow workflow, URI storage, URI consistencyGroup, String replicationGroupName,
+            List<URI> addVolumesList, String waitFor) {
+        String stepId = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                String.format("Adding volumes to consistency group %s", consistencyGroup),
+                waitFor, storage, getDeviceType(storage),
+                this.getClass(),
+                addToConsistencyGroupMethod(storage, consistencyGroup, replicationGroupName, addVolumesList),
+                rollbackMethodNullMethod(), null);
+        return stepId;
+    }
+
     private static Workflow.Method addToConsistencyGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName,
             List<URI> addVolumesList) {
         return new Workflow.Method("addToConsistencyGroup", storage, consistencyGroup, replicationGroupName, addVolumesList);
@@ -4416,6 +4428,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             return false;
         }
         return true;
+    }
+
+    public String addStepToRemoveFromConsistencyGroup(Workflow workflow, URI storage, URI consistencyGroup, List<URI> removeVolumesList,
+            String waitFor, boolean keepRGReference) {
+        String stepId = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
+                String.format("Removing volumes from consistency group %s", consistencyGroup),
+                waitFor, storage, getDeviceType(storage),
+                this.getClass(),
+                removeFromConsistencyGroupMethod(storage, consistencyGroup, removeVolumesList, keepRGReference),
+                rollbackMethodNullMethod(), null);
+        return stepId;
     }
 
     private static Workflow.Method removeFromConsistencyGroupMethod(URI storage, URI consistencyGroup, List<URI> removeVolumesList,
@@ -5522,6 +5545,26 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
+     * Adds the step to create block snapshot session.
+     *
+     * @param workflow the workflow
+     * @param systemURI the system uri
+     * @param session the snapshot session
+     * @param repGroupName the replication group name
+     * @param waitFor the wait for
+     * @return the stepId
+     */
+    public String addStepToCreateSnapshotSession(Workflow workflow, URI systemURI, URI session,
+            String repGroupName, String waitFor) {
+        String stepId = workflow.createStep(BlockDeviceController.CREATE_SNAPSHOT_SESSION_STEP_GROUP,
+                String.format("Creating block snapshot session"),
+                waitFor, systemURI, getDeviceType(systemURI), getClass(),
+                createBlockSnapshotSessionMethod(systemURI, session, repGroupName),
+                rollbackMethodNullMethod(), null);
+        return stepId;
+    }
+
+    /**
      * Create the workflow method that is invoked by the workflow service
      * to create block snapshot sessions.
      *
@@ -5613,6 +5656,17 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
         return true;
+    }
+
+    public String addStepToLinkBlockSnapshotSessionTarget(Workflow workflow, URI systemURI,
+            BlockSnapshotSession session, URI snapshot, String copyMode, String waitFor) {
+        String stepId = workflow.createStep(
+                BlockDeviceController.LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP,
+                String.format("Linking targets for snapshot session %s", session.getId()),
+                waitFor, systemURI, getDeviceType(systemURI), getClass(),
+                linkBlockSnapshotSessionTargetMethod(systemURI, session.getId(), snapshot, copyMode, Boolean.FALSE),
+                rollbackLinkBlockSnapshotSessionTargetMethod(systemURI, session.getId(), snapshot), null);
+        return stepId;
     }
 
     /**
@@ -6379,5 +6433,48 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     rollbackMethodNullMethod(), null);
         }
         return waitFor;
+    }
+    
+    /**
+     * Create a method for workflow to delete array clone replication group
+     * @param storage storage system
+     * @param consistencyGroup consistency group URI
+     * @param groupName clone group name
+     * @param keepRGName 
+     * @param markInactive
+     * @param sourceGroupName source group name
+     * @return the created workflow Method
+     */
+    public Workflow.Method deleteReplicationGroupMethod(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName, 
+            Boolean markInactive, String sourceGroupName) {
+        return new Workflow.Method("deleteReplicationGroup", storage, consistencyGroup, groupName, keepRGName, markInactive, sourceGroupName);
+    }
+    
+    /**
+     * Delete array clone replication group
+     * @param storage storage system
+     * @param consistencyGroup consistency group URI
+     * @param groupName clone group name
+     * @param keepRGName 
+     * @param markInactive
+     * @param sourceGroupName source group name
+     * @return the created workflow Method
+     */
+    public void deleteReplicationGroup(URI storage, URI consistencyGroup, String groupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceGroupName, String opId) throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);
+            getDevice(storageObj.getSystemType()).doDeleteConsistencyGroup(storageObj, consistencyGroup, groupName, keepRGName, markInactive, 
+                    sourceGroupName, completer);
+        } catch (Exception e) {
+            if (completer != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                completer.error(_dbClient, serviceError);
+            }
+            throw DeviceControllerException.exceptions.deleteConsistencyGroupFailed(e);
+        }
     }
 }

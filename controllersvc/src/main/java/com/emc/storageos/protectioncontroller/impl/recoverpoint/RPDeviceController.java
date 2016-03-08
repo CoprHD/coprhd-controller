@@ -6070,9 +6070,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         addVolCg = cguri;
                     }
                     impactedCGs.add(cguri);
-                    if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                    if (!NullColumnValueGetter.isNullValue(vol.getPersonality())
+                            && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                         addBackendVolumes(allAddSourceVolumes, vol, vnxVolumes, true, applicationId, vplexVolumes);
-                    } else if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
+                    } else if (!NullColumnValueGetter.isNullValue(vol.getPersonality())
+                            && vol.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())) {
                         addBackendVolumes(allAddTargetVolumes, vol, vnxVolumes, true, applicationId, vplexVolumes);
                     }
                 }
@@ -6085,21 +6087,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 addTargetVols.setReplicationGroupName(addVolList.getReplicationGroupName()+REPLICATION_GROUP_RPTARGET_SUFFIX);
                 addTargetVols.setVolumes(allAddTargetVolumes);
             }
-            
+
             VolumeGroup application = _dbClient.queryObject(VolumeGroup.class, applicationId);
             _log.info(String.format("Creating steps for adding and removing RP volumes to the application %s", application.getLabel()));
-            
+
             // Get a new workflow to execute the volume group update.
             Workflow workflow = _workflowService.getNewWorkflow(this, BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME, false, taskId);
             
             // create the completer add the steps and execute the plan.
             completer = new VolumeGroupUpdateTaskCompleter(applicationId, allAddVolumes, removeVolumeSet, impactedCGs, taskId);
-            
+
             // add step for convert VNX replication group
             String waitFor = null;
             if (!vnxVolumes.isEmpty()) {
                 _log.info("Creating step to convert VNX RG");
-                waitFor = _blockDeviceController.addStepsForConvertVNXReplicationGroup(workflow, vnxVolumes, waitFor, taskId);                
+                waitFor = _blockDeviceController.addStepsForConvertVNXReplicationGroup(workflow, vnxVolumes, waitFor, taskId);
             }
             // add steps for add source and remove vols
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addSourceVols, allRemoveVolumes, waitFor, taskId);
@@ -6126,6 +6128,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Add block(backend) volumes if the volume is a VPLEX volume to the Block volume list to call to BlockDeviceController.
      * If the volume's backend volume is in a replication group, it would not add to the list, but just update the volume and its task.
+     * 
      * @param allVolumes output all block volume list
      * @param volume The volume will be processed
      * @param vnxVolumes output VNX backend volumes
@@ -6133,8 +6136,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param application the application the volume will be add/remove
      * @param vplexVolumes output all vplex volumes
      */
-    private void addBackendVolumes(List<URI>allVolumes, Volume volume, List<Volume> vnxVolumes, boolean isAdd, URI application, 
-            List<URI>vplexVolumes) {
+    private void addBackendVolumes(List<URI> allVolumes, Volume volume, List<Volume> vnxVolumes, boolean isAdd, URI application,
+            List<URI> vplexVolumes) {
         if (RPHelper.isVPlexVolume(volume)) {
             StringSet backends = volume.getAssociatedVolumes();
             boolean notInRG = true;
@@ -6147,7 +6150,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     if (NullColumnValueGetter.isNotNullValue(rgName) &&
                             ControllerUtils.isVnxVolume(backVol, _dbClient)) {
                         vnxVolumes.add(backVol);
-                    } else if (NullColumnValueGetter.isNotNullValue(rgName)){
+                    } else if (NullColumnValueGetter.isNotNullValue(rgName)) {
                         // the back end volumes is in a replication group. just update the volume's volumeGroupIds attribute
                         StringSet applications = volume.getVolumeGroupIds();
                         if (applications == null) {
@@ -6155,7 +6158,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         }
                         applications.add(application.toString());
                         volume.setVolumeGroupIds(applications);
-                        
+
                         // handle full copy. If the volume is in RG, set fullCopySetName in the full copy
                         StringSet fullcopies = volume.getFullCopies();
                         if (fullcopies != null && !fullcopies.isEmpty()) {
@@ -6166,7 +6169,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                     Volume fullCopyBack = VPlexUtil.getVPLEXBackendVolume(fullCopy, true, _dbClient);
                                     String groupName = fullCopyBack.getReplicationGroupInstance();
                                     if (NullColumnValueGetter.isNullValue(groupName)) {
-                                        throw DeviceControllerException.exceptions.recoverpoint.failedToAddVolumeToApplication(volume.getLabel(),
+                                        throw DeviceControllerException.exceptions.recoverpoint.failedToAddVolumeToApplication(
+                                                volume.getLabel(),
                                                 "the volume is in a replication group, but its full copy is not.");
                                     }
                                     fullCopy.setFullCopySetName(groupName);

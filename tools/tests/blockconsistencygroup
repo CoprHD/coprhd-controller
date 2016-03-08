@@ -24,7 +24,7 @@ def consistency_group_create(args):
     bourne.connect(args.ip)
     project_uri = bourne.project_query(args.project)
     start = time.time()
-    blockconsistencygroup = bourne.block_consistency_group_create(project_uri, args.label)
+    blockconsistencygroup = bourne.block_consistency_group_create(project_uri, args.label, args.arrayconsistency)
 	
 def consistency_group_update(args):
     bourne.connect(args.ip)
@@ -368,6 +368,7 @@ parser.add_argument('--ip',    metavar = 'ipaddr',    help = 'IP address of bour
 create = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 create.add_argument('project', help = 'name of the project to use in blockconsistencygroup')
 create.add_argument('label', help = 'label/name for blockconsistencygroup')
+create.add_argument('--noarrayconsistency', dest='arrayconsistency',action='store_false')
 
 # consistency group show   uri [--ip ipaddr]
 show = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

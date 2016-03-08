@@ -773,7 +773,7 @@ public class BackupOps {
         }
 
         if (!isLocal) {
-            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, "Download canceled", false);
+            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, null, false);
             log.info("Persist the cancel flag into ZK");
         }
     }

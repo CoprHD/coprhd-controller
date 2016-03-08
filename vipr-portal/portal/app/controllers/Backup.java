@@ -89,7 +89,6 @@ public class Backup extends Controller {
                 if (StringUtils.isNotBlank(id)) {
                     BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
                     BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
-                    log.info("lbyg0 backupInfo={}", backupInfo);
                     if (backupInfo.getCreateTime() != 0) {
                         backup.creationtime = backupInfo.getCreateTime();
                     }
@@ -196,7 +195,6 @@ public class Backup extends Controller {
 
     public static void getRestoreStatus(String id, Type type) {
         BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
-        log.info("lbygg status={}", status);
         renderJSON(new RestoreStatus(status));
     }
 
@@ -273,7 +271,6 @@ public class Backup extends Controller {
         public RestoreStatus(BackupRestoreStatus origin) {
             this.backupName = origin.getBackupName();
             Map<String, Long> map = origin.getSizeToDownload();
-            log.info("lbyg size to download={}", map);
             backupSize = 0;
             for (Map.Entry<String, Long> size : map.entrySet()) {
                 backupSize += size.getValue();
@@ -281,7 +278,6 @@ public class Backup extends Controller {
 
             downloadSize = 0;
             map = origin.getDownloadedSize();
-            log.info("lbyg downloaded size={}", map);
             for (Map.Entry<String, Long> size : map.entrySet()) {
                 downloadSize += size.getValue();
             }

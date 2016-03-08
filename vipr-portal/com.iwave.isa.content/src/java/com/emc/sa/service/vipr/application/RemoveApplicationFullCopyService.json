@@ -12,7 +12,7 @@
     },
     
     applicationSubGroup:{
-      type:"assetType.vipr.replicationGroup",
+      type:"assetType.vipr.copyReplicationGroup",
       select:"many"
     }
   }

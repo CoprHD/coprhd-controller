@@ -2248,6 +2248,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 filterByCopyName(allCopyVols, copyName)).keySet()));
     }
 
+    @Asset("copyReplicationGroup")
+    @AssetDependencies({ "application", "fullCopyName" })
+    public List<AssetOption> getApplicationReplicationGroupsForFullCopyName(AssetOptionsContext ctx, URI applicationId, String copyName) {
+        return getApplicationReplicationGroupsForCopy(ctx, applicationId, copyName);
+    }
+
     private Map<String, List<VolumeRestRep>> groupFullCopyByApplicationSubGroup(AssetOptionsContext ctx, List<VolumeRestRep> vols) {
         final ViPRCoreClient client = api(ctx);
         Map<String, List<VolumeRestRep>> grouped = new HashMap<String, List<VolumeRestRep>>();

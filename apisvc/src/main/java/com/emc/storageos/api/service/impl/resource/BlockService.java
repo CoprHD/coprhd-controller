@@ -918,7 +918,7 @@ public class BlockService extends TaskResourceService {
                                 RPCopyMode.ASYNCHRONOUS.name() : requestedVpool.getRpCopyMode();
                         String existingRpCopyMode = NullColumnValueGetter.isNullValue(existingVpool.getRpCopyMode()) ?
                                 RPCopyMode.ASYNCHRONOUS.name() : existingVpool.getRpCopyMode();
-                        if (requestedRpCopyMode.equalsIgnoreCase(existingRpCopyMode)) {
+                        if (!requestedRpCopyMode.equalsIgnoreCase(existingRpCopyMode)) {
                             throw APIException.badRequests.vPoolRPCopyModeNotCompatibleForCG(consistencyGroup.getLabel());
                         }
                     }

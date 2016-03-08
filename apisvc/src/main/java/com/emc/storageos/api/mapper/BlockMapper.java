@@ -265,7 +265,9 @@ public class BlockMapper {
             // Get ReplicationGroupInstance from source back end volume
             if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
                 Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
-                to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
+                if (sourceSideBackingVolume != null) {
+                    to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
+                }
             }
             to.setHaVolumes(backingVolumes);
         }

@@ -333,7 +333,6 @@ public class BackupCmd {
             if (path.contains(homeEnv)) {
                 return path.replace(homeEnv, System.getProperty(PRODUCT_HOME));
             }
-
         } catch (IOException e) {
             log.error("Failed to parse log4j conf file", e);
         }

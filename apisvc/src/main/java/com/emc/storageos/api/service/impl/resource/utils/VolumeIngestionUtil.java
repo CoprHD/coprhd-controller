@@ -49,6 +49,7 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -59,6 +60,7 @@ import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSet.ProtectionStatus;
+import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -2893,6 +2895,10 @@ public class VolumeIngestionUtil {
                     }
                 }
                 for (UnManagedExportMask unManagedExportMask : unManagedMasks) {
+                    if (isRpExportMask(unManagedExportMask, dbClient)) {
+                        // don't process RP UnManagedExportMasks here
+                        continue;
+                    }
                     Map<URI, ExportMask> exportMaskMap = new HashMap<URI, ExportMask>();
                     List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
                             unManagedExportMask.getKnownInitiatorUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
@@ -3768,6 +3774,33 @@ public class VolumeIngestionUtil {
      */
     private static boolean isRPOrVplexProtected(UnManagedVolume unManagedVolume) {
         return isVplexBackendVolume(unManagedVolume) || checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
+    }
+
+    /**
+     * Returns true if the given UnManagedExportMask is for a RecoverPoint Export.
+     * 
+     * @param uem the UnManagedExportMask to check
+     * @param dbClient a reference to the database client
+     * @return true if the given UnManagedExportMask is for a RecoverPoint Export
+     */
+    public static boolean isRpExportMask(UnManagedExportMask uem, DbClient dbClient) {
+        boolean isRpExportMask = false;
+        outside : for (String wwn : uem.getKnownInitiatorNetworkIds()) {
+            List<URI> protectionSystemUris = dbClient.queryByType(ProtectionSystem.class, true);
+            List<ProtectionSystem> protectionSystems = dbClient.queryObject(ProtectionSystem.class, protectionSystemUris);
+            for (ProtectionSystem protectionSystem : protectionSystems) {
+                for (Entry<String, AbstractChangeTrackingSet<String>> siteInitEntry : 
+                    protectionSystem.getSiteInitiators().entrySet()) {
+                    if (siteInitEntry.getValue().contains(wwn)) {
+                        _logger.info("this is a RecoverPoint related UnManagedExportMask: " + uem.getMaskName());
+                        isRpExportMask = true;
+                        break outside;
+                    }
+                }
+            }
+        }
+        
+        return isRpExportMask;
     }
 
     /**

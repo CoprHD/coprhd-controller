@@ -659,7 +659,7 @@ VCenters.detachStorageConfirm=Are you sure you want to detach storage from the s
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
 
 #Application Support
-applicationGroup.copy.volumes=Copy Volumes
+applicationGroup.copy.volumes=Full Copies
 applicationGroup.list.title=Applications
 applicationGroup.name=Application Name
 applicationGroup.description=Description	
@@ -3346,7 +3346,7 @@ volumeApplication.vpool=Virtual Pool
 volumeApplication.protocols=Protocols
 volumeApplication.wwn=WWN
 volumeApplication.consistencyGroup=Consistency Group
-volumeApplication.associatedVolumeRG=Replication Group
+volumeApplication.associatedVolumeRG=Application Sub Group
 
 cloneApplication.name=Copy Name
 cloneApplication.size=Size
@@ -3695,7 +3695,7 @@ volumes.protocols=Protocols
 volumes.consistencygroup=Consistency Group
 volumes.wwn=WWN
 volumes.replicationGroup=Sub Group
-volumes.associatedVolumeRG=Source Replication Group
+volumes.associatedVolumeRG=Source Application Sub Group
 
 fileSystems.name=File System Name
 fileSystems.capacity=Size

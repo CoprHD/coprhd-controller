@@ -49,6 +49,7 @@ import com.emc.vipr.client.core.Site;
 import com.emc.vipr.client.core.StoragePools;
 import com.emc.vipr.client.core.StoragePorts;
 import com.emc.vipr.client.core.StorageProviders;
+import com.emc.vipr.client.core.StorageSystemType;
 import com.emc.vipr.client.core.StorageSystems;
 import com.emc.vipr.client.core.StorageTiers;
 import com.emc.vipr.client.core.TasksResources;
@@ -410,10 +411,13 @@ public class ViPRCoreClient {
 
     public ApplicationSupport application() {
         return new ApplicationSupport(client);
-
     }
     
     public ObjectNamespaces objectNamespace() {
         return new ObjectNamespaces(this, client);
+    }
+    
+    public StorageSystemType storagesystemtype() {
+    	return new StorageSystemType(client);
     }
 }

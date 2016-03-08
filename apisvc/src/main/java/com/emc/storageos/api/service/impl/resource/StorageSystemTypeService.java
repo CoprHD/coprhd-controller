@@ -93,7 +93,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@Path("/type/{type_name}")
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-	public StorageSystemTypeList getStorageSystemTypes(@PathParam("storageType") String storageType) {
+	public StorageSystemTypeList getStorageSystemTypeType(@PathParam("storageType") String storageType) {
 		log.info("GET getStorageSystemType on type: " + storageType);
 		if (!checkForStorageSystemType()) {
 			addDefaultStorageSystemTypes();

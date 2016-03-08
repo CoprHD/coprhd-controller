@@ -8,8 +8,7 @@
     },
     
     applicationSite:{
-      type:"assetType.vipr.applicationVirtualArray",
-      required:"false"
+      type:"assetType.vipr.applicationVirtualArray"
     },
     
     applicationSubGroup:{

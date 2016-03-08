@@ -2475,6 +2475,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
             }
         } else {
+            options.add(newAssetOption(URI.create("none"), "None"));
             return options;
         }
 
@@ -2498,6 +2499,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             options.addAll(targetOptions);
 
+        }
+        if (options.isEmpty()) {
+            options.add(newAssetOption(URI.create("none"), "None"));
         }
         return options;
     }

@@ -48,6 +48,7 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -74,6 +75,7 @@ import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -210,6 +212,10 @@ public class DisasterRecoveryServiceTest {
         doThrow(CoordinatorException.retryables.cannotFindSite(NONEXISTENT_ID)).when(drUtil)
                 .getSiteFromLocalVdc(NONEXISTENT_ID);
         doReturn(primarySite).when(drUtil).getSiteFromLocalVdc(primarySite.getUuid());
+
+        SiteNetworkState siteNetworkState = new SiteNetworkState();
+        siteNetworkState.setNetworkHealth(SiteNetworkState.NetworkHealth.GOOD);
+        doReturn(siteNetworkState).when(drUtil).getSiteNetworkState(any(String.class));
         
         CoordinatorClientInetAddressMap addressMap = new CoordinatorClientInetAddressMap();
         addressMap.setDualInetAddress(DualInetAddress.fromAddresses("10.247.101.110", ""));
@@ -274,6 +280,7 @@ public class DisasterRecoveryServiceTest {
         doReturn(new PropertyInfoExt()).when(coordinator).getTargetInfo(PropertyInfoExt.class);
 
         // mock checking and validating methods
+        doNothing().when(drService).precheckForSiteNumber();
         doNothing().when(drService).precheckForStandbyAdd(any(SiteConfigRestRep.class), any(ViPRCoreClient.class));
         doNothing().when(drService).validateAddParam(any(SiteAddParam.class), any(List.class));
         doReturn(standbySite1).when(drUtil).getActiveSite();
@@ -842,7 +849,7 @@ public class DisasterRecoveryServiceTest {
             doReturn(true).when(drUtil).isActiveSite();
             drService.precheckForFailover();
             fail();
-        } catch (InternalServerErrorException e) {
+        } catch (InternalServerErrorException | BadRequestException e) {
             //ignore
         }
         

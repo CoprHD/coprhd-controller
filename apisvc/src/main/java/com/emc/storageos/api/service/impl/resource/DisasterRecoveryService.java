@@ -908,7 +908,7 @@ public class DisasterRecoveryService {
         return response;
     }
 
-    private void precheckForSiteNumber() {
+    public void precheckForSiteNumber() {
         int upperLimit = drUtil.getDrIntConfig(DrUtil.KEY_SITE_NUMBER_UPPER_LIMIT, SITE_NUMBER_UPPER_LIMIT);
         int siteNum = drUtil.listSites().size();
         if (siteNum >= upperLimit) {

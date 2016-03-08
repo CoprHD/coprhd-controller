@@ -19,7 +19,6 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -35,22 +34,22 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 
 /**
  * Base implementation of IngestionRequestContext.
- * 
+ *
  * @see IngestionRequestContext
  */
 public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     private static Logger _logger = LoggerFactory.getLogger(BaseIngestionRequestContext.class);
-    private DbClient _dbClient;
+    private final DbClient _dbClient;
 
-    private Iterator<URI> _unManagedVolumeUrisToProcessIterator;
+    private final Iterator<URI> _unManagedVolumeUrisToProcessIterator;
     private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
 
-    private VirtualPool _vpool;
-    private VirtualArray _virtualArray;
-    private Project _project;
-    private TenantOrg _tenant;
-    private String _vplexIngestionMethod;
+    private final VirtualPool _vpool;
+    private final VirtualArray _virtualArray;
+    private final Project _project;
+    private final TenantOrg _tenant;
+    private final String _vplexIngestionMethod;
     private Map<String, StringBuffer> _taskStatusMap;
 
     private Map<String, StorageSystem> _storageSystemCache;
@@ -75,7 +74,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /**
      * Constructor.
-     * 
+     *
      * @param dbClient a reference to the database client
      * @param unManagedVolumeUrisToProcess the UnmanagedVolumes to be processed by this request
      * @param vpool the VirtualPool to use for ingestion from the client request
@@ -97,7 +96,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.util.Iterator#hasNext()
      */
     @Override
@@ -107,7 +106,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.util.Iterator#next()
      */
     @Override
@@ -122,7 +121,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see java.util.Iterator#remove()
      */
     @Override
@@ -159,17 +158,16 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     /**
      * Private setter for the current UnManagedVolume, used by this class' implementation
      * of Iterator<UnManagedVolume>. This method will set the current VolumeIngestionContext.
-     * 
+     *
      * @param unManagedVolume the UnManagedVolume to set
      */
     private void setCurrentUnmanagedVolume(UnManagedVolume unManagedVolume) {
-        _currentVolumeIngestionContext =
-                VolumeIngestionContextFactory.getVolumeIngestionContext(unManagedVolume, _dbClient, this);
+        _currentVolumeIngestionContext = VolumeIngestionContextFactory.getVolumeIngestionContext(unManagedVolume, _dbClient, this);
     }
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getCurrentUnmanagedVolume()
      */
@@ -184,7 +182,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getCurrentUnManagedVolumeUri()
      */
@@ -195,7 +193,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVolumeContext()
      */
     @Override
@@ -205,7 +203,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVolumeContext(java.lang.
      * String)
@@ -220,7 +218,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getStorageSystem()
      */
     @Override
@@ -238,7 +236,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVpool()
      */
     @Override
@@ -248,7 +246,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVarray()
      */
     @Override
@@ -258,7 +256,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getProject()
      */
     @Override
@@ -268,7 +266,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getTenant()
      */
     @Override
@@ -278,7 +276,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getVplexIngestionMethod()
      */
     @Override
@@ -288,7 +286,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getStorageSystemCache()
      */
     @Override
@@ -302,7 +300,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getExhaustedStorageSystems()
      */
@@ -317,7 +315,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getExhaustedPools()
      */
     @Override
@@ -331,7 +329,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getUnManagedVolumesToBeDeleted
      * ()
@@ -347,7 +345,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeCreatedMap()
      */
     @Override
@@ -359,8 +357,11 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return _blockObjectsToBeCreatedMap;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getDataObjectsToBeCreatedMap()
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getDataObjectsToBeCreatedMap()
      */
     @Override
     public Map<String, List<DataObject>> getDataObjectsToBeCreatedMap() {
@@ -373,7 +374,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeUpdatedMap()
      */
     @Override
@@ -387,7 +388,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getTaskStatusMap()
      */
     @Override
@@ -401,7 +402,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getProcessedUnManagedVolumeMap
      * ()
@@ -417,7 +418,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getProcessedUnManagedVolume
      * (java.lang.String)
@@ -434,7 +435,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getProcessedBlockObject(java
      * .lang.String)
@@ -447,7 +448,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getProcessedVolumeContext(java
      * .lang.String)
@@ -459,7 +460,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getErrorMessagesForVolume(java
      * .lang.String)
@@ -479,9 +480,10 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
-     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsIngestedByExportProcessing
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#
+     * getObjectsIngestedByExportProcessing
      * ()
      */
     @Override
@@ -495,7 +497,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#isExportGroupCreated()
      */
     @Override
@@ -505,7 +507,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#setExportGroupCreated(boolean)
      */
@@ -516,7 +518,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getExportGroup()
      */
     @Override
@@ -526,7 +528,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#setExportGroup(com.emc.storageos
      * .db.client.model.ExportGroup)
@@ -538,7 +540,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getHost()
      */
     @Override
@@ -548,7 +550,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#setHost(java.net.URI)
      */
     @Override
@@ -558,7 +560,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getCluster()
      */
     @Override
@@ -568,7 +570,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#setCluster(java.net.URI)
      */
     @Override
@@ -578,7 +580,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getDeviceInitiators()
      */
     @Override
@@ -588,7 +590,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#setDeviceInitiators(java.util
      * .List)
@@ -600,9 +602,10 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see
-     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.lang.
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.
+     * lang.
      * String)
      */
     @Override
@@ -628,7 +631,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             }
         }
 
-        if (blockObject == null){
+        if (blockObject == null) {
             for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
                 if (volumeContext instanceof IngestionRequestContext) {
                     blockObject = ((IngestionRequestContext) volumeContext).getBlockObjectsToBeCreatedMap().get(nativeGuid);
@@ -646,8 +649,12 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return blockObject;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.net.URI)
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findCreatedBlockObject(java.net.
+     * URI)
      */
     @Override
     public BlockObject findCreatedBlockObject(URI uri) {
@@ -699,34 +706,36 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes()
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllProcessedUnManagedVolumes
+     * ()
      */
     @Override
     public List<UnManagedVolume> findAllUnManagedVolumesToBeDeleted() {
         _logger.info("assembling a List of all unmanaged volumes to be deleted");
 
         List<UnManagedVolume> allUnManagedVolumesToBeDeleted = new ArrayList<UnManagedVolume>();
-        
+
         _logger.info("\tadding local unmanaged volumes to be deleted: " + this.getUnManagedVolumesToBeDeleted());
         allUnManagedVolumesToBeDeleted.addAll(this.getUnManagedVolumesToBeDeleted());
 
         VolumeIngestionContext currentVolumeContext = getVolumeContext();
         if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
-            _logger.info("checking current volume ingestion context {}", 
+            _logger.info("checking current volume ingestion context {}",
                     currentVolumeContext.getUnmanagedVolume().forDisplay());
-            for (UnManagedVolume unmanagedSubVolume : 
-                ((IngestionRequestContext) currentVolumeContext).getUnManagedVolumesToBeDeleted()) {
-                _logger.info("\t\tadding current volume context UnManagedVolume {}",unmanagedSubVolume.forDisplay());
+            for (UnManagedVolume unmanagedSubVolume : ((IngestionRequestContext) currentVolumeContext).getUnManagedVolumesToBeDeleted()) {
+                _logger.info("\t\tadding current volume context UnManagedVolume {}", unmanagedSubVolume.forDisplay());
                 allUnManagedVolumesToBeDeleted.add(unmanagedSubVolume);
             }
         }
 
         for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
             if (volumeContext instanceof IngestionRequestContext) {
-                for (UnManagedVolume unmanagedSubVolume : 
-                    ((IngestionRequestContext) volumeContext).getUnManagedVolumesToBeDeleted()) {
-                    _logger.info("\t\tadding sub context UnManagedVolume {}",unmanagedSubVolume.forDisplay());
+                for (UnManagedVolume unmanagedSubVolume : ((IngestionRequestContext) volumeContext).getUnManagedVolumesToBeDeleted()) {
+                    _logger.info("\t\tadding sub context UnManagedVolume {}", unmanagedSubVolume.forDisplay());
                     allUnManagedVolumesToBeDeleted.add(unmanagedSubVolume);
                 }
             }
@@ -735,13 +744,17 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return allUnManagedVolumesToBeDeleted;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.URI)
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findInUpdatedObjects(java.net.
+     * URI)
      */
     @Override
     public DataObject findInUpdatedObjects(URI uri) {
         _logger.info("looking everywhere for an already-loaded object to updated with URI " + uri);
-        
+
         for (List<DataObject> objectsToBeUpdated : this.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject o : objectsToBeUpdated) {
                 if (o.getId().equals(uri)) {
@@ -753,13 +766,13 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
         VolumeIngestionContext currentVolumeContext = getVolumeContext();
         if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
-            _logger.info("checking current volume ingestion context {}", 
+            _logger.info("checking current volume ingestion context {}",
                     currentVolumeContext.getUnmanagedVolume().forDisplay());
-            for (List<DataObject> objectsToBeUpdated : 
-                ((IngestionRequestContext) currentVolumeContext).getDataObjectsToBeUpdatedMap().values()) {
+            for (List<DataObject> objectsToBeUpdated : ((IngestionRequestContext) currentVolumeContext).getDataObjectsToBeUpdatedMap()
+                    .values()) {
                 for (DataObject o : objectsToBeUpdated) {
                     if (o.getId().equals(uri)) {
-                        _logger.info("\tfound data object {} in volume ingestion context {}", 
+                        _logger.info("\tfound data object {} in volume ingestion context {}",
                                 o.forDisplay(), currentVolumeContext.getUnmanagedVolume().forDisplay());
                         return o;
                     }
@@ -768,14 +781,14 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         }
 
         for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
-            _logger.info("checking already-ingested volume ingestion context {}", 
+            _logger.info("checking already-ingested volume ingestion context {}",
                     volumeContext.getUnmanagedVolume().forDisplay());
             if (volumeContext instanceof IngestionRequestContext) {
-                for (List<DataObject> objectsToBeUpdated : 
-                    ((IngestionRequestContext) volumeContext).getDataObjectsToBeUpdatedMap().values()) {
+                for (List<DataObject> objectsToBeUpdated : ((IngestionRequestContext) volumeContext).getDataObjectsToBeUpdatedMap()
+                        .values()) {
                     for (DataObject o : objectsToBeUpdated) {
                         if (o.getId().equals(uri)) {
-                            _logger.info("\tfound data object {} in volume ingestion context {}", 
+                            _logger.info("\tfound data object {} in volume ingestion context {}",
                                     o.forDisplay(), volumeContext.getUnmanagedVolume().forDisplay());
                             return o;
                         }
@@ -788,16 +801,34 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findUnManagedConsistencyGroup(com.emc.storageos.db.client.model.BlockConsistencyGroup)
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findUnManagedConsistencyGroup(
+     * com.emc.storageos.db.client.model.BlockConsistencyGroup)
      */
     @Override
-    public UnManagedConsistencyGroup findUnManagedConsistencyGroup(BlockConsistencyGroup bcg) {
+    public UnManagedConsistencyGroup findUnManagedConsistencyGroup(String cgName) {
+        VolumeIngestionContext currentVolumeContext = getVolumeContext();
+        if (currentVolumeContext != null) {
+            _logger.info("checking current volume ingestion context {}", currentVolumeContext.getUnmanagedVolume().forDisplay());
+            List<UnManagedConsistencyGroup> umcgList = currentVolumeContext.getUmCGObjectsToUpdate();
+            if (null != umcgList && !umcgList.isEmpty()) {
+                for (UnManagedConsistencyGroup umcg : umcgList) {
+                    if (umcg.getLabel().equalsIgnoreCase(cgName)) {
+                        return umcg;
+                    }
+                }
+            }
+        }
         for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+            _logger.info("checking already-ingested volume ingestion context {}",
+                    volumeContext.getUnmanagedVolume().forDisplay());
             List<UnManagedConsistencyGroup> umcgList = volumeContext.getUmCGObjectsToUpdate();
             if (null != umcgList && !umcgList.isEmpty()) {
                 for (UnManagedConsistencyGroup umcg : umcgList) {
-                    if (umcg.getLabel().equalsIgnoreCase(bcg.getLabel())) {
+                    if (umcg.getLabel().equalsIgnoreCase(cgName)) {
                         return umcg;
                     }
                 }
@@ -807,16 +838,22 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         return null;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToCreate(com.emc.storageos.db.client.model.BlockObject)
+    /*
+     * (non-Javadoc)
+     *
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToCreate(com.emc.
+     * storageos.db.client.model.BlockObject)
      */
     @Override
     public void addBlockObjectToCreate(BlockObject blockObject) {
         getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToUpdate(com.emc.storageos.db.client.model.DataObject)
+    /*
+     * (non-Javadoc)
+     *
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToUpdate(com.emc.
+     * storageos.db.client.model.DataObject)
      */
     @Override
     public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume) {
@@ -826,8 +863,12 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addDataObjectToCreate(com.emc.storageos.db.client.model.DataObject)
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addDataObjectToCreate(com.emc.
+     * storageos.db.client.model.DataObject)
      */
     @Override
     public void addDataObjectToCreate(DataObject dataObject, UnManagedVolume unManagedVolume) {

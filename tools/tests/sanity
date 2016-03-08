@@ -2882,8 +2882,14 @@ recoverpoint_ingest_host_setup()
     run initiator create ${RP_HOSTNAME} FC ${PWWN1} --node ${WWNN1}
     run initiator create ${RP_HOSTNAME} FC ${PWWN2} --node ${WWNN2}
 
-    run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN1}
-    run transportzone add ${RECOVERPOINT_VARRAY1}/VSAN_11 ${PWWN2}
+    if [ "$RP_QUICK_PARAM" == "quick" ]; then
+	CLUSTER1NET_NAME=VSAN_11
+    else
+	CLUSTER1NET_NAME=FABRIC_losam082-fabric
+    fi
+
+    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN1}
+    run transportzone add ${RECOVERPOINT_VARRAY1}/${CLUSTER1NET_NAME} ${PWWN2}
 }
 
 recoverpoint_ingest_discovery()
@@ -2960,16 +2966,7 @@ recoverpoint_ingest_test()
 
     # Delete the volume and CG
     run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_VOL1_SRC} --vipronly
-    run blockconsistencygroup delete ${RECOVERPOINT_INGEST_VOL1_CG}
-
-    # Simulator will create a CG with a random value.  We don't have/need such a thing for HW setups
-    if [ "${RECOVERPOINT_INGEST_VOL1_CG}" = "" ]; then
-        RECOVERPOINT_INGEST_VOL1_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}_${vpool}
-    fi
-
-    if [ "${RECOVERPOINT_INGEST_VOLBASE}" = "" ]; then
-        RECOVERPOINT_INGEST_VOLBASE=${RECOVERPOINT_INGEST_VOL1BASE}${RP_SANITY_RANDOM}
-    fi
+    run blockconsistencygroup delete ${RECOVERPOINT_INGEST_VOL1_CG} --vipronly
 
     RECOVERPOINT_INGEST_VOL1_SRC_JRNL=${RECOVERPOINT_INGEST_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-1
     RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY1}
@@ -3061,7 +3058,7 @@ recoverpoint_ingest_test()
 
     # Inventory-only remove of RP volume 
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly
-    run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
+    run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG} --vipronly
 
     # Run discovery
     recoverpoint_ingest_discovery
@@ -3105,7 +3102,7 @@ recoverpoint_ingest_test()
     # Verify the CG got created; fail script if this fails.
     run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
 
-    # Inventory-only remove of RP volume
+    # Real removal of volume/CG
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --wait
     run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_VOL1_CG}
 }
@@ -3130,22 +3127,14 @@ recoverpoint_ingest_export_test()
     # Create the consistency group and volume
     run blockconsistencygroup create ${PROJECT} ${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
     run volume create ${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} ${PROJECT} ${RECOVERPOINT_VARRAY1} ${vpool} 1GB --consistencyGroup ${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
+
     # Export the volume to a host
     run export_group create ${PROJECT} EG${vpool} ${RECOVERPOINT_VARRAY1} --type Host --volspec "${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --hosts ${RP_HOSTNAME}
 
     # Inventory-only delete the volume, export, and CG
     run volume delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC} --vipronly
     run export_group delete ${PROJECT}/EG${vpool}
-    run blockconsistencygroup delete ${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
-
-    # Simulator will create a CG with a random value.  We don't have/need such a thing for HW setups
-    if [ "${RECOVERPOINT_INGEST_VOL1_CG}" = "" ]; then
-        RECOVERPOINT_INGEST_VOL1_CG=${RECOVERPOINT_INGEST_VOL1_CGBASE}_${vpool}
-    fi
-
-    if [ "${RECOVERPOINT_INGEST_VOLBASE}" = "" ]; then
-        RECOVERPOINT_INGEST_VOLBASE=${RECOVERPOINT_INGEST_VOL1BASE}${RP_SANITY_RANDOM}
-    fi
+    run blockconsistencygroup delete ${RECOVERPOINT_INGEST_EXPORT_VOL1_CG} --vipronly
 
     RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL=${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}-${RECOVERPOINT_VARRAY1}-journal-1
     RECOVERPOINT_INGEST_SNAPSHOT_VARRAY=${RECOVERPOINT_VARRAY1}
@@ -3204,7 +3193,7 @@ recoverpoint_ingest_export_test()
     fi
 
     # Verify the CG got created; fail script if this fails.
-    run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
+    run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}"
 
     # Snapshot test
     rpsnap=rpsnap-${RP_MODIFIED_HOSTNAME}-${RANDOM}
@@ -3230,7 +3219,8 @@ recoverpoint_ingest_export_test()
     #run blocksnapshot activate ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
     #run blocksnapshot delete ${PROJECT}/${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}/${blocksnap}
 
-    # Inventory-only remove of RP volume
+    # Real removal of volume/CG
+    run_noundo export_group delete ${PROJECT}/${RP_HOSTNAME}
     run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --wait
     run_noundo blockconsistencygroup delete ViPR-${RECOVERPOINT_INGEST_EXPORT_VOL1_CG}
 }

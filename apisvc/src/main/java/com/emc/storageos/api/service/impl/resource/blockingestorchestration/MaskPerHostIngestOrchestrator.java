@@ -16,14 +16,10 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
-import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.google.common.collect.Collections2;
 
 /*
@@ -33,7 +29,7 @@ import com.google.common.collect.Collections2;
  * Here, during provisioning ViPR creates a logical container Export mask for each Host to get exported
  * through ViPR.Its guaranteed that there will be always only 1 export mask available in ViPR Db at any
  * point of time.
- * 
+ *
  * XtremIO,HDS are examples.
  */
 public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator {
@@ -41,8 +37,8 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
     private static final Logger _logger = LoggerFactory.getLogger(MaskPerHostIngestOrchestrator.class);
 
     @Override
-    public <T extends BlockObject> void ingestExportMasks(IngestionRequestContext requestContext, 
-            UnManagedVolume unManagedVolume, T blockObject, List<UnManagedExportMask> unManagedMasks, 
+    public <T extends BlockObject> void ingestExportMasks(IngestionRequestContext requestContext,
+            UnManagedVolume unManagedVolume, T blockObject, List<UnManagedExportMask> unManagedMasks,
             MutableInt masksIngestedCount) throws IngestionException {
         super.ingestExportMasks(requestContext, unManagedVolume, blockObject, unManagedMasks, masksIngestedCount);
     }
@@ -50,7 +46,7 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
     /**
      * maskPerHost Mode guaranteed to have initiators in only 1 export mask
      * always.
-     * 
+     *
      */
     @Override
     protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
@@ -82,17 +78,23 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
         return eMask;
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestExportOrchestrator#getExportMaskAlreadyCreated(com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask, com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
+    /*
+     * (non-Javadoc)
+     *
+     * @see
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestExportOrchestrator#getExportMaskAlreadyCreated(com.
+     * emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask,
+     * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
      */
     @Override
     protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
         List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
                 mask.getKnownInitiatorUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
+        List<ExportMask> exportMasks = requestContext.findAllNewExportMasks();
         for (URI ini : initiatorUris) {
-            for (ExportMask createdMask : requestContext.findAllNewExportMasks()) {
+            for (ExportMask createdMask : exportMasks) {
                 if (null != createdMask && createdMask.getInitiators() != null
-                        && createdMask.getInitiators().contains(ini)) {
+                        && createdMask.getInitiators().contains(ini.toString())) {
                     if (createdMask.getStorageDevice().equals(mask.getStorageSystemUri())) {
                         _logger.info("Found already-created ExportMask {} matching UnManagedExportMask initiator {} and storage system {}",
                                 createdMask.getMaskName(), ini, mask.getStorageSystemUri());
@@ -102,7 +104,7 @@ public class MaskPerHostIngestOrchestrator extends BlockIngestExportOrchestrator
 
             }
         }
-        
+
         _logger.info("No existing created mask found for UnManagedExportMask {}", mask.getMaskName());
         return null;
     }

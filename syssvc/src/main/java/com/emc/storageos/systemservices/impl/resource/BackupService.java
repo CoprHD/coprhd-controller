@@ -547,19 +547,27 @@ public class BackupService {
         try {
             Map<String,URI> nodesInfo = backupOps.getNodesInfo();
             int numberOfNodes = nodesInfo.size();
-            Map<String, Long> sizes = new HashMap(numberOfNodes);
+            Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
+            Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
             for (int i =1; i <= numberOfNodes; i++) {
-                sizes.put("vipr"+i, (long)0);
+                sizesToDownload.put("vipr"+i, (long)0);
+                downloadedSizes.put("vipr"+i, (long)0);
             }
 
-
-            // since all we know is the size of the backup file,
-            // we use it as the download size for now.
-            // after downloaded and unzipped the backup file,
-            // we'll adjust the download size (in DownloadExecutor.postDownload())
+            // the zipped backup file will be downloaded to this node
+            // so set the size to be downloaded on this node to the size of zip file
             String localHostName = InetAddress.getLocalHost().getHostName();
-            sizes.put(localHostName, size);
-            s.setSizeToDownload(sizes);
+            sizesToDownload.put(localHostName, size);
+            s.setSizeToDownload(sizesToDownload);
+
+            // check if we've already downloaded some part of zip file before,
+            // if so, updated the downloaded size
+            File downloadFolder = backupOps.getDownloadDirectory(backupName);
+            File zipfile = new File(downloadFolder, backupName);
+            if (zipfile.exists()) {
+                downloadedSizes.put(localHostName, zipfile.length());
+            }
+            s.setDownloadedSize(downloadedSizes);
         }catch(UnknownHostException |URISyntaxException e) {
             log.error("Failed to set the download size e={}", e.getMessage());
             throw new RuntimeException(e);

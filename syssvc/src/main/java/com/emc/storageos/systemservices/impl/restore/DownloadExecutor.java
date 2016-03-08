@@ -184,7 +184,7 @@ public final class DownloadExecutor implements  Runnable {
 
             if (isCanceled) {
                 s = Status.DOWNLOAD_CANCELLED;
-                deleteDownloadedBackup();
+                // deleteDownloadedBackup();
             }
 
             backupOps.setRestoreStatus(remoteBackupFileName, s, e.getMessage(), false);
@@ -377,14 +377,21 @@ public final class DownloadExecutor implements  Runnable {
 
     private File persistBackupFile(File downloadDir, String backupFileName, BufferedInputStream in, byte[] buffer, boolean updateDownloadedSize) throws IOException {
         File file = new File(downloadDir, backupFileName);
+
         if (!file.exists()) {
             log.info("To create the new file {}", file.getAbsolutePath());
             file.getParentFile().mkdirs();
             file.createNewFile();
         }
 
-        try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file))) {
-            int length;
+        // Skip downloaded part
+        long skip = file.length();
+        log.info("lby skip={} bytes", skip);
+        in.skip(file.length());
+        log.info("lby skip done");
+
+        int length;
+        try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file, true))) {
             while ((length = in.read(buffer)) > 0) {
                 out.write(buffer, 0, length);
                 if (updateDownloadedSize) {

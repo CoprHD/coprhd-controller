@@ -5,7 +5,9 @@
 package com.emc.vipr.model.sys.backup;
 
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,9 +66,17 @@ public class BackupRestoreStatus {
         return status;
     }
 
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
     @XmlElement (name = "details")
     public String getDetails() {
         return details;
+    }
+
+    public void setDetails(String details) {
+        this.details = details;
     }
 
     public void setStatusWithDetails(Status s, String details) {
@@ -74,6 +84,7 @@ public class BackupRestoreStatus {
         this.details = details != null ? details : s.getMessage();
     }
 
+    @XmlTransient
     public int getNodeCompleted() {
         return nodeCompleted;
     }
@@ -82,6 +93,7 @@ public class BackupRestoreStatus {
         nodeCompleted++;
     }
 
+    @XmlElementWrapper(name = "backup_file_names")
     public List<String> getBackupFileNames() {
         return backupFileNames;
     }
@@ -99,62 +111,21 @@ public class BackupRestoreStatus {
         this.isGeo = isGeo;
     }
 
-
-    /**
-     * The status of uploading backup set
-     */
-    @XmlType(name = "restore_Status")
-    public enum Status {
-        READY (true, false, false, "Ready"),
-        DOWNLOADING (true, false, false, "Downloading"),
-        DOWNLOAD_SUCCESS (false, false, true, "Download success"),
-        DOWNLOAD_FAILED (false, true, true, "Download failed"),
-        DOWNLOAD_CANCELLED (false, true, true, "Download Canceled"),
-        RESTORE_FAILED (false, false, false, "Restore failed"),
-        RESTORE_SUCCESS (false, false ,false, "Restore success");
-
-        private boolean cancellable = false;
-        private boolean removeDownloadedFiles = false;
-        private boolean removeListener = false;
-        private String message = "";
-
-        Status(boolean cancellable, boolean removeFiles, boolean removeListener, String msg) {
-            this.cancellable = cancellable;
-            this.removeDownloadedFiles = removeFiles;
-            this.removeListener = removeListener;
-            message = msg;
-        }
-
-        public boolean canBeCanceled() {
-            return cancellable;
-        }
-
-        public boolean removeListener() {
-
-            return removeListener;
-        }
-
-        public String getMessage () {
-            return message;
-        }
-    }
-
-    @XmlElement(name = "downloaded_size")
+    @XmlElementWrapper(name = "downloaded_size")
     public Map<String, Long> getDownloadedSize() {
         return downloadedSize;
     }
 
-    public void increaseDownloadedSize(String node, long size) {
-        Long s = downloadedSize.get(node);
-        if (s == null) {
-            s = (long)0;
-        }
+    public void setDownloadedSize(Map<String, Long> downloadedSize) {
+        this.downloadedSize = downloadedSize;
+    }
 
-        s += size;
+    public void increaseDownloadedSize(String node, long size) {
+        long s = downloadedSize.get(node) + size;
         downloadedSize.put(node, s);
     }
 
-    @XmlElement(name = "size_to_download")
+    @XmlElementWrapper(name = "size_to_download")
     public Map<String, Long> getSizeToDownload() {
         return sizeToDownload;
     }
@@ -166,6 +137,44 @@ public class BackupRestoreStatus {
     public boolean isNotSuccess() {
         return status == Status.DOWNLOAD_FAILED || status == Status.RESTORE_FAILED;
     }
+
+    /**
+     * The status of pulled backup set
+     */
+    @XmlType(name = "restore_Status")
+    public enum Status {
+        READY (true, false, "Ready"),
+        DOWNLOADING (true, false, "Downloading"),
+        DOWNLOAD_SUCCESS (false, true, "Download success"),
+        DOWNLOAD_FAILED (false, true, "Download failed"),
+        DOWNLOAD_CANCELLED (false, true, "Download Canceled"),
+        RESTORE_FAILED (false, false, "Restore failed"),
+        RESTORE_SUCCESS (false, false, "Restore success");
+
+        private boolean cancellable = false;
+        private boolean removeListener = false;
+        private String message = "";
+
+        Status(boolean cancellable, boolean removeListener, String msg) {
+            this.cancellable = cancellable;
+            this.removeListener = removeListener;
+            message = msg;
+        }
+
+        public boolean canBeCanceled() {
+            return cancellable;
+        }
+
+        public boolean removeListener() {
+            return removeListener;
+        }
+
+        @XmlTransient
+        public String getMessage () {
+            return message;
+        }
+    }
+
 
     //convert to Map to persist to ZK
     public Map<String, String> toMap() {
@@ -210,7 +219,9 @@ public class BackupRestoreStatus {
             return map;
         }
 
-        String str = s.substring(1); //skip leading MAP_ENTRY_SEPARATOR
+        //skip leading MAP_ENTRY_SEPARATOR
+        String str = s.substring(1);
+
         String[] entries = str.split(MAP_ENTRY_SEPARATOR);
 
         for (String entry : entries) {
@@ -234,11 +245,9 @@ public class BackupRestoreStatus {
                     backupName = value;
                     break;
                 case KEY_PULL_SIZE:
-                    log.info("get whole size from zk={}", value);
                     sizeToDownload = toMap(value);
                     break;
                 case KEY_DOWNLOADED_SIZE:
-                    log.info("get downloaded size={}", value);
                     downloadedSize = toMap(value);
                     break;
                 case KEY_STATUS:

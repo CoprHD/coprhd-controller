@@ -197,13 +197,13 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
         URI cgURI = URIUtil.createId(BlockConsistencyGroup.class);
         cg.setId(cgURI);
         newObjectsToBeCreated.add(cg);
+        URI projectURI = URIUtil.createId(Project.class);
         for (int i = 0; i < SNAPVX_SNAPSHOT_COUNT; i++) {
             BlockSnapshot snapshot = new BlockSnapshot();
             URI snapshotURI = URIUtil.createId(BlockSnapshot.class);
             snapshot.setId(snapshotURI);
             snapshot.setLabel(BASE_GRP_SNAPVX_SNAPSHOT_NAME + i);
             snapshot.setSnapsetLabel(BASE_GRP_SNAPVX_SNAPSHOT_NAME);
-            URI projectURI = URIUtil.createId(Project.class);
             snapshot.setProject(new NamedURI(projectURI, PROJECT_NAME));
             URI parentURI = URIUtil.createId(Volume.class);
             snapshot.setParent(new NamedURI(parentURI, GRP_PARENT_NAME + i));

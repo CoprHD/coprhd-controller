@@ -610,7 +610,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _log.info("Done invoking remove volume from storage group");
                 }
                 // For clones, 'replicationgroupinstance' property contains the Replication Group name.
-                if (volume.getReplicationGroupInstance() != null) {
+                if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                     removeVolumeFromConsistencyGroup(storageSystem, volume);
                 }
                 if (volume.getConsistencyGroup() != null) {

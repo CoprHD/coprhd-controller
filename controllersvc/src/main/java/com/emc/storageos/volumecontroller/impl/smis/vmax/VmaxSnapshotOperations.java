@@ -227,6 +227,16 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 if (storage.checkIfVmax3()) {
                     _helper.removeVolumeFromParkingSLOStorageGroup(storage, snap.getNativeId(), false);
                     _log.info("Done invoking remove volume {} from parking SLO storage group", snap.getNativeId());
+
+                    // If COPY mode snapshot, detach the element synchronization before deleting it.
+                    // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
+                    if (BlockSnapshot.CopyMode.copy.toString().equals(snap.getCopyMode())) {
+                        CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
+                        CIMArgument[] outArgsDetach = new CIMArgument[5];
+                        CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
+                        _helper.invokeMethodSynchronously(storage, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
+                                inArgsDetach, outArgsDetach, null);
+                    }
                 }
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.callModifyReplica(storage, _helper.getDeleteSnapshotSynchronousInputArguments(syncObjectPath), outArgs);
@@ -1417,7 +1427,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
                 TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, tenantURI);
                 String tenantName = tenant.getLabel();
-                String snapSessionLabelToUse = _nameGenerator.generate(tenantName, snapSession.getLabel(),
+                String snapSessionLabelToUse = _nameGenerator.generate(tenantName, snapSession.getSessionLabel(),
                         snapSessionURI.toString(), '-', SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
                 CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 CIMObjectPath sourceObjPath = _cimPath.getBlockObjectPath(system, sourceObj);
@@ -1595,13 +1605,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 }
 
                 // Create snapshot target volumes
-
-                CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, (Volume) sampleParent, null);
                 for (Entry<String, List<Volume>> entry : volumesBySizeMap.entrySet()) {
                     final List<Volume> volumes = entry.getValue();
                     final Volume volume = volumes.get(0);
                     final URI poolId = volume.getPool();
 
+                    // get respective group path for volume storage pool
+                    CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, volume, null);
                     // Create target devices based on the array model
                     final List<String> newDeviceIds = kickOffTargetDevicesCreation(system, volumeGroupPath,
                             sourceGroupName, null, false, true, volumes.size(), poolId,

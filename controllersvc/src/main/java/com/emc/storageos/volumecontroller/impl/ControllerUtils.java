@@ -1178,6 +1178,22 @@ public class ControllerUtils {
                     return true;
                 }
             }
+
+            // snapshot session
+            if (storage.checkIfVmax3()) {
+                URIQueryResultList sessionList = new URIQueryResultList();
+                dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                        getBlockSnapshotSessionByConsistencyGroup(cgURI), sessionList);
+                Iterator<URI> itr = sessionList.iterator();
+                while (itr.hasNext()) {
+                    URI sessionID = itr.next();
+                    BlockSnapshotSession session = dbClient.queryObject(BlockSnapshotSession.class, sessionID);
+                    if (session != null && !session.getInactive()
+                            && NullColumnValueGetter.isNotNullValue(session.getReplicationGroupInstance())) {
+                        return true;
+                    }
+                }
+            }
         }
 
         return false;
@@ -1215,6 +1231,19 @@ public class ControllerUtils {
         }
 
         return groupNames;
+    }
+    
+    /**
+     * Gets snapshot replication group names from source volumes in CG.
+     * 
+     * @param volumes
+     * @param dbClient
+     * @return
+     */
+    public static String getCopyModeFromSnapshotGroup(String snapGroupName, URI storage,  DbClient dbClient) {
+       List<BlockSnapshot> snapshots =  getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);
+       return snapshots.get(0).getCopyMode();
+       
     }
 
     /**
@@ -1429,13 +1458,26 @@ public class ControllerUtils {
     }
 
     public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName, DbClient dbClient) {
-        String groupName = replicationGroupName;
-
         if (storage.deviceIsType(Type.vnxblock) && cg.getArrayConsistency()) {
             return cg.getCgNameOnStorageSystem(storage.getId());
         }
 
+        String groupName = replicationGroupName;
         if (groupName == null && cg != null) {
+            //TEMPORARY FIX to solve both Application & Non-application use cases
+            // Check to see if there's already a groupName associated with the existing volumes
+            // Get all of the volumes associated with this consistency group, look for your storage system
+            // If the replicationGroupInstance is filled-in, go with that.
+            List<Volume> volumes = RPHelper.getAllCgVolumes(cg.getId(), dbClient);
+            for (Volume volume : volumes) {
+                if (volume.getStorageController().equals(storage.getId())) {
+                    String volumeCGName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, dbClient);
+                    if (NullColumnValueGetter.isNotNullValue(volumeCGName)) {
+                        return volumeCGName;
+                    }
+                }
+            }
+
             // if there is only one system cg name for this storage system, use this; it may be different than the label
             if (cg.getSystemConsistencyGroups() != null && storage != null) {
                 StringSet cgsforStorage = cg.getSystemConsistencyGroups().get(storage.getId().toString());
@@ -1447,23 +1489,7 @@ public class ControllerUtils {
             } else {
                 groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
             }
-            
-            //TEMPORARY FIX to solve both Application & Non-appication use cases
-            // Check to see if there's already a groupName associated with the existing volumes
-            // Get all of the volumes associated with this consistency group, look for your storage system
-            // If the replicationGroupInstance is filled-in, go with that.
-            List<Volume> volumes = RPHelper.getAllCgVolumes(cg.getId(), dbClient);
-            for (Volume volume : volumes) {
-                if (volume.getStorageController().equals(storage.getId())) {
-                    String volumeCGName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, dbClient);
-                    if (NullColumnValueGetter.isNotNullValue(volumeCGName)) {
-                        groupName = volumeCGName;
-                    }
-                }
-            }
         }
-
-        
         
         return groupName;
     }
@@ -1781,6 +1807,24 @@ public class ControllerUtils {
         return false;
     }
 
+    /**
+     * Returns the project for the snapshot session source.
+     * 
+     * @param sourceObj A reference to the Volume or BlockSnapshot instance.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return A reference to the project for the snapshot session source.
+     */
+    public static URI querySnapshotSessionSourceProject(BlockObject sourceObj, DbClient dbClient) {
+        URI projectURI = null;
+        if (sourceObj instanceof Volume) {
+            projectURI = ((Volume) sourceObj).getProject().getURI();
+        } else if (sourceObj instanceof BlockSnapshot) {
+            projectURI = ((BlockSnapshot) sourceObj).getProject().getURI();
+        }
+        return projectURI;
+    }
+
     /*
      * Check replicationGroup contains all and only volumes provided
      * 
@@ -1853,6 +1897,20 @@ public class ControllerUtils {
         }
 
         return false;
+    }
+
+    /*
+     * Check if non CG volume has snapshot session
+     *
+     * @param volumeUri
+     * @param dbClient
+     * @return true if has session, false otherwise
+     */
+    public static boolean checkIfVolumeHasSnapshotSession(URI volumeUri, DbClient dbClient) {
+        List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class,
+                ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeUri));
+        return !sessions.isEmpty();
     }
 
     /**

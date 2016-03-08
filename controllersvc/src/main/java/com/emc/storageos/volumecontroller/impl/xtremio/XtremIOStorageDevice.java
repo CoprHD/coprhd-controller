@@ -879,6 +879,13 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                             consistencyGroup.getLabel(), e.getMessage()));
         }
     }
+    
+    @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceReplicationGroup, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, taskCompleter);
+    }
 
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,

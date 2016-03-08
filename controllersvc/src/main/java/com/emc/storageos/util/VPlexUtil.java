@@ -1084,7 +1084,7 @@ public class VPlexUtil {
         if (!NullColumnValueGetter.isNullURI(cgUri)) {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
             if (cg != null) {
-                if (!cg.getTypes().contains(Types.LOCAL.toString())) {
+                if (!cg.getTypes().contains(Types.LOCAL.toString()) && !cg.getTypes().contains(Types.SRDF.toString())) {
                     result = true;
                 }
             }

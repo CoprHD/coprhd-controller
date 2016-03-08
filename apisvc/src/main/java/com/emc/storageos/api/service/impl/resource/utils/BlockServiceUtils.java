@@ -720,14 +720,18 @@ public class BlockServiceUtils {
 
             // If it's a VPLEX volume, check both backing volumes to make sure they have replication group instance set
             if (volume.isVPlexVolume(dbClient)) {
-                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient);
+                Volume backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
                 if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
                     throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
                 }
-                backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-                if (backendVolume != null && NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
-                    throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
+                if (backendVolume == null || !backendVolume.checkForSRDF()) {
+                    // We don't check the HA leg if the source was SRDF.
+                    backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, false, dbClient);
+                    if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
+                        throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
+                    }
                 }
+                
                 return;
             }
         }

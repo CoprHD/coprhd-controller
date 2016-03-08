@@ -134,7 +134,6 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             // update the ExportGroupType in UnManagedVolume. This will be used to place the
             // volume in the right ExportGroup based on the ExportGroupType.
             updateExportTypeInUnManagedVolume(unManagedVolume, exportGroupType);
-            _dbClient.updateObject(unManagedVolume);
 
             // If we find an existing export mask in DB, with the expected set of initiators,
             // then add this unmanaged volume to the mask.

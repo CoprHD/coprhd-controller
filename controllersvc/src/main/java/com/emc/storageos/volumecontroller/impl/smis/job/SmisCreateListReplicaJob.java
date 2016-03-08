@@ -19,8 +19,8 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -197,8 +197,7 @@ public class SmisCreateListReplicaJob extends SmisReplicaCreationJobs {
         if (!storage.checkIfVmax3()) {
             return;
         }
-        BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, snapshot.getConsistencyGroup());
-        String cgName = cg.getCgNameOnStorageSystem(storage.getId());
+        String cgName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshot, dbClient);
         String instance = SmisUtils.generateVmax3SettingsInstance(storage, cgName, snapshot.getReplicationGroupInstance());
         snapshot.setSettingsInstance(instance);
     }

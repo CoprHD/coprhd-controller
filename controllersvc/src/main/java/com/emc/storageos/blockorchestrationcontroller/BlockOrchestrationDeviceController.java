@@ -499,7 +499,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                                 rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
                         blockDataDescriptors.add(blockDataDesc);
     
-                        // Good time to update the backing volume with it's new CG
+                        // Good time to update the backing volume with its new CG
                         assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
                         s_dbClient.updateObject(assocVolume);
     

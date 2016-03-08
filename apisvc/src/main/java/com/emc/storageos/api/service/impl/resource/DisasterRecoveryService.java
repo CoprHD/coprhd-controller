@@ -791,8 +791,9 @@ public class DisasterRecoveryService {
     public SiteRestRep resumeStandby(@PathParam("uuid") String uuid) {
         log.info("Begin to resume data sync to standby site identified by uuid: {}", uuid);
         Site standby = validateSiteConfig(uuid);
-        if (!standby.getState().equals(SiteState.STANDBY_PAUSED)) {
-            log.error("site {} is in state {}, should be STANDBY_PAUSED", uuid, standby.getState());
+        SiteState state = standby.getState();
+        if (!state.equals(SiteState.STANDBY_PAUSED) && !state.equals(SiteState.ACTIVE_DEGRADED)) {
+            log.error("site {} is in state {}, should be STANDBY_PAUSED or ACTIVE_DEGRADED", uuid, standby.getState());
             throw APIException.badRequests.operationOnlyAllowedOnPausedSite(standby.getName(), standby.getState().toString());
         }
         SiteNetworkState networkState = drUtil.getSiteNetworkState(uuid);
@@ -1223,7 +1224,7 @@ public class DisasterRecoveryService {
                 log.info("Cant't find active site id, go on to do failover");
             } else {
                 oldActiveSite = drUtil.getSiteFromLocalVdc(activeSiteId);
-                oldActiveSite.setState(SiteState.ACTIVE_FAILING_OVER);
+                oldActiveSite.setState(SiteState.ACTIVE_DEGRADED);
                 coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
             }
             
@@ -1236,13 +1237,9 @@ public class DisasterRecoveryService {
             //reconfig other standby sites
             for (Site site : allStandbySites) {
                 if (!site.getUuid().equals(uuid)) {
-                    try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
-                        client.setCoordinatorClient(coordinator);
-                        client.setKeyGenerator(apiSignatureGenerator);
-                        client.failover(uuid, oldActiveSite.getUuid(), vdcTargetVersion);
-                    } catch (Exception e){
-                        log.error("Failed to do failover for site {}, ignore it for failover", site.toBriefString());
-                    }
+                    site.setState(SiteState.STANDBY_PAUSED);
+                    coordinator.persistServiceConfiguration(site.toConfiguration());
+                    
                     // update the vdc config version on the new active site.
                     drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_FAILOVER, vdcTargetVersion,
                             oldActiveSite.getUuid(), currentSite.getUuid());
@@ -1488,7 +1485,7 @@ public class DisasterRecoveryService {
                 continue;
             }
             // don't check node state for paused sites.
-            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED) || site.getState().equals(SiteState.ACTIVE_DEGRADED)) {
                 continue;
             }
             int nodeCount = site.getNodeCount();

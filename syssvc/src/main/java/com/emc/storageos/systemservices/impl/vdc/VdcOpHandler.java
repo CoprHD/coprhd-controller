@@ -859,15 +859,7 @@ public abstract class VdcOpHandler {
                 processFailover();
                 localRepository.rebaseZkSnapshot();
                 waitForAllNodesAndReboot(site);
-            } else {
-                reconfigVdc();
-                // Flush vdc properties includes VDC_CONFIG_VERSION to disk here, since the next step restarts syssvc
-                PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
-                vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, String.valueOf(targetSiteInfo.getVdcConfigVersion()));
-                localRepository.setVdcPropertyInfo(vdcProperty);
-
-                localRepository.restartCoordinator("observer");
-            }
+            } 
         }
         
         public void setPostHandlerFactory(Factory postHandlerFactory) {
@@ -901,12 +893,9 @@ public abstract class VdcOpHandler {
                     log.info("Old active site has been remove by other node, no action needed.");
                     return;
                 }
-
                 tryPoweroffRemoteSite(oldActiveSite);    
-                removeDbNodesFromGossip(oldActiveSite);
                 removeDbNodesFromStrategyOptions(oldActiveSite);
                 postHandlerFactory.initializeAllHandlers();
-                drUtil.removeSite(oldActiveSite);
             } catch (Exception e) {
                 log.error("Failed to remove old active site in failover, {}", e);
                 throw e;

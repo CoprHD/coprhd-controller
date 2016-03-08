@@ -65,7 +65,9 @@ public class IPSecInitialRotate implements Runnable {
                         return;
                     }
                 } finally {
-                    lock.release();
+                    if (lock != null) {
+                        lock.release();
+                    }
                 }
             } catch (ServiceUnavailableException suex) {
                 log.warn("cluster is not stable currently.");

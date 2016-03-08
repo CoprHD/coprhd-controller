@@ -269,7 +269,7 @@
       #{nav.menuSection 'nav.settings'} 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
         		#{nav.item 'properties', href: @infra.ConfigProperties.properties()/}
-        	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && isActiveSite && !controllers.infra.ClusterInfo.isDRMultisites() }
+        	 #{if controllers.infra.ClusterInfo.isVMwareVapp() && isActiveSite && !controllers.infra.DisasterRecovery.isMultiDrSite() }
             	#{nav.item 'clusterInfo', href: @infra.ClusterInfo.clusterIpInfo()/}
             #{/if}
          #{/deadbolt.restrict}
@@ -301,7 +301,7 @@
             	#{/if}
         	#{/deadbolt.restrict}
         	 #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}  
-        	 	#{nav.separator/}	
+ 
               #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}  
               #{/deadbolt.restrict}
 

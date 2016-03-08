@@ -37,7 +37,7 @@ def consistency_group_delete(args):
     group_uri = bourne.block_consistency_group_query(args.name)
     print "Deleting BlockConsistencyGroup " + str(group_uri)
     start = time.time()
-    (o, s) = bourne.block_consistency_group_delete(group_uri)
+    (o, s) = bourne.block_consistency_group_delete(group_uri, args.vipronly)
     total = time.time() - start
     if (s["state"] == 'ready'):
         print "BlockConsistencyGroup deleted successfully in", "{0:.2f}".format(total), "seconds"
@@ -385,6 +385,7 @@ update.add_argument('--remove', dest='remove')
 # consistency group delete   uri [--ip ipaddr]
 delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name', help = 'name of blockconsistencygroup')
+delete.add_argument('--vipronly', action='store_true', help = 'Delete only from ViPR')
 
 checkVolume = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 checkVolume.add_argument('project', help = 'name of the project to use in blockconsistencygroup')

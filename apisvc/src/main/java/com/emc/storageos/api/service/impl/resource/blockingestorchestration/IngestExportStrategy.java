@@ -17,7 +17,6 @@ import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
@@ -47,17 +46,8 @@ public class IngestExportStrategy {
     public <T extends BlockObject> T ingestExportMasks(UnManagedVolume unManagedVolume,
             T blockObject, IngestionRequestContext requestContext) throws IngestionException {
 
+        _logger.info("ingesting export masks for requestContext " + requestContext.getCurrentUnmanagedVolume());
         if (null != requestContext.getExportGroup()) {
-
-            // refresh ExportGroup
-            URI exportGroupUri = requestContext.getExportGroup().getId();
-            if (exportGroupUri != null) {
-                ExportGroup existingGroup = _dbClient.queryObject(ExportGroup.class, exportGroupUri);
-                if (null != existingGroup) {
-                    requestContext.setExportGroup(existingGroup);
-                    requestContext.setExportGroupCreated(false);
-                }
-            }
 
             if (null != unManagedVolume.getUnmanagedExportMasks() && !unManagedVolume.getUnmanagedExportMasks().isEmpty()) {
                 List<URI> unManagedMaskUris = new ArrayList<URI>(Collections2.transform(
@@ -84,6 +74,8 @@ public class IngestExportStrategy {
                                     unManagedVolume.getLabel());
                         }
                     } else {
+                        // If the unmanaged volume is not marked for deletion, then it should be updated with the changes done.
+                        requestContext.addDataObjectToUpdate(unManagedVolume, unManagedVolume);
                         return blockObject;
                     }
                 }
@@ -96,7 +88,8 @@ public class IngestExportStrategy {
                         boolean isRPVolume = VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(unManagedVolume);
                         // if its RP volume and non RP exported, then check whether the RP CG is fully ingested
                         if (isRPVolume && VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(unManagedVolume)) {
-                            List<DataObject> updateObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid());
+                            List<DataObject> updateObjects = requestContext.getDataObjectsToBeUpdatedMap()
+                                    .get(unManagedVolume.getNativeGuid());
                             if (updateObjects == null) {
                                 updateObjects = new ArrayList<DataObject>();
                                 requestContext.getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), updateObjects);
@@ -113,7 +106,7 @@ public class IngestExportStrategy {
                             }
                             // If fully ingested, then setup the RP CG too.
                             if (VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient)) {
-                                VolumeIngestionUtil.setupRPCG(requestContext, umpset, updateObjects, _dbClient);
+                                VolumeIngestionUtil.setupRPCG(requestContext, umpset, unManagedVolume, updateObjects, _dbClient);
                             } else { // else mark the volume as internal. This will be marked visible when the RP CG is ingested
                                 blockObject.addInternalFlags(BlockRecoverPointIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
                             }
@@ -121,8 +114,10 @@ public class IngestExportStrategy {
 
                         unManagedVolume.setInactive(true);
                         requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
+                    } else {
+                        // If the unmanaged volume is not marked for deletion, then it should be updated with the changes done.
+                        requestContext.addDataObjectToUpdate(unManagedVolume, unManagedVolume);
                     }
-
                     return blockObject;
                 } else {
                     if (null != errorMessages && !errorMessages.isEmpty()) {

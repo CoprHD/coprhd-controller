@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
@@ -151,12 +152,27 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     itr.remove();
                     continue;
                 }
+
                 _logger.info("looking for an existing export mask for " + unManagedExportMask.getMaskName());
-                ExportMask exportMask = getExportsMaskAlreadyIngested(unManagedExportMask, _dbClient);
-                if (null == exportMask) {
-                    _logger.info("\tno mask found");
-                    continue;
+                ExportMask exportMask = getExportMaskAlreadyIngested(unManagedExportMask, _dbClient);
+
+                if (null != exportMask) {
+                    // check if mask has already been loaded
+                    DataObject loadedExportMask = requestContext.findInUpdatedObjects(exportMask.getId());
+
+                    if (loadedExportMask != null) {
+                        exportMask = (ExportMask) loadedExportMask;
+                    }
+                } else {
+                    // check if mask has already been created
+                    exportMask = getExportMaskAlreadyCreated(unManagedExportMask, requestContext.getRootIngestionRequestContext());
+                    
+                    if (exportMask == null) {
+                        _logger.info("\tno mask found");
+                        continue;
+                    }
                 }
+
                 _logger.info("Export Mask {} already available", exportMask.getMaskName());
                 masksIngestedCount.increment();
                 List<URI> iniList = new ArrayList<URI>(Collections2.transform(exportMask.getInitiators(),
@@ -207,7 +223,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     exportMask.setZoningMap(zoneMap);
                 }
 
-                requestContext.addDataObjectToUpdate(exportMask);
+                requestContext.addDataObjectToUpdate(exportMask, unManagedVolume);
                 ExportMaskUtils.updateFCZoneReferences(exportGroup, blockObject, unManagedExportMask.getZoningMap(), initiators,
                         _dbClient);
 
@@ -230,7 +246,7 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                         unManagedExportMask.getMaskName());
                 itr.remove();
 
-                requestContext.addDataObjectToUpdate(exportMask);
+                requestContext.addDataObjectToUpdate(exportMask, unManagedVolume);
             }
 
             _logger.info("{} unmanaged mask(s) remaining to process", unManagedMasks.size());
@@ -344,11 +360,11 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
             }
 
             for (UnManagedExportMask uem : uemsToPersist) {
-                requestContext.addDataObjectToUpdate(uem);
+                requestContext.addDataObjectToUpdate(uem, unManagedVolume);
             }
 
             for (ExportMask exportMaskToCreate : exportMasksToCreate) {
-                requestContext.addDataObjectToCreate(exportMaskToCreate);
+                requestContext.addDataObjectToCreate(exportMaskToCreate, unManagedVolume);
                 exportGroup.addExportMask(exportMaskToCreate.getId());
             }
         } catch (IngestionException e) {
@@ -386,7 +402,17 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
      * @param iniUriStr
      * @return
      */
-    protected abstract ExportMask getExportsMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient);
+    protected abstract ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient);
+
+    /**
+     * Find existing but newly-created export mask in IngestionRequestContext which contains
+     * the right attributes. 
+     * 
+     * @param mask
+     * @param requestContext
+     * @return
+     */
+    protected abstract ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext);
 
     /**
      * Get initiators of Host from ViPR DB

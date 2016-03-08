@@ -5,10 +5,7 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,12 +21,10 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -194,46 +189,9 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
     protected BlockConsistencyGroup getConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
             IngestionRequestContext context, DbClient dbClient) {
         if (VolumeIngestionUtil.checkUnManagedResourceAddedToConsistencyGroup(unManagedVolume)) {
-            return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, blockObj, context.getVpool(unManagedVolume),
-                    context.getProject().getId(), context.getTenant().getId(), context.getVarray(unManagedVolume).getId(),
-                    context.getVolumeContext().getUmCGObjectsToUpdate(),
-                    dbClient);
+            return VolumeIngestionUtil.getBlockObjectConsistencyGroup(unManagedVolume, blockObj, context, dbClient);
         }
         return null;
-    }
-
-    @Override
-    protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject snapshot, IngestionRequestContext requestContext,
-            UnManagedVolume unManagedVolume) {
-        UnManagedConsistencyGroup umcg = requestContext.findUnManagedConsistencyGroup(cg);
-        List<DataObject> blockObjectsToUpdate = new ArrayList<DataObject>();
-        if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
-            for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
-
-                BlockObject blockObject = requestContext.findCreatedBlockObject(managedVolumeEntry.getKey());
-                if (blockObject == null) {
-                    // Next look in the updated objects.
-                    blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(managedVolumeEntry.getKey()));
-                }
-                if (blockObject == null) {
-                    // Finally look in the DB itself. It may be from a previous ingestion operation.
-                    blockObject = BlockObject.fetch(_dbClient, URI.create(managedVolumeEntry.getValue()));
-                    // If blockObject is still not exists
-                    if (null == blockObject) {
-                        _logger.warn("Volume {} is not yet ingested. Hence skipping", managedVolumeEntry.getKey());
-                        continue;
-                    }
-                    blockObjectsToUpdate.add(blockObject);
-                }
-                blockObject.setConsistencyGroup(cg.getId());
-                blockObject.setReplicationGroupInstance(cg.getLabel());
-            }
-            if (!blockObjectsToUpdate.isEmpty()) {
-                requestContext.getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), blockObjectsToUpdate);
-            }
-        }
-        snapshot.setConsistencyGroup(cg.getId());
-        snapshot.setReplicationGroupInstance(cg.getLabel());
     }
 
 }

@@ -71,7 +71,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.ExceptionUtils;
-import com.emc.storageos.db.client.util.ExportGroupNameGenerator;
 import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -296,11 +295,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                     requestContext.getProcessedUnManagedVolumeMap().put(
                             unManagedVolume.getNativeGuid(), requestContext.getVolumeContext());
 
-                    // Commit any ingested CG
-                    commitIngestedCG(requestContext, unManagedVolume);
-
-                    requestContext.getVolumeContext().commit();
-
                 } catch (APIException ex) {
                     _logger.error("APIException occurred", ex);
                     _dbClient.error(UnManagedVolume.class, requestContext.getCurrentUnManagedVolumeUri(), taskId, ex);
@@ -368,16 +362,28 @@ public class UnManagedVolumeService extends TaskResourceService {
                             IngestionException.exceptions.unmanagedVolumeIsNotVisible(unManagedVolume.getLabel(), taskMessage));
                 }
 
+                // Commit any ingested CG
+                commitIngestedCG(requestContext, unManagedVolume);
+
+                // Commit the volume's internal resources
+                volumeContext.commit();
+
                 // Commit this volume's updated data objects if any after ingestion
                 List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                    _dbClient.updateObject(updatedObjects);
+                    for (DataObject dob : updatedObjects) {
+                        _logger.info("Updating DataObject " + dob.forDisplay());
+                        _dbClient.updateObject(dob);
+                    }
                 }
 
                 // Commit this volume's created data objects if any after ingestion
                 List<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
                 if (createdObjects != null && !createdObjects.isEmpty()) {
-                    _dbClient.createObject(createdObjects);
+                    for (DataObject dob : createdObjects) {
+                        _logger.info("Creating DataObject " + dob.forDisplay());
+                        _dbClient.createObject(dob);
+                    }
                 }
             }
 
@@ -556,29 +562,6 @@ public class UnManagedVolumeService extends TaskResourceService {
                                                                                                                                // message
                 }
 
-                // Update the related objects if any after successful export mask ingestion
-                List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
-                if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                    _dbClient.updateObject(updatedObjects);
-                }
-
-                // Create the related objects if any after successful export mask ingestion
-                List<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
-                if (createdObjects != null && !createdObjects.isEmpty()) {
-                    _dbClient.createObject(createdObjects);
-                }
-
-                if (requestContext.isExportGroupCreated()) {
-                    _dbClient.createObject(requestContext.getExportGroup());
-                } else {
-                    _dbClient.updateObject(requestContext.getExportGroup());
-                }
-
-                // If there is a CG involved in the ingestion, organize, pollenate, and commit.
-                commitIngestedCG(requestContext, volumeContext.getUnmanagedVolume());
-
-                volumeContext.commit();
-
             } catch (APIException ex) {
                 _logger.warn(ex.getLocalizedMessage(), ex);
                 _dbClient.error(UnManagedVolume.class, unManagedVolumeUri, taskId, ex);
@@ -676,7 +659,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.setHost(exportIngestParam.getHost());
             }
 
-            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), exportGroupResourceUri,
+            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(requestContext, project.getId(), exportGroupResourceUri,
                     varray.getId(), resourceType, _dbClient);
             if (null == exportGroup) {
                 _logger.info("Creating Export Group with label {}", computeResourcelabel);
@@ -695,8 +678,44 @@ public class UnManagedVolumeService extends TaskResourceService {
             _logger.info("Ingestion of unmanaged exportmasks ended....");
             taskList.getTaskList().addAll(taskMap.values());
 
+            for (VolumeIngestionContext volumeContext : requestContext.getProcessedUnManagedVolumeMap().values()) {
+                // If there is a CG involved in the ingestion, organize, pollenate, and commit.
+                commitIngestedCG(requestContext, volumeContext.getUnmanagedVolume());
+
+                // commit the volume itself
+                volumeContext.commit();
+            }
+
             _dbClient.createObject(requestContext.getObjectsIngestedByExportProcessing());
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
+
+            // Update the related objects if any after successful export mask ingestion
+            for (List<DataObject> updatedObjects : requestContext.getDataObjectsToBeUpdatedMap().values()) {
+                if (updatedObjects != null && !updatedObjects.isEmpty()) {
+                    for (DataObject dob : updatedObjects) {
+                        _logger.info("Updating DataObject " + dob.forDisplay());
+                        _dbClient.updateObject(dob);
+                    }
+                }
+            }
+
+            // Create the related objects if any after successful export mask ingestion
+            for (List<DataObject> createdObjects : requestContext.getDataObjectsToBeCreatedMap().values()) {
+                if (createdObjects != null && !createdObjects.isEmpty()) {
+                    for (DataObject dob : createdObjects) {
+                        _logger.info("Creating DataObject " + dob.forDisplay());
+                        _dbClient.createObject(dob);
+                    }
+                }
+            }
+
+            if (requestContext.isExportGroupCreated()) {
+                _logger.info("Creating ExportGroup " + exportGroup.forDisplay());
+                _dbClient.createObject(exportGroup);
+            } else {
+                _logger.info("Updating ExportGroup " + exportGroup.forDisplay());
+                _dbClient.updateObject(exportGroup);
+            }
 
             // record the events after they have been persisted
             for (BlockObject volume : requestContext.getObjectsIngestedByExportProcessing()) {
@@ -730,7 +749,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Commit ingested consistency group
-     * 
+     *
      * @param requestContext request context
      * @param unManagedVolume unmanaged volume to ingest against this CG
      * @throws Exception

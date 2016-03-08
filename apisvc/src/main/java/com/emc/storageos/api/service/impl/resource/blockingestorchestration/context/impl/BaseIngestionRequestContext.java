@@ -32,6 +32,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -991,6 +992,29 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
                     if (umv != null && umv.getId().equals(id)) {
                         _logger.info("found in already-processed volume context");
                         return (T) clazz.cast(umv);
+                    }
+                }
+            }
+        }
+
+        // search for any already-loaded UnManagedProtectionSet instances
+        if (clazz.equals(UnManagedProtectionSet.class)) {
+
+            VolumeIngestionContext currentVolumeContext = getVolumeContext();
+            if (currentVolumeContext != null && currentVolumeContext instanceof RecoverPointVolumeIngestionContext) {
+                UnManagedProtectionSet umpset = ((RecoverPointVolumeIngestionContext) currentVolumeContext).getUnManagedProtectionSetLocal();
+                if (umpset != null && umpset.getId().equals(id)) {
+                    _logger.info("found in current volume context");
+                    return (T) clazz.cast(umpset);
+                }
+            }
+
+            for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+                if (volumeContext != null && volumeContext instanceof RecoverPointVolumeIngestionContext) {
+                    UnManagedProtectionSet umpset = ((RecoverPointVolumeIngestionContext) volumeContext).getUnManagedProtectionSetLocal();
+                    if (umpset != null && umpset.getId().equals(id)) {
+                        _logger.info("found in already-processed volume context");
+                        return (T) clazz.cast(umpset);
                     }
                 }
             }

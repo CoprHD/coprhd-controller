@@ -50,7 +50,7 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
 
         NamedVolumesList volumesToUse = getVolumesBySite();
 
-        List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroup(volumesToUse, subGroups);
+        List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroupAndStorageSystem(volumesToUse, subGroups);
 
         Tasks<? extends DataObjectRestRep> tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, name, readOnly,
                 highAvailability));

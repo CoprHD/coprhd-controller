@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -29,7 +30,6 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.BlockSnapshotSessionMigration;
-import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
 /**
@@ -48,7 +48,7 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
     private static final int SNAPVX_SNAPSHOT_COUNT = 5;
 
     // A map of the snapshots whose system supports snapshot sessions keyed by the snapshot id.
-    Map<String, BlockSnapshot> _linkedTargetsMap = new HashMap<String, BlockSnapshot>();
+    private static Map<String, BlockSnapshot> _linkedTargetsMap = new HashMap<String, BlockSnapshot>();
 
     // A reference to a logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionMigrationTest.class);
@@ -61,7 +61,7 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
     @BeforeClass
     public static void setup() throws IOException {
 
-        customMigrationCallbacks.put("3.0", new ArrayList<BaseCustomMigrationCallback>() {
+        customMigrationCallbacks.put("2.4", new ArrayList<BaseCustomMigrationCallback>() {
             private static final long serialVersionUID = 1L;
 
             {
@@ -70,7 +70,17 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
             }
         });
 
-        DbsvcTestBase.setup();
+        // Adding this, which is typically executed in the base class
+        // call, as it is needed to clear the DB file between runs.
+        _dataDir = new File(dataDir);
+        if (_dataDir.exists() && _dataDir.isDirectory()) {
+            cleanDirectory(_dataDir);
+        }
+        _dataDir.mkdir();
+
+        // Commenting this out as it prevents the migration callback
+        // from being executed when the test is executed.
+        // DbsvcTestBase.setup();
     }
 
     /**
@@ -78,7 +88,7 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
      */
     @Override
     protected String getSourceVersion() {
-        return "3.0";
+        return "2.4";
     }
 
     /**
@@ -182,8 +192,16 @@ public class BlockSnapshotSessionMigrationTest extends DbSimpleMigrationTestBase
             Assert.assertEquals("Parent is not correct", linkedTarget.getParent(), snapSession.getParent());
         }
 
+        // Note: Don't use List#size() as it is not supported by the derived
+        // List class returned by the DB client.
+        int snapshotCount = 0;
         List<URI> snapshotURIs = _dbClient.queryByType(BlockSnapshot.class, true);
-        Assert.assertEquals("Snapshot count is not correct", snapshotURIs.size(), SNAPVX_SNAPSHOT_COUNT + SNAPSHOT_COUNT);
+        Iterator<URI> snapshotURIsIter = snapshotURIs.iterator();
+        while (snapshotURIsIter.hasNext()) {
+            snapshotURIsIter.next();
+            snapshotCount++;
+        }
+        Assert.assertEquals("Snapshot count is not correct", snapshotCount, SNAPVX_SNAPSHOT_COUNT + SNAPSHOT_COUNT);
         Assert.assertEquals("Snapshot session count is not correct", sessionCount, SNAPVX_SNAPSHOT_COUNT);
     }
 }

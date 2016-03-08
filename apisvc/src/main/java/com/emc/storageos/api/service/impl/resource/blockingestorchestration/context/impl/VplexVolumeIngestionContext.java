@@ -7,10 +7,12 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration.con
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestOrchestrator;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
@@ -59,8 +61,8 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
 
     private Map<String, VolumeIngestionContext> _processedUnManagedVolumeMap;
     private Map<String, BlockObject> _blockObjectsToBeCreatedMap;
-    private Map<String, List<DataObject>> _dataObjectsToBeUpdatedMap;
-    private Map<String, List<DataObject>> _dataObjectsToBeCreatedMap;
+    private Map<String, Set<DataObject>> _dataObjectsToBeUpdatedMap;
+    private Map<String, Set<DataObject>> _dataObjectsToBeCreatedMap;
     private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
 
     private final IngestionRequestContext _parentRequestContext;
@@ -131,7 +133,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         _dbClient.createObject(getCreatedSnapshotMap().values());
 
         // Update the related objects if any after successful export mask ingestion
-        for (List<DataObject> updatedObjects : getDataObjectsToBeUpdatedMap().values()) {
+        for (Set<DataObject> updatedObjects : getDataObjectsToBeUpdatedMap().values()) {
             if (updatedObjects != null && !updatedObjects.isEmpty()) {
                 for (DataObject dob : updatedObjects) {
                     _logger.info("Updating DataObject " + dob.forDisplay());
@@ -141,7 +143,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         }
 
         // Create the related objects if any after successful export mask ingestion
-        for (List<DataObject> createdObjects : getDataObjectsToBeCreatedMap().values()) {
+        for (Set<DataObject> createdObjects : getDataObjectsToBeCreatedMap().values()) {
             if (createdObjects != null && !createdObjects.isEmpty()) {
                 for (DataObject dob : createdObjects) {
                     _logger.info("Creating DataObject " + dob.forDisplay());
@@ -758,9 +760,9 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getDataObjectsToBeCreatedMap()
      */
     @Override
-    public Map<String, List<DataObject>> getDataObjectsToBeCreatedMap() {
+    public Map<String, Set<DataObject>> getDataObjectsToBeCreatedMap() {
         if (null == _dataObjectsToBeCreatedMap) {
-            _dataObjectsToBeCreatedMap = new HashMap<String, List<DataObject>>();
+            _dataObjectsToBeCreatedMap = new HashMap<String, Set<DataObject>>();
         }
 
         return _dataObjectsToBeCreatedMap;
@@ -772,9 +774,9 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeUpdatedMap()
      */
     @Override
-    public Map<String, List<DataObject>> getDataObjectsToBeUpdatedMap() {
+    public Map<String, Set<DataObject>> getDataObjectsToBeUpdatedMap() {
         if (null == _dataObjectsToBeUpdatedMap) {
-            _dataObjectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
+            _dataObjectsToBeUpdatedMap = new HashMap<String, Set<DataObject>>();
         }
 
         return _dataObjectsToBeUpdatedMap;
@@ -875,12 +877,12 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
                                 getBackendProject().getId(), mirrorVolume.getLabel()));
 
                         // update flags on mirror volume
-                        List<DataObject> updatedObjects = getDataObjectsToBeUpdatedMap().get(mirrorVolume.getNativeGuid());
+                        Set<DataObject> updatedObjects = getDataObjectsToBeUpdatedMap().get(mirrorVolume.getNativeGuid());
                         if (updatedObjects == null) {
-                            updatedObjects = new ArrayList<DataObject>();
+                            updatedObjects = new HashSet<DataObject>();
                             getDataObjectsToBeUpdatedMap().put(mirrorVolume.getNativeGuid(), updatedObjects);
                         }
-                        VolumeIngestionUtil.clearInternalFlags(mirrorVolume, updatedObjects, _dbClient);
+                        VolumeIngestionUtil.clearInternalFlags(this, mirrorVolume, updatedObjects, _dbClient);
                         // VPLEX backend volumes should still have the INTERNAL_OBJECT flag
                         mirrorVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
 
@@ -941,7 +943,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         s.append("ingested objects: ").append(this.getObjectsIngestedByExportProcessing()).append(" \n\t ");
         s.append("created objects map: ").append(this.getBlockObjectsToBeCreatedMap()).append(" \n\t ");
         s.append("updated objects map: ");
-        for (Entry<String, List<DataObject>> e : this.getDataObjectsToBeUpdatedMap().entrySet()) {
+        for (Entry<String, Set<DataObject>> e : this.getDataObjectsToBeUpdatedMap().entrySet()) {
             s.append(e.getKey()).append(": ");
             for (DataObject o : e.getValue()) {
                 s.append(o.getLabel()).append("; ");
@@ -987,7 +989,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
             return null;
         }
 
-        for (List<DataObject> objectsToBeUpdated : this.getDataObjectsToBeUpdatedMap().values()) {
+        for (Set<DataObject> objectsToBeUpdated : this.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject o : objectsToBeUpdated) {
                 if (o.getId().equals(uri)) {
                     _logger.info("\tfound data object in vplex request context: " + o.forDisplay());
@@ -1079,7 +1081,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume) {
         if (null == getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid())) {
-            getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
+            getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), new HashSet<DataObject>());
         }
         getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
@@ -1094,7 +1096,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     @Override
     public void addDataObjectToCreate(DataObject dataObject, UnManagedVolume unManagedVolume) {
         if (null == getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid())) {
-            getDataObjectsToBeCreatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
+            getDataObjectsToBeCreatedMap().put(unManagedVolume.getNativeGuid(), new HashSet<DataObject>());
         }
         getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
@@ -1137,7 +1139,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
     public List<ExportMask> findAllNewExportMasks() {
         List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
         
-        for (List<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
+        for (Set<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
             for (DataObject createdObject : createdObjects) {
                 if (createdObject instanceof ExportMask) {
                     newExportMasks.add((ExportMask) createdObject);
@@ -1156,4 +1158,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         return _parentRequestContext;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findDataObjectByType(java.lang.Class, java.net.URI)
+     */
+    @Override
+    public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id) {
+        return getRootIngestionRequestContext().findDataObjectByType(clazz, id);
+    }
 }

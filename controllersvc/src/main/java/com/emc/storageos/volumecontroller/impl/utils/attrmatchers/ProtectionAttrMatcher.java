@@ -213,6 +213,9 @@ public class ProtectionAttrMatcher extends AttributeMatcher {
                         break;
                     }
                 }
+                //TODO: THIS IS JUST FOR TESTING
+                _logger.info("ADDING STORAGEPOOL " + storagePool.forDisplay());
+                matchedPools.add(storagePool);
                 if (matchedPool) {
                     matchedPools.add(storagePool);
                 } else {

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
@@ -166,24 +167,24 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
     public Map<String, BlockObject> getBlockObjectsToBeCreatedMap();
 
     /**
-     * Returns a Map of a List of DataObjects updated by ingestion
+     * Returns a Map of a Set of DataObjects updated by ingestion
      * as mapped to the native GUID of the UnManagedVolume Object
      * for which they were updated.
      *
      * @return a Map of UnManagedVolume native GUID Strings to a
-     *         List of associated updated DataObjects
+     *         Set of associated updated DataObjects
      */
-    public Map<String, List<DataObject>> getDataObjectsToBeUpdatedMap();
+    public Map<String, Set<DataObject>> getDataObjectsToBeUpdatedMap();
 
     /**
-     * Returns a Map of a List of DataObjects created by ingestion
+     * Returns a Map of a Set of DataObjects created by ingestion
      * as mapped to the native GUID of the UnManagedVolume Object
      * for which they are set to be created at the end of ingestion.
      *
      * @return a Map of UnManagedVolume native GUID Strings to a
-     *         List of associated newly created DataObjects
+     *         Set of associated newly created DataObjects
      */
-    public Map<String, List<DataObject>> getDataObjectsToBeCreatedMap();
+    public Map<String, Set<DataObject>> getDataObjectsToBeCreatedMap();
 
     /**
      * Returns a Map of UnManagedVolume native GUID Strings to
@@ -415,4 +416,13 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return the root, top-level IngestionRequestContext
      */
     public IngestionRequestContext getRootIngestionRequestContext();
+
+    /**
+     * Finds a DataObject by type and URI in the ingestion contexts.
+     * 
+     * @param clazz the DataObject class / type
+     * @param id the URI of the DataObject to look for
+     * @return a DataObject cast to its type
+     */
+    <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id);
 }

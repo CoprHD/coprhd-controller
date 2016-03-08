@@ -364,7 +364,7 @@ public abstract class BlockIngestOrchestrator {
     protected void decorateCGInfoInVolumes(BlockConsistencyGroup cg, BlockObject blockObject, IngestionRequestContext requestContext,
             UnManagedVolume unManagedVolume) {
         UnManagedConsistencyGroup umcg = requestContext.findUnManagedConsistencyGroup(cg.getLabel());
-        List<DataObject> blockObjectsToUpdate = new ArrayList<DataObject>();
+        Set<DataObject> blockObjectsToUpdate = new HashSet<DataObject>();
         if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
             for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
 
@@ -871,14 +871,19 @@ public abstract class BlockIngestOrchestrator {
     private void setupParentReplicaRelationships(UnManagedVolume currentUnmanagedVolume,
             Map<BlockObject, List<BlockObject>> parentReplicaMap, IngestionRequestContext requestContext,
             List<UnManagedVolume> processedUnManagedVolumes) {
-        List<DataObject> updateObjects = requestContext.getDataObjectsToBeUpdatedMap().get(currentUnmanagedVolume.getNativeGuid());
+        Set<DataObject> updateObjects = requestContext.getDataObjectsToBeUpdatedMap().get(currentUnmanagedVolume.getNativeGuid());
         if (updateObjects == null) {
-            updateObjects = new ArrayList<DataObject>();
+            updateObjects = new HashSet<DataObject>();
             requestContext.getDataObjectsToBeUpdatedMap().put(currentUnmanagedVolume.getNativeGuid(), updateObjects);
         }
+        String currentBlockObjectNativeGuid = 
+                currentUnmanagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
         for (BlockObject parent : parentReplicaMap.keySet()) {
             // clear the parent internal flags
-            VolumeIngestionUtil.clearInternalFlags(parent, updateObjects, _dbClient);
+            // don't clear flags if the current block object is for the currently ingesting UnManagedvolume
+            if (!parent.getNativeGuid().equals(currentBlockObjectNativeGuid)) {
+                VolumeIngestionUtil.clearInternalFlags(requestContext, parent, updateObjects, _dbClient);
+            }
             // if no newly-created object can be found for the parent's native GUID
             // then that means this is an existing object from the database and should be
             // added to the collection of objects to be updated rather than created
@@ -886,7 +891,8 @@ public abstract class BlockIngestOrchestrator {
                 updateObjects.add(parent);
             }
             boolean fullyIngestedVolume = true;
-            UnManagedVolume umVolume = VolumeIngestionUtil.getUnManagedVolumeForBlockObject(parent, _dbClient);
+            UnManagedVolume umVolume = parent.getNativeGuid().equals(currentBlockObjectNativeGuid) ? 
+                    currentUnmanagedVolume : VolumeIngestionUtil.getUnManagedVolumeForBlockObject(parent, _dbClient);
             boolean isParentRPVolume = umVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umVolume);
             // if its RP volume, then check whether the RP CG is fully ingested.
             if (isParentRPVolume) {
@@ -923,7 +929,12 @@ public abstract class BlockIngestOrchestrator {
                 } else if (replica instanceof BlockSnapshot) {
                     VolumeIngestionUtil.setupSnapParentRelations(replica, parent, _dbClient);
                 }
-                VolumeIngestionUtil.clearInternalFlags(replica, updateObjects, _dbClient);
+
+                // don't clear flags if the current block object is for the currently ingesting UnManagedvolume
+                if (!replica.getNativeGuid().equals(currentBlockObjectNativeGuid)) {
+                    VolumeIngestionUtil.clearInternalFlags(requestContext, replica, updateObjects, _dbClient);
+                }
+
                 // Snaps/mirror/clones of RP volumes should be made visible only after the RP CG has been fully ingested.
                 if (isParentRPVolume && !fullyIngestedVolume) {
                     replica.addInternalFlags(INTERNAL_VOLUME_FLAGS);

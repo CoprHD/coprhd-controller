@@ -213,21 +213,24 @@ public class VnxFileMirrorOperations extends AbstractFileMirrorOperations {
         return formatCmd;
     }
 
+	// give list of interConnects ids or controller station queryObject ControlStationQueryParams
     private String getValideInterConnectionRemoteMirror(StorageSystem sourceStorageSystem, String ipDest) {
         // first get the interconnect info for source system
-
-        Map<String, Map<String, String>> interConnectsMapSource = null;
+		
+		//-interconnect
+        Map<String, Map<String, String>> interConnects = null;
         Map<String, String> interConnectInfos = null;
         _sshApi.setConnParams(sourceStorageSystem.getIpAddress(), sourceStorageSystem.getUsername(), sourceStorageSystem.getPassword());
 
         // get the interConnections
-        interConnectsMapSource = _sshApi.getReplicatorInterconnects();
+        interConnects = _sshApi.getReplicatorInterconnects();
 
         // get validate interConnects
         List<String> validConnection = new ArrayList<String>();
-        if (interConnectsMapSource != null) {
-            for (Entry<String, Map<String, String>> entry : interConnectsMapSource.entrySet()) {
+        if (interConnects != null) {
+            for (Entry<String, Map<String, String>> entry : interConnects.entrySet()) {
                 String interConnectId = entry.getKey();
+				//isActiveInterConnect 
                 if (_sshApi.isInterConnectValid(interConnectId) == true) {
                     validConnection.add(interConnectId);
                 }
@@ -238,7 +241,7 @@ public class VnxFileMirrorOperations extends AbstractFileMirrorOperations {
             String destSystemName = _sshApi.getReplicationConfig(ipDest);
             // check remote connection is add to source System or exists with source system
             for (String interConnectId : validConnection) {
-                interConnectInfos = interConnectsMapSource.get(interConnectId);
+                interConnectInfos = interConnects.get(interConnectId);
                 if (interConnectInfos != null && !interConnectInfos.isEmpty()) {
                     if (interConnectInfos.get("destination_server").equals(destSystemName)) {
                         return interConnectId;

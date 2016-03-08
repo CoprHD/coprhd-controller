@@ -1152,7 +1152,7 @@ public class VNXFileSshApi {
      */
     public Map<String, Map<String, String>> getReplicatorInterconnects() {
         XMLApiResult result = null;
-        Map<String, Map<String, String>> interConnectsMap = new ConcurrentHashMap<String, Map<String, String>>();
+        Map<String, Map<String, String>> interConnects = new ConcurrentHashMap<String, Map<String, String>>();
         // Prepare arguments for CLI command
         try {
             StringBuilder data = new StringBuilder();
@@ -1165,23 +1165,23 @@ public class VNXFileSshApi {
             String[] propList = result.getMessage().split("[\n]");
             if (propList == null || propList.length < 1) {
                 // no exports found
-                return interConnectsMap;
+                return interConnects;
             }
             for (int i = 1; i < propList.length; i++) {
                 String inConnetEntry = propList[i];
                 String interConnectId = "";
-                Map<String, String> fsinterconnectInfoMap = new ConcurrentHashMap<String, String>();
+                Map<String, String> fsinterconnectsInfo = new ConcurrentHashMap<String, String>();
                 // prepare the interconnect info object
                 String[] interConnInfo = inConnetEntry.split(" ");
                 if (interConnInfo.length >= 4) {
-                    fsinterconnectInfoMap.put("id", interConnInfo[0]);
-                    fsinterconnectInfoMap.put("name", interConnInfo[1]);
-                    fsinterconnectInfoMap.put("source_server", interConnInfo[2]);
-                    fsinterconnectInfoMap.put("destination_system", interConnInfo[3]);
-                    fsinterconnectInfoMap.put("destination_server", interConnInfo[4]);
+                    fsinterconnectsInfo.put("id", interConnInfo[0]);
+                    fsinterconnectsInfo.put("name", interConnInfo[1]);
+                    fsinterconnectsInfo.put("source_server", interConnInfo[2]);
+                    fsinterconnectsInfo.put("destination_system", interConnInfo[3]);
+                    fsinterconnectsInfo.put("destination_server", interConnInfo[4]);
                 }
                 // the interface to map
-                interConnectsMap.put(interConnectId, fsinterconnectInfoMap);
+                interConnects.put(interConnectId, fsinterconnectsInfo);
             }
 
         } catch (Exception ex) {
@@ -1189,7 +1189,7 @@ public class VNXFileSshApi {
             message.append("VNXFile  get interconnects is failed ");
             // message.append(", due to {}");
         }
-        return interConnectsMap;
+        return interConnects;
     }
 
     /*
@@ -1247,7 +1247,7 @@ public class VNXFileSshApi {
 
     }
 
-    public String getReplicationConfig(String ipDest) {
+    public String getReplicationConfig(String deviceIp) {
         XMLApiResult result = null;
         Map<String, String> nasCelList = new ConcurrentHashMap<String, String>();
         try {
@@ -1271,7 +1271,7 @@ public class VNXFileSshApi {
                 if (interConnInfos != null && interConnInfos.length > 3) {
 
                     for (int j = 2; i < interConnInfos.length; i++) {
-                        if (interConnInfos[j].equals(ipDest)) {
+                        if (interConnInfos[j].equals(deviceIp)) {
                             return interConnInfos[j];
                         }
                     }

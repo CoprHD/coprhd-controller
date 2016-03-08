@@ -113,13 +113,14 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         BlockSnapshotSession snapshotSession = new BlockSnapshotSession();
         URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
         snapshotSession.setId(snapSessionURI);
-        snapshotSession.setLabel(snapshot.getLabel());
         snapshotSession.setSessionLabel(snapshot.getSnapsetLabel());
         URI cgURI = snapshot.getConsistencyGroup();
         if (NullColumnValueGetter.isNullURI(cgURI)) {
             snapshotSession.setParent(snapshot.getParent());
+            snapshotSession.setLabel(snapshot.getLabel());
         } else {
             snapshotSession.setConsistencyGroup(cgURI);
+            snapshotSession.setLabel(snapshot.getSnapsetLabel());
         }
         snapshotSession.setProject(snapshot.getProject());
         snapshotSession.setStorageController(snapshot.getStorageController());

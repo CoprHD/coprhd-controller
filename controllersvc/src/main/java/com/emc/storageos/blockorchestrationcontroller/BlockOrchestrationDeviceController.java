@@ -214,6 +214,10 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             // Call the BlockDeviceController to add its methods if there are block or VPLEX backend volumes.
             waitFor = _blockDeviceController.addStepsForExpandVolume(
                     workflow, waitFor, volumes, taskId);
+            
+            // Call the SRDFDeviceController to add its methods for SRDF Source / SRDF Target volumes.
+            waitFor = _srdfDeviceController.addStepsForExpandVolume(
+                    workflow, waitFor, volumes, taskId);
 
             // Call the VPlexDeviceController to add its methods if there are VPLEX volumes.
             waitFor = _vplexDeviceController.addStepsForExpandVolume(

@@ -1009,13 +1009,33 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     @Override
     public void expandVolume(final Volume volume, final long newSize, final String taskId)
             throws ControllerException {
-
         if (PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())) {
             throw APIException.badRequests.expandSupportedOnlyOnSource(volume.getId());
         }
-        SRDFController controller = getController(SRDFController.class, "vmax");
-        // TODO : JIRA CTRL-5335 SRDF expand needs to go via BlockOrchestrationController.
-        controller.expandVolume(volume.getStorageController(), volume.getPool(), volume.getId(), newSize, taskId);
+        List<VolumeDescriptor> descriptors = getVolumeDescriptorsForExpandVolume(volume, newSize);
+        // SRDFController controller = getController(SRDFController.class, "vmax");
+        BlockOrchestrationController controller = getController(
+                BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        // TODO : close JIRA CTRL-5335 SRDF expand needs to go via BlockOrchestrationController.
+        controller.expandVolume(descriptors, taskId);
+    }
+    
+    public List<VolumeDescriptor> getVolumeDescriptorsForExpandVolume(final Volume volume, final long newSize) {
+        // Build volume descriptors for the source and all targets.
+        // The targets are used for the construction of the completers.
+        List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>();
+        VolumeDescriptor descriptor = new VolumeDescriptor(VolumeDescriptor.Type.SRDF_SOURCE, 
+                volume.getStorageController(), volume.getId(), volume.getPool(), volume.getConsistencyGroup(), null, newSize);
+        descriptors.add(descriptor);
+        StringSet targets = volume.getSrdfTargets();
+        for (String target : targets) {
+            Volume targetVolume =  _dbClient.queryObject(Volume.class, URI.create(target));
+            descriptor = new VolumeDescriptor(VolumeDescriptor.Type.SRDF_TARGET, volume.getStorageController(), 
+                    targetVolume.getId(), targetVolume.getPool(), targetVolume.getConsistencyGroup(), null, newSize);
+            descriptors.add(descriptor);
+        }
+        return descriptors;
     }
 
     @Override

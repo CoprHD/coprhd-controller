@@ -111,6 +111,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCodeException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.VPlexSrdfUtil;
 import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ApplicationAddVolumeList;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -3358,7 +3359,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * Prep work before the call to orchestrator to create the volume descriptors for volume expand operation
      * 
-     * @param volumeURIs volumes already prepared
+     * @param volumeURIs vplex volumes already prepared
      * @return list of volume descriptors
      */
     private List<VolumeDescriptor> createVolumeDescriptorsForNativeExpansion(List<URI> volumeURIs) {
@@ -3370,13 +3371,40 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         for (Volume volume : preparedVolumes) {
             for (String associatedVolumeStr : volume.getAssociatedVolumes()) {
                 Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolumeStr));
-                VolumeDescriptor descriptor = new VolumeDescriptor(
-                        VolumeDescriptor.Type.BLOCK_DATA,
-                        associatedVolume.getStorageController(), associatedVolume.getId(), associatedVolume.getPool(), null, null,
-                        associatedVolume.getCapacity());
-                descriptors.add(descriptor);
+                
+                if (associatedVolume.isSRDFSource()) {      // SRDF Source Volume
+                    SRDFBlockServiceApiImpl srdfApi = (SRDFBlockServiceApiImpl) BlockService.getBlockServiceImpl("srdf");
+                    List<VolumeDescriptor> srdfDescriptors = srdfApi.getVolumeDescriptorsForExpandVolume(
+                            associatedVolume, associatedVolume.getProvisionedCapacity());
+                    descriptors.addAll(srdfDescriptors);
+                    // Check to see if any of the SRDF targets are VPlex protected, and if so add them.
+                    List<VolumeDescriptor> srdfTargetDescriptors = VolumeDescriptor.filterByType(
+                            srdfDescriptors, VolumeDescriptor.Type.SRDF_TARGET);
+                    for (VolumeDescriptor targetDescriptor : srdfTargetDescriptors) {
+                        Volume targetVolume = _dbClient.queryObject(Volume.class, targetDescriptor.getVolumeURI());
+                        Volume vplexTargetVolume = VPlexSrdfUtil.getVplexVolumeFromSrdfVolume(_dbClient, targetVolume);
+                        if (vplexTargetVolume != null) {
+                            // Recursively add what is needed for the target vplex encapsulation.
+                            List<VolumeDescriptor> vplexTargetDescriptors = createVolumeDescriptorsForNativeExpansion(
+                                    Arrays.asList(vplexTargetVolume.getId()));
+                            descriptors.addAll(vplexTargetDescriptors);
+                        }
+                    }
+                    
+                } else if (associatedVolume.getSrdfParent() != null) {  // SRDF target volume
+                    // We don't handle SRDF targets directly, they are obtained above from the call to getVolumeDescriptorsForExpandVolume
+                    // in the SRDF api controller.
+               
+                } else {    // A nice, plain, simple backing volume
+                    VolumeDescriptor descriptor = new VolumeDescriptor(
+                            VolumeDescriptor.Type.BLOCK_DATA,
+                            associatedVolume.getStorageController(), associatedVolume.getId(), associatedVolume.getPool(), null, null,
+                            associatedVolume.getCapacity());
+                    descriptors.add(descriptor);
+                }
             }
 
+            // A descriptor for the top level Vplex virtual volume
             VolumeDescriptor desc = new VolumeDescriptor(
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, volume.getStorageController(), volume.getId(), volume.getPool(), null, null,
                     volume.getCapacity());

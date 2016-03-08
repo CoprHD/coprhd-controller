@@ -38,6 +38,7 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.VPlexRecommendation;
@@ -571,6 +572,10 @@ public class VPlexScheduler implements Scheduler {
       if (setIterator.hasNext()) {
           baseRecommendations.addAll(setIterator.next());
       }
+      if (baseRecommendations.isEmpty()) {
+          throw BadRequestException.badRequests.noVplexLocalRecommendationFromSubScheduler(
+                  nextScheduler.getClass().getSimpleName(), srcVpool.getLabel(), srcVarray.getLabel());
+      }
       _log.info(String.format("Received %d recommendations from %s", 
               baseRecommendations.size(), nextScheduler.getClass().getSimpleName()));
       List<StoragePool> allMatchingPoolsForSrcVarray = _placementManager
@@ -607,6 +612,9 @@ public class VPlexScheduler implements Scheduler {
         haCapabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, null);;
         List<StoragePool> allMatchingPoolsForHaVarray = getMatchingPools(
                 haVarray, haStorageSystem, haVpool, haCapabilities);
+        if (allMatchingPoolsForHaVarray.isEmpty()) {
+            throw BadRequestException.badRequests.noMatchingHighAvailabilityStoragePools(haVpool.getLabel(), haVarray.getLabel());
+        }
         _log.info("Found {} matching pools for HA varray", allMatchingPoolsForHaVarray.size());
 
         // Sort the matching pools for the HA varray by VPLEX system.

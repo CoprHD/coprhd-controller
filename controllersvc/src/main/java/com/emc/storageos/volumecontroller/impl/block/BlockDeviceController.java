@@ -1456,6 +1456,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         SimpleTaskCompleter completer = new SimpleTaskCompleter(Volume.class, volume, opId);
 
         try {
+            WorkflowStepCompleter.stepExecuting(opId);;
             // Get a new workflow to execute volume expand
             Workflow workflow = _workflowService.getNewWorkflow(this,
                     EXPAND_VOLUME_WF_NAME, false, opId);

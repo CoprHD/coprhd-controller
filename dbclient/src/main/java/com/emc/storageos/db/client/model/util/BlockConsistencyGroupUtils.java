@@ -292,7 +292,7 @@ public class BlockConsistencyGroupUtils {
                 // referencing the consistency group. The backend volumes for the
                 // VPLEX volume will also now reference the consistency group.
                 // At this point we just want the VPLEX volumes.
-                if (!Volume.checkForVplexBackEndVolume(dbClient, volume)) {
+                if (volume.isVPlexVolume(dbClient)) {
                     // If the personalityType is specified, we want to ensure we only consider
                     // volumes with that personality type.
                     if (personalityType == null ||

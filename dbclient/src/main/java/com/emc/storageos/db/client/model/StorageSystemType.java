@@ -1,7 +1,5 @@
 package com.emc.storageos.db.client.model;
 
-import java.net.URI;
-
 /**
  * Class represents Storage System Types.
  */

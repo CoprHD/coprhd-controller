@@ -54,14 +54,12 @@ public final class MountBlockVolumeHelper {
 
     public void mount(final BlockObjectRestRep volume) {
 
-        hpuxSupport.rescan();
-
         if (usePowerPath) {
             logInfo("UpdatePowerPathEntries.title");
             hpuxSupport.updatePowerPathEntries();
         }
-
-        // String rdisk = hpuxSupport.findDevicePath(volume, usePowerPath);
+        
+        hpuxSupport.rescan();
 
         RDisk rDisk = hpuxSupport.findRDisk(volume, usePowerPath);
 

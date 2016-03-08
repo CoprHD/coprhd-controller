@@ -435,20 +435,30 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
         snapshot.setSourceNativeId(volume.getNativeId());
         snapshot.setParent(new NamedURI(volume.getId(), volume.getLabel()));
-        snapshot.setLabel(volume.getLabel() + "_" + repGroupName);
         snapshot.setReplicationGroupInstance(repGroupName);
         snapshot.setStorageController(volume.getStorageController());
         snapshot.setVirtualArray(volume.getVirtualArray());
         snapshot.setProtocol(new StringSet());
         snapshot.getProtocol().addAll(volume.getProtocol());
         snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
-        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, _dbClient);
-        if (null != existingSnapSnapSetLabel) {
-            snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
-        } else {
+
+        String existingSnapSnapSetLabel = ControllerUtils.getSnapSetLabelFromExistingSnaps(repGroupName, volume.getStorageController(), _dbClient);
+        if (null == existingSnapSnapSetLabel) {
             log.warn("Not able to find any snapshots with group {}", repGroupName);
-            snapshot.setSnapsetLabel(repGroupName);
+            existingSnapSnapSetLabel = repGroupName;
         }
+
+        snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
+
+        String label = null;
+        String srcRGName = volume.getReplicationGroupInstance();
+        if (NullColumnValueGetter.isNotNullValue(srcRGName)) {
+            label = String.format("%s-%s-%s", existingSnapSnapSetLabel, srcRGName, volume.getLabel());
+        } else {
+            label = String.format("%s-%s", existingSnapSnapSetLabel, volume.getLabel());
+        }
+
+        snapshot.setLabel(label);
 
         snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
         _dbClient.createObject(snapshot);
@@ -838,7 +848,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
     /*
-     * Delete all clones of the to be deleted volumes in a CG
+     * Delete all mirrors of the to be deleted volumes in a CG
      */
     private String deleteMirrorSteps(final Workflow workflow, String waitFor,
             Set<URI> volumeURIs, List<Volume> volumes, boolean isRemoveAll) {
@@ -893,6 +903,20 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         log.info(String.format("Step created for remove clones [%s] from group on device [%s]",
                 Joiner.on("\t").join(cloneList), storage));
 
+        // delete replication group from array if no more clones in the group.
+        if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, repGroupName, cloneList, storage)) {
+            log.info(String.format("Adding step to delete the replication group %s", repGroupName));
+            Volume clone = _dbClient.queryObject(Volume.class, cloneList.get(0));
+            URI sourceId = clone.getAssociatedSourceVolume();
+            Volume sourceVol = _dbClient.queryObject(Volume.class, sourceId);
+            String sourceRepGroupName = sourceVol.getReplicationGroupInstance();
+            waitFor = workflow.createStep(BlockDeviceController.DELETE_GROUP_STEP_GROUP,
+                    String.format("Deleting replication group  %s", repGroupName),
+                    waitFor, storage, storageSystem.getSystemType(),
+                    BlockDeviceController.class,
+                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, false, false, sourceRepGroupName),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
+        }
         return waitFor;
     }
 
@@ -1212,7 +1236,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 return waitFor;
             }
 
-            boolean isRemoveAllFromCG = ControllerUtils.cgHasNoOtherVolume(_dbClient, cgURI, volumes);
+            boolean isRemoveAllFromCG = ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, volumeList, firstVolume.getStorageController());
             log.info("isRemoveAllFromCG {}", isRemoveAllFromCG);
             if (checkIfCGHasCloneReplica(volumes)) {
                 log.info("Adding steps to process clones for removing volumes");
@@ -1270,14 +1294,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     Iterator<URI> it = list.iterator();
                     while (it.hasNext()) {
                         BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, it.next());
-                        String snapGroupName = null;
-                        if (NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
-                            snapGroupName = snapshot.getReplicationGroupInstance();
-                        } else if (NullColumnValueGetter.isNotNullValue(snapshot.getSnapsetLabel())) {
-                            snapGroupName = snapshot.getSnapsetLabel();
-                        }
-
-                        if (snapGroupName != null) {
+                        if (snapshot != null && !snapshot.getInactive() && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                            String snapGroupName = snapshot.getReplicationGroupInstance();
                             if (snapGroupCloneURIMap.get(snapGroupName) == null) {
                                 snapGroupCloneURIMap.put(snapGroupName, new ArrayList<URI>());
                             }

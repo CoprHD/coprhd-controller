@@ -4,7 +4,12 @@
  */
 package com.emc.storageos.model.block;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
@@ -14,8 +19,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class BlockConsistencyGroupSnapshotCreate {
 
     private String name;
+    // field for Application API
+    private List<URI> volumes;
     private Boolean createInactive;
     private Boolean readOnly;
+
+    // flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes
+    // By default, create copy on source back end side
+    private Boolean copyOnHighAvailabilitySide = Boolean.FALSE;
 
     public BlockConsistencyGroupSnapshotCreate() {
     }
@@ -25,6 +36,12 @@ public class BlockConsistencyGroupSnapshotCreate {
         this.name = name;
         this.createInactive = createInactive;
         this.readOnly = readOnly;
+    }
+
+    public BlockConsistencyGroupSnapshotCreate(String name, List<URI> volumes,
+            Boolean createInactive, Boolean readOnly) {
+        this(name, createInactive, readOnly);
+        this.volumes = volumes;
     }
 
     /**
@@ -38,6 +55,26 @@ public class BlockConsistencyGroupSnapshotCreate {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @XmlElementWrapper(required = false, name = "volumes")
+    /**
+     * List of Volume IDs.
+     * This field is applicable only if volume is part of an application.
+     * Snapshots of the replication groups (could be subset or full set of replication groups of an application) that the volumes belong to will be created.
+     *
+     * Example: list of valid URIs
+     */
+    @XmlElement(required = false, name = "volume")
+    public List<URI> getVolumes() {
+        if (volumes == null) {
+            volumes = new ArrayList<URI>();
+        }
+        return volumes;
+    }
+
+    public void setVolumes(List<URI> volumes) {
+        this.volumes = volumes;
     }
 
     /**
@@ -77,4 +114,17 @@ public class BlockConsistencyGroupSnapshotCreate {
 	public void setReadOnly(Boolean readOnly) {
 		this.readOnly = readOnly;
 	}
+
+    /**
+     * Flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes.
+     * By default, it is considered as false which means copy is requested on source backend side.
+     */
+    @XmlElement(name = "copy_on_high_availability_side", defaultValue = "false")
+    public Boolean getCopyOnHighAvailabilitySide() {
+        return copyOnHighAvailabilitySide;
+    }
+
+    public void setCopyOnHighAvailabilitySide(Boolean copyOnHighAvailabilitySide) {
+        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
+    }
 }

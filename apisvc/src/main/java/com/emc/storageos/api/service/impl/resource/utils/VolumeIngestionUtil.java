@@ -563,7 +563,7 @@ public class VolumeIngestionUtil {
 
         // Iterate thru protection set volumes.
         for (String volumeIdStr : pset.getVolumes()) {
-            for (List<DataObject> dataObjList : rpContext.getObjectsToBeUpdatedMap().values()) {
+            for (List<DataObject> dataObjList : rpContext.getDataObjectsToBeUpdatedMap().values()) {
                 for (DataObject dataObj : dataObjList) {
                     if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
                         Volume volume = (Volume) dataObj;
@@ -626,7 +626,7 @@ public class VolumeIngestionUtil {
      * @return boolean indicating if the resource is part of a consistency group
      */
     public static boolean checkUnManagedResourceAddedToConsistencyGroup(UnManagedVolume unManagedVolume) {
-        _logger.info("Determining if the unmanaged volume {} is belongs to an unmanaged consistency group", unManagedVolume.getLabel());
+        _logger.info("Determining if the unmanaged volume {} belongs to an unmanaged consistency group", unManagedVolume.getLabel());
         StringMap unManagedVolumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
         String isVolumeAddedToConsistencyGroup = unManagedVolumeCharacteristics
                 .get(SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString());
@@ -738,7 +738,13 @@ public class VolumeIngestionUtil {
             return;
         }
 
-        throw IngestionException.exceptions.unmanagedVolumeNotIngestable(unManagedVolume.getLabel());
+        String reason = unManagedVolumeCharacteristics
+                .get(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.toString());
+        if (reason == null || reason.isEmpty()) {
+            reason = "Unknown";
+        }
+
+        throw IngestionException.exceptions.unmanagedVolumeNotIngestable(unManagedVolume.getLabel(), reason);
     }
 
     /**
@@ -1243,7 +1249,7 @@ public class VolumeIngestionUtil {
                 SupportedVolumeInformation.VPLEX_CONSISTENCY_GROUP_NAME.toString(),
                 unManagedVolume.getVolumeInformation());
 
-        // Don't create CG if the vplex is behind RP. Add a check here.
+        // Don't create CG if the vplex is behind RP
         if (VolumeIngestionUtil.isRpVplexVolume(unManagedVolume)) {
             StringSet clusterEntries = PropertySetterUtil.extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString(),
@@ -1285,7 +1291,7 @@ public class VolumeIngestionUtil {
                             // need to check for several matching properties
                             URI storageControllerUri = cg.getStorageController();
                             URI virtualArrayUri = cg.getVirtualArray();
-                            if (null != storageControllerUri && null != virtualArrayUri) {
+                            if (!NullColumnValueGetter.isNullURI(storageControllerUri) && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                                 if (storageControllerUri.equals(storageSystem.getId()) &&
                                         virtualArrayUri.equals(varrayUri)) {
                                     _logger.info("Found a matching BlockConsistencyGroup {} "
@@ -1305,7 +1311,11 @@ public class VolumeIngestionUtil {
                 // was found, then we can return the one found with null storage array and
                 // virtual array. this would indicate the user created the CG, but hadn't
                 // used it yet in creating a volume
+                // COP-20683: Update the properties in the user created CG
                 if (null != potentialUnclaimedCg) {
+                    potentialUnclaimedCg.addConsistencyGroupTypes(Types.VPLEX.name());
+                    potentialUnclaimedCg.setStorageController(storageSystem.getId());
+                    potentialUnclaimedCg.setVirtualArray(varrayUri);
                     return potentialUnclaimedCg;
                 }
 
@@ -1319,6 +1329,7 @@ public class VolumeIngestionUtil {
                 cg.setLabel(cgName);
                 cg.setProject(new NamedURI(projectUri, cgName));
                 cg.setTenant(new NamedURI(tenantUri, cgName));
+                cg.setArrayConsistency(false);
                 cg.addConsistencyGroupTypes(Types.VPLEX.name());
                 cg.setStorageController(storageSystem.getId());
                 cg.setVirtualArray(varrayUri);
@@ -1415,7 +1426,7 @@ public class VolumeIngestionUtil {
      * @param exportMaskLabel the name of the ExportMask
      * @throws Exception
      */
-    public static <T extends BlockObject> void createExportMask(UnManagedExportMask eligibleMask, StorageSystem system,
+    public static <T extends BlockObject> ExportMask createExportMask(UnManagedExportMask eligibleMask, StorageSystem system,
             UnManagedVolume unManagedVolume,
             ExportGroup exportGroup, T volume, DbClient dbClient, List<Host> hosts, Cluster cluster, String exportMaskLabel)
                     throws Exception {
@@ -1432,9 +1443,9 @@ public class VolumeIngestionUtil {
 
         Map<String, Integer> wwnToHluMap = extractWwnToHluMap(eligibleMask, dbClient);
 
-        ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(), exportMaskLabel, allInitiators,
-                null, storagePortUris, eligibleMask.getZoningMap(), volume, eligibleMask.getUnmanagedInitiatorNetworkIds(),
-                eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
+        ExportMask exportMask = ExportMaskUtils.initializeExportMaskWithVolumes(system, exportGroup, eligibleMask.getMaskName(), 
+                exportMaskLabel, allInitiators, null, storagePortUris, eligibleMask.getZoningMap(), volume, 
+                eligibleMask.getUnmanagedInitiatorNetworkIds(), eligibleMask.getNativeId(), userAddedInis, dbClient, wwnToHluMap);
 
         // remove unmanaged mask if created if the block object is not marked as internal
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
@@ -1446,6 +1457,7 @@ public class VolumeIngestionUtil {
 
         updateExportGroup(exportGroup, volume, dbClient, allInitiators, hosts, cluster);
 
+        return exportMask;
     }
 
     /**
@@ -1473,18 +1485,20 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Validate the unmanaged export mask is a mask that aligns with the export group provided.
+     * Validate the unmanaged export mask is a mask that aligns with the host/cluster initiators provided.
+     * If they do match, they will eventually be fed into the export group.
      * 
      * @param dbClient dbclient
-     * @param exportGroup export group
+     * @param exportGroup export group.  Used for error messages only
+     * @param computeInitiators list of initiators
      * @param unManagedExportMask unmanaged export mask
      * @param errorMessages error messages
      * @return true if the export mask is aligned to the export group.
      */
-    public static boolean validateExportMaskMatchesExportGroup(DbClient dbClient, ExportGroup exportGroup,
+    public static boolean validateExportMaskMatchesComputeResourceInitiators(DbClient dbClient, ExportGroup exportGroup, StringSet computeInitiators,
             UnManagedExportMask unManagedExportMask, List<String> errorMessages) {
-        // Validate export group initiators
-        if (exportGroup.getInitiators() == null) {
+        // Validate future export group initiators
+        if (computeInitiators == null) {
             String errorMessage = String.format("ExportGroup %s has no initiators and therefore unmanaged export mask %s can't be ingested with it.",
                     exportGroup.getLabel(), unManagedExportMask.getMaskName());
             errorMessages.add(errorMessage.toString());
@@ -1499,8 +1513,8 @@ public class VolumeIngestionUtil {
             return false;
         }
 
-        // If you find the export group contains some initiators in the unmanaged export mask, go ahead and process it.
-        if (StringSetUtil.hasIntersection(unManagedExportMask.getKnownInitiatorUris(), exportGroup.getInitiators())) {
+        // If you find the compute resource contains some initiators in the unmanaged export mask, go ahead and process it.
+        if (StringSetUtil.hasIntersection(unManagedExportMask.getKnownInitiatorUris(), computeInitiators)) {
             String message = String.format("Unmanaged export mask has initiators that match the export group (%s) initiators and therefore will be attempted to be ingested.",
                     unManagedExportMask.getMaskName(), exportGroup.getLabel());
             _logger.info(message);
@@ -1713,7 +1727,11 @@ public class VolumeIngestionUtil {
 
         // Do not add the block object to the export group if it is partially ingested
         if (!volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
+            _logger.info("adding volume {} to export group {}", volume.forDisplay(), exportGroup.forDisplay());
             exportGroup.addVolume(volume.getId(), ExportGroup.LUN_UNASSIGNED);
+        } else {
+            _logger.info("volume {} is partially ingested, so not adding to export group {}", 
+                    volume.forDisplay(), exportGroup.forDisplay());
         }
 
         if (volume instanceof Volume) {
@@ -2226,6 +2244,57 @@ public class VolumeIngestionUtil {
 
     }
 
+    /**
+     * Verifies that the given ExportGroup matches the rest of the parameters.
+     * ComputeResource URI and resourceType are only check if both are non-null
+     * 
+     * @param exportGroupToCheck the ExportGroup to check
+     * @param exportGroupLabel the name of the ExportGroup
+     * @param project the URI of the ExportGroup's Project
+     * @param vArray the URI of the ExportGroup's VirtualArray
+     * @param computeResource the URI of the ExportGroup's ComputeResource (optional)
+     * @param resourceType the ExportGroup's resource type (optional)
+     * @return true if the exportGroupToCheck is a match for the rest of the parameters
+     */
+    public static boolean verifyExportGroupMatches(ExportGroup exportGroupToCheck, String exportGroupLabel, 
+            URI project, URI vArray, URI computeResource, String resourceType) {
+
+        if (exportGroupToCheck != null) {
+            if (!exportGroupToCheck.getLabel().equals(exportGroupLabel)) {
+                _logger.info("export group label mismatch: {} and {}", exportGroupToCheck.getLabel(), exportGroupLabel);
+                return false;
+            }
+            if (!exportGroupToCheck.getProject().getURI().equals(project)) {
+                _logger.info("export group project mismatch: {} and {}", exportGroupToCheck.getProject().getURI(), project);
+                return false;
+            }
+            if (!exportGroupToCheck.getVirtualArray().equals(vArray)) {
+                _logger.info("export group varray mismatch: {} and {}", exportGroupToCheck.getLabel(), exportGroupLabel);
+                return false;
+            }
+
+            // optionally check compute resource and resource type
+            if (computeResource != null && resourceType != null) {
+                if (ExportGroup.ExportGroupType.Host.toString().equalsIgnoreCase(resourceType)) {
+                    if (exportGroupToCheck.hasHost(computeResource) &&
+                            !ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(exportGroupToCheck.getType())) {
+                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", exportGroupToCheck.getId());
+                        return true;
+                    }
+                } else if (ExportGroup.ExportGroupType.Cluster.toString().equalsIgnoreCase(resourceType)) {
+                    if (exportGroupToCheck.hasCluster(computeResource)) {
+                        _logger.info("Export Groups {} matching Varray/Project/ComputeResource exists", exportGroupToCheck.getId());
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+    
     /**
      * Verify a matching ExportGroup exists for the given parameters.
      *
@@ -3403,6 +3472,7 @@ public class VolumeIngestionUtil {
         types.add(BlockConsistencyGroup.Types.RP.toString());
         cg.setRequestedTypes(types);
         cg.setTypes(types);
+        cg.setArrayConsistency(false);
         cg.setTenant(project.getTenantOrg());
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
         _logger.info("Created new block consistency group: " + cg.getId().toString());
@@ -3438,30 +3508,30 @@ public class VolumeIngestionUtil {
 
                 // We need the VPLEX ingest context to get the backend volume info
                 // This information is stored in the context if the vplex volume is the last volume
-                // in the ingestion.  Otherwise we'll fish it out of the database in the findVolume()
+                // in the ingestion. Otherwise we'll fish it out of the database in the findVolume()
                 // method below.
                 Map<String, BlockObject> createdMap = null;
                 Map<String, List<DataObject>> updatedMap = null;
                 if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
                     createdMap = ((RpVplexVolumeIngestionContext)
-                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getObjectsToBeCreatedMap();  
+                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getBlockObjectsToBeCreatedMap();  
                     updatedMap = ((RpVplexVolumeIngestionContext)
-                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getObjectsToBeUpdatedMap();  
+                            requestContext.getVolumeContext()).getVplexVolumeIngestionContext().getDataObjectsToBeUpdatedMap();  
                 }
-                
-                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {                
-                    // Find the associated volumes using the context maps or the db if they are already there               
-                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient, 
-                                                                             createdMap,
-                                                                             updatedMap,
-                                                                             associatedVolumeIdStr);     
+
+                for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
+                    // Find the associated volumes using the context maps or the db if they are already there
+                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient,
+                            createdMap,
+                            updatedMap,
+                            associatedVolumeIdStr);
                     if (associatedVolume != null) {
                         associatedVolume.setConsistencyGroup(rpCG.getId());
-                        updatedObjects.add(associatedVolume);                    
+                        updatedObjects.add(associatedVolume);
                     } else {
-                       // This may not be a failure if we're not ingesting backing volumes.  Put a warning to the log.
-                       _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
-                    }                        
+                        // This may not be a failure if we're not ingesting backing volumes. Put a warning to the log.
+                        _logger.warn("Could not find the volume in DB or volume contexts: " + associatedVolumeIdStr);
+                    }
                 }
             }
 
@@ -3519,15 +3589,15 @@ public class VolumeIngestionUtil {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
 
         // In the case where IS_VOLUME_IN_CONSISTENCYGROUP flag is set to TRUE, but there is no UnManagedConsistencyGroup, we
-        // can't perform this check fully and need to return null.  This will occur with VMAX/VNX volumes in CGs until we have
+        // can't perform this check fully and need to return null. This will occur with VMAX/VNX volumes in CGs until we have
         // CG ingestion support for such volumes.
         if (umcg == null || umcg.getUnManagedVolumesMap() == null) {
             _logger.info("There is no unmanaged consistency group associated with unmanaged volume {}, however " +
-                         "the volume has the IS_VOLUME_IN_CONSISTENCYGROUP flag set to true.  Ignoring CG operation" +
-                         " as there is not enough information to put this volume in a CG by itself.", unManagedVolume.getNativeGuid());
+                    "the volume has the IS_VOLUME_IN_CONSISTENCYGROUP flag set to true.  Ignoring CG operation" +
+                    " as there is not enough information to put this volume in a CG by itself.", unManagedVolume.getNativeGuid());
             return null;
         }
-        
+
         boolean isLastUmvToIngest = isLastUnManagedVolumeToIngest(umcg, unManagedVolume);
         boolean isVplexOrRPProtected = isRPOrVplexProtected(unManagedVolume);
         if (isVplexOrRPProtected || !isLastUmvToIngest) {
@@ -3584,7 +3654,7 @@ public class VolumeIngestionUtil {
                     }
                     URI storageControllerUri = cg.getStorageController();
                     URI virtualArrayUri = cg.getVirtualArray();
-                    if (null == storageControllerUri && null == virtualArrayUri) {
+                    if (NullColumnValueGetter.isNullURI(storageControllerUri) && NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                         potentialUnclaimedCg = cg;
                     }
                 }
@@ -3611,6 +3681,7 @@ public class VolumeIngestionUtil {
             cg.addSystemConsistencyGroup(storageSystem.getId().toString(), cgName);
             cg.setStorageController(storageSystem.getId());
             cg.setVirtualArray(varrayUri);
+            cg.setArrayConsistency(false);
             return cg;
         }
     }
@@ -3649,7 +3720,7 @@ public class VolumeIngestionUtil {
                 URI storageControllerUri = cg.getStorageController();
                 URI virtualArrayUri = cg.getVirtualArray();
                 // need to check for several matching properties
-                if (null != storageControllerUri && null != virtualArrayUri) {
+                if (!NullColumnValueGetter.isNullURI(storageControllerUri) && !NullColumnValueGetter.isNullURI(virtualArrayUri)) {
                     if (storageControllerUri.equals(storageSystem.getId()) &&
                             virtualArrayUri.equals(varrayUri)) {
                         _logger.info("Found a matching BlockConsistencyGroup {} "
@@ -3676,13 +3747,13 @@ public class VolumeIngestionUtil {
         // Search for block objects with the CG's ID in our context and the database, if needed.
         Set<BlockObject> blockObjects = new HashSet<BlockObject>();
 
-        for (BlockObject bo : requestContext.getObjectsToBeCreatedMap().values()) {
+        for (BlockObject bo : requestContext.getBlockObjectsToBeCreatedMap().values()) {
             if (URIUtil.identical(bo.getConsistencyGroup(), cg.getId())) {
                 blockObjects.add(bo);
             }
         }
 
-        for (List<DataObject> doList : requestContext.getObjectsToBeUpdatedMap().values()) {
+        for (List<DataObject> doList : requestContext.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject dobj : doList) {
                 if (!(dobj instanceof BlockObject)) {
                     continue;
@@ -3696,7 +3767,7 @@ public class VolumeIngestionUtil {
 
         if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
             for (List<DataObject> doList : ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext())
-                    .getObjectsToBeUpdatedMap().values()) {
+                    .getDataObjectsToBeUpdatedMap().values()) {
                 for (DataObject dobj : doList) {
                     if (!(dobj instanceof BlockObject)) {
                         continue;
@@ -3710,7 +3781,7 @@ public class VolumeIngestionUtil {
 
             // Add the RP protected volumes
             for (Entry<String, BlockObject> entry : ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext())
-                    .getObjectsToBeCreatedMap().entrySet()) {
+                    .getBlockObjectsToBeCreatedMap().entrySet()) {
                 BlockObject boObj = entry.getValue();
                 if (URIUtil.identical(boObj.getConsistencyGroup(), cg.getId())) {
                     blockObjects.add(boObj);
@@ -3719,7 +3790,7 @@ public class VolumeIngestionUtil {
         }
 
         if (requestContext.getVolumeContext() instanceof VplexVolumeIngestionContext) {
-            for (List<DataObject> doList : ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getObjectsToBeUpdatedMap()
+            for (List<DataObject> doList : ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getDataObjectsToBeUpdatedMap()
                     .values()) {
                 for (DataObject dobj : doList) {
                     if (!(dobj instanceof BlockObject)) {
@@ -3734,7 +3805,7 @@ public class VolumeIngestionUtil {
 
             // Add the VPLEX backend volumes
             for (Entry<String, BlockObject> entry : ((VplexVolumeIngestionContext) requestContext.getVolumeContext())
-                    .getObjectsToBeCreatedMap().entrySet()) {
+                    .getBlockObjectsToBeCreatedMap().entrySet()) {
                 BlockObject boObj = entry.getValue();
                 if (URIUtil.identical(boObj.getConsistencyGroup(), cg.getId())) {
                     blockObjects.add(boObj);
@@ -3744,27 +3815,28 @@ public class VolumeIngestionUtil {
 
         return blockObjects;
     }
-    
+
     /**
      * Convenience method to find the a volume from the database or maps based
      * on ingestion.
-     * 
+     *
      * This is an alternative to using the context objects directly.
-     * 
+     *
      * @param dbClient DbClient reference
      * @param createdMap Map of created objects
      * @param updatedMap Map of updated objects
      * @param volumeId The id of the volume to find
      * @return The volume, or null if nothing can be found.
      */
-    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, List<DataObject>> updatedMap, String volumeId) {
+    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, List<DataObject>> updatedMap,
+            String volumeId) {
         if (volumeId == null) {
             return null;
         }
-        
+
         BlockObject blockObject = null;
         URI volumeURI = URI.create(volumeId);
-                
+
         if (createdMap != null) {
             // Check the created map
             for (BlockObject bo : createdMap.values()) {
@@ -3774,47 +3846,48 @@ public class VolumeIngestionUtil {
                 }
             }
         }
-        
+
         if (updatedMap != null) {
             // Check the updated map
             for (List<DataObject> objectsToBeUpdated : updatedMap.values()) {
                 for (DataObject o : objectsToBeUpdated) {
-                    if (o.getId().equals(volumeURI)) {                    
+                    if (o.getId().equals(volumeURI)) {
                         blockObject = (BlockObject) o;
                         break;
                     }
                 }
-            }      
+            }
         }
-        
+
         if (dbClient != null) {
             // Lastly, check the db
             if (blockObject == null) {
                 blockObject = (BlockObject) dbClient.queryObject(volumeURI);
             }
         }
-                
+
         Volume volume = null;
         if (blockObject != null && blockObject instanceof Volume) {
             _logger.info("\t Found volume object: " + blockObject.forDisplay());
             volume = (Volume) blockObject;
-        }    
-        
+        }
+
         return volume;
     }
 
-   /**
+    /**
      * Sets up the Recover Point CG by creating the protection set, block CG and associating the RP volumes
      * with the protection set and the block CG.
      * It also clears the RP volumes' replicas' flags.
      *
      * @param requestContext current unManagedVolume Ingestion context.
      * @param umpset Unmanaged protection set for which a protection set has to be created
+     * @param unManagedVolume the current iterating UnManagedVolume
      * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, List<DataObject> updatedObjects,
-            DbClient dbClient) {
+    public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, UnManagedVolume unManagedVolume,
+            List<DataObject> updatedObjects, DbClient dbClient) {
         _logger.info("Ingesting all volumes associated with RP consistency group");
 
         ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(requestContext, umpset, dbClient);
@@ -3825,6 +3898,7 @@ public class VolumeIngestionUtil {
         StringSet managedVolumesInDB = new StringSet(pset.getVolumes());
         for (DataObject updatedObject : updatedObjects) {
             if (pset.getVolumes().contains(updatedObject.getId().toString())) {
+                _logger.info("\tadding volume object " + updatedObject.forDisplay());
                 volumes.add((Volume) updatedObject);
                 managedVolumesInDB.remove(updatedObject.getId().toString());
             }
@@ -3833,18 +3907,38 @@ public class VolumeIngestionUtil {
         Iterator<Volume> volumesItr = dbClient.queryIterativeObjects(Volume.class, URIUtil.toURIList(managedVolumesInDB));
         while (volumesItr.hasNext()) {
             Volume volume = volumesItr.next();
+            _logger.info("\tadding volume object " + volume.forDisplay());
             volumes.add(volume);
             updatedObjects.add(volume);
+            managedVolumesInDB.remove(volume.getId().toString());
         }
+
+        for (String remainingVolumeId : managedVolumesInDB) {
+            BlockObject bo = requestContext.findCreatedBlockObject(URI.create(remainingVolumeId));
+            if (null != bo && bo instanceof Volume) {
+                _logger.info("\tadding volume object " + bo.forDisplay());
+                volumes.add((Volume) bo);
+            }
+        }
+
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects, dbClient);
 
+        RecoverPointVolumeIngestionContext rpContext = null;
+
         // the RP volume ingestion context will take care of persisting the 
-        // new objects and deleting the old UnManagedProtectionSet 
+        // new objects and deleting the old UnManagedProtectionSet
         if (requestContext instanceof RecoverPointVolumeIngestionContext) {
-            _logger.info("setting the new CG and ProtectionSet in the ingestion request context");
-            ((RecoverPointVolumeIngestionContext)requestContext).setManagedBlockConsistencyGroup(cg);
-            ((RecoverPointVolumeIngestionContext)requestContext).setManagedProtectionSet(pset);
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext;
+        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
+        }
+
+        if (rpContext != null) {
+            _logger.info("setting managed BlockConsistencyGroup on RecoverPoint context {} to {}", rpContext, cg);
+            rpContext.setManagedBlockConsistencyGroup(cg);
+            _logger.info("setting managed ProtectionSet on RecoverPoint context {} to {}", rpContext, pset);
+            rpContext.setManagedProtectionSet(pset);
         }
     }
 
@@ -3929,4 +4023,3 @@ public class VolumeIngestionUtil {
     }
 
 }
-

@@ -29,10 +29,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
     @Param(ServiceParams.NAME)
     private String name;
 
-    @Param(ServiceParams.COUNT)
-    private Integer count;
-
-    @Param(ServiceParams.APPLICATION_SITE)
+    @Param(value = ServiceParams.APPLICATION_SITE, required = false)
     private URI virtualArrayId;
 
     private URI virtualPoolId;
@@ -40,7 +37,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
     @Override
     public void execute() throws Exception {
         Tasks<? extends DataObjectRestRep> tasks = execute(
-                new CreateCloneOfApplication(applicationId, name, virtualArrayId, virtualPoolId, count));
+                new CreateCloneOfApplication(applicationId, name, virtualArrayId, virtualPoolId));
         addAffectedResources(tasks);
     }
     
@@ -51,9 +48,8 @@ public class CreateCloneOfApplicationService extends ViPRService {
             ExecutionUtils.fail("failTask.CreateCloneOfApplicationService.volumeId.precheck", new Object[] {});
         }
         VolumeRestRep firstVol = getClient().blockVolumes().get(volList.getVolumes().get(0));
-        boolean isVplex = firstVol.getHaVolumes() != null && !firstVol.getHaVolumes().isEmpty();
         boolean isRP = firstVol.getProtection() != null && firstVol.getProtection().getRpRep() != null;
-        if (virtualArrayId == null && (isRP || isVplex)) {
+        if (virtualArrayId == null && isRP) {
             ExecutionUtils.fail("failTask.CreateCloneOfApplicationService.virtualArrayId.precheck", new Object[] {});
         }
         if (isRP) {

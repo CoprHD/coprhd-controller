@@ -440,7 +440,7 @@ public class SchemaUtil {
      * @return true to indicate keyspace strategy option is changed
      */
     private boolean checkStrategyOptionsForDROnStandby(Map<String, String> strategyOptions) {
-        // no need to add new site on acitve site, since dbsvc/geodbsvc are not restarted
+        // no need to add new site on active site, since dbsvc/geodbsvc are not restarted
         String dcId = drUtil.getCassandraDcId(drUtil.getLocalSite());
         if (strategyOptions.containsKey(dcId)) {
             return false;

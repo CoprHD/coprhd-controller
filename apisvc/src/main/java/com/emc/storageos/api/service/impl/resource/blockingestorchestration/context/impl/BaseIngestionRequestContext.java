@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -57,8 +58,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     private List<URI> _exhaustedPools;
 
     private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
-    private Map<String, BlockObject> _objectsToBeCreatedMap;
-    private Map<String, List<DataObject>> _objectsToBeUpdatedMap;
+    private Map<String, BlockObject> _blockObjectsToBeCreatedMap;
+    private Map<String, List<DataObject>> _dataObjectsToBeUpdatedMap;
+    private Map<String, List<DataObject>> _dataObjectsToBeCreatedMap;
 
     private VolumeIngestionContext _currentVolumeIngestionContext;
     private URI _currentUnManagedVolumeUri;
@@ -70,10 +72,6 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     private URI _cluster;
     private List<Initiator> _deviceInitiators;
     List<BlockObject> _objectsIngestedByExportProcessing;
-
-    private Map<String, BlockConsistencyGroup> _cgsToCreateMap;
-
-    private List<UnManagedConsistencyGroup> _umCGsToUpdate;
 
     /**
      * Constructor.
@@ -353,35 +351,24 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeCreatedMap()
      */
     @Override
-    public Map<String, BlockObject> getObjectsToBeCreatedMap() {
-        if (null == _objectsToBeCreatedMap) {
-            _objectsToBeCreatedMap = new HashMap<String, BlockObject>();
+    public Map<String, BlockObject> getBlockObjectsToBeCreatedMap() {
+        if (null == _blockObjectsToBeCreatedMap) {
+            _blockObjectsToBeCreatedMap = new HashMap<String, BlockObject>();
         }
 
-        return _objectsToBeCreatedMap;
+        return _blockObjectsToBeCreatedMap;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getCGObjectsToCreateMap()
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getDataObjectsToBeCreatedMap()
      */
     @Override
-    public Map<String, BlockConsistencyGroup> getCGObjectsToCreateMap() {
-        if (null == _cgsToCreateMap) {
-            _cgsToCreateMap = new HashMap<String, BlockConsistencyGroup>();
+    public Map<String, List<DataObject>> getDataObjectsToBeCreatedMap() {
+        if (null == _dataObjectsToBeCreatedMap) {
+            _dataObjectsToBeCreatedMap = new HashMap<String, List<DataObject>>();
         }
 
-        return _cgsToCreateMap;
-    }
-
-    @Override
-    public List<UnManagedConsistencyGroup> getUmCGObjectsToUpdate() {
-        if (null == _umCGsToUpdate) {
-            _umCGsToUpdate = new ArrayList<UnManagedConsistencyGroup>();
-        }
-
-        return _umCGsToUpdate;
+        return _dataObjectsToBeCreatedMap;
     }
 
     /*
@@ -390,12 +377,12 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeUpdatedMap()
      */
     @Override
-    public Map<String, List<DataObject>> getObjectsToBeUpdatedMap() {
-        if (null == _objectsToBeUpdatedMap) {
-            _objectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
+    public Map<String, List<DataObject>> getDataObjectsToBeUpdatedMap() {
+        if (null == _dataObjectsToBeUpdatedMap) {
+            _dataObjectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
         }
 
-        return _objectsToBeUpdatedMap;
+        return _dataObjectsToBeUpdatedMap;
     }
 
     /*
@@ -455,7 +442,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     @Override
     public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
         String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-        return getObjectsToBeCreatedMap().get(objectGUID);
+        return getBlockObjectsToBeCreatedMap().get(objectGUID);
     }
 
     /*
@@ -625,17 +612,15 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             _logger.warn("the nativeGuid {} argument is a valid URI. caller maybe meant to use findCreatedBlockObject(URI)?", nativeGuid);
         }
 
-        BlockObject blockObject = getObjectsToBeCreatedMap().get(nativeGuid);
+        BlockObject blockObject = getBlockObjectsToBeCreatedMap().get(nativeGuid);
 
         // if the block object wasn't found in this context's created object map
         // then we will do a deep dive and see if there are any created object maps
         // nested below (for example, for vplex backend or recover point ingestion)
         if (blockObject == null) {
-            _logger.info("a block object for native GUID {} wasn't found at the top, digging deeper...", nativeGuid);
             VolumeIngestionContext currentVolumeContext = getVolumeContext();
             if (currentVolumeContext instanceof IngestionRequestContext) {
-                _logger.info("looking for block object with native GUID {} in the current volume context...", nativeGuid);
-                blockObject = ((IngestionRequestContext) currentVolumeContext).getObjectsToBeCreatedMap().get(nativeGuid);
+                blockObject = ((IngestionRequestContext) currentVolumeContext).getBlockObjectsToBeCreatedMap().get(nativeGuid);
                 if (blockObject != null) {
                     _logger.info("\tfound block object: " + blockObject.forDisplay());
                     return blockObject;
@@ -644,12 +629,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         }
 
         if (blockObject == null){
-            _logger.info("a block object for native GUID {} still not found, checking all volume contexts...", nativeGuid);
             for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
                 if (volumeContext instanceof IngestionRequestContext) {
-                    _logger.info("the volume context for {} also contains created objects, searching...", 
-                            volumeContext.getUnmanagedVolume().getNativeGuid());
-                    blockObject = ((IngestionRequestContext) volumeContext).getObjectsToBeCreatedMap().get(nativeGuid);
+                    blockObject = ((IngestionRequestContext) volumeContext).getBlockObjectsToBeCreatedMap().get(nativeGuid);
                     if (blockObject != null) {
                         _logger.info("\tfound block object: " + blockObject.forDisplay());
                         return blockObject;
@@ -675,18 +657,16 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             return null;
         }
 
-        for (BlockObject bo : getObjectsToBeCreatedMap().values()) {
+        for (BlockObject bo : getBlockObjectsToBeCreatedMap().values()) {
             if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
                 _logger.info("\tfound block object: " + bo.forDisplay());
                 return bo;
             }
         }
 
-        _logger.info("a block object for uri {} wasn't found at the top, digging deeper...", uri);
         VolumeIngestionContext currentVolumeContext = getVolumeContext();
         if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
-            _logger.info("looking for block object with uri {} in the current volume context...", uri);
-            for (BlockObject bo : ((IngestionRequestContext) currentVolumeContext).getObjectsToBeCreatedMap().values()) {
+            for (BlockObject bo : ((IngestionRequestContext) currentVolumeContext).getBlockObjectsToBeCreatedMap().values()) {
                 if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
                     _logger.info("\tfound block object: " + bo.forDisplay());
                     return bo;
@@ -694,10 +674,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             }
         }
 
-        _logger.info("a block object for uri {} still not found, checking all volume contexts...", uri);
         for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
             if (volumeContext instanceof IngestionRequestContext) {
-                for (BlockObject bo : ((IngestionRequestContext) volumeContext).getObjectsToBeCreatedMap().values()) {
+                for (BlockObject bo : ((IngestionRequestContext) volumeContext).getBlockObjectsToBeCreatedMap().values()) {
                     if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
                         _logger.info("\tfound block object: " + bo.forDisplay());
                         return bo;
@@ -763,7 +742,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     public DataObject findInUpdatedObjects(URI uri) {
         _logger.info("looking everywhere for an already-loaded object to updated with URI " + uri);
         
-        for (List<DataObject> objectsToBeUpdated : this.getObjectsToBeUpdatedMap().values()) {
+        for (List<DataObject> objectsToBeUpdated : this.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject o : objectsToBeUpdated) {
                 if (o.getId().equals(uri)) {
                     _logger.info("\tfound data object in base ingestion request context: " + o.forDisplay());
@@ -777,7 +756,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             _logger.info("checking current volume ingestion context {}", 
                     currentVolumeContext.getUnmanagedVolume().forDisplay());
             for (List<DataObject> objectsToBeUpdated : 
-                ((IngestionRequestContext) currentVolumeContext).getObjectsToBeUpdatedMap().values()) {
+                ((IngestionRequestContext) currentVolumeContext).getDataObjectsToBeUpdatedMap().values()) {
                 for (DataObject o : objectsToBeUpdated) {
                     if (o.getId().equals(uri)) {
                         _logger.info("\tfound data object {} in volume ingestion context {}", 
@@ -793,7 +772,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
                     volumeContext.getUnmanagedVolume().forDisplay());
             if (volumeContext instanceof IngestionRequestContext) {
                 for (List<DataObject> objectsToBeUpdated : 
-                    ((IngestionRequestContext) volumeContext).getObjectsToBeUpdatedMap().values()) {
+                    ((IngestionRequestContext) volumeContext).getDataObjectsToBeUpdatedMap().values()) {
                     for (DataObject o : objectsToBeUpdated) {
                         if (o.getId().equals(uri)) {
                             _logger.info("\tfound data object {} in volume ingestion context {}", 
@@ -807,6 +786,126 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
         _logger.info("\tdid not find an already-loaded object to update for URI " + uri);
         return null;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findUnManagedConsistencyGroup(com.emc.storageos.db.client.model.BlockConsistencyGroup)
+     */
+    @Override
+    public UnManagedConsistencyGroup findUnManagedConsistencyGroup(BlockConsistencyGroup bcg) {
+        for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+            List<UnManagedConsistencyGroup> umcgList = volumeContext.getUmCGObjectsToUpdate();
+            if (null != umcgList && !umcgList.isEmpty()) {
+                for (UnManagedConsistencyGroup umcg : umcgList) {
+                    if (umcg.getLabel().equalsIgnoreCase(bcg.getLabel())) {
+                        return umcg;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToCreate(com.emc.storageos.db.client.model.BlockObject)
+     */
+    @Override
+    public void addBlockObjectToCreate(BlockObject blockObject) {
+        getBlockObjectsToBeCreatedMap().put(blockObject.getNativeGuid(), blockObject);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addObjectToUpdate(com.emc.storageos.db.client.model.DataObject)
+     */
+    @Override
+    public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume) {
+        if (null == getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid())) {
+            getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
+        }
+        getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#addDataObjectToCreate(com.emc.storageos.db.client.model.DataObject)
+     */
+    @Override
+    public void addDataObjectToCreate(DataObject dataObject, UnManagedVolume unManagedVolume) {
+        if (null == getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid())) {
+            getDataObjectsToBeCreatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
+        }
+        getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findExportGroup(java.lang.String)
+     */
+    @Override
+    public ExportGroup findExportGroup(String exportGroupLabel, URI project, URI varray, URI computeResource, String resourceType) {
+        if (exportGroupLabel != null) {
+
+            ExportGroup localExportGroup = getExportGroup();
+            if (null != localExportGroup && exportGroupLabel.equals(localExportGroup.getLabel())) {
+                if (VolumeIngestionUtil.verifyExportGroupMatches(localExportGroup, 
+                        exportGroupLabel, project, varray, computeResource, resourceType)) {
+                    _logger.info("Found existing local ExportGroup {} in base ingestion request context", 
+                            localExportGroup.forDisplay());
+                    return localExportGroup;
+                }
+            }
+
+            ExportGroup nestedExportGroup = null;
+            for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
+                if (volumeContext instanceof IngestionRequestContext) {
+                    nestedExportGroup = ((IngestionRequestContext) volumeContext).findExportGroup(
+                            exportGroupLabel, project, varray, computeResource, resourceType);
+                }
+                if (null != nestedExportGroup) {
+                    if (VolumeIngestionUtil.verifyExportGroupMatches(nestedExportGroup, 
+                            exportGroupLabel, project, varray, computeResource, resourceType)) {
+                        _logger.info("Found existing nested ExportGroup {} in volume context {}", 
+                                nestedExportGroup.forDisplay(), volumeContext.getUnmanagedVolume().forDisplay());
+                        return nestedExportGroup;
+                    }
+                }
+            }
+        }
+        
+        _logger.info("Could not find existing export group for label " + exportGroupLabel);
+        return null;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findAllNewExportMasks()
+     */
+    @Override
+    public List<ExportMask> findAllNewExportMasks() {
+        List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
+        
+        for (List<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
+            for (DataObject createdObject : createdObjects) {
+                if (createdObject instanceof ExportMask) {
+                    newExportMasks.add((ExportMask) createdObject);
+                }
+            }
+        }
+
+        for (VolumeIngestionContext volumeContext : getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext instanceof IngestionRequestContext) {
+                newExportMasks.addAll(((IngestionRequestContext) volumeContext).findAllNewExportMasks());
+            }
+        }
+
+        _logger.info("found {} new ExportMask(s)", newExportMasks.size());
+        return newExportMasks;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getRootIngestionRequestContext()
+     */
+    @Override
+    public IngestionRequestContext getRootIngestionRequestContext() {
+        return this;
     }
 
 }

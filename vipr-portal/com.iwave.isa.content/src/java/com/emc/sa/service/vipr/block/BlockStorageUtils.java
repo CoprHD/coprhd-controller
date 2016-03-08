@@ -545,7 +545,13 @@ public class BlockStorageUtils {
 
     private static void removeContinuousCopy(URI volumeId, URI continuousCopyId, VolumeDeleteTypeEnum type) {
         if (VolumeDeleteTypeEnum.VIPR_ONLY != type) {
-            execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
+        	BlockObjectRestRep obj = getVolume(volumeId);
+        	if (obj instanceof VolumeRestRep) {
+                VolumeRestRep volume = (VolumeRestRep) obj;
+                if (!StringUtils.equalsIgnoreCase(volume.getSystemType(), DiscoveredDataObject.Type.vplex.name())) {
+                	execute(new PauseContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
+                }
+        	}
         }
         Tasks<VolumeRestRep> tasks = execute(new DeactivateContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE, type));
         addAffectedResources(tasks);

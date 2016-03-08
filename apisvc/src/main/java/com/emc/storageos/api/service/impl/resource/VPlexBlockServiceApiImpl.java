@@ -3465,6 +3465,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
         URI systemURI = getVolumesToAddToApplication(addVols, addVolumes, volumeGroup, taskId);
         List<URI> removeVolIds = new ArrayList<URI>();
+       
         URI removeSystemURI = getVolumesToRemoveFromApplication(removeVolIds, removeVolumes);
         if (systemURI == null) {
             systemURI = removeSystemURI;
@@ -3634,6 +3635,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             String rpName = null;
             URI storageSystemUri = null;
             boolean backVolIsVNX = false;
+            boolean backEndHasReplicas = false;
             for (Volume backingVol : backingVols) {
                 cgUri = backingVol.getConsistencyGroup();
                 rpName = backingVol.getReplicationGroupInstance();
@@ -3645,15 +3647,48 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         backVolIsVNX = true;
                         vnxVolumesInRG.add(vvUri);
                         break;
+                    }else if (ControllerUtils.checkIfVolumeHasSnapshot(backingVol, _dbClient) || (backingVol.getFullCopies() != null &&
+                    		!backingVol.getFullCopies().isEmpty())) {
+                    	// Even if one leg has replica, we consider the same as already available in RG & CG
+                    	// If there are no replicas, the idea is to remove the replication Group at controller workflow.
+                    	backEndHasReplicas = true;
                     }
                 }
             }
-            if (backingVolsAreInCG && !backVolIsVNX) {
+
+            // For vmax/xtremio volumes, if backend RG is there, then consider volumesinRGAndCG
+            // Also check if backend volume has replica, if yes then we should consider as volumesinCG
+            // If replicas are not there, then consider the same as volumesNotInRGAndCG
+            if (backingVolsAreInCG && !backVolIsVNX && backEndHasReplicas) {
                 volumesInCG.add(vvUri);
             } else {
-                volsNotInCG.put(vvUri, backingVols);
+                // check for subset
+                if (backingVolsAreInCG && !backVolIsVNX) {
+                    String key = storageSystemUri.toString() + rpName;
+                    if (!checkedRG.contains(key)) {
+                        checkedRG.add(key);
+                        List<URI> rpVolumes = getVolumesInSameReplicationGroup(rpName, storageSystemUri);
+                        boolean addAllVol = true;
+                        for (URI rpvol : rpVolumes) {
+                            if (!virtVolBackVolMap.keySet().contains(rpvol)) {
+                                addAllVol = false;
+                                break;
+                            }
+                        }
+
+                        if (addAllVol) {
+                            volumesInCG.add(vvUri);
+                        } else {
+                            volsNotInCG.put(vvUri, backingVols);
+                        }
+                    }
+                } else {
+                    // for vnx volumes, irrespective of RG, volumes should be considered as volumesNotinRGAndCG
+                    // for volumes, not in RG, add to list
+                    volsNotInCG.put(vvUri, backingVols);
+                }
             }
-            if (backingVolsAreInCG) {
+            if (backingVolsAreInCG && backEndHasReplicas) {
                 // if the backing volumes are in a array cg, we need to verify that all virtual volumes from the
                 // same replication group are on the list to be added
                 String key = storageSystemUri.toString() + rpName;

@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.application.tasks;
 
 import java.net.URI;
+import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.WaitForTasks;
 import com.emc.storageos.model.TaskList;
@@ -15,14 +16,12 @@ import com.emc.vipr.client.Tasks;
 public class CreateCloneOfApplication extends WaitForTasks<TaskResourceRep> {
     private final URI applicationId;
     private final String name;
-    private final URI virtualArrayId;
-    private final URI virtualPoolId;
+    private final List<URI> volumeIds;
 
-    public CreateCloneOfApplication(URI applicationId, String name, URI virtualArrayId, URI virtualPoolId) {
+    public CreateCloneOfApplication(URI applicationId, String name, List<URI> volumeIds) {
         this.applicationId = applicationId;
         this.name = name;
-        this.virtualArrayId = virtualArrayId;
-        this.virtualPoolId = virtualPoolId;
+        this.volumeIds = volumeIds;
         provideDetailArgs(applicationId, name);
     }
 
@@ -30,10 +29,9 @@ public class CreateCloneOfApplication extends WaitForTasks<TaskResourceRep> {
     protected Tasks<TaskResourceRep> doExecute() throws Exception {
         VolumeGroupFullCopyCreateParam input = new VolumeGroupFullCopyCreateParam();
         input.setName(name);
-        input.setVarrayId(virtualArrayId);
-        input.setVpoolId(virtualPoolId);
         input.setCreateInactive(false);
-        input.setPartial(false);
+        input.setPartial(true);
+        input.setVolumes(volumeIds);
         TaskList taskList = getClient().application().createFullCopyOfApplication(applicationId, input);
 
         return new Tasks<TaskResourceRep>(getClient().auth().getClient(), taskList.getTaskList(),

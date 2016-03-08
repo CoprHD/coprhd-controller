@@ -71,7 +71,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.ExceptionUtils;
-import com.emc.storageos.db.client.util.ExportGroupNameGenerator;
 import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -660,7 +659,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.setHost(exportIngestParam.getHost());
             }
 
-            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), exportGroupResourceUri,
+            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(requestContext, project.getId(), exportGroupResourceUri,
                     varray.getId(), resourceType, _dbClient);
             if (null == exportGroup) {
                 _logger.info("Creating Export Group with label {}", computeResourcelabel);
@@ -750,7 +749,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Commit ingested consistency group
-     * 
+     *
      * @param requestContext request context
      * @param unManagedVolume unmanaged volume to ingest against this CG
      * @throws Exception

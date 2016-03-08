@@ -1458,13 +1458,26 @@ public class ControllerUtils {
     }
 
     public static String generateReplicationGroupName(StorageSystem storage, BlockConsistencyGroup cg, String replicationGroupName, DbClient dbClient) {
-        String groupName = replicationGroupName;
-
         if (storage.deviceIsType(Type.vnxblock) && cg.getArrayConsistency()) {
             return cg.getCgNameOnStorageSystem(storage.getId());
         }
 
+        String groupName = replicationGroupName;
         if (groupName == null && cg != null) {
+            //TEMPORARY FIX to solve both Application & Non-application use cases
+            // Check to see if there's already a groupName associated with the existing volumes
+            // Get all of the volumes associated with this consistency group, look for your storage system
+            // If the replicationGroupInstance is filled-in, go with that.
+            List<Volume> volumes = RPHelper.getAllCgVolumes(cg.getId(), dbClient);
+            for (Volume volume : volumes) {
+                if (volume.getStorageController().equals(storage.getId())) {
+                    String volumeCGName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, dbClient);
+                    if (NullColumnValueGetter.isNotNullValue(volumeCGName)) {
+                        return volumeCGName;
+                    }
+                }
+            }
+
             // if there is only one system cg name for this storage system, use this; it may be different than the label
             if (cg.getSystemConsistencyGroups() != null && storage != null) {
                 StringSet cgsforStorage = cg.getSystemConsistencyGroups().get(storage.getId().toString());
@@ -1476,23 +1489,7 @@ public class ControllerUtils {
             } else {
                 groupName = (cg.getAlternateLabel() != null) ? cg.getAlternateLabel() : cg.getLabel();
             }
-            
-            //TEMPORARY FIX to solve both Application & Non-appication use cases
-            // Check to see if there's already a groupName associated with the existing volumes
-            // Get all of the volumes associated with this consistency group, look for your storage system
-            // If the replicationGroupInstance is filled-in, go with that.
-            List<Volume> volumes = RPHelper.getAllCgVolumes(cg.getId(), dbClient);
-            for (Volume volume : volumes) {
-                if (volume.getStorageController().equals(storage.getId())) {
-                    String volumeCGName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volume, dbClient);
-                    if (NullColumnValueGetter.isNotNullValue(volumeCGName)) {
-                        groupName = volumeCGName;
-                    }
-                }
-            }
         }
-
-        
         
         return groupName;
     }

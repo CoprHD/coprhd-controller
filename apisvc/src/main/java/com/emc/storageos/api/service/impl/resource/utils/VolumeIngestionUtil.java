@@ -2959,16 +2959,16 @@ public class VolumeIngestionUtil {
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
-                            ExportGroup loadedGroup = requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId());
-                            if (loadedGroup == null) {
-                                loadedGroup = requestContext.findExportGroup(
+                            ExportGroup loadedExportGroup = requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId());
+                            if (loadedExportGroup == null) {
+                                loadedExportGroup = requestContext.findExportGroup(
                                         exportGroup.getLabel(), exportGroup.getProject().getURI(), 
                                         exportGroup.getVirtualArray(), null, null);
                             }
-                            if (loadedGroup != null) {
+                            if (loadedExportGroup != null) {
                                 _logger.info("Adding block object {} to already-loaded export group {}", 
-                                        blockObject.getNativeGuid(), loadedGroup.getLabel());
-                                loadedGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
+                                        blockObject.getNativeGuid(), loadedExportGroup.getLabel());
+                                loadedExportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
                             } else {
                                 _logger.info("Adding block object {} to newly-loaded export group {}", 
                                         blockObject.getNativeGuid(), exportGroup.getLabel());
@@ -2977,7 +2977,6 @@ public class VolumeIngestionUtil {
                             }
                         }
                     }
-
                 }
             } else {
                 _logger.info("No unmanaged export masks found for the unmanaged volume {}", unManagedVolume.getNativeGuid());

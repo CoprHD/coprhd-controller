@@ -876,10 +876,11 @@ public abstract class BlockIngestOrchestrator {
             updateObjects = new HashSet<DataObject>();
             requestContext.getDataObjectsToBeUpdatedMap().put(currentUnmanagedVolume.getNativeGuid(), updateObjects);
         }
-        String currentBlockObjectNativeGuid = currentUnmanagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+        String currentBlockObjectNativeGuid = 
+                currentUnmanagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
         for (BlockObject parent : parentReplicaMap.keySet()) {
             // clear the parent internal flags
-            // don't clear flags is the current block object is for the currently ingesting UnManagedvolume
+            // don't clear flags if the current block object is for the currently ingesting UnManagedvolume
             if (!parent.getNativeGuid().equals(currentBlockObjectNativeGuid)) {
                 VolumeIngestionUtil.clearInternalFlags(requestContext, parent, updateObjects, _dbClient);
             }
@@ -890,7 +891,8 @@ public abstract class BlockIngestOrchestrator {
                 updateObjects.add(parent);
             }
             boolean fullyIngestedVolume = true;
-            UnManagedVolume umVolume = VolumeIngestionUtil.getUnManagedVolumeForBlockObject(parent, _dbClient);
+            UnManagedVolume umVolume = parent.getNativeGuid().equals(currentBlockObjectNativeGuid) ? 
+                    currentUnmanagedVolume : VolumeIngestionUtil.getUnManagedVolumeForBlockObject(parent, _dbClient);
             boolean isParentRPVolume = umVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umVolume);
             // if its RP volume, then check whether the RP CG is fully ingested.
             if (isParentRPVolume) {
@@ -928,7 +930,7 @@ public abstract class BlockIngestOrchestrator {
                     VolumeIngestionUtil.setupSnapParentRelations(replica, parent, _dbClient);
                 }
 
-                // don't clear flags is the current block object is for the currently ingesting UnManagedvolume
+                // don't clear flags if the current block object is for the currently ingesting UnManagedvolume
                 if (!replica.getNativeGuid().equals(currentBlockObjectNativeGuid)) {
                     VolumeIngestionUtil.clearInternalFlags(requestContext, replica, updateObjects, _dbClient);
                 }

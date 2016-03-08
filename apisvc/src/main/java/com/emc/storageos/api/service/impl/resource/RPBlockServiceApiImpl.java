@@ -1655,14 +1655,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // backend volumes added to backend CGs.
             if (changeVpoolVolume != null 
                     && !changeVpoolVolume.checkForRp()
-                    && RPHelper.isVPlexVolume(changeVpoolVolume)
-                    && NullColumnValueGetter.isNullValue(changeVpoolVolume.getReplicationGroupInstance())) {
+                    && RPHelper.isVPlexVolume(changeVpoolVolume)) {
                 
-                // We have to manually do this step for an existing VPlex volume
-                // that we are trying to add protection to via change vpool.
                 boolean useArrayCG = false;
                 if (consistencyGroup.getArrayConsistency() && (!consistencyGroup.created() ||
                         consistencyGroup.getTypes().contains(Types.LOCAL.toString()))) {
+                    // Only need to set the replicationGroupInstance for an existing VPlex volume
+                    // if the CG has array consistency enabled and the CG supports LOCAL type.
                     useArrayCG = true;
                 }
                 
@@ -1680,6 +1679,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 backingVolume.getVolumeGroupIds().add(volumeGroup.getId().toString());
                             }
                         }
+                        _log.info(String.format("Preparing VPLEX volume [%s](%s) for RP Protection, "
+                                + "backend end volume [%s](%s) updated with replication group name: %s",
+                                volume.getLabel(), volume.getId(), backingVolume.getLabel(), backingVolume.getId(), rgName));
         
                         backingVolume.setReplicationGroupInstance(rgName);
                         _dbClient.updateObject(backingVolume);

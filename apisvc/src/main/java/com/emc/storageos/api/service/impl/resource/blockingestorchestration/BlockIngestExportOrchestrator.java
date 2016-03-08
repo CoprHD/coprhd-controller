@@ -382,7 +382,6 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
      */
     private void updateExportTypeInUnManagedVolume(
             UnManagedVolume unManagedVolume, String exportGroupType) {
-        _logger.info("unManagedVolume is {} and exportGroupType is {}", unManagedVolume.forDisplay(), exportGroupType);
         if (null != exportGroupType) {
             StringMap volumeCharacteristics = unManagedVolume.getVolumeCharacterstics();
             if (null != volumeCharacteristics) {

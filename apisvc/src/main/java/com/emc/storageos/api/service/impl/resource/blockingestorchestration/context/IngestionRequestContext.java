@@ -416,7 +416,13 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * @return the root, top-level IngestionRequestContext
      */
     public IngestionRequestContext getRootIngestionRequestContext();
-    
-    
+
+    /**
+     * Finds a DataObject by type and URI in the ingestion contexts.
+     * 
+     * @param clazz the DataObject class / type
+     * @param id the URI of the DataObject to look for
+     * @return a DataObject cast to its type
+     */
     <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id);
 }

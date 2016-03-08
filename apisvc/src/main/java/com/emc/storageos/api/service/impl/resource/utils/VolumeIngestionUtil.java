@@ -3325,7 +3325,6 @@ public class VolumeIngestionUtil {
      */
     public static boolean validateAllVolumesInCGIngested(List<UnManagedVolume> ingestedUnManagedVolumes,
             UnManagedProtectionSet umpset, DbClient dbClient) {
-        _logger.info("validateAllVolumesInCGIngested for {} ", umpset.forDisplay());
         if (umpset == null) {
             _logger.warn("INGEST VALIDATION: unmanaged protection set is null");
             return false;

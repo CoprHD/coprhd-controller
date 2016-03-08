@@ -1833,7 +1833,7 @@ public class RPHelper {
         		 !snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
              return false;
          }
-    	 
+
         // This is a protection based snapshot request if:
         // The volume allows for bookmarking (it's under protection) and
         // - The param either asked for a bookmark, or

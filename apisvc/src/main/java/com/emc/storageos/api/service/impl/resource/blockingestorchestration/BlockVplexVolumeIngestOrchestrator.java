@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -821,7 +822,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
                 unManagedVolume.getVolumeInformation());
         if (null != vplexBackendVolumes && !vplexBackendVolumes.isEmpty()) {
-            List<DataObject> toUpdateList = new ArrayList<DataObject>();
+            Set<DataObject> toUpdateSet = new HashSet<DataObject>();
             for (String vplexBackendUmvNativeGuid : vplexBackendVolumes) {
                 String backendVolumeNativeGuid = vplexBackendUmvNativeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                         VolumeIngestionUtil.VOLUME);
@@ -839,14 +840,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         _logger.warn("Unmanaged Volume {} is not yet ingested. Hence skipping", vplexBackendUmvNativeGuid);
                         continue;
                     }
-                    toUpdateList.add(blockObject);
+                    toUpdateSet.add(blockObject);
                 }
                 blockObject.setConsistencyGroup(vplexCG.getId());
             }
-            if (!toUpdateList.isEmpty()) {
+            if (!toUpdateSet.isEmpty()) {
                 // Since I pulled this in from the database, we need to add it to the list of objects to update.
                 ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getDataObjectsToBeUpdatedMap().put(
-                        unManagedVolume.getNativeGuid(), toUpdateList);
+                        unManagedVolume.getNativeGuid(), toUpdateSet);
             }
         }
         volume.setConsistencyGroup(vplexCG.getId());

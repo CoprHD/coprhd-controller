@@ -563,7 +563,7 @@ public class VolumeIngestionUtil {
 
         // Iterate thru protection set volumes.
         for (String volumeIdStr : pset.getVolumes()) {
-            for (List<DataObject> dataObjList : rpContext.getDataObjectsToBeUpdatedMap().values()) {
+            for (Set<DataObject> dataObjList : rpContext.getDataObjectsToBeUpdatedMap().values()) {
                 for (DataObject dataObj : dataObjList) {
                     if (URIUtil.identical(dataObj.getId(), URI.create(volumeIdStr))) {
                         Volume volume = (Volume) dataObj;
@@ -2856,10 +2856,10 @@ public class VolumeIngestionUtil {
      * 4) Remove the unmanaged export mask from the unmanaged volume
      *
      * @param blockObject the BlockObject to clear flags on
-     * @param updatedObjects a List of DataObjects being updated related to the given BlockObject
+     * @param updatedObjects a Set of DataObjects being updated related to the given BlockObject
      * @param dbClient a reference to the database client
      */
-    public static void clearInternalFlags(BlockObject blockObject, List<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearInternalFlags(BlockObject blockObject, Set<DataObject> updatedObjects, DbClient dbClient) {
         // for each block object, get the corresponding unmanaged volume.
         _logger.info("clearInternalFlags for blockObject " + blockObject.forDisplay());
 
@@ -3524,11 +3524,11 @@ public class VolumeIngestionUtil {
      * @param rpVolumes RP Volumes
      * @param pset protection set
      * @param rpCG RP consistency group
-     * @param updatedObjects List of objects updated
+     * @param updatedObjects Set of objects updated
      * @param dbClient a reference to the database client
      */
     public static void decorateRPVolumesCGInfo(List<Volume> rpVolumes, ProtectionSet pset, BlockConsistencyGroup rpCG,
-            List<DataObject> updatedObjects, DbClient dbClient, IngestionRequestContext requestContext) {
+            Set<DataObject> updatedObjects, DbClient dbClient, IngestionRequestContext requestContext) {
         for (Volume volume : rpVolumes) {
             // Set references to protection set/CGs properly in each volume
             volume.setConsistencyGroup(rpCG.getId());
@@ -3550,7 +3550,7 @@ public class VolumeIngestionUtil {
                 // in the ingestion. Otherwise we'll fish it out of the database in the findVolume()
                 // method below.
                 Map<String, BlockObject> createdMap = null;
-                Map<String, List<DataObject>> updatedMap = null;
+                Map<String, Set<DataObject>> updatedMap = null;
                 if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
                     createdMap = ((RpVplexVolumeIngestionContext) requestContext.getVolumeContext()).getVplexVolumeIngestionContext()
                             .getBlockObjectsToBeCreatedMap();
@@ -3807,7 +3807,7 @@ public class VolumeIngestionUtil {
             }
         }
 
-        for (List<DataObject> doList : requestContext.getDataObjectsToBeUpdatedMap().values()) {
+        for (Set<DataObject> doList : requestContext.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject dobj : doList) {
                 if (!(dobj instanceof BlockObject)) {
                     continue;
@@ -3820,7 +3820,7 @@ public class VolumeIngestionUtil {
         }
 
         if (requestContext.getVolumeContext() instanceof RecoverPointVolumeIngestionContext) {
-            for (List<DataObject> doList : ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext())
+            for (Set<DataObject> doList : ((RecoverPointVolumeIngestionContext) requestContext.getVolumeContext())
                     .getDataObjectsToBeUpdatedMap().values()) {
                 for (DataObject dobj : doList) {
                     if (!(dobj instanceof BlockObject)) {
@@ -3844,7 +3844,7 @@ public class VolumeIngestionUtil {
         }
 
         if (requestContext.getVolumeContext() instanceof VplexVolumeIngestionContext) {
-            for (List<DataObject> doList : ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getDataObjectsToBeUpdatedMap()
+            for (Set<DataObject> doList : ((VplexVolumeIngestionContext) requestContext.getVolumeContext()).getDataObjectsToBeUpdatedMap()
                     .values()) {
                 for (DataObject dobj : doList) {
                     if (!(dobj instanceof BlockObject)) {
@@ -3882,7 +3882,7 @@ public class VolumeIngestionUtil {
      * @param volumeId The id of the volume to find
      * @return The volume, or null if nothing can be found.
      */
-    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, List<DataObject>> updatedMap,
+    public static Volume findVolume(DbClient dbClient, Map<String, BlockObject> createdMap, Map<String, Set<DataObject>> updatedMap,
             String volumeId) {
         if (volumeId == null) {
             return null;
@@ -3903,7 +3903,7 @@ public class VolumeIngestionUtil {
 
         if (updatedMap != null) {
             // Check the updated map
-            for (List<DataObject> objectsToBeUpdated : updatedMap.values()) {
+            for (Set<DataObject> objectsToBeUpdated : updatedMap.values()) {
                 for (DataObject o : objectsToBeUpdated) {
                     if (o.getId().equals(volumeURI)) {
                         blockObject = (BlockObject) o;
@@ -3937,11 +3937,11 @@ public class VolumeIngestionUtil {
      * @param requestContext current unManagedVolume Ingestion context.
      * @param umpset Unmanaged protection set for which a protection set has to be created
      * @param unManagedVolume the current iterating UnManagedVolume
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion
+     * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
     public static void setupRPCG(IngestionRequestContext requestContext, UnManagedProtectionSet umpset, UnManagedVolume unManagedVolume,
-            List<DataObject> updatedObjects, DbClient dbClient) {
+            Set<DataObject> updatedObjects, DbClient dbClient) {
         _logger.info("Ingesting all volumes associated with RP consistency group");
 
         ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(requestContext, umpset, dbClient);
@@ -4000,10 +4000,10 @@ public class VolumeIngestionUtil {
      * Make the snaps/mirrors/clones of the RP volume to be visible after the RP CG is fully ingested
      *
      * @param volumes a List of Volume Objects to check
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion
+     * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void clearPersistedReplicaFlags(List<Volume> volumes, List<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearPersistedReplicaFlags(List<Volume> volumes, Set<DataObject> updatedObjects, DbClient dbClient) {
         for (Volume volume : volumes) {
             if (!Volume.PersonalityTypes.METADATA.toString().equals(volume.getPersonality())) {
                 clearFullCopiesFlags(volume, updatedObjects, dbClient);
@@ -4018,10 +4018,10 @@ public class VolumeIngestionUtil {
      * Clear the flags of the snapshots of the RP volume
      *
      * @param volumes the Volume Objects to clear flags on
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion
+     * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void clearSnapshotsFlags(Volume volume, List<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearSnapshotsFlags(Volume volume, Set<DataObject> updatedObjects, DbClient dbClient) {
         URIQueryResultList snapshotURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
                 volume.getId()), snapshotURIs);
@@ -4038,10 +4038,10 @@ public class VolumeIngestionUtil {
      * Clear the flags of the mirrors of the RP volume
      *
      * @param volumes the Volume Objects to clear flags on
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion
+     * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void clearMirrorsFlags(Volume volume, List<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearMirrorsFlags(Volume volume, Set<DataObject> updatedObjects, DbClient dbClient) {
         if (volume.getMirrors() != null) {
             List<URI> mirrorUris = new ArrayList<URI>(Collections2.transform(volume.getMirrors(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI));
@@ -4059,10 +4059,10 @@ public class VolumeIngestionUtil {
      * Clear the flags of the full copies of the RP volume
      *
      * @param volumes the Volume Objects to clear flags on
-     * @param updatedObjects a List of DataObjects to be updated in the database at the end of ingestion
+     * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void clearFullCopiesFlags(Volume volume, List<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearFullCopiesFlags(Volume volume, Set<DataObject> updatedObjects, DbClient dbClient) {
         if (volume.getFullCopies() != null) {
             List<URI> fullCopiesUris = new ArrayList<URI>(Collections2.transform(volume.getFullCopies(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI));

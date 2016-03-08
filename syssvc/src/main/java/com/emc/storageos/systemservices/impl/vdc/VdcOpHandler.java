@@ -484,11 +484,9 @@ public abstract class VdcOpHandler {
 
                 for (Site standby : drUtil.listStandbySites()) {
                     if (SiteState.STANDBY_PAUSING.equals(standby.getState())) {
-                        // all the other pausing sites are sync'ed with the current site
-                        // since they have been paused at the same time
-                        // this will make it a lot easier if we later failover to any of the paused sites
-                        standby.setState(SiteState.STANDBY_SYNCED);
-                        log.info("Updating state of site {} to STANDBY_SYNCED", standby.getUuid());
+                        // standby sites that are paused at the same time also block each other
+                        standby.setState(SiteState.STANDBY_PAUSED);
+                        log.info("Updating state of site {} to STANDBY_PAUSED", standby.getUuid());
                         coordinator.getCoordinatorClient().persistServiceConfiguration(standby.toConfiguration());
                     }
                 }

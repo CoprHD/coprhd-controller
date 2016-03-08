@@ -426,6 +426,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             return waitFor;
         }
 
+        List<VolumeDescriptor> migratedBlockDataDescriptors = new ArrayList<VolumeDescriptor>();
+        
         // We could be performing a change vpool for RP+VPLEX / MetroPoint. This means
         // we could potentially have migrations that need to be done on the backend
         // volumes. If migration info exists we need to collect that ahead of time.
@@ -439,13 +441,21 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 // Load the migration objects for use later
                 Iterator<VolumeDescriptor> migrationIter = migrateDescriptors.iterator();
                 while (migrationIter.hasNext()) {
-                    Migration migration = s_dbClient.queryObject(Migration.class, migrationIter.next().getMigrationId());
+                    VolumeDescriptor migrationDesc = migrationIter.next();
+                    Migration migration = s_dbClient.queryObject(Migration.class, migrationDesc.getMigrationId());
                     volumesWithMigration.add(migration.getSource());
+                    
+                    Volume migratedVolume = s_dbClient.queryObject(Volume.class, migration.getVolume());
+                    VolumeDescriptor migratedBlockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                            migratedVolume.getStorageController(), migratedVolume.getId(), null,
+                            migratedVolume.getConsistencyGroup(), migrationDesc.getCapabilitiesValues());
+                    
+                    migratedBlockDataDescriptors.add(migratedBlockDataDesc);
                 }
             }
         }
 
-        List<VolumeDescriptor> blockDataDescriptors = new ArrayList<VolumeDescriptor>();
+        List<VolumeDescriptor> blockDataDescriptors = new ArrayList<VolumeDescriptor>();        
 
         for (VolumeDescriptor descr : rpVolumeDescriptors) {
             // If there are RP_EXISTING_SOURCE volume descriptors, we need to ensure the
@@ -475,7 +485,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     // deleted so let's skip it.
                     if (volumesWithMigration.contains(assocVolume.getId())) {
                         s_logger.info(String.format("Migration exists for [%s] so no need to add this volume to a backing array CG.",
-                                assocVolume.getLabel()));
+                                assocVolume.getLabel()));                                                
                         continue;
                     }
 
@@ -508,9 +518,16 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     "postRPChangeVpoolCreateCG");
 
             // Add a step to update the local array consistency group with the volumes to add
-            waitFor = _blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, blockDataDescriptors, null);
+            waitFor = _blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, blockDataDescriptors, null);                        
         }
-
+        
+        // Consolidate all the block data descriptors to see if any replica steps are needed.
+        blockDataDescriptors.addAll(migratedBlockDataDescriptors);
+        s_logger.info("Checking for Replica steps");
+        // Call the ReplicaDeviceController to add its methods if volumes are added to CG, and the CG associated with replication
+        // group(s)
+        waitFor = _replicaDeviceController.addStepsForCreateVolumes(workflow, waitFor, blockDataDescriptors, taskId);
+        
         return waitFor;
     }
 

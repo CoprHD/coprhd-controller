@@ -628,8 +628,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
             String rpName = volume.getReplicationGroupInstance();
             if (NullColumnValueGetter.isNotNullValue(rpName)) {
-                _log.info("Creating backend CG.");
                 URI deviceURI = descr.getDeviceURI();
+                _log.info(String.format("If it doesn't already exist, creating backend CG [%s] on device (%s) for volume [%s](%s).", 
+                        rpName, deviceURI, volume.getLabel(), volume.getId()));
                 Set<String> rpNames = deviceURIs.get(deviceURI);
                 if (rpNames == null) {
                     rpNames = new HashSet<String>();

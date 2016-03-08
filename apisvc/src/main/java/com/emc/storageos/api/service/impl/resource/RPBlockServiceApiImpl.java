@@ -3716,23 +3716,20 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
                 String rgName = backendVol.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(rgName)) {
-                    boolean allRGVolsInRequest = checkAllRGVols(backendVol, allVolumes, checkedRGMap);
-                    boolean hasReplica = backendVol.getFullCopies() != null && !backendVol.getFullCopies().isEmpty() ||
-                            ControllerUtils.checkIfVolumeHasSnapshot(backendVol, _dbClient);
-
-                    if (!allRGVolsInRequest && hasReplica) {
-                        // the backend volume is in a replication group, and has replicas. make sure all source volumes in the same replication group is in the add list
-                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                                "not all volumes in the same replication group are in the add volume list");
+                    if (backendVol.getFullCopies() != null && !backendVol.getFullCopies().isEmpty() ||
+                            ControllerUtils.checkIfVolumeHasSnapshot(backendVol, _dbClient)) {
+                        // the backend volume is in a replication group, and has replicas.
+                        // TODO check VMAX3 snapshot session
+                        throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
+                                String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
                     }
 
                     if (groupName == null || groupName.isEmpty()) {
-                        if (!allRGVolsInRequest) {
+                        if (checkAllRGVols(backendVol, allVolumes, checkedRGMap)) {
+                            // if add all RG volumes to application, and no RG name provided, use original RG name
+                            groupName = rgName;
+                        } else {
                             throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel, "application sub group is not provided");
-                        }
-                    } else {
-                        if (allRGVolsInRequest) {
-                            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel, "cannot put volume to new sub group");
                         }
                     }
                 } else {
@@ -3814,7 +3811,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         if (hasReplica) {
             throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
-                    String.format("the volumes %s has replica. please remove all replicas from the volume", volume.getLabel()));
+                    String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
         }
     }
 

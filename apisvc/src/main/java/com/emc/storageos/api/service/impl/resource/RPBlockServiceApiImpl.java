@@ -1656,16 +1656,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (changeVpoolVolume != null 
                     && !changeVpoolVolume.checkForRp()
                     && RPHelper.isVPlexVolume(changeVpoolVolume)) {
-                
-                boolean useArrayCG = false;
-                if (consistencyGroup.getArrayConsistency() && (!consistencyGroup.created() ||
-                        consistencyGroup.getTypes().contains(Types.LOCAL.toString()))) {
-                    // Only need to set the replicationGroupInstance for an existing VPlex volume
-                    // if the CG has array consistency enabled and the CG supports LOCAL type.
-                    useArrayCG = true;
-                }
-                
-                if (useArrayCG) {
+
+                // Only need to set the replicationGroupInstance for an existing VPlex volume
+                // if the CG has array consistency enabled and the CG supports LOCAL type.                
+                if (consistencyGroup.getArrayConsistency()) {
                     for (String backendVolumeId : changeVpoolVolume.getAssociatedVolumes()) {
                         Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backendVolumeId));
                     

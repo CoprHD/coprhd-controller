@@ -1175,17 +1175,41 @@ public class BlockStorageUtils {
         return snapshotSessionIds;
     }
 
-    public static List<URI> getSingleFullCopyPerSubGroup(URI applicationId, String copySet,
+    public static Table<URI, String, VolumeRestRep> getReplicationGroupFullCopies(
+            List<NamedRelatedResourceRep> volumeUris) {
+        // Group volumes by storage system and replication group
+        Table<URI, String, VolumeRestRep> storageRgToVolumes = HashBasedTable.create();
+        List<URI> parentVolIds = Lists.newArrayList();
+        for (NamedRelatedResourceRep volumeUri : volumeUris) {
+            VolumeRestRep volume = execute(new GetBlockVolume(volumeUri.getId()));
+
+            if (volume != null && volume.getProtection() != null && volume.getProtection().getFullCopyRep() != null
+                    && volume.getProtection().getFullCopyRep().getAssociatedSourceVolume() != null) {
+                parentVolIds.add(volume.getProtection().getFullCopyRep().getAssociatedSourceVolume().getId());
+            }
+
+            List<VolumeRestRep> parentVolumes = execute(new GetBlockVolumes(parentVolIds));
+            if (parentVolumes != null && !parentVolumes.isEmpty()) {
+                for (VolumeRestRep parentVolume : parentVolumes) {
+                    String rgName = parentVolume.getReplicationGroupInstance();
+                    URI storage = parentVolume.getStorageController();
+                    if (!storageRgToVolumes.contains(storage, rgName)) {
+                        storageRgToVolumes.put(storage, rgName, volume);
+                    }
+                }
+            }
+        }
+        return storageRgToVolumes;
+    }
+
+    public static List<URI> getSingleFullCopyPerSubGroupAndStorageSystem(URI applicationId, String copySet,
             List<String> subGroups) {
         List<URI> fullCopyIds = Lists.newArrayList();
-        NamedVolumesList fullCopyList = execute(new GetFullCopyList(applicationId, copySet));
-        for (String subGroup : subGroups) {
-            for (NamedRelatedResourceRep fullCopy : fullCopyList.getVolumes()) {
-                VolumeRestRep fullCopyVolume = execute(new GetBlockVolume(fullCopy.getId()));
-                if (fullCopyVolume.getReplicationGroupInstance() != null && fullCopyVolume.getReplicationGroupInstance().equals(subGroup)) {
-                    fullCopyIds.add(fullCopyVolume.getId());
-                    break;
-                }
+        Table<URI, String, VolumeRestRep> results = getReplicationGroupFullCopies(
+                execute(new GetFullCopyList(applicationId, copySet)).getVolumes());
+        for (Cell<URI, String, VolumeRestRep> cell : results.cellSet()) {
+            if (subGroups.contains(cell.getColumnKey())) {
+                fullCopyIds.add(cell.getValue().getId());
             }
         }
         return fullCopyIds;

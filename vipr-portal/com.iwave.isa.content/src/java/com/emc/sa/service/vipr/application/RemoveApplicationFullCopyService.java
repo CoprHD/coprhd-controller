@@ -29,7 +29,7 @@ public class RemoveApplicationFullCopyService extends ViPRService {
     @Override
     public void execute() throws Exception {
 
-        List<URI> fullCopyIds = BlockStorageUtils.getSingleFullCopyPerSubGroup(applicationId, name,
+        List<URI> fullCopyIds = BlockStorageUtils.getSingleFullCopyPerSubGroupAndStorageSystem(applicationId, name,
                 subGroups);
 
         BlockStorageUtils.removeBlockResources(fullCopyIds, VolumeDeleteTypeEnum.FULL);

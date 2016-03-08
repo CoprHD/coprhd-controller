@@ -1178,6 +1178,22 @@ public class ControllerUtils {
                     return true;
                 }
             }
+
+            // snapshot session
+            if (storage.checkIfVmax3()) {
+                URIQueryResultList sessionList = new URIQueryResultList();
+                dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                        getBlockSnapshotSessionByConsistencyGroup(cgURI), sessionList);
+                Iterator<URI> itr = sessionList.iterator();
+                while (itr.hasNext()) {
+                    URI sessionID = itr.next();
+                    BlockSnapshotSession session = dbClient.queryObject(BlockSnapshotSession.class, sessionID);
+                    if (session != null && !session.getInactive()
+                            && NullColumnValueGetter.isNotNullValue(session.getReplicationGroupInstance())) {
+                        return true;
+                    }
+                }
+            }
         }
 
         return false;
@@ -1215,6 +1231,19 @@ public class ControllerUtils {
         }
 
         return groupNames;
+    }
+    
+    /**
+     * Gets snapshot replication group names from source volumes in CG.
+     * 
+     * @param volumes
+     * @param dbClient
+     * @return
+     */
+    public static String getCopyModeFromSnapshotGroup(String snapGroupName, URI storage,  DbClient dbClient) {
+       List<BlockSnapshot> snapshots =  getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);
+       return snapshots.get(0).getCopyMode();
+       
     }
 
     /**
@@ -1778,6 +1807,24 @@ public class ControllerUtils {
         return false;
     }
 
+    /**
+     * Returns the project for the snapshot session source.
+     * 
+     * @param sourceObj A reference to the Volume or BlockSnapshot instance.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return A reference to the project for the snapshot session source.
+     */
+    public static URI querySnapshotSessionSourceProject(BlockObject sourceObj, DbClient dbClient) {
+        URI projectURI = null;
+        if (sourceObj instanceof Volume) {
+            projectURI = ((Volume) sourceObj).getProject().getURI();
+        } else if (sourceObj instanceof BlockSnapshot) {
+            projectURI = ((BlockSnapshot) sourceObj).getProject().getURI();
+        }
+        return projectURI;
+    }
+
     /*
      * Check replicationGroup contains all and only volumes provided
      * 
@@ -1850,6 +1897,20 @@ public class ControllerUtils {
         }
 
         return false;
+    }
+
+    /*
+     * Check if non CG volume has snapshot session
+     *
+     * @param volumeUri
+     * @param dbClient
+     * @return true if has session, false otherwise
+     */
+    public static boolean checkIfVolumeHasSnapshotSession(URI volumeUri, DbClient dbClient) {
+        List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class,
+                ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volumeUri));
+        return !sessions.isEmpty();
     }
 
     /**

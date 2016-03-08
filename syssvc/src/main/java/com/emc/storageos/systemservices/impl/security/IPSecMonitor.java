@@ -33,6 +33,7 @@ public class IPSecMonitor implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(IPSecMonitor.class);
 
+    private static final long SHORT_SLEEP = 10 * 1000;
     public static int IPSEC_CHECK_INTERVAL = 10;  // minutes
     public static int IPSEC_CHECK_INITIAL_DELAY = 10;  // minutes
 
@@ -130,6 +131,8 @@ public class IPSecMonitor implements Runnable {
                 localRepository.reload("ipsec");
             }
 
+            shortSleep();
+
             log.info("Step 4: rechecking ipsec status ...");
             problemNodes = LocalRepository.getInstance().checkIpsecConnection();
             if (problemNodes == null || problemNodes.length == 0) {
@@ -139,6 +142,14 @@ public class IPSecMonitor implements Runnable {
             }
         } catch (Exception ex) {
             log.warn("error when run ipsec monitor: ", ex);
+        }
+    }
+
+    private void shortSleep() {
+        try {
+            Thread.sleep(SHORT_SLEEP);
+        } catch (InterruptedException e) {
+            log.warn("Short sleep error", e);
         }
     }
 

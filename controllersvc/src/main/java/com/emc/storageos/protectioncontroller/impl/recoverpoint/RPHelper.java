@@ -1207,11 +1207,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1451,7 +1451,7 @@ public class RPHelper {
     /**
      * MetroPoint Source volumes are represented as two copies (aka targets) in RecoverPoint.
      *
-     * The VPLEX Source volume has it's internal site set as do both the associated/backing volumes.
+     * The VPLEX Source volume has its internal site set as do both the associated/backing volumes.
      *
      * The associated/backing volume that has the same internal site name as it's VPLEX Virtual volume
      * is generally considered the "Active" copy and the other associated/backing volume's internal site name
@@ -1490,7 +1490,7 @@ public class RPHelper {
     /**
      * MetroPoint Source volumes are represented as two copies (aka targets) in RecoverPoint.
      *
-     * The VPLEX Source volume has it's internal site set as do both the associated/backing volumes.
+     * The VPLEX Source volume has its internal site set as do both the associated/backing volumes.
      *
      * The associated/backing volume that has the same internal site name as it's VPLEX Virtual volume
      * is generally considered the "Active" copy and the other associated/backing volume's internal site name

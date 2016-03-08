@@ -306,6 +306,8 @@ public abstract class VdcOpHandler {
      *  - to-be-removed standby - do nothing, go ahead to reboot
      */
     public static class DrRemoveStandbyHandler extends VdcOpHandler {
+        private static final int MAX_WAIT_TIME_IN_MIN = 30;
+
         public DrRemoveStandbyHandler() {
         }
         
@@ -328,9 +330,14 @@ public abstract class VdcOpHandler {
                     }
                     return;
                 } else {
-                    log.info("Waiting for completion of site removal from acitve site");
+                    long start = System.currentTimeMillis();
+                    log.info("Waiting for completion of site removal from active site");
                     while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING) && drUtil.getLocalSite().getState() != SiteState.STANDBY_PAUSED) {
-                        log.info("Waiting for completion of site removal from acitve site");
+                        if (System.currentTimeMillis() - start > MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
+                            throw new IllegalStateException("Timeout reached when wait for site to be removed"); 
+                        }
+                        
+                        log.info("Waiting for completion of site removal from active site");
                         retrySleep();
                     }
                 }

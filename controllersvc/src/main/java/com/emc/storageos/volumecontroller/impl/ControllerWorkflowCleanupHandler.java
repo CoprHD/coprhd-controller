@@ -64,7 +64,6 @@ public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {
     
     @Override
     protected void execute() {
-        checkDb();
         checkPersistentLocks();
         cleanupWorkflow();
         cleanupTasks();

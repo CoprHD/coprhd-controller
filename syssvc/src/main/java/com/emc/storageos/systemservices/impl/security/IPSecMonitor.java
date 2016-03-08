@@ -123,7 +123,8 @@ public class IPSecMonitor implements Runnable {
             } else {
                 log.info("Local already has latest ipsec key, checking local ...");
                 LocalRepository localRepository = LocalRepository.getInstance();
-                if (localRepository.isLocalIpsecConfigSynced()) {
+                if (!localRepository.isLocalIpsecConfigSynced()) {
+                    log.info("Local IPsec config files mismatched, need to reconfig");
                     localRepository.reconfigProperties("ipsec");
                 }
                 localRepository.reload("ipsec");

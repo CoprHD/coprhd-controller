@@ -147,10 +147,10 @@ public abstract class ResourceService {
         List<Class<? extends DataObject>> excludes = new ArrayList<Class<? extends DataObject>>();
         if (excludeTypes != null) {
             excludes.addAll(excludeTypes);
-            excludes.add(Task.class);
         }
+        excludes.add(Task.class);
         
-        String depMsg = geoDependencyChecker.checkDependencies(id, clazz, true, excludeTypes);
+        String depMsg = geoDependencyChecker.checkDependencies(id, clazz, true, excludes);
         if (depMsg != null) {
             return depMsg;
         }

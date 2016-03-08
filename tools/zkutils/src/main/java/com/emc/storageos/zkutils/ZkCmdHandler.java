@@ -92,7 +92,7 @@ public class ZkCmdHandler implements Watcher {
 
     private void assureNodeExist(String path) throws Exception{
         if (!path.startsWith("/")) {
-            throw new IllegalArgumentException(String.format("Invalid ZK path: %s", path));
+            throw new IllegalArgumentException(String.format("Invalid ZK path (should be full path): %s", path));
         }
         if (zk.exists(path, false) != null) {
             return;

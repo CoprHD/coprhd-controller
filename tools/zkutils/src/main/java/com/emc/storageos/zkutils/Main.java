@@ -152,9 +152,9 @@ public class Main {
                     if (args.length != 3) {
                         throw new IllegalArgumentException("Invalid parameters");
                     }
-                    String key = args[1] != null ? args[1].trim() : null;
-                    String value = args[2] != null ? args[2].trim() : null;
-                    if (key == null || key.isEmpty() || value == null || value.isEmpty()) {
+                    String key = args[1] != null ? args[1].trim() : "";
+                    String value = args[2] != null ? args[2].trim() : "";
+                    if (key.isEmpty() || value.isEmpty()) {
                         throw new IllegalArgumentException("Invalid parameters");
                     }
                     processZkCmdArgs(args);

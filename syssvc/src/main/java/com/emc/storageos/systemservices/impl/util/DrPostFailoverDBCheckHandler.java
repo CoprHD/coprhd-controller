@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.systemservices.impl.util;
 
 import java.util.Date;
@@ -10,10 +14,13 @@ import com.emc.storageos.coordinator.client.model.DbConsistencyStatus;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler;
 import com.emc.storageos.model.db.DbConsistencyStatusRestRep;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.systemservices.impl.jobs.DbConsistencyJob;
 import com.emc.storageos.systemservices.impl.jobs.common.JobProducer;
 
+/**
+ * Db scan after failover. We need check db index/object CF inconsistencies
+ *
+ */
 public class DrPostFailoverDBCheckHandler extends DrPostFailoverHandler {
     private static final Logger log = LoggerFactory.getLogger(JobProducer.class);
     private JobProducer jobProducer;

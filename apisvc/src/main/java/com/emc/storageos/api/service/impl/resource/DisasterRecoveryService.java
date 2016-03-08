@@ -414,6 +414,10 @@ public class DisasterRecoveryService {
         for (Site site : drUtil.listSites()) {
             standbyList.getSites().add(siteMapper.mapWithNetwork(site, drUtil));
         }
+        
+        SiteInfo siteInfo = coordinator.getTargetInfo(coordinator.getSiteId(), SiteInfo.class);
+        standbyList.setConfigVersion(siteInfo.getVdcConfigVersion());
+        
         return standbyList;
     }
 
@@ -824,29 +828,18 @@ public class DisasterRecoveryService {
             for (Site site : drUtil.listStandbySites()) {
                 long dataRevision = 0;
                 if (site.getUuid().equals(uuid)) {
-                    int gcGracePeriodInSeconds = DbConfigConstants.DEFAULT_GC_GRACE_PERIOD;
-                    String strVal = dbCommonInfo.getProperty(DbClientImpl.DB_CASSANDRA_INDEX_GC_GRACE_PERIOD);
-                    if (strVal != null) {
-                        gcGracePeriodInSeconds = Integer.parseInt(strVal);
+                    log.error("Re-init the target standby", uuid);
+
+                    // init the to-be resumed standby site
+                    dataRevision = System.currentTimeMillis();
+                    List<Site> standbySites = drUtil.listStandbySites();
+                    SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion, secretKey);
+                    try (InternalSiteServiceClient internalSiteServiceClient = new InternalSiteServiceClient()) {
+                        internalSiteServiceClient.setCoordinatorClient(coordinator);
+                        internalSiteServiceClient.setServer(site.getVipEndPoint());
+                        internalSiteServiceClient.initStandby(configParam);
                     }
-                    int gcGracePeriodInMillis = drUtil.getDrIntConfig(DrUtil.KEY_DB_GC_GRACE_PERIOD, gcGracePeriodInSeconds * 1000);
-                    log.info("Current db gc grace period is {} ms", gcGracePeriodInMillis);
                     
-                    // last state update should be PAUSED
-                    if ((System.currentTimeMillis() - site.getLastStateUpdateTime()) >= gcGracePeriodInMillis) {
-                        log.error("site {} has been paused for too long, we will re-init the target standby", uuid);
-
-                        // init the to-be resumed standby site
-                        dataRevision = System.currentTimeMillis();
-                        List<Site> standbySites = drUtil.listStandbySites();
-                        SiteConfigParam configParam = prepareSiteConfigParam(standbySites, ipsecConfig.getPreSharedKey(), uuid, dataRevision, vdcTargetVersion, secretKey);
-                        try (InternalSiteServiceClient internalSiteServiceClient = new InternalSiteServiceClient()) {
-                            internalSiteServiceClient.setCoordinatorClient(coordinator);
-                            internalSiteServiceClient.setServer(site.getVipEndPoint());
-                            internalSiteServiceClient.initStandby(configParam);
-                        }
-                    }
-
                     // update the site state AFTER checking the last state update time
                     site.setState(SiteState.STANDBY_RESUMING);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
@@ -917,7 +910,7 @@ public class DisasterRecoveryService {
                     Objects.toString(coordinator.getControlNodesState()));
         }
 
-        if (SiteState.STANDBY_PAUSED != localSite.getState()) {
+        if (SiteState.STANDBY_PAUSED != localSite.getState() && SiteState.ACTIVE_DEGRADED != localSite.getState()) {
             throw APIException.internalServerErrors.resumeStandbyPrecheckFailed(localSite.getName(),
                     "Standby site is not in paused state");
         }
@@ -2045,6 +2038,8 @@ public class DisasterRecoveryService {
         }
 
         private boolean hasActiveSiteInRemote(Site site, String localActiveSiteUUID) {
+            SiteInfo siteInfo = coordinator.getTargetInfo(coordinator.getSiteId(), SiteInfo.class);
+            long localConfigVersion = siteInfo.getVdcConfigVersion();
             
             try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
                 boolean hasActiveSite = false;
@@ -2052,20 +2047,16 @@ public class DisasterRecoveryService {
                 client.setCoordinatorClient(coordinator);
                 client.setKeyGenerator(apiSignatureGenerator);
                 SiteList remoteSiteList = client.getSiteList();
-
+                long remoteConfigVersion = remoteSiteList.getConfigVersion();
                 for (SiteRestRep siteResp : remoteSiteList.getSites()) {
+                    if (remoteConfigVersion < localConfigVersion) {
+                        log.info("Remote site config version {} is smaller than local {}, no failback", remoteConfigVersion, localConfigVersion);
+                        return false;
+                    }
                     if (SiteState.ACTIVE.toString().equalsIgnoreCase(siteResp.getState())
                             && !localActiveSiteUUID.equals(siteResp.getUuid())) {
                         log.info("Remote site {} is active site, need to failback", siteResp);
                         hasActiveSite = true;
-                    }
-                    
-                    //these codes will handle the case:
-                    //A as old active is down. B is up and C is down too.
-                    //Failover to B successfully. Power up A and C. B may query C and found there is another active site A and B failback
-                    if (localActiveSiteUUID.equals(siteResp.getUuid())) {
-                        log.info("Remote standby still reconganize me, no failback");
-                        return false;
                     }
                 }
 

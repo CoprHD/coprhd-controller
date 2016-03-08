@@ -1493,9 +1493,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         DrUtil drUtil = new DrUtil(this);
         Site site = drUtil.getSiteFromLocalVdc(siteId);
         SiteState siteState = site.getState();
-        int nodeCount = site.getNodeCount();
-        if (infos == null || infos.size() != nodeCount || configVersions == null
-                || configVersions.size() != nodeCount) {
+        int siteNodeCount = site.getNodeCount();
+        if (infos == null || infos.size() != siteNodeCount || configVersions == null
+                || configVersions.size() != siteNodeCount) {
             return ClusterInfo.ClusterState.DEGRADED;
         }
 

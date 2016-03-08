@@ -625,7 +625,7 @@
                 <value>ControllersvcWorkflowCleanupHandler</value>
                 <value>SasvcQueueCleanupHandler</value>
                 <value>SasvcOrderCleanupHandler</value>
-                <value>DrPostFailoverDBCheckHandler</value>
+                <value>SyssvcDBCheckHandler</value>
             </list>
         </property>
     </bean>
@@ -637,7 +637,7 @@
     <bean id="drPostFailoverDBCheckHandler" class="com.emc.storageos.systemservices.impl.util.DrPostFailoverDBCheckHandler">
     	<property name="coordinator" ref="coordinator" />
     	<property name="jobProducer" ref="dbConsistencyJobProducer" />
-    	<property name="name" value="DrPostFailoverDBCheckHandler"/>
+    	<property name="name" value="SyssvcDBCheckHandler"/>
     </bean>
 </beans>
     

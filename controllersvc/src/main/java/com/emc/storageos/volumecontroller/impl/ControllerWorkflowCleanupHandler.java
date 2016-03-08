@@ -12,24 +12,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.storageos.coordinator.client.model.Site;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler;
-import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.impl.DbCheckerFileWriter;
-import com.emc.storageos.db.client.impl.DbClientImpl;
-import com.emc.storageos.db.client.impl.DbConsistencyChecker;
-import com.emc.storageos.db.client.impl.DbConsistencyCheckerHelper;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.Workflow;
@@ -46,11 +38,10 @@ import com.emc.storageos.workflow.WorkflowService;
  * some db/zk data may not be replicated to standby site and we may lose some data after failover. So we
  * need do the following before we announce standby is ready
  * 
- * 1) Db scan. We need check db index/object CF inconsistencies
- * 2) Release persistent lock
- * 3) Remove all pending tasks, workflows
- * 4) Set all in-progress workflow steps/workflow as error
- * 5) Trigger device rediscovery
+ * 1) Release persistent lock
+ * 2) Remove all pending tasks, workflows
+ * 3) Set all in-progress workflow steps/workflow as error
+ * 4) Trigger device rediscovery
  * 
  */
 public class ControllerWorkflowCleanupHandler extends DrPostFailoverHandler {

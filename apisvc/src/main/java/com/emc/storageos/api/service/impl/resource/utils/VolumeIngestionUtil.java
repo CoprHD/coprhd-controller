@@ -3472,6 +3472,8 @@ public class VolumeIngestionUtil {
         types.add(BlockConsistencyGroup.Types.RP.toString());
         cg.setRequestedTypes(types);
         cg.setTypes(types);
+        // By default, the array consistency is false.  However later when we iterate over volumes in the BCG and we
+        // see any replicationGroupInstance information, we'll flip this bit to true.  (See decorateRPVolumesCGInfo())
         cg.setArrayConsistency(false);
         cg.setTenant(project.getTenantOrg());
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
@@ -3535,6 +3537,11 @@ public class VolumeIngestionUtil {
                 }
             }
 
+            // Check for CG information, which tells us that this CG is array consistent
+            if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+                rpCG.setArrayConsistency(true);
+            }
+            
             updatedObjects.add(volume);
         }
     }

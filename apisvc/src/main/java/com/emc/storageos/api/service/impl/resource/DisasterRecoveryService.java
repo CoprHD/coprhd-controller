@@ -1258,7 +1258,7 @@ public class DisasterRecoveryService {
                     oldActiveSite.toBriefString(), currentSite.toBriefString());
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
-            log.error("Error happened when failover at site %s", uuid, e);
+            log.error("Error happened when failover at site {}", uuid, e);
             coordinator.discardTransaction();
             auditDisasterRecoveryOps(OperationTypeEnum.FAILOVER, AuditLogManager.AUDITLOG_FAILURE, null,
                     currentSite.getName(), currentSite.getVipEndPoint());

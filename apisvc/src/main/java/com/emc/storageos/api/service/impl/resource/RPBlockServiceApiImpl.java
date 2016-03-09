@@ -63,6 +63,7 @@ import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
@@ -1887,8 +1888,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Because that can only have happened if the CG was already torn
         // down.
         if (volumeIDs.size() == 1) {
+            List<Class<? extends DataObject>> excludes = new ArrayList<Class<? extends DataObject>>();
+            if (excludeTypes != null) {
+                excludes.addAll(excludeTypes);
+            }
+            excludes.add(Task.class);
             String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                    object.getClass(), true, excludeTypes);
+                    object.getClass(), true, excludes);
             if (depMsg != null) {
                 return depMsg;
             }

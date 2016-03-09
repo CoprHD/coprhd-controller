@@ -1999,7 +1999,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             deleteOp.deletingChildrenIfNeeded();
             deleteOp.forPath(path);
         } catch (Exception ex) {
-            CoordinatorException.fatals.unableToDeletePath(path, ex);
+            log.error("Failed to delete ZK path: {}", path, ex);
+            throw CoordinatorException.fatals.unableToDeletePath(path, ex);
         }
     }
 

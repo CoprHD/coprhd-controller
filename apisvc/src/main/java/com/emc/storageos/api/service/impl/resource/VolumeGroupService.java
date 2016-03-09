@@ -624,6 +624,7 @@ public class VolumeGroupService extends TaskResourceService {
 
             // send create request after validating all volumes
             String name = param.getName();
+            
             for (Volume volume : volumesInRequest) {
                 // set Flag in Volume so that we will know about partial request during processing.
                 volume.addInternalFlags(Flag.VOLUME_GROUP_PARTIAL_REQUEST);
@@ -638,7 +639,6 @@ public class VolumeGroupService extends TaskResourceService {
 
                 // append replication group name to requested full copy name
                 // to make the requested name unique across array replication groups
-                param.setName(name + "_" + volume.getReplicationGroupInstance());
                 try {
                     taskList.getTaskList().addAll(getFullCopyManager().createFullCopy(volume.getId(), param).getTaskList());
                 } catch (Exception e) {

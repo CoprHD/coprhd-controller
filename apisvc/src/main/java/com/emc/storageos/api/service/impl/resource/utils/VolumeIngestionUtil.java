@@ -3598,6 +3598,10 @@ public class VolumeIngestionUtil {
                             updatedMap,
                             associatedVolumeIdStr);
                     if (associatedVolume != null) {
+                        if (NullColumnValueGetter.isNotNullValue(associatedVolume.getReplicationGroupInstance())) {
+                            _logger.info(String.format("Turning on array consistency on the consistency group because CG info exists on volume %s", associatedVolume.getLabel()));
+                            rpCG.setArrayConsistency(true);
+                        }
                         associatedVolume.setConsistencyGroup(rpCG.getId());
                         updatedObjects.add(associatedVolume);
                     } else {
@@ -3607,8 +3611,10 @@ public class VolumeIngestionUtil {
                 }
             }
 
-            // Check for CG information, which tells us that this CG is array consistent
-            if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+            // Check for CG information, which tells us that this CG is array consistent (ignore VPLEX, it uses replicationGroupInstance
+            // in a transient way during ingestion and will be cleared at the end of ingestion.
+            if (!volume.isVPlexVolume(dbClient) && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+                _logger.info(String.format("Turning on array consistency on the consistency group because CG info exists on volume %s", volume.getLabel()));
                 rpCG.setArrayConsistency(true);
             }
             

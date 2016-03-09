@@ -76,7 +76,7 @@ public class ZkCmdHandler implements Watcher {
         zk.setData(nodePath, memStream.toByteArray(), -1);
     }
 
-    public void addDrConfig(String key, String value) throws Exception {
+    public void tuneDrConfig(String key, String value) throws Exception {
         assureNodeExist(DR_CONFIG_PATH);
         Properties config = new Properties();
         config.load(new ByteArrayInputStream(zk.getData(DR_CONFIG_PATH, null, null)));
@@ -97,8 +97,8 @@ public class ZkCmdHandler implements Watcher {
         if (zk.exists(path, false) != null) {
             return;
         }
-        path = path.substring(1);
-        String[] paths = path.split("/");
+        String pathStr = path.substring(1);
+        String[] paths = pathStr.split("/");
         StringBuilder builder = new StringBuilder();
         for (String p : paths) {
             builder.append("/" + p);

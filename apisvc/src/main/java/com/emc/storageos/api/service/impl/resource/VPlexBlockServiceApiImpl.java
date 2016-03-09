@@ -70,6 +70,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -532,6 +533,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // then VPLEX volumes.
         List<Class<? extends DataObject>> allExcludeTypes = new ArrayList<Class<? extends DataObject>>();
         allExcludeTypes.add(VplexMirror.class);
+        allExcludeTypes.add(Task.class);
         if (excludeTypes != null) {
             allExcludeTypes.addAll(excludeTypes);
         }

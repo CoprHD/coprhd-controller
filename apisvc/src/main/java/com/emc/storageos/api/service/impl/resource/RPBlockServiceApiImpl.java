@@ -62,6 +62,7 @@ import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
@@ -101,8 +102,10 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.RPRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.collect.Lists;
 
 /**
@@ -1644,15 +1647,48 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             volume.setLinkStatus(Volume.LinkStatus.OTHER.name());
         }
 
+        if (consistencyGroup != null) {
+            volume.setConsistencyGroup(consistencyGroup.getId());
+
+            // If we have a new RP+VPLEX/MP change vpool volume we may need
+            // to do some extra work depending on whether we need the volume's
+            // backend volumes added to backend CGs.
+            if (changeVpoolVolume != null 
+                    && !changeVpoolVolume.checkForRp()
+                    && RPHelper.isVPlexVolume(changeVpoolVolume)) {
+
+                // Only need to set the replicationGroupInstance for an existing VPlex volume
+                // if the CG has array consistency enabled and the CG supports LOCAL type.                
+                if (consistencyGroup.getArrayConsistency()) {
+                    for (String backendVolumeId : changeVpoolVolume.getAssociatedVolumes()) {
+                        Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(backendVolumeId));
+                    
+                        String rgName = consistencyGroup.getCgNameOnStorageSystem(backingVolume.getStorageController());
+                        if (rgName == null) {
+                            rgName = consistencyGroup.getLabel(); // for new CG
+                        } else {
+                            // if other volumes in the same CG are in an application, add this volume to the same application
+                            VolumeGroup volumeGroup = ControllerUtils.getApplicationForCG(_dbClient, consistencyGroup, rgName);
+                            if (volumeGroup != null) {
+                                backingVolume.getVolumeGroupIds().add(volumeGroup.getId().toString());
+                            }
+                        }
+                        _log.info(String.format("Preparing VPLEX volume [%s](%s) for RP Protection, "
+                                + "backend end volume [%s](%s) updated with replication group name: %s",
+                                volume.getLabel(), volume.getId(), backingVolume.getLabel(), backingVolume.getId(), rgName));
+        
+                        backingVolume.setReplicationGroupInstance(rgName);
+                        _dbClient.updateObject(backingVolume);
+                    }
+                }                
+            }
+        }
+        
         volume.setPersonality(personality.toString());
         volume.setProtectionController(protectionSystemURI);
         volume.setRSetName(rsetName);
         volume.setInternalSiteName(internalSiteName);
         volume.setRpCopyName(rpCopyName);
-
-        if (consistencyGroup != null) {
-            volume.setConsistencyGroup(consistencyGroup.getId());
-        }
 
         if (NullColumnValueGetter.isNotNullValue(vpool.getAutoTierPolicyName())) {
             URI autoTierPolicyUri = StorageScheduler.getAutoTierPolicy(volume.getPool(),
@@ -1666,7 +1702,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Create the volume in the db
             _dbClient.createObject(volume);
         } else {
-            _dbClient.updateAndReindexObject(volume);
+            _dbClient.updateObject(volume);
         }
 
         // Keep track of target volumes associated with the source volume
@@ -1675,7 +1711,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 sourceVolume.setRpTargets(new StringSet());
             }
             sourceVolume.getRpTargets().add(volume.getId().toString());
-            _dbClient.updateAndReindexObject(sourceVolume);
+            _dbClient.updateObject(sourceVolume);
         }
 
         return volume;
@@ -1886,8 +1922,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Because that can only have happened if the CG was already torn
         // down.
         if (volumeIDs.size() == 1) {
+            List<Class<? extends DataObject>> excludes = new ArrayList<Class<? extends DataObject>>();
+            if (excludeTypes != null) {
+                excludes.addAll(excludeTypes);
+            }
+            excludes.add(Task.class);
             String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                    object.getClass(), true, excludeTypes);
+                    object.getClass(), true, excludes);
             if (depMsg != null) {
                 return depMsg;
             }

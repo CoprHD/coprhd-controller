@@ -1435,11 +1435,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     @Override
     public ClusterInfo.ClusterState getControlNodesState() {
-        return getControlNodesState(_zkConnection.getSiteId(), getNodeCount());
+        return getControlNodesState(_zkConnection.getSiteId());
     }
 
     @Override
-    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+    public ClusterInfo.ClusterState getControlNodesState(String siteId) {
         try {
             // get target repository and configVersion
             final RepositoryInfo targetRepository = getTargetInfo(RepositoryInfo.class);
@@ -1455,7 +1455,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                     VdcConfigVersion.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             
             return getControlNodesState(targetRepository, controlNodesInfo, targetProperty,
-                    controlNodesConfigVersions, controlNodesVdcConfigVersions, targetPowerOffState, nodeCount);
+                    controlNodesConfigVersions, controlNodesVdcConfigVersions, targetPowerOffState, siteId);
         } catch (Exception e) {
             log.info("Fail to get the control node information ", e);
             return ClusterInfo.ClusterState.UNKNOWN;
@@ -1475,22 +1475,32 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      *            control nodes' configVersions
      * @param targetPowerOffState
      *            target poweroff state
+     * @param siteId
      * @return Control nodes' state
      */
     private ClusterInfo.ClusterState getControlNodesState(final RepositoryInfo targetGiven,
-            final Map<Service, RepositoryInfo> infos,
-            final PropertyInfoRestRep targetPropertiesGiven,
-            final Map<Service, ConfigVersion> configVersions,
-            final Map<Service, VdcConfigVersion> vdcConfigVersions,
-            final PowerOffState targetPowerOffState, 
-            int nodeCount) {
+                                                          final Map<Service, RepositoryInfo> infos,
+                                                          final PropertyInfoRestRep targetPropertiesGiven,
+                                                          final Map<Service, ConfigVersion> configVersions,
+                                                          final Map<Service, VdcConfigVersion> vdcConfigVersions,
+                                                          final PowerOffState targetPowerOffState,
+                                                          String siteId) {
         if (targetGiven == null || targetPropertiesGiven == null || targetPowerOffState == null) {
             // only for first time target initializing
             return ClusterInfo.ClusterState.INITIALIZING;
         }
 
-        if (infos == null || infos.size() != nodeCount || configVersions == null
-                || configVersions.size() != nodeCount) {
+        DrUtil drUtil = new DrUtil(this);
+        Site site = drUtil.getSiteFromLocalVdc(siteId);
+        SiteState siteState = site.getState();
+        int siteNodeCount = site.getNodeCount();
+        if (infos == null || infos.size() != siteNodeCount || configVersions == null
+                || configVersions.size() != siteNodeCount) {
+            return ClusterInfo.ClusterState.DEGRADED;
+        }
+
+        if (siteState == SiteState.STANDBY_ERROR) {
+            log.info("Control nodes' state DEGRADED since DR site state is STANDBY_ERROR");
             return ClusterInfo.ClusterState.DEGRADED;
         }
 
@@ -1510,8 +1520,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         } else if (!differentConfigVersions.isEmpty()) {
             log.info("Control nodes' state UPDATING: {}", Strings.repr(targetPropertiesGiven));
             return ClusterInfo.ClusterState.UPDATING;
-        } else if (!differentVdcConfigVersions.isEmpty()){
+        } else if (!differentVdcConfigVersions.isEmpty()) {
             log.info("Control nodes' state UPDATING vdc config version: {}", Strings.repr(differentVdcConfigVersions));
+            return ClusterInfo.ClusterState.UPDATING;
+        } else if (siteState.isDROperationOngoing()) {
+            log.info("Control nodes' state UPDATING since DR operation ongoing: {}", siteState);
             return ClusterInfo.ClusterState.UPDATING;
         } else if (differentCurrents.isEmpty() && differentVersions.isEmpty()) {
             // check for the extra upgrading states
@@ -1986,7 +1999,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             deleteOp.deletingChildrenIfNeeded();
             deleteOp.forPath(path);
         } catch (Exception ex) {
-            CoordinatorException.fatals.unableToDeletePath(path, ex);
+            log.error("Failed to delete ZK path: {}", path, ex);
+            throw CoordinatorException.fatals.unableToDeletePath(path, ex);
         }
     }
 

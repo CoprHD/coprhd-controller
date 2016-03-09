@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -191,7 +192,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     @Override
     public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
         URI objectURI = object.getId();
-        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true, excludeTypes);
+        List<Class<? extends DataObject>> excludes = new ArrayList<Class<? extends DataObject>>();
+        if (excludeTypes != null) {
+            excludes.addAll(excludeTypes);
+        }
+        excludes.add(Task.class);
+        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true, excludes);
         if (depMsg != null) {
             return depMsg;
         }

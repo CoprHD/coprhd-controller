@@ -6,8 +6,10 @@ package controllers;
 
 import static controllers.Common.flashException;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupInfo;
@@ -166,6 +168,7 @@ public class Backup extends Controller {
 
         BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
         renderArgs.put("status", status);
+        renderArgs.put("percentages", new RestoreStatus(status).percentageMap);
         renderArgs.put("id", id);
         renderArgs.put("type", type);
 
@@ -261,30 +264,27 @@ public class Backup extends Controller {
 
     public static class RestoreStatus {
         private String backupName;
-        private long backupSize;
-        private long downloadSize;
         private BackupRestoreStatus.Status status;
         private boolean isGeo;
-
-        private String message;
+        private Map<String, Long> sizeToDownload;
+        private Map<String, Long> downloadedSize;
+        private Map<String, Integer> percentageMap;
+        private String details;
 
         public RestoreStatus(BackupRestoreStatus origin) {
             this.backupName = origin.getBackupName();
-            Map<String, Long> map = origin.getSizeToDownload();
-            backupSize = 0;
-            for (Map.Entry<String, Long> size : map.entrySet()) {
-                backupSize += size.getValue();
-            }
-
-            downloadSize = 0;
-            map = origin.getDownloadedSize();
-            for (Map.Entry<String, Long> size : map.entrySet()) {
-                downloadSize += size.getValue();
-            }
-
+            this.sizeToDownload = origin.getSizeToDownload();
+            this.downloadedSize = origin.getDownloadedSize();
             this.status = origin.getStatus();
             this.isGeo = origin.isGeo();
-            this.message = origin.getStatus().getMessage();
+            this.details = origin.getDetails();
+
+            percentageMap = new HashMap<String, Integer>(sizeToDownload.size());
+            for (String hostname : sizeToDownload.keySet()) {
+                int percentage = sizeToDownload.get(hostname) == 0L ? 0
+                        : (int) (downloadedSize.get(hostname) / sizeToDownload.get(hostname) * 100);
+                percentageMap.put(hostname, percentage);
+            }
         }
     }
 }

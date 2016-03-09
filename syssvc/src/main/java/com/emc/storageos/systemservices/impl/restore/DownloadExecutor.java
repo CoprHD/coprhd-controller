@@ -208,7 +208,6 @@ public final class DownloadExecutor implements  Runnable {
             }
         }
         backupOps.setRestoreStatus(remoteBackupFileName, null, null, true);
-        updateRestoreStatus();
     }
 
     private void pullFileFromNode(URI endpoint, String filename) throws IOException {
@@ -224,17 +223,6 @@ public final class DownloadExecutor implements  Runnable {
             persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true);
         } catch (URISyntaxException e) {
             log.error("Internal error occurred while prepareing get image URI: {}", e);
-        }
-    }
-
-    private void deleteDownloadedBackup() {
-        File downloadedDir = backupOps.getDownloadDirectory(remoteBackupFileName);
-
-        log.info("To remove downloaded {} exist={}", downloadedDir, downloadedDir.exists());
-        try {
-            FileUtils.deleteDirectory(downloadedDir);
-        }catch (IOException ex) {
-            log.error("Failed to remove {} e=", downloadedDir.getAbsolutePath(), ex);
         }
     }
 
@@ -319,7 +307,6 @@ public final class DownloadExecutor implements  Runnable {
             sizeToDownload.putAll(downloadSize);
             s.setSizeToDownload(sizeToDownload);
 
-
             log.info("sizeToDownload={} downloadedSize={}", sizeToDownload, s.getDownloadedSize());
 
             backupOps.persistBackupRestoreStatus(s, false, true);
@@ -330,16 +317,6 @@ public final class DownloadExecutor implements  Runnable {
             Status s = Status.DOWNLOAD_FAILED;
             backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false);
             return;
-        }
-
-        updateRestoreStatus();
-    }
-
-    private void updateRestoreStatus() {
-        BackupRestoreStatus restoreStatus = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
-        Status s = restoreStatus.getStatus();
-        if (s == Status.DOWNLOAD_SUCCESS || s == Status.DOWNLOAD_CANCELLED || s == Status.DOWNLOAD_FAILED ) {
-            backupOps.clearCurrentBackupInfo();
         }
     }
 

@@ -261,7 +261,7 @@ public class ExportService extends VolumeService {
         else if (bTerminate) {
             if (getVolExtensions(vol).containsKey("status") &&
                    ( getVolExtensions(vol).get("status").equals(ComponentStatus.DETACHING.getStatus().toLowerCase()) 
-		    || getVolExtensions(vol).get("status").equals(ComponentStatus.IN_USE.getStatus().toLowerCase()) ) ) {
+                    || getVolExtensions(vol).get("status").equals(ComponentStatus.IN_USE.getStatus().toLowerCase()) ) ) {
                 getVolExtensions(vol).put("status", ComponentStatus.DETACHING.getStatus().toLowerCase());
                 _dbClient.updateObject(vol);
 

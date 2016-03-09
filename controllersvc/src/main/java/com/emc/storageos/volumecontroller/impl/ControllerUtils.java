@@ -1442,17 +1442,10 @@ public class ControllerUtils {
         if (volume != null && volume.isInCG() && ControllerUtils.isVnxVolume(volume, dbClient)) {
             BlockConsistencyGroup consistencyGroup = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
             if (consistencyGroup != null && !consistencyGroup.getInactive()) {
-                if (!consistencyGroup.getArrayConsistency() && !NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
-                    // arrayConsistency is off, but replicationGroupInstance is on
-                    return true;
-                } else if (consistencyGroup.getArrayConsistency() && NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
-                    // arrayConsistency is on, but replicationGroupInstance is off
-                    return true;
-                }
+                return !consistencyGroup.getArrayConsistency();
             }
         }
 
-        // Either both arrayConsistency and replicationGroupInstance are on or off
         return false;
     }
 

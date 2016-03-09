@@ -2895,10 +2895,6 @@ public class VolumeIngestionUtil {
                     }
                 }
                 for (UnManagedExportMask unManagedExportMask : unManagedMasks) {
-                    if (isRpExportMask(unManagedExportMask, dbClient)) {
-                        // don't process RP UnManagedExportMasks here
-                        continue;
-                    }
                     Map<URI, ExportMask> exportMaskMap = new HashMap<URI, ExportMask>();
                     List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
                             unManagedExportMask.getKnownInitiatorUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));

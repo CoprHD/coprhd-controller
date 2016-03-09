@@ -38,39 +38,24 @@ public class BlockVolumesDataTable extends DataTable {
         setDefaultSort("name", "asc");
     }
 
-    public static List<Volume> fetch(URI projectId, URI applicationId) {
-        if (projectId == null && applicationId ==null) {
-            return Collections.EMPTY_LIST;
-        }
+	public static List<Volume> fetch(URI projectId) {
+		if (projectId == null) {
+			return Collections.EMPTY_LIST;
+		}
 
-        ViPRCoreClient client = getViprClient();
-        List<VolumeRestRep> volumes = Lists.newArrayList();
-        List<Volume> results = Lists.newArrayList();
-        Map<URI, String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
-        Map<URI, String> virtualPools = ResourceUtils.mapNames(client.blockVpools().list());
-        if (projectId != null && applicationId == null) {
-             volumes = client.blockVolumes().findByProject(projectId);
-             for (VolumeRestRep volume : volumes) {
-                     results.add(new Volume(volume, virtualArrays, virtualPools));
-             }
-        }
-        else if(applicationId!=null) {
-            List<VolumeRestRep> result = Lists.newArrayList();
-            List<NamedRelatedResourceRep> groups = AppSupportUtil.getVolumesByApplication(applicationId.toString());
-            List<NamedRelatedResourceRep> clones = AppSupportUtil.getFullCopiesByApplication(applicationId.toString());
-            for (NamedRelatedResourceRep volume : groups) {
-                result.add(BourneUtil.getViprClient().blockVolumes().get((volume.getId())));
-            }
-            for (NamedRelatedResourceRep clone:clones) {
-                result.add(BourneUtil.getViprClient().blockVolumes().get((clone.getId())));
-            }
-            for (VolumeRestRep volumeApplication : result) {
-                results.add(new Volume(volumeApplication, virtualArrays, virtualPools));
-            }
-        }
-        
-        return results;
-        }
+		ViPRCoreClient client = getViprClient();
+		List<VolumeRestRep> volumes = client.blockVolumes().findByProject(
+				projectId);
+		List<Volume> results = Lists.newArrayList();
+		Map<URI, String> virtualArrays = ResourceUtils.mapNames(client
+				.varrays().list());
+		Map<URI, String> virtualPools = ResourceUtils.mapNames(client
+				.blockVpools().list());
+		for (VolumeRestRep volume : volumes) {
+			results.add(new Volume(volume, virtualArrays, virtualPools));
+		}
+		return results;
+	}
 
     public static class Volume {
         public URI id;

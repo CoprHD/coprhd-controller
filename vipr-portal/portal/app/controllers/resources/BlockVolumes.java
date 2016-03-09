@@ -79,18 +79,17 @@ public class BlockVolumes extends ResourceController {
     public static void volumes(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
-        renderArgs.put("application", getApplications());
         addReferenceData();
         render();
     }
 
-    public static void volumesJson(String projectId, String applicationId) {
+    public static void volumesJson(String projectId) {
         if (StringUtils.isNotBlank(projectId)) {
             setActiveProjectId(projectId);
         } else {
             projectId = getActiveProjectId();
         }
-        List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
+        List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }
 
@@ -423,29 +422,5 @@ public class BlockVolumes extends ResourceController {
     @Util
     private static boolean isBlockContinuousCopyId(String id) {
         return ResourceType.isType(BLOCK_CONTINUOUS_COPY, id);
-    }
-
-    @Util
-    private static List<NamedRelatedResourceRep> getApplications() {
-        List<NamedRelatedResourceRep> applications = AppSupportUtil.getApplications();
-        List<NamedRelatedResourceRep> results = Lists.newArrayList();
-		for (NamedRelatedResourceRep application : applications) {
-			VolumeGroupRestRep volumeGroup = AppSupportUtil
-					.getApplication(application.getId().toString());
-			if ((roles).equals(volumeGroup.getRoles())) {
-				results.add(application);
-			}
-		}
-        if (!results.isEmpty()) {
-            Collections.sort(results, new Comparator<NamedRelatedResourceRep>() {
-                @Override
-                public int compare(NamedRelatedResourceRep app1, NamedRelatedResourceRep app2)
-                {
-                    return app1.getName().compareTo(app2.getName());
-                }
-            });
-
-        }
-        return results;
     }
 }

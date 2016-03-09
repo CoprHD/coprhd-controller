@@ -104,7 +104,8 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             if (blockObj instanceof Volume) {
                 Volume volume = (Volume) blockObj;
                 if (volume.getAssociatedVolumes() != null                             
-                        && volume.getAssociatedVolumes().size() > 1) {                        
+                        && volume.getAssociatedVolumes().size() > 1) {
+                    logger.info(String.format("Removing replication group instance information from volume %s", volume.getLabel()));
                     volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
                     requestContext.addDataObjectToUpdate(volume, unManagedVolume);
                 }

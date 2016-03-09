@@ -401,10 +401,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         s_logger.info("It is RP target or journal volume");
                         isRPTargetOrJournal = true;
                     }
-                    // Set replicationGroupInstance if CG's arrayConsistency is true
-                    if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal) {
-                        volume.setReplicationGroupInstance(consistencyGroup.getLabel());
-                    }
                     
                     if (consistencyGroup != null) {
                         volume.setConsistencyGroup(consistencyGroup.getId());

@@ -1,6 +1,7 @@
 package com.emc.storageos.volumecontroller.impl.vnx;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,11 +21,13 @@ import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.FileReplicationType;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.plugins.common.domainmodel.NamespaceList;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.vnx.xmlapi.VNXFileSshApi;
 import com.emc.storageos.vnx.xmlapi.XMLApiResult;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileMirrorOperations;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileDiscExecutor;
 
 public class VnxFileMirrorOperations extends AbstractFileMirrorOperations {
     private static final Logger _log = LoggerFactory.getLogger(VnxFileMirrorOperations.class);
@@ -34,6 +37,11 @@ public class VnxFileMirrorOperations extends AbstractFileMirrorOperations {
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
+
+    private static final String SERVER_URI = "/servlets/CelerraManagementServices";
+
+    private VNXFileDiscExecutor _provExecutor;
+    private NamespaceList _provNamespaces;
 
     private String VDM_MIRROR_SESSION = "vdm_session";
 
@@ -213,11 +221,11 @@ public class VnxFileMirrorOperations extends AbstractFileMirrorOperations {
         return formatCmd;
     }
 
-	// give list of interConnects ids or controller station queryObject ControlStationQueryParams
+    // give list of interConnects ids or controller station queryObject ControlStationQueryParams
     private String getValideInterConnectionRemoteMirror(StorageSystem sourceStorageSystem, String ipDest) {
         // first get the interconnect info for source system
-		
-		//-interconnect
+
+        // -interconnect
         Map<String, Map<String, String>> interConnects = null;
         Map<String, String> interConnectInfos = null;
         _sshApi.setConnParams(sourceStorageSystem.getIpAddress(), sourceStorageSystem.getUsername(), sourceStorageSystem.getPassword());
@@ -230,7 +238,7 @@ public class VnxFileMirrorOperations extends AbstractFileMirrorOperations {
         if (interConnects != null) {
             for (Entry<String, Map<String, String>> entry : interConnects.entrySet()) {
                 String interConnectId = entry.getKey();
-				//isActiveInterConnect 
+                // isActiveInterConnect
                 if (_sshApi.isInterConnectValid(interConnectId) == true) {
                     validConnection.add(interConnectId);
                 }
@@ -263,6 +271,58 @@ public class VnxFileMirrorOperations extends AbstractFileMirrorOperations {
             dm = _dbClient.queryObject(StorageHADomain.class, port.getStorageHADomain());
         }
         return dm;
+    }
+
+    private void updateAttributes(final Map<String, Object> reqAttributeMap, final StorageSystem system) {
+
+        reqAttributeMap.put(VNXFileConstants.DEVICETYPE, system.getSystemType());
+        reqAttributeMap.put(VNXFileConstants.USERNAME, system.getUsername());
+        reqAttributeMap.put(VNXFileConstants.USER_PASS_WORD, system.getPassword());
+        reqAttributeMap.put(VNXFileConstants.PORTNUMBER, system.getPortNumber());
+
+        reqAttributeMap.put(VNXFileConstants.URI, getServerUri(system));
+        reqAttributeMap.put(VNXFileConstants.AUTHURI, getLoginUri(system));
+
+    }
+
+    private String getLoginUri(final StorageSystem system) {
+
+        try {
+            final URI deviceURI = new URI("https", system.getIpAddress(), "/Login", null);
+            return deviceURI.toString();
+        } catch (URISyntaxException ex) {
+            _log.error("Error while creating server uri for IP {}", system.getIpAddress());
+        }
+
+        return "";
+    }
+
+    private String getServerUri(final StorageSystem system) {
+
+        try {
+            final URI deviceURI = new URI("https", system.getIpAddress(), SERVER_URI, null);
+            return deviceURI.toString();
+        } catch (URISyntaxException ex) {
+            _log.error("Error while creating server uri for IP {}", system.getIpAddress());
+        }
+
+        return "";
+    }
+
+    public void setProvExecutor(VNXFileDiscExecutor discExec) {
+        _provExecutor = discExec;
+    }
+
+    public VNXFileDiscExecutor getProvExecutor() {
+        return _provExecutor;
+    }
+
+    public void setProvNamespaces(NamespaceList namespaces) {
+        _provNamespaces = namespaces;
+    }
+
+    public NamespaceList getProvNamespaces() {
+        return _provNamespaces;
     }
 
 }

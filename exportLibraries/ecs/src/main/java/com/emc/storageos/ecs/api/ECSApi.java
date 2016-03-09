@@ -47,7 +47,8 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_ACL = "/object/bucket/{0}/acl.json";    
     private static final String URI_GET_NAMESPACES = "/object/namespaces.json";
     private static final String URI_GET_NAMESPACE_DETAILS = "/object/namespaces/namespace/{0}.json";
-    private static final String URI_USER_SECRET_KEYS = "/object/user-secret-keys/{0}.json";    
+    private static final String URI_USER_SECRET_KEYS = "/object/user-secret-keys/{0}.json"; 
+    private static final String URI_GET_BUCKET_ACL = "/object/bucket/{0}/acl.json?namespace={1}";
     private static final long DAY_TO_SECONDS = 24 * 60 * 60;
     private static final long BYTES_TO_GB = 1024 * 1024 * 1024;
 
@@ -504,6 +505,41 @@ public class ECSApi {
                 clientResp.close();
             }
             _log.debug("ECSApi:getNamespace exit");
+        }
+    }
+    
+    /**
+     * Get the Bucket ACL
+     * 
+     * @return String response 
+     * @throws ECSException
+     */
+    public String getBucketAclFromECS(String bucketName, String namespace) throws ECSException {
+        _log.debug("ECSApi:getBucketAclFromECS");
+        ClientResponse clientResp = null;
+       
+        try {
+            String responseString = null;
+            final String path = MessageFormat.format(URI_GET_BUCKET_ACL, bucketName, namespace);
+            getAuthToken();
+            clientResp = get(path);
+            if (null == clientResp) {
+                throw ECSException.exceptions.getBucketACLFailed(bucketName, "no response from ECS");
+            } else if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.getBucketACLFailed(bucketName, getResponseDetails(clientResp));
+            }
+
+            responseString = clientResp.getEntity(String.class);
+            _log.info("ECSApi:getBucketAclFromECS response is {}", responseString);
+           
+            return responseString;
+        } catch (Exception e) {
+            throw ECSException.exceptions.getBucketACLFailed(bucketName, e.getMessage());
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            _log.debug("ECSApi:getBucketAclFromECS exit");
         }
     }
     

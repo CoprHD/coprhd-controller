@@ -15,8 +15,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
-import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +25,7 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.resource.utils.AsynchJobExecutorService;
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.Constraint;
@@ -41,6 +40,7 @@ import com.emc.storageos.db.client.model.AbstractTenantResource;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredComputeSystemWithAcls;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -51,6 +51,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.tenant.TenantOrgList;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -142,7 +143,14 @@ public abstract class ResourceService {
         Class<? extends DataObject> clazz = object.getClass();
         URI id = object.getId();
 
-        String depMsg = geoDependencyChecker.checkDependencies(id, clazz, true, excludeTypes);
+        // COP-21194: Task references should be ignored always for delete operations of resource
+        List<Class<? extends DataObject>> excludes = new ArrayList<Class<? extends DataObject>>();
+        if (excludeTypes != null) {
+            excludes.addAll(excludeTypes);
+        }
+        excludes.add(Task.class);
+        
+        String depMsg = geoDependencyChecker.checkDependencies(id, clazz, true, excludes);
         if (depMsg != null) {
             return depMsg;
         }

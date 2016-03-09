@@ -45,16 +45,12 @@ import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 public abstract class VdcOpHandler {
     private static final Logger log = LoggerFactory.getLogger(VdcOpHandler.class);
     
-    private static final int VDC_RPOP_BARRIER_TIMEOUT = 5*60; // 5 mins
+    // 6 mins for barrier timeout. it should be longer than loopInterval
+    private static final int VDC_OP_BARRIER_TIMEOUT = 360; 
     private static final int SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 5;
     private static final int FAILOVER_ZK_WRITALE_WAIT_INTERVAL = 1000 * 15;
-    private static final int SWITCHOVER_BARRIER_TIMEOUT = 300;
-    private static final int FAILOVER_BARRIER_TIMEOUT = 300;
-    private static final int RESUME_BARRIER_TIMEOUT = 300;
     private static final int MAX_PAUSE_RETRY = 20;
     private static final int IPSEC_RESTART_DELAY = 1000 * 60; // 1 min
-    // data revision time out - 5 minutes
-    private static final long DATA_REVISION_WAIT_TIMEOUT_SECONDS = 300;
     
     private static final String URI_INTERNAL_POWEROFF = "/control/internal/cluster/poweroff";
     private static final String LOCK_REMOVE_STANDBY="drRemoveStandbyLock";
@@ -242,12 +238,12 @@ public abstract class VdcOpHandler {
             String barrierPath = String.format("%s/%s/DataRevisionBarrier", ZkPath.SITES, coordinator.getCoordinatorClient().getSiteId());
             DistributedDoubleBarrier barrier = coordinator.getCoordinatorClient().getDistributedDoubleBarrier(barrierPath, coordinator.getNodeCount());
             try {
-                boolean phase1Agreed = barrier.enter(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                boolean phase1Agreed = barrier.enter(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                 if (phase1Agreed) {
                     // reach phase 1 agreement, we can start write to local property file
                     log.info("Reach phase 1 agreement for data revision change");
                     localRepository.setDataRevision(targetDataRevision, false, vdcConfigVersion);
-                    boolean phase2Agreed = barrier.leave(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    boolean phase2Agreed = barrier.leave(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                     if (phase2Agreed) {
                         // phase 2 agreement is received, we can make sure data revision change is written to local property file
                         log.info("Reach phase 2 agreement for data revision change");
@@ -259,7 +255,7 @@ public abstract class VdcOpHandler {
                         throw new IllegalStateException("Failed to reach phase 2 agreement on data revision change");
                     }
                 } else {
-                    barrier.leave(DATA_REVISION_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    barrier.leave(VDC_OP_BARRIER_TIMEOUT, TimeUnit.SECONDS);
                     log.warn("Failed to reach agreement among all the nodes. Delay data revision change until next run");
                     throw new IllegalStateException("Failed to reach phase 1 agreement on data revision change");
                 }
@@ -310,6 +306,8 @@ public abstract class VdcOpHandler {
      *  - to-be-removed standby - do nothing, go ahead to reboot
      */
     public static class DrRemoveStandbyHandler extends VdcOpHandler {
+        private static final int MAX_WAIT_TIME_IN_MIN = 30;
+
         public DrRemoveStandbyHandler() {
         }
         
@@ -323,7 +321,7 @@ public abstract class VdcOpHandler {
                 log.info("Standby site - waiting for completion of db removal from active site");
                 Site localSite = drUtil.getLocalSite();
                 if (localSite.getState().equals(SiteState.STANDBY_REMOVING)) {
-                    log.info("Current standby site is removed from DR. You can power it on and promote it as acitve later");
+                    log.info("Current standby site is removed from DR. You can power it on and promote it as active later");
                     // cleanup site error 
                     SiteError siteError = coordinator.getCoordinatorClient().getTargetInfo(localSite.getUuid(), SiteError.class);
                     if (siteError != null) {
@@ -332,9 +330,14 @@ public abstract class VdcOpHandler {
                     }
                     return;
                 } else {
-                    log.info("Waiting for completion of site removal from acitve site");
-                    while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
-                        log.info("Waiting for completion of site removal from acitve site");
+                    long start = System.currentTimeMillis();
+                    log.info("Waiting for completion of site removal from active site");
+                    while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING) && drUtil.getLocalSite().getState() != SiteState.STANDBY_PAUSED) {
+                        if (System.currentTimeMillis() - start > MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
+                            throw new IllegalStateException("Timeout reached when wait for site to be removed"); 
+                        }
+                        
+                        log.info("Waiting for completion of site removal from active site");
                         retrySleep();
                     }
                 }
@@ -403,7 +406,7 @@ public abstract class VdcOpHandler {
         }
         
         /**
-         * Update the strategy options and remove the paused site from gossip ring on the acitve site.
+         * Update the strategy options and remove the paused site from gossip ring on the active site.
          * This should be done after the firewall has been updated to block the paused site so that it's not affected.
          */
         private void checkAndPauseOnActive() {
@@ -466,7 +469,8 @@ public abstract class VdcOpHandler {
         private void checkAndPauseOnStandby() {
             // wait for the coordinator to be blocked on the active site
             int retryCnt = 0;
-            while (coordinator.isActiveSiteHealthy()) {
+            Site activeSite = drUtil.getActiveSite();
+            while (coordinator.isActiveSiteZKLeaderAlive(activeSite)) {
                 if (++retryCnt > MAX_PAUSE_RETRY) {
                     throw new IllegalStateException("timeout waiting for coordinatorsvc to be blocked on active site.");
                 }
@@ -668,7 +672,7 @@ public abstract class VdcOpHandler {
             
             // Update site state
             if (site.getUuid().equals(siteInfo.getSourceSiteUUID())) {
-                log.info("This is switchover active site (old acitve)");
+                log.info("This is switchover active site (old active)");
 
                 coordinator.stopCoordinatorSvcMonitor();
                 
@@ -678,9 +682,9 @@ public abstract class VdcOpHandler {
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, site.getNodeCount());
                 Site newActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID());
+                drUtil.recordDrOperationStatus(newActiveSite.getUuid(), SiteState.STANDBY_SWITCHING_OVER);
                 updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER,
                         Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, site.getNodeCount());
-                drUtil.recordDrOperationStatus(newActiveSite);
                 waitForBarrierRemovedToRestart(site);
             } else if (site.getUuid().equals(siteInfo.getTargetSiteUUID())) {
                 log.info("This is switchover standby site (new active)");
@@ -763,7 +767,7 @@ public abstract class VdcOpHandler {
             }
             
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.SWITCHOVER_BARRIER_STANDBY_RESTART_OLD_ACTIVE,
-                    SWITCHOVER_BARRIER_TIMEOUT, site.getNodeCount(), false);
+                    VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
             
             if (coordinator.isVirtualIPHolder()) {
@@ -806,7 +810,7 @@ public abstract class VdcOpHandler {
             
             coordinator.blockUntilZookeeperIsWritableConnected(SWITCHOVER_ZK_WRITALE_WAIT_INTERVAL);
             
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, SWITCHOVER_BARRIER_TIMEOUT, memberQty, false);
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(barrierName, VDC_OP_BARRIER_TIMEOUT, memberQty, false);
             barrier.enter();
             try {
                 log.info("Set state from {} to {}", site.getState(), siteState);
@@ -901,7 +905,7 @@ public abstract class VdcOpHandler {
                 // double check site state
                 oldActiveSite = getOldActiveSiteForFailover();
                 if (oldActiveSite == null) {
-                    log.info("Old acitve site has been remove by other node, no action needed.");
+                    log.info("Old active site has been remove by other node, no action needed.");
                     return;
                 }
 
@@ -911,7 +915,7 @@ public abstract class VdcOpHandler {
                 postHandlerFactory.initializeAllHandlers();
                 drUtil.removeSite(oldActiveSite);
             } catch (Exception e) {
-                log.error("Failed to remove old acitve site in failover, {}", e);
+                log.error("Failed to remove old active site in failover, {}", e);
                 throw e;
             } finally {
                 if (lock != null) {
@@ -933,7 +937,7 @@ public abstract class VdcOpHandler {
             coordinator.blockUntilZookeeperIsWritableConnected(FAILOVER_ZK_WRITALE_WAIT_INTERVAL);
             
             log.info("Wait for barrier to reboot cluster");
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, FAILOVER_BARRIER_TIMEOUT, site.getNodeCount(), true);
+            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.FAILOVER_BARRIER, VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), true);
             barrier.enter();
             if (!barrier.leave()) {
                 throw new IllegalStateException("Not all nodes leave the barrier");
@@ -1050,7 +1054,7 @@ public abstract class VdcOpHandler {
      * Simulaneously flush vdc config on all nodes in current site. via barrier
      */
     protected void syncFlushVdcConfigToLocal() throws Exception {
-        VdcPropertyBarrier vdcBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_RPOP_BARRIER_TIMEOUT);
+        VdcPropertyBarrier vdcBarrier = new VdcPropertyBarrier(targetSiteInfo, VDC_OP_BARRIER_TIMEOUT);
         vdcBarrier.enter();
         try {
             flushVdcConfigToLocal();
@@ -1080,7 +1084,7 @@ public abstract class VdcOpHandler {
         if (site.getState().equals(SiteState.STANDBY_RESUMING)
                 && site.getLastState().equals(SiteState.STANDBY_RESUMING)) {
             VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
-                    RESUME_BARRIER_TIMEOUT, site.getNodeCount(), false);
+                    VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
             barrier.enter();
             try {
                 localRepository.restart(Constants.GEODBSVC_NAME);
@@ -1242,7 +1246,7 @@ public abstract class VdcOpHandler {
                 log.warn("Only Part of nodes entered within {} seconds at path {}", timeout, barrierPath);
                 // we need clean our double barrier if not all nodes enter it, but not need to wait for all nodes to leave since error occurs
                 barrier.leave(timeout, TimeUnit.SECONDS); 
-                throw new Exception("Only Part of nodes entered within timeout");
+                throw new IllegalStateException("Only Part of nodes entered within timeout");
             }
         }
 

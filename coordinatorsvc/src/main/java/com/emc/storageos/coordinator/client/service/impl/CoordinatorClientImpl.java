@@ -237,7 +237,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         vdcConfig.setId(vdcShortId);
         persistServiceConfiguration(vdcConfig);
 
-        // insert DR acitve site info to ZK
+        // insert DR active site info to ZK
         Site site = new Site();
         site.setUuid(getSiteId());
         site.setName("Default Active Site");
@@ -621,7 +621,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 }
             }
         } catch (final Exception e) {
-            log.info("Failed to persist service configuration e=",e);
+            log.error("Failed to persist service configuration e=",e);
             throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
         }
     }
@@ -733,7 +733,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 || kind.equals(SiteError.CONFIG_KIND)
                 || kind.equals(PowerOffState.CONFIG_KIND)
                 || kind.equals(SiteMonitorResult.CONFIG_KIND)
-                || kind.equals(DOWNLOADINFO_KIND)) {
+                || kind.equals(DOWNLOADINFO_KIND)
+                || kind.equals(DB_DOWNTIME_TRACKER_CONFIG)) {
             return true;
         }
         return false;
@@ -1985,7 +1986,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             deleteOp.deletingChildrenIfNeeded();
             deleteOp.forPath(path);
         } catch (Exception ex) {
-            CoordinatorException.fatals.unableToDeletePath(path, ex);
+            log.error("Failed to delete ZK path: {}", path, ex);
+            throw CoordinatorException.fatals.unableToDeletePath(path, ex);
         }
     }
 

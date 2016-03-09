@@ -4,16 +4,17 @@
  */
 package com.emc.vipr.model.sys.backup;
 
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.bind.annotation.XmlTransient;
-import javax.xml.bind.annotation.XmlType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
+import javax.xml.bind.annotation.XmlType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,11 +183,9 @@ public class BackupRestoreStatus {
         map.put(KEY_BACKUP_NAME, backupName);
 
         String str = toString(sizeToDownload);
-        log.info("To persist whole size to download={}", str);
         map.put(KEY_PULL_SIZE, str);
 
         str = toString(downloadedSize);
-        log.info("To persist downloaded size={}", str);
         map.put(KEY_DOWNLOADED_SIZE, str);
 
         map.put(KEY_STATUS, status.name());

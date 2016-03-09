@@ -1073,6 +1073,21 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return Lists.newArrayList();
     }
 
+    protected Set<String> getReplicationGroupsForApplicationFullCopy(ViPRCoreClient client, URI applicationId, String copySet) {
+        Set<String> options = Sets.newHashSet();
+        VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
+        input.setCopySetName(copySet);
+
+        NamedVolumesList fullCopies = client.application().getVolumeGroupFullCopiesForSet(applicationId, input);
+        for (NamedRelatedResourceRep fullCopy : fullCopies.getVolumes()) {
+            VolumeRestRep fullCopyRep = client.blockVolumes().get(fullCopy);
+            if (fullCopyRep != null && fullCopyRep.getReplicationGroupInstance() != null) {
+                options.add(fullCopyRep.getReplicationGroupInstance());
+            }
+        }
+        return options;
+    }
+
     protected Set<String> getReplicationGroupsForApplicationSnapshotSession(ViPRCoreClient client, URI applicationId, String copySet) {
         Set<String> options = Sets.newHashSet();
         VolumeGroupCopySetParam input = new VolumeGroupCopySetParam();
@@ -1105,8 +1120,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("replicationGroup")
-    @AssetDependencies({ "application", "applicationSnapshotVirtualArray" })
-    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId, String virtualArrayParameter) {
+    @AssetDependencies({ "application", "applicationVirtualArray" })
+    public List<AssetOption> getApplicationFullCopyReplicationGroups(AssetOptionsContext ctx, URI applicationId,
+            String virtualArrayParameter) {
         ViPRCoreClient client = api(ctx);
         boolean isTarget = false;
         URI virtualArray = null;
@@ -1142,6 +1158,56 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
 
         return createStringOptions(subGroups);
+    }
+
+    @Asset("replicationGroup")
+    @AssetDependencies({ "application", "applicationSnapshotVirtualArray" })
+    public List<AssetOption> getApplicationReplicationGroups(AssetOptionsContext ctx, URI applicationId, String virtualArrayParameter) {
+        ViPRCoreClient client = api(ctx);
+        boolean isTarget = false;
+        URI virtualArray = null;
+
+        if (virtualArrayParameter != null && StringUtils.split(virtualArrayParameter, ':')[0].equals("tgt")) {
+            virtualArray = URI.create(StringUtils.substringAfter(virtualArrayParameter, ":"));
+            isTarget = true;
+        } else {
+            isTarget = false;
+        }
+
+        Set<String> subGroups = Sets.newHashSet();
+        NamedVolumesList applicationVolumes = client.application().getVolumeByApplication(applicationId);
+        for (NamedRelatedResourceRep volumeId : applicationVolumes.getVolumes()) {
+            VolumeRestRep volume = client.blockVolumes().get(volumeId);
+            if (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty()) {
+                volume = getVPlexSourceVolume(client, volume);
+            }
+            if (volume != null && volume.getReplicationGroupInstance() != null) {
+                if (isTarget) {
+                    if (volume.getVirtualArray().getId().equals(virtualArray)
+                            && BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
+                        subGroups.add(volume.getReplicationGroupInstance());
+                    }
+                } else {
+                    if (volume.getProtection() == null || volume.getProtection().getRpRep() == null
+                            || volume.getProtection().getRpRep().getPersonality() == null
+                            || volume.getProtection().getRpRep().getPersonality().equalsIgnoreCase("SOURCE")) {
+                        if (!BlockProviderUtils.isRPTargetReplicationGroup(volume.getReplicationGroupInstance())) {
+                            subGroups.add(volume.getReplicationGroupInstance());
+                        }
+                    }
+                }
+            }
+        }
+
+        return createStringOptions(subGroups);
+    }
+
+    @Asset("replicationGroup")
+    @AssetDependencies({ "application", "fullCopyName" })
+    public List<AssetOption> getApplicationReplicationGroupsForFullCopy(AssetOptionsContext ctx, URI applicationId,
+            String copySet) {
+        final ViPRCoreClient client = api(ctx);
+        return createStringOptions(getReplicationGroupsForApplicationFullCopy(client, applicationId, copySet));
     }
 
     @Asset("replicationGroup")
@@ -2182,6 +2248,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 filterByCopyName(allCopyVols, copyName)).keySet()));
     }
 
+    @Asset("copyReplicationGroup")
+    @AssetDependencies({ "application", "fullCopyName" })
+    public List<AssetOption> getApplicationReplicationGroupsForFullCopyName(AssetOptionsContext ctx, URI applicationId, String copyName) {
+        return getApplicationReplicationGroupsForCopy(ctx, applicationId, copyName);
+    }
+
     private Map<String, List<VolumeRestRep>> groupFullCopyByApplicationSubGroup(AssetOptionsContext ctx, List<VolumeRestRep> vols) {
         final ViPRCoreClient client = api(ctx);
         Map<String, List<VolumeRestRep>> grouped = new HashMap<String, List<VolumeRestRep>>();
@@ -2403,6 +2475,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 }
             }
         } else {
+            options.add(newAssetOption(URI.create("none"), "None"));
             return options;
         }
 
@@ -2426,6 +2499,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
             options.addAll(targetOptions);
 
+        }
+        if (options.isEmpty()) {
+            options.add(newAssetOption(URI.create("none"), "None"));
         }
         return options;
     }
@@ -3005,6 +3081,19 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
         }
         return volumes;
+    }
+
+    private static VolumeRestRep getVPlexSourceVolume(ViPRCoreClient client, VolumeRestRep vplexVolume) {
+        if (vplexVolume.getHaVolumes() != null && !vplexVolume.getHaVolumes().isEmpty()) {
+            URI vplexVolumeVarray = vplexVolume.getVirtualArray().getId();
+            for (RelatedResourceRep haVolume : vplexVolume.getHaVolumes()) {
+                VolumeRestRep volume = client.blockVolumes().get(haVolume.getId());
+                if (volume != null && volume.getVirtualArray().getId().equals(vplexVolumeVarray)) {
+                    return volume;
+                }
+            }
+        }
+        return null;
     }
 
     protected List<URI> getHostIds(ViPRCoreClient client, URI hostOrClusterId,

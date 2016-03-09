@@ -5228,7 +5228,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             migrationNameBuilder.append(dateFormatter.format(new Date()));
             String migrationName = migrationNameBuilder.toString();
             migration.setLabel(migrationName);
-            _dbClient.persistObject(migration);
+            _dbClient.updateObject(migration);
             _log.info("Migration name is {}", migrationName);
 
             // Get the VPlex API client.
@@ -5270,7 +5270,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     .getStatusValue());
             migration.setPercentDone("0");
             migration.setStartTime(migrationInfo.getStartTime());
-            _dbClient.persistObject(migration);
+            _dbClient.updateObject(migration);
             _log.info("Update migration info");
 
             // Create a migration task completer and queue a job to monitor
@@ -5387,20 +5387,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Make a call to the VPlex API client to commit the migration.
                 // Note that for ingested VPLEX volumes created outside ViPR, we
                 // don't want to update the name.
+                Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
                 List<VPlexMigrationInfo> migrationInfoList = client.commitMigrations(
-                        Arrays.asList(migration.getLabel()), true, true, rename.booleanValue());
+                        virtualVolume.getDeviceLabel(), Arrays.asList(migration.getLabel()), true, true, rename.booleanValue());
                 _log.info("Committed migration {}", migration.getLabel());
 
                 // Initialize the migration info in the database.
                 migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.COMMITTED
                         .getStatusValue());
-                _dbClient.persistObject(migration);
+                _dbClient.updateObject(migration);
                 _log.info("Update migration status to committed");
 
                 // Update the virtual volume native id and associated
                 // volumes. Note that we don't update CoS until all
                 // commits are successful.
-                Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
                 VPlexVirtualVolumeInfo updatedVirtualVolumeInfo = migrationInfoList
                         .get(0).getVirtualVolumeInfo();
                 // Will be non-null if the VPLEX volume was manually
@@ -5432,7 +5432,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     assocVolumes.add(migration.getTarget().toString());
                     virtualVolume.setAssociatedVolumes(assocVolumes);
                 }
-                _dbClient.persistObject(virtualVolume);
+                _dbClient.updateObject(virtualVolume);
                 _log.info("Updated virtual volume.");
             } else {
                 _log.info("The migration is already committed.");
@@ -5455,7 +5455,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     assocVolumes.add(migration.getTarget().toString());
                     virtualVolume.setAssociatedVolumes(assocVolumes);
                 }
-                _dbClient.persistObject(virtualVolume);
+                _dbClient.updateObject(virtualVolume);
                 _log.info("Updated virtual volume.");
             }
 
@@ -5798,7 +5798,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vplexSystem.getSystemType(), null);
                 _log.info("Migration speed is {}", speed);
                 transferSize = mgirationSpeedToTransferSizeMap.get(speed);
-            }            
+            }
 
             // Now make a Step to create the VPlex Virtual volumes.
             // This will be done from this controller.
@@ -5827,7 +5827,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     VPLEX_STEP,
                     String.format("VPlex %s creating virtual volume",
                             vplexSystem.getId().toString()),
-                            EXPORT_STEP, vplexURI,
+                    EXPORT_STEP, vplexURI,
                     vplexSystem.getSystemType(), this.getClass(), vplexExecuteMethod,
                     vplexRollbackMethod, stepId);
 
@@ -5987,7 +5987,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 vplexURI, vplexVolumeURI, existingVolumeURI, newVolumeURI,
                 vplexSystemProject, vplexSystemTenant, newCosURI, newLabel, transferSize);
     }
-
 
     /**
      * Create a Virtual Volume from an Imported Volume.
@@ -10960,10 +10959,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // We only want VPLEX volumes with no personality, i.e., no RP, or VPLEX volumes
                 // that are RP source volumes.
                 for (BlockObject vplexVolume : allVplexVolumesInRG) {
-                    String personality = ((Volume) vplexVolume).getPersonality();
-                    if ((personality == null) || (Volume.PersonalityTypes.SOURCE.name().equals(personality))) {
-                        vplexVolumes.add((Volume) vplexVolume);
-                    }
+                	 //RP target and sources restore is supported
+                     vplexVolumes.add((Volume) vplexVolume);
                 }
             }
 
@@ -11401,14 +11398,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         return capabilities;
     }
-    
+
     /**
      * Add steps to restore full copy
+     * 
      * @param workflow - the workflow the steps would be added to
      * @param waitFor - the step would be waited before the added steps would be executed
      * @param storage - the storage controller URI
      * @param fullcopies - the full copies to restore
-     * @param opId 
+     * @param opId
      * @param completer - the CloneRestoreCompleter
      * @return the step id for the added step
      * @throws InternalException
@@ -11416,7 +11414,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public String addStepsForRestoreFromFullcopy(Workflow workflow,
             String waitFor, URI storage, List<URI> fullcopies, String opId,
             CloneRestoreCompleter completer) throws InternalException {
-       
+
         Volume firstFullCopy = getDataObject(Volume.class, fullcopies.get(0), _dbClient);
         BlockObject firstSource = BlockObject.fetch(_dbClient, firstFullCopy.getAssociatedSourceVolume());
         if (!NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {

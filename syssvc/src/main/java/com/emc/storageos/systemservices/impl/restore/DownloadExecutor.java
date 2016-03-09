@@ -15,6 +15,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -24,9 +25,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.commons.io.FileUtils;
 
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
@@ -52,17 +50,6 @@ public final class DownloadExecutor implements  Runnable {
     private volatile  boolean isCanceled = false;
 
     public DownloadExecutor(SchedulerConfig cfg, String backupZipFileName, BackupOps backupOps) {
-        /*
-        if (cfg.uploadUrl == null) {
-            try {
-                cfg.reload();
-            }catch (Exception e) {
-                log.error("Failed to reload cfg e=", e);
-                throw new RuntimeException(e);
-            }
-        }
-        */
-
         client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
         remoteBackupFileName = backupZipFileName;
         this.backupOps = backupOps;
@@ -149,8 +136,6 @@ public final class DownloadExecutor implements  Runnable {
 
     @Override
     public void run() {
-        InterProcessLock lock = null;
-
         try {
             BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(remoteBackupFileName, false);
             if (s.isNotSuccess() || s.getStatus() == Status.DOWNLOAD_CANCELLED) {
@@ -180,7 +165,7 @@ public final class DownloadExecutor implements  Runnable {
                 }else {
                     log.error("Failed to pull backup file from other node e=", e);
                 }
-                backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false);
+                backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
             }
         }finally {
             try {
@@ -202,7 +187,8 @@ public final class DownloadExecutor implements  Runnable {
                 pullFileFromNode(endpoint, filename);
             }
         }
-        backupOps.setRestoreStatus(remoteBackupFileName, null, null, true);
+
+        backupOps.setRestoreStatus(remoteBackupFileName, null, null, true, true);
     }
 
     private void pullFileFromNode(URI endpoint, String filename) throws IOException {
@@ -215,7 +201,7 @@ public final class DownloadExecutor implements  Runnable {
                                                    .get(new URI(uri), InputStream.class, MediaType.APPLICATION_OCTET_STREAM);
 
             byte[] buffer = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
-            persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true);
+            persistBackupFile(downloadDir, filename, new BufferedInputStream(in), buffer, true, true);
         } catch (URISyntaxException e) {
             log.error("Internal error occurred while prepareing get image URI: {}", e);
         }
@@ -239,6 +225,8 @@ public final class DownloadExecutor implements  Runnable {
         byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
         InputStream in = client.download(remoteBackupFileName);
 
+
+
         //Step1: download the zip file
         File zipFile = null;
         try (BufferedInputStream bin = new BufferedInputStream(in)) {
@@ -251,8 +239,7 @@ public final class DownloadExecutor implements  Runnable {
             while (zentry != null) {
                 String filename = zentry.getName();
                 log.info("Extract backup file {}", filename);
-                //pullBackupFileFromRemoteServer(backupFolder, filename, bzin, buf);
-                persistBackupFile(backupFolder, filename, bzin, buf, false);
+                persistBackupFile(backupFolder, filename, bzin, buf, false, false);
 
                 if (isGeo == false) {
                     isGeo = backupOps.isGeoBackup(filename);
@@ -270,7 +257,7 @@ public final class DownloadExecutor implements  Runnable {
         //Step3: delete the downloaded zip file
         zipFile.delete();
 
-        backupOps.setRestoreStatus(remoteBackupFileName, null, null, true);
+        backupOps.setRestoreStatus(remoteBackupFileName, null, null, true, false);
     }
 
     private void postDownload() {
@@ -310,8 +297,7 @@ public final class DownloadExecutor implements  Runnable {
         }catch (Exception e) {
             log.error("Invalid backup e=", e);
             Status s = Status.DOWNLOAD_FAILED;
-            backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false);
-            return;
+            backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
         }
     }
 
@@ -330,7 +316,7 @@ public final class DownloadExecutor implements  Runnable {
             }
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", pushUri, endpoint);
-            backupOps.setRestoreStatus(backupName, Status.DOWNLOAD_FAILED, e.getMessage(), false);
+            backupOps.setRestoreStatus(backupName, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
             throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
         }
     }
@@ -344,10 +330,10 @@ public final class DownloadExecutor implements  Runnable {
 
     private File pullBackupFileFromRemoteServer(File downloadDir, String backupFileName,
                                                 BufferedInputStream in, byte[] buffer) throws IOException {
-        return persistBackupFile(downloadDir, backupFileName, in, buffer, true);
+        return persistBackupFile(downloadDir, backupFileName, in, buffer, true, false);
     }
 
-    private File persistBackupFile(File downloadDir, String backupFileName, BufferedInputStream in, byte[] buffer, boolean updateDownloadedSize) throws IOException {
+    private File persistBackupFile(File downloadDir, String backupFileName, BufferedInputStream in, byte[] buffer, boolean updateDownloadedSize, boolean doLock) throws IOException {
         File file = new File(downloadDir, backupFileName);
 
         if (!file.exists()) {
@@ -365,21 +351,15 @@ public final class DownloadExecutor implements  Runnable {
         try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file, true))) {
             length = in.read(buffer);
             while (length > 0) {
-                //while ((length = in.read(buffer)) > 0) {
-                log.info("lbya1 read {} bytes", length);
-
                 out.write(buffer, 0, length);
-                log.info("lbya1 done");
                 if (updateDownloadedSize) {
-                    backupOps.updateDownloadSize(remoteBackupFileName, length);
+                    backupOps.updateDownloadedSize(remoteBackupFileName, length, doLock);
                 }
-                log.info("lbya2");
                 length = in.read(buffer);
-                log.info("lbya3");
             }
         } catch(IOException e) {
             log.error("Failed to download file {} e=", backupFileName, e);
-            backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), true);
+            backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), true, doLock);
             throw e;
         }
 

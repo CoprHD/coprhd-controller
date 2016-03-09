@@ -856,7 +856,7 @@ datetime.dayOfMonth.L=Last
 
 #DisasterRecovery
 disasterRecovery.title=System Disaster Recovery
-disasterRecovery.title.pauseResume=Pause/Resume Disaster Recovery Sites
+disasterRecovery.title.pause=Pause Disaster Recovery Sites
 disasterRecovery.name=Site Name
 disasterRecovery.VirtualIP=Site Virtual IP or FQDN
 disasterRecovery.status=Status

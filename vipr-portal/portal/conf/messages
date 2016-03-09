@@ -62,7 +62,7 @@ nav.block.volumes=Volumes
 nav.block.consistencygroups=Consistency Groups
 nav.block.exportgroups=Export Groups
 nav.block.snapshots=Block Snapshots
-nav.block.snapshotsessions=Block Snapshot Sessions
+nav.block.snapshotsessions=Snap Sessions
 nav.block.virtualPools=Block Virtual Pools
 nav.block.app=Applications
 nav.file=File
@@ -659,19 +659,11 @@ VCenters.detachStorageConfirm=Are you sure you want to detach storage from the s
 VCenters.detachStorage=Task initiated to detach storage from selected vCenter(s).
 
 #Application Support
-applicationGroup.copy.volumes=Copy Volumes
+applicationGroup.copy.volumes=Full Copies
 applicationGroup.list.title=Applications
 applicationGroup.name=Application Name
 applicationGroup.description=Description	
 applicationGroup.role=Role
-applicationGroup.deleteConfirm=Are you sure you want to delete the Application(s).
-applicationGroup.create.title=Create Application
-applicationGroup.edit.title=Edit Application
-applicationGroup.create.description=Enter information needed for an Application
-applicationGroup.save.success=Saved '%s'
-
-applicationGroup.deleted=Application(s) deleted successfully
-applicationGroup.unknown=Unknown Application with ID '%s'
 applicationGroup.resources.title=Application
 
 # Custom Config
@@ -2456,7 +2448,7 @@ license.raw.capacity=Capacity
 license.type.tier1=Enterprise
 license.type.tier2=Midrange
 license.type.tier3=Cloud
-license.type.outdated=Outdated
+license.type.legacy=Legacy
 license.type.trial=Trial
 licenseFeature.name=Feature
 licenseFeature.type=Type
@@ -3093,7 +3085,7 @@ affectedResources.blockSnapshot.wwn=WWN
 affectedResources.blockSnapshot.volume=Volume
 affectedResources.blockSnapshot.varray=Virtual Array
 
-affectedResources.blockSnapshotSession=Block Snapshot Session
+affectedResources.blockSnapshotSession=Snap Session
 affectedResources.blockSnapshotSession.image=serviceCatalog/Snapshot.png
 affectedResources.blockSnapshotSession.name=Name
 affectedResources.blockSnapshotSession.creationTime=Creation Time
@@ -3246,7 +3238,7 @@ resources.volumes.deleteConfirm.VIPR_ONLY=Are you sure you want to proceed?  The
 resources.volumes.deactivate=Created %s tasks to delete volumes.
 resources.volume.deactivate=Created task to delete volume.
 resources.volume.snapshots=Snapshots
-resources.volume.snapshot.sessions=Snapshot Sessions
+resources.volume.snapshot.sessions=Snap Sessions
 resources.volume.continuouscopies=Continuous Copies
 resources.volume.fullcopies=Full Copies
 resources.volume.migrations=Migrations
@@ -3346,7 +3338,7 @@ volumeApplication.vpool=Virtual Pool
 volumeApplication.protocols=Protocols
 volumeApplication.wwn=WWN
 volumeApplication.consistencyGroup=Consistency Group
-volumeApplication.associatedVolumeRG=Replication Group
+volumeApplication.associatedVolumeRG=Application Sub Group
 
 cloneApplication.name=Copy Name
 cloneApplication.size=Size
@@ -3369,16 +3361,16 @@ resources.snapshot.deactivate=Task created to deactivate snapshot with id:[%s]. 
 
 resources.snapshot.session.unknown=Unknown Snapshot Session with ID '%s'
 resources.snapshot.session.name=Name
-resources.snapshot.sessions=Block Snapshot Sessions
-resources.snapshot.session.deleteLink=Delete Snapshot Session
-resources.snapshot.session.targets=Linked Targets
-resources.snapshot.session.targets.none=No Linked Targets
+resources.snapshot.sessions=Snap Sessions
+resources.snapshot.session.deleteLink=Delete Snap Session
+resources.snapshot.session.targets=Snapshot Targets
+resources.snapshot.session.targets.none=No Snapshot Targets
 resources.snapshot.session.unlink=Unlink
 resources.snapshot.session.unlinkDelete=With Delete
 resources.snapshot.session.unlinkNoDelete=Without Delete
 resources.snapshot.session.relink=Relink
-resources.snapshot.session.relink.success=Task created to relink Snapshot Session Target on %s. Please check task list for an updated status.
-resources.snapshot.session.unlink.success=Task created to unlink Snapshot Session Target on %s. Please check task list for an updated status.
+resources.snapshot.session.relink.success=Task created to relink Snap Session Target on %s. Please check task list for an updated status.
+resources.snapshot.session.unlink.success=Task created to unlink Snap Session Target on %s. Please check task list for an updated status.
 
 resources.filesystems=File Systems
 resources.filesystems.error=File System Not Found
@@ -3694,8 +3686,8 @@ volumes.varray=Virtual Array
 volumes.protocols=Protocols
 volumes.consistencygroup=Consistency Group
 volumes.wwn=WWN
-volumes.replicationGroup=Replication Group
-volumes.associatedVolumeRG=Source Replication Group
+volumes.replicationGroup=Sub Group
+volumes.associatedVolumeRG=Source Application Sub Group
 
 fileSystems.name=File System Name
 fileSystems.capacity=Size

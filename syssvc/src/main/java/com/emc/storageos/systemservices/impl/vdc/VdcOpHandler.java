@@ -306,6 +306,8 @@ public abstract class VdcOpHandler {
      *  - to-be-removed standby - do nothing, go ahead to reboot
      */
     public static class DrRemoveStandbyHandler extends VdcOpHandler {
+        private static final int MAX_WAIT_TIME_IN_MIN = 30;
+
         public DrRemoveStandbyHandler() {
         }
         
@@ -328,8 +330,13 @@ public abstract class VdcOpHandler {
                     }
                     return;
                 } else {
+                    long start = System.currentTimeMillis();
                     log.info("Waiting for completion of site removal from active site");
-                    while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING)) {
+                    while (drUtil.hasSiteInState(SiteState.STANDBY_REMOVING) && drUtil.getLocalSite().getState() != SiteState.STANDBY_PAUSED) {
+                        if (System.currentTimeMillis() - start > MAX_WAIT_TIME_IN_MIN * 60 * 1000) {
+                            throw new IllegalStateException("Timeout reached when wait for site to be removed"); 
+                        }
+                        
                         log.info("Waiting for completion of site removal from active site");
                         retrySleep();
                     }
@@ -484,11 +491,9 @@ public abstract class VdcOpHandler {
 
                 for (Site standby : drUtil.listStandbySites()) {
                     if (SiteState.STANDBY_PAUSING.equals(standby.getState())) {
-                        // all the other pausing sites are sync'ed with the current site
-                        // since they have been paused at the same time
-                        // this will make it a lot easier if we later failover to any of the paused sites
-                        standby.setState(SiteState.STANDBY_SYNCED);
-                        log.info("Updating state of site {} to STANDBY_SYNCED", standby.getUuid());
+                        // standby sites that are paused at the same time also block each other
+                        standby.setState(SiteState.STANDBY_PAUSED);
+                        log.info("Updating state of site {} to STANDBY_PAUSED", standby.getUuid());
                         coordinator.getCoordinatorClient().persistServiceConfiguration(standby.toConfiguration());
                     }
                 }
@@ -507,11 +512,30 @@ public abstract class VdcOpHandler {
         
         @Override
         public void execute() throws Exception {
-            //if site is in observer restart dbsvc
-            restartDbsvcOnResumedSite();
             // on all sites, reconfig to enable firewall/ipsec
             reconfigVdc();
             changeSiteState(SiteState.STANDBY_RESUMING, SiteState.STANDBY_SYNCING);
+            // if site is in observer restart dbsvc
+            // move to the bottom so that it won't miss the data sync
+            restartDbsvcOnResumingSite();
+        }
+
+        private void restartDbsvcOnResumingSite() throws Exception {
+            Site site = drUtil.getLocalSite();
+
+            //check both state and last state so we know this is a retry
+            if (site.getState() == SiteState.STANDBY_SYNCING
+                    && site.getLastState() == SiteState.STANDBY_RESUMING) {
+                VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
+                        VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
+                barrier.enter();
+                try {
+                    localRepository.restart(Constants.GEODBSVC_NAME);
+                    localRepository.restart(Constants.DBSVC_NAME);
+                } finally {
+                    barrier.leave();
+                }
+            }
         }
     }
 
@@ -1066,24 +1090,6 @@ public abstract class VdcOpHandler {
             if (!allLeft) {
                 log.info("wait 1 minute, so all nodes be able to return from leave()");
                 Thread.sleep(IPSEC_RESTART_DELAY);
-            }
-        }
-    }
-
-    protected void restartDbsvcOnResumedSite() throws Exception {
-        Site site = drUtil.getLocalSite();
-
-        //check both state and last state so we know this is a retry
-        if (site.getState().equals(SiteState.STANDBY_RESUMING)
-                && site.getLastState().equals(SiteState.STANDBY_RESUMING)) {
-            VdcPropertyBarrier barrier = new VdcPropertyBarrier(Constants.RESUME_BARRIER_RESTART_DBSVC,
-                    VDC_OP_BARRIER_TIMEOUT, site.getNodeCount(), false);
-            barrier.enter();
-            try {
-                localRepository.restart(Constants.GEODBSVC_NAME);
-                localRepository.restart(Constants.DBSVC_NAME);
-            } finally {
-                barrier.leave();
             }
         }
     }

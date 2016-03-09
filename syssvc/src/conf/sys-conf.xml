@@ -625,12 +625,19 @@
                 <value>ControllersvcWorkflowCleanupHandler</value>
                 <value>SasvcQueueCleanupHandler</value>
                 <value>SasvcOrderCleanupHandler</value>
+                <value>SyssvcDBCheckHandler</value>
             </list>
         </property>
     </bean>
 
     <bean id="drUpgradeVoter" class="com.emc.storageos.security.upgradevoter.DrUpgradeVoter">
         <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+    <bean id="drPostFailoverDBCheckHandler" class="com.emc.storageos.systemservices.impl.util.DrPostFailoverDBCheckHandler">
+    	<property name="coordinator" ref="coordinator" />
+    	<property name="jobProducer" ref="dbConsistencyJobProducer" />
+    	<property name="name" value="SyssvcDBCheckHandler"/>
     </bean>
 </beans>
     

@@ -578,29 +578,29 @@ public class BackupOps {
     /**
      * Persist download status to ZK
      */
-    public void setDownloadSize(String backupName, Map<String, Long> size) {
-        updateRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, null, size, 0, false, null, true);
-    }
-
     public void setBackupFileNames(String backupName, List<String> filenames) {
-        updateRestoreStatus(backupName, null, null, null, 0, false, filenames, true);
+        updateRestoreStatus(backupName, null, null, null, 0, false, filenames, true, false);
     }
 
-    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, String details, boolean increaseCompleteNumber) {
-        updateRestoreStatus(backupName, s, details, null, 0, increaseCompleteNumber, null, true);
+    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, String details,
+                                 boolean increaseCompleteNumber, boolean doLock) {
+        updateRestoreStatus(backupName, s, details, null, 0, increaseCompleteNumber, null, true, doLock);
     }
 
-    public void updateDownloadSize(String backupName, long size) {
-        updateRestoreStatus(backupName, null, null, null, size, false, null, false);
+    public void updateDownloadedSize(String backupName, long size, boolean doLock) {
+        updateRestoreStatus(backupName, null, null, null, size, false, null, false, doLock);
     }
 
     public void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, String details,
                                      Map<String, Long>downloadSize, long increasedSize, boolean increaseCompletedNodeNumber,
-                                     List<String> backupfileNames, boolean doLog) {
+                                     List<String> backupfileNames, boolean doLog, boolean doLock) {
         InterProcessLock lock = null;
         try {
-            lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
-                    -1, TimeUnit.MILLISECONDS); // -1= no timeout
+
+            if (doLock) {
+                lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
+                        -1, TimeUnit.MILLISECONDS); // -1= no timeout
+            }
 
             if (doLog) {
                 log.info("get lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
@@ -669,7 +669,10 @@ public class BackupOps {
             if (doLog) {
                 log.info("To release lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
             }
-            releaseLock(lock);
+
+            if (doLock) {
+                releaseLock(lock);
+            }
         }
 
     }
@@ -772,17 +775,8 @@ public class BackupOps {
             return;
         }
 
-        /*
-        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
-
-        if (!s.getStatus().canBeCanceled()) {
-            log.info("The current backup can't be canceled because its status is {}", s);
-            return;
-        }
-        */
-
         if (!isLocal) {
-            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, null, false);
+            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, null, false, true);
             log.info("Persist the cancel flag into ZK");
         }
     }

@@ -26,7 +26,9 @@ public class CreateApplication extends ViPRExecutionTask<VolumeGroupRestRep> {
     public VolumeGroupRestRep executeTask() throws Exception {
         VolumeGroupCreateParam input = new VolumeGroupCreateParam();
         input.setRoles(Sets.newHashSet(VolumeGroup.VolumeGroupRole.COPY.name()));
-        input.setDescription(StringUtils.isEmpty(description) ? "" : description);
+        if (!StringUtils.isEmpty(description)) {
+            input.setDescription(description);
+        }
         input.setName(name);
 
         return getClient().application().createApplication(input);

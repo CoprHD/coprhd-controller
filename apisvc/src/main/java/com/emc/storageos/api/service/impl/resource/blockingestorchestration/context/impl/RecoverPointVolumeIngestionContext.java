@@ -267,7 +267,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
         for (Set<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject dob : dos) {
-                _logger.info("Updating DataObject " + dob.forDisplay());
+                if (dob.getInactive()) {
+                    _logger.info("Deleting DataObject " + dob.forDisplay());
+                } else {
+                    _logger.info("Updating DataObject " + dob.forDisplay());
+                }
                 _dbClient.updateObject(dob);
             }
         }

@@ -136,7 +136,11 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         for (Set<DataObject> updatedObjects : getDataObjectsToBeUpdatedMap().values()) {
             if (updatedObjects != null && !updatedObjects.isEmpty()) {
                 for (DataObject dob : updatedObjects) {
-                    _logger.info("Updating DataObject " + dob.forDisplay());
+                    if (dob.getInactive()) {
+                        _logger.info("Deleting DataObject " + dob.forDisplay());
+                    } else {
+                        _logger.info("Updating DataObject " + dob.forDisplay());
+                    }
                     _dbClient.updateObject(dob);
                 }
             }

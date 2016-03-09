@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.DbModelClientImpl;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -49,7 +50,6 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -3333,15 +3333,19 @@ public class VolumeIngestionUtil {
         if (umpset.getManagedVolumeIds() != null && !umpset.getManagedVolumeIds().isEmpty()) {
             List<URI> managedVolumesURIList = new ArrayList<URI>(Collections2.transform(umpset.getManagedVolumeIds(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            boolean noUmvsLeft = true;
             Iterator<Volume> managedVolumeIdsIterator = dbClient.queryIterativeObjects(Volume.class, managedVolumesURIList);
             while (managedVolumeIdsIterator.hasNext()) {
                 Volume managedVolume = managedVolumeIdsIterator.next();
                 if (hasUnManagedVolume(managedVolume, ingestedUnManagedVolumes, dbClient)) {
-                    _logger.info(
-                            "INGEST VALIDATION: Managed volume {} still has a corresponding unmanaged volume left which means that there is still some info to be ingested",
-                            managedVolume.getId());
-                    return false;
+                    _logger.info(String.format(
+                            "INGEST VALIDATION: Managed volume %s (%s) still has a corresponding unmanaged volume left which means that there is still some info to be ingested",
+                            managedVolume.getId(), managedVolume.forDisplay()));
+                    noUmvsLeft = false;
                 }
+            }
+            if (!noUmvsLeft) {
+                return false;
             }
         }
 

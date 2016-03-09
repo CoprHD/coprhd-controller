@@ -229,7 +229,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // blockObject already ingested, now just update internalflags &
             // RP relationships. Run this logic always when volume NO_PUBLIC_ACCESS
             if (markUnManagedVolumeInactive(parentRequestContext, volume)) {
-                _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ",
+                _logger.info("All the related replicas and parent of unManagedVolume {} have been ingested ",
                         unManagedVolume.getNativeGuid());
                 unManagedVolume.setInactive(true);
                 // Add this unmanaged volume to the list of objects to be deleted if we succeed to run this whole ingestion.

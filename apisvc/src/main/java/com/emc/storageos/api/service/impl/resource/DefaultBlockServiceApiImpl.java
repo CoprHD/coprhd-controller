@@ -402,12 +402,14 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         ApplicationAddVolumeList addVolumeList = new ApplicationAddVolumeList() ;
 
         Map<URI, List<URI>> addCGVolsMap = new HashMap<URI, List<URI>>();
+        String newRGName = volumeList.getReplicationGroupName();
         for (URI voluri : volumeList.getVolumes()) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
             if (volume == null || volume.getInactive()) {
                 _log.info(String.format("The volume %s does not exist or has been deleted", voluri));
                 continue;
             }
+
             URI cgUri = volume.getConsistencyGroup();
             if (!NullColumnValueGetter.isNullURI(cgUri)) {
                 List<URI> vols = addCGVolsMap.get(cgUri);
@@ -420,6 +422,12 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 // The volume is not in CG
                 throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
                         String.format("The volume %s is not in a consistency group", volume.getLabel()));
+            }
+
+            String rgName = volume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName) && !rgName.equals(newRGName)) {
+                throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
+                        String.format("The volume %s is already in an array replication group, only the existing group name is allowed.", volume.getLabel()));
             }
         }
 

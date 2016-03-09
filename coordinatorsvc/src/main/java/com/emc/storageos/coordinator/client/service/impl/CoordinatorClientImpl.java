@@ -240,7 +240,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         // insert DR active site info to ZK
         Site site = new Site();
         site.setUuid(getSiteId());
-        site.setName("Default Active Site");
+        site.setName("Default Site");
         site.setVdcShortId(vdcShortId);
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);

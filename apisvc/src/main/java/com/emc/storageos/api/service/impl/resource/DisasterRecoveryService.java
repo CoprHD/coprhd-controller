@@ -1220,7 +1220,6 @@ public class DisasterRecoveryService {
                 oldActiveSite.setState(SiteState.ACTIVE_DEGRADED);
                 coordinator.persistServiceConfiguration(oldActiveSite.toConfiguration());
             }
-            
 
             currentSite.setState(SiteState.STANDBY_FAILING_OVER);
             coordinator.persistServiceConfiguration(currentSite.toConfiguration());
@@ -1229,7 +1228,7 @@ public class DisasterRecoveryService {
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
             //reconfig other standby sites
             for (Site site : allStandbySites) {
-                if (!site.getUuid().equals(uuid)) {
+                if (!site.getUuid().equals(uuid) && site.getState() == SiteState.STANDBY_SYNCED) {
                     site.setState(SiteState.STANDBY_PAUSED);
                     coordinator.persistServiceConfiguration(site.toConfiguration());
                     

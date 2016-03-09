@@ -101,7 +101,8 @@ public interface BackupConstants {
     int LOCK_TIMEOUT = 1000;
 
     //constants for restore
-    int DOWNLOAD_BUFFER_SIZE=KILOBYTE*4; //4k
+    //int DOWNLOAD_BUFFER_SIZE=KILOBYTE*8; //4k
+    int DOWNLOAD_BUFFER_SIZE=0x10000; //4k
 
     // The directory to persist downloaded backup files from FTP server
     String RESTORE_DIR= "/data/restore";

@@ -772,12 +772,14 @@ public class BackupOps {
             return;
         }
 
+        /*
         BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
 
         if (!s.getStatus().canBeCanceled()) {
             log.info("The current backup can't be canceled because its status is {}", s);
             return;
         }
+        */
 
         if (!isLocal) {
             setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, null, false);

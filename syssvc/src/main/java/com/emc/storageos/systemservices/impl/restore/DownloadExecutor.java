@@ -174,26 +174,21 @@ public final class DownloadExecutor implements  Runnable {
         }catch (Exception e) {
             log.info("isCanceled={}", isCanceled);
 
-            if (fromRemoteServer) {
-                log.error("Failed to pull backup file from remote server e=", e);
-            }else {
-                log.error("Failed to pull backup file from other node e=", e);
+            if (!isCanceled) {
+                if (fromRemoteServer) {
+                    log.error("Failed to pull backup file from remote server e=", e);
+                }else {
+                    log.error("Failed to pull backup file from other node e=", e);
+                }
+                backupOps.setRestoreStatus(remoteBackupFileName, Status.DOWNLOAD_FAILED, e.getMessage(), false);
             }
-
-            Status s = Status.DOWNLOAD_FAILED;
-
-            if (isCanceled) {
-                s = Status.DOWNLOAD_CANCELLED;
-                // deleteDownloadedBackup();
-            }
-
-            backupOps.setRestoreStatus(remoteBackupFileName, s, e.getMessage(), false);
-
         }finally {
             try {
                 backupOps.unregisterDownloader();
             }catch (Exception ex) {
-                log.error("Failed to remove listener e=",ex);
+                if (!isCanceled) {
+                    log.error("Failed to remove listener e=", ex);
+                }
             }
         }
     }
@@ -363,17 +358,24 @@ public final class DownloadExecutor implements  Runnable {
 
         // Skip downloaded part
         long skip = file.length();
-        log.info("lby skip={} bytes", skip);
+        log.info("To skip={} bytes", skip);
         in.skip(file.length());
-        log.info("lby skip done");
 
         int length;
         try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file, true))) {
-            while ((length = in.read(buffer)) > 0) {
+            length = in.read(buffer);
+            while (length > 0) {
+                //while ((length = in.read(buffer)) > 0) {
+                log.info("lbya1 read {} bytes", length);
+
                 out.write(buffer, 0, length);
+                log.info("lbya1 done");
                 if (updateDownloadedSize) {
                     backupOps.updateDownloadSize(remoteBackupFileName, length);
                 }
+                log.info("lbya2");
+                length = in.read(buffer);
+                log.info("lbya3");
             }
         } catch(IOException e) {
             log.error("Failed to download file {} e=", backupFileName, e);

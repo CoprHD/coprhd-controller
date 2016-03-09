@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1178,6 +1179,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         for (Volume volume : volumes) {
             // Attempt to create distinct labels here when creating >1 volumes (ScaleIO requirement)
             String rgName = volume.getReplicationGroupInstance();
+            VolumeGroup application = volume.getApplication(_dbClient);
             if (volume.isVPlexVolume(_dbClient)) {
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), true, _dbClient);
                 if (backendVol != null && !backendVol.getInactive()) {
@@ -1186,7 +1188,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             }
 
             String label = snapshotName;
-            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+            if (NullColumnValueGetter.isNotNullValue(rgName) && application != null) {
                 // There can be multiple RGs in a CG, in such cases generate unique name
                 if (volumes.size() > 1) {
                     label = String.format("%s-%s-%s", snapshotName, rgName, count++);

@@ -857,7 +857,7 @@ public abstract class VdcOpHandler {
         @Override
         public void execute() throws Exception {
             Site site = drUtil.getLocalSite();
-
+            
             if (isNewActiveSiteForFailover(site)) {
                 setConcurrentRebootNeeded(true);
                 coordinator.stopCoordinatorSvcMonitor();
@@ -908,6 +908,9 @@ public abstract class VdcOpHandler {
                     }
                 }
                 postHandlerFactory.initializeAllHandlers();
+                
+                oldActiveSite.setState(SiteState.ACTIVE_DEGRADED);
+                coordinator.getCoordinatorClient().persistServiceConfiguration(oldActiveSite.toConfiguration());
             } catch (Exception e) {
                 log.error("Failed to remove old active site in failover, {}", e);
                 throw e;

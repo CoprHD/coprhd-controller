@@ -142,7 +142,7 @@ public class RowMutator {
      * Retry with LOCAL_QUORUM if remote site is not reachable. See DbClientContext.checkAndResetConsistencyLevel on
      * how the consistency level is changed back after remote site is available again later.
      * 
-     * It is supposed to happen on acitve site only.
+     * It is supposed to happen on active site only.
      * 
      * @param mutator
      * @throws ConnectionException

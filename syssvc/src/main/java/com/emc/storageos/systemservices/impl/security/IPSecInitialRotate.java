@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2015 EMC Corporation
+ * Copyright (c) 2016 EMC Corporation
  * All Rights Reserved
  */
 
 package com.emc.storageos.systemservices.impl.security;
 
 
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.security.ipsec.IPsecConfig;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceUnavailableException;
 import com.emc.storageos.systemservices.impl.ipsec.IPsecManager;
@@ -23,38 +24,61 @@ public class IPSecInitialRotate implements Runnable {
     private IPsecManager ipsecMgr;
     private CoordinatorClientExt coordinator;
     private IPsecConfig ipsecConfig;
+    private DrUtil drUtil;
+    private String ipsecLock = "ipseclock";
 
-    private int IPSEC_ROTATION_RETRY_INTERVAL = 5;  //seconds
+    private int IPSEC_ROTATION_RETRY_INTERVAL = 10;  //seconds
 
     @Override
     public void run() {
-
         while (true) {
             try {
                 InterProcessLock lock = null;
                 try {
-                    lock = coordinator.getCoordinatorClient().getSiteLocalLock("ipseclock");
-                    lock.acquire();
-                    log.info("Acquired the lock {}", "ipseclock");
-
-                    ipsecMgr.verifyClusterIsStable();
-
-                    String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
-                    if (StringUtils.isBlank(preSharedKey)) {
-                        log.info("No pre shared key in zk, generate a new key");
-                        ipsecMgr.rotateKey(true);
+                    if (drUtil.isMultivdc()) {
+                        log.info("Skip ipsec key initial rotation for multi-vdc configuration");
                         return;
+                    }
+                    
+                    if (drUtil.isMultisite()) {
+                        log.info("Skip ipsec key initial rotation for multi-site DR configuration");
+                        return;
+                    }
+                    
+                    String preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
+                    if (!StringUtils.isBlank(preSharedKey)) {
+                        log.info("IPsec key has been initialized");
+                        return;
+                    }
+                    
+                    lock = coordinator.getCoordinatorClient().getSiteLocalLock(ipsecLock);
+                    lock.acquire();
+                    log.info("Acquired the lock {}", ipsecLock);
+                    preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
+                    if (StringUtils.isBlank(preSharedKey)) {
+                        if (drUtil.isAllSitesStable()) {
+                            log.info("No pre shared key in zk, generate a new key");
+                            ipsecMgr.rotateKey(true);
+                            return;
+                        }
                     } else {
-                        log.info("First ipsec key found in zk. No need to regenerate it");
+                        log.info("IPsec key has been initialized. No need to regenerate it");
                         return;
                     }
                 } finally {
-                    lock.release();
+                    try {
+                        if (lock != null) {
+                            lock.release();
+                            log.info("Released the lock {}", ipsecLock);
+                        }
+                    } catch (Exception ex) {
+                        log.warn("error in releasing the lock {}", ipsecLock);
+                    }
                 }
             } catch (ServiceUnavailableException suex) {
                 log.warn("cluster is not stable currently.");
             } catch (Exception ex) {
-                log.warn("error when run ipsec initial rotation: " + ex.getMessage());
+                log.warn("error when run ipsec initial rotation: ", ex);
             }
 
             try {
@@ -90,4 +114,13 @@ public class IPSecInitialRotate implements Runnable {
     public void setIpsecMgr(IPsecManager ipsecMgr) {
         this.ipsecMgr = ipsecMgr;
     }
+
+    public DrUtil getDrUtil() {
+        return drUtil;
+    }
+
+    public void setDrUtil(DrUtil drUtil) {
+        this.drUtil = drUtil;
+    }
+    
 }

@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
-import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +32,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyz
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -78,6 +77,7 @@ import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.varray.VirtualArrayConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -1630,12 +1630,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // as the project for the consistency group.
         BlockConsistencyGroupUtils.verifyProjectForVolumeToBeAddedToCG(volume, cg,
                 _dbClient);
-
-        // No RP protected volumes can be added to a consistency group.
-        if (volume.getProtectionController() != null) {
-            throw APIException.badRequests
-                    .invalidParameterConsistencyGroupCannotAddProtectedVolume(volumeURI);
-        }
 
         // Verify that the volume is on the storage system for
         // the consistency group.

@@ -265,7 +265,9 @@ public class BlockMapper {
             // Get ReplicationGroupInstance from source back end volume
             if (NullColumnValueGetter.isNullValue(to.getReplicationGroupInstance())) {
                 Volume sourceSideBackingVolume = VPlexUtil.getVPLEXBackendVolume(from, true, dbClient);
-                to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
+                if (sourceSideBackingVolume != null) {
+                    to.setReplicationGroupInstance(sourceSideBackingVolume.getReplicationGroupInstance());
+                }
             }
             to.setHaVolumes(backingVolumes);
         }
@@ -492,15 +494,19 @@ public class BlockMapper {
         mapDataObjectFields(from, to);
         to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
-        to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
+        if (!NullColumnValueGetter.isNullURI(from.getStorageController())) {
+            to.setStorageController(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageController()));
+        }
         to.setArrayConsistency(from.getArrayConsistency());
 
         // Default snapshot session support to false
         to.setSupportsSnapshotSessions(Boolean.FALSE);
-        if (dbClient != null && from.getStorageController() != null) {
-            StorageSystem system = dbClient.queryObject(StorageSystem.class, from.getStorageController());
-            if (system != null && system.checkIfVmax3()) {
-                to.setSupportsSnapshotSessions(Boolean.TRUE);
+        if (dbClient != null && from.getSystemConsistencyGroups() != null) {
+            for (String systemId : from.getSystemConsistencyGroups().keySet()) {
+                StorageSystem system = dbClient.queryObject(StorageSystem.class, URI.create(systemId));
+                if (system != null && system.checkIfVmax3()) {
+                    to.setSupportsSnapshotSessions(Boolean.TRUE);
+                }
             }
         }
 

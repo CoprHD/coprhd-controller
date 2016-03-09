@@ -487,18 +487,19 @@ public enum OperationTypeEnum {
             "Unlink targets from BlockSnapshotSession"),
     UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "", "operation to update bucket ACL"),
     DELETE_BUCKET_ACL("DELETE BUCKET ACL", "", "operation to delete bucket ACL"),
+    SYNC_BUCKET_ACL("SYNC BUCKET ACL", "", "operation to sync bucket ACL"),
 
     /* Disaster Recovery Operations */
     ADD_STANDBY("ADD STANDBY", "", "operation to initiate adding a new standby to ensemble"),
     REMOVE_STANDBY("REMOVE STANDBY", "", "operation to initiate removing an existing standby from ensemble"),
-    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between acitve site and standby site"),
-    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between acitve site and standby site"),
+    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between active site and standby site"),
+    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between active site and standby site"),
     RETRY_STANDBY_OP("RETRY STANDBY OPERATION", "", "operation to initiate retry of last operation on a standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
-    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from acitve site to a standby site"),
+    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from active site to a standby site"),
     ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),
     STANDBY_SWITCHOVER("STANDBY BECOME ACTIVE AFTER SWITCHOVER", "", "operation that marks switchover on new active site complete"),
-    FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failling over to a standby site"),
+    FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failing over to a standby site"),
     STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
     UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
     CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");

@@ -792,4 +792,13 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     public void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+    
+    @Override
+    public void doDeleteConsistencyGroup(StorageSystem storage,
+            URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceReplicationGroup, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
 }

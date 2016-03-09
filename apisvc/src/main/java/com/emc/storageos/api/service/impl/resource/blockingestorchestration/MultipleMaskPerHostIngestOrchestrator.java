@@ -72,7 +72,8 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
      */
     @Override
     protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
-        for (ExportMask createdMask : requestContext.findAllNewExportMasks()) {
+        List<ExportMask> exportMasks = requestContext.findAllNewExportMasks();
+        for (ExportMask createdMask : exportMasks) {
             // COP-18184 : Check if the initiators are also matching
             if (null != createdMask && createdMask.getInitiators() != null
                     && createdMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {

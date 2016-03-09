@@ -576,15 +576,17 @@ public class BucketACLUtility {
         }
 
         String userOrGroupOrCustomGroup = requestAcl.getUser();
+        String type = "user";
 
         if (userOrGroupOrCustomGroup == null) {
             userOrGroupOrCustomGroup = requestAcl.getGroup() != null ? requestAcl
                     .getGroup() : requestAcl.getCustomGroup();
+            type = requestAcl.getGroup() != null ? "group" : "customgroup";
         }
 
         // Construct ACL Index
         StringBuffer aclIndex = new StringBuffer();
-        aclIndex.append(this.bucketId).append(domainOfReqAce.toLowerCase()).append(userOrGroupOrCustomGroup.toLowerCase());
+        aclIndex.append(this.bucketId).append(domainOfReqAce.toLowerCase()).append(userOrGroupOrCustomGroup.toLowerCase()).append(type);
 
         acl = this.queryACLByIndex(aclIndex.toString());
 
@@ -664,6 +666,9 @@ public class BucketACLUtility {
     private void verifyUserGroupCustomgroup(BucketACE bucketACE) {
 
         String userOrGroupOrCustomgroup = null;
+        String USER = "user";
+        String GROUP = "group";
+        String CUSTOMGROUP = "customgroup";
 
         if (bucketACE == null) {
             return;
@@ -692,11 +697,11 @@ public class BucketACLUtility {
 
             domain = domain.toLowerCase();
             if (bucketACE.getUser() != null) {
-                userOrGroupOrCustomgroup = domain + bucketACE.getUser().toLowerCase();
+                userOrGroupOrCustomgroup = domain + bucketACE.getUser().toLowerCase() + USER;
             } else if (bucketACE.getGroup() != null) {
-                userOrGroupOrCustomgroup = domain + bucketACE.getGroup().toLowerCase();
+                userOrGroupOrCustomgroup = domain + bucketACE.getGroup().toLowerCase() + GROUP;
             } else {
-                userOrGroupOrCustomgroup = domain + bucketACE.getCustomGroup().toLowerCase();
+                userOrGroupOrCustomgroup = domain + bucketACE.getCustomGroup().toLowerCase() + CUSTOMGROUP;
             }
         }
 
@@ -712,7 +717,7 @@ public class BucketACLUtility {
         // below code is to validate domain by splitting backslash
         if (bucketACE.getDomain() != null && bucketACE.getUser() != null) {
 
-            if (bucketACE.getUser().contains("\\")) {
+            if (bucketACE.getUser().contains("@")) {
                 bucketACE.cancelNextStep(BucketACLOperationErrorType.MULTIPLE_DOMAINS_FOUND);
                 _log.error("Multiple Domains found. Please provide either in user or in domain field.");
 
@@ -720,7 +725,7 @@ public class BucketACLUtility {
         }
         if (bucketACE.getDomain() != null && bucketACE.getGroup() != null) {
 
-            if (bucketACE.getGroup().contains("\\")) {
+            if (bucketACE.getGroup().contains("@")) {
                 bucketACE.cancelNextStep(BucketACLOperationErrorType.MULTIPLE_DOMAINS_FOUND);
                 _log.error("Multiple Domains found. Please provide either in group or in domain field.");
 
@@ -728,7 +733,7 @@ public class BucketACLUtility {
         }
         if (bucketACE.getDomain() != null && bucketACE.getCustomGroup() != null) {
 
-            if (bucketACE.getCustomGroup().contains("\\")) {
+            if (bucketACE.getCustomGroup().contains("@")) {
                 bucketACE.cancelNextStep(BucketACLOperationErrorType.MULTIPLE_DOMAINS_FOUND);
                 _log.error("Multiple Domains found. Please provide either in customgroup or in domain field.");
 

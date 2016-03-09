@@ -482,7 +482,9 @@ public class LDAPsources extends ViprResourceController {
             }
             return isBlankOrNull;
         }
-        
+
+    }
+
     protected static class JsonItemOperation implements ResourceValueOperation<LDAPsourcesInfo, AuthnProviderRestRep> {
         @Override
         public LDAPsourcesInfo performOperation(AuthnProviderRestRep provider) throws Exception {

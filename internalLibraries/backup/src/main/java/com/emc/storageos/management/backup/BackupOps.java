@@ -651,6 +651,7 @@ public class BackupOps {
                 long nodeNumber = getHosts().size();
                 if (s.getNodeCompleted() == nodeNumber ) {
                     s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, null);
+                    restoreStatus = BackupRestoreStatus.Status.DOWNLOAD_SUCCESS;
                 }
             }
 

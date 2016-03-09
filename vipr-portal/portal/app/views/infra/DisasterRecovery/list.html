@@ -3,7 +3,7 @@
 
 #{set isActiveSite:controllers.infra.DisasterRecovery.isActiveSite() /}
 #{if showPauseButton}
-	#{DataTable.header titleKey:'disasterRecovery.title.pauseResume'/}
+	#{DataTable.header titleKey:'disasterRecovery.title.pause'/}
 #{/if}
 #{else}
 	#{DataTable.header titleKey:'disasterRecovery.title'/}
@@ -44,7 +44,9 @@
 			  	#{if showPauseButton}
 					<a class="btn btn-default btn-xs" ng-show="isPauseSite" role="button" href="{{pauseUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.pause'}')){return false;}")>{{'disasterRecovery.pauseButton' | t}}</a>
 				#{/if}
-				<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+				#{else}
+					<a class="btn btn-default btn-xs" ng-show="isResumeSite" role="button" href="{{resumeUrl}}">{{'disasterRecovery.resumeButton' | t}}</a>
+				#{/else}
 			#{/if}
 			<a class="btn btn-default btn-xs" ng-show="isRetrySite" role="button" href="{{retryUrl}}"onclick="if (!confirm('&{'disasterRecovery.confirm.retry'}')){return false;}")>{{'disasterRecovery.retryButton' | t}}</a>
 		#{/deadbolt.restrict}
@@ -64,7 +66,7 @@
 
 <script type="text/javascript">
 var standbypauseUrl = #{jsAction @pause(':uuid') /}
-var standbyresumeUrl = #{jsAction @resume(':uuid', showPauseButton) /}
+var standbyresumeUrl = #{jsAction @resume(':uuid') /}
 var standbytestUrl = #{jsAction @test(':uuid') /}
 var standbyfailoverUrl = #{jsAction @switchover(':uuid') /}
 var standbyretryUrl = #{jsAction @retry(':uuid') /}

@@ -113,6 +113,15 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     }
 
     /**
+     * Returns the UnManagedProtectionSet for better or worse (possibly null).
+     *
+     * @return the UnManagedProtectionSet for this UnManagedVolume
+     */
+    public UnManagedProtectionSet getUnManagedProtectionSetLocal() {
+        return _unManagedProtectionSet;
+    }
+
+    /**
      * Returns the UnManagedProtectionSet for this UnManagedVolume, or null
      * if none could be found.
      *
@@ -127,6 +136,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         // Find the UnManagedProtectionSet associated with this unmanaged volume
         UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(this, getUnmanagedVolume(),
                 _dbClient);
+
+        if (umpset != null) {
+            _unManagedProtectionSet = umpset;
+            return _unManagedProtectionSet;
+        }
 
         // It is possible that the unmanaged volume was already ingested in which case the ingested block object will be part of the
         // unmanaged protection set's managed volumes list.

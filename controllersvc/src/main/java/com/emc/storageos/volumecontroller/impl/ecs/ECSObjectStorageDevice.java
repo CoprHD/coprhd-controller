@@ -5,9 +5,6 @@
 
 package com.emc.storageos.volumecontroller.impl.ecs;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
@@ -680,7 +677,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         BucketACLUpdateParams param = new BucketACLUpdateParams();
         BucketACL acl = new BucketACL();
         BucketACE defaultAce = new BucketACE();
-        String full_control = "read|write|execute|delete|privileged_write|full_control|read_acl|write_acl";
+        String full_control = "full_control";
         List<BucketACE> aclToAdd = Lists.newArrayList();
         String[] userDomain = bucketOwner.split("@");
         if (userDomain.length > 1) {

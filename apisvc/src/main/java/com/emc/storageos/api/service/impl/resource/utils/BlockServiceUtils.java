@@ -664,9 +664,6 @@ public class BlockServiceUtils {
                 storage = volume.getStorageController();
             }
 
-            // Don't allow snapshot sessions on single volumes that are in consistency groups, but don't have replication group instance set.
-            BlockServiceUtils.validateNotInCG(volume, dbClient, false);
-            
             if (NullColumnValueGetter.isNullValue(rgName)) {
                 throw APIException.badRequests.noRepGroupInstance(volume.getLabel());
             }
@@ -690,23 +687,4 @@ public class BlockServiceUtils {
         return snapshot;
     }
 
-    /**
-     * Ensure that we're not trying to create a snapshot on an individual volume
-     * that is keyed to only be used in CG or application-based replications.
-     * 
-     * We want to throw an exception in the case where:
-     * 1. The volume is in a BlockConsistencyGroup and
-     * 2. That consistency group is set to be array consistent
-     * 
-     * @param requestedVolume volume requested for snapshot
-     * @param dbclient db client
-     * @param requestedSnapshot backward compatibility check. Extra logic needed for snapshot requests
-     */
-    public static void validateNotInCG(BlockObject requestedVolume, DbClient dbClient, boolean requestedSnapshot) {
-        // If this volume isn't in a consistency group, it's valid
-        if (!requestedVolume.hasConsistencyGroup()) {
-            return;
-        }
-
-    }
 }

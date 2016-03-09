@@ -2890,7 +2890,7 @@ public class VolumeIngestionUtil {
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 List<UnManagedExportMask> unManagedMasks = new ArrayList<UnManagedExportMask>();
                 for (URI uri : unManagedMaskUris) {
-                    UnManagedExportMask uem = requestContext.findDataObjectByType(UnManagedExportMask.class, uri);
+                    UnManagedExportMask uem = requestContext.findDataObjectByType(UnManagedExportMask.class, uri, true);
                     if (uem != null) {
                         unManagedMasks.add(uem);
                     }
@@ -2910,7 +2910,7 @@ public class VolumeIngestionUtil {
                             continue;
                         }
                         for (URI eMaskUri : exportMaskUris) {
-                            ExportMask eMask = requestContext.findDataObjectByType(ExportMask.class, eMaskUri);
+                            ExportMask eMask = requestContext.findDataObjectByType(ExportMask.class, eMaskUri, true);
                             if (null != eMask && eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
                                 if (!exportMaskMap.containsKey(eMaskUri)) {
                                     _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
@@ -2960,7 +2960,9 @@ public class VolumeIngestionUtil {
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
-                            ExportGroup loadedExportGroup = requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId());
+                            // TODO: something about this seems kind of off, need to review (Nathan)
+                            ExportGroup loadedExportGroup = 
+                                    requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId(), false);
                             if (loadedExportGroup == null) {
                                 loadedExportGroup = requestContext.findExportGroup(
                                         exportGroup.getLabel(), exportGroup.getProject().getURI(), 
@@ -3428,7 +3430,8 @@ public class VolumeIngestionUtil {
         }
 
         if (umpset != null) {
-            UnManagedProtectionSet alreadyLoadedUmpset = requestContext.findDataObjectByType(UnManagedProtectionSet.class, umpset.getId());
+            UnManagedProtectionSet alreadyLoadedUmpset = 
+                    requestContext.findDataObjectByType(UnManagedProtectionSet.class, umpset.getId(), false);
             if (alreadyLoadedUmpset != null) {
                 umpset = alreadyLoadedUmpset;
             }

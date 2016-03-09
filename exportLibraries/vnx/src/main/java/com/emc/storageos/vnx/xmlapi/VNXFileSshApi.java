@@ -40,8 +40,9 @@ public class VNXFileSshApi {
     public static final String SHARE = "share";
     public static final String SERVER_MODEL = "/nas/sbin/model";
 
-    public static final String NAS_REPLICATE_CMD = "nas_replicate";
-    public static final String NAS_CEL_CMD = "nas_cel";
+    public static final String NAS_REPLICATE_CMD = "/nas/bin/nas_replicate";
+    public static final String NAS_TASK_INFO = "/nas/bin/nas_server";
+    public static final String NAS_CEL_CMD = "/nas/bin/nas_cel";
 
     private static final Logger _log = LoggerFactory.getLogger(VNXFileSshApi.class);
 
@@ -1285,6 +1286,88 @@ public class VNXFileSshApi {
         }
 
         return null;
+
+    }
+
+    // nas_task -list | grep Running |Failed|Succeeded|Failed
+
+    public Map<String, String> getTaskStatus(String action, String name) {
+        Map<String, String> taskDetails = new ConcurrentHashMap<String, String>();
+
+        try {
+            // Prepare arguments for CLI command
+            // nas_task -info <taskid>
+            StringBuilder data = new StringBuilder();
+            data.append(" -list ");
+
+            data.append("|grep");
+
+            data.append(action);
+
+            // Execute command
+            XMLApiResult result = executeSsh(VNXFileSshApi.NAS_TASK_INFO, data.toString());
+
+            if (result.isCommandSuccess()) {
+                // Parse message to get user properties
+                // _log.info("Command Output :" + result.getMessage());
+
+                String[] propList = result.getMessage().split("[\n]");
+                for (String prop : propList) {
+                    String[] attrs = prop.split(" ");
+                    String attrName = attrs[0].trim();
+                    String value = attrs[1].trim();
+                    taskDetails.put(attrName, value);
+                    _log.info("Task Attribute {" + attrName + "} - Value -[" + value + "]");
+                }
+            }
+
+        } catch (Exception ex) {
+            StringBuilder message = new StringBuilder();
+            message.append("VNX File getTaskInfo failed for action" + action);
+            message.append(", due to {}");
+            _log.error(message.toString(), ex);
+        }
+
+        return taskDetails;
+
+    }
+
+    public Map<String, String> getTaskInfo(String taskId) {
+        Map<String, String> taskDetails = new ConcurrentHashMap<String, String>();
+
+        try {
+            // Prepare arguments for CLI command
+            // nas_task -info <taskid>
+            StringBuilder data = new StringBuilder();
+            data.append(" -info ");
+            data.append(taskId);
+
+            // Execute command
+            XMLApiResult result = executeSsh(VNXFileSshApi.NAS_TASK_INFO, data.toString());
+
+            if (result.isCommandSuccess()) {
+                // Parse message to get user properties
+                // _log.info("Command Output :" + result.getMessage());
+
+                String[] propList = result.getMessage().split("[\n]");
+                for (String prop : propList) {
+                    String[] attrs = prop.split("=");
+
+                    String attrName = attrs[0].trim();
+                    String value = attrs[1].trim();
+                    taskDetails.put(attrName, value);
+                    _log.info("Task Attribute {" + attrName + "} - Value -[" + value + "]");
+                }
+            }
+
+        } catch (Exception ex) {
+            StringBuilder message = new StringBuilder();
+            message.append("VNX File getTaskInfo failed for taskId" + taskId);
+            message.append(", due to {}");
+            _log.error(message.toString(), ex);
+        }
+
+        return taskDetails;
 
     }
 }

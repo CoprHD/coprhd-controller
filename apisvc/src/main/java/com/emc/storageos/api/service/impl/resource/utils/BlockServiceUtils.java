@@ -725,7 +725,7 @@ public class BlockServiceUtils {
                     throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
                 }
                 backendVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-                if (backendVolume != null && NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
+                if (backendVolume != null && NullColumnValueGetter.isNullValue(backendVolume.getReplicationGroupInstance())) {
                     throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(backendVolume.getLabel());
                 }
                 return;

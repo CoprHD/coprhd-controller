@@ -7474,7 +7474,8 @@ dr_basic_tests()
     echo "---SWITCHOVER FROM TO $active_site TO $standby_site---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr switchover $standby_site
+    dr waitfornetworkhealth $standby_site GOOD 30 1200
+    dr switchover $standby_site || { echo "swichover dr standby site failed."; exit 1; }
 
     echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
     sleep 120
@@ -7522,8 +7523,8 @@ dr_basic_tests()
     # failback test part
     echo "Starting old active site $DR_SITE_B_NAME services ..."
     start_vdc_services "$DR_SITE_B_IP"
-    echo "Sleep 1m to wait old site to become ACTIVE_DEGRADED ..."
-    sleep 60
+    echo "Sleep 300s to wait old site to become ACTIVE_DEGRADED ..."
+    sleep 300
     BOURNE_IPADDR=$DR_SITE_B_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable --ip "${DR_SITE_B_IP}" 10 600
@@ -7828,7 +7829,8 @@ dr_multisite_tests()
     echo "---SWITCHOVER FROM TO $active_site TO $standby_site_c---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr switchover $standby_site_c
+    dr waitfornetworkhealth $standby_site_c GOOD 30 1200
+    dr switchover $standby_site_c || { echo "switchover dr standby site c failed."; exit 1; }
 
     echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
     sleep 120

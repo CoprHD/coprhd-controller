@@ -911,11 +911,11 @@ public class DisasterRecoveryService {
     }
 
     private void precheckForSiteNumber() {
-        int upperLimit = drUtil.getDrIntConfig(DrUtil.KEY_SITE_NUMBER_UPPER_LIMIT, SITE_NUMBER_UPPER_LIMIT);
+        int upperLimit = drUtil.getDrIntConfig(DrUtil.KEY_MAX_NUMBER_OF_DR_SITES, SITE_NUMBER_UPPER_LIMIT);
         int siteNum = drUtil.listSites().size();
         if (siteNum >= upperLimit) {
             throw APIException.internalServerErrors.addStandbyPrecheckFailed(
-                    String.format("Site number upper limit is %d, we already have %d sites, so can't add new site now", upperLimit, siteNum));
+                    String.format("The maximum number of DR sites(%d) has been reached. Currently %d sites are configured", upperLimit, siteNum));
         }
     }
 

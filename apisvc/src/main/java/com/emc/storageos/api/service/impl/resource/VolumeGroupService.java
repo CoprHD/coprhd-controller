@@ -3276,10 +3276,12 @@ public class VolumeGroupService extends TaskResourceService {
 
                             // check to see if the volume is part of another application or not part of an application
                             VolumeGroup grp = volToCheck.getApplication(dbClient);
-                            if (grp == null && !replicationGroupName.equals(volumeInRepGrp.getReplicationGroupInstance())) {
-                                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
-                                        String.format("a volume, %s is part of the volume group %s but is not part of any application",
-                                                volToCheck.getLabel(), replicationGroupName));
+                            if (grp == null) {
+                                if (!replicationGroupName.equals(volumeInRepGrp.getReplicationGroupInstance())) {
+                                    throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
+                                            String.format("a volume, %s is part of the volume group %s but is not part of any application",
+                                                    volToCheck.getLabel(), replicationGroupName));
+                                }
                             } else if (!grp.getId().equals(volumeGroup.getId())) {
                                 throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
                                         String.format("a volume, %s is part of the volume group %s and is part of another application: %s",

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.systemservices.impl.resource;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -432,7 +433,7 @@ public class BackupService {
             if (!file.exists()) {
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
-            InputStream input = new FileInputStream(file);
+            InputStream input = new BufferedInputStream(new FileInputStream(file));
             return Response.ok(input).type(MediaType.APPLICATION_OCTET_STREAM).build();
         } catch (Exception e) {
             throw APIException.internalServerErrors.getObjectFromError(
@@ -484,17 +485,18 @@ public class BackupService {
      * each node will only downloads its own backup data
      *
      * @param backupName the name of the backup on the FTP server
+     * @param force  true to remove the downloaded data and start from the beginning
      * @return server response indicating if the operation is accpeted or not.
      */
     @POST
     @Path("pull/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public Response pullBackup(@QueryParam("file") String backupName ) {
-        log.info("To pull the backup file {}", backupName);
+    public Response pullBackup(@QueryParam("file") String backupName, @QueryParam("force") @DefaultValue("false") boolean force) {
+        log.info("To pull the backup file {} force={}", backupName, force);
 
         checkExternalServer();
 
-        if (backupOps.isDownloadComplete(backupName)) {
+        if (!force && backupOps.isDownloadComplete(backupName)) {
             log.info("The backup file {} has already been downloaded", backupName);
         }else if (backupOps.isDownloadInProgress()) {
             String curBackupName = backupOps.getCurrentBackupName();
@@ -698,7 +700,7 @@ public class BackupService {
 
     private Response setRestoreFailed(String backupName, String msg) {
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
-        backupOps.setRestoreStatus(backupName, s, msg, false);
+        backupOps.setRestoreStatus(backupName, s, msg, false, false);
         throw SyssvcException.syssvcExceptions.restoreFailed(backupName, msg);
     }
 

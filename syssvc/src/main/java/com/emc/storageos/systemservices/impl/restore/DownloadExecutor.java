@@ -15,6 +15,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -224,6 +225,8 @@ public final class DownloadExecutor implements  Runnable {
         byte[] buf = new byte[BackupConstants.DOWNLOAD_BUFFER_SIZE];
         InputStream in = client.download(remoteBackupFileName);
 
+
+
         //Step1: download the zip file
         File zipFile = null;
         try (BufferedInputStream bin = new BufferedInputStream(in)) {
@@ -236,7 +239,6 @@ public final class DownloadExecutor implements  Runnable {
             while (zentry != null) {
                 String filename = zentry.getName();
                 log.info("Extract backup file {}", filename);
-                //pullBackupFileFromRemoteServer(backupFolder, filename, bzin, buf);
                 persistBackupFile(backupFolder, filename, bzin, buf, false, false);
 
                 if (isGeo == false) {

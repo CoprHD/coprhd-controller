@@ -6,6 +6,7 @@
 package models;
 import util.StringOption;
 
+@SuppressWarnings("squid:S1118")
 public class SRDFCopyMode {
 	public static final String ASYNCHRONOUS = "Asynchronous";
 	public static final String SYNCHRONOUS = "Synchronous";

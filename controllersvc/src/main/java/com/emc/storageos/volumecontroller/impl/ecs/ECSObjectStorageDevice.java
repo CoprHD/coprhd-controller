@@ -5,6 +5,9 @@
 
 package com.emc.storageos.volumecontroller.impl.ecs;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
@@ -32,6 +35,7 @@ import com.emc.storageos.ecs.api.UserSecretKeysGetCommandResult;
 import com.emc.storageos.model.object.BucketACE;
 import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.model.object.BucketACLUpdateParams;
+import com.emc.storageos.services.util.SecurityUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ObjectControllerConstants;
@@ -48,6 +52,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
     private ECSApiFactory ecsApiFactory;
     private DbClient _dbClient;
+    private  final String PRODUCT_IDENT_PATH = "/opt/storageos/etc/product";
 
     /**
      * Set ECS API factory
@@ -107,6 +112,8 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             completeTask(bucket.getId(), taskId, e);
             result = BiosCommandResult.createErrorResult(e);
         }
+        String aclSupportedVersion = "acl_supported";
+        bucket.setVersion(aclSupportedVersion);
         _dbClient.persistObject(bucket);
         return result;
     }
@@ -331,6 +338,8 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
         completeTask(bucket.getId(), taskId, "Successfully updated Bucket ACL.");
         return BiosCommandResult.createSuccessfulResult();
     }
+    
+    
 
     @SuppressWarnings("deprecation")
     private void updateBucketACLInDB(BucketACLUpdateParams param, ObjectDeviceInputOutput args, Bucket bucket) {
@@ -567,6 +576,102 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     private void completeTask(final URI bucketID, final String taskID, final String message) {
         BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
         completer.statusReady(_dbClient, message);
+    }
+    
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.volumecontroller.ObjectStorageDevice#doSyncBucketACL(com.emc.storageos.db.client.model.StorageSystem,
+     * com.emc.storageos.db.client.model.Bucket, com.emc.storageos.volumecontroller.ObjectDeviceInputOutput, java.lang.String)
+     * 
+     * Gets the ACl for the bucket from ECS and persist in coprhd DB.
+     */
+    @Override
+    public BiosCommandResult doSyncBucketACL(StorageSystem storageObj, Bucket bucket, ObjectDeviceInputOutput objectArgs, String taskId)
+            throws ControllerException {
+        ECSApi objectAPI = getAPI(storageObj);
+        try {
+            String aclResponse = objectAPI.getBucketAclFromECS(objectArgs.getName(), objectArgs.getNamespace());
+            _log.info("aclResponse {} " + aclResponse);
+            ECSBucketACL bucketACl = new Gson().fromJson(SecurityUtils.sanitizeJsonString(aclResponse), ECSBucketACL.class);
+            ECSBucketACL.Acl acl = bucketACl.getAcl();
+            List<ECSBucketACL.UserAcl> user_acl = acl.getUseAcl();
+            List<ECSBucketACL.GroupAcl> group_acl = acl.getGroupAcl();
+            List<ECSBucketACL.CustomGroupAcl> customgroup_acl = acl.getCustomgroupAcl();
+            List<BucketACE> aclToAdd = Lists.newArrayList();
+            final String _VERSION = "acl_supported";
+            final String DELIMETER = "@";
+            for (ECSBucketACL.UserAcl userAce : user_acl) {
+                String userWithDomain = userAce.getUser();
+                String[] usrDomain = userWithDomain.split(DELIMETER);
+                BucketACE bucketAce = new BucketACE();
+                if (usrDomain.length > 1) {
+                    bucketAce.setDomain(usrDomain[1]);
+                    bucketAce.setUser(usrDomain[0]);
+                } else if (usrDomain.length == 1) { // username without domain
+                    bucketAce.setUser(usrDomain[0]);
+                }
+                String[] permArray = userAce.getPermission();
+                String permissions = formatPermissions(permArray);
+                bucketAce.setPermissions(permissions);
+                aclToAdd.add(bucketAce);
+            }
+
+            for (ECSBucketACL.GroupAcl groupAce : group_acl) {
+                String groupWithDomain = groupAce.getGroup();
+                String[] grpDomain = groupWithDomain.split(DELIMETER);
+                BucketACE bucketAce = new BucketACE();
+                if (grpDomain.length > 1) {
+                    bucketAce.setDomain(grpDomain[1]);
+                    bucketAce.setGroup(grpDomain[0]);
+                } else if (grpDomain.length == 1) { // group without domain
+                    bucketAce.setGroup(grpDomain[0]);
+                }
+                String[] permArray = groupAce.getPermission();
+                String permissions = formatPermissions(permArray);
+                bucketAce.setPermissions(permissions);
+                aclToAdd.add(bucketAce);
+            }
+
+            for (ECSBucketACL.CustomGroupAcl customGroupAce : customgroup_acl) {
+                String customGroupWithDomain = customGroupAce.getCustomgroup();
+                String[] grpDomain = customGroupWithDomain.split(DELIMETER);
+                BucketACE bucketAce = new BucketACE();
+                if (grpDomain.length > 1) {
+                    bucketAce.setDomain(grpDomain[1]);
+                    bucketAce.setCustomGroup(grpDomain[0]);
+                } else if (grpDomain.length == 1) { // custom group without domain
+                    bucketAce.setCustomGroup(grpDomain[0]);
+                }
+                String[] permArray = customGroupAce.getPermission();
+                String permissions = formatPermissions(permArray);
+                bucketAce.setPermissions(permissions);
+                aclToAdd.add(bucketAce);
+            }
+
+            BucketACLUpdateParams param = new BucketACLUpdateParams();
+            BucketACL aclForAddition = new BucketACL();
+            aclForAddition.setBucketACL(aclToAdd);
+            param.setAclToAdd(aclForAddition);
+            updateBucketACLInDB(param, objectArgs, bucket);
+            bucket.setVersion(_VERSION);
+            _dbClient.updateObject(bucket);
+        } catch (ECSException e) {
+            _log.error("Sync ACL for Bucket : {} failed.", objectArgs.getName(), e);
+            completeTask(bucket.getId(), taskId, e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+
+        completeTask(bucket.getId(), taskId, "Bucket ACL Sync Successful.");
+        return BiosCommandResult.createSuccessfulResult();
+    }
+
+    private String formatPermissions(String[] permArray) {
+        StringBuffer strBuff = new StringBuffer("");
+        for (String perm : permArray) {
+            strBuff.append(perm).append("|");
+        }
+        return strBuff.substring(0, strBuff.length() - 1);
     }
 
 }

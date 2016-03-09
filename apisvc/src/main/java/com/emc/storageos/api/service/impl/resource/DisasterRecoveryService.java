@@ -119,7 +119,8 @@ public class DisasterRecoveryService {
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     private static final String NTPSERVERS = "network_ntpservers";
     private static final int SITE_NAME_LENGTH_LIMIT = 64;
-    
+    private static final int SITE_NUMBER_UPPER_LIMIT = 3;
+
     private static final int SITE_CONNECT_TEST_TIMEOUT = 10 * 1000;
     private static final int SITE_CONNECTION_TEST_PORT = 443;
 
@@ -178,6 +179,7 @@ public class DisasterRecoveryService {
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Adding standby site: {}", param.getVip());
 
+        precheckForSiteNumber();
         precheckForGeo();
 
         List<Site> existingSites = drUtil.listStandbySites();
@@ -908,6 +910,14 @@ public class DisasterRecoveryService {
         return response;
     }
 
+    private void precheckForSiteNumber() {
+        int upperLimit = drUtil.getDrIntConfig(DrUtil.KEY_MAX_NUMBER_OF_DR_SITES, SITE_NUMBER_UPPER_LIMIT);
+        int siteNum = drUtil.listSites().size();
+        if (siteNum >= upperLimit) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(
+                    String.format("The maximum number of DR sites(%d) has been reached. Currently %d sites are configured", upperLimit, siteNum));
+        }
+    }
 
     private void precheckForResumeLocalStandby() {
         Site localSite = drUtil.getLocalSite();
@@ -1236,12 +1246,17 @@ public class DisasterRecoveryService {
             //reconfig other standby sites
             for (Site site : allStandbySites) {
                 if (!site.getUuid().equals(uuid)) {
-                    try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
-                        client.setCoordinatorClient(coordinator);
-                        client.setKeyGenerator(apiSignatureGenerator);
-                        client.failover(uuid, oldActiveSite.getUuid(), vdcTargetVersion);
-                    } catch (Exception e){
-                        log.error("Failed to do failover for site {}, ignore it for failover", site.toBriefString());
+                    if (site.getState() == SiteState.STANDBY_REMOVING) {
+                        site.setState(SiteState.STANDBY_ERROR);
+                        coordinator.persistServiceConfiguration(site.toConfiguration());
+                    } else {
+                        try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
+                            client.setCoordinatorClient(coordinator);
+                            client.setKeyGenerator(apiSignatureGenerator);
+                            client.failover(uuid, oldActiveSite.getUuid(), vdcTargetVersion);
+                        } catch (Exception e){
+                            log.error("Failed to do failover for site {}, ignore it for failover", site.toBriefString());
+                        }
                     }
                     // update the vdc config version on the new active site.
                     drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_FAILOVER, vdcTargetVersion,

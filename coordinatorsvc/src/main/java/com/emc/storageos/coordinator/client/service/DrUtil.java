@@ -5,7 +5,6 @@
 
 package com.emc.storageos.coordinator.client.service;
 
-import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -32,6 +31,7 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteInfo.ActionScope;
+import com.emc.storageos.coordinator.client.model.SiteNetworkState;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -74,6 +74,7 @@ public class DrUtil {
     public static final String KEY_FAILOVER_STANDBY_SITE_TIMEOUT = "failover_standby_site_timeout_millis";
     public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
     public static final String KEY_DB_GC_GRACE_PERIOD = "db_gc_grace_period_millis";
+    public static final String KEY_MAX_NUMBER_OF_DR_SITES = "max_number_of_dr_sites";
     
     private CoordinatorClient coordinator;
 
@@ -119,7 +120,7 @@ public class DrUtil {
             coordinator.persistServiceConfiguration(operation.toConfiguration());
             log.info("DR operation status has been recorded: {}", operation.toString());
         } catch (Exception e) {
-            log.error("Error happened when recording auditlog for DR operation for site {}, state: {}", siteId, state, e);
+            log.error(String.format("Error happened when recording auditlog for DR operation for site %s, state: %s", siteId, state.name()), e);
         }
     }
 

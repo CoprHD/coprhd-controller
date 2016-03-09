@@ -3666,6 +3666,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Update volumes with volumeGroup Id, if the volumes are in the CG
+     * 
      * @param volumesList The add volume list
      * @param application The application that the volumes are added to
      * @return ApplicationVolumeList The volumes that are in the add volume list, but not in any consistency group yet.
@@ -3686,7 +3687,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 _log.info(String.format("The volume %s does not exist or has been deleted", voluri));
                 continue;
             }
-            if (cgUri == null) {    
+            if (cgUri == null) {
                 cgUri = volume.getConsistencyGroup();
             } else {
                 if (!cgUri.toString().equals(volume.getConsistencyGroup().toString())) {
@@ -3694,24 +3695,24 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             "the RecoverPoint volumes being added are from different consistency groups");
                 }
             }
-            
+
             if (cgUri == null) {
                 // something is wrong; rp volumes should always be part of a consistency group
-                throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(), 
+                throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
                         "the RecoverPoint volumes being added are not associated with a consistency group");
             }
-           
+
         }
         BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
         if (cg == null || cg.getInactive()) {
             throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(), 
                     String.format("the consistency group associated with RecoverPoint volumes being added does not exist", cgUri));
         }
-        
+
         List<URI> allVolumes = RPHelper.getReplicationSetVolumes(addVolumeURIs, _dbClient);
         Set<String> checkedRG = new HashSet<String>();
         outVolumesList.setConsistencyGroup(cgUri);
-        List<Volume> allVolumesToCheck = new ArrayList<Volume> ();
+        List<Volume> allVolumesToCheck = new ArrayList<Volume>();
         for (URI volumeUri : allVolumes) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeUri);
             String rgName = volume.getReplicationGroupInstance();
@@ -3721,7 +3722,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
                 rgName = backendVol.getReplicationGroupInstance();
                 if (NullColumnValueGetter.isNotNullValue(rgName)) {
-                    // the backend volume is in a replication group. make sure all source volumes in the same replication group is in the add list
+                    // the backend volume is in a replication group. make sure all source volumes in the same replication group is in the
+                    // add list
                     URI storageSystemUri = backendVol.getStorageController();
                     String key = storageSystemUri.toString() + rgName;
                     if (!checkedRG.contains(key)) {
@@ -3729,7 +3731,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         List<URI> rgVolumes = vplexBlockServiceApiImpl.getVolumesInSameReplicationGroup(rgName, storageSystemUri);
                         for (URI rgVolume : rgVolumes) {
                             Volume vol = _dbClient.queryObject(Volume.class, rgVolume);
-                            if (!NullColumnValueGetter.isNullValue(vol.getPersonality()) && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                            if (!NullColumnValueGetter.isNullValue(vol.getPersonality())
+                                    && vol.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                                 if (!allVolumes.contains(rgVolume)) {
                                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
                                             "not all volumes in the same replication group are in the add volume list");
@@ -3737,7 +3740,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             }
                         }
                     }
-                    
+
                 } else {
                     volumesNotInCGCount++;
                 }

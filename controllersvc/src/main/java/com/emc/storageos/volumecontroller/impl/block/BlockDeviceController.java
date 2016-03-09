@@ -6178,12 +6178,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     /**
-     * given a list of volumes, returns a table of storage id, replication group name, and volume list
+     * Given a list of volumes, returns a table of storage id, replication group name, and volume list
+     *
+     * If given newRGName is same as the volume's RG name, the volume will be skipped, if it is non VNX volume.
+     * For VNX volume, it need to be removed from real replication group, so it cannot be skipped.
      *
      * @param volumeIds
+     * @param newRGName (for adding volumes to application only, null otherwise)
      * @return table with storage URI, replication group name, and volume URIs
      */
-    private Table<URI, String, List<URI>> getStorageSystemRGVolumes(Collection<URI> volumeIds) {
+    private Table<URI, String, List<URI>> getStorageSystemRGVolumes(Collection<URI> volumeIds, String newRGName) {
         Table<URI, String, List<URI>> storgeRGToVolumes = HashBasedTable.create();
         if (volumeIds != null && !volumeIds.isEmpty()) {
             Iterator<Volume> volumes = _dbClient.queryIterativeObjects(Volume.class, volumeIds);
@@ -6194,6 +6198,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     String rgName = volume.getReplicationGroupInstance();
                     if (rgName == null) {
                         rgName = NullColumnValueGetter.getNullStr();
+                    } else if (newRGName != null && rgName.equals(newRGName) && !ControllerUtils.isVnxVolume(volume, _dbClient)) {
+                        // volume is already in the designated group
+                        _log.info("Volume {} is already in the desired group {}", volume.getLabel(), newRGName);
+                        continue;
                     }
 
                     List<URI> volumeUris = storgeRGToVolumes.get(storage, rgName);
@@ -6225,12 +6233,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             String waitForStep, String taskId) {
         String waitFor = waitForStep;
         // split up volumes by storage system, replication group, and add steps for each storage system and RG
-        Table<URI, String, List<URI>> storageRGToRemoveVolumes = getStorageSystemRGVolumes(removeVolumeURIs);
+        Table<URI, String, List<URI>> storageRGToRemoveVolumes = getStorageSystemRGVolumes(removeVolumeURIs, null);
 
         // map volumes to add by storage system, replication group
         if (addVolList != null) {
             // add source and target volumes from array replication groups
-            Table<URI, String, List<URI>> storageRGToAddVolumes = getStorageSystemRGVolumes(addVolList.getVolumes());
+            Table<URI, String, List<URI>> storageRGToAddVolumes = getStorageSystemRGVolumes(addVolList.getVolumes(), addVolList.getReplicationGroupName());
             for (Cell<URI, String, List<URI>> cell : storageRGToAddVolumes.cellSet()) {
                 URI storage = cell.getRowKey();
                 String rgName = cell.getColumnKey();

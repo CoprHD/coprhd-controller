@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -60,7 +59,6 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -3517,9 +3515,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public URI getVolumesToAddToApplication(ApplicationAddVolumeList addVols, VolumeGroupVolumeList addVolumes, VolumeGroup volumeGroup, 
             String taskId) {
         URI systemURI = null;
-        URI consistencyGroupURI = null;
         if (addVolumes != null && addVolumes.getVolumes() != null && !addVolumes.getVolumes().isEmpty()) {
-            Map<URI, List<Volume>> virtVolBackVolMap = new HashMap<URI, List<Volume>>();
+            Set<URI> allVolumes = new HashSet<URI>(addVolumes.getVolumes());
+            Map<String, Boolean> checkedRGMap = new HashMap<String, Boolean>();
 
             // add the backing volumes to the volume group list
             for (URI volUri : addVolumes.getVolumes()) {
@@ -3527,33 +3525,19 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 // query the vplex virtual volume
                 Volume addVol = _dbClient.queryObject(Volume.class, volUri);
                 if (addVol == null || addVol.getInactive()) {
-                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(),
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volUri.toString(),
                             "the VPLEX virtual volume has been deleted");
                 }
-                URI cgUri = addVol.getConsistencyGroup();
-                if (NullColumnValueGetter.isNullURI(cgUri)) {
-                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(),
-                            "the VPLEX virtual volume is not in a consistency group");
-                }
-                if (consistencyGroupURI == null) { // first volume
-                    consistencyGroupURI = cgUri;
+
+                if (systemURI == null) {
                     systemURI = addVol.getStorageController();
-                } else if (!consistencyGroupURI.equals(cgUri)) {
-                    // The volume is not from the same CG
-                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(),
-                            "the VPLEX virtual volume is not in the same consistency group as others in the same request");
                 }
+
                 // get the backing volumes
                 StringSet backingVolumes = addVol.getAssociatedVolumes();
                 if (backingVolumes == null || backingVolumes.isEmpty()) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(),
                             "the VPLEX virtual volume does not have any backing volumes");
-                }
-
-                validateAddVolumeToApplication(addVol, volumeGroup);
-
-                if (virtVolBackVolMap.get(volUri) == null) {
-                    virtVolBackVolMap.put(volUri, new ArrayList<Volume>());
                 }
 
                 for (String backingVolId : backingVolumes) {
@@ -3563,25 +3547,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         String error = String.format("the backing volume %s for the VPLEX virtual volume has been deleted", backingVolId);
                         throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(addVol.getLabel(), error);
                     }
-                    virtVolBackVolMap.get(volUri).add(backingVol);
+
+                    String rgName = backingVol.getReplicationGroupInstance();
+                    if (NullColumnValueGetter.isNotNullValue(rgName) && rgName.equals(addVolumes.getReplicationGroupName())) {
+                        if (!checkAllVPlexVolsInRequest(backingVol, allVolumes, checkedRGMap)) {
+                            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(backingVol.getLabel(),
+                                    "Volume has to be added to a different replication group than it is currently in");
+                        }
+                    }
                 }
             }
-
-            if (virtVolBackVolMap.isEmpty()) {
-                return null;
-            }
-
-            // make sure replicationGroupName is specified
-            String addVolsGroupName = addVolumes.getReplicationGroupName();
-            if ((addVolsGroupName == null || addVolsGroupName.isEmpty())) {
-                Set<URI> vols = virtVolBackVolMap.keySet();
-                Iterator<URI> it = vols.iterator();
-                throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(it.next().toString(),
-                        "replicationGroupName is not specified");
-            }
-
-            addVols.setVolumes(new ArrayList<URI>(virtVolBackVolMap.keySet()));
         }
+
+        addVols.setVolumes(addVolumes.getVolumes());
+        addVols.setReplicationGroupName(addVolumes.getReplicationGroupName());
+        addVols.setConsistencyGroup(addVolumes.getConsistencyGroup());
+
         return systemURI;
     }
 
@@ -3659,31 +3640,65 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
     /**
      * Get all VPlex virtual volumes, whose backend volumes are in the same replication group and the same storage system
-     * 
+     *
      * @param groupName The replication group name
      * @param storageSystemUri The backend storage system URI
-     * @return The list of Vplex virtual volume URI
+     * @return The list of Vplex virtual volumes
      */
-    public List<URI> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
-        List<URI> volumeURIs = new ArrayList<URI>();
+    private List<Volume> getVolumesInSameReplicationGroup(String groupName, URI storageSystemUri) {
+        List<Volume> vplexVols = new ArrayList<Volume>();
         // Get all backend volumes with the same replication group name
         List<Volume> volumes = CustomQueryUtility
                 .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumeReplicationGroupInstanceConstraint(groupName));
         for (Volume volume : volumes) {
             URI system = volume.getStorageController();
-            if (system.toString().equals(storageSystemUri.toString())) {
+            if (system.equals(storageSystemUri)) {
                 // Get the vplex virtual volume
                 List<Volume> vplexVolumes = CustomQueryUtility
                         .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                                 getVolumesByAssociatedId(volume.getId().toString()));
                 if (vplexVolumes != null && !vplexVolumes.isEmpty()) {
-                    volumeURIs.add(vplexVolumes.get(0).getId());
+                    Volume vplexVol = vplexVolumes.get(0);
+                    if (!vplexVol.checkForRp() || vplexVol.checkPersonality(Volume.PersonalityTypes.SOURCE.name())) {
+                        vplexVols.add(vplexVol);
+                    }
                 }
 
             }
         }
-        return volumeURIs;
+        return vplexVols;
     }
-    
+
+    /**
+     * Check if all VPlex volumes whose backend volume RG that the backendVol belongs to are in the allVolumes set
+     *
+     * @param backnedVol
+     * @param allVolumes
+     * @param checkedRGMap a map contained RG that has been checked
+     * @return boolean
+     */
+    public boolean checkAllVPlexVolsInRequest(Volume backendVol, Set<URI> allVolumes, Map<String, Boolean> checkedRGMap) {
+        String rgName = backendVol.getReplicationGroupInstance();
+        URI storageSystemUri = backendVol.getStorageController();
+        String key = storageSystemUri.toString() + rgName;
+
+        if (checkedRGMap.containsKey(key)) {
+            return checkedRGMap.get(key);
+        } else {
+            boolean containAll = true;
+            List<Volume> rgVolumes = getVolumesInSameReplicationGroup(rgName, storageSystemUri);
+            for (Volume vol : rgVolumes) {
+                if (vol != null && !vol.getInactive()) {
+                    if (!allVolumes.contains(vol.getId())) {
+                        containAll = false;
+                        break;
+                    }
+                }
+            }
+
+            checkedRGMap.put(key, containAll);
+            return containAll;
+        }
+    }
 }

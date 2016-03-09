@@ -1817,37 +1817,4 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             URI applicationId, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
-    
-    /**
-     * validate volume can be added to an application
-     *
-     * @param volume
-     * @param application
-     */
-    protected void validateAddVolumeToApplication(Volume volume, VolumeGroup application) {
-        // check if the volume has any replica
-        // no need to check backing volumes for vplex virtual volumes because for full copies
-        // there will be a virtual volume for the clone
-        boolean hasReplica = volume.getFullCopies() != null && !volume.getFullCopies().isEmpty() ||
-                    volume.getMirrors() != null && !volume.getMirrors().isEmpty();
-
-        // check for snaps only if no full copies
-        if (!hasReplica) {
-            Volume snapSource = volume;
-            if (volume.isVPlexVolume(_dbClient)) {
-                snapSource = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient);
-                if (snapSource == null || snapSource.getInactive()) {
-                    return;
-                }
-            }
-
-            hasReplica = ControllerUtils.checkIfVolumeHasSnapshot(snapSource, _dbClient) ||
-                    ControllerUtils.checkIfVolumeHasSnapshotSession(snapSource.getId(), _dbClient); // only for volumes not in RG
-        }
-
-        if (hasReplica) {
-            throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
-                    String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
-        }
-    }
 }

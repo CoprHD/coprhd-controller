@@ -109,6 +109,7 @@ class CoprHDCLIDriver(object):
         self.project_obj = coprhdproject.Project(
             self.coprhdhost,
             self.port)
+
     @retry_wrapper    
     def authenticate_user(self):
          
@@ -164,6 +165,7 @@ class CoprHDCLIDriver(object):
     @retry_wrapper                
     def get_volume_details(self, vol):
         self.authenticate_user()
+		volume_dict = {}
         Message.new(Info="coprhd-get-volume-details" + vol).write(_logger)
         try:
            volumeuri = self.volume_obj.volume_query(
@@ -182,14 +184,14 @@ class CoprHDCLIDriver(object):
            Message.new(Info="coprhd-get-volume-details for loop").write(_logger)
            for evolumes in exportedvolumes:
               if volumeuri == evolumes['id']:
-               return volumestatus(name=volumedetails['name'],size=volumedetails['provisioned_capacity_gb'],attached_to=self.host)
-           return volumestatus(name=volumedetails['name'],size=volumedetails['provisioned_capacity_gb'],attached_to=None)
+               return volume_dict[volumedetails['name'][8:]]={'size':volumedetails['provisioned_capacity_gb'],'attached_to':self.host}
+           return volume_dict[volumedetails['name'][8:]]={'size':volumedetails['provisioned_capacity_gb'],'attached_to':None}
         except utils.SOSError:
                     Message.new(Debug="coprhd get volume details failed").write(_logger)
     @retry_wrapper
     def list_volume(self):
         self.authenticate_user()
-        volumes = []
+        flocker_volumes = {}
         try:
             project_uri = self.project_obj.project_query(self.project)
             volume_uris = self.volume_obj.search_volumes(project_uri)
@@ -209,16 +211,16 @@ class CoprHDCLIDriver(object):
                     attach_to = unicode(attach_to[0:8])                    
                     Message.new(Debug="coprhd list_volume attached to" + attach_to).write(_logger)
                     showvolume = self.volume_obj.show_by_uri(v_uri)
-                    volume = volumestatus(name=showvolume['name'],size=showvolume['allocated_capacity_gb'],attached_to = attach_to)
-                    volumes.append(volume)
+                    if showvolume['name'].startswith('flocker'):
+                        flocker_volumes[showvolume['name'][8:]] = {'size' : showvolume['allocated_capacity_gb'] , 'attached_to' : attach_to}
                     break
              if attach_to is None:
               showvolume = self.volume_obj.show_by_uri(v_uri)
-              volume = volumestatus(name=showvolume['name'],size=showvolume['allocated_capacity_gb'],attached_to=None)
-              volumes.append(volume)
+			  if showvolume['name'].startswith('flocker'):
+                  flocker_volumes[showvolume['name'][8:]] = {'size' : showvolume['allocated_capacity_gb'] , 'attached_to' : None}
         except utils.SOSError:
             Message.new(Debug="coprhd list volumes failed").write(_logger)
-        return volumes
+        return flocker_volumes
         
     @retry_wrapper
     def create_volume(self, vol, size,profile_name=None):
@@ -303,12 +305,6 @@ class CoprHDCLIDriver(object):
                 with excutils.save_and_reraise_exception():
                     Message.new(Debug="Volume : delete failed").write(_logger)
                 
-class volumestatus(object):
- def __init__(self,name,size,attached_to):
-        self.name = name[8:]
-        self.size = size
-        self.attached_to = attached_to
-        #Message.new(Debug="coprhd list volumestatus attached_to" + self.attached_to).write(_logger)
 @implementer(IProfiledBlockDeviceAPI)        
 @implementer(IBlockDeviceAPI)
 class CoprHDBlockDeviceAPI(object):
@@ -402,14 +398,14 @@ class CoprHDBlockDeviceAPI(object):
         if not volumesdetails:
          raise UnknownVolume(blockdevice_id)
          
-        if volumesdetails.attached_to is not None:
+        if volumesdetails[volumesdetails.keys()[0]]['attached_to'] is not None:
            Message.new(Info="coprhd already attached volume").write(_logger)
            raise AlreadyAttachedVolume(blockdevice_id)
         else:
            Message.new(Info="coprhd invoking export_volume").write(_logger)
            self.coprhdcli.export_volume("flocker-{}".format(dataset_id))
         self.rescan_scsi()
-        size = Decimal(volumesdetails.size)
+        size = Decimal(volumesdetails[volumesdetails.keys()[0]]['size'])
         size = 1073741824 * int(size)
         return BlockDeviceVolume(
           size=size, attached_to=attach_to,
@@ -505,7 +501,7 @@ class CoprHDBlockDeviceAPI(object):
         volumesdetails = self.coprhdcli.get_volume_details("flocker-{}".format(dataset_id))
         if not volumesdetails:
          raise UnknownVolume(blockdevice_id)
-        if volumesdetails.attached_to is not None:
+        if volumesdetails[volumesdetails.keys()[0]]['attached_to'] is not None:
          Message.new(Info="coprhd detach_volume" + str(blockdevice_id)).write(_logger)
          dataset_id = UUID(blockdevice_id[6:])
          self.coprhdcli.unexport_volume("flocker-{}".format(dataset_id))
@@ -523,20 +519,19 @@ class CoprHDBlockDeviceAPI(object):
         """
         volumes = []
         Message.new(Debug="coprhd list_volumes invoked").write(_logger)
-        volumeslist = self.coprhdcli.list_volume()
-        if volumeslist is None:
-         return volumes
-        for num in range(len(volumeslist)):
+        volumes_dict = self.coprhdcli.list_volume()
+        if volumes_dict is None:
+         return None
+        for volume_name,volume_attr in volumes_dict.iteritems():
           attached_to = None
           Message.new(Debug="coprhd list_volumes for loop").write(_logger)
-          Message.new(Debug="coprhd list_volumes" + volumeslist[num].name).write(_logger)
-          if volumeslist[num].attached_to is None:
+            Message.new(Debug="coprhd list_volumes" + volume_name).write(_logger)
+            if volume_attr['attached_to'] is None:
            Message.new(Debug="coprhd list_volumes attached None").write(_logger)
           else:
-           attached_to = volumeslist[num].attached_to
-          Message.new(Debug="coprhd list_volumes creating blockvolume size is "+volumeslist[num].size).write(_logger)
-          size = Decimal(volumeslist[num].size)
-          size = 1073741824 * int(size)
+                attached_to = volume_attr['attached_to']
+            Message.new(Debug="coprhd list_volumes creating blockvolume size is "+volume_attr['size']).write(_logger)
+            size = Decimal(volume_attr['size'])
           volume = BlockDeviceVolume(
                                     size=size, attached_to=attached_to,
                                     dataset_id=UUID(volumeslist[num].name), blockdevice_id=u"block-{0}".format(volumeslist[num].name)
@@ -545,6 +540,7 @@ class CoprHDBlockDeviceAPI(object):
           volumes.append(volume)
         Message.new(Debug="coprhd list_volumes returning").write(_logger)
         return volumes
+            
 
 def configuration(coprhdhost, port, username, password, tenant,
                            project, varray, cookiedir, vpool,vpool_platinum,vpool_gold,vpool_silver,vpool_bronze,hostexportgroup,coprhdcli_security_file):

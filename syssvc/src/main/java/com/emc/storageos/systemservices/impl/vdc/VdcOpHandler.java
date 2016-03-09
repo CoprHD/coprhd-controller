@@ -902,6 +902,11 @@ public abstract class VdcOpHandler {
                 }
                 tryPoweroffRemoteSite(oldActiveSite);    
                 removeDbNodesFromStrategyOptions(oldActiveSite);
+                for (Site site : drUtil.listStandbySites()) {
+                    if (!isNewActiveSiteForFailover(site)) {
+                        removeDbNodesFromStrategyOptions(site);
+                    }
+                }
                 postHandlerFactory.initializeAllHandlers();
             } catch (Exception e) {
                 log.error("Failed to remove old active site in failover, {}", e);

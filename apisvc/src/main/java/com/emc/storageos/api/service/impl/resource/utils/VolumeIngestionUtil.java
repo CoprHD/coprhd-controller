@@ -3786,8 +3786,7 @@ public class VolumeIngestionUtil {
      * @return true if the given UnManagedExportMask is for a RecoverPoint Export
      */
     public static boolean isRpExportMask(UnManagedExportMask uem, DbClient dbClient) {
-        boolean isRpExportMask = false;
-        outside : for (String wwn : uem.getKnownInitiatorNetworkIds()) {
+        for (String wwn : uem.getKnownInitiatorNetworkIds()) {
             List<URI> protectionSystemUris = dbClient.queryByType(ProtectionSystem.class, true);
             List<ProtectionSystem> protectionSystems = dbClient.queryObject(ProtectionSystem.class, protectionSystemUris);
             for (ProtectionSystem protectionSystem : protectionSystems) {
@@ -3795,14 +3794,13 @@ public class VolumeIngestionUtil {
                     protectionSystem.getSiteInitiators().entrySet()) {
                     if (siteInitEntry.getValue().contains(wwn)) {
                         _logger.info("this is a RecoverPoint related UnManagedExportMask: " + uem.getMaskName());
-                        isRpExportMask = true;
-                        break outside;
+                        return true;
                     }
                 }
             }
         }
         
-        return isRpExportMask;
+        return false;
     }
 
     /**

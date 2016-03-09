@@ -627,33 +627,33 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // source volume.
             // We would create backend CG only if the volume's replicationGroupInstance is set when it is prepared in apisvc level.
             Volume volume = _dbClient.queryObject(Volume.class, descr.getVolumeURI());
-            String rpName = volume.getReplicationGroupInstance();
-            if (NullColumnValueGetter.isNotNullValue(rpName)) {
+            String rgName = volume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
                 _log.info("Creating backend CG.");
                 URI deviceURI = descr.getDeviceURI();
-                Set<String> rpNames = deviceURIs.get(deviceURI);
-                if (rpNames == null) {
-                    rpNames = new HashSet<String>();
+                Set<String> rgNames = deviceURIs.get(deviceURI);
+                if (rgNames == null) {
+                    rgNames = new HashSet<String>();
                 }
-                rpNames.add(rpName);
-                deviceURIs.put(deviceURI, rpNames);
+                rgNames.add(rgName);
+                deviceURIs.put(deviceURI, rgNames);
             }
         }
 
         boolean createdCg = false;
         for (Map.Entry<URI, Set<String>> entry : deviceURIs.entrySet()) {
             URI deviceURI = entry.getKey();
-            Set<String> rpNames = entry.getValue();
-            for (String rpName : rpNames) {
+            Set<String> rgNames = entry.getValue();
+            for (String rgName : rgNames) {
                 // If the consistency group has already been created in the array, just return
-                if (!consistencyGroup.created(deviceURI, rpName)) {
+                if (!consistencyGroup.created(deviceURI, rgName)) {
                     // Create step to create consistency group
                     waitFor = workflow.createStep(stepGroup,
                             String.format("Creating consistency group  %s", consistencyGroupURI), waitFor,
                             deviceURI, getDeviceType(deviceURI),
                             this.getClass(),
-                            createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName),
-                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rpName, false, false), null);
+                            createConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName),
+                            deleteConsistencyGroupMethod(deviceURI, consistencyGroupURI, rgName, false, false), null);
                     createdCg = true;
                     _log.info(String.format("Step created for creating CG [%s] on device [%s]", consistencyGroup.getLabel(), deviceURI));
                 }
@@ -4624,18 +4624,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 }
             }
             Volume firstVol = volumeList.get(0);
-            String rpName = firstVol.getReplicationGroupInstance();
+            String rgName = firstVol.getReplicationGroupInstance();
             URI storage = firstVol.getStorageController();
             URI cgURI = firstVol.getConsistencyGroup();
             // delete replication group from array
-            if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, rpName, volumeURIs, storage)) {
-                _log.info(String.format("Adding step to delete the replication group %s", rpName));
+            if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, rgName, volumeURIs, storage)) {
+                _log.info(String.format("Adding step to delete the replication group %s", rgName));
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
-                        String.format("Deleting replication group  %s", rpName),
+                        String.format("Deleting replication group  %s", rgName),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
-                        deleteConsistencyGroupMethod(storage, cgURI, rpName, false, false),
+                        deleteConsistencyGroupMethod(storage, cgURI, rgName, false, false),
                         rollbackMethodNullMethod(), null);
             }
         }

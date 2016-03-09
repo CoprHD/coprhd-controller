@@ -341,7 +341,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // this case, if the LOCAL type isn't specified, we can create backend
         // CGs.
         BlockConsistencyGroup backendCG = null;
-        if ((consistencyGroup != null) && (!consistencyGroup.created() ||
+        if (consistencyGroup != null && (!consistencyGroup.created() ||
                 !cgContainsVolumes || consistencyGroup.getTypes().contains(Types.LOCAL.toString()))) {
             backendCG = consistencyGroup;
         }
@@ -400,6 +400,14 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                             || rpPersonality.equals(PersonalityTypes.METADATA.name()))) {
                         s_logger.info("It is RP target or journal volume");
                         isRPTargetOrJournal = true;
+                    }
+                    // Set replicationGroupInstance if CG's arrayConsistency is true
+                    if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal) {
+                    	String repGroupInstance = consistencyGroup.getCgNameOnStorageSystem(storageDeviceURI);
+                    	if (NullColumnValueGetter.isNullValue(repGroupInstance)) {
+                    		repGroupInstance = consistencyGroup.getLabel();
+                    	}
+                    	volume.setReplicationGroupInstance(repGroupInstance);
                     }
                     
                     if (consistencyGroup != null) {
@@ -3627,13 +3635,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
             boolean backingVolsAreInCG = false;
             URI cgUri = null;
-            String rpName = null;
+            String rgName = null;
             URI storageSystemUri = null;
             boolean backVolIsVNX = false;
             for (Volume backingVol : backingVols) {
                 cgUri = backingVol.getConsistencyGroup();
-                rpName = backingVol.getReplicationGroupInstance();
-                if (!NullColumnValueGetter.isNullURI(cgUri) && NullColumnValueGetter.isNotNullValue(rpName)) {
+                rgName = backingVol.getReplicationGroupInstance();
+                if (!NullColumnValueGetter.isNullURI(cgUri) && NullColumnValueGetter.isNotNullValue(rgName)) {
                     backingVolsAreInCG = true;
                     storageSystemUri = backingVol.getStorageController();
                     StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemUri);
@@ -3652,10 +3660,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (backingVolsAreInCG) {
                 // if the backing volumes are in a array cg, we need to verify that all virtual volumes from the
                 // same replication group are on the list to be added
-                String key = storageSystemUri.toString() + rpName;
+                String key = storageSystemUri.toString() + rgName;
                 if (!checkedRG.contains(key)) {
                     checkedRG.add(key);
-                    List<URI> rpVolumes = getVolumesInSameReplicationGroup(rpName, storageSystemUri);
+                    List<URI> rpVolumes = getVolumesInSameReplicationGroup(rgName, storageSystemUri);
                     for (URI rpvol : rpVolumes) {
                         if (!virtVolBackVolMap.keySet().contains(rpvol)) {
                             Volume virtVol = _dbClient.queryObject(Volume.class, vvUri);
@@ -3814,16 +3822,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 break;
             }
             URI storage = volume.getStorageController();
-            String rpName = srcVol.getReplicationGroupInstance();
+            String rgName = srcVol.getReplicationGroupInstance();
             if (count == 0) {
-                replicationGroup = rpName;
+                replicationGroup = rgName;
                 storageUri = storage;
             }
             if (replicationGroup == null || replicationGroup.isEmpty()) {
                 result = false;
                 break;
             }
-            if (rpName == null || !replicationGroup.equals(rpName)) {
+            if (rgName == null || !replicationGroup.equals(rgName)) {
                 result = false;
                 break;
             }

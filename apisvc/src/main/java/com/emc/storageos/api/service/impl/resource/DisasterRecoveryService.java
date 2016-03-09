@@ -119,7 +119,8 @@ public class DisasterRecoveryService {
     private static final String EVENT_SERVICE_TYPE = "DisasterRecovery";
     private static final String NTPSERVERS = "network_ntpservers";
     private static final int SITE_NAME_LENGTH_LIMIT = 64;
-    
+    private static final int SITE_NUMBER_UPPER_LIMIT = 3;
+
     private static final int SITE_CONNECT_TEST_TIMEOUT = 10 * 1000;
     private static final int SITE_CONNECTION_TEST_PORT = 443;
 
@@ -178,6 +179,7 @@ public class DisasterRecoveryService {
     public SiteRestRep addStandby(SiteAddParam param) {
         log.info("Adding standby site: {}", param.getVip());
 
+        precheckForSiteNumber();
         precheckForGeo();
 
         List<Site> existingSites = drUtil.listStandbySites();
@@ -902,6 +904,14 @@ public class DisasterRecoveryService {
         return response;
     }
 
+    private void precheckForSiteNumber() {
+        int upperLimit = drUtil.getDrIntConfig(DrUtil.KEY_MAX_NUMBER_OF_DR_SITES, SITE_NUMBER_UPPER_LIMIT);
+        int siteNum = drUtil.listSites().size();
+        if (siteNum >= upperLimit) {
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(
+                    String.format("The maximum number of DR sites(%d) has been reached. Currently %d sites are configured", upperLimit, siteNum));
+        }
+    }
 
     private void precheckForResumeLocalStandby() {
         Site localSite = drUtil.getLocalSite();
@@ -1228,10 +1238,14 @@ public class DisasterRecoveryService {
             long vdcTargetVersion = DrUtil.newVdcConfigVersion();
             //reconfig other standby sites
             for (Site site : allStandbySites) {
-                if (!site.getUuid().equals(uuid) && site.getState() == SiteState.STANDBY_SYNCED) {
-                    site.setState(SiteState.STANDBY_PAUSED);
-                    coordinator.persistServiceConfiguration(site.toConfiguration());
-                    
+                if (!site.getUuid().equals(uuid)) {
+                    if (site.getState() == SiteState.STANDBY_SYNCED) {
+                        site.setState(SiteState.STANDBY_PAUSED);
+                        coordinator.persistServiceConfiguration(site.toConfiguration());
+                    } else  if (site.getState() == SiteState.STANDBY_REMOVING) {
+                        site.setState(SiteState.STANDBY_ERROR);
+                        coordinator.persistServiceConfiguration(site.toConfiguration());
+                    }
                     // update the vdc config version on the new active site.
                     drUtil.updateVdcTargetVersion(site.getUuid(), SiteInfo.DR_OP_FAILOVER, vdcTargetVersion,
                             oldActiveSite.getUuid(), currentSite.getUuid());

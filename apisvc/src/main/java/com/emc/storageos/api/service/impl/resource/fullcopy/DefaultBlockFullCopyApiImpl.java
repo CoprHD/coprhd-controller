@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -107,7 +108,14 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             aFCSource = fcSourceObj;
             // volumes in VolumeGroup can be from different vArrays
             varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
-            String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+            String copyName = null;
+            if (NullColumnValueGetter.isNotNullValue(fcSourceObj.getReplicationGroupInstance())) {
+            	copyName = name + "-" + fcSourceObj.getReplicationGroupInstance() 
+            			+ (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+            }  else {
+            	copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+            }
+             
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
                     fcSourceObj, vpool, count);

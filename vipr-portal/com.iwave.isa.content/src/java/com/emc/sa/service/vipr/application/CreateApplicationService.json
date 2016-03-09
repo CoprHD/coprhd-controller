@@ -1,0 +1,15 @@
+{
+  baseKey:"CreateApplication.Application",
+  serviceId:"CreateApplication",
+  fields:{
+  
+    name:{
+     type:"text"
+    },
+    
+    description:{
+     type:"text",
+     required:false
+    }
+  }
+}

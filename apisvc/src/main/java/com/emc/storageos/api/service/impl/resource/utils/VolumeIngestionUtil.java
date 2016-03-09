@@ -2946,6 +2946,8 @@ public class VolumeIngestionUtil {
                     }
 
                     _logger.info("exportGroupType is " + exportGroupType);
+                    URI computeResource = requestContext.getCluster() != null ? requestContext.getCluster() : requestContext.getHost();
+                    _logger.info("computeResource is " + computeResource);
                     // Add the block object to the export groups corresponding to the export masks
                     for (ExportGroup exportGroup : exportGroups) {
                         _logger.info("Processing exportGroup {} to add block object", exportGroup.forDisplay());
@@ -2956,24 +2958,26 @@ public class VolumeIngestionUtil {
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
-                            // TODO: something about this seems kind of off, need to review (Nathan)
+                            // check if this ExportGroup URI has already been loaded in this ingestion request
                             ExportGroup loadedExportGroup = 
                                     requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId(), false);
+                            // if it wasn't found for update, check if it's tied to any ingestion contexts
                             if (loadedExportGroup == null) {
                                 loadedExportGroup = requestContext.findExportGroup(
                                         exportGroup.getLabel(), exportGroup.getProject().getURI(), 
-                                        exportGroup.getVirtualArray(), null, null);
+                                        exportGroup.getVirtualArray(), computeResource, exportGroup.getType());
                             }
+                            // if an ExportGroup for the URI and params was found, use it
                             if (loadedExportGroup != null) {
                                 _logger.info("Adding block object {} to already-loaded export group {}", 
                                         blockObject.getNativeGuid(), loadedExportGroup.getLabel());
-                                loadedExportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
+                                exportGroup = loadedExportGroup;
                             } else {
                                 _logger.info("Adding block object {} to newly-loaded export group {}", 
                                         blockObject.getNativeGuid(), exportGroup.getLabel());
-                                exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
                                 updatedObjects.add(exportGroup);
                             }
+                            exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
                         }
                     }
                 }

@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
@@ -121,6 +122,10 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         } else {
             snapshotSession.setConsistencyGroup(cgURI);
             snapshotSession.setLabel(snapshot.getSnapsetLabel());
+            Volume parent = getDbClient().queryObject(Volume.class, snapshot.getParent());
+            if (parent != null) {
+                snapshotSession.setReplicationGroupInstance(parent.getReplicationGroupInstance());
+            }
         }
         snapshotSession.setProject(snapshot.getProject());
         snapshotSession.setStorageController(snapshot.getStorageController());

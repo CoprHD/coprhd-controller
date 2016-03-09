@@ -30,11 +30,13 @@
 	<a href="@{infra.Upgrade.index()}">&{'disasterRecovery.backToUpgrade'}</a>
 #{/if}
 #{elseif (isActiveSite && util.DisasterRecoveryUtils.hasPausedSite()) }
-	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteWarning'}</span>
+	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
+	<div style="display: inline-block;vertical-align: middle;color: red">&{'disasterRecovery.pausedSiteWarning'}</div>
 #{/elseif}
 
 #{if !isActiveSite && controllers.infra.DisasterRecovery.getLocalSiteState() == "STANDBY_PAUSED" }
-	<img class="glyphicon glyphicon-ok" src="/public/img/Warning.png">&nbsp;<span style="color: red">&{'disasterRecovery.pausedSiteDataNotConsistentWarning'}</span>
+	<div style="display: inline-block;vertical-align: middle"><img class="glyphicon glyphicon-ok" src="/public/img/Warning.png"></div>
+	<div style="display: inline-block;vertical-align: middle;color: red">&{'disasterRecovery.pausedSiteDataNotConsistentWarning'}</div>
 #{/if}
 
 <script id="inlineActions.html" type="text/ng-template">

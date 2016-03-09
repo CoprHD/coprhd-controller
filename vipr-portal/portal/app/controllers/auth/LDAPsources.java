@@ -483,16 +483,6 @@ public class LDAPsources extends ViprResourceController {
             return isBlankOrNull;
         }
         
-        boolean isDomainsBlankOrNull(String domains) {
-            boolean isBlankOrNull = false;
-            if (StringUtils.isBlank(domains) ||
-                    domains.equalsIgnoreCase("null")) {
-                isBlankOrNull = true;
-            }
-            return isBlankOrNull;
-        }
-    }
-
     protected static class JsonItemOperation implements ResourceValueOperation<LDAPsourcesInfo, AuthnProviderRestRep> {
         @Override
         public LDAPsourcesInfo performOperation(AuthnProviderRestRep provider) throws Exception {

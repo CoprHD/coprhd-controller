@@ -1144,8 +1144,8 @@ public class RPHelper {
      * @param copyName The RP copy name
      * @return true if an additional journal is required, false otherwise.
      */
-    public boolean isAdditionalJournalRequiredForRPCopy(String journalPolicy, BlockConsistencyGroup cg, String size, Integer volumeCount,
-            String copyName) {
+    public boolean isAdditionalJournalRequiredForRPCopy(String journalPolicy, BlockConsistencyGroup cg, 
+    						String size, Integer volumeCount,String copyName) {
         boolean additionalJournalRequired = false;
 
         if (journalPolicy != null && (journalPolicy.endsWith("x") || journalPolicy.endsWith("X"))) {

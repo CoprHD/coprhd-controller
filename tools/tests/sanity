@@ -7477,6 +7477,7 @@ dr_basic_tests()
     dr switchover $standby_site
 
     echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
+    sleep 120
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable 10 600
@@ -7501,8 +7502,11 @@ dr_basic_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
 
+    echo "sleep 2m until active site disappears"
+    sleep 120
+
     echo "Failover to promote site $DR_SITE_A_NAME as active ..."
-    dr failover --ip "${DR_SITE_A_IP}" $active_site
+    dr failover --ip "${DR_SITE_A_IP}" $active_site || { echo "failover to site $DR_SITE_A_NAME failed."; exit 1; }
     echo "Sleep 1m to wait failover ..."
     sleep 60
     dr waitforstable --ip "${DR_SITE_A_IP}"  10 800
@@ -7827,6 +7831,7 @@ dr_multisite_tests()
     dr switchover $standby_site_c
 
     echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
+    sleep 120
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable 10 800
@@ -7851,15 +7856,15 @@ dr_multisite_tests()
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
 
-    echo "Failover to promote site $DR_SITE_A_NAME as active"
-    dr failover --ip "${DR_SITE_A_IP}" $active_site
+    echo "sleep 2m until active site disappears"
+    sleep 120
 
+    echo "Failover to promote site $DR_SITE_A_NAME as active"
+    dr failover --ip "${DR_SITE_A_IP}" $active_site || { echo "failover to site $DR_SITE_A_NAME failed."; exit 1; }
     echo "Sleep 1m to wait failover"
     sleep 60
 
     echo "Wait for stable"
-    BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
 
     echo "Wait site state to be PRIAMRY after failover"
@@ -7868,8 +7873,8 @@ dr_multisite_tests()
     # failback test part
     echo "Starting old active site $DR_SITE_C_NAME services ..."
     start_vdc_services "$DR_SITE_C_IP"
-    echo "Sleep 600 seconds to wait old site to become ACTIVE_DEGRADED ..."
-    sleep 60
+    echo "Sleep 300 seconds to wait old site to become ACTIVE_DEGRADED ..."
+    sleep 300
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable --ip "${DR_SITE_C_IP}" 10 600

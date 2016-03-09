@@ -25,6 +25,7 @@ public class IPSecInitialRotate implements Runnable {
     private CoordinatorClientExt coordinator;
     private IPsecConfig ipsecConfig;
     private DrUtil drUtil;
+    private String ipsecLock = "ipseclock";
 
     private int IPSEC_ROTATION_RETRY_INTERVAL = 10;  //seconds
 
@@ -50,9 +51,9 @@ public class IPSecInitialRotate implements Runnable {
                         return;
                     }
                     
-                    lock = coordinator.getCoordinatorClient().getSiteLocalLock("ipseclock");
+                    lock = coordinator.getCoordinatorClient().getSiteLocalLock(ipsecLock);
                     lock.acquire();
-                    log.info("Acquired the lock {}", "ipseclock");
+                    log.info("Acquired the lock {}", ipsecLock);
                     preSharedKey = ipsecConfig.getPreSharedKeyFromZK();
                     if (StringUtils.isBlank(preSharedKey)) {
                         if (drUtil.isAllSitesStable()) {
@@ -65,8 +66,13 @@ public class IPSecInitialRotate implements Runnable {
                         return;
                     }
                 } finally {
-                    if (lock != null) {
-                        lock.release();
+                    try {
+                        if (lock != null) {
+                            lock.release();
+                            log.info("Released the lock {}", ipsecLock);
+                        }
+                    } catch (Exception ex) {
+                        log.warn("error in releasing the lock {}", ipsecLock);
                     }
                 }
             } catch (ServiceUnavailableException suex) {

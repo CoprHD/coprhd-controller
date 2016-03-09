@@ -646,11 +646,18 @@ public class BackupOps {
                 s.setBackupFileNames(backupfileNames);
             }
 
-            if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOADING) {
+            BackupRestoreStatus.Status restoreStatus = s.getStatus();
+            if ( restoreStatus == BackupRestoreStatus.Status.DOWNLOADING) {
                 long nodeNumber = getHosts().size();
                 if (s.getNodeCompleted() == nodeNumber ) {
                     s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, null);
                 }
+            }
+
+            if (restoreStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS ||
+                    restoreStatus == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ||
+                    restoreStatus  == BackupRestoreStatus.Status.DOWNLOAD_FAILED ) {
+                clearCurrentBackupInfo();
             }
 
             persistBackupRestoreStatus(s, false, doLog);

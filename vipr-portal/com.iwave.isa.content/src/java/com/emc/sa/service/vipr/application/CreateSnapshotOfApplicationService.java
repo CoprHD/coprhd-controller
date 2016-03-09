@@ -33,9 +33,6 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.APPLICATION_SITE)
     protected String virtualArrayParameter;
 
-    @Param(ServiceParams.HIGH_AVAILABILITY)
-    protected Boolean highAvailability;
-
     @Param(ServiceParams.READ_ONLY)
     protected Boolean readOnly;
 
@@ -49,8 +46,7 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
 
         List<URI> volumeIds = BlockStorageUtils.getSingleVolumePerSubGroupAndStorageSystem(volumesToUse, subGroups);
 
-        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, name, readOnly,
-                highAvailability));
+        Tasks<? extends DataObjectRestRep> tasks = execute(new CreateSnapshotForApplication(applicationId, volumeIds, name, readOnly));
         addAffectedResources(tasks);
     }
 

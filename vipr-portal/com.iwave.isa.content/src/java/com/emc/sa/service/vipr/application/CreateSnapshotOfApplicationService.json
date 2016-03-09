@@ -11,13 +11,6 @@
       type:"assetType.vipr.applicationSnapshotVirtualArray"
     },
     
-    highAvailability:{
-      type: "boolean",
-      initialValue: "false",
-      required: "false",
-      lockable: true
-    },
-    
     applicationSubGroup:{
       type:"assetType.vipr.replicationGroup",
       select:"many"

@@ -879,9 +879,10 @@ public abstract class BlockIngestOrchestrator {
         String currentBlockObjectNativeGuid = 
                 currentUnmanagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
         for (BlockObject parent : parentReplicaMap.keySet()) {
+            boolean parentIsCurrentUnManagedVolume = parent.getNativeGuid().equals(currentBlockObjectNativeGuid);
             // clear the parent internal flags
             // don't clear flags if the current block object is for the currently ingesting UnManagedvolume
-            if (!parent.getNativeGuid().equals(currentBlockObjectNativeGuid)) {
+            if (!parentIsCurrentUnManagedVolume) {
                 VolumeIngestionUtil.clearInternalFlags(requestContext, parent, updateObjects, _dbClient);
             }
             // if no newly-created object can be found for the parent's native GUID
@@ -891,11 +892,11 @@ public abstract class BlockIngestOrchestrator {
                 updateObjects.add(parent);
             }
             boolean fullyIngestedVolume = true;
-            UnManagedVolume umVolume = parent.getNativeGuid().equals(currentBlockObjectNativeGuid) ? 
+            UnManagedVolume umVolume = parentIsCurrentUnManagedVolume ? 
                     currentUnmanagedVolume : VolumeIngestionUtil.getUnManagedVolumeForBlockObject(parent, _dbClient);
             boolean isParentRPVolume = umVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umVolume);
             // if its RP volume, then check whether the RP CG is fully ingested.
-            if (isParentRPVolume) {
+            if (isParentRPVolume && !parentIsCurrentUnManagedVolume) {
                 List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllUnManagedVolumesToBeDeleted();
                 ingestedUnManagedVolumes.add(umVolume);
                 UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(requestContext, umVolume,

@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.impl.DbModelClientImpl;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
@@ -49,7 +50,6 @@ import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
@@ -1474,10 +1474,11 @@ public class VolumeIngestionUtil {
     public static Map<String, Integer> extractWwnToHluMap(UnManagedExportMask unManagedExportMask, DbClient dbClient) {
         // create the volume wwn to hlu map
         Map<String, Integer> wwnToHluMap = new HashMap<String, Integer>();
-        List<UnManagedVolume> unManagedVolumes = dbClient.queryObject(
+        Iterator<UnManagedVolume> unManagedVolumes = dbClient.queryIterativeObjects(
                 UnManagedVolume.class, Collections2.transform(
                         unManagedExportMask.getUnmanagedVolumeUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
-        for (UnManagedVolume vol : unManagedVolumes) {
+        while (unManagedVolumes.hasNext()) {
+            UnManagedVolume vol = unManagedVolumes.next();
             String wwn = vol.getWwn();
             if (wwn != null) {
                 wwnToHluMap.put(wwn, findHlu(vol, unManagedExportMask.getMaskName()));
@@ -2889,7 +2890,7 @@ public class VolumeIngestionUtil {
                         CommonTransformerFunctions.FCTN_STRING_TO_URI));
                 List<UnManagedExportMask> unManagedMasks = new ArrayList<UnManagedExportMask>();
                 for (URI uri : unManagedMaskUris) {
-                    UnManagedExportMask uem = requestContext.findDataObjectByType(UnManagedExportMask.class, uri);
+                    UnManagedExportMask uem = requestContext.findDataObjectByType(UnManagedExportMask.class, uri, true);
                     if (uem != null) {
                         unManagedMasks.add(uem);
                     }
@@ -2909,7 +2910,7 @@ public class VolumeIngestionUtil {
                             continue;
                         }
                         for (URI eMaskUri : exportMaskUris) {
-                            ExportMask eMask = requestContext.findDataObjectByType(ExportMask.class, eMaskUri);
+                            ExportMask eMask = requestContext.findDataObjectByType(ExportMask.class, eMaskUri, true);
                             if (null != eMask && eMask.getStorageDevice().equals(unManagedExportMask.getStorageSystemUri())) {
                                 if (!exportMaskMap.containsKey(eMaskUri)) {
                                     _logger.info("Found Mask {} with matching initiator and matching Storage System", eMaskUri);
@@ -2959,7 +2960,9 @@ public class VolumeIngestionUtil {
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
-                            ExportGroup loadedExportGroup = requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId());
+                            // TODO: something about this seems kind of off, need to review (Nathan)
+                            ExportGroup loadedExportGroup = 
+                                    requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId(), false);
                             if (loadedExportGroup == null) {
                                 loadedExportGroup = requestContext.findExportGroup(
                                         exportGroup.getLabel(), exportGroup.getProject().getURI(), 
@@ -3333,15 +3336,19 @@ public class VolumeIngestionUtil {
         if (umpset.getManagedVolumeIds() != null && !umpset.getManagedVolumeIds().isEmpty()) {
             List<URI> managedVolumesURIList = new ArrayList<URI>(Collections2.transform(umpset.getManagedVolumeIds(),
                     CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            boolean noUmvsLeft = true;
             Iterator<Volume> managedVolumeIdsIterator = dbClient.queryIterativeObjects(Volume.class, managedVolumesURIList);
             while (managedVolumeIdsIterator.hasNext()) {
                 Volume managedVolume = managedVolumeIdsIterator.next();
                 if (hasUnManagedVolume(managedVolume, ingestedUnManagedVolumes, dbClient)) {
-                    _logger.info(
-                            "INGEST VALIDATION: Managed volume {} still has a corresponding unmanaged volume left which means that there is still some info to be ingested",
-                            managedVolume.getId());
-                    return false;
+                    _logger.info(String.format(
+                            "INGEST VALIDATION: Managed volume %s (%s) still has a corresponding unmanaged volume left which means that there is still some info to be ingested",
+                            managedVolume.getId(), managedVolume.forDisplay()));
+                    noUmvsLeft = false;
                 }
+            }
+            if (!noUmvsLeft) {
+                return false;
             }
         }
 
@@ -3423,7 +3430,8 @@ public class VolumeIngestionUtil {
         }
 
         if (umpset != null) {
-            UnManagedProtectionSet alreadyLoadedUmpset = requestContext.findDataObjectByType(UnManagedProtectionSet.class, umpset.getId());
+            UnManagedProtectionSet alreadyLoadedUmpset = 
+                    requestContext.findDataObjectByType(UnManagedProtectionSet.class, umpset.getId(), false);
             if (alreadyLoadedUmpset != null) {
                 umpset = alreadyLoadedUmpset;
             }

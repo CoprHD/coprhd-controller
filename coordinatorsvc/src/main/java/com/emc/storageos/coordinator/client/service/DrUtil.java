@@ -74,7 +74,7 @@ public class DrUtil {
     public static final String KEY_FAILOVER_STANDBY_SITE_TIMEOUT = "failover_standby_site_timeout_millis";
     public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
     public static final String KEY_DB_GC_GRACE_PERIOD = "db_gc_grace_period_millis";
-    public static final String KEY_SITE_NUMBER_UPPER_LIMIT = "site_number_upper_limit";
+    public static final String KEY_MAX_NUMBER_OF_DR_SITES = "max_number_of_dr_sites";
     
     private CoordinatorClient coordinator;
 
@@ -660,7 +660,7 @@ public class DrUtil {
             }
 
             int nodeCount = site.getNodeCount();
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid(), nodeCount);
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 bStable = false;

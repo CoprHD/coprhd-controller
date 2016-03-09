@@ -267,7 +267,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
         for (Set<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject dob : dos) {
-                _logger.info("Updating DataObject " + dob.forDisplay());
+                if (dob.getInactive()) {
+                    _logger.info("Deleting DataObject " + dob.forDisplay());
+                } else {
+                    _logger.info("Updating DataObject " + dob.forDisplay());
+                }
                 _dbClient.updateObject(dob);
             }
         }
@@ -997,8 +1001,8 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findDataObjectByType(java.lang.Class, java.net.URI)
      */
     @Override
-    public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id) {
-        return getRootIngestionRequestContext().findDataObjectByType(clazz, id);
+    public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase) {
+        return getRootIngestionRequestContext().findDataObjectByType(clazz, id, fallbackToDatabase);
     }
 
 }

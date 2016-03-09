@@ -422,7 +422,8 @@ public interface IngestionRequestContext extends Iterator<UnManagedVolume> {
      * 
      * @param clazz the DataObject class / type
      * @param id the URI of the DataObject to look for
+     * @param fallbackToDatabase if true, check the database as a last resort
      * @return a DataObject cast to its type
      */
-    <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id);
+    <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase);
 }

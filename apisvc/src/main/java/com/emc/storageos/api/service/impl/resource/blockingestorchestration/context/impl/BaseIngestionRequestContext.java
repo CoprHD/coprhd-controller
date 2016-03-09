@@ -956,7 +956,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findObjectAnywhere(java.lang.Class, java.net.URI)
      */
     @Override
-    public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id) {
+    public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase) {
 
         _logger.info("looking for {} object with id {}", clazz.toString(), id);
 
@@ -1020,11 +1020,13 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             }
         }
 
-        // if we still haven't found it, load it from the database
-        T dataObject = _dbClient.queryObject(clazz, id);
-        if (dataObject != null) {
-            _logger.info("loaded object from database");
-            return (T) clazz.cast(dataObject);
+        if (fallbackToDatabase) {
+            // if we still haven't found it, load it from the database
+            T dataObject = _dbClient.queryObject(clazz, id);
+            if (dataObject != null) {
+                _logger.info("loaded object from database");
+                return (T) clazz.cast(dataObject);
+            }
         }
 
         _logger.info("could not find object");

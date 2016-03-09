@@ -708,10 +708,5 @@ public class BlockServiceUtils {
             return;
         }
 
-        BlockConsistencyGroup bcg = dbClient.queryObject(BlockConsistencyGroup.class, requestedVolume.getConsistencyGroup());
-        
-        if (bcg.getArrayConsistency()) {
-            throw APIException.badRequests.singleVolumeReplicationNotAllowedOnCG(requestedVolume.getLabel());
-        }
     }
 }

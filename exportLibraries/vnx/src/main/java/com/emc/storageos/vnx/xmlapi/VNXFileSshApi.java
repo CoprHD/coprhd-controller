@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,34 +28,34 @@ import com.jcraft.jsch.Session;
  */
 
 public class VNXFileSshApi {
-    
+
     /** The Constant SERVER_EXPORT_CMD. */
     public static final String SERVER_EXPORT_CMD = "/nas/bin/server_export";
-    
+
     /** The Constant SERVER_MOUNT_CMD. */
     public static final String SERVER_MOUNT_CMD = "/nas/bin/server_mount";
-    
+
     /** The Constant SERVER_UNMOUNT_CMD. */
     public static final String SERVER_UNMOUNT_CMD = "/nas/bin/server_umount";
-    
+
     /** The Constant SERVER_INFO_CMD. */
     public static final String SERVER_INFO_CMD = "/nas/bin/nas_server";
-    
+
     /** The Constant SERVER_USER_CMD. */
     public static final String SERVER_USER_CMD = "/nas/sbin/server_user";
-    
+
     /** The Constant EXPORT. */
     public static final String EXPORT = "EXPORT";
-    
+
     /** The Constant VNX_CIFS. */
     public static final String VNX_CIFS = "cifs";
-    
+
     /** The Constant NAS_FS. */
     public static final String NAS_FS = "/nas/bin/nas_fs";
-    
+
     /** The Constant SHARE. */
     public static final String SHARE = "share";
-    
+
     /** The Constant SERVER_MODEL. */
     public static final String SERVER_MODEL = "/nas/sbin/model";
 
@@ -65,10 +64,10 @@ public class VNXFileSshApi {
 
     /** The _host. */
     private String _host;
-    
+
     /** The _user name. */
     private String _userName;
-    
+
     /** The _password. */
     private String _password;
 
@@ -78,7 +77,7 @@ public class VNXFileSshApi {
 
     /** The Constant BUFFER_SIZE. */
     private static final int BUFFER_SIZE = 1024;
-    
+
     /** The Constant DEFAULT_PORT. */
     private static final int DEFAULT_PORT = 22;
 
@@ -87,15 +86,15 @@ public class VNXFileSshApi {
      */
     // TODO: change build files to be able to access FileShareExport.SecurityTypes.
     private enum SecurityTypes {
-        
+
         /** The sys. */
-        sys, 
- /** The krb5. */
- krb5, 
- /** The krb5i. */
- krb5i, 
- /** The krb5p. */
- krb5p
+        sys,
+        /** The krb5. */
+        krb5,
+        /** The krb5i. */
+        krb5i,
+        /** The krb5p. */
+        krb5p
     }
 
     /**
@@ -365,7 +364,8 @@ public class VNXFileSshApi {
      * @param netBios the net bios
      * @return the string
      */
-    public String formatCheckShareForExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo, String netBios) {
+    public String formatCheckShareForExportCmd(String dataMover, List<VNXFileExport> exports, Map<String, String> userInfo,
+            String netBios) {
 
         // Verify that there is at least one entry in exports
         if (exports.isEmpty()) {
@@ -380,11 +380,11 @@ public class VNXFileSshApi {
             return null;
         }
 
-        String exportName= exports.get(0).getExportName();
-        if(exportName == null) {
+        String exportName = exports.get(0).getExportName();
+        if (exportName == null) {
             return null;
         }
-        
+
         StringBuilder cmd = new StringBuilder();
         cmd.append(dataMover);
         cmd.append(" -list -name ");
@@ -392,7 +392,7 @@ public class VNXFileSshApi {
 
         return cmd.toString();
     }
-    
+
     /**
      * Create the command string for deleting file system export.
      * 
@@ -1171,47 +1171,20 @@ public class VNXFileSshApi {
      * @param request the request
      * @return the XML api result
      */
-    // Retry executeSsh Command
+
     public XMLApiResult executeSshRetry(String command, String request) {
 
-        XMLApiResult reTryResult = new XMLApiResult();
+        XMLApiResult result = new XMLApiResult();
         try {
-            int maxRetry = 3;
-            while (maxRetry > 0) {
+            result = this.executeSsh(command, request);
 
-                // Execute command
-                reTryResult = this.executeSsh(command, request);
-                String message = reTryResult.getMessage();
-                if (reTryResult.isCommandSuccess()) {
-                    // reTryResult successful
-                    break;
-                } else if (message != null
-                        && !message.isEmpty()
-                        && (message.contains("unable to acquire lock(s)") ||
-                                message.contains("NAS_DB locked object is stale") ||
-                                message.contains("Temporarily no Data Mover is available"))) {
-                    try {
-                        // Delaying execution since NAS_DB object is locked till
-                        // current execution complete
-                        TimeUnit.SECONDS.sleep(10);
-                    } catch (InterruptedException e) {
-                        _log.error(
-                                "Exception occurred while delaying file system creation command due to {}",
-                                e);
-                    }
-                    maxRetry--;
-                } else {
-                    // reTryResult failed
-                    break;
-                }
-            }
         } catch (Exception ex) {
             StringBuilder message = new StringBuilder();
             message.append("VNX File executeSshReTry failed for create file system");
             message.append(", due to {}");
             _log.error(message.toString(), ex);
         }
-        return reTryResult;
+        return result;
     }
 
 }

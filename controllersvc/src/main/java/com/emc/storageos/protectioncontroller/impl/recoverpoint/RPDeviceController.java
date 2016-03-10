@@ -6137,12 +6137,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             for (String backendId : backends) {
                 URI backendUri = URI.create(backendId);
                 allVolumes.add(backendUri);
-                if (isAdd) {
+                if (isAdd && !vplexVolumes.contains(volume.getId())) {
                     Volume backVol = _dbClient.queryObject(Volume.class, backendUri);
                     if (backVol != null && !backVol.getInactive() && NullColumnValueGetter.isNullValue(backVol.getReplicationGroupInstance())) {
-                        if (!vplexVolumes.contains(volume.getId())) {
-                            vplexVolumes.add(volume.getId());
-                        }
+                        vplexVolumes.add(volume.getId());
                     }
                 }
             }

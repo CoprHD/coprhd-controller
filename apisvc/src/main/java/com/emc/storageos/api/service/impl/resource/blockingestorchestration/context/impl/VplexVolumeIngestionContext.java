@@ -127,33 +127,38 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
         setFlags();
         createVplexMirrorObjects();
         _dbClient.createObject(getCreatedVplexMirrors());
-
-        _dbClient.createObject(getObjectsIngestedByExportProcessing());
-        _dbClient.createObject(getBlockObjectsToBeCreatedMap().values());
         _dbClient.createObject(getCreatedSnapshotMap().values());
 
-        // Update the related objects if any after successful export mask ingestion
-        for (Set<DataObject> updatedObjects : getDataObjectsToBeUpdatedMap().values()) {
-            if (updatedObjects != null && !updatedObjects.isEmpty()) {
-                for (DataObject dob : updatedObjects) {
-                    if (dob.getInactive()) {
-                        _logger.info("Deleting DataObject " + dob.forDisplay());
-                    } else {
-                        _logger.info("Updating DataObject " + dob.forDisplay());
-                    }
-                    _dbClient.updateObject(dob);
+        // commit the basic IngestionRequestContext collections
+        for (BlockObject bo : getObjectsIngestedByExportProcessing()) {
+            _logger.info("Creating BlockObject {} (hash {})", bo.forDisplay(), bo.hashCode());
+            _dbClient.createObject(bo);
+        }
+        for (BlockObject bo : getBlockObjectsToBeCreatedMap().values()) {
+            _logger.info("Creating BlockObject {} (hash {})", bo.forDisplay(), bo.hashCode());
+            _dbClient.createObject(bo);
+        }
+
+        for (Set<DataObject> dos : getDataObjectsToBeCreatedMap().values()) {
+            for (DataObject dob : dos) {
+                _logger.info("Creating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                _dbClient.createObject(dob);
+            }
+        }
+        for (Set<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
+            for (DataObject dob : dos) {
+                if (dob.getInactive()) {
+                    _logger.info("Deleting DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                } else {
+                    _logger.info("Updating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
                 }
+                _dbClient.updateObject(dob);
             }
         }
 
-        // Create the related objects if any after successful export mask ingestion
-        for (Set<DataObject> createdObjects : getDataObjectsToBeCreatedMap().values()) {
-            if (createdObjects != null && !createdObjects.isEmpty()) {
-                for (DataObject dob : createdObjects) {
-                    _logger.info("Creating DataObject " + dob.forDisplay());
-                    _dbClient.createObject(dob);
-                }
-            }
+        for (UnManagedVolume umv : getUnManagedVolumesToBeDeleted()) {
+            _logger.info("Deleting UnManagedVolume {} (hash {})", umv.forDisplay(), umv.hashCode());
+            _dbClient.updateObject(umv);
         }
 
         for (Entry<BlockObject, ExportGroup> entry : getVplexBackendExportGroupMap().entrySet()) {
@@ -170,11 +175,19 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
             }
         }
 
-        _dbClient.updateObject(getUnManagedVolumesToBeDeleted());
+        for (UnManagedConsistencyGroup umcg : getUmCGObjectsToUpdate()) {
+            if (umcg.getInactive()) {
+                _logger.info("Deleting UnManagedConsistencyGroup {} (hash {})", umcg.forDisplay(), umcg.hashCode());
+            } else {
+                _logger.info("Updating UnManagedConsistencyGroup {} (hash {})", umcg.forDisplay(), umcg.hashCode());
+            }
+            _dbClient.updateObject(umcg);
+        }
 
-        // commit the UnmanagedConsistencyGroups and CGs to create
-        _dbClient.updateObject(getUmCGObjectsToUpdate());
-        _dbClient.updateObject(getCGObjectsToCreateMap().values());
+        for (BlockConsistencyGroup bcg : getCGObjectsToCreateMap().values()) {
+            _logger.info("Creating BlockConsistencyGroup {} (hash {})", bcg.forDisplay(), bcg.hashCode());
+            _dbClient.createObject(bcg);
+        }
     }
 
     /**

@@ -2896,10 +2896,6 @@ public class VolumeIngestionUtil {
                     }
                 }
                 for (UnManagedExportMask unManagedExportMask : unManagedMasks) {
-                    if (isRpExportMask(unManagedExportMask, dbClient)) {
-                        // don't process RP UnManagedExportMasks here
-                        continue;
-                    }
                     Map<URI, ExportMask> exportMaskMap = new HashMap<URI, ExportMask>();
                     List<URI> initiatorUris = new ArrayList<URI>(Collections2.transform(
                             unManagedExportMask.getKnownInitiatorUris(), CommonTransformerFunctions.FCTN_STRING_TO_URI));
@@ -2950,6 +2946,8 @@ public class VolumeIngestionUtil {
                     }
 
                     _logger.info("exportGroupType is " + exportGroupType);
+                    URI computeResource = requestContext.getCluster() != null ? requestContext.getCluster() : requestContext.getHost();
+                    _logger.info("computeResource is " + computeResource);
                     // Add the block object to the export groups corresponding to the export masks
                     for (ExportGroup exportGroup : exportGroups) {
                         _logger.info("Processing exportGroup {} to add block object", exportGroup.forDisplay());
@@ -2960,24 +2958,26 @@ public class VolumeIngestionUtil {
                         if (exportGroup.getProject().getURI().equals(getBlockProject(blockObject)) &&
                                 exportGroup.getVirtualArray().equals(blockObject.getVirtualArray()) &&
                                 (exportGroupTypeMatches || isVplexBackendVolume)) {
-                            // TODO: something about this seems kind of off, need to review (Nathan)
+                            // check if this ExportGroup URI has already been loaded in this ingestion request
                             ExportGroup loadedExportGroup = 
                                     requestContext.findDataObjectByType(ExportGroup.class, exportGroup.getId(), false);
+                            // if it wasn't found for update, check if it's tied to any ingestion contexts
                             if (loadedExportGroup == null) {
                                 loadedExportGroup = requestContext.findExportGroup(
                                         exportGroup.getLabel(), exportGroup.getProject().getURI(), 
-                                        exportGroup.getVirtualArray(), null, null);
+                                        exportGroup.getVirtualArray(), computeResource, exportGroup.getType());
                             }
+                            // if an ExportGroup for the URI and params was found, use it
                             if (loadedExportGroup != null) {
                                 _logger.info("Adding block object {} to already-loaded export group {}", 
                                         blockObject.getNativeGuid(), loadedExportGroup.getLabel());
-                                loadedExportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
+                                exportGroup = loadedExportGroup;
                             } else {
                                 _logger.info("Adding block object {} to newly-loaded export group {}", 
                                         blockObject.getNativeGuid(), exportGroup.getLabel());
-                                exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
                                 updatedObjects.add(exportGroup);
                             }
+                            exportGroup.addVolume(blockObject.getId(), ExportGroup.LUN_UNASSIGNED);
                         }
                     }
                 }
@@ -3803,8 +3803,7 @@ public class VolumeIngestionUtil {
      * @return true if the given UnManagedExportMask is for a RecoverPoint Export
      */
     public static boolean isRpExportMask(UnManagedExportMask uem, DbClient dbClient) {
-        boolean isRpExportMask = false;
-        outside : for (String wwn : uem.getKnownInitiatorNetworkIds()) {
+        for (String wwn : uem.getKnownInitiatorNetworkIds()) {
             List<URI> protectionSystemUris = dbClient.queryByType(ProtectionSystem.class, true);
             List<ProtectionSystem> protectionSystems = dbClient.queryObject(ProtectionSystem.class, protectionSystemUris);
             for (ProtectionSystem protectionSystem : protectionSystems) {
@@ -3812,14 +3811,13 @@ public class VolumeIngestionUtil {
                     protectionSystem.getSiteInitiators().entrySet()) {
                     if (siteInitEntry.getValue().contains(wwn)) {
                         _logger.info("this is a RecoverPoint related UnManagedExportMask: " + uem.getMaskName());
-                        isRpExportMask = true;
-                        break outside;
+                        return true;
                     }
                 }
             }
         }
         
-        return isRpExportMask;
+        return false;
     }
 
     /**

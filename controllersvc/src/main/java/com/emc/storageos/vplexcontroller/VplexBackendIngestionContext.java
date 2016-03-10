@@ -53,11 +53,14 @@ public class VplexBackendIngestionContext {
     public static final String DISCOVERY_MODE_DISCOVERY_ONLY = "Only During Discovery";
     public static final String DISCOVERY_MODE_INGESTION_ONLY = "Only During Ingestion";
     public static final String DISCOVERY_MODE_HYBRID = "During Discovery and Ingestion";
+    public static final String DISCOVERY_MODE_DB_ONLY = "Only Use Database";
     public static final String DISCOVERY_FILTER = "controller_vplex_volume_discovery_filter";
     public static final String DISCOVERY_KILL_SWITCH = "controller_vplex_volume_discovery_kill_switch";
     public static final String SLOT_0 = "0";
     public static final String SLOT_1 = "1";
-
+    public static final String VVOL_LABEL1 = "dd_";
+    public static final String VVOL_LABEL2 = "device_";
+    
     protected final DbClient _dbClient;
     private final UnManagedVolume _unmanagedVirtualVolume;
 
@@ -238,6 +241,7 @@ public class VplexBackendIngestionContext {
     private void updateUnmanagedBackendVolumesInParent() {
         if (!getUnmanagedBackendVolumes().isEmpty()) {
             StringSet bvols = new StringSet();
+            String friendlyLabel = _unmanagedVirtualVolume.getLabel();
             for (UnManagedVolume backendVol : unmanagedBackendVolumes) {
                 bvols.add(backendVol.getNativeGuid());
 
@@ -245,6 +249,17 @@ public class VplexBackendIngestionContext {
                 StringSet parentVol = new StringSet();
                 parentVol.add(_unmanagedVirtualVolume.getNativeGuid());
                 backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
+
+                // There may be two backing volumes, so we need to pick the right label.  But for now....
+                if (_unmanagedVirtualVolume.getLabel() == null || _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL1) ||
+                        _unmanagedVirtualVolume.getLabel().startsWith(VVOL_LABEL2)) {
+                    String baseLabel = backendVol.getLabel();
+                    // Remove the -0 or -1 from the backing volume label, if it's there.
+                    if (baseLabel.endsWith("-0") || baseLabel.endsWith("-1")) {
+                        baseLabel = backendVol.getLabel().substring(0, backendVol.getLabel().length()-2);
+                    }
+                    friendlyLabel = baseLabel + " (" + _unmanagedVirtualVolume.getLabel() + ")";
+                }
 
                 if (isDistributed()) {
                     // determine cluster location of distributed component storage volume leg
@@ -262,11 +277,12 @@ public class VplexBackendIngestionContext {
                         }
                     }
                 }
-                _dbClient.persistObject(backendVol);
+                _dbClient.updateObject(backendVol);
             }
             if (bvols != null && !bvols.isEmpty()) {
                 _logger.info("setting VPLEX_BACKEND_VOLUMES: " + unmanagedBackendVolumes);
                 _unmanagedVirtualVolume.putVolumeInfo(SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.name(), bvols);
+                _unmanagedVirtualVolume.setLabel(friendlyLabel);
             }
         }
     }

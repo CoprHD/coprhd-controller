@@ -1319,23 +1319,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         // remove the whole mask.
                         if (!initiatorsToRemove.isEmpty() && // If there are initiators to remove
                                 ((!deleteEntireMask) ||          // And either the entire mask isn't being deleted (then go for it)
-                                (initiatorsToRemove.size() != ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient).size()))) { // or
-                                                                                                                                        // we
-                                                                                                                                        // are
-                                                                                                                                        // deleting
-                                                                                                                                        // the
-                                                                                                                                        // entire
-                                                                                                                                        // mask
-                                                                                                                                        // and
-                                                                                                                                        // we
-                                                                                                                                        // need
-                                                                                                                                        // to
-                                                                                                                                        // delete
-                                                                                                                                        // only
-                                                                                                                                        // a
-                                                                                                                                        // subset
-                                                                                                                                        // of
-                                                                                                                                        // initiators
+                                (initiatorsToRemove.size() != ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient).size()))) { 
+                            // or we are deleting the entire mask and we need to delete only a subset of initiators
                             _log.info(String.format("mask %s - going to remove the "
                                     + "following initiators %s", exportMask.getMaskName(),
                                     Joiner.on(',').join(initiatorsToRemove)));
@@ -1462,7 +1447,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
             Workflow storageWorkflow, String token) throws Exception {
         TaskCompleter taskCompleter = null;
         try {
-            _log.info(String.format("exportGroupUpdate start - Array: %s ExportMask: %s",
+            _log.info(String.format("exportGroupUpdate start - Array: %s ExportGroup: %s",
                     storageURI.toString(), exportGroupURI.toString()));
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
@@ -1530,7 +1515,7 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
     @Override
     public void increaseMaxPaths(Workflow workflow, StorageSystem storageSystem,
             ExportGroup exportGroup, ExportMask exportMask, List<URI> newInitiators, String token)
-                    throws Exception {
+            throws Exception {
         // Increases the MaxPaths for a given ExportMask if it has Initiators that are not
         // currently zoned to ports. The method generateExportMaskAddInitiatorsWorkflow will
         // allocate additional ports for the newInitiators to be processed.

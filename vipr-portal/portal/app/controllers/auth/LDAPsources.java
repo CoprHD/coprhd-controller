@@ -1,7 +1,21 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
+
 package controllers.auth;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
@@ -14,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.emc.storageos.db.client.model.AuthnProvider;
+
 import models.SearchScopes;
 import models.datatable.LDAPsourcesDataTable;
 import models.datatable.LDAPsourcesDataTable.LDAPsourcesInfo;
@@ -50,9 +65,15 @@ import controllers.deadbolt.Restrictions;
 import controllers.util.ViprResourceController;
 import controllers.util.FlashException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
 @With(Common.class)
 @Restrictions({ @Restrict("SECURITY_ADMIN") })
 public class LDAPsources extends ViprResourceController {
+
+    private static Logger log = LoggerFactory.getLogger(LDAPsources.class);
 
     protected static final String SAVED = "LDAPsources.saved";
     protected static final String DELETED = "LDAPsources.deleted";
@@ -74,6 +95,7 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("adType", AuthSourceType.ad);
 
         renderArgs.put("ldapType", AuthSourceType.ldap);
+        renderArgs.put("keyStoneType", AuthSourceType.keystone);
 
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
 
@@ -186,6 +208,8 @@ public class LDAPsources extends ViprResourceController {
         public String description;
 
         public Boolean disable;
+        
+        public Boolean autoRegCoprHDNImportOSProjects;
 
         @Required
         public List<String> domains;
@@ -232,6 +256,13 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("groupObjectClassesString", StringUtils.join(this.groupObjectClasses, "\n"));
             renderArgs.put("groupMemberAttributesString", StringUtils.join(this.groupMemberAttributes, "\n"));
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
+            renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
+            if(this.domains!=null && !this.domains.isEmpty())
+            {
+            	renderArgs.put("readOnlyDomains", true);
+            }else {
+            	renderArgs.put("readOnlyDomains", false);
+            }
         }
 
         public boolean isNew() {
@@ -244,6 +275,7 @@ public class LDAPsources extends ViprResourceController {
             this.mode = ldapSources.getMode();
             this.description = ldapSources.getDescription();
             this.disable = ldapSources.getDisable();
+            this.autoRegCoprHDNImportOSProjects = ldapSources.getAutoRegCoprHDNImportOSProjects();
             this.domains = Lists.newArrayList(ldapSources.getDomains());
             this.groupAttribute = isGroupAttributeBlankOrNull(ldapSources.getGroupAttribute()) ? "" : ldapSources.getGroupAttribute();
             this.groupWhiteListValues = Lists.newArrayList(ldapSources.getGroupWhitelistValues());
@@ -261,8 +293,7 @@ public class LDAPsources extends ViprResourceController {
         public AuthnProviderRestRep save() {
             if (isNew()) {
                 return create();
-            }
-            else {
+            } else {
                 return update();
             }
         }
@@ -275,6 +306,7 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
+            param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
 
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(StringUtils.trimToNull(this.managerPassword));
@@ -369,6 +401,7 @@ public class LDAPsources extends ViprResourceController {
             param.setMode(this.mode);
             param.setDescription(StringUtils.trimToNull(this.description));
             param.setDisable(this.disable);
+            param.setAutoRegCoprHDNImportOSProjects(this.autoRegCoprHDNImportOSProjects);
             param.setGroupAttribute(this.groupAttribute);
             param.setManagerDn(this.managerDn);
             param.setManagerPassword(this.managerPassword);
@@ -387,7 +420,7 @@ public class LDAPsources extends ViprResourceController {
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
 
-        	if (StringUtils.equals(AuthSourceType.ad.name(), mode) || StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
+        	if (StringUtils.equals(AuthSourceType.ad.name(), mode)) {
                 Validation.required(fieldName + ".groupAttribute", groupAttribute);
             }
             Validation.required(fieldName + ".domains", parseMultiLineInput(this.domains.get(0)));
@@ -449,6 +482,7 @@ public class LDAPsources extends ViprResourceController {
             }
             return isBlankOrNull;
         }
+
     }
 
     protected static class JsonItemOperation implements ResourceValueOperation<LDAPsourcesInfo, AuthnProviderRestRep> {

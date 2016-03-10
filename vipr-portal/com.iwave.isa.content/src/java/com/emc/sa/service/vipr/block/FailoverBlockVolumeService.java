@@ -5,12 +5,15 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.FAILOVER_TARGET;
+import static com.emc.sa.service.ServiceParams.IMAGE_TO_ACCESS;
+import static com.emc.sa.service.ServiceParams.POINT_IN_TIME;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 import static com.emc.vipr.client.core.util.ResourceUtils.stringId;
 
 import java.net.URI;
 
+import com.emc.sa.asset.providers.BlockProvider;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -25,6 +28,9 @@ import com.emc.vipr.client.Tasks;
 
 @Service("FailoverBlockVolume")
 public class FailoverBlockVolumeService extends ViPRService {
+    // constant representing the RP type.
+    private static final String RECOVER_POINT = "rp";
+
     @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
 
@@ -33,6 +39,12 @@ public class FailoverBlockVolumeService extends ViPRService {
 
     @Param(FAILOVER_TARGET)
     protected URI protectionTarget;
+
+    @Param(value = IMAGE_TO_ACCESS, required = false)
+    protected String imageToAccess;
+
+    @Param(value = POINT_IN_TIME, required = false)
+    protected String pointInTime;
 
     private String type;
 
@@ -67,6 +79,11 @@ public class FailoverBlockVolumeService extends ViPRService {
             ExecutionUtils.fail("failTask.FailoverBlockVolumeService", args(sourceId, targetId), args());
         }
 
+        if (type.equals(RECOVER_POINT) && BlockProvider.PIT_IMAGE_OPTION_KEY.equals(imageToAccess) && pointInTime == null) {
+            ExecutionUtils.fail("failTask.FailoverBlockVolumeService.pit", new Object[] {}, new Object[] {});
+        }
+
+        // TODO: Add new fields
         logInfo("fail.over.block.volume.service", type.toUpperCase(), sourceName, targetName);
     }
 
@@ -76,13 +93,42 @@ public class FailoverBlockVolumeService extends ViPRService {
 
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             // The type selected is volume
-            tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
+            if (type != null && type.equals(RECOVER_POINT) && BlockProvider.PIT_IMAGE_OPTION_KEY.equals(imageToAccess)) {
+                // This is a RP failover request so we need to pass along the copyName and pointInTime values.
+                // We only want to do this if the image selected is NOT the latest image (this is handled by
+                // the default case) but a specific snapshot or point in time.
+                setImageToAccessForRP();
+
+                tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type, pointInTime));
+            } else {
+                tasks = execute(new FailoverBlockVolume(protectionSource, protectionTarget, type));
+            }
         } else {
             // The type selected is consistency group
-            tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type));
+            if (type != null && type.equals(RECOVER_POINT) && (BlockProvider.PIT_IMAGE_OPTION_KEY.equals(imageToAccess))) {
+                // This is a RP failover request so we need to pass along the copyName and pointInTime values.
+                // We only want to do this if the image selected is NOT the latest image (this is handled by
+                // the default case) but a specific snapshot or point in time.
+                setImageToAccessForRP();
+
+                tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type, pointInTime));
+            } else {
+                tasks = execute(new FailoverBlockConsistencyGroup(protectionSource, protectionTarget, type));
+            }
         }
         if (tasks != null) {
             addAffectedResources(tasks);
+        }
+    }
+
+    /**
+     * Determines the appropriate image to access (copy) value for RecoverPoint failover.
+     */
+    private void setImageToAccessForRP() {
+        if (BlockProvider.PIT_IMAGE_OPTION_KEY.equals(imageToAccess)) {
+            // If the image to access is a point-in-time, null out the image access variable otherwise
+            // the failover over logic will attempt to look for a bookmark called 'pit'.
+            imageToAccess = null;
         }
     }
 }

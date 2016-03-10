@@ -8,6 +8,7 @@ package com.emc.storageos.db.server.impl;
 import java.net.InetAddress;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.emc.storageos.coordinator.client.model.Constants;
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -39,8 +42,6 @@ public class SeedProviderImpl implements SeedProvider {
     private String _id;
     private CoordinatorClientImpl _client;
     private List<String> extraSeeds = new ArrayList<>();
-    private boolean isDrActiveSite;
-    private DrUtil drUtil;
     
     /**
      * This constructor's argument is from cassandral's yaml configuration. Here is an example
@@ -91,12 +92,10 @@ public class SeedProviderImpl implements SeedProvider {
 
         ZkConnection connection = new ZkConnection();
         connection.setServer(uri);
+        String siteId= args.get(Constants.SITE_ID_FILE);
+        connection.setSiteIdFile(siteId);
         connection.build();
-
-        String siteId= args.get(Constants.SITE_ID);
-        connection.setSiteId(siteId);
-        _logger.info("siteId={}", siteId);
-
+        
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
 
@@ -107,8 +106,6 @@ public class SeedProviderImpl implements SeedProvider {
         }
         client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
-        drUtil = new DrUtil(client);
-        isDrActiveSite = drUtil.isActiveSite();
         
         _client = client;
     }
@@ -137,39 +134,27 @@ public class SeedProviderImpl implements SeedProvider {
                     seeds.add(InetAddress.getByName(seed));
                 }
             }
-            // On DR standby site, only use seeds from active site. On active site
-            // we use local seeds
-            if (isDrActiveSite) {
-                for (int i = 0; i < configs.size(); i++) {
-                    Configuration config = configs.get(i);
-                    // Bypasses item of "global" and folders of "version", just check db configurations.
-                    if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
-                        continue;
+
+            for (int i = 0; i < configs.size(); i++) {
+                Configuration config = configs.get(i);
+                // Bypasses item of "global" and folders of "version", just check db configurations.
+                if (config.getId() == null || config.getId().equals(Constants.GLOBAL_ID)) {
+                    continue;
+                }
+                String nodeId = config.getConfig(DbConfigConstants.NODE_ID);
+                if (!Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT)) ||
+                        (!config.getId().equals(_id) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED)))) {
+                    // all non autobootstrap nodes + other nodes are used as seeds
+                    InetAddress ip = null;
+                    if (nodeMap != null) {
+                        String ipAddress = nodeMap.getConnectableInternalAddress(nodeId);
+                        _logger.debug("ip[" + i + "]: " + ipAddress);
+                        ip = InetAddress.getByName(ipAddress);
+                    } else {
+                        ip = InetAddress.getByName(nodeId);
                     }
-                    String nodeIndex = config.getId().split("-")[1];
-                    String nodeId = config.getConfig(DbConfigConstants.NODE_ID);
-                    if (nodeId == null) {
-                        // suppose that they are existing znodes from a previous version
-                        // set the NODE_ID config, id is like db-x
-                        nodeId = "vipr" + nodeIndex;
-                        config.setConfig(DbConfigConstants.NODE_ID, nodeId);
-                        config.removeConfig(DbConfigConstants.DB_IP);
-                        _client.persistServiceConfiguration(_client.getSiteId(), config);
-                    }
-                    if (!Boolean.parseBoolean(config.getConfig(DbConfigConstants.AUTOBOOT)) ||
-                            (!config.getId().equals(_id) && Boolean.parseBoolean(config.getConfig(DbConfigConstants.JOINED)))) {
-                        // all non autobootstrap nodes + other nodes are used as seeds
-                        InetAddress ip = null;
-                        if (nodeMap != null) {
-                            String ipAddress = nodeMap.getConnectableInternalAddress(nodeId);
-                            _logger.debug("ip[" + i + "]: " + ipAddress);
-                            ip = InetAddress.getByName(ipAddress);
-                        } else {
-                            ip = InetAddress.getByName(nodeId);
-                        }
-                        seeds.add(ip);
-                        _logger.info("Seed {}", ip);
-                    }
+                    seeds.add(ip);
+                    _logger.info("Seed {}", ip);
                 }
             }
 

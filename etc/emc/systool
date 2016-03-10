@@ -33,14 +33,19 @@ _usage() {
     echo "   or: $0 --setvdcprops file" >&2
     echo "   or: $0 --getsslprops"      >&2
     echo "   or: $0 --setsslprops file" >&2
+    echo "   or: $0 --get-data-revision" >&2
+    echo "   or: $0 --set-data-revision file" >&2
+    echo "   or: $0 --purge-data-revision" >&2
     echo "   or: $0 --reboot"           >&2
     echo "   or: $0 --poweroff"         >&2
     echo "   or: $0 --reconfig"         >&2
     echo "   or: $0 --reconfig-props [ntp] [dns] [ssh] [connectemc] [password]" >&2
     echo "   or: $0 --reconfig-security" >&2
     echo "   or: $0 --restart service"  >&2
+    echo "   or: $0 --stop service"  >&2
     echo "   or: $0 --reload ntp|ssh|connectemc" >&2
     echo "   or: $0 --reconfig-coordinator observer|participant" >&2
+    echo "   or: $0 --remote-systool node_id command parameter" >&2
     echo "   or: $0 --test"             >&2
     exit 2
 }
@@ -437,15 +442,19 @@ EOF
 # 
 # Reconfigure coordinatorsvc mode. for standby only
 #
-# participant - disconnect and exit observer mode. becomes writable
-# observer - reconnect and enter observer mode. becomes read-only
+# participant - disconnect from active site and exit observer mode. becomes writable
+# observer - reconnect active site and enter observer mode. becomes read-only
 #
 _reconfig_coordinator() {
-    exec /etc/genconfig "coordinator" << EOF
+    if [ "$(_is_dr_standby)" = "true" ] ; then
+        exec /etc/genconfig "coordinator" << EOF
 $(_get_props)
 dr_coordinator_type=${1}
 EOF
-    _fatal     "Failed to exec /etc/genconfig ${1}"
+        _fatal     "Failed to exec /etc/genconfig coordinator"
+   else
+        _fatal     "Unsupported reconfig-coordinator operation"
+   fi
 }
 
 _reconfig_security() {
@@ -461,8 +470,62 @@ EOF
     fi
 }
 
+_remote_systool() {
+    exec /usr/bin/ssh storageos@${1} "sudo /etc/systool ${2} ${3}"
+    _fatal     "Failed to exec /usr/bin/ssh storageos@${1} \"sudo /etc/systool ${2} ${3}\""
+}
+
 _restart() {
     /usr/bin/systemctl restart storageos-${1%*svc} || _fatal2 67 "Unexpected restart ${1} failure. Error code $?"
+}
+
+_stop() {
+    /usr/bin/systemctl stop storageos-${1%*svc} || _fatal2 68 "Unexpected stop ${1} failure. Error code $?"
+}
+
+#
+# Restart services on standby to apply config change in _reconfig_coordinator
+#
+# param: participant - break connection with active site and make zk accessible
+#        observer - reestablish zk connection with active site
+_restart_coordinator() {
+    if [ "$(_is_dr_standby)" = "true" ] ; then
+        local zkdir="/data/zk"
+	local tgtdir=${zkdir}/version-2
+        _stop coordinatorsvc
+        if [ "${1}" = "participant" ]; then
+            /etc/datatool --create-snapshot /data/zk/version-2
+            rm -fR /data/zk/myid
+        else
+            /etc/datatool --revert-snapshot /data/zk/version-2
+            rm -fR /data/zk/myid
+        fi
+
+        for svc in coordinatorsvc dbsvc geodbsvc authsvc apisvc geosvc portalsvc syssvc; do
+            _restart ${svc}
+        done
+    else
+        _fatal "Unsupported reset-coordinator operation"
+    fi
+}
+
+_is_dr_standby() {
+    ( IFS="${nl}" ; for arg in $(<${bootfs_vdc_props}) ; do
+          [ "site_is_standby" = "${arg%%=*}" ] && arg="${arg#*=}" && arg="${arg//\\n/${nl}}" && echo "${arg}" && return 0
+      done
+      return 1
+     )
+}
+
+# Purge old data reversions
+_purge_data_revision() {
+    /etc/datatool --purge-unused-versions /data/db/1
+    /etc/datatool --purge-unused-versions /data/geodb/1
+    /etc/datatool --purge-unused-versions /data/zk/version-2
+}
+
+_rebase_zk_snapshot() {
+    /etc/datatool --rebase-snapshot /data/zk/version-2
 }
 
 _reload() {
@@ -479,11 +542,6 @@ _reload() {
             exec /usr/bin/systemctl restart SuSEfirewall2 ;;
         ipsec)
             exec /usr/bin/systemctl restart ipsec ;;
-        reset-coordinator)
-	    /etc/storageos/storageos stop
-            rm -fR /data/zk/version-2/
-            /etc/storageos/storageos drstandby
-            ;;
         *)
             _fatal2 2 "Unsupported service type ${1}" ;;
     esac
@@ -804,6 +862,8 @@ case ${#} in
             --getvdcprops)            _s _get_vdc_props ;;
             --getsslprops)            _s _get_ssl_props ;;
             --get-data-revision)      _s _get_data_revision ;;
+            --purge-data-revision)    _s _purge_data_revision ;;
+            --rebase-zk-snapshot)     _s _rebase_zk_snapshot ;;
             --getbootfsdev)           _s _get_bootfs_dev ;;
             --initializeprops)        _x _initialize_props ;;
             --remount-rw)             _x _bootfs_mount_rw "no" ;;
@@ -823,14 +883,17 @@ case ${#} in
             --setsslprops)            _x _set_ssl_props        "${2}" ;;
             --set-data-revision)      _x _set_data_revision    "${2}" ;;
             --restart)                _x _restart              "${2}" ;;
+            --stop)                   _x _stop                 "${2}" ;;
             --reconfig-props)         _x _reconfig_props       "${2}" ;;
             --reload)                 _x _reload               "${2}" ;;
             --reconfig-coordinator)   _x _reconfig_coordinator "${2}" ;;
+            --restart-coordinator)    _x _restart_coordinator  "${2}" ;;
             *)                        _usage
         esac;;
     4)  case ${1} in 
-            --getprops)               _s _get_props "${2}" "${3}" "${4}" ;;
-            *)
+            --getprops)               _s _get_props      "${2}" "${3}" "${4}" ;;
+            --remote-systool)         _s _remote_systool "${2}" "${3}" "${4}" ;;
+            *)                        _usage
         esac;;
     *)  _usage
 esac

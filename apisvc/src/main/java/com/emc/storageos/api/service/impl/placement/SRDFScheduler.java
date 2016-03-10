@@ -195,13 +195,13 @@ public class SRDFScheduler implements Scheduler {
                             + "match the passed vpool parameters and protocols and/or there are no pools that have enough capacity to "
                             + "hold at least one resource of the requested size.",
                     varray.getLabel());
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(),
-                    varray.getId());
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getLabel(),
+                    varray.getLabel());
         }
 
         // skip StoragePools, which had been used as R2 targets for given consistencyGroup earlier.
         // If we don't skip then for same CG, then our existing R2 targets will act as source
-        List<StoragePool> candidatePools = new ArrayList();
+        List<StoragePool> candidatePools = new ArrayList<StoragePool>();
         if (VirtualPool.vPoolSpecifiesSRDF(vpool)
                 && null != capabilities.getBlockConsistencyGroup()) {
             for (StoragePool pool : pools) {
@@ -317,7 +317,7 @@ public class SRDFScheduler implements Scheduler {
 
             for (VirtualArray targetVarray : targetVarrays) {
                 sb.append(targetVarray.getId()).append(" ");
-                tmpTargetVarrays.add(targetVarray.getId().toString());
+                tmpTargetVarrays.add(targetVarray.getLabel());
             }
 
             sb.append("]. There are no storage pools that match the passed vpool parameters and protocols and/or "
@@ -325,7 +325,7 @@ public class SRDFScheduler implements Scheduler {
 
             _log.error(sb.toString());
             throw APIException.badRequests.noMatchingRecoverPointStoragePoolsForVpoolAndVarrays(
-                    vpool.getId(), tmpTargetVarrays);
+                    vpool.getLabel(), tmpTargetVarrays);
 
         }
 
@@ -346,13 +346,13 @@ public class SRDFScheduler implements Scheduler {
 
             for (VirtualArray targetVarray : targetVarrays) {
                 sb.append(targetVarray.getId()).append(" ");
-                tmpSRDFVarrays.add(targetVarray.getId().toString());
+                tmpSRDFVarrays.add(targetVarray.getLabel());
             }
 
             // No matching target pool found for varray so throw an exception
             // indicating a placement error.
             _log.error(sb.toString());
-            throw APIException.badRequests.noMatchingSRDFPools(varray.getId(), vpool.getId(),
+            throw APIException.badRequests.noMatchingSRDFPools(varray.getLabel(), vpool.getLabel(),
                     tmpSRDFVarrays);
         }
 
@@ -451,7 +451,7 @@ public class SRDFScheduler implements Scheduler {
                             _log.error("Could not find any suitable storage pool for target varray: "
                                     + targetVarray1.getLabel());
                             throw APIException.badRequests
-                                    .unableToFindSuitablePoolForTargetVArray(targetVarray1.getId());
+                                    .unableToFindSuitablePoolForTargetVArray(targetVarray1.getLabel());
                         }
 
                         // Select the destination pool based on what was selected as source
@@ -482,7 +482,7 @@ public class SRDFScheduler implements Scheduler {
                             _log.error("Could not find a Storage pool for target varray: "
                                     + targetVarray1.getLabel());
                             throw APIException.badRequests
-                                    .unableToFindSuitablePoolForTargetVArray(targetVarray1.getId());
+                                    .unableToFindSuitablePoolForTargetVArray(targetVarray1.getLabel());
                         }
 
                         rec.getVirtualArrayTargetMap().put(targetVarray1.getId(), target);
@@ -578,7 +578,7 @@ public class SRDFScheduler implements Scheduler {
             _log.error(
                     "Volume's storage pool does not belong to vpool {} .", vpool.getLabel());
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(
-                    vpool.getId(), volume.getVirtualArray());
+                    vpool.getLabel(), volume.getVirtualArray().toString());
         }
         VirtualPoolCapabilityValuesWrapper wrapper = new VirtualPoolCapabilityValuesWrapper();
         wrapper.put(VirtualPoolCapabilityValuesWrapper.SIZE, volume.getCapacity());
@@ -724,7 +724,7 @@ public class SRDFScheduler implements Scheduler {
                 continue;
             }
             // Check that target pool can support required volume configuration.
-            if (!validateRequiredVolumeConfiguration(targetPool, vpoolChangeVolume,
+            if (!validateRequiredVolumeConfiguration(sourcePool, targetPool, vpoolChangeVolume,
                     destPoolStorageMap, sourceVolumeRecommendation, size, isThinlyProvisioned, vpool.getFastExpansion(),
                     sourceMaxVolumeSizeLimitKb)) {
                 continue;
@@ -742,6 +742,7 @@ public class SRDFScheduler implements Scheduler {
     /**
      * Check if target pool can support required volume configuration for srdf target volume.
      * 
+     * @param sourcePool
      * @param targetPool
      * @param vpoolChangeVolume source volume (null if not exists)
      * @param destPoolStorageMap map target pool to storage system
@@ -752,7 +753,7 @@ public class SRDFScheduler implements Scheduler {
      * @param sourceMaxVolumeSizeLimitKb
      * @return true/false
      */
-    private boolean validateRequiredVolumeConfiguration(StoragePool targetPool, Volume vpoolChangeVolume,
+    private boolean validateRequiredVolumeConfiguration(StoragePool sourcePool, StoragePool targetPool, Volume vpoolChangeVolume,
             Map<StoragePool, StorageSystem> destPoolStorageMap,
             MetaVolumeRecommendation sourceVolumeRecommendation, long size,
             boolean isThinlyProvisioned, boolean fastExpansion,
@@ -769,12 +770,24 @@ public class SRDFScheduler implements Scheduler {
         _log.info(String.format("Target storage pool %s max volume size limit %s Kb. Source storage pool max volume size limit %s Kb.",
                 targetPool.getNativeId(), targetMaxVolumeSizeLimitKb, sourceMaxVolumeSizeLimitKb));
 
+        // Keeping the below information as it will be handy
+        StorageSystem targetStorageSystem = destPoolStorageMap.get(targetPool);
+        MetaVolumeRecommendation targetVolumeRecommendation = MetaVolumeUtils.getCreateRecommendation(targetStorageSystem, targetPool, size,
+                isThinlyProvisioned,
+                fastExpansion, null);
+
         if (vpoolChangeVolume != null) {
             // This is path to upgrade existing volume to srdf protected volume
             if (vpoolChangeVolume.getIsComposite()) {
-                // Existing volume is composite volume. Make sure that the target pool will allow to create meta members of required size.
+                // Existing volume is composite volume.
+                // Make sure that the target pool will allow to create META MEMBERS of required size if it is a VMAX2 Array.
+                // If it is a VMAX3 Array, make sure that the target Pool will allow creation of the a SINGLE VOLUME
                 long capacity = vpoolChangeVolume.getMetaMemberSize();
                 long capacityKb = (capacity % BYTESCONVERTER == 0) ? capacity / BYTESCONVERTER : capacity / BYTESCONVERTER + 1;
+                if (targetStorageSystem.checkIfVmax3()) {
+                    // recompute the capacity for checks
+                    capacityKb = capacityKb * vpoolChangeVolume.getMetaMemberCount();
+                }
                 if (capacityKb > targetMaxVolumeSizeLimitKb) {
                     // this target pool does not match --- does not support meta members of the required size
                     _log.debug(String
@@ -786,10 +799,18 @@ public class SRDFScheduler implements Scheduler {
                     return false;
                 }
             } else {
-                // Existing volume is a regular volume. Check that the target pool will allow to create regular volume of the same size.
+                // Existing volume is a regular volume.
+                // Check that the target pool will allow to create regular volume of the same size or META MEMBERS if
+                // the target volume is going to be a META
                 long capacity = vpoolChangeVolume.getCapacity();
+                if (targetVolumeRecommendation.isCreateMetaVolumes() &&
+                        (sourcePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString()))) {
+                    // recompute the capacity for checks
+                    capacity = targetVolumeRecommendation.getMetaMemberSize();
+                }
                 long capacityKb = (capacity % BYTESCONVERTER == 0) ? capacity / BYTESCONVERTER : capacity / BYTESCONVERTER + 1;
                 if (capacityKb > targetMaxVolumeSizeLimitKb) {
+
                     // this target pool does not match --- does not support regular volumes of the required size
                     _log.debug(String
                             .format(
@@ -802,23 +823,51 @@ public class SRDFScheduler implements Scheduler {
             }
         } else {
             // This is path to create a new srdf protected volume
-            // Run meta volume recommendation for target pool and check if we get the same volume spec as for the source volume.
-            StorageSystem targetStorageSystem = destPoolStorageMap.get(targetPool);
-            MetaVolumeRecommendation targetVolumeRecommendation =
-                    MetaVolumeUtils.getCreateRecommendation(targetStorageSystem, targetPool, size, isThinlyProvisioned,
-                            fastExpansion, null);
-            // compare source and target recommendations to make sure that source and target volumes have the same spec.
-            if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
-                // this target pool does not match.
-                _log.debug(String
-                        .format("Target storage pool %s does not match. Target volume can not be created with the same configuration as the source volume.",
-                                targetPool.getNativeId()));
-                return false;
-            }
+            // Verify meta volume recommendation for target pool and check if we get the same volume spec as for the source volume.
+            return validateMetaRecommednationsForSRDF(sourcePool, targetPool, sourceVolumeRecommendation, targetVolumeRecommendation);
         }
         return true;
     }
 
+    /**
+     * Validate the meta recommendations.
+     * 
+     * @param sourcePool
+     * @param targetPool
+     * @param sourceVolumeRecommendation
+     * @param targetVolumeRecommendation
+     * @return true/false
+     */
+    private boolean validateMetaRecommednationsForSRDF(final StoragePool sourcePool, final StoragePool targetPool,
+            final MetaVolumeRecommendation sourceVolumeRecommendation, final MetaVolumeRecommendation targetVolumeRecommendation) {
+        // compare source and target recommendations to make sure that source and target volumes have the same spec.
+        if (!sourceVolumeRecommendation.equals(targetVolumeRecommendation)) {
+            // this target pool does not match.
+            // If the sourceVolume is a V2 Meta and the Target Volume is from V3, do not return false..
+            if (sourceVolumeRecommendation.isCreateMetaVolumes()) {
+                if (targetPool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                    _log.debug(String
+                            .format("Source storage pool %s supports Meta Volume Creation. Target volume is a non Meta.",
+                                    sourcePool.getNativeId()));
+                    return true;
+                }
+            }
+            // HY: If V3 is the Source, we can Have a V2 Device that is a Meta
+            if (targetVolumeRecommendation.isCreateMetaVolumes()) {
+                if (sourcePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Symm_SRPStoragePool.toString())) {
+                    _log.debug(String
+                            .format("Target storage pool %s supports Meta Volume Creation. Source volume is a non Meta.",
+                                    targetPool.getNativeId()));
+                    return true;
+                }
+            }
+            _log.debug(String
+                    .format("Target storage pool %s does not match. Target volume can not be created with the same configuration as the source volume.",
+                            targetPool.getNativeId()));
+            return false;
+        }
+        return true;
+    }
     /**
      * Generate a list of storage pools for each varray that can provide a valid target path. The
      * seed data is the recommendedPool; the storage pool must have SRDF capability to the

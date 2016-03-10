@@ -110,6 +110,10 @@ public class ExportService extends VolumeService {
     public void setNameGenerator(NameGenerator nameGenerator) {
         _nameGenerator = nameGenerator;
     }
+    
+    private QuotaHelper getQuotaHelper() {
+        return QuotaHelper.getInstance(_dbClient, _permissionsHelper);
+    }
 
     /**
      * Action could be either export or unexport volume
@@ -219,75 +223,12 @@ public class ExportService extends VolumeService {
             boolean bIsSuccess = processAttachRequest(vol, action.attach, openstackTenantId, chosenProtocol);
 
             if (bIsSuccess) {
-                // After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a
-                // small delay here.
-                Thread.sleep(100000);
-                ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
-                        isIdEmbeddedInURL(vol.getId()));
-
                 if (chosenProtocol.equals("iSCSI")) {
-                    CinderInitConnectionResponse objCinderInit = new CinderInitConnectionResponse();
-                    objCinderInit.connection_info.driver_volume_type = "iscsi";
-                    objCinderInit.connection_info.data.access_mode = "rw";
-                    objCinderInit.connection_info.data.target_discovered = "False";
-
-                    for (ITLRestRep itl : listOfItls.getExportList()) {
-
-                        // TODO: user setter methods to set the values of object below.
-                        objCinderInit.connection_info.data.target_iqn = itl.getStoragePort().getPort();
-                        objCinderInit.connection_info.data.target_portal = itl.getStoragePort().getIpAddress() + ":"
-                                + itl.getStoragePort().getTcpPort();
-                        objCinderInit.connection_info.data.volume_id = getCinderHelper().trimId(vol.getId().toString());
-                        objCinderInit.connection_info.data.target_lun = itl.getHlu();
-
-                        _log.info(String
-                                .format("itl.getStoragePort().getPort() is %s: itl.getStoragePort().getIpAddress():%s,itl.getHlu() :%s, objCinderInit.toString():%s",
-                                        itl.getStoragePort().getPort(), itl.getStoragePort().getIpAddress() + ":"
-                                                + itl.getStoragePort().getTcpPort(), itl.getHlu(),
-                                        objCinderInit.toString()));
-
-                        return objCinderInit;
-                    }
+                	return populateIscsiConnectionInfo(vol);
                 }
-                // If the protocol is FC
                 else if (chosenProtocol.equals("FC")) {
-                    VolumeAttachResponse objCinderInit = new VolumeAttachResponse();
-                    objCinderInit.connection_info = objCinderInit.new ConnectionInfo();
-                    objCinderInit.connection_info.data = objCinderInit.new Data();
-                    objCinderInit.connection_info.data.target_wwn = new ArrayList<String>();
-                    objCinderInit.connection_info.data.initiator_target_map = new HashMap<String, List<String>>();
-
-                    objCinderInit.connection_info.driver_volume_type = "fibre_channel";
-                    objCinderInit.connection_info.data.access_mode = "rw";
-                    objCinderInit.connection_info.data.target_discovered = true;
-
-                    for (ITLRestRep itl : listOfItls.getExportList()) {
-                        // TODO: user setter methods to set the values of object below.
-                        _log.info("itl.getStoragePort().getPort() is {}", itl.getStoragePort().getPort());
-
-                        if (itl.getStoragePort().getPort() == null)
-                            continue;
-
-                        objCinderInit.connection_info.data.target_wwn.add(itl.getStoragePort().getPort().toString().replace(":", "")
-                                .toLowerCase());
-                        objCinderInit.connection_info.data.volume_id = getCinderHelper().trimId(vol.getId().toString());
-                        objCinderInit.connection_info.data.target_lun = itl.getHlu();
-                        _log.info(String
-                                .format("itl.getStoragePort().getPort() is %s: itl.getStoragePort().getIpAddress():%s,itl.getHlu() :%s, objCinderInit.toString():%s",
-                                        itl.getStoragePort().getPort(), itl.getStoragePort().getIpAddress() + ":"
-                                                + itl.getStoragePort().getTcpPort(), itl.getHlu(),
-                                        objCinderInit.connection_info.data.toString()));
-                    }
-
-                    List<Initiator> lstInitiators = getListOfInitiators(action.attach.connector, openstackTenantId, chosenProtocol, vol);
-                    for (Initiator iter : lstInitiators) {
-                        _log.info("iter.getInitiatorPort() {}", iter.getInitiatorPort());
-                        _log.info("objCinderInit.connection_info.data.target_wwn {}", objCinderInit.connection_info.data.target_wwn);
-                        objCinderInit.connection_info.data.initiator_target_map.put(iter.getInitiatorPort().replace(":", "").toLowerCase(),
-                                objCinderInit.connection_info.data.target_wwn);
-                    }
-                    return objCinderInit;
-                }
+                    return populateFcConnectionInfo(chosenProtocol, vol, action, openstackTenantId);
+                }                
             }
             else {
                 vol.getExtensions().put("status", "OPENSTACK_ATTACHING_TIMED_OUT");
@@ -393,6 +334,97 @@ public class ExportService extends VolumeService {
         throw APIException.badRequests.parameterIsNotValid("Action Type");
     }
 
+    /*
+     * Populate the connection info of the ISCSI volume after completing the 
+     * export of volume to the host in ViPR
+     */
+    private VolumeAttachResponse populateIscsiConnectionInfo(Volume vol) throws InterruptedException{
+
+        ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
+                isIdEmbeddedInURL(vol.getId()));
+        
+		VolumeAttachResponse objCinderInit = new VolumeAttachResponse();
+		objCinderInit.connection_info = objCinderInit.new ConnectionInfo();
+		objCinderInit.connection_info.data = objCinderInit.new Data();
+        objCinderInit.connection_info.driver_volume_type = "iscsi";
+        objCinderInit.connection_info.data.access_mode = "rw";
+        objCinderInit.connection_info.data.target_discovered = false;
+
+        for (ITLRestRep itl : listOfItls.getExportList()) {
+
+            // TODO: user setter methods to set the values of object below.
+            objCinderInit.connection_info.data.target_iqn = itl.getStoragePort().getPort();
+            objCinderInit.connection_info.data.target_portal = itl.getStoragePort().getIpAddress() + ":"
+                    + itl.getStoragePort().getTcpPort();
+            objCinderInit.connection_info.data.volume_id = getCinderHelper().trimId(vol.getId().toString());
+            objCinderInit.connection_info.data.target_lun = itl.getHlu();
+
+            _log.info(String
+                    .format("itl.getStoragePort().getPort() is %s: itl.getStoragePort().getIpAddress():%s,itl.getHlu() :%s, objCinderInit.toString():%s",
+                            itl.getStoragePort().getPort(), itl.getStoragePort().getIpAddress() + ":"
+                                    + itl.getStoragePort().getTcpPort(), itl.getHlu(),
+                            objCinderInit.toString()));
+
+            return objCinderInit;
+        }
+        
+        return objCinderInit;
+    }
+
+    /*
+     * Populate the connection info of the FC volume after completing the 
+     * export of volume to the host in ViPR
+     */
+    private VolumeAttachResponse populateFcConnectionInfo(String chosenProtocol, 														
+														Volume vol,
+														VolumeActionRequest action,
+														String openstackTenantId) throws InterruptedException{
+    	    
+    	// After the exportt ask is complete, sometimes there is a delay in the info being reflected in ITL's. So, we are adding a
+        // small delay here.
+    	Thread.sleep(100000);
+    	
+    	ITLRestRepList listOfItls = ExportUtils.getBlockObjectInitiatorTargets(vol.getId(), _dbClient,
+                isIdEmbeddedInURL(vol.getId()));
+    	
+        VolumeAttachResponse objCinderInit = new VolumeAttachResponse();
+        objCinderInit.connection_info = objCinderInit.new ConnectionInfo();
+        objCinderInit.connection_info.data = objCinderInit.new Data();
+        objCinderInit.connection_info.data.target_wwn = new ArrayList<String>();
+        objCinderInit.connection_info.data.initiator_target_map = new HashMap<String, List<String>>();
+
+        objCinderInit.connection_info.driver_volume_type = "fibre_channel";
+        objCinderInit.connection_info.data.access_mode = "rw";
+        objCinderInit.connection_info.data.target_discovered = true;
+
+        for (ITLRestRep itl : listOfItls.getExportList()) {
+            // TODO: user setter methods to set the values of object below.
+            _log.info("itl.getStoragePort().getPort() is {}", itl.getStoragePort().getPort());
+
+            if (itl.getStoragePort().getPort() == null)
+                continue;
+
+            objCinderInit.connection_info.data.target_wwn.add(itl.getStoragePort().getPort().toString().replace(":", "")
+                    .toLowerCase());
+            objCinderInit.connection_info.data.volume_id = getCinderHelper().trimId(vol.getId().toString());
+            objCinderInit.connection_info.data.target_lun = itl.getHlu();
+            _log.info(String
+                    .format("itl.getStoragePort().getPort() is %s: itl.getStoragePort().getIpAddress():%s,itl.getHlu() :%s, objCinderInit.toString():%s",
+                            itl.getStoragePort().getPort(), itl.getStoragePort().getIpAddress() + ":"
+                                    + itl.getStoragePort().getTcpPort(), itl.getHlu(),
+                            objCinderInit.connection_info.data.toString()));
+        }
+
+        List<Initiator> lstInitiators = getListOfInitiators(action.attach.connector, openstackTenantId, chosenProtocol, vol);
+        for (Initiator iter : lstInitiators) {
+            _log.info("iter.getInitiatorPort() {}", iter.getInitiatorPort());
+            _log.info("objCinderInit.connection_info.data.target_wwn {}", objCinderInit.connection_info.data.target_wwn);
+            objCinderInit.connection_info.data.initiator_target_map.put(iter.getInitiatorPort().replace(":", "").toLowerCase(),
+                    objCinderInit.connection_info.data.target_wwn);
+        }
+        return objCinderInit;            	    	
+    }
+    
     /**
      * This method is used to change the status of volume on administrator request
      * 
@@ -544,8 +576,6 @@ public class ExportService extends VolumeService {
 
         // Step 3: Remove initiators from export group
         currentURIs.removeAll(detachURIs);
-        exportGroup.setInitiators(StringSetUtil.uriListToStringSet(currentURIs));
-        _dbClient.updateObject(exportGroup);
         _log.info("updateExportGroup request is submitted.");
         // get block controller
         BlockExportController exportController =
@@ -559,7 +589,7 @@ public class ExportService extends VolumeService {
 
         Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-        List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+        List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(StringSetUtil.uriListToStringSet(currentURIs));
         List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
         List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
 
@@ -680,8 +710,8 @@ public class ExportService extends VolumeService {
     boolean waitForTaskCompletion(URI resourceId, String task) throws InterruptedException {
         int tryCnt = 0;
         Task taskObj = null;
-        // while(tryCnt < RETRY_COUNT){
-        while (true) {
+        while(tryCnt < RETRY_COUNT){
+        //while (true) {
             _log.info("THE TASK var is {}", task);
             Thread.sleep(40000);
             taskObj = TaskUtils.findTaskForRequestId(_dbClient, resourceId, task);
@@ -703,6 +733,7 @@ public class ExportService extends VolumeService {
                 return false;
             }
         }
+        return false;
     }
 
     private boolean processAttachRequest(Volume vol, VolumeActionRequest.AttachVolume attach,
@@ -712,7 +743,7 @@ public class ExportService extends VolumeService {
         List<URI> initiatorURIs = new ArrayList<URI>();
         String task = UUID.randomUUID().toString();
         // Step 1: get list of host initiators to be added
-        _log.info("THE ATTACH.CONNECTOR IS {}", attach.connector.toString());
+        _log.debug("THE ATTACH.CONNECTOR IS {}", attach.connector.toString());
         List<Initiator> newInitiators = getListOfInitiators(attach.connector, openstack_tenant_id, protocol, vol);
 
         ExportGroup exportGroup = findExportGroup(vol);
@@ -727,8 +758,6 @@ public class ExportService extends VolumeService {
                     initiatorURIs.add(uri);
                 }
             }
-            exportGroup.setInitiators(StringSetUtil.uriListToStringSet(initiatorURIs));
-            _dbClient.updateObject(exportGroup);
             _log.info("updateExportGroup request is submitted.");
             // get block controller
             initTaskStatus(exportGroup, task, Operation.Status.pending, ResourceOperationTypeEnum.UPDATE_EXPORT_GROUP);
@@ -738,9 +767,10 @@ public class ExportService extends VolumeService {
 
             Map<URI, Integer> noUpdatesVolumeMap = new HashMap<URI, Integer>();
 
-            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(exportGroup.getInitiators());
+            List<URI> updatedInitiators = initiatorURIs;
             List<URI> updatedHosts = StringSetUtil.stringSetToUriList(exportGroup.getHosts());
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(exportGroup.getClusters());
+
 
             exportController.exportGroupUpdate(exportGroup.getId(), noUpdatesVolumeMap, noUpdatesVolumeMap,
                     updatedClusters, updatedHosts, updatedInitiators, task);
@@ -948,9 +978,9 @@ public class ExportService extends VolumeService {
         QuotaOfCinder objQuota = null;
 
         if (pool == null)
-            objQuota = getCinderHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
+            objQuota = getQuotaHelper().getProjectQuota(openstack_tenant_id, getUserFromContext());
         else
-            objQuota = getCinderHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
+            objQuota = getQuotaHelper().getVPoolQuota(openstack_tenant_id, pool, getUserFromContext());
 
         if (objQuota == null) {
             _log.info("Unable to retrive the Quota information");
@@ -961,9 +991,9 @@ public class ExportService extends VolumeService {
         UsageStats stats = null;
 
         if (pool != null)
-            stats = getCinderHelper().getStorageStats(pool.getId(), proj.getId());
+            stats = getQuotaHelper().getStorageStats(pool.getId(), proj.getId());
         else
-            stats = getCinderHelper().getStorageStats(null, proj.getId());
+            stats = getQuotaHelper().getStorageStats(null, proj.getId());
 
         totalSizeUsed = stats.spaceUsed;
 

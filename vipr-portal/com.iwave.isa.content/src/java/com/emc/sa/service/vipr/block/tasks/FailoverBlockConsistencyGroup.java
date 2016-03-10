@@ -18,9 +18,18 @@ public class FailoverBlockConsistencyGroup extends WaitForTasks<BlockConsistency
     // The target virtual array
     private final URI failoverTarget;
     private final String type;
+    private String pointInTime;
 
     public FailoverBlockConsistencyGroup(URI consistencyGroupId, URI failoverTarget) {
         this(consistencyGroupId, failoverTarget, "rp");
+    }
+
+    public FailoverBlockConsistencyGroup(URI consistencyGroupId, URI failoverTarget, String type, String pointInTime) {
+        this.consistencyGroupId = consistencyGroupId;
+        this.failoverTarget = failoverTarget;
+        this.type = type;
+        this.pointInTime = pointInTime;
+        provideDetailArgs(consistencyGroupId, failoverTarget, type);
     }
 
     public FailoverBlockConsistencyGroup(URI consistencyGroupId, URI failoverTarget, String type) {
@@ -35,6 +44,10 @@ public class FailoverBlockConsistencyGroup extends WaitForTasks<BlockConsistency
         Copy copy = new Copy();
         copy.setType(type);
         copy.setCopyID(failoverTarget);
+
+        if (pointInTime != null) {
+            copy.setPointInTime(pointInTime);
+        }
 
         CopiesParam param = new CopiesParam();
         param.getCopies().add(copy);

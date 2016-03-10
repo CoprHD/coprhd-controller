@@ -5,6 +5,8 @@
 package com.emc.storageos.volumecontroller.impl.xtremio;
 
 import java.net.URI;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,12 +23,14 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NameGenerator;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
@@ -66,7 +70,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 processSnapshot(createdSnap, snap, storage);
             }
 
-            dbClient.persistObject(snap);
+            dbClient.updateObject(snap);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot creation failed", e);
@@ -121,19 +125,31 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             List<BlockSnapshot> snapObjs = dbClient.queryObject(BlockSnapshot.class, snapshotList);
             BlockSnapshot snapshotObj = snapObjs.get(0);
-            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            BlockConsistencyGroup blockCG = dbClient.queryObject(BlockConsistencyGroup.class, snapshotObj.getConsistencyGroup());
 
-            URI cgId = snapshotObj.getConsistencyGroup();
-            if (cgId != null) {
-                BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, cgId);
-                String snapType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
-                String snapshotSetTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client,
-                        getVolumeFolderName(snapshotObj.getProject().getURI(), storage), clusterName)
-                        .get(XtremIOConstants.SNAPSHOT_KEY);
-                client.createConsistencyGroupSnapshot(group.getLabel(), snapshotObj.getSnapsetLabel(), "", snapType, clusterName);
-                // tag the created the snapshotSet
-                client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapshotObj.getSnapsetLabel(), clusterName);
+            // Check if the CG for which we are creating snapshot exists on the array
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            String snapsetLabel = snapshotObj.getSnapsetLabel();
+            String cgName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, dbClient);
+            XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName);
+            if (cg == null) {
+                _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
+                taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                        .consistencyGroupNotFound(cgName,
+                                blockCG.getCgNameOnStorageSystem(storage.getId())));
+                return;
             }
+
+            String snapType = readOnly ? XtremIOConstants.XTREMIO_READ_ONLY_TYPE : XtremIOConstants.XTREMIO_REGULAR_TYPE;
+            String snapshotSetTagName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client,
+                    getVolumeFolderName(snapshotObj.getProject().getURI(), storage), clusterName)
+                    .get(XtremIOConstants.SNAPSHOT_KEY);
+            snapsetLabel = snapsetLabel + "_" +  new SimpleDateFormat("yyyyMMddhhmmssSSS").format(new Date());
+            client.createConsistencyGroupSnapshot(cgName, snapsetLabel, "", snapType, clusterName);
+            // tag the created the snapshotSet
+            client.tagObject(snapshotSetTagName, XTREMIO_ENTITY_TYPE.SnapshotSet.name(), snapsetLabel, clusterName);
+
+            _log.info("Snapset label :{}", snapsetLabel);
             // Create mapping of volume.deviceLabel to BlockSnapshot object
             Map<String, BlockSnapshot> volumeToSnapMap = new HashMap<String, BlockSnapshot>();
             for (BlockSnapshot snapshot : snapObjs) {
@@ -142,12 +158,14 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             }
 
             // Get the snapset details
-            XtremIOConsistencyGroup snapset = client.getSnapshotSetDetails(snapshotObj.getSnapsetLabel(), clusterName);
+            XtremIOConsistencyGroup snapset = client.getSnapshotSetDetails(snapsetLabel, clusterName);
             for (List<Object> snapDetails : snapset.getVolList()) {
                 XtremIOVolume xioSnap = client.getSnapShotDetails(snapDetails.get(1).toString(), clusterName);
+                _log.info("XIO Snap : {}", xioSnap);
                 BlockSnapshot snapshot = volumeToSnapMap.get(xioSnap.getAncestoVolInfo().get(1));
                 processSnapshot(xioSnap, snapshot, storage);
-                dbClient.persistObject(snapshot);
+                snapshot.setReplicationGroupInstance(snapsetLabel);
+                dbClient.updateObject(snapshot);
             }
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
@@ -171,6 +189,8 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         boolean isReadOnly = XtremIOConstants.XTREMIO_READ_ONLY_TYPE.equals(xioSnap.getSnapshotType()) ? Boolean.TRUE : Boolean.FALSE;
         snapObj.setIsReadOnly(isReadOnly);
         snapObj.setIsSyncActive(true);
+        snapObj.setProvisionedCapacity(Long.parseLong(xioSnap.getAllocatedCapacity()) * 1024);
+        snapObj.setAllocatedCapacity(Long.parseLong(xioSnap.getAllocatedCapacity()) * 1024);
     }
 
     @Override
@@ -197,7 +217,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             }
             snapshotObj.setIsSyncActive(false);
             snapshotObj.setInactive(true);
-            dbClient.persistObject(snapshotObj);
+            dbClient.updateObject(snapshotObj);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot deletion failed", e);
@@ -213,15 +233,16 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
-            if (null != XtremIOProvUtils.isSnapsetAvailableInArray(client, snapshotObj.getSnapsetLabel(), clusterName)) {
-                client.deleteSnapshotSet(snapshotObj.getSnapsetLabel(), clusterName);
+            String rgName = snapshotObj.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName) && null != XtremIOProvUtils.isSnapsetAvailableInArray(client, rgName, clusterName)) {
+                client.deleteSnapshotSet(rgName, clusterName);
             }
             // Set inactive=true for all snapshots in the snap
-            List<BlockSnapshot> snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, dbClient);
+            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, dbClient);
             for (BlockSnapshot snap : snapshots) {
                 snap.setIsSyncActive(false);
                 snap.setInactive(true);
-                dbClient.persistObject(snap);
+                dbClient.updateObject(snap);
             }
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
@@ -258,9 +279,20 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, snapshotObj.getConsistencyGroup());
-            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
-            client.restoreCGFromSnapshot(clusterName, group.getLabel(), snapshotObj.getSnapsetLabel());
+            // Check if the CG exists on the array
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            String cgName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, dbClient);
+            XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName);
+            if (cg == null) {
+                _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
+                taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                        .consistencyGroupNotFound(cgName,
+                                group.getCgNameOnStorageSystem(storage.getId())));
+                return;
+            }
+
+            client.restoreCGFromSnapshot(clusterName, cgName, snapshotObj.getReplicationGroupInstance());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot restore failed", e);
@@ -295,9 +327,20 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             XtremIOClient client = XtremIOProvUtils.getXtremIOClient(storage, xtremioRestClientFactory);
             BlockSnapshot snapshotObj = dbClient.queryObject(BlockSnapshot.class, snapshot);
             BlockConsistencyGroup group = dbClient.queryObject(BlockConsistencyGroup.class, snapshotObj.getConsistencyGroup());
-            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
 
-            client.refreshSnapshotFromCG(clusterName, group.getLabel(), snapshotObj.getSnapsetLabel());
+            // Check if the CG exists on the array
+            String clusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+            String cgName = ConsistencyGroupUtils.getSourceConsistencyGroupName(snapshotObj, dbClient);
+            XtremIOConsistencyGroup cg = XtremIOProvUtils.isCGAvailableInArray(client, cgName, clusterName);
+            if (cg == null) {
+                _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
+                taskCompleter.error(dbClient, DeviceControllerException.exceptions
+                        .consistencyGroupNotFound(cgName,
+                                group.getCgNameOnStorageSystem(storage.getId())));
+                return;
+            }
+
+            client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance());
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot resync failed", e);
@@ -353,7 +396,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
      * {@inheritDoc}
      */
     @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
+    public void createGroupSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -364,7 +407,13 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
     @Override
     public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
             String copyMode, Boolean targetExists, TaskCompleter completer)
-            throws DeviceControllerException {
+                    throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void linkSnapshotSessionTargetGroup(StorageSystem system, URI snapshotSessionURI, List<URI> snapSessionSnapshotURIs,
+            String copyMode, Boolean targetsExist, TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
@@ -373,6 +422,15 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
      */
     @Override
     public void relinkSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
+            TaskCompleter completer) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void relinkSnapshotSessionTargetGroup(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
             TaskCompleter completer) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
@@ -399,7 +457,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
      * {@inheritDoc}
      */
     @Override
-    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
+    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, String groupName, TaskCompleter completer)
             throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }

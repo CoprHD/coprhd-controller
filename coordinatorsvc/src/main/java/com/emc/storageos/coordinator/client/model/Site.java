@@ -9,25 +9,25 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.jsoup.helper.StringUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
+import com.emc.storageos.model.property.PropertyConstants;
 
 /**
  * Representation for a ViPR site, both primary and standby
  */
 public class Site {
-    private static final Logger log = LoggerFactory.getLogger(Site.class);
-
+    private static final String NO_ACTIVE_SITE_MESSAGE = "<no active site>";
     private static final String KEY_NAME = "name";
     private static final String KEY_DESCRIPTION = "description";
     private static final String KEY_VIP = "vip";
-    private static final String KEY_SECRETKEY = "secretKey";
-    private static final String KEY_STANDBY_SHORTID = "standbyShortId";
+    private static final String KEY_VIP6 = "vip6";
+    private static final String KEY_SITE_SHORTID = "siteShortId";
     private static final String KEY_CREATIONTIME = "creationTime";
-    private static final String KEY_PAUSEDTIME = "pausedTime";
+    private static final String KEY_LASTSTATEUPDATETIME = "lastStateUpdateTime";
+    private static final String KEY_LAST_LOST_QUORUM_TIME = "lastLostQuorumTime";
+    private static final String KEY_LASTSTATE = "lastState";
     private static final String KEY_SITE_STATE = "state";
     private static final String KEY_NODESADDR = "nodesAddr";
     private static final String KEY_NODESADDR6 = "nodesAddr6";
@@ -35,20 +35,33 @@ public class Site {
     private static TreeMap<String, String> treeMapSorter = new TreeMap<String, String>();
     
     public static final String CONFIG_KIND = "disasterRecoverySites";
+    
+    public static final Site DUMMY_ACTIVE_SITE;
 
     private String uuid;
     private String vdcShortId;
     private String name;
     private String vip;
-    private String secretKey;
+    private String vip6;
     private String description;
     private Map<String, String> hostIPv4AddressMap = new HashMap<>();
     private Map<String, String> hostIPv6AddressMap = new HashMap<>();
-    private String standbyShortId;
+    private String siteShortId;
     private long creationTime;
-    private long pausedTime;
+    private long lastStateUpdateTime;
+    private long lastLostQuorumTime;
+
     private SiteState state = SiteState.ACTIVE;
+    private SiteState lastState;
     private int nodeCount;
+    
+    static {
+        DUMMY_ACTIVE_SITE = new Site();
+        DUMMY_ACTIVE_SITE.setUuid("");
+        DUMMY_ACTIVE_SITE.setVip(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setName(NO_ACTIVE_SITE_MESSAGE);
+        DUMMY_ACTIVE_SITE.setState(SiteState.NONE);
+    }
 
     public Site() {
     }
@@ -57,6 +70,14 @@ public class Site {
         if (config != null) {
             fromConfiguration(config);
         }
+    }
+
+    public SiteState getLastState() {
+        return lastState;
+    }
+
+    public void setLastState(SiteState lastState) {
+        this.lastState = lastState;
     }
     
     public String getUuid() {
@@ -91,14 +112,6 @@ public class Site {
         this.vip = vip;
     }
 
-    public String getSecretKey() {
-        return secretKey;
-    }
-
-    public void setSecretKey(String secretKey) {
-        this.secretKey = secretKey;
-    }
-
     public Map<String, String> getHostIPv4AddressMap() {
         return hostIPv4AddressMap;
     }
@@ -131,12 +144,12 @@ public class Site {
         this.description = description;
     }
 
-    public String getStandbyShortId() {
-        return standbyShortId;
+    public String getSiteShortId() {
+        return siteShortId;
     }
 
-    public void setStandbyShortId(String standbyShortId) {
-        this.standbyShortId = standbyShortId;
+    public void setSiteShortId(String shortId) {
+        this.siteShortId = shortId;
     }
     
     public long getCreationTime() {
@@ -147,12 +160,20 @@ public class Site {
         this.creationTime = creationTime;
     }
 
-    public long getPausedTime() {
-        return pausedTime;
+    public long getLastLostQuorumTime() {
+        return lastLostQuorumTime;
     }
 
-    public void setPausedTime(long pausedTime) {
-        this.pausedTime = pausedTime;
+    public void setLastLostQuorumTime(long lastLostQuorumTime) {
+        this.lastLostQuorumTime = lastLostQuorumTime;
+    }
+
+    public long getLastStateUpdateTime() {
+        return lastStateUpdateTime;
+    }
+
+    public void setLastStateUpdateTime(long lastStateUpdateTime) {
+        this.lastStateUpdateTime = lastStateUpdateTime;
     }
 
     public SiteState getState() {
@@ -161,6 +182,15 @@ public class Site {
 
     public void setState(SiteState state) {
         this.state = state;
+        setLastStateUpdateTime(System.currentTimeMillis());
+    }
+
+    public String getVip6() {
+        return vip6;
+    }
+
+    public void setVip6(String vip6) {
+        this.vip6 = vip6;
     }
 
     @Override
@@ -199,15 +229,22 @@ public class Site {
         if (vip != null) {
             config.setConfig(KEY_VIP, vip);
         }
-        if (secretKey != null) {
-            config.setConfig(KEY_SECRETKEY, this.secretKey);
+        if (vip6 != null) {
+            config.setConfig(KEY_VIP6, vip6);
         }
-        if (standbyShortId != null) {
-            config.setConfig(KEY_STANDBY_SHORTID, this.standbyShortId);
+        if (siteShortId != null) {
+            config.setConfig(KEY_SITE_SHORTID, this.siteShortId);
         }
         config.setConfig(KEY_CREATIONTIME, String.valueOf(creationTime));
-        if (pausedTime != 0L) {
-            config.setConfig(KEY_PAUSEDTIME, String.valueOf(pausedTime));
+        if (lastStateUpdateTime != 0L) {
+            config.setConfig(KEY_LASTSTATEUPDATETIME, String.valueOf(lastStateUpdateTime));
+        }
+        if (lastLostQuorumTime != 0L) {
+            config.setConfig(KEY_LAST_LOST_QUORUM_TIME, String.valueOf(lastLostQuorumTime));
+        }
+
+        if (lastState != null) {
+            config.setConfig(KEY_LASTSTATE, String.valueOf(lastState));
         }
 
         if (state != null) {
@@ -238,16 +275,27 @@ public class Site {
             this.name = config.getConfig(KEY_NAME);
             this.description = config.getConfig(KEY_DESCRIPTION);
             this.vip = config.getConfig(KEY_VIP);
-            this.secretKey = config.getConfig(KEY_SECRETKEY);
-            this.standbyShortId = config.getConfig(KEY_STANDBY_SHORTID);
+            this.vip6 = config.getConfig(KEY_VIP6);
+            this.siteShortId = config.getConfig(KEY_SITE_SHORTID);
             String s = config.getConfig(KEY_CREATIONTIME);
             if (s != null) {
                 this.creationTime = Long.valueOf(s);
             }
-            s = config.getConfig(KEY_PAUSEDTIME);
+            s = config.getConfig(KEY_LASTSTATEUPDATETIME);
             if (s != null) {
-                this.pausedTime = Long.valueOf(s);
+                this.lastStateUpdateTime = Long.valueOf(s);
             }
+
+            s = config.getConfig(KEY_LAST_LOST_QUORUM_TIME);
+            if (s != null) {
+                lastLostQuorumTime = Long.valueOf(s);
+            }
+
+            s = config.getConfig(KEY_LASTSTATE);
+            if (s != null) {
+                lastState = SiteState.valueOf(config.getConfig(KEY_LASTSTATE));
+            }
+
             s = config.getConfig(KEY_SITE_STATE);
             if (s != null) {
                 state = SiteState.valueOf(config.getConfig(KEY_SITE_STATE));
@@ -297,10 +345,38 @@ public class Site {
         builder.append(", hostIPv6AddressMap=");
         builder.append(hostIPv6AddressMap);
         builder.append(", standbyShortId=");
-        builder.append(standbyShortId);
+        builder.append(siteShortId);
         builder.append(", creationTime=");
         builder.append(creationTime);
         builder.append("]");
         return builder.toString();
     }
+
+    /**
+     * @return human-readable abstract of this site, only contains site name/vip/uuid
+     * The String returned by this method should only be used in display situation (e.g. log or audit log)
+     */
+    public String toBriefString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("Site [name=").append(name);
+        builder.append(", vip=").append(vip);
+        builder.append(", uuid=").append(uuid).append("]");
+        return builder.toString();
+    }
+
+    public boolean isUsingIpv4() {
+        if (StringUtil.isBlank(vip) || PropertyConstants.IPV4_ADDR_DEFAULT.equals(vip)) {
+            return false;
+        }
+        return true;
+    }
+
+    public String getVipEndPoint() {
+        if (isUsingIpv4()) {
+            return vip;
+        } else {
+            return "[" + vip6 + "]";
+        }
+    }
+    
 }

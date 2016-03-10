@@ -25,17 +25,24 @@ public class DbBackupHandler extends BackupHandler {
     public static final String DB_SNAPSHOT_SUBDIR = "snapshots";
     public static final String DB_SSTABLE_TYPE = ".db";
 
-    private String viprKeyspace;
+    private List<String> keyspaceList;
     private List<String> ignoreCfList;
 
     /**
      * Sets vipr keyspace name
      * 
-     * @param viprKeyspace
-     *            The name of vipr keyspace
+     * @param keyspaceList
+     *            The list of vipr keyspace
      */
-    public void setViprKeyspace(String viprKeyspace) {
-        this.viprKeyspace = viprKeyspace.trim();
+    public void setKeyspaceList(List<String> keyspaceList) {
+        this.keyspaceList = keyspaceList;
+    }
+
+    /**
+     * Gets keyspace list
+     */
+    public List<String> getKeyspaceList() {
+        return keyspaceList;
     }
 
     /**
@@ -58,13 +65,13 @@ public class DbBackupHandler extends BackupHandler {
     /**
      * Gets valid keyspace folder of ViPR DB or GeoDB
      */
-    public File getValidKeyspace() {
+    public File getValidKeyspace(final String viprKeyspace) {
         log.debug("Searching ViPR keyspace {}...", viprKeyspace);
         for (String dataFolder : StorageService.instance.getAllDataFileLocations()) {
             File[] keyspaceList = new File(dataFolder).listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.trim().equals(viprKeyspace);
+                    return name.trim().equals(viprKeyspace.trim());
                 }
             });
             if (keyspaceList != null && keyspaceList.length == 1 && keyspaceList[0].isDirectory()) {
@@ -94,11 +101,13 @@ public class DbBackupHandler extends BackupHandler {
                 backupContext.getNodeId() + BackupConstants.BACKUP_NAME_DELIMITER +
                 backupContext.getNodeName();
         checkBackupFileExist(backupTag, fullBackupTag);
-        try {
-            StorageService.instance.takeSnapshot(fullBackupTag, viprKeyspace);
-        } catch (IOException ex) {
-            clearSnapshot(fullBackupTag);
-            throw BackupException.fatals.failedToTakeDbSnapshot(fullBackupTag, viprKeyspace, ex);
+        for (String viprKeyspace : getKeyspaceList()) {
+            try {
+                StorageService.instance.takeSnapshot(fullBackupTag, viprKeyspace);
+            } catch (IOException ex) {
+                clearSnapshot(fullBackupTag);
+                throw BackupException.fatals.failedToTakeDbSnapshot(fullBackupTag, viprKeyspace, ex);
+            }
         }
         log.info("DB snapshot ({}) has been taken successfully.", fullBackupTag);
         return fullBackupTag;
@@ -116,43 +125,47 @@ public class DbBackupHandler extends BackupHandler {
             FileUtils.deleteQuietly(backupFolder);
         }
         backupFolder.mkdir();
-        try {
-            File[] cfDirs = getValidKeyspace().listFiles();
-            cfDirs = (cfDirs == null) ? BackupConstants.EMPTY_ARRAY : cfDirs;
-            for (File cfDir : cfDirs) {
-                File cfBackupFolder = new File(backupFolder, cfDir.getName());
-                if (cfBackupFolder.exists()) {
-                    FileUtils.deleteQuietly(cfBackupFolder);
-                }
-                // Handles empty Column Family
-                String[] cfSubFileList = cfDir.list(new FilenameFilter() {
-                    @Override
-                    public boolean accept(File dir, String name) {
-                        return name.endsWith(DB_SSTABLE_TYPE);
+        for (String keyspace : getKeyspaceList()) {
+            try {
+                File ksBackupFolder = new File(backupFolder, keyspace);
+                ksBackupFolder.mkdir();
+
+                File[] cfDirs = getValidKeyspace(keyspace).listFiles();
+                cfDirs = (cfDirs == null) ? BackupConstants.EMPTY_ARRAY : cfDirs;
+                for (File cfDir : cfDirs) {
+                    File cfBackupFolder = new File(ksBackupFolder, cfDir.getName());
+                    File snapshotFolder = new File(cfDir,
+                            DB_SNAPSHOT_SUBDIR + File.separator + fullBackupTag);
+                    // Filters ignored Column Family
+                    if (ignoreCfList != null && ignoreCfList.contains(cfDir.getName())) {
+                        FileUtils.deleteQuietly(snapshotFolder);
+                        cfBackupFolder.mkdir();
+                        continue;
+                    } 
+                    if (!snapshotFolder.exists()) {
+                        // Handles stale Column Family
+                        String[] cfSubFileList = cfDir.list(new FilenameFilter() {
+                            @Override
+                            public boolean accept(File dir, String name) {
+                                return name.endsWith(DB_SSTABLE_TYPE);
+                            }
+                        });
+                        if (cfSubFileList == null || cfSubFileList.length == 0) {
+                            log.info("Stale empty cf foler: {}", cfDir.getName());
+                        } else {
+                            log.warn("No snapshot created for cf: {}", cfDir.getName());
+                        }
+                        cfBackupFolder.mkdir();
+                        continue;
                     }
-                });
-                if (cfSubFileList == null || cfSubFileList.length == 0) {
-                    cfBackupFolder.mkdir();
-                    continue;
+                    // Moves snapshot folder and renames it with Column Family name
+                    Files.move(snapshotFolder.toPath(), cfBackupFolder.toPath(),
+                            StandardCopyOption.REPLACE_EXISTING);
                 }
-                File snapshotFolder = new File(cfDir,
-                        DB_SNAPSHOT_SUBDIR + File.separator + fullBackupTag);
-                // Filters ignored Column Family
-                if (ignoreCfList != null && ignoreCfList.contains(cfDir.getName())) {
-                    FileUtils.deleteQuietly(snapshotFolder);
-                    cfBackupFolder.mkdir();
-                    continue;
-                } else if (!snapshotFolder.exists()) {
-                    throw new FileNotFoundException(String.format(
-                            "Can't find snapshot directory: %s", snapshotFolder.getAbsolutePath()));
-                }
-                // Moves snapshot folder and renames it with Column Family name
-                Files.move(snapshotFolder.toPath(), cfBackupFolder.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException ex) {
+                clearSnapshot(fullBackupTag);
+                throw BackupException.fatals.failedToDumpDbSnapshot(fullBackupTag, keyspace, ex);
             }
-        } catch (IOException ex) {
-            clearSnapshot(fullBackupTag);
-            throw BackupException.fatals.failedToDumpDbSnapshot(fullBackupTag, viprKeyspace, ex);
         }
         log.info("DB snapshot files have been moved to ({}) successfully.",
                 backupFolder.getAbsolutePath());
@@ -160,10 +173,12 @@ public class DbBackupHandler extends BackupHandler {
     }
 
     private void clearSnapshot(final String fullBackupTag) {
-        try {
-            StorageService.instance.clearSnapshot(fullBackupTag, viprKeyspace);
-        } catch (IOException ignore) {
-            log.error("Failed to clear DB snapshot: {}, {}", fullBackupTag, ignore.getMessage());
+        for (String viprKeyspace : getKeyspaceList()) {
+            try {
+                StorageService.instance.clearSnapshot(fullBackupTag, viprKeyspace);
+            } catch (IOException ignore) {
+                log.error("Failed to clear DB snapshot: {}, {}", fullBackupTag, ignore.getMessage());
+            }
         }
     }
 

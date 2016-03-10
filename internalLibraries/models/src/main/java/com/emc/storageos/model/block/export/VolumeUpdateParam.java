@@ -7,12 +7,15 @@ package com.emc.storageos.model.block.export;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * Update parameter for block volume of snapshot
  */
+@XmlRootElement(name = "volume_update")
 public class VolumeUpdateParam {
 
     private List<VolumeParam> add;
@@ -29,7 +32,6 @@ public class VolumeUpdateParam {
     /**
      * Add lists of volume or volume snapshot changes.
      * 
-     * @valid none
      */
     @XmlElementWrapper(name = "add", required = false)
     @XmlElement(name = "volume")
@@ -43,7 +45,6 @@ public class VolumeUpdateParam {
     /**
      * Remove lists of volume or volume snapshot changes.
      * 
-     * @valid none
      */
     @XmlElementWrapper(required = false)
     @XmlElement(name = "volume")

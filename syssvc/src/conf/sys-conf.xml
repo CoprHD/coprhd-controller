@@ -61,10 +61,13 @@
     
     <bean id="upgradeManager" class="com.emc.storageos.systemservices.impl.upgrade.UpgradeManager">
         <property name="coordinator" ref="coordinatorclientext" />
-        <property name="localRepository" ref="localRepository" />   
+        <property name="localRepository" ref="localRepository" />
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
         <property name="nodeCount" ref="nodeCount" />   
         <property name="loopInterval"  value="600000" />
         <property name="retryInterval"  value="3000" />
+        <property name="backCompatPreYoda" ref="backCompatPreYoda" />
     </bean>
 
     <bean id="recoveryManager" class="com.emc.storageos.systemservices.impl.recovery.RecoveryManager"/>
@@ -95,10 +98,12 @@
                 </bean>
                 <bean class="com.emc.storageos.systemservices.impl.resource.UpgradeService">
                     <property name="proxy" ref="coordinatorclientext" />
+                    <property name="drUtil" ref="drUtil" />
                     <property name="upgradeManager" ref="upgradeManager" />
                     <property name="upgradeVoters">
                     	<list>
                     		<ref bean="geoUpgradeVoter"/>
+                            <ref bean="drUpgradeVoter"/>
                     	</list>
                     </property>
                 </bean>
@@ -203,6 +208,7 @@
 
     <bean id="permissionsFilterFactory" class="com.emc.storageos.systemservices.impl.security.SyssvcPermissionsFilterFactory">
         <property name="permissionsHelper" ref="permissionsHelper"/>
+        <property name="isStandby" ref="siteIsStandby"/>
     </bean>
 
     <bean id="serviceRunsDuringMigration" class="java.lang.Boolean">
@@ -231,11 +237,10 @@
     <bean id="vdcManager" class="com.emc.storageos.systemservices.impl.vdc.VdcManager">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
-        <property name="dbClient" ref="dbclient"/>
         <property name="nodeCount" ref="nodeCount" />
         <property name="powerOffStateChangeTimeout" value="120000" />
         <property name="powerOffStateProbeInterval" value="3000" />
-        <property name="loopInterval"  value="600000" />
+        <property name="loopInterval"  value="300000" />
         <property name="retryInterval"  value="4000" />
         <property name="ipsecConfig" ref="ipsecConfig" />
         <property name="drUtil" ref="drUtil" />
@@ -247,14 +252,23 @@
         		<entry key="dr_remove_standby" value-ref="vdcDrRemoveStandbyHandler"/>
         		<entry key="dr_pause_standby" value-ref="vdcDrPauseStandbyHandler"/>
         		<entry key="dr_resume_standby" value-ref="vdcDrResumeStandbyHandler"/>
+                <entry key="dr_degrade_standby" value-ref="vdcDrDegradeStandbyHandler"/>
+                <entry key="dr_rejoin_standby" value-ref="vdcDrRejoinStandbyHandler"/>
         		<entry key="dr_switchover" value-ref="vdcDrSwitchoverHandler"/>
         		<entry key="dr_failover" value-ref="vdcDrFailoverHandler"/>
                 <entry key="dr_change_data_revision" value-ref="vdcDrChangeDataRevisionHandler"/>
-        		<entry key="ipsec_enable" value-ref="ipsecEnableHandler"/>
+                <entry key="dr_purge_data_revision" value-ref="vdcDrPurgeDataRevisionHandler"/>
         		<entry key="ipsec_rotate_key" value-ref="ipsecRotateHandler"/>
+        		<entry key="dr_failbackDegrade" value-ref="vdcDrFailbackDegradeHandler" />
+                <entry key="ip_change" value-ref="ipchangeHandler"/>
+                <entry key="geo_config_change" value-ref="geoConfigChangeHandler"/>
         	</map>
         </property>
     </bean>
+
+    <bean id="mailHandler" class="com.emc.storageos.systemservices.impl.util.MailHandler"/>
+
+    <bean id="drSiteNetworkMonitor" class="com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor" init-method="init"/>
 
     <bean id="syssvcserver" class="com.emc.storageos.systemservices.impl.SysSvcImpl">
         <property name="softwareUpdate" ref="softwareUpdate" />
@@ -421,8 +435,9 @@
         <property name="coordinator" ref="coordinatorclientext" />
     </bean>
 
-    <bean id="IpReconfigManager" class="com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager" init-method="init">
+    <bean id="IpReconfigManager" class="com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager">
         <property name="ovfProperties" ref="ovfProperties"/>
+        <property name="drUtil" ref="drUtil" />
     </bean>
 
     <bean id="apiNotifier" class="com.emc.storageos.systemservices.impl.property.APINotifier">
@@ -434,6 +449,13 @@
     </bean>
 
     <bean id="ipsecMonitor" class="com.emc.storageos.systemservices.impl.security.IPSecMonitor" />
+
+    <bean id="ipsecInitialRotate" class="com.emc.storageos.systemservices.impl.security.IPSecInitialRotate">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="ipsecConfig" ref="ipsecConfig" />
+        <property name="ipsecMgr" ref="ipsecMgr" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
 
     <bean id="backupUploadJobProducer" class="com.emc.storageos.systemservices.impl.jobs.common.JobProducer" init-method="startQueue" destroy-method="stopQueue">
         <property name="coordinator" ref="coordinator"/>
@@ -487,6 +509,14 @@
         <property name="drUtil" ref="drUtil" />
     </bean>
     
+    <bean id="vdcDrPurgeDataRevisionHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrPurgeDataRevisionHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
    <bean id="vdcDrRemoveStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrRemoveStandbyHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
@@ -510,6 +540,22 @@
         <property name="service" ref="serviceinfo" />
         <property name="drUtil" ref="drUtil" />
     </bean>
+
+    <bean id="vdcDrDegradeStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrDegradeStandbyHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+
+    <bean id="vdcDrRejoinStandbyHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrRejoinStandbyHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
     
     <bean id="vdcDrSwitchoverHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrSwitchoverHandler">
         <property name="coordinator" ref="coordinatorclientext" />
@@ -525,6 +571,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="service" ref="serviceinfo" />
         <property name="drUtil" ref="drUtil" />
+        <property name="postHandlerFactory" ref="drPostFailoverHandlerFactory" />
     </bean>
 
     <bean id="ipsecRotateHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecRotateOpHandler">
@@ -534,14 +581,31 @@
         <property name="service" ref="serviceinfo" />
         <property name="drUtil" ref="drUtil" />
     </bean>
-    
-    <bean id="ipsecEnableHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPSecEnableHandler">
+	
+	<bean id="vdcDrFailbackDegradeHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.DrFailbackDegradeHandler">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="localRepository" ref="localRepository" />
         <property name="dbClient" ref="dbclient"/>
         <property name="service" ref="serviceinfo" />
         <property name="drUtil" ref="drUtil" />
-	</bean>
+    </bean>
+
+    <bean id="ipchangeHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.IPChangeHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+
+	<bean id="geoConfigChangeHandler" class="com.emc.storageos.systemservices.impl.vdc.VdcOpHandler.GeoConfigChangeOpHandler">
+        <property name="coordinator" ref="coordinatorclientext" />
+        <property name="localRepository" ref="localRepository" />
+        <property name="dbClient" ref="dbclient"/>
+        <property name="service" ref="serviceinfo" />
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+
 
     <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl">
         <property name="coordinatorClient" ref="coordinator"/>
@@ -551,6 +615,29 @@
         <property name="bypassMigrationLock" ref="serviceRunsDuringMigration"/>
         <property name="localContext" ref="dbclientcontext"/>
         <property name="geoContext" ref="geodbclientcontext"/>
+        <property name="drUtil" ref="drUtil"/>
+    </bean>
+    
+    <bean id="drPostFailoverHandlerFactory" class="com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory">
+    	<property name="handlers">
+            <list>
+                <value>ControllersvcQueueCleanupHandler</value>
+                <value>ControllersvcWorkflowCleanupHandler</value>
+                <value>SasvcQueueCleanupHandler</value>
+                <value>SasvcOrderCleanupHandler</value>
+                <value>SyssvcDBCheckHandler</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="drUpgradeVoter" class="com.emc.storageos.security.upgradevoter.DrUpgradeVoter">
+        <property name="drUtil" ref="drUtil" />
+    </bean>
+    
+    <bean id="drPostFailoverDBCheckHandler" class="com.emc.storageos.systemservices.impl.util.DrPostFailoverDBCheckHandler">
+    	<property name="coordinator" ref="coordinator" />
+    	<property name="jobProducer" ref="dbConsistencyJobProducer" />
+    	<property name="name" value="SyssvcDBCheckHandler"/>
     </bean>
 </beans>
     

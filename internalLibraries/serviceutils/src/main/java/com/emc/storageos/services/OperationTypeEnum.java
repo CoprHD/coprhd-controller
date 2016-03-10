@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2012-2014 EMC Corporation
- * All Rights Reserved
+ * Copyright 2012-2014 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.services;
@@ -37,6 +50,10 @@ public enum OperationTypeEnum {
     REASSIGN_VPOOL_ACL("VpoolUpdated", "", "operation to overwrite VirtualPool acls"),
     MODIFY_VPOOL_ACL("VpoolUpdated", "", "operation to modify VirtualPool acls"),
     ASSIGN_VPOOL_TAG("ASSIGN VPOOL TAG", "", "operation to assign a tag to a VirtualPool"),
+
+    CREATE_QOS("QosCreated", "", "Quality of Service Created"),
+    UPDATE_QOS("QosUpdated", "", "Quality of Service Updated"),
+    DELETE_QOS("QosDeleted", "", "Quality os Service Deleted"),
 
     CREATE_BLOCK_VOLUME("VolumeCreated", "VolumeCreateFailed", "Volume Create"),
     DELETE_BLOCK_VOLUME("VolumeDeleted", "VolumeDeleteFailed", "Volume Delete"),
@@ -111,6 +128,8 @@ public enum OperationTypeEnum {
     DELETE_EXPORT_VOLUME("ExportVolumeRemoved", "ExportVolumeRemoveFailed", "ExportVolume Remove"),
 
     CREATE_FILE_SYSTEM("FileSystemCreated", "FileSystemCreateFailed", "FileSystem created"),
+    INGEST_FILE_SYSTEM("FileSystemIngested", "FileSystemIngestFailed", "FileSystem Ingested"),
+    UPDATE_FILE_SYSTEM("FileSystemUpdated", "FileSystemUpdateFailed", "FileSystem updated"),
     DELETE_FILE_SYSTEM("FileSystemDeleted", "FileSystemDeleteFailed", "FileSystem deleted"),
     EXPORT_FILE_SYSTEM("FileSystemExported", "FileSystemExportFailed", "FileSystem exported"),
     UPDATE_EXPORT_RULES_FILE_SYSTEM("FileSystemExportRulesUpdated", "FileSystemExportRulesUpdateFailed", "FileSystem export rules updated"),
@@ -118,10 +137,17 @@ public enum OperationTypeEnum {
     EXPAND_FILE_SYSTEM("FileSystemExpanded", "FileSystemExpandFailed", "FileSystem expanded"),
     RELEASE_FILE_SYSTEM("FileSystemReleased", "", "FileSystem released"),
     UNDO_RELEASE_FILE_SYSTEM("FileSystemReleaseUndone", "", "FileSystem release undone"),
+    CHANGE_FILE_SYSTEM_VPOOL("ChangeFileSystemVpool", "ChangeFileSystemVpoolFailed", "FileSystem vpool Changed"),
+    CREATE_MIRROR_FILE_SYSTEM("CreateMirrorFileSystem", "CreateMirrorFileSystemFailed", "MirrorFileSystem Created"),
+    DELETE_MIRROR_FILE_SYSTEM("DeleteMirrorFileSystem", "DeleteMirrorFileSystemFailed", "MirrorFileSystems Deleted"),
 
     CREATE_FILE_SYSTEM_SHARE("FileSystemShared", "FileSystemShareFailed", "FileSystem shared"),
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "", "operation to tag a filesystem"),
+    ASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyAssign", "FileSystemPolicyAssignFailed", "FileSystem Policy Assigned"),
+    UNASSIGN_FILE_SYSTEM_SNAPSHOT_SCHEDULE("FileSystemPolicyUnassign", "FileSystemPolicyUnassignFailed", "FileSystem Policy Unassigned"),
     DELETE_FILE_SYSTEM_SHARE("FileSystemShareDeleted", "FileSystemShareDeleteFailed", "FileSystem share deleted"),
+    GET_FILE_SYSTEM_SNAPSHOT_BY_SCHEDULE("FileSystemScheduleSnapshot", "FileSystemScheduleSnapshotFailed",
+            "FileSystem Schedule Snapshot List"),
 
     CREATE_FILE_SYSTEM_SNAPSHOT("FileSystemSnapshotCreated", "FileSystemSnapshotCreateFailed", "FileSystem snapshot created"),
     DELETE_FILE_SNAPSHOT("FileSystemSnapshotDeleted", "FileSystemSnapshotDeleteFailed", "FileSystem snapshot deleted"),
@@ -138,6 +164,20 @@ public enum OperationTypeEnum {
     ASSIGN_FILE_SNAPSHOT_TAG("TAG A FILESYSTEM SNAPSHOT", "", "tag a fileshare snapshot"),
     DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
+
+    CREATE_FILE_MIRROR("FileSystemMirrorCreated", "FileSystemMirrorCreateFailed", "FileSystemMirror Create"),
+    DELETE_FILE_MIRROR("FileSystemMirrorDeleted", "FileSystemMirrorDeleteFailed", "FileSystemMirror Delete"),
+
+    SUSPEND_FILE_MIRROR("FileSystemMirrorSuspended", "FileSysteMirrorSuspendFailed", "FileSystemMirror Suspend"),
+    DETACH_FILE_MIRROR("FileSystemMirrorDetach", "FileSystemMirrorDetachFailed", "FileSystemMirror Detach"),
+    PAUSE_FILE_MIRROR("FileSystemMirrorPaused", "FileSystemMirrorPauseFailed", "FileSystemMirror Link Pause"),
+    RESUME_FILE_MIRROR("FileSystemMirrorResumed", "FileSystemMirrorResumeFailed", "FileSystemMirror Resume"),
+    FAILOVER_FILE_MIRROR("FileSystemMirrorFailover", "FileSystemMirrorFailOverFailed", "FileSystemMirror Fail Over"),
+    FAILBACK_FILE_MIRROR("FileSystemMirrorFailback", "FileSystemMirrorFailbackFailed", "FileSystemMirror Fail Back"),
+    STOP_FILE_MIRROR("FileSystemMirrorStop", "FileSystemMirrorStopFailed", "FileSystemMirror Stop"),
+    START_FILE_MIRROR("FileSystemMirrorStart", "FileSystemMirrorStartFailed", "FileSystemMirror Start"),
+    REFRESH_FILE_MIRROR("FileSystemMirrorRefresh", "FileSystemMirrorRefreshFailed", "FileSystemMirror Refresh"),
+    RESYNC_FILE_MIRROR("FileSystemMirrorResync", "FileSystemMirrorResyncFailed", "FileSystemMirror Resync"),
 
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
@@ -373,6 +413,8 @@ public enum OperationTypeEnum {
     DELETE_TASK("DELETE TASK", "", "Delete a Task"),
     SEND_PASSWORD_TO_BE_EXPIRE_MAIL("SEND PASSWORD TO BE EXPIRED MAIL SUCCESS", "SEND PASSWORD TO BE EXPIRED MAIL FAIL",
             "operation to send password to be expired mail"),
+    SEND_STANDBY_NETWORK_BROKEN_MAIL("SEND STANDBY NETWORK BROKEN MAIL SUCCESS", "SEND STANDBY NETWORK BROKEN MAIL FAIL",
+            "operation to send standby network broken mail"),
     DELETE_CONFIG("DELETE CONFIG", "", "operation to delete controller config"),
     CREATE_CONFIG("CREATE CONFIG", "", "operation to create controller config"),
     UPDATE_CONFIG("UPDATE CONFIG", "", "operation to update controller config"),
@@ -389,6 +431,9 @@ public enum OperationTypeEnum {
     CREATE_BACKUP("CREATE BACKUP", "", "operation to create ViPR backup"),
     DELETE_BACKUP("DELETE BACKUP", "", "operation to delete ViPR backup"),
     UPLOAD_BACKUP("UPLOAD BACKUP", "", "operation to upload ViPR backup to external location"),
+    PULL_BACKUP("PULL BACKUP", "", "operation to download ViPR backup from external location"),
+    PULL_BACKUP_CANCEL("PULL BACKUP CANCEL", "", "operation to cancel the download of ViPR backup from external location"),
+    RESTORE_BACKUP("RESTORE BACKUP", "", "operation to restore ViPR backup"),
     RECOVER_NODES("RECOVER NODES", "", "operation to recover corrupted nodes"),
     RECONFIG_IP("Reconfig IPs", "", "trigger ip reconfiguration"),
     CREATE_USERGROUP("CREATE USER GROUP", "", "operation to create a user group."),
@@ -401,6 +446,36 @@ public enum OperationTypeEnum {
     UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "",
             "operation to update and verify a compute image server."),
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
+    CREATE_VOLUME_GROUP("CREATE VOLUME GROUP", "", "operation to create volume group"),
+    DELETE_VOLUME_GROUP("DELETE VOLUME GROUP", "", "operation to delete volume group"),
+    UPDATE_VOLUME_GROUP("UPDATE VOLUME GROUP", "", "operation to update volume group"),
+
+    CREATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyCreated", "VolumeGroupFullCopyCreateFailed", "VolumeGroupFullCopy Create"),
+    ACTIVATE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyActivated", "VolumeGroupFullCopyActivateFailed", "VolumeGroupFullCopy Activate"),
+    DETACH_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyDetached", "VolumeGroupFullCopyDetachFailed", "VolumeGroupFullCopy Detach"),
+    RESTORE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyRestored", "VolumeGroupFullCopyRestoreFailed", "VolumeGroupFullCopy Restore"),
+    RESYNCHRONIZE_VOLUME_GROUP_FULL_COPY("VolumeGroupFullCopyResynchronized", "VolumeGroupFullCopy ResynchronizeFailed",
+            "VolumeGroupFullCopy Resynchronize"),
+
+    CREATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotCreated", "VolumeGroupSnapshotCreateFailed", "VolumeGroupSnapshot Create"),
+    ACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotActivated", "VolumeGroupSnapshotActivateFailed", "VolumeGroupSnapshot Activate"),   
+    DEACTIVATE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotDeactivated", "VolumeGroupSnapshotDeactivateFailed", "VolumeGroupSnapshot Deactivate"),
+    RESTORE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotRestored", "VolumeGroupSnapshotRestoreFailed", "VolumeGroupSnapshot Restored"),
+    RESYNCHRONIZE_VOLUME_GROUP_SNAPSHOT("VolumeGroupSnapshotResynchronized", "VolumeGroupSnapshotResynchronizeFailed", "VolumeGroupSnapshot Resynchronize"),
+
+    CREATE_VOLUME_GROUP_SNAPSHOT_SESSION("VolumeGroupSnapshotSessionCreated", "VolumeGroupSnapshotSessionCreateFailed",
+            "VolumeGroupSnapshotSession Create"),
+    RESTORE_VOLUME_GROUP_SNAPSHOT_SESSION("VolumeGroupSnapshotSessionRestored", "VolumeGroupSnapshotSessionRestoreFailed",
+            "VolumeGroupSnapshotSession Restore"),
+    DELETE_VOLUME_GROUP_SNAPSHOT_SESSION("VolumeGroupSnapshotSessionDeleted", "VolumeGroupSnapshotSessionDeleteFailed",
+            "VolumeGroupSnapshotSession Delete"),
+    LINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET("LinkVolumeGroupSnapshotSessionTargets", "LinkVolumeGroupSnapshotSessionTargetsFailed",
+            "Link targets to VolumeGroupSnapshotSession"),
+    RELINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET("RelinkVolumeGroupSnapshotSessionTargets", "RelinkVolumeGroupSnapshotSessionTargetsFailed",
+            "Re-link targets to VolumeGroupSnapshotSession"),
+    UNLINK_VOLUME_GROUP_SNAPSHOT_SESSION_TARGET("UnlinkVolumeGroupSnapshotSessionTargets", "UnlinkVolumeGroupSnapshotSessionTargetsFailed",
+            "Unlink targets from VolumeGroupSnapshotSession"),
+
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
     DELETE_SNAPSHOT_SESSION("BlockSnapshotSessionDeleted", "BlockSnapshotSessionDeleteFailed", "BlockSnapshotSession Delete"),
@@ -410,16 +485,24 @@ public enum OperationTypeEnum {
             "Re-link targets to BlockSnapshotSession"),
     UNLINK_SNAPSHOT_SESSION_TARGET("UnlinkBlockSnapshotSessionTargets", "UnlinkBlockSnapshotSessionTargetsFailed",
             "Unlink targets from BlockSnapshotSession"),
+    UPDATE_BUCKET_ACL("UPDATE BUCKET ACL", "", "operation to update bucket ACL"),
+    DELETE_BUCKET_ACL("DELETE BUCKET ACL", "", "operation to delete bucket ACL"),
+    SYNC_BUCKET_ACL("SYNC BUCKET ACL", "", "operation to sync bucket ACL"),
 
     /* Disaster Recovery Operations */
-    ADD_STANDBY("ADD STANDBY", "", "operation to add a new standby to ensemble"),
-    REMOVE_STANDBY("REMOVE STANDBY", "", "operation to remove an existing standby from ensemble"),
-    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to pause replication between acitve site and standby site"),
-    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to resume replication between acitve site and standby site"),
+    ADD_STANDBY("ADD STANDBY", "", "operation to initiate adding a new standby to ensemble"),
+    REMOVE_STANDBY("REMOVE STANDBY", "", "operation to initiate removing an existing standby from ensemble"),
+    PAUSE_STANDBY("PAUSE STANDBY REPLICATION", "", "operation to initiate pausing replication between active site and standby site"),
+    RESUME_STANDBY("RESUME STANDBY REPLICATION", "", "operation to initiate resuming replication between active site and standby site"),
+    RETRY_STANDBY_OP("RETRY STANDBY OPERATION", "", "operation to initiate retry of last operation on a standby site"),
     IPSEC_KEY_ROTATE("ROTATE IPSEC KEY", "", "operation to rotate ipsec pre shared key"),
-    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to switchover from acitve site to a standby site"),
-    FAILOVER("FAILOVER TO A STANDBY", "", "operation to failover to a standby site"),
-    UPDATE_SITE("UPDATE SITE", "", "operation to update site information");
+    SWITCHOVER("SWITCHOVER TO A STANDBY", "", "operation to initiate switching over from active site to a standby site"),
+    ACTIVE_SWITCHOVER("ACTIVE BECOME STANDBY AFTER SWITCHOVER", "", "operation that marks switchover on old active site complete"),
+    STANDBY_SWITCHOVER("STANDBY BECOME ACTIVE AFTER SWITCHOVER", "", "operation that marks switchover on new active site complete"),
+    FAILOVER("FAILOVER TO A STANDBY", "", "operation to initiate failing over to a standby site"),
+    STANDBY_FAILOVER("STANDBY BECOME ACTIVE AFTER FAILOVER", "", "operation that marks failover on new active site complete"),
+    UPDATE_SITE("UPDATE SITE", "", "operation to update site information"),
+    CREATE_SCHEDULE_POLICY("SchedulePolicyCreated", "", "create schedule policy.");
 
     private final String _evType;
     private final String _fail_evType;

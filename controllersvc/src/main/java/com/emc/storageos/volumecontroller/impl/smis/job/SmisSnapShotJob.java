@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
 import java.net.URI;
+import java.util.List;
 
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
@@ -17,10 +18,13 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
@@ -92,7 +96,7 @@ public class SmisSnapShotJob extends SmisJob {
      * the CIM instance ID for a synchronization aspect. The session needs to be created
      * for legacy code that created VMAX3 BlockSnapshots w/o representing the snapshot session.
      * 
-     * @param StorageSytem storage A reference to the storage system.
+     * @param storage storage A reference to the storage system.
      * @param snapshot BlockSnapshot to be updated
      * @param sourceElementId String of source volume (or source group) ID
      * @param elementName String used as ElementName when creating ReplicationSettingData during single snapshot creation,
@@ -100,8 +104,7 @@ public class SmisSnapShotJob extends SmisJob {
      *            or target group ID.
      * @param createSession true if a BlockSnapshotSession should be created to represent the settings instance.
      * @param dbClient A reference to a database client.
-     * 
-     * @see com.emc.storageos.volumecontroller.impl.smis.vmax.VmaxSnapshotOperations#getReplicationSettingData
+     *
      */
     private void setSettingsInstance(StorageSystem storage, BlockSnapshot snapshot, String sourceElementId, String elementName,
             boolean createSession, DbClient dbClient) {
@@ -117,17 +120,80 @@ public class SmisSnapShotJob extends SmisJob {
 
             // If the flag so indicates create a BlockSnapshotSession instance to represent this
             // settings instance.
-            BlockSnapshotSession snapSession = new BlockSnapshotSession();
-            snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
-            snapSession.setLabel(snapshot.getLabel());
-            snapSession.setSessionLabel(snapshot.getSnapsetLabel());
-            snapSession.setSessionInstance(snapshot.getSettingsInstance());
-            snapSession.setParent(snapshot.getParent());
-            snapSession.setProject(snapshot.getProject());
-            StringSet linkedTargets = new StringSet();
-            linkedTargets.add(snapshot.getId().toString());
-            snapSession.setLinkedTargets(linkedTargets);
-            dbClient.createObject(snapSession);
+
+            BlockSnapshotSession snapSession = getSnapshotSession(snapshot, dbClient);
+
+            if (snapSession.getId() == null) {
+                snapSession.setId(URIUtil.createId(BlockSnapshotSession.class));
+                snapSession.setLabel(snapshot.getLabel());
+                snapSession.setSessionLabel(snapshot.getSnapsetLabel());
+                snapSession.setSessionInstance(snapshot.getSettingsInstance());
+                snapSession.setProject(snapshot.getProject());
+                snapSession.setStorageController(storage.getId());
+
+                setParentOrConsistencyGroupAssociation(snapSession, snapshot, dbClient);
+            }
+
+            addSnapshotAsLinkedTarget(snapSession, snapshot);
+            createOrUpdateSession(snapSession, dbClient);
+        }
+    }
+
+    private BlockSnapshotSession getSnapshotSession(BlockSnapshot snapshot, DbClient dbClient) {
+        BlockSnapshotSession result = null;
+        if (snapshot.hasConsistencyGroup()) {
+            List<BlockSnapshotSession> groupSnapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                    BlockSnapshotSession.class,
+                    ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(snapshot.getConsistencyGroup()));
+            if (!groupSnapSessions.isEmpty()) {
+                for (BlockSnapshotSession groupSnapSession : groupSnapSessions) {
+                    // When creating a group snapshot with multiple targets, we might
+                    // have already created the BlockSnapshotSession instance to represent
+                    // the group session. So, if we find a snapshot session for the
+                    // group that has the same session instance paths as the passed snapshot,
+                    // then we just return that session as we already created it when another
+                    // snapshot in the group was processed.
+                    String sessionInstance = groupSnapSession.getSessionInstance();
+                    if (sessionInstance.equals(snapshot.getSettingsInstance())) {
+                        result = groupSnapSession;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (result == null) {
+            result = new BlockSnapshotSession();
+        }
+
+        return result;
+    }
+
+    private void setParentOrConsistencyGroupAssociation(BlockSnapshotSession session, BlockSnapshot snapshot, DbClient dbClient) {
+        if (snapshot.hasConsistencyGroup()) {
+            session.setConsistencyGroup(snapshot.getConsistencyGroup());
+            BlockObject parent = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
+            if (parent != null) {
+                session.setReplicationGroupInstance(parent.getReplicationGroupInstance());
+                session.setSessionSetName(parent.getReplicationGroupInstance());
+            }
+        } else {
+            session.setParent(snapshot.getParent());
+        }
+    }
+
+    private void addSnapshotAsLinkedTarget(BlockSnapshotSession session, BlockSnapshot snapshot) {
+        if (session.getLinkedTargets() == null) {
+            session.setLinkedTargets(new StringSet());
+        }
+        session.getLinkedTargets().add(snapshot.getId().toString());
+    }
+
+    private void createOrUpdateSession(BlockSnapshotSession session, DbClient dbClient) {
+        if (session.getCreationTime() == null) {
+            dbClient.createObject(session);
+        } else {
+            dbClient.updateObject(session);
         }
     }
 }

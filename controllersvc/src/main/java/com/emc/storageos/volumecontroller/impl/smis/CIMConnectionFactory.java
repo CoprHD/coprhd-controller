@@ -13,6 +13,7 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,6 +56,8 @@ public class CIMConnectionFactory {
     @Autowired
     private RecordableEventManager _evtMgr;
 
+    private CoordinatorClient coordinatorClient;
+
     private static final String EVENT_SERVICE_TYPE = "StorageProvider";
     private static final String EVENT_SERVICE_SOURCE = "CIMConnectionFactory";
     private static final String STORAGE_PROVIDER_DOWN_DESCRIPTION = "Storage Provider is Down";
@@ -85,6 +88,10 @@ public class CIMConnectionFactory {
         _dbClient = dbClient;
     }
 
+    public void setCoordinator(CoordinatorClient coordinatorClient) {
+        this.coordinatorClient = coordinatorClient;
+    }
+
     /**
      * Return the cimConnection for the given storageDevice.
      * We would end up in scenarios ,where Provider present in StorageDevice is not there in
@@ -98,6 +105,7 @@ public class CIMConnectionFactory {
     public synchronized CimConnection getConnection(final StorageSystem storageDevice) {
         CimConnection connection = null;
         try {
+            _connectionManager.configure(coordinatorClient.getPropertyInfo());
             /**
              * Check cimConnection already exist for vnxfile, if not create new one
              */
@@ -235,6 +243,25 @@ public class CIMConnectionFactory {
     }
 
     /**
+     * This will be an indication to the ConnectionManager that we need the connection to remain alive
+     * until there is a call to unsetKeepAliveForConnection.
+     *
+     * @param storageSystem [IN] - StorageSystem
+     */
+    public void setKeepAliveForConnection(StorageSystem storageSystem) {
+        _connectionManager.pinConnection(storageSystem.getSmisProviderIP(), storageSystem.getSmisPortNumber());
+    }
+
+    /**
+     * This will be an indication to the ConnectionManager that we may no longer need to keep the connection alive.
+     *
+     * @param storageSystem [IN] - StorageSystem
+     */
+    public void unsetKeepAliveForConnection(StorageSystem storageSystem) {
+        _connectionManager.unpinConnection(storageSystem.getSmisProviderIP(), storageSystem.getSmisPortNumber());
+    }
+
+    /**
      * Validates the connection active status and liveness.
      * 
      * @param smisProvider
@@ -356,6 +383,7 @@ public class CIMConnectionFactory {
     public synchronized CimConnection getConnection(String ipAddress, String port) {
         CimConnection connection = null;
         try {
+            _connectionManager.configure(coordinatorClient.getPropertyInfo());
             connection = _connectionManager.getConnection(ipAddress, Integer.parseInt(port));
             if (null == connection) {
                 connection = addConnection(ipAddress, port);

@@ -30,6 +30,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOCluster;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusterInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusters;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
@@ -142,6 +143,11 @@ public class XtremIOV1Client extends XtremIOClient {
         List<XtremIOVolume> volumeList = getXtremIOVolumesForLinks(Arrays.asList(volumeLinks.getVolumeInfo()), clusterName);
 
         return volumeList;
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroups");
     }
 
     @Override
@@ -272,12 +278,13 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
-    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String clusterName) throws Exception {
+    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String os, String clusterName)
+            throws Exception {
         XtremIOInitiatorCreate initiatorCreate = new XtremIOInitiatorCreate();
         initiatorCreate.setInitiatorGroup(igId);
         initiatorCreate.setName(initiatorName);
         initiatorCreate.setPortAddress(portAddress);
-
+        // OS is not supported for V1 Client hence not setting.
         log.info("Calling Initiator Create with: {}", initiatorCreate.toString());
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_INITIATORS_URI,
@@ -540,5 +547,11 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public XtremIOConsistencyGroup getSnapshotSetDetails(String snapshotSetName, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getSnapshotSetDetails");
+    }
+
+    @Override
+    public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(
+            XtremIOObjectInfo cgVolume, String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroupInfo");
     }
 }

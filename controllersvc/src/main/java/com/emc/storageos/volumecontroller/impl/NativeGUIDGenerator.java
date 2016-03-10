@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -15,6 +16,7 @@ import java.util.Set;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
+import com.emc.storageos.services.util.StorageDriverManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +60,8 @@ public class NativeGUIDGenerator {
     public static final String FILESYSTEM = "FILESYSTEM";
 
     public static final String VOLUME = "VOLUME";
+    
+    public static final String CONSISTENCY_GROUP = "CONSISTENCYGROUP";
 
     public static final String SNAPSHOT = "SNAPSHOT";
 
@@ -92,6 +96,8 @@ public class NativeGUIDGenerator {
     public static final String PHYSICAL_NAS = "PHYSICALNAS";
 
     public static final String VIRTUAL_NAS = "VIRTUALNAS";
+    
+    public static final String NAMESPACE = "NAMESPACE";
 
     static {
         OBJECT_TYPE_SET.add(POOL);
@@ -100,6 +106,11 @@ public class NativeGUIDGenerator {
         OBJECT_TYPE_SET.add(PHYSICAL_NAS);
         OBJECT_TYPE_SET.add(VIRTUAL_NAS);
     }
+
+    // Cannot get this bean from ControllerServiceImpl context,
+    // since ControllerServiceImpl is not loaded by spring in apisvc (it is passed in ZK). The context is null.
+    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
+           getApplicationContext().getBean("storageDriverManager");
 
     /**
      * static block maps the names existed as part of indications with the corresponding devices
@@ -127,6 +138,12 @@ public class NativeGUIDGenerator {
         _deviceTypeMap.put(StorageSystem.Type.vnxe.name(), "VNXE");
         _deviceTypeMap.put(StorageSystem.Type.xtremio.name(), "XTREMIO");
         _deviceTypeMap.put(StorageSystem.Type.ecs.name(), "ECS");
+
+        // add systems managed by driver
+        Collection<String> storageSystems = storageDriverManager.getStorageSystemsMap().values();
+        for (String storageSystem : storageSystems) {
+            _deviceTypeMap.put(storageSystem, storageSystem);
+        }
     }
 
     /**
@@ -643,6 +660,11 @@ public class NativeGUIDGenerator {
 
     }
 
+    public static String generateNativeGuidForCG(String systemNativeGuid, String cgGuid) {
+        return String.format("%s+" + CONSISTENCY_GROUP + "+%s", systemNativeGuid, cgGuid);
+
+    }
+    
     public static String generateNativeGuidForExportMask(String systemNativeGuid, String maskName) {
         return String.format("%s+" + MASKINGVIEW + "+%s", systemNativeGuid, maskName);
 
@@ -752,6 +774,10 @@ public class NativeGUIDGenerator {
     public static String generateNativeGuidForPreExistingFileShare(StorageSystem storageSystem, String fileShareNativeId) {
         return String.format("%s+%s+" + UN_MANAGED_FILE_SHARE + "+%s", _deviceTypeMap.get(storageSystem.getSystemType()), storageSystem
                 .getSerialNumber().toUpperCase(), fileShareNativeId);
+    }
+    
+    public static String generateNativeGuidForNamespace(StorageSystem device, String uniqueId, String type) {
+        return String.format("%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getSerialNumber(), type, uniqueId);
     }
 
 }

@@ -31,4 +31,18 @@
         <property name="version" value="1" />
     </bean>
 
+    <!-- Overriding the bean defined in coordinatorclient-var.xml, this one won't init itself automatically -->
+    <bean id="coordinator" class="com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="sysSvcName" value="${syssvc.name}"/>
+        <property name="sysSvcVersion" value="${syssvc.version}"/>
+        <property name="nodeCount" ref="nodeCount"/>
+        <property name="vdcShortId" value="vdc1"/>
+        <property name="vip" value="localhost"/>
+        <property name="vip6" value=""/>
+        <property name="inetAddessLookupMap" ref="inetAddessLookupMap"/>
+        <property name="defaultProperties" ref="defaultProperties"/>
+        <property name="ovfProperties" ref="ovfProperties"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+    </bean>
 </beans>

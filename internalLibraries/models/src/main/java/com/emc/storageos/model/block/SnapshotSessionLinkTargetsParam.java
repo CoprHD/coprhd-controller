@@ -36,8 +36,6 @@ public class SnapshotSessionLinkTargetsParam {
      * Gets the new targets parameter specifying info about new target volumes
      * to be created and linked to the block snapshot session.
      * 
-     * @valid none
-     * 
      * @return The new targets parameter specifying info about new target volumes
      *         to be created and linked to the block snapshot session.
      */

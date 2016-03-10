@@ -4,6 +4,96 @@
   "description": "root.description",
   "categories": [
     {
+      "title": "applicationservices.title",
+      "image": "icon_application.png",
+      "description": "applicationservices.description",
+      "services": [
+        {
+          "image": "icon_application_create_application.png",
+          "baseService": "CreateApplication"
+        },
+        {
+          "image": "icon_application_add_volumes.png",
+          "baseService": "AddVolumesToApplication"
+        },
+        {
+          "image": "icon_application_delete_application.png",
+          "baseService": "DeleteApplication"
+        },
+        {
+          "image": "icon_application_remove_volumes.png",
+          "baseService": "RemoveVolumesFromApplication"
+        }
+       ],
+      "categories": [
+      {
+        "title": "backuprestore.title",
+        "image": "icon_application.png",
+        "description": "backuprestore.description",
+        "categories": [
+           {
+              "title": "fullcopy.title",
+              "image": "icon_application.png",
+              "description": "fullcopy.description",
+              "services": [
+                    {
+                      "image": "icon_application_create_full_copy.png",
+                      "baseService": "CreateCloneOfApplication"
+                    },
+                    {
+                      "image": "icon_application_remove_full_copy.png",
+                      "baseService": "RemoveApplicationFullCopy"
+                    },
+                    {
+                      "image": "icon_application_detach_full_copy.png",
+                      "baseService": "DetachApplicationFullCopy"
+                    },
+                    {
+                      "image": "icon_application_restore_full_copy.png",
+                      "baseService": "RestoreApplicationFullCopy"
+                    },
+                    {
+                      "image": "icon_application_resych_full_copy.png",
+                      "baseService": "ResynchronizeApplicationFullCopy"
+                    }
+               ]
+	       },
+	       {
+               "title": "snapshot.title",
+               "image": "icon_application.png",
+               "description": "snapshot.description",
+               "services": [
+                   {
+                      "image": "icon_application_create_snapshot.png",
+                      "baseService": "CreateSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_restore_snapshot.png",
+                      "baseService": "RestoreSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_resynchronize_snapshot.png",
+                      "baseService": "ResynchronizeSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_remove_snapshot.png",
+                      "baseService": "DeleteSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_link_snapshot.png",
+                      "baseService": "LinkSnapshotOfApplication"
+                   },
+                   {
+                      "image": "icon_application_unlink_snapshot.png",
+                      "baseService": "UnlinkSnapshotOfApplication"
+                   }
+	           ]
+	        }
+          ]
+        }
+      ]
+    },
+    {
       "title": "block.title",
       "image": "icon_host.png",
       "description": "block.description",
@@ -39,6 +129,10 @@
         {
           "image": "icon_host_remove.png",
           "baseService": "UnexportVolume"
+        },
+        {
+          "image": "icon_host_multi_remove.png",
+          "baseService": "UnexportMultiVolume"
         },
         {
           "image": "Service_Discover_Unmanaged_Volumes.png",
@@ -213,7 +307,11 @@
         {
           "image": "Service_Remove_File_Quota_Dir.png",
           "baseService": "RemoveFileSystemQuotaDirectory"
-        }        
+        },
+        {
+          "image": "Service_Change_File_Virtual_Pool.png",
+          "baseService": "ChangeFileVirtualPool"
+        }    
       ]
     },
     {
@@ -234,6 +332,14 @@
           "baseService": "RemoveFileSnapshot"
         },
         {
+          "image": "Service_Associate_File_Policy_File_System.png",
+          "baseService": "AssociateFilePolicyToFileSystem"
+        },
+        {
+          "image": "Service_Dissociate_File_Policy_File_System.png",
+          "baseService": "DissociateFilePolicyFromFileSystem"
+        },
+        {
           "image": "icon_folder_CIFS_add.png",
           "baseService": "ShareFileSnapshot"
         },
@@ -248,6 +354,19 @@
         {
           "image": "icon_folder_NFS_remove.png",
           "baseService": "DeleteFileSnapshotExport"
+        },
+        {
+          "image": "Service_Create_File_Continuous_Copy.png",
+          "baseService": "CreateFileContinuousCopy"
+        }
+        ,
+        {
+          "image": "Service_Remove_File_Continuous_Copy.png",
+          "baseService": "RemoveFileContinuousCopy"
+        },
+        {
+          "image": "Service_Failover_File_System.png",
+          "baseService": "FailoverFileSystem"
         }
       ]
     },
@@ -347,6 +466,41 @@
         {
           "image": "icon_provision_aix_remove.png",
           "baseService": "Aix-UnmountAndDeleteBlockVolume"
+        }
+      ]
+    }, 
+    {
+      "title": "block.hpux.title",
+      "image": "icon_hpux.png",
+      "description": "block.hpux.description",
+      "services": [
+        {
+          "image": "icon_provision_hpux_add.png",
+          "baseService": "Hpux-CreateAndMountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_hpux_remove.png",
+          "baseService": "Hpux-UnmountBlockVolume"
+        },
+        {
+          "image": "icon_provision_hpux_remove.png",
+          "baseService": "Hpux-UnmountAndDeleteBlockVolume"
+        },
+        {
+          "image": "icon_storage_hpux_add.png",
+          "baseService": "Hpux-MountBlockVolume",
+          "lockFields": {
+            "blockSize": "DEFAULT",
+            "hlu": "-1"
+          }
+        },
+        {
+          "image": "icon_storage_hpux_expand.png",
+          "baseService": "Hpux-ExpandBlockVolume"
         }
       ]
     }, 
@@ -473,6 +627,18 @@
         {
           "image": "icon_VPLEX_data_migration.png",
           "baseService": "VplexDataMigration"
+        },
+        {
+          "image": "Service_MobilityGroupMigration.png",
+          "baseService": "MobilityGroupMigration"
+        },
+        {
+          "image": "Service_AddResourcesMobilityGroup.png",
+          "baseService": "AddResourcesToMobilityGroup"
+        },
+        {
+          "image": "Service_RemoveResourcesMobilityGroup.png",
+          "baseService": "RemoveResourcesFromMobilityGroup"
         }
       ]
     },

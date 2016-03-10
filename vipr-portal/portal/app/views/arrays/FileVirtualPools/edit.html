@@ -120,12 +120,18 @@ $(document).ready(function() {
       #{field 'vpool.maxSnapshots'}
         #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
       #{/field}
+      #{field 'vpool.scheduleSnapshots'}
+       #{VirtualPools.locked locked:locked, field:field /}
+       #{Form.booleanCheckBoxControlGroup field:field /}
+      #{/field}
       #{field 'vpool.replicationType'}
+        #{VirtualPools.locked locked:locked, field:field /}
         #{Form.selectOneControlGroup field:field, options:replicationTypeOptions, cssClass:'span4' /}
       #{/field}
       
    <div data-source="vpool_replicationType" data-hide="${models.FileProtectionSystemTypes.NONE}">
       #{field 'vpool.replicationMode'}
+        #{VirtualPools.locked locked:locked, field:field /}
         #{Form.selectOneControlGroup field:field, options:replicationModeOptions, cssClass:'span4' /}
       #{/field}
       
@@ -133,6 +139,7 @@ $(document).ready(function() {
      #{Form.controlGroup field:field, width:width}
      <div class="row col-gap-sm">
         <div class="col-xs-6">
+          #{VirtualPools.locked locked:locked, field:field /}
           #{Form.inputText field: field/}
         </div>
         <div class="col-xs-6">
@@ -140,6 +147,7 @@ $(document).ready(function() {
             %{
               field.options = replicationRpoTypeOptions   
             }%
+            #{VirtualPools.locked locked:locked, field:field /}
             #{Form.selectOne field: field/}
           #{/field}
         </div>

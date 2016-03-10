@@ -90,9 +90,8 @@ public class StorageProviderTypes {
     public static List <StringOption> getProviderOption() {
     	String alltypes = "all";
     	List <StringOption> allproviders = new ArrayList <StringOption> ();
-    	StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
-    	List <StorageSystemTypeRestRep> storageTypeRestlList = storagetypelist.getStorageSystemTypes();
-    	for(StorageSystemTypeRestRep storagetypeRest: storageTypeRestlList) {
+    	List <StorageSystemTypeRestRep> storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+    	for(StorageSystemTypeRestRep storagetypeRest: storagetypelist) {
     		if(storagetypeRest.getIsSmiProvider()){
     			allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
     		}

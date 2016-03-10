@@ -3575,20 +3575,6 @@ public class VolumeIngestionUtil {
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
             if (volume.isVPlexVolume(dbClient)) {
-
-                // We need the VPLEX ingest context to get the backend volume info
-                // This information is stored in the context if the vplex volume is the last volume
-                // in the ingestion. Otherwise we'll fish it out of the database in the findVolume()
-                // method below.
-                Map<String, BlockObject> createdMap = null;
-                Map<String, Set<DataObject>> updatedMap = null;
-                if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
-                    createdMap = ((RpVplexVolumeIngestionContext) requestContext.getVolumeContext()).getVplexVolumeIngestionContext()
-                            .getBlockObjectsToBeCreatedMap();
-                    updatedMap = ((RpVplexVolumeIngestionContext) requestContext.getVolumeContext()).getVplexVolumeIngestionContext()
-                            .getDataObjectsToBeUpdatedMap();
-                }
-
                 for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
                     // Find the associated volumes using the context maps or the db if they are already there
                     Volume associatedVolume = requestContext.findDataObjectByType(

@@ -33,6 +33,7 @@ import com.emc.storageos.systemservices.impl.resource.BackupService;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.util.SkipOutputStream;
 
+import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +53,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     private static final Logger log = LoggerFactory.getLogger(BackupScheduler.class);
     private static final long SCHEDULE_BACKUP_RETRY_OFFSITE = 5 * 60 * 1000L;
     private volatile boolean isLeader = false;
+    private boolean isBackupReconfig = false;
 
     private static volatile BackupScheduler singletonInstance;
 
@@ -183,19 +185,24 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             log.info("Backup scheduler thread goes live");
 
             this.cfg.reload();
+            if(this.coordinator.getCoordinatorClient().isClusterUpgradable() || isBackupReconfig ) {
+                // If we made any new backup, notify uploader thread to perform upload
+                this.backupExec.create();
+                this.uploadExec.upload();
+                this.backupExec.reclaim();
 
-            // If we made any new backup, notify uploader thread to perform upload
-            this.backupExec.create();
-            this.uploadExec.upload();
-            this.backupExec.reclaim();
-
-        } catch (Exception e) {
+                isBackupReconfig = false;
+            }else {
+                log.info("Backup schedule can't run as cluster is not in upgradable state,will schedule next run");
+            }
+        }catch(Exception e){
             log.error("Exception occurred in scheduler", e);
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
                 return;
             }
         }
+
 
         // Will retry every 5 min if schedule next run fail
         while (isLeader && !service.isShutdown()) {
@@ -313,6 +320,7 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         ScheduledExecutorService svc = service;
         if (svc != null) {
             try {
+                isBackupReconfig = true;
                 svc.schedule((Callable<Object>) this, 0L, TimeUnit.MICROSECONDS);
             } catch (RejectedExecutionException ex) {
                 if (svc.isShutdown()) {

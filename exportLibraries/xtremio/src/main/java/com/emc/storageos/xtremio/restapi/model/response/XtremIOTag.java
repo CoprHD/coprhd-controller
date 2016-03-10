@@ -34,4 +34,10 @@ public class XtremIOTag {
     public void setNumberOfDirectObjs(String numberOfDirectObjs) {
         this.numberOfDirectObjs = numberOfDirectObjs;
     }
+
+    @Override
+    public String toString() {
+        return "XtremIOTag [numberOfVolumes=" + numberOfVolumes + ", numberOfDirectObjs=" + numberOfDirectObjs + "]";
+    }
+
 }

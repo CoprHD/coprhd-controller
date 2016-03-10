@@ -129,7 +129,11 @@ volume_group_add_volumes()
 {
     echo "adding volumes to volume group ${1}"
     viprcli_authenticate >$ dev/null
-    if [ -n "$3" ]; then    
+    if [ -n "$4" ]; then
+        $VIPRCLI_CMD volumegroup update -n $1 -a $2 -cg $3 -rg $4
+        retval=$?
+        sleep 10
+    elif [ -n "$3" ]; then    
         $VIPRCLI_CMD volumegroup update -n $1 -a $2 -cg $3
         retval=$?
         sleep 10

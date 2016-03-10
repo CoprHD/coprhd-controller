@@ -71,7 +71,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.ExceptionUtils;
-import com.emc.storageos.db.client.util.ExportGroupNameGenerator;
 import com.emc.storageos.db.client.util.ResourceAndUUIDNameGenerator;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -370,7 +369,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 volumeContext.commit();
 
                 // Commit this volume's updated data objects if any after ingestion
-                List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
+                Set<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     for (DataObject dob : updatedObjects) {
                         _logger.info("Updating DataObject " + dob.forDisplay());
@@ -379,7 +378,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 // Commit this volume's created data objects if any after ingestion
-                List<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
+                Set<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
                 if (createdObjects != null && !createdObjects.isEmpty()) {
                     for (DataObject dob : createdObjects) {
                         _logger.info("Creating DataObject " + dob.forDisplay());
@@ -660,7 +659,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 requestContext.setHost(exportIngestParam.getHost());
             }
 
-            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(project.getId(), exportGroupResourceUri,
+            ExportGroup exportGroup = VolumeIngestionUtil.verifyExportGroupExists(requestContext, project.getId(), exportGroupResourceUri,
                     varray.getId(), resourceType, _dbClient);
             if (null == exportGroup) {
                 _logger.info("Creating Export Group with label {}", computeResourcelabel);
@@ -691,7 +690,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
 
             // Update the related objects if any after successful export mask ingestion
-            for (List<DataObject> updatedObjects : requestContext.getDataObjectsToBeUpdatedMap().values()) {
+            for (Set<DataObject> updatedObjects : requestContext.getDataObjectsToBeUpdatedMap().values()) {
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     for (DataObject dob : updatedObjects) {
                         _logger.info("Updating DataObject " + dob.forDisplay());
@@ -701,7 +700,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             }
 
             // Create the related objects if any after successful export mask ingestion
-            for (List<DataObject> createdObjects : requestContext.getDataObjectsToBeCreatedMap().values()) {
+            for (Set<DataObject> createdObjects : requestContext.getDataObjectsToBeCreatedMap().values()) {
                 if (createdObjects != null && !createdObjects.isEmpty()) {
                     for (DataObject dob : createdObjects) {
                         _logger.info("Creating DataObject " + dob.forDisplay());
@@ -750,7 +749,7 @@ public class UnManagedVolumeService extends TaskResourceService {
 
     /**
      * Commit ingested consistency group
-     * 
+     *
      * @param requestContext request context
      * @param unManagedVolume unmanaged volume to ingest against this CG
      * @throws Exception

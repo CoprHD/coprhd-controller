@@ -9,6 +9,11 @@
     
     copyName:{
       type:"assetType.vipr.fullCopyName"
+    },
+    
+    applicationSubGroup:{
+      type:"assetType.vipr.copyReplicationGroup",
+      select:"many"
     }
   }
 }

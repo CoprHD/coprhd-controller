@@ -13,7 +13,7 @@ angular.module("services", []).directive({
     	
     	function addBlankOptionIfRequired(item) {
     		// item is not required and has options
-            if (item && !item.required && item.options && item.options.length > 0) {
+            if (item && !item.required && item.options && item.options.length > 0 && !item.omitNone) {
             	item.options.unshift({
         			"key": "",
         			"value": translate("common.none")

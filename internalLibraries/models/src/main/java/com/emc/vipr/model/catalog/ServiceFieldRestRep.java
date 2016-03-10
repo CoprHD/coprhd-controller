@@ -19,6 +19,7 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
     public static final String ASSET_TYPE_PREFIX = "assetType.";
 
     private boolean required;
+    private boolean omitNone;
     private String initialValue;
     private String select;
     private boolean lockable;
@@ -35,6 +36,15 @@ public class ServiceFieldRestRep extends ServiceItemRestRep {
 
     public void setRequired(boolean required) {
         this.required = required;
+    }
+    
+    @XmlElement(name = "omitNone")
+    public boolean isOmitNone() {
+        return omitNone;
+    }
+
+    public void setOmitNone(boolean omitNone) {
+        this.omitNone = omitNone;
     }
 
     @XmlElement(name = "initial_value")

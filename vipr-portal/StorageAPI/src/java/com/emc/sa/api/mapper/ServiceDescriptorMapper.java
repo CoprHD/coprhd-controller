@@ -55,6 +55,7 @@ public class ServiceDescriptorMapper {
         to.setMin(from.getValidation().getMin());
         to.setRegEx(from.getValidation().getRegEx());
         to.setRequired(from.isRequired());
+        to.setOmitNone(from.isOmitNone());
         to.setSelect(from.getSelect());
 
         for (String key : from.getOptions().keySet()) {

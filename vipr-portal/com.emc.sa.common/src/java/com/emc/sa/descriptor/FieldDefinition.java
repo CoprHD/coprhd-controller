@@ -18,6 +18,9 @@ public class FieldDefinition extends ItemDefinition {
 
     /** Whether the field is required. */
     public boolean required = true;
+    
+    /** Whether the field will add a "None" value if required. */
+    public boolean omitNone = false;
 
     /** Whether the field can be 'locked' down (pre-defined) by an admin in the catalog. */
     public boolean lockable = false;
@@ -39,6 +42,7 @@ public class FieldDefinition extends ItemDefinition {
         ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
         toString(builder);
         builder.append("required", required);
+        builder.append("omitNone", omitNone);
         builder.append("lockable", lockable);
         builder.append("initialValue", initialValue);
         builder.append("select", select);

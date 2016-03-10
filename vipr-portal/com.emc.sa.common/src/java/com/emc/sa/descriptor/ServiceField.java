@@ -37,6 +37,9 @@ public class ServiceField extends ServiceItem {
 
     /** Indicates whether the field is required. */
     private boolean required = true;
+    
+    /** Indicates whether the field will add "None" if required. */
+    private boolean omitNone = false;
 
     /** Indicates that the field can be 'locked' down (pre-defined) by an admin in the catalog. */
     private boolean lockable;
@@ -59,6 +62,14 @@ public class ServiceField extends ServiceItem {
 
     public void setRequired(boolean required) {
         this.required = required;
+    }
+    
+    public boolean isOmitNone() {
+        return omitNone;
+    }
+
+    public void setOmitNone(boolean omitNone) {
+        this.omitNone = omitNone;
     }
 
     public boolean isLockable() {
@@ -126,6 +137,7 @@ public class ServiceField extends ServiceItem {
         ToStringBuilder builder = new ToStringBuilder(ToStringStyle.SHORT_PREFIX_STYLE);
         toString(builder);
         builder.append("required", required);
+        builder.append("omitNone", omitNone);
         builder.append("lockable", lockable);
         builder.append("initialValue", initialValue);
         builder.append("select", select);

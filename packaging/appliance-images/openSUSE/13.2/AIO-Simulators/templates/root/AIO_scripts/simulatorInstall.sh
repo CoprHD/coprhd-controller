@@ -255,7 +255,7 @@ rm -r xio-*
 rm -f xio-simulators-*.zip
 
 					#############################
-					# VM                       #
+					# VMWARE                    #
 					#############################
 echo "Installing VMWARE"
 

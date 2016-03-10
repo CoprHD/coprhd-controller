@@ -77,6 +77,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
@@ -351,11 +352,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // If the consistency group is inactive, has yet to be created on
         // a storage system, or this is a ViPR Only delete, then the deletion
         // is not controller specific. We essentially just mark the CG for
-        // deletion.
-        if (deleteUncreatedConsistencyGroup(consistencyGroup) ||
+        // deletion. Note that the CG may be uncreated, but in the process of
+        // being created, which means that volumes would reference the CG.
+        // So, we do need to verify that no volumes reference the CG.
+        if (deletingUncreatedConsistencyGroup(consistencyGroup) ||
                 VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
-            validateVolumesAndDeleteCG(consistencyGroup);
+            validateCGIsEmptyAndDeleteCG(consistencyGroup);
             return finishDeactivateTask(consistencyGroup, task);
+        } else {
+            // The CG still needs to be empty to delete it.
+            validateCGIsEmpty(consistencyGroup);
         }
 
         // Otherwise, we need to clean up the array consistency groups.
@@ -364,24 +370,46 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             List<StorageSystem> vplexSystems = BlockConsistencyGroupUtils.getVPlexStorageSystems(consistencyGroup, _dbClient);
             if (!vplexSystems.isEmpty()) {
                 // If there is a VPLEX system, then we simply call the VPLEX controller which
-                // will delete not only the VPLEX CGS, but also any local CGs and mark the
-                // CG for deletion after all local and VPLEX CGS have been deleted.
+                // will delete all VPLEX CGS on all VPLEX systems, and also all local CGs on
+                // all local systems.
                 BlockServiceApi blockServiceApi = getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
                 taskRep = blockServiceApi.deleteConsistencyGroup(vplexSystems.get(0), consistencyGroup, task);
             } else {
-                // Otherwise, we call the block controller to delete the local CGs. This
-                // will clean the CGs on all local systems.
+                // Otherwise, we call the block controller to delete the local CGs on all local systems.
                 List<URI> localSystemURIs = BlockConsistencyGroupUtils.getLocalSystems(consistencyGroup, _dbClient);
                 if (!localSystemURIs.isEmpty()) {
-                    StorageSystem localSystem = _dbClient.queryObject(StorageSystem.class, localSystemURIs.get(0));
-                    BlockServiceApi blockServiceApi = getBlockServiceImpl(BLOCKSERVICEAPIIMPL_GROUP);
-                    taskRep = blockServiceApi.deleteConsistencyGroup(localSystem, consistencyGroup, task);
+                    boolean foundSystem = false;
+                    for (URI localSystemURI : localSystemURIs) {
+                        StorageSystem localSystem = _dbClient.queryObject(StorageSystem.class, localSystemURI);
+                        if (localSystem != null) {
+                            foundSystem = true;
+                            BlockServiceApi blockServiceApi = getBlockServiceImpl(BLOCKSERVICEAPIIMPL_GROUP);
+                            taskRep = blockServiceApi.deleteConsistencyGroup(localSystem, consistencyGroup, task);
+                            if (Task.Status.error.name().equals(taskRep.getState())) {
+                                break;
+                            }
+                        } else {
+                            _log.warn("Local system {} for consistency group {} does not exist",
+                                    localSystemURI, consistencyGroup.getLabel());
+                        }
+                    }
+
+                    // Check to make sure we found at least one of these local systems.
+                    if (!foundSystem) {
+                        // For some reason we have a CG with local systems, but none of them
+                        // are in the database. In this case, we will log a warning and mark
+                        // it for deletion.
+                        _log.warn("Deleting created consistency group {} where none of the local systems for the group exist",
+                                consistencyGroup.getLabel());
+                        markCGForDeletion(consistencyGroup);
+                        return finishDeactivateTask(consistencyGroup, task);
+                    }
                 } else {
                     // For some reason the CG has no VPLEX or local systems but is
-                    // marked as being active and created. In this case, we will just
-                    // mark it for deletion.
-                    _log.warn("Deleting created consistency group {} with no local or VPLEX systems");
-                    validateVolumesAndDeleteCG(consistencyGroup);
+                    // marked as being active and created. In this case, we will log
+                    // a warning and mark it for deletion.
+                    _log.warn("Deleting created consistency group {} with no local or VPLEX systems", consistencyGroup.getLabel());
+                    markCGForDeletion(consistencyGroup);
                     return finishDeactivateTask(consistencyGroup, task);
                 }
             }
@@ -402,6 +430,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             _dbClient.error(BlockConsistencyGroup.class, taskRep.getResource().getId(), task, apie);
         }
 
+        // Make sure that the CG is marked for deletion if
+        // the request was successful.
+        if (Task.Status.ready.name().equals(taskRep.getState())) {
+            markCGForDeletion(consistencyGroup);
+        }
+
         return taskRep;
     }
 
@@ -409,9 +443,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * Validate there are no remaining volumes in a CG and delete the CG if it's empty.
      * Throw a validation exception if there are volumes in the CG.
      * 
-     * @param consistencyGroup consistency group database object
+     * @param consistencyGroup A reference to the consistency group.
      */
-    private void validateVolumesAndDeleteCG(final BlockConsistencyGroup consistencyGroup) {
+    private void validateCGIsEmptyAndDeleteCG(BlockConsistencyGroup consistencyGroup) {
+        validateCGIsEmpty(consistencyGroup);
+        markCGForDeletion(consistencyGroup);
+    }
+
+    /**
+     * Validate there are no remaining volumes in a CG.
+     * Throw a validation exception if there are volumes in the CG.
+     * 
+     * @param consistencyGroup A reference to the consistency group.
+     */
+    private void validateCGIsEmpty(BlockConsistencyGroup consistencyGroup) {
         final URIQueryResultList cgVolumesResults = new URIQueryResultList();
         _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
                 cgVolumesResults);
@@ -422,9 +467,19 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                         consistencyGroup.getTypes().toString());
             }
         }
-        consistencyGroup.setStorageController(null);
-        consistencyGroup.setInactive(true);
-        _dbClient.updateObject(consistencyGroup);
+    }
+
+    /**
+     * Update the CG so it is deleted.
+     * 
+     * @param consistencyGroup A reference to the consistency group.
+     */
+    private void markCGForDeletion(BlockConsistencyGroup consistencyGroup) {
+        if (!consistencyGroup.getInactive()) {
+            consistencyGroup.setStorageController(null);
+            consistencyGroup.setInactive(true);
+            _dbClient.updateObject(consistencyGroup);
+        }
     }
 
     /**
@@ -437,7 +492,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      *
      * @return True if the CG is active and not created.
      */
-    private boolean deleteUncreatedConsistencyGroup(
+    private boolean deletingUncreatedConsistencyGroup(
             final BlockConsistencyGroup consistencyGroup) {
         // If the consistency group is active and not created we can delete it,
         // otherwise we cannot.

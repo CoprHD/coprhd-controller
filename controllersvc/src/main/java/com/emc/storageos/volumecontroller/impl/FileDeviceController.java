@@ -281,7 +281,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
 
             // work flow and we need to add TaskCompleter(TBD for vnxfile)
             WorkflowStepCompleter.stepExecuting(opId);
-            _log.info("Lock acquiring Started for fileSystem {} TIME :{}  ", fsObj.getLabel(), System.currentTimeMillis());
+            _log.info("Acquiring {} {} ", fsObj.getLabel(), System.currentTimeMillis());
             // Code to acquire lock on for VNXFILE Storage System
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             if (storageSystem.deviceIsType(Type.vnxfile)) {
@@ -303,7 +303,7 @@ public class FileDeviceController implements FileOrchestrationInterface, FileCon
                 fsObj.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(_dbClient, fsObj));
                 fsObj.setInactive(false);
                 WorkflowStepCompleter.stepSucceded(opId);
-                _log.info("Lock released for fileSystem {} TIME :{}  ", fsObj.getLabel(), System.currentTimeMillis());
+                _log.info("Released {} {} ", fsObj.getLabel(), System.currentTimeMillis());
             } else if (!result.getCommandPending()) {
                 fsObj.setInactive(true);
                 WorkflowStepCompleter.stepFailed(opId, result.getServiceCoded());

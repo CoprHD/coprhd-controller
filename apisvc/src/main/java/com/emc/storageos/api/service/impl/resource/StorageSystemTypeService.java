@@ -304,16 +304,18 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
 			ssType.setStorageTypeType("file");
 			ssType.setIsSmiProvider(false);
-			if (defaultSSL.get(file)) {
+			
+			if (defaultSSL.get(file) != null ) {
 				ssType.setIsDefaultSsl(true);
 			}
-			if (defaultMDM.get(file)) {
+
+			if (defaultMDM.get(file) != null ) {
 				ssType.setIsDefaultMDM(true);
 			}
-			if (onlyMDM.get(file)) {
+			if (onlyMDM.get(file) != null ) {
 				ssType.setIsOnlyMDM(true);
 			}
-			if (elementManager.get(file)) {
+			if (elementManager.get(file) != null ) {
 				ssType.setIsElementMgr(true);
 			}
 
@@ -329,16 +331,16 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
 			ssType.setStorageTypeType("file");
 			ssType.setIsSmiProvider(true);
-			if (defaultSSL.get(file)) {
+			if (defaultSSL.get(file) != null ) {
 				ssType.setIsDefaultSsl(true);
 			}
-			if (defaultMDM.get(file)) {
+			if (defaultMDM.get(file) != null ) {
 				ssType.setIsDefaultMDM(true);
 			}
-			if (onlyMDM.get(file)) {
+			if (onlyMDM.get(file) != null ) {
 				ssType.setIsOnlyMDM(true);
 			}
-			if (elementManager.get(file)) {
+			if (elementManager.get(file) != null ) {
 				ssType.setIsElementMgr(true);
 			}
 
@@ -354,16 +356,16 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
 			ssType.setStorageTypeType("block");
 			ssType.setIsSmiProvider(false);
-			if (defaultSSL.get(block)) {
+			if (defaultSSL.get(block) != null ) {
 				ssType.setIsDefaultSsl(true);
 			}
-			if (defaultMDM.get(block)) {
+			if (defaultMDM.get(block) != null ) {
 				ssType.setIsDefaultMDM(true);
 			}
-			if (onlyMDM.get(block)) {
+			if (onlyMDM.get(block) != null ) {
 				ssType.setIsOnlyMDM(true);
 			}
-			if (elementManager.get(block)) {
+			if (elementManager.get(block) != null ) {
 				ssType.setIsElementMgr(true);
 			}
 
@@ -379,16 +381,16 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
 			ssType.setStorageTypeType("block");
 			ssType.setIsSmiProvider(true);
-			if (defaultSSL.get(block)) {
+			if (defaultSSL.get(block) != null ) {
 				ssType.setIsDefaultSsl(true);
 			}
-			if (defaultMDM.get(block)) {
+			if (defaultMDM.get(block) != null ) {
 				ssType.setIsDefaultMDM(true);
 			}
-			if (onlyMDM.get(block)) {
+			if (onlyMDM.get(block) != null ) {
 				ssType.setIsOnlyMDM(true);
 			}
-			if (elementManager.get(block)) {
+			if (elementManager.get(block) != null ) {
 				ssType.setIsElementMgr(true);
 			}
 
@@ -404,16 +406,16 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(object));
 			ssType.setStorageTypeType("object");
 			ssType.setIsSmiProvider(false);
-			if (defaultSSL.get(object)) {
+			if (defaultSSL.get(object) != null ) {
 				ssType.setIsDefaultSsl(true);
 			}
-			if (defaultMDM.get(object)) {
+			if (defaultMDM.get(object) != null ) {
 				ssType.setIsDefaultMDM(true);
 			}
-			if (onlyMDM.get(object)) {
+			if (onlyMDM.get(object) != null ) {
 				ssType.setIsOnlyMDM(true);
 			}
-			if (elementManager.get(object)) {
+			if (elementManager.get(object) != null ) {
 				ssType.setIsElementMgr(true);
 			}
 

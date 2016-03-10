@@ -7854,6 +7854,10 @@ dr_multisite_tests()
     echo "Sleep 1m to wait standby ZK switch to participant"
     sleep 60
     echo "Wait for stable"
+    BOURNE_IPADDR=$DR_SITE_B_IP
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    dr waitforstable --ip "${DR_SITE_B_IP}" 10 600
+
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr waitforstable --ip "${DR_SITE_A_IP}" 10 600

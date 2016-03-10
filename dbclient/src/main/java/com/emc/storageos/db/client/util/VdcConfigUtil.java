@@ -154,6 +154,7 @@ public class VdcConfigUtil {
                     && (site.getState().equals(SiteState.STANDBY_PAUSING)
                     || site.getState().equals(SiteState.STANDBY_PAUSED)
                     || site.getState().equals(SiteState.STANDBY_REMOVING)
+                    || site.getState().equals(SiteState.ACTIVE_FAILING_OVER)
                     || site.getState().equals(SiteState.ACTIVE_DEGRADED))) {
 
                 continue;

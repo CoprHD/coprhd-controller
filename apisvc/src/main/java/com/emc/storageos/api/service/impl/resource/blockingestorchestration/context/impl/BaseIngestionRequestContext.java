@@ -7,9 +7,11 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration.con
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +32,7 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 /**
@@ -58,8 +61,8 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
 
     private List<UnManagedVolume> _unManagedVolumesToBeDeleted;
     private Map<String, BlockObject> _blockObjectsToBeCreatedMap;
-    private Map<String, List<DataObject>> _dataObjectsToBeUpdatedMap;
-    private Map<String, List<DataObject>> _dataObjectsToBeCreatedMap;
+    private Map<String, Set<DataObject>> _dataObjectsToBeUpdatedMap;
+    private Map<String, Set<DataObject>> _dataObjectsToBeCreatedMap;
 
     private VolumeIngestionContext _currentVolumeIngestionContext;
     private URI _currentUnManagedVolumeUri;
@@ -364,9 +367,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getDataObjectsToBeCreatedMap()
      */
     @Override
-    public Map<String, List<DataObject>> getDataObjectsToBeCreatedMap() {
+    public Map<String, Set<DataObject>> getDataObjectsToBeCreatedMap() {
         if (null == _dataObjectsToBeCreatedMap) {
-            _dataObjectsToBeCreatedMap = new HashMap<String, List<DataObject>>();
+            _dataObjectsToBeCreatedMap = new HashMap<String, Set<DataObject>>();
         }
 
         return _dataObjectsToBeCreatedMap;
@@ -378,9 +381,9 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
      * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#getObjectsToBeUpdatedMap()
      */
     @Override
-    public Map<String, List<DataObject>> getDataObjectsToBeUpdatedMap() {
+    public Map<String, Set<DataObject>> getDataObjectsToBeUpdatedMap() {
         if (null == _dataObjectsToBeUpdatedMap) {
-            _dataObjectsToBeUpdatedMap = new HashMap<String, List<DataObject>>();
+            _dataObjectsToBeUpdatedMap = new HashMap<String, Set<DataObject>>();
         }
 
         return _dataObjectsToBeUpdatedMap;
@@ -755,7 +758,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     public DataObject findInUpdatedObjects(URI uri) {
         _logger.info("looking everywhere for an already-loaded object to updated with URI " + uri);
 
-        for (List<DataObject> objectsToBeUpdated : this.getDataObjectsToBeUpdatedMap().values()) {
+        for (Set<DataObject> objectsToBeUpdated : this.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject o : objectsToBeUpdated) {
                 if (o.getId().equals(uri)) {
                     _logger.info("\tfound data object in base ingestion request context: " + o.forDisplay());
@@ -768,7 +771,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
         if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
             _logger.info("checking current volume ingestion context {}",
                     currentVolumeContext.getUnmanagedVolume().forDisplay());
-            for (List<DataObject> objectsToBeUpdated : ((IngestionRequestContext) currentVolumeContext).getDataObjectsToBeUpdatedMap()
+            for (Set<DataObject> objectsToBeUpdated : ((IngestionRequestContext) currentVolumeContext).getDataObjectsToBeUpdatedMap()
                     .values()) {
                 for (DataObject o : objectsToBeUpdated) {
                     if (o.getId().equals(uri)) {
@@ -784,7 +787,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
             _logger.info("checking already-ingested volume ingestion context {}",
                     volumeContext.getUnmanagedVolume().forDisplay());
             if (volumeContext instanceof IngestionRequestContext) {
-                for (List<DataObject> objectsToBeUpdated : ((IngestionRequestContext) volumeContext).getDataObjectsToBeUpdatedMap()
+                for (Set<DataObject> objectsToBeUpdated : ((IngestionRequestContext) volumeContext).getDataObjectsToBeUpdatedMap()
                         .values()) {
                     for (DataObject o : objectsToBeUpdated) {
                         if (o.getId().equals(uri)) {
@@ -858,7 +861,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     @Override
     public void addDataObjectToUpdate(DataObject dataObject, UnManagedVolume unManagedVolume) {
         if (null == getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid())) {
-            getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
+            getDataObjectsToBeUpdatedMap().put(unManagedVolume.getNativeGuid(), new HashSet<DataObject>());
         }
         getDataObjectsToBeUpdatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
@@ -873,7 +876,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     @Override
     public void addDataObjectToCreate(DataObject dataObject, UnManagedVolume unManagedVolume) {
         if (null == getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid())) {
-            getDataObjectsToBeCreatedMap().put(unManagedVolume.getNativeGuid(), new ArrayList<DataObject>());
+            getDataObjectsToBeCreatedMap().put(unManagedVolume.getNativeGuid(), new HashSet<DataObject>());
         }
         getDataObjectsToBeCreatedMap().get(unManagedVolume.getNativeGuid()).add(dataObject);
     }
@@ -923,7 +926,7 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     public List<ExportMask> findAllNewExportMasks() {
         List<ExportMask> newExportMasks = new ArrayList<ExportMask>();
         
-        for (List<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
+        for (Set<DataObject> createdObjects : this.getDataObjectsToBeCreatedMap().values()) {
             for (DataObject createdObject : createdObjects) {
                 if (createdObject instanceof ExportMask) {
                     newExportMasks.add((ExportMask) createdObject);
@@ -947,6 +950,87 @@ public class BaseIngestionRequestContext implements IngestionRequestContext {
     @Override
     public IngestionRequestContext getRootIngestionRequestContext() {
         return this;
+    }
+
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext#findObjectAnywhere(java.lang.Class, java.net.URI)
+     */
+    @Override
+    public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase) {
+
+        _logger.info("looking for {} object with id {}", clazz.toString(), id);
+
+        // check for DataObjects in already-loaded Updated Objects first
+        DataObject dob = this.findInUpdatedObjects(id);
+        if (clazz.isInstance(dob)) {
+            _logger.info("found in updated objects");
+            return (T) clazz.cast(dob);
+        }
+
+        // search for any already-loaded UnManagedVolume instances
+        if (clazz.equals(UnManagedVolume.class)) {
+
+            for (UnManagedVolume umv : this.findAllUnManagedVolumesToBeDeleted()) {
+                if (umv != null && umv.getId().equals(id)) {
+                    _logger.info("found in volumes to be deleted");
+                    return (T) clazz.cast(umv);
+                }
+            }
+
+            VolumeIngestionContext currentVolumeContext = getVolumeContext();
+            if (currentVolumeContext != null && currentVolumeContext instanceof IngestionRequestContext) {
+                UnManagedVolume umv = currentVolumeContext.getUnmanagedVolume();
+                if (umv != null && umv.getId().equals(id)) {
+                    _logger.info("found in current volume context");
+                    return (T) clazz.cast(umv);
+                }
+            }
+
+            for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+                if (volumeContext instanceof IngestionRequestContext) {
+                    UnManagedVolume umv = volumeContext.getUnmanagedVolume();
+                    if (umv != null && umv.getId().equals(id)) {
+                        _logger.info("found in already-processed volume context");
+                        return (T) clazz.cast(umv);
+                    }
+                }
+            }
+        }
+
+        // search for any already-loaded UnManagedProtectionSet instances
+        if (clazz.equals(UnManagedProtectionSet.class)) {
+
+            VolumeIngestionContext currentVolumeContext = getVolumeContext();
+            if (currentVolumeContext != null && currentVolumeContext instanceof RecoverPointVolumeIngestionContext) {
+                UnManagedProtectionSet umpset = ((RecoverPointVolumeIngestionContext) currentVolumeContext).getUnManagedProtectionSetLocal();
+                if (umpset != null && umpset.getId().equals(id)) {
+                    _logger.info("found in current volume context");
+                    return (T) clazz.cast(umpset);
+                }
+            }
+
+            for (VolumeIngestionContext volumeContext : this.getProcessedUnManagedVolumeMap().values()) {
+                if (volumeContext != null && volumeContext instanceof RecoverPointVolumeIngestionContext) {
+                    UnManagedProtectionSet umpset = ((RecoverPointVolumeIngestionContext) volumeContext).getUnManagedProtectionSetLocal();
+                    if (umpset != null && umpset.getId().equals(id)) {
+                        _logger.info("found in already-processed volume context");
+                        return (T) clazz.cast(umpset);
+                    }
+                }
+            }
+        }
+
+        if (fallbackToDatabase) {
+            // if we still haven't found it, load it from the database
+            T dataObject = _dbClient.queryObject(clazz, id);
+            if (dataObject != null) {
+                _logger.info("loaded object from database");
+                return (T) clazz.cast(dataObject);
+            }
+        }
+
+        _logger.info("could not find object");
+        return null;
     }
 
 }

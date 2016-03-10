@@ -108,6 +108,10 @@ angular.module('tags').directive({
 				#{/if}
              }
 
+			 if(scope.row.status.toUpperCase() == "ACTIVE_DEGRADED"){
+				scope.isResumeSite = true;
+		     }
+             
              if(scope.row.status.toUpperCase() == "STANDBY_ERROR"){
              	if(isRetrySite({'uuid': scope.row.id})){
 					scope.isRetrySite = true;

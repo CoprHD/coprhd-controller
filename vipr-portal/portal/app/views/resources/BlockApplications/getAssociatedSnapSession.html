@@ -12,7 +12,10 @@
                   selectable:true/}
 
 <script type="text/javascript">
-function renderLink(o, val) {
-    return val;
+function renderLink(ovar data = o.aData;
+var url = #{jsAction @resources.BlockSnapshotSessions.snapshotSessionDetails(':id') /};
+var href = url(data);
+
+return "<a href='"+href+"'>" + val + "</a>";return val;
 }
 </script>

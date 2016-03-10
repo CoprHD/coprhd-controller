@@ -13,6 +13,10 @@
 
 <script type="text/javascript">
 function renderLink(o, val) {
-    return val;
+	var data = o.aData;
+	var url = #{jsAction @resources.BlockSnapshots.snapshotDetails(':id') /};
+    var href = url(data);
+    
+    return "<a href='"+href+"'>" + val + "</a>";
 }
 </script>

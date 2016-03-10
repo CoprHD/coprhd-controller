@@ -4,8 +4,8 @@ After=CISCO.service
 
 [Service]
 Type=forking
-ExecStart=/etc/init.d/VMSIM start
-ExecStop=/etc/init.d/VMSIM stop
+ExecStart=/etc/init.d/VMWARE start
+ExecStop=/etc/init.d/VMWARE stop
 
 [Install]
 WantedBy=multi-user.target

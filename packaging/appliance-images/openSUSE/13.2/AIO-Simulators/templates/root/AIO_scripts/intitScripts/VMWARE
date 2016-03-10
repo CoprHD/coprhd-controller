@@ -14,13 +14,13 @@
 . /etc/rc.status
 
 RETVAL=0
-VM_HOME=/data/simulators/vm
+VM_HOME=/data/simulators/vmware
 DELAY=60
 
 start() {
         echo -n $"Starting VMSIM:..hold on 10sec .."
 		cd ${VM_HOME}
-        java -Dcom.sun.xml.bind.v2.runtime.JAXBContextImpl.fastBoot=true -cp . -jar vmware-simulators-1.0-SNAPSHOT.jar >/var/log/VM.log 2>&1 &
+        java -Dproperty.file=vmw_config.properties -Dcom.sun.xml.bind.v2.runtime.JAXBContextImpl.fastBoot=true -cp . -jar vmware-simulators-*.jar >/var/log/VM.log 2>&1 &
         RETVAL=$?
 
         while [ $DELAY -gt 0 ]; do
@@ -43,7 +43,7 @@ start() {
 stop() {
 
         echo -n $"Stopping VM: "
-		pkill -9 -f vmware-simulators-1.0-SNAPSHOT.jar >> /var/log/VM.log 2>&1
+		pkill -9 -f vmware-simulators- >> /var/log/VM.log 2>&1
         RETVAL=$?
 	echo  "..Done"
 }

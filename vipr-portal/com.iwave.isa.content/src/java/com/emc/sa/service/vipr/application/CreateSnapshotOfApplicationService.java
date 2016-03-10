@@ -33,9 +33,6 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.APPLICATION_SITE)
     protected String virtualArrayParameter;
 
-    @Param(ServiceParams.COUNT)
-    protected Integer count;
-
     @Param(ServiceParams.READ_ONLY)
     protected Boolean readOnly;
 

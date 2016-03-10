@@ -2460,6 +2460,7 @@ consistencyGroups.edit.title=Edit Consistency Group
 consistencyGroups.create.title=New Consistency Group
 consistencyGroup.name=Name
 consistencyGroup.arrayConsistency=Enable Array Consistency
+consistencyGroup.arrayConsistency.help=Disable check for VPLEX/RP/VPLEX+RP Application Support
 consistencyGroups.saved=Consistency Group %s Saved
 consistencyGroups.name=Name
 consistencyGroups.deleteConfirm=Are you sure you want to delete the selected Consistency Groups?

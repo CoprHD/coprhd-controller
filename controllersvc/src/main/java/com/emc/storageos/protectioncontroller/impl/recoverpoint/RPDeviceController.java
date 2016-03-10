@@ -6058,7 +6058,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 }
             }
             
-            List<URI> vplexVolumes = new ArrayList<URI>();
+            Set<URI> vplexVolumes = new HashSet<URI>();
             Set<URI> addVolumeSet = new HashSet<URI>();
 
             ApplicationAddVolumeList addSourceVols = new ApplicationAddVolumeList();
@@ -6108,7 +6108,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             waitFor = _blockDeviceController.addStepsForUpdateApplication(workflow, addTargetVols, null, waitFor, taskId);
 
             if (!vplexVolumes.isEmpty()) {
-                _vplexDeviceController.addStepsForImportClonesOfApplicationVolumes(workflow, waitFor, vplexVolumes, taskId);
+                _vplexDeviceController.addStepsForImportClonesOfApplicationVolumes(workflow, waitFor, new ArrayList<URI>(vplexVolumes), taskId);
             }
 
             _log.info("Executing workflow plan {}", BlockDeviceController.UPDATE_VOLUMES_FOR_APPLICATION_WS_NAME);
@@ -6129,9 +6129,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param volume The volume will be processed
      * @param isAdd if the volume is for add or remove
      * @param allVolumes output all block volume list
-     * @param vplexVolumes output all vplex volumes whose backend volumess are not in RG
+     * @param vplexVolumes output all vplex volumes whose backend volumes are not in RG
      */
-    private void addBackendVolumes(Volume volume, boolean isAdd, List<URI> allVolumes, List<URI>vplexVolumes) {
+    private void addBackendVolumes(Volume volume, boolean isAdd, List<URI> allVolumes, Set<URI> vplexVolumes) {
         if (RPHelper.isVPlexVolume(volume)) {
             StringSet backends = volume.getAssociatedVolumes();
             for (String backendId : backends) {
@@ -6140,8 +6140,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (isAdd) {
                     Volume backVol = _dbClient.queryObject(Volume.class, backendUri);
                     if (backVol != null && !backVol.getInactive() && NullColumnValueGetter.isNullValue(backVol.getReplicationGroupInstance())) {
-                        vplexVolumes.add(volume.getId());
-                        break;
+                        if (!vplexVolumes.contains(volume.getId())) {
+                            vplexVolumes.add(volume.getId());
+                        }
                     }
                 }
             }

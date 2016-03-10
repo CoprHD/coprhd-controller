@@ -3591,11 +3591,11 @@ public class VolumeIngestionUtil {
 
                 for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
                     // Find the associated volumes using the context maps or the db if they are already there
-                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient,
-                            createdMap,
-                            updatedMap,
-                            associatedVolumeIdStr);
+                    Volume associatedVolume = requestContext.findDataObjectByType(
+                            Volume.class, URI.create(associatedVolumeIdStr), true);
                     if (associatedVolume != null) {
+                        _logger.info("Setting BlockConsistencyGroup {} on VPLEX backend Volume {}", 
+                                rpCG.forDisplay(), associatedVolume.forDisplay());
                         associatedVolume.setConsistencyGroup(rpCG.getId());
                         updatedObjects.add(associatedVolume);
                     } else {

@@ -4,12 +4,16 @@
  */
 package models;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import util.StorageSystemTypeUtils;
 import util.StringOption;
 
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
+import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
 import com.google.common.collect.Lists;
 
 public class StorageProviderTypes {
@@ -81,5 +85,19 @@ public class StorageProviderTypes {
 
     public static String getDisplayValue(String type) {
         return StringOption.getDisplayValue(type, OPTION_PREFIX);
+    }
+    
+    public static List <StringOption> getProviderOption() {
+    	String alltypes = "all";
+    	List <StringOption> allproviders = new ArrayList <StringOption> ();
+    	StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+    	List <StorageSystemTypeRestRep> storageTypeRestlList = storagetypelist.getStorageSystemTypes();
+    	for(StorageSystemTypeRestRep storagetypeRest: storageTypeRestlList) {
+    		if(storagetypeRest.getIsSmiProvider()){
+    			allproviders.add(new StringOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getStorageTypeDispName()));
+    		}
+    	}
+    		
+    	return allproviders;
     }
 }

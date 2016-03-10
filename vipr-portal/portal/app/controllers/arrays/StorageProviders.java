@@ -60,6 +60,7 @@ public class StorageProviders extends ViprResourceController {
     private static final int SAVE_WAIT_MILLIS = 300000;
 
     private static void addReferenceData() {
+    	//renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
         renderArgs.put("interfaceTypeOptions", StorageProviderTypes.OPTIONS);
         renderArgs.put("optionsSIO", StorageProviderTypes.optionSIO);
         renderArgs.put("sslDefaultStorageProviderList", Arrays.asList(StorageProviderTypes.SSL_DEFAULT_OPTIONS));

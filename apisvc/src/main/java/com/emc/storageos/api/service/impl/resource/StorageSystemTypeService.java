@@ -93,7 +93,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 	@Path("/type/{type_name}")
 	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
 	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-	public StorageSystemTypeList getStorageSystemTypeType(@PathParam("storageType") String storageType) {
+	public List <StorageSystemTypeRestRep> getStorageSystemTypeType(@PathParam("storageType") String storageType) {
 		log.info("GET getStorageSystemType on type: " + storageType);
 		if (!checkForStorageSystemType()) {
 			addDefaultStorageSystemTypes();
@@ -105,7 +105,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 
 		List<URI> ids = _dbClient.queryByType(StorageSystemType.class, true);
 
-		StorageSystemTypeList list = new StorageSystemTypeList();
+		List <StorageSystemTypeRestRep> list = new ArrayList <StorageSystemTypeRestRep> ();
 
 		Iterator<StorageSystemType> iter = _dbClient.queryIterativeObjects(StorageSystemType.class, ids);
 		while (iter.hasNext()) {
@@ -114,7 +114,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 				ssType.setStorageTypeId(ssType.getId().toString());
 			}
 			if (storageType == null || storageType.equals(ssType.getStorageTypeType())) {
-				list.getStorageSystemTypes().add(map(ssType));
+				list.add(map(ssType));
 			}
 		}
 		return list;

@@ -1,5 +1,7 @@
 package com.emc.vipr.client.core;
 
+import java.util.List;
+
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeAdd;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeList;
 import com.emc.storageos.model.storagesystem.type.StorageSystemTypeRestRep;
@@ -28,8 +30,8 @@ private RestClient client;
         return client.get(StorageSystemTypeRestRep.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/" + uuid);
     }
     
-    public StorageSystemTypeList listStorageSystemTypeTypes(String storageTypeType) {
-        return client.get(StorageSystemTypeList.class, PathConstants.STORAGE_SYSTEM_URL + "/type/" +storageTypeType);
+    public List <StorageSystemTypeRestRep> listStorageSystemTypeTypes(String storageTypeType) {
+        return (List<StorageSystemTypeRestRep>) client.get(StorageSystemTypeRestRep.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" +storageTypeType);
     }
     
 }

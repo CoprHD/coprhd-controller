@@ -417,7 +417,7 @@ public class ViPRCoreClient {
         return new ObjectNamespaces(this, client);
     }
     
-    public StorageSystemType storagesystemtype() {
+    public StorageSystemType storageSystemType() {
     	return new StorageSystemType(client);
     }
 }

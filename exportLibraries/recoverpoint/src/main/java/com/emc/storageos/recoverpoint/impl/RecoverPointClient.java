@@ -749,10 +749,10 @@ public class RecoverPointClient {
                     try {
                         RecoverPointVolumeProtectionInfo volProtectionInfo = this.getProtectionInfoForVolume(volumeParam.getWwn());
                         replicationSetsRollback.add(volProtectionInfo);
-                    } catch (RecoverPointException re) {
+                    } catch (Exception e1) {
                         // unable to find protection info for volume
                         logger.warn(String.format("Exception encountered looking up protection info for volume %s during rollback.",
-                                volumeParam.getWwn(), re.getCause()));
+                                volumeParam.getWwn(), e1.getCause()));
                         // skip the volume
                         continue;
                     }

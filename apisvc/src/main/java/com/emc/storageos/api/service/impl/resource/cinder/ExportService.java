@@ -259,19 +259,21 @@ public class ExportService extends VolumeService {
             }
         }
         else if (bTerminate) {
-            if (getVolExtensions(vol).containsKey("status") &&
-                   (getVolExtensions(vol).get("status").equals(ComponentStatus.DETACHING.getStatus().toLowerCase()) 
+            StringMap extensionsMap = getVolExtensions(vol);
+
+            if (extensionsMap.containsKey("status") &&
+                   (extensionsMap.get("status").equals(ComponentStatus.DETACHING.getStatus().toLowerCase()) 
                     || 
-                    getVolExtensions(vol).get("status").equals(ComponentStatus.IN_USE.getStatus().toLowerCase()) ) ) {
-                getVolExtensions(vol).put("status", ComponentStatus.DETACHING.getStatus().toLowerCase());
+                    extensionsMap.get("status").equals(ComponentStatus.IN_USE.getStatus().toLowerCase()) ) ) {
+                extensionsMap.put("status", ComponentStatus.DETACHING.getStatus().toLowerCase());
                 _dbClient.updateObject(vol);
 
                 String chosenProtocol = getProtocol(vol, action.detach.connector);
                 processDetachRequest(vol, action.detach, openstackTenantId, chosenProtocol);
-                getVolExtensions(vol).put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
-                getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_ID");
-                getVolExtensions(vol).remove("OPENSTACK_NOVA_INSTANCE_MOUNTPOINT");
-                getVolExtensions(vol).remove("OPENSTACK_ATTACH_MODE");
+                extensionsMap.put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
+                extensionsMap.remove("OPENSTACK_NOVA_INSTANCE_ID");
+                extensionsMap.remove("OPENSTACK_NOVA_INSTANCE_MOUNTPOINT");
+                extensionsMap.remove("OPENSTACK_ATTACH_MODE");
                 _dbClient.updateObject(vol);
                 return Response.status(202).build();
             }

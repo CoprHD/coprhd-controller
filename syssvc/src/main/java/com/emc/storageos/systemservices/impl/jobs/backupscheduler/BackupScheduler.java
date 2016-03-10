@@ -33,7 +33,6 @@ import com.emc.storageos.systemservices.impl.resource.BackupService;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.util.SkipOutputStream;
 
-import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -185,24 +184,23 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             log.info("Backup scheduler thread goes live");
 
             this.cfg.reload();
-            if(this.coordinator.getCoordinatorClient().isClusterUpgradable() || isBackupReconfig ) {
+            if (this.coordinator.getCoordinatorClient().isClusterUpgradable() || isBackupReconfig) {
                 // If we made any new backup, notify uploader thread to perform upload
                 this.backupExec.create();
                 this.uploadExec.upload();
                 this.backupExec.reclaim();
 
                 isBackupReconfig = false;
-            }else {
+            } else {
                 log.info("Backup schedule can't run as cluster is not in upgradable state,will schedule next run");
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             log.error("Exception occurred in scheduler", e);
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
                 return;
             }
         }
-
 
         // Will retry every 5 min if schedule next run fail
         while (isLeader && !service.isShutdown()) {

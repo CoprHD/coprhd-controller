@@ -17,10 +17,12 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -227,7 +229,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // blockObject already ingested, now just update internalflags &
             // RP relationships. Run this logic always when volume NO_PUBLIC_ACCESS
             if (markUnManagedVolumeInactive(parentRequestContext, volume)) {
-                _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ",
+                _logger.info("All the related replicas and parent of unManagedVolume {} have been ingested ",
                         unManagedVolume.getNativeGuid());
                 unManagedVolume.setInactive(true);
                 // Add this unmanaged volume to the list of objects to be deleted if we succeed to run this whole ingestion.
@@ -577,7 +579,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         // Make sure all of the changed managed block objects get updated
         volumes.add((Volume) volumeContext.getManagedBlockObject());
-        List<DataObject> updatedObjects = new ArrayList<DataObject>();
+        Set<DataObject> updatedObjects = new HashSet<DataObject>();
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
         VolumeIngestionUtil.clearPersistedReplicaFlags(volumes, updatedObjects, _dbClient);
@@ -601,7 +603,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @param volumeContext
      */
     private void clearReplicaFlagsInIngestionContext(RecoverPointVolumeIngestionContext volumeContext) {
-        for (List<DataObject> updatedObjects : volumeContext.getDataObjectsToBeUpdatedMap().values()) {
+        for (Set<DataObject> updatedObjects : volumeContext.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject updatedObject : updatedObjects) {
                 if (updatedObject instanceof BlockMirror || updatedObject instanceof BlockSnapshot
                         || (updatedObject instanceof Volume && ((Volume) updatedObject).getAssociatedSourceVolume() != null)) {

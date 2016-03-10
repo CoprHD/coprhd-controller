@@ -147,7 +147,7 @@ public final class DownloadExecutor implements  Runnable {
 
             backupOps.registerDownloader();
 
-            if (fromRemoteServer == false ) {
+            if (!fromRemoteServer) {
                 pullFromInternalNode();
                 return;
             }
@@ -241,7 +241,7 @@ public final class DownloadExecutor implements  Runnable {
                 log.info("Extract backup file {}", filename);
                 persistBackupFile(backupFolder, filename, bzin, buf, false, false);
 
-                if (isGeo == false) {
+                if (!isGeo) {
                     isGeo = backupOps.isGeoBackup(filename);
 
                     if (isGeo) {
@@ -302,20 +302,20 @@ public final class DownloadExecutor implements  Runnable {
     }
 
     private void notifyOtherNodes(String backupName) {
-        URI endpoint = null;
+        URI node= null;
         String pushUri = null;
         try {
             List<URI> uris = backupOps.getOtherNodes();
             URI myURI = backupOps.getMyURI();
             for (URI uri : uris) {
-                endpoint = uri;
-                log.info("Notify {}", endpoint);
+                node = uri;
+                log.info("Notify {}", node);
                 pushUri= SysClientFactory.URI_NODE_BACKUPS_PULL+ "?backupname=" + remoteBackupFileName + "&endpoint="+myURI;
-                SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
+                SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(node);
                 sysClient.post(new URI(pushUri), null, null);
             }
         }catch (Exception e) {
-            String errMsg = String.format("Failed to send %s to %s", pushUri, endpoint);
+            String errMsg = String.format("Failed to send %s to %s", pushUri, node);
             backupOps.setRestoreStatus(backupName, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
             throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
         }

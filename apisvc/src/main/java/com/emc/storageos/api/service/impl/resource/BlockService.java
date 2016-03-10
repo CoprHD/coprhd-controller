@@ -100,6 +100,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.RPCopyMode;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VplexMirror;
@@ -912,9 +913,12 @@ public class BlockService extends TaskResourceService {
                             }
                         }
 
-                        // Ensure the replication mode is not null and is the same as the existing vpool
-                        if (requestedVpool.getRpCopyMode() == null ||
-                                !requestedVpool.getRpCopyMode().equals(existingVpool.getRpCopyMode())) {
+                        // Ensure the replication mode is logically equivalent 
+                        String requestedRpCopyMode = NullColumnValueGetter.isNullValue(requestedVpool.getRpCopyMode()) ?
+                                RPCopyMode.ASYNCHRONOUS.name() : requestedVpool.getRpCopyMode();
+                        String existingRpCopyMode = NullColumnValueGetter.isNullValue(existingVpool.getRpCopyMode()) ?
+                                RPCopyMode.ASYNCHRONOUS.name() : existingVpool.getRpCopyMode();
+                        if (!requestedRpCopyMode.equalsIgnoreCase(existingRpCopyMode)) {
                             throw APIException.badRequests.vPoolRPCopyModeNotCompatibleForCG(consistencyGroup.getLabel());
                         }
                     }
@@ -2161,17 +2165,17 @@ public class BlockService extends TaskResourceService {
         // Don't operate on VPLEX backend volumes or RP journal volumes.
         BlockServiceUtils.validateNotAnInternalBlockObject(requestedVolume, false);
 
-        validateSourceVolumeHasExported(requestedVolume);
-
-        // Make sure that we don't have some pending
-        // operation against the volume
-        checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
-
         // Set default type, if not set at all.
         if (param.getType() == null) {
             param.setType(TechnologyType.NATIVE.toString());
         }
         String snapshotType = param.getType();
+
+        validateSourceVolumeHasExported(requestedVolume);
+
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
 
         // Set whether or not the snapshot be activated when created.
         Boolean createInactive = Boolean.FALSE;
@@ -3648,11 +3652,15 @@ public class BlockService extends TaskResourceService {
             // all volume in CG must have been passed.
             _log.info("Verify all volumes in CG {}:{}", cg.getId(), cg.getLabel());
             URI storageId = cg.getStorageController();
-            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
-            if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
-                // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
-                if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
-                    throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+            if (!NullColumnValueGetter.isNullURI(storageId)) {
+                StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
+                if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                    // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
+                    if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
+                        throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+                    }
+                } else {
+                    verifyVolumesInCG(volumes, cgVolumes);
                 }
             } else {
                 verifyVolumesInCG(volumes, cgVolumes);

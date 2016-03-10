@@ -71,9 +71,13 @@ public class DisasterRecovery extends ViprResourceController {
     }
 
     public static void list() {
+        list(false);
+    }
+
+    public static void list(boolean showPauseButton) {
         DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
-        boolean showPauseButton = false;
-        render(dataTable, showPauseButton);
+        String localSiteUuid = DisasterRecoveryUtils.getLocalUuid();
+        render(dataTable, showPauseButton, localSiteUuid);
     }
 
     @FlashException("list")
@@ -84,7 +88,7 @@ public class DisasterRecovery extends ViprResourceController {
         for (String uuid : uuids) {
             if (!DisasterRecoveryUtils.hasStandbySite(uuid)) {
                 flash.error(MessagesUtils.get(UNKNOWN, uuid));
-                pauseResume();
+                list(true);
             }
 
         }
@@ -93,28 +97,20 @@ public class DisasterRecovery extends ViprResourceController {
         param.getIds().addAll(uuids);
         DisasterRecoveryUtils.pauseStandby(param);
         flash.success(MessagesUtils.get(PAUSED_SUCCESS));
-        pauseResume();
+        list(true);
     }
 
     @FlashException("list")
     @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("SYSTEM_ADMIN"),
             @Restrict("RESTRICTED_SYSTEM_ADMIN") })
-    public static void resume(String id, boolean showPauseButton) {
+    public static void resume(String id) {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             SiteRestRep siteresume = DisasterRecoveryUtils.resumeStandby(id);
             flash.success(MessagesUtils.get(RESUMED_SUCCESS, siteresume.getName()));
         }
-        if (showPauseButton) {
-            pauseResume();
-        } else {
-            list();
-        }
-    }
 
-    public static void pauseResume() {
-        DisasterRecoveryDataTable dataTable = createDisasterRecoveryDataTable();
-        render(dataTable);
+        list();
     }
 
     @FlashException("list")
@@ -124,9 +120,31 @@ public class DisasterRecovery extends ViprResourceController {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             SiteRestRep siteretry = DisasterRecoveryUtils.retryStandby(id);
-            flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
+            if (siteretry.getState().equals(SiteState.STANDBY_FAILING_OVER.name())){
+                String standby_name = siteretry.getName();
+                String standby_vip = siteretry.getVipEndpoint();
+                String active_name = standby_name;
+                for (SiteRestRep site: DisasterRecoveryUtils.getStandbySites()){
+                    if (site.getState().equals(SiteState.ACTIVE_FAILING_OVER.name())){
+                        active_name = site.getName();
+                        break;
+                    }
+                }
+                String targetURL = "https://" + standby_vip;
+                Boolean iamActiveSite = false;
+                String site_uuid = id;
+                String site_state = result.getState();
+                render(active_name, standby_name, standby_vip, site_uuid, site_state, iamActiveSite, targetURL);
+            }
+            else {
+                flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
+                list();
+            }
         }
-        list();
+        else {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+            list();
+        }
     }
 
     public static void test(String id) {

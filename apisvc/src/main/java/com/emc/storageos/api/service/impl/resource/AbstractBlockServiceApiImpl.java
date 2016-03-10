@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
-import com.emc.storageos.plugins.common.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +32,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyz
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
@@ -57,9 +56,11 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -78,6 +79,7 @@ import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.varray.VirtualArrayConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeList;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -190,7 +192,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     @Override
     public <T extends DataObject> String checkForDelete(T object, List<Class<? extends DataObject>> excludeTypes) throws InternalException {
         URI objectURI = object.getId();
-        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true, excludeTypes);
+        List<Class<? extends DataObject>> excludes = new ArrayList<Class<? extends DataObject>>();
+        if (excludeTypes != null) {
+            excludes.addAll(excludeTypes);
+        }
+        excludes.add(Task.class);
+        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true, excludes);
         if (depMsg != null) {
             return depMsg;
         }
@@ -1039,11 +1046,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             throw APIException.badRequests.noVolumesToSnap();
         }
 
-        // Validate VNX. Cannot create snapshot if volume is not in a real replication group
-        if (ControllerUtils.isNotInRealVNXRG(reqVolume, _dbClient)) {
-            throw APIException.badRequests.snapshotsNotSupportedForNonRealVNXRG();
-        }
-
         // Verify the vpools of the volumes to be snapped support
         // snapshots and the maximum snapshots has not been reached.
         // Also, check for a duplicate name.
@@ -1631,12 +1633,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         BlockConsistencyGroupUtils.verifyProjectForVolumeToBeAddedToCG(volume, cg,
                 _dbClient);
 
-        // No RP protected volumes can be added to a consistency group.
-        if (volume.getProtectionController() != null) {
-            throw APIException.badRequests
-                    .invalidParameterConsistencyGroupCannotAddProtectedVolume(volumeURI);
-        }
-
         // Verify that the volume is on the storage system for
         // the consistency group.
         verifySystemForVolumeToBeAddedToCG(volume, cg, cgStorageSystem);
@@ -1822,5 +1818,4 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             URI applicationId, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
-    
 }

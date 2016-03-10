@@ -14,7 +14,6 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.ResynchronizeSnapshotForApplication;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.block.NamedVolumesList;
 import com.emc.vipr.client.Tasks;
 
 @Service("ResynchronizeSnapshotOfApplication")
@@ -32,10 +31,7 @@ public class ResynchronizeSnapshotOfApplicationService extends ViPRService {
     @Override
     public void execute() throws Exception {
 
-        // get list of volumes in application
-        NamedVolumesList applicationVolumes = getClient().application().getVolumeByApplication(applicationId);
-
-        List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroup(applicationId, applicationCopySet, applicationVolumes,
+        List<URI> snapshotIds = BlockStorageUtils.getSingleSnapshotPerSubGroupAndStorageSystem(applicationId, applicationCopySet,
                 subGroups);
         Tasks<? extends DataObjectRestRep> tasks = execute(new ResynchronizeSnapshotForApplication(applicationId, snapshotIds));
 

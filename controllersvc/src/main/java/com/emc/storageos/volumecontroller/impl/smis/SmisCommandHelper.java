@@ -183,8 +183,12 @@ public class SmisCommandHelper implements SmisConstants {
                 append(" -- Attempting invokeMethod ").append(methodName).append(" on\n").
                 append("  objectPath=").append(objectPath.toString()).
                 append(" with arguments: \n");
-        for (CIMArgument arg : inArgs) {
-            inputInfoBuffer.append("    inArg[").append(index++).append("]=").append(arg.toString()).append('\n');
+        if (inArgs != null) {
+            for (CIMArgument arg : inArgs) {
+                if (arg != null) {
+                    inputInfoBuffer.append("    inArg[").append(index++).append("]=").append(arg.toString()).append('\n');
+                }
+            }
         }
         _log.info(inputInfoBuffer.toString());
         long start = System.nanoTime();
@@ -7186,5 +7190,79 @@ public class SmisCommandHelper implements SmisConstants {
             return matcher.group(1);
         }
         return groupName;
+    }
+    
+    /**
+     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group name 
+     * and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost replication group. 
+     * @param system 
+     * @param replicationSvc
+     * @param replicaReplicationGroupName
+     * @param sourceReplicationGroupName
+     * @return
+     */
+    public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
+            CIMObjectPath replicationSvc,
+            String replicaReplicationGroupName,
+            String sourceReplicationGroupName) {
+        List<String>sfsEntries = getEMCSFSEntries(system, replicationSvc);
+        String entryLabel = formatReplicaLabelForSFSEntry(system.getSerialNumber(), replicaReplicationGroupName, sourceReplicationGroupName);
+        String removeEntry = null;
+        if (sfsEntries != null && !sfsEntries.isEmpty()) {
+            for (String entry : sfsEntries) {
+                if (entry.contains(entryLabel)) {
+                    removeEntry = entry;
+                    break;
+                }
+            }
+        }
+        if (removeEntry == null) {
+            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName, 
+                    sourceReplicationGroupName));
+            return;
+        }
+
+        try {
+            CIMArgument[] inArgs = new CIMArgument[] {
+                    _cimArgument.stringArray("SFSEntries", new String[]{removeEntry})};
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
+        } catch (WBEMException e) {
+            _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
+        }
+        
+    }
+
+    /**
+     * Construct a String using clone/snapshot replication group name and source replication group name for searching the EMCSFSEntries.
+     * @param systemSerial array serial number
+     * @param replicaReplicationGroupName - clone/snapshot replication group name
+     * @param sourceRGName - source replication group name
+     * @return constructed string
+     */
+    private String formatReplicaLabelForSFSEntry(String systemSerial, String replicaReplicationGroupName, String sourceRGName) {
+        return String.format("%s+%s#%s+%s#", systemSerial, sourceRGName, systemSerial, replicaReplicationGroupName);
+    }
+
+    /**
+     * Get EMCSFSEntries
+     * @param storage
+     * @param replicationSvc
+     * @return the list of EMCSFSEntries
+     */
+    public List<String> getEMCSFSEntries(StorageSystem storage, CIMObjectPath replicationSvc) {
+        CIMArgument[] outArgs = new CIMArgument[5];
+        try {
+            invokeMethod(storage, replicationSvc, SmisConstants.EMC_LIST_SFSENTRIES, null, outArgs);
+            for (CIMArgument arg : outArgs) {
+                if (arg != null && arg.getName().equalsIgnoreCase(SmisConstants.SFSENTRIES)) {
+                    String[] entries = (String[]) arg.getValue();
+                    return asList(entries);
+                }
+            }
+        } catch (WBEMException e) {
+            _log.error("get EMCSFSEntries -- WBEMException: ", e);
+        }
+        return null;
     }
 }

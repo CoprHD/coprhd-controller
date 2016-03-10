@@ -16,9 +16,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
@@ -686,4 +686,5 @@ public class BlockServiceUtils {
                 BlockServiceUtils.isIdEmbeddedInURL(snapshotURI, uriInfo), true);
         return snapshot;
     }
+
 }

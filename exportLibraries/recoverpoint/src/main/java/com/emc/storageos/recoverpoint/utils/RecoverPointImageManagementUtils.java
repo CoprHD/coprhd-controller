@@ -1208,16 +1208,25 @@ public class RecoverPointImageManagementUtils {
                     boolean found = false;
                     
                     // Loop through production copies
-                    for (ConsistencyGroupCopyUID groupCopyUID : cgState.getSourceCopiesUIDs()) {
-                        
-                        if (copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), groupCopyUID.getGlobalCopyUID()) &&
-                            copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
-                            found = true;                            
+                    if (!cgState.getSourceCopiesUIDs().isEmpty()) {
+                        for (ConsistencyGroupCopyUID groupCopyUID : cgState.getSourceCopiesUIDs()) {
+
+                            if (copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), groupCopyUID.getGlobalCopyUID()) &&
+                                    copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
+                                found = true;                            
+                            }
+
+                            if (copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), groupCopyUID.getGlobalCopyUID()) &&
+                                    copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID())) {
+                                found = true;                            
+                            }
                         }
-                        
-                        if (copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), groupCopyUID.getGlobalCopyUID()) &&
-                            copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID())) {
-                            found = true;                            
+                    } else {
+                        // Back-up plan.  The cg state didn't tell us who the source is, so we need to make a guess on
+                        // the link source and copy.  Just find our copy in the link and go with it.
+                        if (copiesEqual(linkstate.getGroupLinkUID().getFirstCopy(), copyUID.getGlobalCopyUID()) ||
+                                copiesEqual(linkstate.getGroupLinkUID().getSecondCopy(), copyUID.getGlobalCopyUID())) {
+                            found = true;
                         }
                     }
 
@@ -1225,6 +1234,13 @@ public class RecoverPointImageManagementUtils {
                         continue;
                     }
 
+                    if (desiredPipeState.equals(PipeState.ACTIVE)) {
+                        // Treat SNAP_IDLE as ACTIVE
+                        if (linkstate.getPipeState().equals(PipeState.SNAP_IDLE)) {
+                            linkstate.setPipeState(PipeState.ACTIVE);
+                        }
+                    }
+                    
                     PipeState pipeState = linkstate.getPipeState();
                     logger.info("Copy link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
 

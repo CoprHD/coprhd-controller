@@ -16,6 +16,7 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 public class SiteList {
 
     private List<SiteRestRep> sites;
+    private Long configVersion;
 
     public SiteList() {
     }
@@ -35,4 +36,14 @@ public class SiteList {
     public void setSites(List<SiteRestRep> sites) {
         this.sites = sites;
     }
+
+    @XmlElement(name = "config_version")
+    public Long getConfigVersion() {
+        return configVersion;
+    }
+
+    public void setConfigVersion(Long configVersion) {
+        this.configVersion = configVersion;
+    }
+    
 }

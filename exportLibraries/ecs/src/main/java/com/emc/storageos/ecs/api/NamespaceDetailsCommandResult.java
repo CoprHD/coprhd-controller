@@ -13,8 +13,8 @@ public class NamespaceDetailsCommandResult {
     private ArrayList<String> allowed_vpools_list;
     private ArrayList<String> disallowed_vpools_list;
     private String is_encryption_enabled;
-    private String is_stale_allowed;
-    private String is_compliance_enabled;
+    private boolean is_stale_allowed;
+    private boolean is_compliance_enabled;
     
     public String getName() {
         return name;
@@ -52,16 +52,16 @@ public class NamespaceDetailsCommandResult {
     public void setIs_encryption_enabled(String is_encryption_enabled) {
         this.is_encryption_enabled = is_encryption_enabled;
     }
-    public String getIs_stale_allowed() {
+    public boolean isIs_stale_allowed() {
         return is_stale_allowed;
     }
-    public void setIs_stale_allowed(String is_stale_allowed) {
+    public void setIs_stale_allowed(boolean is_stale_allowed) {
         this.is_stale_allowed = is_stale_allowed;
     }
-    public String getIs_compliance_enabled() {
+    public boolean isIs_compliance_enabled() {
         return is_compliance_enabled;
     }
-    public void setIs_compliance_enabled(String is_compliance_enabled) {
+    public void setIs_compliance_enabled(boolean is_compliance_enabled) {
         this.is_compliance_enabled = is_compliance_enabled;
-    }
+    }   
 }

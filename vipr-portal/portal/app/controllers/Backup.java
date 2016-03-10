@@ -281,7 +281,7 @@ public class Backup extends Controller {
             percentageMap = new HashMap<String, Integer>(sizeToDownload.size());
             for (String hostname : sizeToDownload.keySet()) {
                 int percentage = sizeToDownload.get(hostname) == 0L ? 0
-                        : (int) ((double) downloadedSize.get(hostname) / (double) sizeToDownload.get(hostname) * 100);
+                        : (int) (downloadedSize.get(hostname) * 100 / sizeToDownload.get(hostname));
                 percentageMap.put(hostname, percentage);
             }
         }

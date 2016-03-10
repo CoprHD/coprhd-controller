@@ -293,7 +293,7 @@ public class BackupCmd {
         }
         File logFile = new File(logPath);
 
-        //check if bkutils.log permission is 644
+        //Check if bkutils.log permission is 644
         Set<PosixFilePermission> perms = new HashSet<PosixFilePermission>();
         perms.add(PosixFilePermission.OWNER_READ);
         perms.add(PosixFilePermission.OWNER_WRITE);

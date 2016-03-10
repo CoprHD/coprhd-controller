@@ -441,6 +441,11 @@ public class SystemsMapper {
 		to.setIsSmiProvider(from.getIsSmiProvider());
 		to.setStorageTypeId(from.getStorageTypeId());
 		to.setStorageTypeDispName(from.getStorageTypeDispName());
+		to.setIsDefaultSsl(from.getIsDefaultSsl());
+		to.setIsDefaultMDM(from.getIsDefaultMDM());
+		to.setIsOnlyMDM(from.getIsOnlyMDM());
+		to.setIsElementMgr(from.getIsElementMgr());
+		
 		return to;
 	}
 
@@ -454,6 +459,11 @@ public class SystemsMapper {
 		to.setIsSmiProvider(from.getIsSmiProvider());
 		to.setStorageTypeId(from.getStorageTypeId());
 		to.setStorageTypeDispName(from.getStorageTypeDispName());
+		to.setIsDefaultSsl(from.getIsDefaultSsl());
+		to.setIsDefaultMDM(from.getIsDefaultMDM());
+		to.setIsOnlyMDM(from.getIsOnlyMDM());
+		to.setIsElementMgr(from.getIsElementMgr());
+		
 		return to;
 	}
 }

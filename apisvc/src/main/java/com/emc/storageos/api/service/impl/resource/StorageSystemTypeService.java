@@ -29,6 +29,8 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.google.common.collect.Lists;
 
+//import util.StringOption;
+
 import static java.util.Arrays.asList;
 import static com.emc.storageos.api.mapper.SystemsMapper.map;
 
@@ -48,7 +50,7 @@ public class StorageSystemTypeService extends TaskResourceService {
 	private static final String VNX_BLOCK = "vnxblock";
 	private static final String VNXe = "vnxe";
 	private static final String VNX_FILE = "vnxfile";
-	private static final String VMAX = "vmax";
+	private static final String VMAX = "smis";
 	private static final String NETAPP = "netapp";
 	private static final String NETAPPC = "netappc";
 	private static final String HITACHI = "hds";
@@ -243,6 +245,37 @@ public class StorageSystemTypeService extends TaskResourceService {
 		// Default object arrays
 		List<String> storageArrayObject = asList(ECS);
 
+		// Default SSL providers
+		HashMap<String, Boolean> defaultSSL = new HashMap<String, Boolean>(); // VNX_BLOCK,
+																				// VMAX,
+																				// SCALEIOAPI,
+																				// VPLEX,
+																				// VNX_FILE,
+																				// VNXe,
+																				// IBMXIV
+		defaultSSL.put(VNX_BLOCK, true);
+		defaultSSL.put(VMAX, true);
+		defaultSSL.put(SCALEIOAPI, true);
+		defaultSSL.put(VPLEX, true);
+		defaultSSL.put(VNX_FILE, true);
+		defaultSSL.put(VNXe, true);
+		defaultSSL.put(IBMXIV, true);
+
+		// MDM_DEFAULT_OPTIONS = StringOption.options(new String[] { SCALEIO,
+		// SCALEIOAPI });
+		HashMap<String, Boolean> defaultMDM = new HashMap<String, Boolean>();
+		defaultMDM.put(SCALEIO, true);
+		defaultMDM.put(SCALEIOAPI, true);
+
+		// MDM_ONLY_OPTIONS = StringOption.options(new String[] {SCALEIOAPI});
+		HashMap<String, Boolean> onlyMDM = new HashMap<String, Boolean>();
+		onlyMDM.put(SCALEIOAPI, true);
+
+		// ELEMENT_MANAGER_OPTIONS = StringOption.options(new String[] { SCALEIO
+		// });
+		HashMap<String, Boolean> elementManager = new HashMap<String, Boolean>();
+		elementManager.put(SCALEIO, true);
+
 		// Name of Array and its Display Name mapping
 		HashMap<String, String> nameDisplayNameMap = new HashMap<String, String>();
 		nameDisplayNameMap.put(VNX_FILE, "EMC VNX File");
@@ -271,6 +304,19 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
 			ssType.setStorageTypeType("file");
 			ssType.setIsSmiProvider(false);
+			if (defaultSSL.get(file)) {
+				ssType.setIsDefaultSsl(true);
+			}
+			if (defaultMDM.get(file)) {
+				ssType.setIsDefaultMDM(true);
+			}
+			if (onlyMDM.get(file)) {
+				ssType.setIsOnlyMDM(true);
+			}
+			if (elementManager.get(file)) {
+				ssType.setIsElementMgr(true);
+			}
+
 			_dbClient.createObject(ssType);
 		}
 
@@ -283,6 +329,19 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(file));
 			ssType.setStorageTypeType("file");
 			ssType.setIsSmiProvider(true);
+			if (defaultSSL.get(file)) {
+				ssType.setIsDefaultSsl(true);
+			}
+			if (defaultMDM.get(file)) {
+				ssType.setIsDefaultMDM(true);
+			}
+			if (onlyMDM.get(file)) {
+				ssType.setIsOnlyMDM(true);
+			}
+			if (elementManager.get(file)) {
+				ssType.setIsElementMgr(true);
+			}
+
 			_dbClient.createObject(ssType);
 		}
 
@@ -295,6 +354,19 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
 			ssType.setStorageTypeType("block");
 			ssType.setIsSmiProvider(false);
+			if (defaultSSL.get(block)) {
+				ssType.setIsDefaultSsl(true);
+			}
+			if (defaultMDM.get(block)) {
+				ssType.setIsDefaultMDM(true);
+			}
+			if (onlyMDM.get(block)) {
+				ssType.setIsOnlyMDM(true);
+			}
+			if (elementManager.get(block)) {
+				ssType.setIsElementMgr(true);
+			}
+
 			_dbClient.createObject(ssType);
 		}
 
@@ -307,6 +379,19 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(block));
 			ssType.setStorageTypeType("block");
 			ssType.setIsSmiProvider(true);
+			if (defaultSSL.get(block)) {
+				ssType.setIsDefaultSsl(true);
+			}
+			if (defaultMDM.get(block)) {
+				ssType.setIsDefaultMDM(true);
+			}
+			if (onlyMDM.get(block)) {
+				ssType.setIsOnlyMDM(true);
+			}
+			if (elementManager.get(block)) {
+				ssType.setIsElementMgr(true);
+			}
+
 			_dbClient.createObject(ssType);
 		}
 
@@ -319,6 +404,19 @@ public class StorageSystemTypeService extends TaskResourceService {
 			ssType.setStorageTypeDispName(nameDisplayNameMap.get(object));
 			ssType.setStorageTypeType("object");
 			ssType.setIsSmiProvider(false);
+			if (defaultSSL.get(object)) {
+				ssType.setIsDefaultSsl(true);
+			}
+			if (defaultMDM.get(object)) {
+				ssType.setIsDefaultMDM(true);
+			}
+			if (onlyMDM.get(object)) {
+				ssType.setIsOnlyMDM(true);
+			}
+			if (elementManager.get(object)) {
+				ssType.setIsElementMgr(true);
+			}
+
 			_dbClient.createObject(ssType);
 		}
 	}

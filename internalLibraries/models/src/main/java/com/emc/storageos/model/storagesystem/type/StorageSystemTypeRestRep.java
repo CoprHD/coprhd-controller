@@ -15,7 +15,12 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	private String storageTypeType;
 	private String storageTypeId;
 	private boolean isSmiProvider = false;
+	private boolean isDefaultSsl = false;
 	private String storageTypeDispName;
+	private boolean isDefaultMDM = false;
+	private boolean isOnlyMDM = false;
+	private boolean isElementMgr = false;
+	
 
 	public StorageSystemTypeRestRep() {
 	}
@@ -65,6 +70,42 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	public void setStorageTypeDispName(String storageTypeDispName) {
 		this.storageTypeDispName = storageTypeDispName;
 	}
+	
+	@XmlElement(name = "isDefaultSsl")
+	public boolean getIsDefaultSsl() {
+		return isDefaultSsl;
+	}
+
+	public void setIsDefaultSsl(boolean isDefaultSsl) {
+		this.isDefaultSsl = isDefaultSsl;
+	}
+	
+	@XmlElement(name = "isDefaultMDM")
+	public boolean getIsDefaultMDM() {
+		return isDefaultMDM;
+	}
+
+	public void setIsDefaultMDM(boolean isDefaultMDM) {
+		this.isDefaultMDM = isDefaultMDM;
+	}
+	
+	@XmlElement(name = "isOnlyMDM")
+	public boolean getIsOnlyMDM() {
+		return isOnlyMDM;
+	}
+
+	public void setIsOnlyMDM(boolean isOnlyMDM) {
+		this.isOnlyMDM = isOnlyMDM;
+	}
+	
+	@XmlElement(name = "isElementMgr")
+	public boolean getIsElementMgr() {
+		return isElementMgr;
+	}
+
+	public void setIsElementMgr(boolean isElementMgr) {
+		this.isElementMgr = isElementMgr;
+	}
 
 	@Override
 	public String toString() {
@@ -77,6 +118,8 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		builder.append(storageTypeType);
 		builder.append(", isSmiProvider=");
 		builder.append(isSmiProvider);
+		builder.append(", isDefaultSsl=");
+		builder.append(isDefaultSsl);
 		builder.append("]");
 		return builder.toString();
 	}

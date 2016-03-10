@@ -95,6 +95,7 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("adType", AuthSourceType.ad);
 
         renderArgs.put("ldapType", AuthSourceType.ldap);
+        renderArgs.put("keyStoneType", AuthSourceType.keystone);
 
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
 
@@ -256,6 +257,12 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("groupMemberAttributesString", StringUtils.join(this.groupMemberAttributes, "\n"));
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
             renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
+            if(this.domains!=null && !this.domains.isEmpty())
+            {
+            	renderArgs.put("readOnlyDomains", true);
+            }else {
+            	renderArgs.put("readOnlyDomains", false);
+            }
         }
 
         public boolean isNew() {
@@ -413,7 +420,7 @@ public class LDAPsources extends ViprResourceController {
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
 
-        	if (StringUtils.equals(AuthSourceType.ad.name(), mode) || StringUtils.equals(AuthSourceType.keystone.name(), mode)) {
+        	if (StringUtils.equals(AuthSourceType.ad.name(), mode)) {
                 Validation.required(fieldName + ".groupAttribute", groupAttribute);
             }
             Validation.required(fieldName + ".domains", parseMultiLineInput(this.domains.get(0)));
@@ -475,6 +482,7 @@ public class LDAPsources extends ViprResourceController {
             }
             return isBlankOrNull;
         }
+
     }
 
     protected static class JsonItemOperation implements ResourceValueOperation<LDAPsourcesInfo, AuthnProviderRestRep> {

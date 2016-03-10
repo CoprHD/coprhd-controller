@@ -8,15 +8,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 
 public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionContext {
@@ -45,11 +42,9 @@ public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionCo
 
         // if this is an RP/VPLEX that is exported to a host or cluster, add the volume to the ExportGroup
         ExportGroup rootExportGroup = getRootIngestionRequestContext().getExportGroup();
-        UnManagedVolume vol = getUnmanagedVolume();
-        _logger.info("About to add {} to ExportGroup {}", vol.forDisplay(), rootExportGroup.forDisplay());
         if (rootExportGroup != null && 
                 VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(getUnmanagedVolume())) {
-            _logger.info("Adding RP/VPLEX virtual volume {} to ExportGroup {}", 
+            _logger.info("Adding exported RP/VPLEX virtual volume {} to ExportGroup {}", 
                     getManagedBlockObject().forDisplay(), rootExportGroup.forDisplay());
             rootExportGroup.addVolume(getManagedBlockObject().getId(), ExportGroup.LUN_UNASSIGNED);
         }

@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1822,5 +1823,4 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             URI applicationId, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
-    
 }

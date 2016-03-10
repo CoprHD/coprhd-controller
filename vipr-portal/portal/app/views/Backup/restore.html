@@ -18,12 +18,12 @@
         #{Form.subheader titleKey:"restore.download.progress", descriptionKey:"restore.download.progress.description"/}
         <br/>
 
-        <table class="database-check-progress-table">
+        <table class="download-progress-table">
             #{list items:percentages.entrySet(), as:'nodeEntry'}
                 #{set progressBarId:'hostname-'+nodeEntry.getKey() /}
                 <tr>
                     <td>Node ${nodeEntry.getKey()}&nbsp;</td>
-                    <td width="300">
+                    <td style="width: 300px;">
                     %{
                         style = "success"
                         if (status.isNotSuccess()) {
@@ -35,7 +35,7 @@
                 </tr>
             #{/list}
             <tr>
-                <td width="300" colspan="2">
+                <td style="width: 300px;" colspan="2">
 		        <span id="errorInfo" style="color: #d9534f; font-weight: bold"></span>
                 </td>
             </tr>
@@ -112,12 +112,12 @@
     function checkPullStatusUpdates() {
         var checkUpdate = window.setInterval(function () {
             if (stop) {
-                console.info("stop interval");
+                console.info("Stop interval");
                 clearInterval(checkUpdate);
                 return;
             }
             checkPullProgressUpdate();
-        }, 30 * 1000); // Check every 30 seconds
+        }, 10 * 1000); // Check every 10 seconds
     }
 
     function checkPullProgressUpdate() {
@@ -135,7 +135,7 @@
 
                 console.info("description=%s ", description);
 
-                $.each(result, function(hostname, percent){
+                $.each(result.percentageMap, function(hostname, percent){
                     var progressBarId = 'hostname-' + hostname;
                     updateProgressBar(progressBarId, percent);
                     if (result.status == "DOWNLOAD_SUCCESS") {

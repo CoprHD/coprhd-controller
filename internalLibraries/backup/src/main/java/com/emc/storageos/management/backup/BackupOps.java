@@ -596,7 +596,6 @@ public class BackupOps {
                                      List<String> backupfileNames, boolean doLog, boolean doLock) {
         InterProcessLock lock = null;
         try {
-
             if (doLock) {
                 lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
                         -1, TimeUnit.MILLISECONDS); // -1= no timeout
@@ -608,15 +607,8 @@ public class BackupOps {
 
             BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
 
-            if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+            if (!canBeUpdated(status, s)) {
                 return;
-            }
-
-            if ( status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
-                if (!s.getStatus().canBeCanceled()) {
-                    log.info("current status {} can't be canceled", s);
-                    return;
-                }
             }
 
             s.setBackupName(backupName);
@@ -646,20 +638,7 @@ public class BackupOps {
                 s.setBackupFileNames(backupfileNames);
             }
 
-            BackupRestoreStatus.Status restoreStatus = s.getStatus();
-            if ( restoreStatus == BackupRestoreStatus.Status.DOWNLOADING) {
-                long nodeNumber = getHosts().size();
-                if (s.getNodeCompleted() == nodeNumber ) {
-                    s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, null);
-                    restoreStatus = BackupRestoreStatus.Status.DOWNLOAD_SUCCESS;
-                }
-            }
-
-            if (restoreStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS ||
-                    restoreStatus == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ||
-                    restoreStatus  == BackupRestoreStatus.Status.DOWNLOAD_FAILED ) {
-                clearCurrentBackupInfo();
-            }
+            updateBackupRestoreStatus(s);
 
             persistBackupRestoreStatus(s, false, doLog);
 
@@ -676,6 +655,36 @@ public class BackupOps {
             }
         }
 
+    }
+
+    private void updateBackupRestoreStatus(BackupRestoreStatus s) {
+        BackupRestoreStatus.Status restoreStatus = s.getStatus();
+        if ( restoreStatus == BackupRestoreStatus.Status.DOWNLOADING) {
+            long nodeNumber = getHosts().size();
+            if (s.getNodeCompleted() == nodeNumber ) {
+                s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, null);
+                restoreStatus = BackupRestoreStatus.Status.DOWNLOAD_SUCCESS;
+            }
+        }
+
+        if (restoreStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS ||
+                restoreStatus == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ||
+                restoreStatus  == BackupRestoreStatus.Status.DOWNLOAD_FAILED ) {
+            clearCurrentBackupInfo();
+        }
+    }
+
+    private boolean canBeUpdated(BackupRestoreStatus.Status status, BackupRestoreStatus s) {
+        if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+            return false;
+        }
+
+        if ( (status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!s.getStatus().canBeCanceled())) {
+            log.info("current status {} can't be canceled", s);
+            return false;
+        }
+
+        return true;
     }
 
     public void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal, boolean doLog) {

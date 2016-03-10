@@ -143,6 +143,7 @@ public class DisasterRecovery extends ViprResourceController {
             }
             else {
                 flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
+                list();
             }
         }
         else {

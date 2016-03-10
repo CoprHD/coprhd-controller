@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
-@XmlRootElement(name = "storagesystem_type")
+@XmlRootElement(name = "storagesystem_types")
 public class StorageSystemTypeList {
 
 	private List<StorageSystemTypeRestRep> storagesystem_types;
@@ -20,7 +20,7 @@ public class StorageSystemTypeList {
 		this.storagesystem_types = storageTypes;
 	}
 
-	@XmlElement(name = "storagesystem_types")
+	@XmlElement(name = "storagesystem_type")
 	public List<StorageSystemTypeRestRep> getStorageSystemTypes() {
 		if (storagesystem_types == null) {
 			storagesystem_types = new ArrayList<StorageSystemTypeRestRep>();

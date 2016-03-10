@@ -30,8 +30,8 @@ private RestClient client;
         return client.get(StorageSystemTypeRestRep.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/" + uuid);
     }
     
-    public List <StorageSystemTypeRestRep> listStorageSystemTypeTypes(String storageTypeType) {
-        return (List<StorageSystemTypeRestRep>) client.get(StorageSystemTypeRestRep.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" +storageTypeType);
+    public StorageSystemTypeList listStorageSystemTypeTypes(String storageTypeType) {
+        return client.get(StorageSystemTypeList.class, PathConstants.STORAGE_SYSTEM_TYPE_URL + "/type/" +storageTypeType);
     }
     
 }

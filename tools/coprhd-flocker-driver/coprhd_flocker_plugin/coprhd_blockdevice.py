@@ -17,7 +17,7 @@ import socket
 import viprcli.authentication as auth
 import viprcli.common as utils
 import viprcli.exportgroup as exportgroup
-#import viprcli.host as host
+import viprcli.host as hosts
 import viprcli.hostinitiators as host_initiator
 import viprcli.snapshot as snapshot
 import viprcli.virtualarray as virtualarray
@@ -25,13 +25,17 @@ import viprcli.volume as volume
 import viprcli.consistencygroup as consistencygroup
 import viprcli.tag as tag
 import viprcli.project as coprhdproject
+import viprcli.storagesystem as storagesystem
+import viprcli.storageport as storageport
+import viprcli.network as network
+
 
 from eliot import Message, Logger
 from twisted.python.filepath import FilePath
 from zope.interface import implementer
 from subprocess import check_output
 
-import base64
+import base64 
 import urllib
 import urllib2
 import json
@@ -77,6 +81,31 @@ class CoprHDCLIDriver(object):
         self.project_obj = coprhdproject.Project(
             self.coprhdhost,
             self.port)
+
+        self.host_obj = hosts.Host(
+            self.coprhdhost,
+            self.port)
+
+        self.hostinitiator_obj = host_initiator.HostInitiator(
+            self.host,
+            self.port)
+
+        self.storagesystem_obj = storagesystem.StorageSystem(
+            self.host,
+            self.port)
+
+        self.storageport_obj = storageport.Storageport(
+            self.host,
+            self.port)
+
+        self.varray_obj = virtualarray.VirtualArray(
+            self.host,
+            self.port)
+
+        self.network_obj = network.Network(
+            self.host,
+            self.port)
+         
             
     def authenticate_user(self):
         # we should check to see if we are already authenticated before blindly
@@ -246,7 +275,111 @@ class CoprHDCLIDriver(object):
             else:
                 with excutils.save_and_reraise_exception():
                     Message.new(Debug="Volume : delete failed").write(_logger)
-                
+
+    def create_project(self,name):
+        self.authenticate_user()
+        Message.new(Debug="coprhd create_project").write(_logger)
+        try:
+            self.project_obj.project_create(
+                name,
+                self.tenant)
+        except utils.SOSError as e:
+            if e.err_code == utils.SOSError.ENTRY_ALREADY_EXISTS_ERR:
+                Message.new(Debug="Project with "+name+" already exists").write(_logger)
+
+    def create_export_group(self,name,exportgrouptype="Host"):
+        self.authenticate_user()
+        try:
+            self.exportgroup_obj.exportgroup_create(
+                name,
+                self.project,
+                self.tenant,
+                self.varray,
+                exportgrouptype)
+        except utils.SOSError as e:
+            Message.new(Debug="Export group creation Failed").write(_logger)
+
+    def create_host(self,name,label1,hosttype1="Windows"):
+        self.authenticate_user()
+        try:
+            self.host_obj.create(
+                 name,
+                 hosttype=hosttype1,
+                 label=label1,
+                 tenant=self.tenant,
+                 port=5985,
+                 username="root",
+                 passwd= None,
+                 usessl=True,
+                 osversion=None,
+                 cluster=None,
+                 datacenter=None,
+                 vcenter=None,
+                 autodiscovery=False,
+                 project=None,
+                 bootvolume=None,
+                 testconnection=None)
+        except utils.SOSError as e:
+            Message.new(Debug="Host Creation Failed").write(_logger)
+
+    def add_initiators(self,sync, hostlabel, protocol, initiatorwwn, portwwn):
+        self.authenticate_user()
+        f = open ('/etc/iscsi/initiatorname.iscsi','r')
+        initiatorname=None
+        for line in f:
+            if ( line[0] != '#' ):
+                s1=line.split('=')
+                initiatorname=s1[1]
+                break
+
+        self.hostinitiator_obj.create(
+                sync,
+                hostlabel,
+                protocol,
+                initiatorwwn,
+                portwwn,
+                initiatorname)
+
+    def create_network(self,name,nwtype):
+        self.authenticate_user()
+        try:
+            self.network_obj.create(
+                name,
+                nwtype)
+        except utils.SOSError as e:
+            if(e.err_code == utils.SOSError.ENTRY_ALREADY_EXISTS_ERR):
+                Message.new(Debug="Network with same name already exists").write(_logger)
+        varray_uri = self.varray_obj.varray_list()
+        self.network_obj.assign(
+                name,
+                varray=varray_uri)
+        storage_ports = self.varray_obj.list_storageports(self.varray)
+        storagesystem_name = []
+        storagesystem_list = []
+        port_list = []
+        for st in storage_ports:
+            if st['storage_system'] not in storagesystem_name:
+                storagesystem_name.append(st['storage_system'])
+                storagesystem_list.append(self.storagesystem_obj.show_by_name(st['storage_system']))
+        for st in storagesystem_list:
+            storage_port=self.storageport_obj.storageport_list(
+                storagedeviceName=st['name'],
+                serialNumber=st['serial_number'],
+                storagedeviceType=st['system_type'])
+            for ps in storage_port:
+            	port = ps['name'].split('+')[3]
+                #to find all ports starting with 'i'.as IP port start with iqn
+                if port[0]=='i':
+                    try:
+                        port_list.append(port)
+                        self.network_obj.add_endpoint(
+                            name,
+                            endpoint=port)
+                    except utils.SOSError as e:
+                        if e.err_code==utils.SOSError.ENTRY_ALREADY_EXISTS_ERR:
+                            continue
+ 
+               
 class volumestatus(object):
  def __init__(self,name,size,attached_to):
         self.name = name[8:]

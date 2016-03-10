@@ -284,18 +284,24 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             return toTask(consistencyGroup, task, op);
         } else {
             // ScaleIO does not have explicit CGs, so we can just update the database and complete
-            List<Volume> addVolumes = _dbClient.queryObject(Volume.class, addVolumesList, true);
-            for (Volume volume : addVolumes) {
+            Iterator<Volume> addVolumeItr = _dbClient.queryIterativeObjects(Volume.class, addVolumesList);
+            List<Volume> addVolumes = new ArrayList<Volume>();
+            while (addVolumeItr.hasNext()) {
+                Volume volume = addVolumeItr.next();
                 volume.setConsistencyGroup(consistencyGroup.getId());
+                addVolumes.add(volume);
             }
 
-            List<Volume> removeVolumes = _dbClient.queryObject(Volume.class, removeVolumesList, true);
-            for (Volume volume : removeVolumes) {
-                volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+            Iterator<Volume> removeVolumeItr = _dbClient.queryIterativeObjects(Volume.class, removeVolumesList);
+            List<Volume> removeVolumes = new ArrayList<Volume>();
+            while (removeVolumeItr.hasNext()) {
+                Volume volume = removeVolumeItr.next();
+                volume.setConsistencyGroup(consistencyGroup.getId());
+                removeVolumes.add(volume);
             }
 
-            _dbClient.updateAndReindexObject(addVolumes);
-            _dbClient.updateAndReindexObject(removeVolumes);
+            _dbClient.updateObject(addVolumes);
+            _dbClient.updateObject(removeVolumes);
             return toCompletedTask(consistencyGroup, task, op);
         }
     }

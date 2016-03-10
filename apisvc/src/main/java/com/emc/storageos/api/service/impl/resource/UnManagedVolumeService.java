@@ -369,7 +369,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 volumeContext.commit();
 
                 // Commit this volume's updated data objects if any after ingestion
-                List<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
+                Set<DataObject> updatedObjects = requestContext.getDataObjectsToBeUpdatedMap().get(unManagedVolumeGUID);
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     for (DataObject dob : updatedObjects) {
                         _logger.info("Updating DataObject " + dob.forDisplay());
@@ -378,7 +378,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 }
 
                 // Commit this volume's created data objects if any after ingestion
-                List<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
+                Set<DataObject> createdObjects = requestContext.getDataObjectsToBeCreatedMap().get(unManagedVolumeGUID);
                 if (createdObjects != null && !createdObjects.isEmpty()) {
                     for (DataObject dob : createdObjects) {
                         _logger.info("Creating DataObject " + dob.forDisplay());
@@ -690,7 +690,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             _dbClient.updateObject(requestContext.getUnManagedVolumesToBeDeleted());
 
             // Update the related objects if any after successful export mask ingestion
-            for (List<DataObject> updatedObjects : requestContext.getDataObjectsToBeUpdatedMap().values()) {
+            for (Set<DataObject> updatedObjects : requestContext.getDataObjectsToBeUpdatedMap().values()) {
                 if (updatedObjects != null && !updatedObjects.isEmpty()) {
                     for (DataObject dob : updatedObjects) {
                         _logger.info("Updating DataObject " + dob.forDisplay());
@@ -700,7 +700,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             }
 
             // Create the related objects if any after successful export mask ingestion
-            for (List<DataObject> createdObjects : requestContext.getDataObjectsToBeCreatedMap().values()) {
+            for (Set<DataObject> createdObjects : requestContext.getDataObjectsToBeCreatedMap().values()) {
                 if (createdObjects != null && !createdObjects.isEmpty()) {
                     for (DataObject dob : createdObjects) {
                         _logger.info("Creating DataObject " + dob.forDisplay());

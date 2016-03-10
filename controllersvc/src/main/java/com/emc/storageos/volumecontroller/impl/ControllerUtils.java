@@ -1232,13 +1232,52 @@ public class ControllerUtils {
 
         return groupNames;
     }
+
+    /**
+     * Gets snapshot replication group names for given source volumes in Replication Group and snap session.
+     *
+     * @param volumes the volumes
+     * @param snapSession the snap session
+     * @param dbClient the db client
+     * @return the snapshot replication group names for snap session
+     */
+    public static Set<String> getSnapshotReplicationGroupNamesForSnapSession(List<Volume> volumes, BlockSnapshotSession snapSession,
+            DbClient dbClient) {
+        Set<String> groupNames = new HashSet<>();
+        StringSet linkedTargets = snapSession.getLinkedTargets();
+
+        // check if replica of any of these volumes have replicationGroupInstance set
+        for (Volume volume : volumes) {
+            URIQueryResultList snapshotList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                    snapshotList);
+            Iterator<URI> iter = snapshotList.iterator();
+            while (iter.hasNext()) {
+                URI snapshotID = iter.next();
+                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
+                if (snapshot != null && !snapshot.getInactive()
+                        && linkedTargets != null && linkedTargets.contains(snapshotID.toString())
+                        && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                    groupNames.add(snapshot.getReplicationGroupInstance());
+                }
+            }
+
+            if (!groupNames.isEmpty()) {
+                // no need to check other CG members
+                break;
+            }
+        }
+
+        return groupNames;
+    }
     
     /**
-     * Gets snapshot replication group names from source volumes in CG.
-     * 
-     * @param volumes
-     * @param dbClient
-     * @return
+     * Gets copy mode for snapshots in snapshot replication group.
+     *
+     * @param snapGroupName the snap group name
+     * @param storage the storage
+     * @param dbClient the db client
+     * @return the copy mode from snapshot group
      */
     public static String getCopyModeFromSnapshotGroup(String snapGroupName, URI storage,  DbClient dbClient) {
        List<BlockSnapshot> snapshots =  getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);

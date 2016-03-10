@@ -163,104 +163,103 @@ import com.google.common.base.Joiner;
  */
 public class RPDeviceController implements RPController, BlockOrchestrationInterface, MaskingOrchestrator {
 
-    /**
-     *
-     */
     private static final String REPLICATION_GROUP_RPTARGET_SUFFIX = "-RPTARGET";
     private static final String DASHED_NEWLINE = "---------------------------------%n";
     private static final String ALPHA_NUMERICS = "[^A-Za-z0-9_]";
-    private static final String RPA = "-rpa-";
+    
     // RecoverPoint consistency group name prefix
     private static final String CG_NAME_PREFIX = "ViPR-";
     private static final String VIPR_SNAPSHOT_PREFIX = "ViPR-snapshot-";
 
     // Various steps for workflows
     private static final String STEP_REMOVE_PROTECTION = "rpRemoveProtectionStep";
-    private static final String STEP_CG_CREATION = "cgCreation";
-    private static final String STEP_CG_UPDATE = "cgUpdate";
+    private static final String STEP_CG_CREATION = "rpCgCreation";
+    private static final String STEP_CG_UPDATE = "rpCgUpdate";
 
-    private static final String STEP_EXPORT_GROUP = "exportGroup";
-    private static final String STEP_DV_REMOVE_CG = "dvRemoveCG";
-    private static final String STEP_DV_REMOVE_VOLUME_EXPORT = "dvRemoveVolumeExport";
-    private static final String STEP_DV_CLEANUP = "dvDeleteCleanup";
-    private static final String STEP_ENABLE_IMAGE_ACCESS = "enableImageAccess";
-    private static final String STEP_DISABLE_IMAGE_ACCESS = "disableImageAccess";
-    private static final String STEP_EXPORT_DELETE_SNAPSHOT = "exportDeleteSnapshot";
-    private static final String STEP_EXPORT_GROUP_DELETE = "exportGroupDelete";
-    private static final String STEP_EXPORT_GROUP_DISABLE = "exportGroupDisable";
-    private static final String STEP_EXPORT_REMOVE_SNAPSHOT = "exportRemoveSnapshot";
-    private static final String STEP_POST_VOLUME_CREATE = "postVolumeCreate";
-    private static final String STEP_ADD_JOURNAL_VOLUME = "addJournalVolume";
+    private static final String STEP_EXPORT_GROUP = "rpExportGroup";
+    private static final String STEP_DV_REMOVE_CG = "rpDvRemoveCG";
+    private static final String STEP_DV_REMOVE_VOLUME_EXPORT = "rpDvRemoveVolumeExport";
+    private static final String STEP_DV_CLEANUP = "rpDvDeleteCleanup";
+    private static final String STEP_ENABLE_IMAGE_ACCESS = "rpEnableImageAccess";
+    private static final String STEP_DISABLE_IMAGE_ACCESS = "rpDisableImageAccess";
+    private static final String STEP_EXPORT_DELETE_SNAPSHOT = "rpExportDeleteSnapshot";
+    private static final String STEP_EXPORT_GROUP_DELETE = "rpExportGroupDelete";
+    private static final String STEP_EXPORT_GROUP_DISABLE = "rpExportGroupDisable";
+    private static final String STEP_EXPORT_REMOVE_SNAPSHOT = "rpExportRemoveSnapshot";
+    private static final String STEP_POST_VOLUME_CREATE = "rpPostVolumeCreate";
+    private static final String STEP_ADD_JOURNAL_VOLUME = "rpAddJournalVolume";
 
-    private static final String STEP_PRE_VOLUME_EXPAND = "preVolumeExpand";
-    private static final String STEP_POST_VOLUME_EXPAND = "postVolumeExpand";
+    private static final String STEP_PRE_VOLUME_EXPAND = "rpPreVolumeExpand";
+    private static final String STEP_POST_VOLUME_EXPAND = "rpPostVolumeExpand";
 
-    public static final String STEP_PRE_VOLUME_RESTORE = "preVolumeRestore";
-    public static final String STEP_POST_VOLUME_RESTORE = "postVolumeRestore";
+    public static final String STEP_PRE_VOLUME_RESTORE = "rpPreVolumeRestore";
+    public static final String STEP_POST_VOLUME_RESTORE = "rpPostVolumeRestore";
 
     // Methods in the create workflow. Constants helps us avoid step dependency flubs.
-    private static final String METHOD_CG_CREATE_STEP = "cgCreateStep";
-    private static final String METHOD_CG_CREATE_ROLLBACK_STEP = "cgCreateRollbackStep";
+    private static final String METHOD_CG_CREATE_STEP = "rpCgCreateStep";
+    private static final String METHOD_CG_CREATE_ROLLBACK_STEP = "rpCgCreateRollbackStep";
 
     // Methods in the add journal volume workflow.
-    private static final String METHOD_ADD_JOURNAL_STEP = "addJournalStep";
-    private static final String METHOD_ADD_JOURNAL_ROLLBACK_STEP = "addJournalRollbackStep";
+    private static final String METHOD_ADD_JOURNAL_STEP = "rpAddJournalStep";
+    private static final String METHOD_ADD_JOURNAL_ROLLBACK_STEP = "rpAddJournalRollbackStep";
 
     // Methods in the update workflow.
-    private static final String METHOD_CG_UPDATE_STEP = "cgUpdateStep";
-    private static final String METHOD_CG_UPDATE_ROLLBACK_STEP = "cgUpdateRollbackStep";
+    private static final String METHOD_CG_UPDATE_STEP = "rpCgUpdateStep";
+    private static final String METHOD_CG_UPDATE_ROLLBACK_STEP = "rpCgUpdateRollbackStep";
 
     // Methods in the delete workflow.
-    private static final String METHOD_DELETE_CG_STEP = "cgDeleteStep";
+    private static final String METHOD_DELETE_CG_STEP = "rpCgDeleteStep";
 
     // Methods in the export group create workflow
-    private static final String METHOD_ENABLE_IMAGE_ACCESS_STEP = "enableImageAccessStep";
-    private static final String METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP = "enableImageAccessStepRollback";
+    private static final String METHOD_ENABLE_IMAGE_ACCESS_STEP = "rpEnableImageAccessStep";
+    private static final String METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP = "rpEnableImageAccessStepRollback";
 
     // Methods in the export group delete workflow
-    private static final String METHOD_DISABLE_IMAGE_ACCESS_STEP = "disableImageAccessStep";
+    private static final String METHOD_DISABLE_IMAGE_ACCESS_STEP = "rpDisableImageAccessStep";
 
     // Methods in the export group remove volume workflow
-    private static final String METHOD_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "disableImageAccessSingleStep";
+    private static final String METHOD_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "rpDisableImageAccessSingleStep";
 
     // Methods in restore volume from snapshot workflow
-    private static final String METHOD_RESTORE_VOLUME_STEP = "restoreVolume";
+    private static final String METHOD_RESTORE_VOLUME_STEP = "rpRestoreVolume";
 
     // Methods in the expand volume workflow
-    public static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
-    private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "recreateRSetStep";
-    public static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
+    public static final String METHOD_DELETE_RSET_STEP = "rpDeleteRSetStep";
+    private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "rpDeleteRSetRollbackStep";
+    public static final String METHOD_RECREATE_RSET_STEP = "rpRecreateRSetStep";
 
     // Methods in the create RP snapshot workflow
-    private static final String STEP_BOOKMARK_CREATE = "createBookmark";
-    private static final String METHOD_CREATE_BOOKMARK_STEP = "createBookmarkStep";
-    private static final String METHOD_ROLLBACK_CREATE_BOOKMARK_STEP = "createBookmarkRollbackStep";
+    private static final String STEP_BOOKMARK_CREATE = "rpCreateBookmark";
+    private static final String METHOD_CREATE_BOOKMARK_STEP = "rpCreateBookmarkStep";
+    private static final String METHOD_ROLLBACK_CREATE_BOOKMARK_STEP = "rpCreateBookmarkRollbackStep";
 
+    private static final String STEP_CREATE_BLOCK_SNAPSHOT = "rpCreateBlockSnapshot";
+
+    private static final String METHOD_CREATE_BLOCK_SNAPSHOT_STEP = "rpCreateBlockSnapshotStep";
+    private static final String METHOD_ROLLBACK_CREATE_BLOCK_SNAPSHOT = "rpCreateBlockSnapshotRollbackStep";
+    private static final String METHOD_SNAPSHOT_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "rpSnapshotDisableImageAccessSingleStep";
+
+    // Methods in the RP update CG workflow
     private static final String STEP_UPDATE_CG_POLICY = "rpUpdateConsistencyGroupPolicy";
-    private static final String METHOD_UPDATE_CG_POLICY_STEP = "updateConsistencyGroupPolicyStep";
-
-    private static final String STEP_CREATE_BLOCK_SNAPSHOT = "createBlockSnapshot";
-
-    private static final String METHOD_CREATE_BLOCK_SNAPSHOT_STEP = "createBlockSnapshotStep";
-    private static final String METHOD_ROLLBACK_CREATE_BLOCK_SNAPSHOT = "createBlockSnapshotRollbackStep";
-    private static final String METHOD_SNAPSHOT_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "snapshotDisableImageAccessSingleStep";
-
-    // Method to clean
+    private static final String METHOD_UPDATE_CG_POLICY_STEP = "rpUpdateConsistencyGroupPolicyStep";
+    
     private static final String METHOD_RP_VPLEX_REINSTATE_SRC_VVOL_STEP = "rpVPlexReinstateSourceVirtualVolumeStep";
-
-    protected final static String CONTROLLER_SVC = "controllersvc";
-    protected final static String CONTROLLER_SVC_VER = "1";
-    private static final Logger _log = LoggerFactory.getLogger(RPDeviceController.class);
-
-    private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "exportOrchestrationSteps";
-    private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "exportOrchestrationRollbackSteps";
-    private static final String STEP_EXPORT_ORCHESTRATION = "exportOrchestration";
+   
+    // Methods in the RP export workflow
+    private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "rpExportOrchestrationSteps";
+    private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "rpExportOrchestrationRollbackSteps";
+    private static final String STEP_EXPORT_ORCHESTRATION = "rpExportOrchestration";
 
     private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
-    private static final String METHOD_REMOVE_PROTECTION_STEP = "removeProtectionStep";
-    private static final String METHOD_REMOVE_PROTECTION_ROLLBACK_STEP = "removeProtectionRollback";
+    // Methods in the RP remove protection workflow
+    private static final String METHOD_REMOVE_PROTECTION_STEP = "rpRemoveProtectionStep";
+    private static final String METHOD_REMOVE_PROTECTION_ROLLBACK_STEP = "rpRemoveProtectionRollback";
+    
+    protected final static String CONTROLLER_SVC = "controllersvc";
+    protected final static String CONTROLLER_SVC_VER = "1";
+    private static final Logger _log = LoggerFactory.getLogger(RPDeviceController.class);
 
     private static DbClient _dbClient = null;
     protected CoordinatorClient _coordinator;
@@ -1350,7 +1349,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param lockException lockException
      * @param rpExports RPExports information
      * @param rpSiteInitiatorsMap RP site initiators map
-     * @return
      */
     private void acquireRPLockKeysForExport(String taskId, Collection<RPExport> rpExports,
             Map<String, Set<URI>> rpSiteInitiatorsMap) {
@@ -2073,7 +2071,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 throw DeviceControllerExceptions.recoverpoint.cgDeleteStepInvalidParam("volume IDs empty");
             }
 
-            List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeIDs, true);
+            List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeIDs);
             if (volumes.isEmpty()) {
                 _log.info("All volumes already deleted. Not performing RP CG operation");
                 WorkflowStepCompleter.stepSucceded(token);
@@ -2361,7 +2359,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Set<URI> volumeURIs = _rpHelper.getVolumesToDelete(VolumeDescriptor.getVolumeURIs(filteredSourceVolumeDescriptors));
 
         _log.info(String
-                .format("Following volume(s) will be unexported from their Export Groups :  [%s]", Joiner.on("--").join(volumeURIs)));
+                .format("Following volume(s) will be unexported from their RP export groups :  [%s]", Joiner.on("--").join(volumeURIs)));
 
         Map<URI, RPExport> rpExports = new HashMap<URI, RPExport>();
         for (URI volumeURI : volumeURIs) {
@@ -2377,7 +2375,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (rpSystemId != null) {
                 rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
                 if (rpSystem == null || rpSystem.getInactive()) {
-                    _log.warn("No protection system information found for volume {}. Volume cannot be removed from exports for RP",
+                    _log.warn("No protection system information found for volume {}. Volume cannot be removed from RP export groups.",
                             volume.getLabel());
                     continue;
                 }
@@ -2390,7 +2388,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
 
             if (VirtualPool.isRPVPlexProtectHASide(virtualPool)) {
-                _log.info(String.format("RP+VPLEX protect HA Source Volume [%s] to be removed from export group.", volume.getLabel()));
+                _log.info(String.format("RP+VPLEX protect HA Source Volume [%s] to be removed from RP export group.", volume.getLabel()));
                 // We are dealing with a RP+VPLEX distributed volume that has the HA as the protected side so we need to get
                 // the HA side export group only.
                 if (volume.getAssociatedVolumes() != null &&
@@ -2403,7 +2401,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                             volume.getId(), associatedVolume.getVirtualArray(),
                                             associatedVolume.getInternalSiteName());
                             if (exportGroup != null) {
-                                _log.info(String.format("Removing volume [%s] from export group [%s].",
+                                _log.info(String.format("Removing volume [%s] from RP export group [%s].",
                                         volume.getLabel(), exportGroup.getGeneratedName()));
                             }
                             // Assuming we've found the correct Export Group for this volume, let's
@@ -2420,14 +2418,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 if (volume.getAssociatedVolumes() != null &&
                         volume.getAssociatedVolumes().size() == 2) {
                     for (String associatedVolURI : volume.getAssociatedVolumes()) {
-                        _log.info(String.format("MetroPoint Source Volume [%s] to be removed from export group.", volume.getLabel()));
+                        _log.info(String.format("MetroPoint Source Volume [%s] to be removed from RP export group.", volume.getLabel()));
                         Volume associatedVolume = _dbClient.queryObject(Volume.class, URI.create(associatedVolURI));
                         ExportGroup exportGroup =
                                 getExportGroup(rpSystem,
                                         volume.getId(), associatedVolume.getVirtualArray(),
                                         associatedVolume.getInternalSiteName());
                         if (exportGroup != null) {
-                            _log.info(String.format("Removing volume [%s] from export group [%s].",
+                            _log.info(String.format("Removing volume [%s] from RP export group [%s].",
                                     volume.getLabel(), exportGroup.getGeneratedName()));
                         }
                         // Assuming we've found the correct Export Group for this volume, let's
@@ -2436,7 +2434,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     }
                 }
             } else {
-                _log.info(String.format("Volume [%s] to be removed from export group.", volume.getLabel()));
+                _log.info(String.format("Volume [%s] to be removed from RP export group.", volume.getLabel()));
                 // Find the Export Group for this regular RP volume
                 ExportGroup exportGroup =
                         getExportGroup(rpSystem,
@@ -2444,7 +2442,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 volume.getInternalSiteName());
 
                 if (exportGroup != null) {
-                    _log.info(String.format("Removing volume [%s] from export group [%s].",
+                    _log.info(String.format("Removing volume [%s] from RP export group [%s].",
                             volume.getLabel(), exportGroup.getGeneratedName()));
                 }
                 // Assuming we've found the correct Export Group for this volume, let's
@@ -2455,7 +2453,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         // Generate the workflow steps for export volume removal and volume deletion
         for (URI exportURI : rpExports.keySet()) {
-            _log.info(String.format("Export Group will have these volumes removed: [%s]",
+            _log.info(String.format("RP export group will have these volumes removed: [%s]",
                     Joiner.on(',').join(rpExports.get(exportURI).getVolumes())));
             RPExport rpExport = rpExports.get(exportURI);
             if (!rpExport.getVolumes().isEmpty()) {
@@ -2466,7 +2464,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             }
         }
 
-        _log.info("Completed adding steps to remove volumes from export groups.");
+        _log.info("Completed adding steps to remove volumes from RP export groups.");
 
         return returnStep;
     }
@@ -5245,7 +5243,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         ContainmentConstraint constraint = ContainmentConstraint.
                 Factory.getBlockObjectExportGroupConstraint(snapshot.getId());
 
-        List<URI> exportGroupIdsForSnapshot = _dbClient.queryByConstraint(constraint);
+        URIQueryResultList exportGroupIdsForSnapshot = new URIQueryResultList();
+        _dbClient.queryByConstraint(constraint, exportGroupIdsForSnapshot);
+                   
         if (exportGroupIdsForSnapshot.size() > 1) {
             _log.info(String.format("Snapshot %s is in %d active exportGroups. Not safe to disable the CG", snapshot.getEmName(),
                     exportGroupIdsForSnapshot.size()));

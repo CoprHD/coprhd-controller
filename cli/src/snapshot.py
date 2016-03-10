@@ -366,7 +366,7 @@ class Snapshot(object):
             return o
 
     def snapshot_delete(self, storageresType,
-                        storageresTypename, resourceUri, name, sync,synctimeout):
+                        storageresTypename, resourceUri, name, sync,synctimeout=0):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -379,7 +379,7 @@ class Snapshot(object):
             sync,synctimeout)
 
     def snapshot_restore(self, storageresType,
-                         storageresTypename, resourceUri, name, sync,synctimeout, syncdirection):
+                         storageresTypename, resourceUri, name, sync,synctimeout=0, syncdirection=None):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -395,7 +395,7 @@ class Snapshot(object):
                 syncdirection)
         )
 
-    def snapshot_restore_uri(self, otype, typename, resourceUri, suri, sync,synctimeout,syncdirection):
+    def snapshot_restore_uri(self, otype, typename, resourceUri, suri, sync,synctimeout=0,syncdirection=None):
         ''' Makes REST API call to restore Snapshot under a shares or volumes
             parameters:
                 otype    : either file or block or
@@ -434,7 +434,7 @@ class Snapshot(object):
     
     
     def snapshot_resync(self, storageresType,
-                         storageresTypename, resourceUri, name, sync,synctimeout):
+                         storageresTypename, resourceUri, name, sync,synctimeout=0):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -466,7 +466,7 @@ class Snapshot(object):
                 snapshotUri)
         )
 
-    def snapshot_resync_uri(self, otype, typename, resourceUri, suri, sync,synctimeout):
+    def snapshot_resync_uri(self, otype, typename, resourceUri, suri, sync,synctimeout=0):
         ''' Makes REST API call to resync Snapshot under a shares or volumes
             parameters:
                 otype    : either file or block or
@@ -526,7 +526,7 @@ class Snapshot(object):
     
         
 
-    def snapshot_activate_uri(self, otype, typename, resourceUri, suri, sync,synctimeout):
+    def snapshot_activate_uri(self, otype, typename, resourceUri, suri, sync,synctimeout=0):
 
         if(resourceUri.find("BlockConsistencyGroup") > 0):
             (s, h) = common.service_json_request(
@@ -571,7 +571,7 @@ class Snapshot(object):
             sharename,
             description,
             permission_type,
-            sync, subdir,synctimeout):
+            sync, subdir,synctimeout=0):
 
         o = None
         if(protocol == "NFS"):
@@ -623,7 +623,7 @@ class Snapshot(object):
             sharename,
             description,
             permission_type,
-            sync, subdir,synctimeout):
+            sync, subdir,synctimeout=0):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -713,7 +713,7 @@ class Snapshot(object):
                                    suri,
                                    protocol,
                                    sharename,
-                                   sync,synctimeout):
+                                   sync,synctimeout=0):
 
         o = None
         if(protocol == "NFS"):
@@ -741,7 +741,7 @@ class Snapshot(object):
             self, storageresType, storageresTypename, resourceUri, name,
             protocol,
             sharename,
-            sync,synctimeout):
+            sync,synctimeout=0):
 
         snapshotUri = self.snapshot_query(
             storageresType,
@@ -981,7 +981,7 @@ class Snapshot(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def block_until_complete(self, storageresType, resuri, task_id,synctimeout):
+    def block_until_complete(self, storageresType, resuri, task_id,synctimeout=0):
         if synctimeout:
             t = Timer(synctimeout, self.timeout_handler)
         else:

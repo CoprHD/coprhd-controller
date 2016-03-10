@@ -125,9 +125,31 @@ public class DisasterRecovery extends ViprResourceController {
         SiteRestRep result = DisasterRecoveryUtils.getSite(id);
         if (result != null) {
             SiteRestRep siteretry = DisasterRecoveryUtils.retryStandby(id);
-            flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
+            if (siteretry.getState().equals(SiteState.STANDBY_FAILING_OVER.name())){
+                String standby_name = siteretry.getName();
+                String standby_vip = siteretry.getVipEndpoint();
+                String active_name = standby_name;
+                for (SiteRestRep site: DisasterRecoveryUtils.getStandbySites()){
+                    if (site.getState().equals(SiteState.ACTIVE_FAILING_OVER.name())){
+                        active_name = site.getName();
+                        break;
+                    }
+                }
+                String targetURL = "https://" + standby_vip;
+                Boolean iamActiveSite = false;
+                String site_uuid = id;
+                String site_state = result.getState();
+                render(active_name, standby_name, standby_vip, site_uuid, site_state, iamActiveSite, targetURL);
+            }
+            else {
+                flash.success(MessagesUtils.get(RETRY_SUCCESS, siteretry.getName()));
+                list();
+            }
         }
-        list();
+        else {
+            flash.error(MessagesUtils.get(UNKNOWN, id));
+            list();
+        }
     }
 
     public static void test(String id) {

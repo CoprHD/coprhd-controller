@@ -7,6 +7,7 @@
 
 # clenup /run/initramfs created by 'KIWILinuxRC.sh'
 rm -fr /run/initramfs
+touch /root/fixes
 
 # turn off on screen console messages after first boot
 dmesg --console-off

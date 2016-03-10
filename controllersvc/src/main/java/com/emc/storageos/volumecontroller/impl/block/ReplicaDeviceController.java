@@ -412,8 +412,8 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             BlockSnapshotSession existingSession, URI cgURI) {
         log.info("START create snapshot session and link session to targets step");
         // get existing snapshot groups
-        Set<String> snapGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(existingVolumes,
-                _dbClient);
+        Set<String> snapGroupNames = ControllerUtils.getSnapshotReplicationGroupNamesForSnapSession(existingVolumes,
+                existingSession, _dbClient);
 
         for (Volume volume : volumes) {
             // delete the new session object at the end from DB
@@ -439,7 +439,11 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                 blockSnapshot.setCopyMode(copyMode);
                 _dbClient.updateObject(blockSnapshot);
                 // add this snapshot target to existing snap session
-                existingSession.getLinkedTargets().add(blockSnapshot.getId().toString());
+                StringSet linkedTargets = existingSession.getLinkedTargets();
+                if (linkedTargets == null) {
+                    linkedTargets = new StringSet();
+                }
+                linkedTargets.add(blockSnapshot.getId().toString());
                 _dbClient.updateObject(existingSession);
 
                 if (snapGroupToSnapshots.get(snapGroupName) == null) {

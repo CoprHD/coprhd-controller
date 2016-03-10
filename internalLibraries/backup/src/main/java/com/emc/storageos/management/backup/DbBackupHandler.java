@@ -156,6 +156,7 @@ public class DbBackupHandler extends BackupHandler {
                             log.warn("No snapshot created for cf: {}", cfDir.getName());
                         }
                         cfBackupFolder.mkdir();
+                        continue;
                     }
                     // Moves snapshot folder and renames it with Column Family name
                     Files.move(snapshotFolder.toPath(), cfBackupFolder.toPath(),

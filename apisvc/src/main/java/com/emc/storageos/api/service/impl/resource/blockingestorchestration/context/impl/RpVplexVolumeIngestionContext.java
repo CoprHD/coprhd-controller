@@ -43,21 +43,10 @@ public class RpVplexVolumeIngestionContext extends RecoverPointVolumeIngestionCo
     @Override
     public void commit() {
 
-        // add block consistency group to VPLEX backend volumes.
-        BlockConsistencyGroup bcg = getManagedBlockConsistencyGroup();
-        if (bcg != null) {
-            for (BlockObject backendVolume : _vplexVolumeIngestionContext.getBlockObjectsToBeCreatedMap().values()) {
-                List<String> backendVolumeGuids = _vplexVolumeIngestionContext.getBackendVolumeGuids();
-                if (backendVolumeGuids.contains(backendVolume.getNativeGuid())) {
-                    _logger.info("Setting BlockConsistencyGroup {} on VPLEX backend Volume {}", 
-                            bcg.forDisplay(), backendVolume.forDisplay());
-                    backendVolume.setConsistencyGroup(bcg.getId());
-                }
-            }
-        }
-
         // if this is an RP/VPLEX that is exported to a host or cluster, add the volume to the ExportGroup
         ExportGroup rootExportGroup = getRootIngestionRequestContext().getExportGroup();
+        UnManagedVolume vol = getUnmanagedVolume();
+        _logger.info("About to add {} to ExportGroup {}", vol.forDisplay(), rootExportGroup.forDisplay());
         if (rootExportGroup != null && 
                 VolumeIngestionUtil.checkUnManagedResourceIsNonRPExported(getUnmanagedVolume())) {
             _logger.info("Adding RP/VPLEX virtual volume {} to ExportGroup {}", 

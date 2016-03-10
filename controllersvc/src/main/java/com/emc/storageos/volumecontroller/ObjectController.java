@@ -85,15 +85,6 @@ public interface ObjectController extends StorageController {
     public void syncBucketACL(URI storage, URI bucketId, String opId ) throws InternalException;
     
     /**
-     * Get all object user secret keys
-     * @param storage storage URN
-     * @param userId object storage user id
-     * @return details
-     * @throws InternalException
-     */
-    public ObjectUserSecretKey getUserSecretKeys(URI storage, String userId)  throws InternalException;
-
-    /**
      * Create an object user secret key
      * @param storage URN
      * @param userId object storage user id

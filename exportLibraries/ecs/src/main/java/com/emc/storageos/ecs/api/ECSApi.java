@@ -599,42 +599,6 @@ public class ECSApi {
         }
     }
 
-    /**
-     * Get the secret keys for the specified user
-     * 
-     * @param user secret key for the user ID
-     * @return Existing secret keys
-     * @throws ECSException
-     */
-    public UserSecretKeysGetCommandResult getUserSecretKeys(String user) throws ECSException {
-        _log.debug("ECSApi:getUserSecretKeys enter");
-        ClientResponse clientResp = null;
-        try {
-            String responseString = null;
-            final String path = MessageFormat.format(URI_USER_SECRET_KEYS, user);
-            getAuthToken();
-            clientResp = get(path);
-            if (null == clientResp) {
-                throw ECSException.exceptions.getUserSecretKeysFailedAry("no response from ECS");
-            } else if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.getUserSecretKeysFailedAry(getResponseDetails(clientResp));
-            }
-
-            responseString = clientResp.getEntity(String.class);
-            _log.info("ECSApi:getUserSecretKeys ECS response is {}", responseString);
-            UserSecretKeysGetCommandResult ecsSecretKeyResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
-                    UserSecretKeysGetCommandResult.class);
-            return ecsSecretKeyResult;
-        } catch (Exception e) {
-            throw ECSException.exceptions.getUserSecretKeysFailedExc(user, e);
-        } finally {
-            if (clientResp != null) {
-                clientResp.close();
-            }
-            _log.debug("ECSApi:getUserSecretKeys exit");
-        }
-    }
-
     public UserSecretKeysAddCommandResult addUserSecretKey(String user, String key) throws ECSException {
         _log.debug("ECSApi:addUserSecretKey enter");
         ClientResponse clientResp = null;

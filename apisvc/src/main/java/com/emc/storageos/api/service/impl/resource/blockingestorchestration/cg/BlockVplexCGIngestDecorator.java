@@ -99,8 +99,12 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
                 }
             }
 
+            // VPLEX ingestion process uses the virtual volume's replicationGroupInstance as a transient variable to
+            // identify CGs along the way so when the BlockConsistencyGroup is created, we can create the correct
+            // systemConsistencyGroups on the BlockConsistencyGroup.  
+            //
             // Now that we've added the proper replicationGroupInstance to the cg's systemConsistencyGroup, we can remove
-            // the volume's replicationGroupInstance reference.
+            // the virtual volume's replicationGroupInstance reference.  This does not impact the backing volumes.
             if (blockObj instanceof Volume) {
                 Volume volume = (Volume) blockObj;
                 if (volume.getAssociatedVolumes() != null) {                             

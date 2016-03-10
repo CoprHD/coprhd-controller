@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -3589,7 +3590,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (backingVolumes != null) {
                 for (String backingVolId : backingVolumes) {
                     Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                    if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
+                    if (backingVol != null && !backingVol.getInactive() && NullColumnValueGetter.isNotNullValue(backingVol.getReplicationGroupInstance())) {
                         groupNames.add(backingVol.getReplicationGroupInstance());
                     }
                 }

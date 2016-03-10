@@ -1872,7 +1872,7 @@ public class ControllerUtils {
         Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class, uriQueryResultList);
         while (volumeIterator.hasNext()) {
             Volume volume = volumeIterator.next();
-            if (volume.getReplicationGroupInstance() != null && volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
+            if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance()) && volume.getReplicationGroupInstance().equals(cgNameOnArray)) {
                 volumeGroup = volume.getApplication(dbClient);
                 if (volumeGroup != null) {
                     break;

@@ -3045,7 +3045,7 @@ recoverpoint_ingest_test()
 
         # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
-	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
+	run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_SRC}" --vipronly --force
         # Recreate unmanaged volumes/protection sets
 
         # Run discovery
@@ -3105,7 +3105,7 @@ recoverpoint_ingest_test()
     if [ "${vpool}" = "rp${rptypetag}_cdp" ]; then
         # Ingest the volume, but then immediately inventory-only delete it, rediscover, and ingest it again.
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
-	volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
+	run_noundo volume delete ${PROJECT}/"${RECOVERPOINT_INGEST_VOL1_TGT}" --vipronly --force
         # Recreate unmanaged volumes/protection sets
 
         # Run discovery
@@ -3115,12 +3115,16 @@ recoverpoint_ingest_test()
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_cdp $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
+        # Verify the CG got created; fail script if this fails.
+        run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
 	recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY}
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_TGT_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        # Verify the CG got created; fail script if this fails.
+        run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
 	recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY}
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC}"
@@ -3129,11 +3133,11 @@ recoverpoint_ingest_test()
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_V3TGT_JRNL}"
 	run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_VOL1_SRC_JRNL}"
+        # Verify the CG got created; fail script if this fails.
+        run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
 	recoverpoint_auto_snapshot_cleanup_test "${RECOVERPOINT_INGEST_VOL1_SRC}" "${RECOVERPOINT_INGEST_VOL1_TGT}" ${RECOVERPOINT_INGEST_SNAPSHOT_VARRAY} "${RECOVERPOINT_INGEST_VOL1_V3TGT}"
     fi
 
-    # Verify the CG got created; fail script if this fails.
-    run blockconsistencygroup show ViPR-"${RECOVERPOINT_INGEST_VOL1_CG}"
 
     # Run snapshot tests
     recoverpoint_snapshot_test ${RECOVERPOINT_INGEST_VOL1_SRC} ${RECOVERPOINT_TGT_VARRAY} rpsnap4-${RP_MODIFIED_HOSTNAME}-${RANDOM} blocksnap4-${RP_MODIFIED_HOSTNAME}-${RANDOM}

@@ -6,7 +6,6 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
-import static com.emc.storageos.volumecontroller.impl.ControllerUtils.checkSnapshotSessionConsistencyGroup;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -40,7 +39,6 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.SynchronizationState;
@@ -51,7 +49,6 @@ import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -63,7 +60,6 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 /**
  * Specific controller implementation to support block orchestration for handling replicas of volumes in a consistency group.
@@ -1327,7 +1323,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             List<BlockSnapshotSession> sessions = getSnapSessionsForCGVolume(existingRGVolumes.get(0));
             boolean isExistingCGSnapShotAvailable = checkIfCGHasSnapshotReplica(existingRGVolumes);
             boolean isExistingCGSnapSessionAvailable = sessions != null && !sessions.isEmpty();
-            boolean isVMAX3ExistingVolume = ControllerUtils.isVmaxVolumeUsing803SMIS(existingRGVolumes.get(0), _dbClient);
+            boolean isVMAX3ExistingVolume = existingRGVolumes.get(0).isVmax3Volume(_dbClient);
 
             if (isVMAX3ExistingVolume) {
                 if (isVMAX3VolumeHasSessionOnly(isExistingCGSnapSessionAvailable, isExistingCGSnapShotAvailable)) {

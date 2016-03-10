@@ -166,7 +166,7 @@ class ConsistencyGroup(object):
                 "consistency groupwith name: " + name + " already exists",
                 SOSError.ENTRY_ALREADY_EXISTS_ERR)
 
-    def update(self, name, project, tenant, add_volumes, remove_volumes, sync,synctimeout):
+    def update(self, name, project, tenant, add_volumes, remove_volumes, sync,synctimeout=0):
         '''
         This function is used to add or remove volumes from consistency group
         It will update the consistency  group with given volumes.
@@ -259,7 +259,7 @@ class ConsistencyGroup(object):
                        "Consistency Group " + name + ": not found")
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync,synctimeout):
+    def check_for_sync(self, result, sync,synctimeout=0):
         if(len(result["resource"]) > 0):
             resource = result["resource"]
             return (

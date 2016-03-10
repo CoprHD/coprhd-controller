@@ -192,7 +192,7 @@ class ExportGroup(object):
                 "Export group with name " + name +
                 " already exists")
 
-    def exportgroup_delete(self, name, project, tenant, sync,synctimeout):
+    def exportgroup_delete(self, name, project, tenant, sync,synctimeout=0):
         '''
         This function will take export group name and project name as input and
         marks the particular export group as delete.
@@ -465,7 +465,7 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_initiator(self, exportgroupname, tenantname,
-                                  projectname, initators, hostlabel, sync,synctimeout):
+                                  projectname, initators, hostlabel, sync,synctimeout=0):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         initiator_uris = []
@@ -481,7 +481,7 @@ class ExportGroup(object):
         return self.check_for_sync(o, sync,synctimeout)
 
     def exportgroup_remove_initiator(self, exportgroupname, tenantname,
-                                     projectname, initators, hostlabel, sync,synctimeout):
+                                     projectname, initators, hostlabel, sync,synctimeout=0):
         exportgroup_uri = self.exportgroup_query(exportgroupname, projectname,
                                                  tenantname)
         initiator_uris = []
@@ -508,7 +508,7 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_cluster(self, exportgroupname, tenantname, projectname,
-                                clusternames, sync,synctimeout):
+                                clusternames, sync,synctimeout=0):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         cluster_uris = []
@@ -522,7 +522,7 @@ class ExportGroup(object):
         return self.check_for_sync(o, sync,synctimeout)
 
     def exportgroup_remove_cluster(self, exportgroupname, tenantname,
-                                   projectname, clusternames, sync,synctimeout):
+                                   projectname, clusternames, sync,synctimeout=0):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         # cluster search API does not take project parameter.
@@ -549,7 +549,7 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_host(self, exportgroupname, tenantname,
-                             projectname, hostlabels, sync,synctimeout):
+                             projectname, hostlabels, sync,synctimeout=0):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         host_uris = []
@@ -563,7 +563,7 @@ class ExportGroup(object):
         return self.check_for_sync(o, sync,synctimeout)
 
     def exportgroup_remove_host(self, exportgroupname, tenantname,
-                                projectname, hostlabels, sync,synctimeout):
+                                projectname, hostlabels, sync,synctimeout=0):
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname)
         host_uris = []
@@ -599,7 +599,7 @@ class ExportGroup(object):
             self.URI_EXPORT_GROUP_UPDATE.format(exportgroup_uri), body)
         return common.json_decode(s)
 
-    def check_for_sync(self, result, sync,synctimeout):
+    def check_for_sync(self, result, sync,synctimeout=0):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]

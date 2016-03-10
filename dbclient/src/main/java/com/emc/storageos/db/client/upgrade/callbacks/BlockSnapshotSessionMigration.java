@@ -6,8 +6,10 @@ package com.emc.storageos.db.client.upgrade.callbacks;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +20,9 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
@@ -39,17 +43,34 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         try {
             DbClient dbClient = getDbClient();
             List<BlockSnapshotSession> snapshotSessions = new ArrayList<BlockSnapshotSession>();
+            Map<URI, BlockSnapshotSession> groupSessionMap = new HashMap<>();
             List<URI> snapshotURIs = dbClient.queryByType(BlockSnapshot.class, true);
             Iterator<BlockSnapshot> snapshotsIter = dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs, true);
             while (snapshotsIter.hasNext()) {
                 BlockSnapshot snapshot = snapshotsIter.next();
                 if (isSnapshotSessionSupported(snapshot)) {
-                    // The the storage system for the snapshot supports snapshot
-                    // sessions, then we need to prepare and create a snapshot
-                    // session for that snapshot and add the snapshot as a linked
-                    // target for the session.
-                    BlockSnapshotSession snapshotSession = prepareSnapshotSession(snapshot);
-                    snapshotSessions.add(snapshotSession);
+                    // Check if this is a group snapshot.
+                    URI cgURI = snapshot.getConsistencyGroup();
+                    if (NullColumnValueGetter.isNullURI(cgURI)) {
+                        // The storage system for the single volume snapshot supports
+                        // snapshot sessions, then we need to prepare and create a
+                        // snapshot session for that snapshot and add the snapshot as
+                        // a linked target for the session.
+                        BlockSnapshotSession snapshotSession = prepareSnapshotSession(snapshot);
+                        snapshotSessions.add(snapshotSession);
+                    } else {
+                        // Create the group session if necessary and add the snapshot as a
+                        // linked target for that group session.
+                        BlockSnapshotSession snapshotSession = groupSessionMap.get(cgURI);
+                        if (snapshotSession == null) {
+                            snapshotSession = prepareSnapshotSession(snapshot);
+                            snapshotSessions.add(snapshotSession);
+                            groupSessionMap.put(cgURI, snapshotSession);
+                        } else {
+                            StringSet linkedTargets = snapshotSession.getLinkedTargets();
+                            linkedTargets.add(snapshot.getId().toString());
+                        }
+                    }
                 }
             }
 
@@ -93,9 +114,19 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
         BlockSnapshotSession snapshotSession = new BlockSnapshotSession();
         URI snapSessionURI = URIUtil.createId(BlockSnapshotSession.class);
         snapshotSession.setId(snapSessionURI);
-        snapshotSession.setLabel(snapshot.getLabel());
         snapshotSession.setSessionLabel(snapshot.getSnapsetLabel());
-        snapshotSession.setParent(snapshot.getParent());
+        URI cgURI = snapshot.getConsistencyGroup();
+        if (NullColumnValueGetter.isNullURI(cgURI)) {
+            snapshotSession.setParent(snapshot.getParent());
+            snapshotSession.setLabel(snapshot.getLabel());
+        } else {
+            snapshotSession.setConsistencyGroup(cgURI);
+            snapshotSession.setLabel(snapshot.getSnapsetLabel());
+            Volume parent = getDbClient().queryObject(Volume.class, snapshot.getParent());
+            if (parent != null) {
+                snapshotSession.setReplicationGroupInstance(parent.getReplicationGroupInstance());
+            }
+        }
         snapshotSession.setProject(snapshot.getProject());
         snapshotSession.setStorageController(snapshot.getStorageController());
         snapshotSession.setSessionInstance(snapshot.getSettingsInstance());

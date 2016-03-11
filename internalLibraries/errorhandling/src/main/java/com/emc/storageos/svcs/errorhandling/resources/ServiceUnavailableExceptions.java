@@ -7,6 +7,7 @@ package com.emc.storageos.svcs.errorhandling.resources;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 import java.net.URI;
 
@@ -54,4 +55,16 @@ public interface ServiceUnavailableExceptions {
 
     @DeclareServiceCode(ServiceCode.OBJ_SYSTABLE_NOT_CREATED_YET)
     public ServiceUnavailableException objSystemNotInitializedYet();
+
+    @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
+    public ServiceUnavailableException vdcNotStable(String vdcId);
+
+    @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
+    public ServiceUnavailableException vdcOngingJob(String vdcId, String state);
+
+    @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
+    public ServiceUnavailableException siteOnGoingJob(String name, String state);
+
+    @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
+    public ServiceUnavailableException siteNotStable(String name, String state);
 }

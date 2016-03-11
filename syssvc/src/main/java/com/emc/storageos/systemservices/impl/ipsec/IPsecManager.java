@@ -252,26 +252,25 @@ public class IPsecManager {
             for (String peerVdcId : vdcIds) {
                 if (!geoClientManager.getGeoClient(peerVdcId).isVdcStable()) {
                     log.error(vdcIds + " is not stable");
-                    throw APIException.serviceUnavailable.clusterStateNotStable();
+                    throw APIException.serviceUnavailable.vdcNotStable(peerVdcId);
                 }
             }
         }
 
-        // check if local vdc is stable
-        if (drUtil.isAllSitesStable() && !hasOngoingVdcOp()) {
-            // cluster is stable for ipsec change
-            return;
-        } else {
-            throw APIException.serviceUnavailable.clusterStateNotStable();
-        }
+        verifyOngingVdcJob();
+
+        drUtil.verifyAllSitesStable();
     }
 
-    private boolean hasOngoingVdcOp() {
+    private void verifyOngingVdcJob() {
         VdcUtil.setDbClient(dbClient);
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
         VirtualDataCenter.ConnectionStatus vdcStatus = localVdc.getConnectionStatus();
-        return ! (vdcStatus.equals(VirtualDataCenter.ConnectionStatus.CONNECTED) ||
-                vdcStatus.equals(VirtualDataCenter.ConnectionStatus.ISOLATED));
+
+        if (! vdcStatus.equals(VirtualDataCenter.ConnectionStatus.CONNECTED) &&
+                ! vdcStatus.equals(VirtualDataCenter.ConnectionStatus.ISOLATED)) {
+            throw APIException.serviceUnavailable.vdcOngingJob(localVdc.getShortId(), vdcStatus.name());
+        }
     }
 
     /**

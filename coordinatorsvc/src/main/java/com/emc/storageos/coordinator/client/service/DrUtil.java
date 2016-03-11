@@ -670,6 +670,23 @@ public class DrUtil {
     }
 
     /**
+     * Check if all sites of local vdc are stable
+     */
+    public void verifyAllSitesStable() {
+        for (Site site : listSites()) {
+            if (site.getState().isDROperationOngoing()) {
+                throw APIException.serviceUnavailable.siteOnGoingJob(site.getName(), site.getState().toString());
+            }
+
+            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
+            if (state != ClusterInfo.ClusterState.STABLE) {
+                log.info("Site {} is not stable {}", site.getUuid(), state);
+                throw APIException.serviceUnavailable.siteNotStable(site.getName(), state.name());
+            }
+        }
+    }
+
+    /**
      * ping target host with port to check connectivity
      *
      * @param hostAddress host address 

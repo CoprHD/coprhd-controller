@@ -3985,7 +3985,7 @@ public class BlockService extends TaskResourceService {
                         }
                     }
                     // Otherwise, check to see if we're trying to protect a VPLEX volume.
-                    else if (!VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVpool, newVpool,
+                    else if (!VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool, newVpool,
                             _dbClient, notSuppReasonBuff)) {
                         _log.warn("RP+VPLEX VirtualPool change for volume is not supported: {}",
                                 notSuppReasonBuff.toString());

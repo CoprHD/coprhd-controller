@@ -1134,7 +1134,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // volume varray.
             notSuppReasonBuff.append("The VirtualPool is not available to the volume's varray");
         } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVirtualPool)) {
-            if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVirtualPool, newVirtualPool,
+            if (VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVirtualPool, newVirtualPool,
                     _dbClient, notSuppReasonBuff)) {
                 if (VirtualPool.vPoolSpecifiesRPVPlex(currentVirtualPool)) {
                     allowedOperations.add(VirtualPoolChangeOperationEnum.RP_UPGRADE_TO_METROPOINT);

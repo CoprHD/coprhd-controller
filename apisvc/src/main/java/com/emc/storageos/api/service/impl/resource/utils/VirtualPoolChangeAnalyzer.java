@@ -577,6 +577,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (changes.size() > 1) {
             notSuppReasonBuff.append("Changes in addition to a change in the "
                     + "virtual pool high availability property are not permitted.");
+            fillInNotSupportedReasons(changes, notSuppReasonBuff);
             s_logger.info("Changes in addition to a change in the "
                     + "virtual pool high availability property are not permitted: ");
             for (Entry<String, Change> entry : changes.entrySet()) {
@@ -884,12 +885,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Checks to see if only the Export Path Params have changed.
      * 
-     * @param volume
-     * @param currentVpool
-     * @param newVpool
-     * @param dbClient
-     * @param notSuppReasonBuff
-     * @return
+     * @param volume The volume to check
+     * @param currentVpool The volume's current vpool
+     * @param newVpool The target vpool
+     * @param dbClient DBClient reference
+     * @param notSuppReasonBuff Buffer to store reasons for not being supported
+     * @return true is path params changes are allowed, false otherwise
      */
     public static boolean isSupportedPathParamsChange(Volume volume,
             VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient, StringBuffer notSuppReasonBuff) {
@@ -924,10 +925,10 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Check to see if the current VirtualPool is the same as the requested VirtualPool.
      * 
-     * @param current
-     * @param requested
-     * @param notSuppReasonBuff
-     * @return
+     * @param current The current vpool
+     * @param requested The target vpool
+     * @param notSuppReasonBuff Buffer to store reasons for not being supported
+     * @return true if the vpools are the same, false otherwise
      */
     public static boolean isSameVirtualPool(VirtualPool current, VirtualPool requested, StringBuffer notSuppReasonBuff) {
         if (current.getId().equals(requested.getId())) {
@@ -1193,22 +1194,6 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             }
         }
         return vPoolHasVolumePool;
-    }
-
-    /**
-     * Determines if the VPLEX volume qualifies for RP protection. (and if not, why not)
-     * 
-     * @param volume Volume involved in change vpool operation
-     * @param currentVpool The volume's vpool
-     * @param newVpool The target vpool
-     * @param dbClient DBClient reference
-     * @param notSuppReasonBuff Buffer containing unsupported reasons
-     * @return true if add RP protection is supported, false otherwise.
-     */
-    public static boolean isSupportedRPVPlexVolumeVirtualPoolChange(
-            Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
-            DbClient dbClient, StringBuffer notSuppReasonBuff) {
-        return isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff);
     }
 
     /**

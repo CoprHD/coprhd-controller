@@ -2500,7 +2500,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (!storage.deviceIsType(Type.vnxblock)) {
                 BlockObject replica = BlockObject.fetch(_dbClient, blockObjects.get(0));
                 CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage,
-                        _helper.extractGroupName(replica.getReplicationGroupInstance()),
+                        ControllerUtils.extractGroupName(replica.getReplicationGroupInstance()),
                         SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
 
                 List<URI> replicasPartOfGroup = _helper.findVolumesInReplicationGroup(storage, maskingGroupPath, blockObjects);

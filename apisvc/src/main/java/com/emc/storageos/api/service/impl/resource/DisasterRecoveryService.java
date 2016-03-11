@@ -54,7 +54,6 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -66,10 +65,8 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
@@ -121,6 +118,7 @@ public class DisasterRecoveryService {
 
     private static final int SITE_CONNECT_TEST_TIMEOUT = 10 * 1000;
     private static final int SITE_CONNECTION_TEST_PORT = 443;
+    private static final String LOCAL_HOST = "localhost";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -1699,8 +1697,9 @@ public class DisasterRecoveryService {
     protected void precheckForFailoverLocally(String standbyUuid) {
         Site standby = drUtil.getLocalSite();
 
-        SiteMonitorResult siteMonitorResult = coordinator.getTargetInfo(standby.getUuid(), SiteMonitorResult.class);
-        if (siteMonitorResult == null || siteMonitorResult.isActiveSiteLeaderAlive() || siteMonitorResult.isActiveSiteStable()) {
+        String localZKMode = drUtil.getLocalCoordinatorMode(LOCAL_HOST);
+        if (localZKMode == null || DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(localZKMode) ||
+                DrUtil.ZOOKEEPER_MODE_READONLY.equals(localZKMode)) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
                     "Active site is available now, can't do failover");
         }

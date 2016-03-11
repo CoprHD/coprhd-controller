@@ -1827,16 +1827,6 @@ public class CoordinatorClientExt {
             isActiveSiteStable =  isActiveSiteStable(activeSite);
             _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
         }
-        
-        
-        SiteMonitorResult monitorResult = _coordinator.getTargetInfo(SiteMonitorResult.class);
-        if (monitorResult == null) {
-            monitorResult = new SiteMonitorResult();
-        }
-        monitorResult.setActiveSiteLeaderAlive(isActiveSiteLeaderAlive);
-        monitorResult.setActiveSiteStable(isActiveSiteStable);
-        _coordinator.setTargetInfo(monitorResult);
-        
         return isActiveSiteLeaderAlive && isActiveSiteStable;
     }
     

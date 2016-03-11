@@ -506,17 +506,16 @@ public class DrUtil {
             output.write("mntr".getBytes());
             sock.shutdownOutput();
             
-            BufferedReader input =
-                new BufferedReader(new InputStreamReader(sock.getInputStream()));
-            String answer;
-            while ((answer = input.readLine()) != null) {
-                if (answer.startsWith("zk_server_state")){
-                    String state = StringUtils.trim(answer.substring("zk_server_state".length()));
-                    log.info("Get current zookeeper mode {}", state);
-                    return state;
+            try (BufferedReader input = new BufferedReader(new InputStreamReader(sock.getInputStream()))) {
+                String answer;
+                while ((answer = input.readLine()) != null) {
+                    if (answer.startsWith("zk_server_state")) {
+                        String state = StringUtils.trim(answer.substring("zk_server_state".length()));
+                        log.info("Get current zookeeper mode {}", state);
+                        return state;
+                    }
                 }
             }
-            input.close();
         } catch(IOException ex) {
             log.warn("Unexpected IO errors when checking local coordinator state {}", ex.toString());
         } finally {

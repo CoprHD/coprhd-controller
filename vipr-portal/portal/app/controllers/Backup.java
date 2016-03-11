@@ -9,7 +9,6 @@ import static controllers.Common.flashException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupInfo;
@@ -282,7 +281,7 @@ public class Backup extends Controller {
             percentageMap = new HashMap<String, Integer>(sizeToDownload.size());
             for (String hostname : sizeToDownload.keySet()) {
                 int percentage = sizeToDownload.get(hostname) == 0L ? 0
-                        : (int) (downloadedSize.get(hostname) / sizeToDownload.get(hostname) * 100);
+                        : (int) (downloadedSize.get(hostname) * 100 / sizeToDownload.get(hostname));
                 percentageMap.put(hostname, percentage);
             }
         }

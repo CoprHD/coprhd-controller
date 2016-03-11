@@ -112,6 +112,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      * @param currentVpool A reference to the current volume vpool.
      * @param newVpool The desired new vpool.
      * @param dbClient A reference to a DB client.
+     * @return Supported change vpool operations
      */
     public static VirtualPoolChangeOperationEnum getSupportedVPlexVolumeVirtualPoolChangeOperation(Volume volume,
             VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient,
@@ -138,13 +139,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
         if (!changes.isEmpty()) {
-            notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
-            Set<String> changeValues = new HashSet<String>();            
-            for (Change foundChange : changes.values()) {                
-                changeValues.add(foundChange.name);
-            }
-            notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-            notSuppReasonBuff.append(". ");
+            fillInNotSupportedReasons(changes, notSuppReasonBuff); 
             return null;
         }
 
@@ -273,12 +268,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 Map<String, Change> changes = analyzeChanges(currentHaVpool, newHaVpool, include, null, null);
                 if (!changes.isEmpty()) {
                     notSuppReasonBuff.append("Changes in the following high availability virtual pool properties are not permitted: ");
-                    Set<String> changeValues = new HashSet<String>();            
-                    for (Change foundChange : changes.values()) {                
-                        changeValues.add(foundChange.name);
-                    }
-                    notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-                    notSuppReasonBuff.append(". ");                                
+                    fillInNotSupportedReasons(changes, notSuppReasonBuff);                           
                     return null;
                 }
 
@@ -648,13 +638,22 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      * @param currentVpool A reference to the current volume Vpool.
      * @param newVpool The desired new Vpool.
      * @param dbClient A reference to a DB client.
+     * @param notSuppReasonBuff [OUT] Specifies the reason a Vpool change is not
+     *            supported between the two Vpool.
+     * @return true if the add RP protection operation is allowed, false otherwise.           
      */
-    public static boolean isSupportedRPVolumeVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
+    public static boolean isSupportedAddRPProtectionVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
             DbClient dbClient, StringBuffer notSuppReasonBuff) {
-        s_logger.info(String.format("Checking isSupportedRPVolumeVirtualPoolChange from [%s] to [%s]...", currentVpool.getLabel(),
+        s_logger.info(String.format("Checking isSupportedAddRPProtectionVirtualPoolChange from [%s] to [%s]...", currentVpool.getLabel(),
                 newVpool.getLabel()));
         // Make sure the Vpool are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
+            return false;
+        }
+        
+        // RP protection already exists
+        if (volume.checkForRp() || VirtualPool.vPoolSpecifiesProtection(currentVpool)) {
+            notSuppReasonBuff.append("Can't add RecoverPoint Protection since it already exists.");
             return false;
         }
 
@@ -662,13 +661,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         if (!VirtualPool.vPoolSpecifiesHighAvailability(currentVpool) && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
             notSuppReasonBuff.append("Can't add RecoverPoint Protection directly to non-VPLEX volume. Import to VPLEX first.");
             return false;
-        }
-
-        // Not supported yet, will be in the future
-        if (VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
-            notSuppReasonBuff.append("Add RecoverPoint Protection not supported for MetroPoint at this time.");
-            return false;
-        }
+        }        
 
         // Throw an exception if any of the following properties are different
         // between the current and new Vpool. The check for continuous and protection-
@@ -679,14 +672,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 INACTIVE };
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
         if (!changes.isEmpty()) {
-            notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
-            Set<String> changeValues = new HashSet<String>();            
-            for (Change foundChange : changes.values()) {                
-                changeValues.add(foundChange.name);
-            }
-            notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-            notSuppReasonBuff.append(". ");
-            
+            notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
+            fillInNotSupportedReasons(changes, notSuppReasonBuff); 
             return false;
         }
 
@@ -695,20 +682,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         include = new String[] { PROTECTION_VARRAY_SETTINGS };
         changes = analyzeChanges(currentVpool, newVpool, include, null, null);
         if (changes.isEmpty()) {
-            notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
-            Set<String> changeValues = new HashSet<String>();            
-            for (Change foundChange : changes.values()) {                
-                changeValues.add(foundChange.name);
-            }
-            notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-            notSuppReasonBuff.append(". ");
-         
-            return false;
-        }
-
-        // If the volume is already protected by RP and we're not upgrading to MetroPoint, then we don't need to protect it again.
-        if (volume.checkForRp() && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
-            notSuppReasonBuff.append("Volume already has protection, change vpool operations currently not supported.");
+            notSuppReasonBuff.append("These target virtual pool differences are required: ");
+            fillInNotSupportedReasons(changes, notSuppReasonBuff); 
             return false;
         }
 
@@ -768,14 +743,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 AUTO_TIER_POLICY_NAME, HOST_IO_LIMIT_BANDWIDTH, HOST_IO_LIMIT_IOPS };
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
         if (!changes.isEmpty()) {
-            notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
-            Set<String> changeValues = new HashSet<String>();            
-            for (Change foundChange : changes.values()) {                
-                changeValues.add(foundChange.name);
-            }
-            notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-            notSuppReasonBuff.append(". ");
-         
+            notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
+            fillInNotSupportedReasons(changes, notSuppReasonBuff); 
             s_logger.info("Virtual Pool change not supported: {}", notSuppReasonBuff.toString());
             return false;
         }
@@ -787,14 +756,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         include = new String[] { REMOTECOPY_VARRAY_SETTINGS };
         changes = analyzeChanges(currentVpool, newVpool, include, null, null);
         if (changes.isEmpty()) {
-            notSuppReasonBuff.append("Changes in the following virtual pool properties are required: ");
-            Set<String> changeValues = new HashSet<String>();            
-            for (Change foundChange : changes.values()) {                
-                changeValues.add(foundChange.name);
-            }
-            notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-            notSuppReasonBuff.append(". ");
-       
+            notSuppReasonBuff.append("These target virtual pool differences are required: ");
+            fillInNotSupportedReasons(changes, notSuppReasonBuff); 
             return false;
         }
 
@@ -836,14 +799,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, contain);
         if (!changes.isEmpty()) {
-            notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
-            Set<String> changeValues = new HashSet<String>();            
-            for (Change foundChange : changes.values()) {                
-                changeValues.add(foundChange.name);
-            }
-            notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-            notSuppReasonBuff.append(". ");
-            
+            notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
+            fillInNotSupportedReasons(changes, notSuppReasonBuff); 
             return false;
         }
 
@@ -881,14 +838,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             // newVpool plus newVpool can contain extra other storage pools in those two properties.
             Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, contain);
             if (!changes.isEmpty()) {
-                notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
-                Set<String> changeValues = new HashSet<String>();            
-                for (Change foundChange : changes.values()) {                
-                    changeValues.add(foundChange.name);
-                }
-                notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-                notSuppReasonBuff.append(". ");
-                
+                notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
+                fillInNotSupportedReasons(changes, notSuppReasonBuff); 
                 return false;
             }
             
@@ -917,16 +868,10 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 // Before user could have ha Vpool with no HA set and now can move to HA set with
                 // continuous copies enabled.
 
-                Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, contain);
+                Map<String, Change> changes = analyzeChanges(currentHaVpool, newHaVpool, include, null, contain);
                 if (!changes.isEmpty()) {
-                    notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
-                    Set<String> changeValues = new HashSet<String>();            
-                    for (Change foundChange : changes.values()) {                
-                        changeValues.add(foundChange.name);
-                    }
-                    notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-                    notSuppReasonBuff.append(". ");
-                    
+                    notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
+                    fillInNotSupportedReasons(changes, notSuppReasonBuff);                    
                     return false;
                 }
                 supported = true;
@@ -935,7 +880,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
         return supported;
     }
-
+    
     /**
      * Checks to see if only the Export Path Params have changed.
      * 
@@ -967,17 +912,10 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         excluded.addAll(Arrays.asList(generallyExcluded));
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
         if (!changes.isEmpty()) {
-            notSuppReasonBuff.append("These target pool differences are invalid: ");
-            Set<String> changeValues = new HashSet<String>();            
-            for (Change foundChange : changes.values()) {                
-                changeValues.add(foundChange.name);
-            }
-            notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-            notSuppReasonBuff.append(". ");
-          
+            notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
+            fillInNotSupportedReasons(changes, notSuppReasonBuff);           
             s_logger.info("Virtual Pool change not supported, "
-                    + "these target pool differences are invalid: {}", notSuppReasonBuff.toString());
-           
+                    + "these target pool differences are invalid: {}", notSuppReasonBuff.toString());          
             return false;
         }
         return true;
@@ -1013,7 +951,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      * @param currentVpool the source virtual pool
      * @param newVpool the target virtual pool
      * @param notSuppReasonBuff the not supported reason string buffer
-     * @return
+     * @return true if replication mode change is supported, false otherwise
      */
     public static boolean isSupportedReplicationModeChange(VirtualPool currentVpool, VirtualPool newVpool, StringBuffer notSuppReasonBuff) {
         s_logger.info(String.format("Checking isSupportedReplicationModeChange from [%s] to [%s]...", currentVpool.getLabel(),
@@ -1053,13 +991,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         excluded.addAll(Arrays.asList(generallyExcluded));
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
         if (!changes.isEmpty()) {                    
-            notSuppReasonBuff.append(String.format("These target virtual pool [%s] differences are invalid: ", newVpool.getLabel()));
-            Set<String> changeValues = new HashSet<String>();            
-            for (Change foundChange : changes.values()) {                
-                changeValues.add(foundChange.name);
-            }
-            notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-            notSuppReasonBuff.append(". ");
+            notSuppReasonBuff.append(String.format("These target virtual pool differences are invalid: "));
+            fillInNotSupportedReasons(changes, notSuppReasonBuff); 
             s_logger.info(String.format("Replication Mode virtual pool change not supported. %s. Parameters other than %s were changed.",
                     notSuppReasonBuff.toString(), excluded.toString()));
             return false;
@@ -1186,6 +1119,11 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
 
     /**
      * For Auto-tiering policy change check, it logs the not supported reasons.
+     * 
+     * @param changes Changes found
+     * @param notSuppReasonBuff Buffer containing current unsupported reasons
+     * @param exclude Checks that are excluded
+     * @param vPoolType The vpool type
      */
     private static void logNotSupportedReasonForTieringPolicyChange(Map<String, Change> changes, StringBuffer notSuppReasonBuff,
             String[] exclude, String vPoolType) {
@@ -1204,6 +1142,12 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
      * If target vPool has manual pool selection enabled, then volume's pool should be in assigned pools list.
      * 
      * In case of VPLEX Distributed vPool, the check is also done for HA vPool.
+     * 
+     * @param volume Volume involved in change vpool operation
+     * @param currentVpool The current volume's vpool
+     * @param newVpool The target vpool
+     * @param dbClient DBClient reference
+     * @return true if the target vpool has volume's storage pool in its matched pools list, false otherwise.
      */
     private static boolean checkTargetVpoolHasVolumePool(Volume volume,
             VirtualPool currentVpool, VirtualPool newVpool, DbClient dbClient) {
@@ -1231,9 +1175,13 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         }
         return vPoolHasVolumePool;
     }
-
+    
     /**
      * Returns true if the vPool contains the given storage pool in its valid pools list.
+     *  
+     * @param volumePool Volume's vpool
+     * @param vPool Vpool to check
+     * @return true if the vPool contains the given storage pool in its valid pools list, false otherwise
      */
     private static boolean doesNewVpoolContainsVolumePool(URI volumePool, VirtualPool vPool) {
         boolean vPoolHasVolumePool = false;
@@ -1250,19 +1198,24 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
     /**
      * Determines if the VPLEX volume qualifies for RP protection. (and if not, why not)
      * 
-     * @param volume
-     * @param currentVpool
-     * @param newVpool
-     * @param dbClient
-     * @param notSuppReasonBuff
-     * @return
+     * @param volume Volume involved in change vpool operation
+     * @param currentVpool The volume's vpool
+     * @param newVpool The target vpool
+     * @param dbClient DBClient reference
+     * @param notSuppReasonBuff Buffer containing unsupported reasons
+     * @return true if add RP protection is supported, false otherwise.
      */
     public static boolean isSupportedRPVPlexVolumeVirtualPoolChange(
             Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
             DbClient dbClient, StringBuffer notSuppReasonBuff) {
-        return isSupportedRPVolumeVirtualPoolChange(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff);
+        return isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool, newVpool, dbClient, notSuppReasonBuff);
     }
 
+    /**
+     * Gets the class variable indicating if the new vpool specified HA or not
+     * 
+     * @return class variable indicating if the new vpool specified HA or not
+     */
     public static boolean getNewVpoolDoesNotSpecifyHaVpool() {
         return newVpoolDoesNotSpecifyHaVpool;
     }
@@ -1279,18 +1232,21 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         array[array.length - 1] = element;
         return array;
     }
-
+    
     /**
-     * Determines if the volume qualifies for RP protection. (and if not, why not)
+     * Determines if the volume qualifies for an upgrade to Metropoint.
      * 
      * @param volume A reference to the volume.
      * @param currentVpool A reference to the current volume Vpool.
      * @param newVpool The desired new Vpool.
      * @param dbClient A reference to a DB client.
+     * @param notSuppReasonBuff [OUT] Specifies the reason a Vpool change is not
+     *            supported between the two Vpool.
+     * @return true if the upgrade to MP operation is allowed, false otherwise.           
      */
-    public static boolean isSupportedRPChangeProtectionVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
+    public static boolean isSupportedUpgradeToMetroPointVirtualPoolChange(Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
             DbClient dbClient, StringBuffer notSuppReasonBuff) {
-        s_logger.info(String.format("Checking isSupportedRPChangeProtectionVirtualPoolChange from [%s] to [%s]...",
+        s_logger.info(String.format("Checking isSupportedUpgradeToMetroPointVirtualPoolChange from [%s] to [%s]...",
                 currentVpool.getLabel(), newVpool.getLabel()));
 
         // Make sure the Vpool are not the same instance.
@@ -1314,14 +1270,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                         INACTIVE, HA_CONNECTED_TO_RP };
                 Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, include, null, null);
                 if (!changes.isEmpty()) {
-                    notSuppReasonBuff.append("Changes in the following virtual pool properties are not permitted: ");
-                    Set<String> changeValues = new HashSet<String>();            
-                    for (Change foundChange : changes.values()) {                
-                        changeValues.add(foundChange.name);
-                    }
-                    notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-                    notSuppReasonBuff.append(". ");
-                    
+                    notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
+                    fillInNotSupportedReasons(changes, notSuppReasonBuff); 
                     return false;
                 }
 
@@ -1453,28 +1403,14 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                 notSuppReasonBuff.append("RP+VPLEX Local to MetroPoint change vpool unsupported for now.");
                 return false;
             }
-        }
-        else if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
-                && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
-            // RP+VPLEX change to new RP+VPLEX vpool
-            // Unsupported for now
-            notSuppReasonBuff.append("RP+VPLEX to RP+VPLEX change vpool unsupported for now.");
-            return false;
-        }
-        else if (VirtualPool.vPoolSpecifiesMetroPoint(currentVpool)
-                && VirtualPool.vPoolSpecifiesMetroPoint(newVpool)) {
-            // MetroPoint change to new MetroPoint vpool
-            // Unsupported for now
-            notSuppReasonBuff.append("MetroPoint to MetroPoint change vpool unsupported for now.");
-            return false;
-        }
+        }        
         else {
             // Unsupported
-            notSuppReasonBuff.append("RP change protection operation is not supported");
+            notSuppReasonBuff.append("Upgrade to Metropoint operation is not supported.");
             return false;
         }
 
-        s_logger.info("RP change protection operation is supported.");
+        s_logger.info("Upgrade to Metropoint operation is supported.");
 
         return true;
     }
@@ -1494,7 +1430,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         s_logger.info(String.format("Checking isSupportedRPRemoveProtectionVirtualPoolChange from [%s] to [%s]...",
                 currentVpool.getLabel(), newVpool.getLabel()));
 
-        // Make sure the Vpool are not the same instance.
+        // Make sure the Vpools are not the same instance.
         if (isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             return false;
         }
@@ -1511,14 +1447,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
             excluded.addAll(Arrays.asList(generallyExcluded));
             Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
             if (!changes.isEmpty()) {
-                notSuppReasonBuff.append("Target pool differences are invalid for Remove Protection: ");
-                Set<String> changeValues = new HashSet<String>();            
-                for (Change foundChange : changes.values()) {                
-                    changeValues.add(foundChange.name);
-                }
-                notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-                notSuppReasonBuff.append(". ");
-              
+                notSuppReasonBuff.append("These target virtual pool differences are invalid: ");
+                fillInNotSupportedReasons(changes, notSuppReasonBuff); 
                 s_logger.info("Remove Protection change not supported, "
                         + "these target pool differences are invalid: {}", notSuppReasonBuff.toString());
                 return false;
@@ -1577,17 +1507,29 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         Map<String, Change> changes = analyzeChanges(currentVpool, newVpool, null, excluded.toArray(exclude), null);
         if (!changes.isEmpty()) {
             notSuppReasonBuff.append(String.format("These target virtual pool [%s] differences are invalid: ", newVpool.getLabel()));         
-            Set<String> changeValues = new HashSet<String>();            
-            for (Change foundChange : changes.values()) {                
-                changeValues.add(foundChange.name);
-            }
-            notSuppReasonBuff.append(Joiner.on(", ").join(changeValues));
-            notSuppReasonBuff.append(". ");
+            fillInNotSupportedReasons(changes, notSuppReasonBuff); 
             s_logger.info(String.format("Virtual pool change not supported. %s. Parameters other than %s were changed.",
                     notSuppReasonBuff.toString(), excluded.toString()));
             return false;
         }
 
         return true;
+    }
+    
+    /**
+     * From the changes map passed in, assemble all the changes into a comma delimited format.
+     *  
+     * @param changes A map with all the changes found that are allowed/not allowed 
+     * @param notSuppReasonBuff Buffer with all the change messages appended.
+     */
+    private static void fillInNotSupportedReasons(Map<String, Change> changes, StringBuffer notSuppReasonBuff) {
+        Set<String> allChanges = new HashSet<String>();            
+        for (Change foundChange : changes.values()) {  
+            // Use the plain name field from the change, it's an user
+            // friendly name.
+            allChanges.add(foundChange.name);
+        }
+        notSuppReasonBuff.append(Joiner.on(", ").join(allChanges));
+        notSuppReasonBuff.append(". ");        
     }
 }

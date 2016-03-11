@@ -357,11 +357,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // So, we do need to verify that no volumes reference the CG.
         if (deletingUncreatedConsistencyGroup(consistencyGroup) ||
                 VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(type)) {
-            validateCGIsEmptyAndDeleteCG(consistencyGroup);
+            markCGForDeletion(consistencyGroup);
             return finishDeactivateTask(consistencyGroup, task);
-        } else {
-            // The CG still needs to be empty to delete it.
-            validateCGIsEmpty(consistencyGroup);
         }
 
         // Otherwise, we need to clean up the array consistency groups.
@@ -408,7 +405,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     // For some reason the CG has no VPLEX or local systems but is
                     // marked as being active and created. In this case, we will log
                     // a warning and mark it for deletion.
-                    _log.warn("Deleting created consistency group {} with no local or VPLEX systems", consistencyGroup.getLabel());
+                    _log.info("Deleting created consistency group {} with no local or VPLEX systems", consistencyGroup.getLabel());
                     markCGForDeletion(consistencyGroup);
                     return finishDeactivateTask(consistencyGroup, task);
                 }
@@ -437,36 +434,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
 
         return taskRep;
-    }
-
-    /**
-     * Validate there are no remaining volumes in a CG and delete the CG if it's empty.
-     * Throw a validation exception if there are volumes in the CG.
-     * 
-     * @param consistencyGroup A reference to the consistency group.
-     */
-    private void validateCGIsEmptyAndDeleteCG(BlockConsistencyGroup consistencyGroup) {
-        validateCGIsEmpty(consistencyGroup);
-        markCGForDeletion(consistencyGroup);
-    }
-
-    /**
-     * Validate there are no remaining volumes in a CG.
-     * Throw a validation exception if there are volumes in the CG.
-     * 
-     * @param consistencyGroup A reference to the consistency group.
-     */
-    private void validateCGIsEmpty(BlockConsistencyGroup consistencyGroup) {
-        final URIQueryResultList cgVolumesResults = new URIQueryResultList();
-        _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
-                cgVolumesResults);
-        while (cgVolumesResults.iterator().hasNext()) {
-            Volume volume = _dbClient.queryObject(Volume.class, cgVolumesResults.iterator().next());
-            if (!volume.getInactive()) {
-                throw APIException.badRequests.deleteOnlyAllowedOnEmptyCGs(
-                        consistencyGroup.getTypes().toString());
-            }
-        }
     }
 
     /**

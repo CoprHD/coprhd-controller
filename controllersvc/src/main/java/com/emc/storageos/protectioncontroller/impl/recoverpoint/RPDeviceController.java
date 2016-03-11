@@ -66,7 +66,6 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -174,7 +173,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_REMOVE_PROTECTION = "rpRemoveProtectionStep";
     private static final String STEP_CG_CREATION = "rpCgCreation";
     private static final String STEP_CG_UPDATE = "rpCgUpdate";
-
     private static final String STEP_EXPORT_GROUP = "rpExportGroup";
     private static final String STEP_DV_REMOVE_CG = "rpDvRemoveCG";
     private static final String STEP_DV_REMOVE_VOLUME_EXPORT = "rpDvRemoveVolumeExport";
@@ -187,74 +185,72 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_EXPORT_REMOVE_SNAPSHOT = "rpExportRemoveSnapshot";
     private static final String STEP_POST_VOLUME_CREATE = "rpPostVolumeCreate";
     private static final String STEP_ADD_JOURNAL_VOLUME = "rpAddJournalVolume";
-
     private static final String STEP_PRE_VOLUME_EXPAND = "rpPreVolumeExpand";
     private static final String STEP_POST_VOLUME_EXPAND = "rpPostVolumeExpand";
+    private static final String STEP_BOOKMARK_CREATE = "rpCreateBookmark";
+    private static final String STEP_CREATE_BLOCK_SNAPSHOT = "rpCreateBlockSnapshot";
+    private static final String STEP_UPDATE_CG_POLICY = "rpUpdateConsistencyGroupPolicy";
+    private static final String STEP_EXPORT_ORCHESTRATION = "rpExportOrchestration";
 
     public static final String STEP_PRE_VOLUME_RESTORE = "rpPreVolumeRestore";
     public static final String STEP_POST_VOLUME_RESTORE = "rpPostVolumeRestore";
-
+        
     // Methods in the create workflow. Constants helps us avoid step dependency flubs.
-    private static final String METHOD_CG_CREATE_STEP = "rpCgCreateStep";
-    private static final String METHOD_CG_CREATE_ROLLBACK_STEP = "rpCgCreateRollbackStep";
+    private static final String METHOD_CG_CREATE_STEP = "cgCreateStep";
+    private static final String METHOD_CG_CREATE_ROLLBACK_STEP = "cgCreateRollbackStep";
 
     // Methods in the add journal volume workflow.
-    private static final String METHOD_ADD_JOURNAL_STEP = "rpAddJournalStep";
-    private static final String METHOD_ADD_JOURNAL_ROLLBACK_STEP = "rpAddJournalRollbackStep";
+    private static final String METHOD_ADD_JOURNAL_STEP = "addJournalStep";
+    private static final String METHOD_ADD_JOURNAL_ROLLBACK_STEP = "addJournalRollbackStep";
 
     // Methods in the update workflow.
-    private static final String METHOD_CG_UPDATE_STEP = "rpCgUpdateStep";
-    private static final String METHOD_CG_UPDATE_ROLLBACK_STEP = "rpCgUpdateRollbackStep";
+    private static final String METHOD_CG_UPDATE_STEP = "cgUpdateStep";
+    private static final String METHOD_CG_UPDATE_ROLLBACK_STEP = "cgUpdateRollbackStep";
 
     // Methods in the delete workflow.
-    private static final String METHOD_DELETE_CG_STEP = "rpCgDeleteStep";
+    private static final String METHOD_DELETE_CG_STEP = "cgDeleteStep";
 
     // Methods in the export group create workflow
-    private static final String METHOD_ENABLE_IMAGE_ACCESS_STEP = "rpEnableImageAccessStep";
-    private static final String METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP = "rpEnableImageAccessStepRollback";
+    private static final String METHOD_ENABLE_IMAGE_ACCESS_STEP = "enableImageAccessStep";
+    private static final String METHOD_ENABLE_IMAGE_ACCESS_ROLLBACK_STEP = "enableImageAccessStepRollback";
 
     // Methods in the export group delete workflow
-    private static final String METHOD_DISABLE_IMAGE_ACCESS_STEP = "rpDisableImageAccessStep";
+    private static final String METHOD_DISABLE_IMAGE_ACCESS_STEP = "disableImageAccessStep";
 
     // Methods in the export group remove volume workflow
-    private static final String METHOD_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "rpDisableImageAccessSingleStep";
+    private static final String METHOD_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "disableImageAccessSingleStep";
 
     // Methods in restore volume from snapshot workflow
-    private static final String METHOD_RESTORE_VOLUME_STEP = "rpRestoreVolume";
+    private static final String METHOD_RESTORE_VOLUME_STEP = "restoreVolume";
 
     // Methods in the expand volume workflow
-    public static final String METHOD_DELETE_RSET_STEP = "rpDeleteRSetStep";
-    private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "rpDeleteRSetRollbackStep";
-    public static final String METHOD_RECREATE_RSET_STEP = "rpRecreateRSetStep";
+    public static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
+    private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "deleteRSetRollbackStep";
+    public static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
 
-    // Methods in the create RP snapshot workflow
-    private static final String STEP_BOOKMARK_CREATE = "rpCreateBookmark";
-    private static final String METHOD_CREATE_BOOKMARK_STEP = "rpCreateBookmarkStep";
-    private static final String METHOD_ROLLBACK_CREATE_BOOKMARK_STEP = "rpCreateBookmarkRollbackStep";
+    // Methods in the create RP snapshot workflow    
+    private static final String METHOD_CREATE_BOOKMARK_STEP = "createBookmarkStep";
+    private static final String METHOD_ROLLBACK_CREATE_BOOKMARK_STEP = "createBookmarkRollbackStep";
+    private static final String METHOD_CREATE_BLOCK_SNAPSHOT_STEP = "createBlockSnapshotStep";
+    private static final String METHOD_ROLLBACK_CREATE_BLOCK_SNAPSHOT = "createBlockSnapshotRollbackStep";
+    private static final String METHOD_SNAPSHOT_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "snapshotDisableImageAccessSingleStep";
 
-    private static final String STEP_CREATE_BLOCK_SNAPSHOT = "rpCreateBlockSnapshot";
-
-    private static final String METHOD_CREATE_BLOCK_SNAPSHOT_STEP = "rpCreateBlockSnapshotStep";
-    private static final String METHOD_ROLLBACK_CREATE_BLOCK_SNAPSHOT = "rpCreateBlockSnapshotRollbackStep";
-    private static final String METHOD_SNAPSHOT_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "rpSnapshotDisableImageAccessSingleStep";
-
-    // Methods in the RP update CG workflow
-    private static final String STEP_UPDATE_CG_POLICY = "rpUpdateConsistencyGroupPolicy";
-    private static final String METHOD_UPDATE_CG_POLICY_STEP = "rpUpdateConsistencyGroupPolicyStep";
+    // Methods in the RP update CG workflow    
+    private static final String METHOD_UPDATE_CG_POLICY_STEP = "updateConsistencyGroupPolicyStep";
     
     private static final String METHOD_RP_VPLEX_REINSTATE_SRC_VVOL_STEP = "rpVPlexReinstateSourceVirtualVolumeStep";
    
     // Methods in the RP export workflow
-    private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "rpExportOrchestrationSteps";
-    private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "rpExportOrchestrationRollbackSteps";
-    private static final String STEP_EXPORT_ORCHESTRATION = "rpExportOrchestration";
+    private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "exportOrchestrationSteps";
+    private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "exportOrchestrationRollbackSteps";
+    
 
     private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
     // Methods in the RP remove protection workflow
-    private static final String METHOD_REMOVE_PROTECTION_STEP = "rpRemoveProtectionStep";
-    private static final String METHOD_REMOVE_PROTECTION_ROLLBACK_STEP = "rpRemoveProtectionRollback";
+    private static final String METHOD_REMOVE_PROTECTION_STEP = "removeProtectionStep";
+    private static final String METHOD_REMOVE_PROTECTION_ROLLBACK_STEP = "removeProtectionRollback";
     
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";

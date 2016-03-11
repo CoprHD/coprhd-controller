@@ -466,20 +466,6 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get target info
-     * 
-     * @param clazz
-     * @param id
-     * @param kind
-     * @return
-     * @throws Exception
-     */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws CoordinatorException {
-        return _coordinator.getTargetInfo(clazz,id,kind);
-    }
-
-    /**
      * Get all target properties - include global(shared by active/standby), or site specific properties
      * 
      * @return
@@ -487,7 +473,7 @@ public class CoordinatorClientExt {
      */
     public PropertyInfoExt getTargetProperties() throws Exception {
         PropertyInfoExt targetPropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class);
-        PropertyInfoExt siteScopePropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class, _coordinator.getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        PropertyInfoExt siteScopePropInfo = _coordinator.getTargetInfo(_coordinator.getSiteId(), PropertyInfoExt.class);
         if (targetPropInfo != null && siteScopePropInfo != null) {
             PropertyInfoExt combinedProps = new PropertyInfoExt();
             for (Entry<String, String> entry : targetPropInfo.getAllProperties().entrySet()) {
@@ -579,7 +565,7 @@ public class CoordinatorClientExt {
      * @param siteId
      */
     public PropertyInfoExt getSiteSpecificProperties(String siteId) {
-        return _coordinator.getTargetInfo(PropertyInfoExt.class, siteId, PropertyInfoExt.TARGET_PROPERTY);
+        return _coordinator.getTargetInfo(siteId, PropertyInfoExt.class);
     }
     
     /**

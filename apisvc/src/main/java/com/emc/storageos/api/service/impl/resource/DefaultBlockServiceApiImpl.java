@@ -225,7 +225,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         }
 
         if (VirtualPool.vPoolSpecifiesProtection(newVirtualPool) &&
-                VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume,
+                VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume,
                         volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
             allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
         }

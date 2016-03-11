@@ -1137,7 +1137,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVirtualPool, newVirtualPool,
                     _dbClient, notSuppReasonBuff)) {
                 if (VirtualPool.vPoolSpecifiesRPVPlex(currentVirtualPool)) {
-                    allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED_CHANGE);
+                    allowedOperations.add(VirtualPoolChangeOperationEnum.RP_UPGRADE_TO_METROPOINT);
                 } else {
                     allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
                 }

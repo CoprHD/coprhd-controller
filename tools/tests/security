@@ -7,6 +7,7 @@
 import argparse
 import sys
 import os
+import time
 from bourne import Bourne
 
 #----------------------------------------------------------------------
@@ -14,9 +15,24 @@ from bourne import Bourne
 #----------------------------------------------------------------------
 
 def security_login(args):
-    bourne.connect(args.ip)
-    bourne.login(user = args.user, password = args.password)
-    print "logged in as user " + args.user
+    timeStart = time.time()
+    timeCounter = 0
+    while True:
+        try:
+            bourne.connect(args.ip)
+            bourne.login(user = args.user, password = args.password)
+            print "logged in as user " + args.user
+            return
+        except:
+            if not args.sleep:
+		raise
+            print "Exception while logging in, sleep for",args.sleep,"seconds and try again"
+        time.sleep(args.sleep)
+        timeCounter = time.time() - timeStart
+        print  "Retrying... time elapsed: [" + str(timeCounter) + "s]"
+        if (timeCounter >= args.length):
+            print "giving up login. counter %s is above maximum length %s" % (timeCounter, args.length)
+            raise Exception("Timeout occurred while attempting to login to ViPR")
 
 def security_add_tenant_role(args):
     bourne.connect(args.ip)
@@ -126,6 +142,8 @@ parser.add_argument('--ip',    metavar = 'ipaddr',    help = 'IP address of bour
 login = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 login.add_argument('user',    help = 'user to log in as')
 login.add_argument('password',    help = 'users password')
+login.add_argument('sleep', nargs='?',help = 'sleep of waiting time', type=float)
+login.add_argument('length', nargs='?',help = 'the whole waiting time', type=float)
 
 # security logout
 logout = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

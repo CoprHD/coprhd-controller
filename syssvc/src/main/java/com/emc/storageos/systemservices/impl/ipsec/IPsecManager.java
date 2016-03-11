@@ -255,10 +255,11 @@ public class IPsecManager {
                     throw APIException.serviceUnavailable.vdcNotStable(peerVdcId);
                 }
             }
+
+            verifyOngingVdcJob();
         }
 
-        verifyOngingVdcJob();
-
+        drUtil.verifyNoOngoingJobOnSite();
         drUtil.verifyAllSitesStable();
     }
 

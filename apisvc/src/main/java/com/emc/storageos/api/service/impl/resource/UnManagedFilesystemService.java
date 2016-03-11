@@ -443,22 +443,20 @@ public class UnManagedFilesystemService extends TaggedResource {
                     }
                 }
                 /*
-                 * If UMFS has exports or shares but has no storage port in vArray
-                 * then skip ingestion
+                 * If UMFS storage port is not part of the vArray then skip ingestion
                  */
-                if (unManagedFileSystem.getHasExports() || unManagedFileSystem.getHasShares()) {
-                    if (sPort == null) {
-                        _logger.warn(
-                                "Storageport of UMFS {} doesn't belong to a matching NetWork. So skipping Ingestion",
-                                unManagedFileSystemUri);
-                        continue;
-                    }
+                if (sPort == null) {
+                    _logger.warn(
+                            "Storage port of UMFS {} doesn't belong to a matching NetWork. So skipping ingestion",
+                            unManagedFileSystemUri);
+                    continue;
                 }
 
+                _logger.info("Storage Port Found {}", sPort);
+                filesystem.setPortName(sPort.getPortName());
+                filesystem.setStoragePort(sPort.getId());
                 if (unManagedFileSystem.getHasExports()) {
-                    _logger.info("Storage Port Found {}", sPort);
-                    filesystem.setPortName(sPort.getPortName());
-                    filesystem.setStoragePort(sPort.getId());
+
                     filesystem.setFsExports(PropertySetterUtil.convertUnManagedExportMapToManaged(
                             unManagedFileSystem.getFsUnManagedExportMap(), sPort.getPortName(), dataMover));
 
@@ -486,9 +484,6 @@ public class UnManagedFilesystemService extends TaggedResource {
                 }
 
                 if (unManagedFileSystem.getHasShares()) {
-                    _logger.info("Storage Port Found {}", sPort);
-                    filesystem.setPortName(sPort.getPortName());
-                    filesystem.setStoragePort(sPort.getId());
                     filesystem.setSMBFileShares(PropertySetterUtil.convertUnManagedSMBMapToManaged(
                             unManagedFileSystem.getUnManagedSmbShareMap(), sPort, dataMover));
 
@@ -533,17 +528,6 @@ public class UnManagedFilesystemService extends TaggedResource {
                         }
                     }
 
-                }
-
-                if (!unManagedFileSystem.getHasShares() && !unManagedFileSystem.getHasExports()) {
-                    if (null != sPort) {
-                        _logger.info("Storage Port Found {}", sPort);
-                        filesystem.setPortName(sPort.getPortName());
-                        filesystem.setStoragePort(sPort.getId());
-                    } else {
-                        filesystem.setStoragePort(null);
-                        _logger.info("Storage Port not found for fs {}", fsName);
-                    }
                 }
 
                 // Set quota

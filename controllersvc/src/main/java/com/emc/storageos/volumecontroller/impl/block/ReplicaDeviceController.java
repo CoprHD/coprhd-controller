@@ -411,6 +411,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             List<Volume> volumes,
             BlockSnapshotSession existingSession, URI cgURI) {
         log.info("START create snapshot session and link session to targets step");
+        Volume existingVolume = existingVolumes.get(0);
         // get existing snapshot groups
         Set<String> snapGroupNames = ControllerUtils.getSnapshotReplicationGroupNamesForSnapSession(existingVolumes,
                 existingSession, _dbClient);
@@ -426,7 +427,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             // -volume was added to RG as part of create volume step
             // otherwise linking single target will fail when it sees the source in group
             waitFor = _blockDeviceController.addStepToRemoveFromConsistencyGroup(workflow, systemURI, cgURI, Arrays.asList(volume.getId()),
-                    waitFor, true);
+                    waitFor, false);
 
             // snapshot targets
             Map<String, List<URI>> snapGroupToSnapshots = new HashMap<String, List<URI>>();
@@ -464,7 +465,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
             // Add step to add back the source volume to its group which was removed before linking target
             waitFor = _blockDeviceController.addStepToAddToConsistencyGroup(workflow, systemURI, cgURI,
-                    volume.getReplicationGroupInstance(), Arrays.asList(volume.getId()), waitFor);
+                    existingVolume.getReplicationGroupInstance(), Arrays.asList(volume.getId()), waitFor);
 
             // Add steps to add new targets to their snap groups
             for (Map.Entry<String, List<URI>> entry : snapGroupToSnapshots.entrySet()) {
@@ -607,18 +608,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             log.warn("Not able to find any snapshots with group {}", repGroupName);
             existingSnapSnapSetLabel = repGroupName;
         }
-
         snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
 
-        String label = null;
-        String srcRGName = volume.getReplicationGroupInstance();
-        if (NullColumnValueGetter.isNotNullValue(srcRGName)) {
-            label = String.format("%s-%s-%s", existingSnapSnapSetLabel, srcRGName, volume.getLabel());
-        } else {
-            label = String.format("%s-%s", existingSnapSnapSetLabel, volume.getLabel());
-        }
-
-        snapshot.setLabel(label);
+        snapshot.setLabel(volume.getLabel() + "-" + repGroupName);
 
         snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
         _dbClient.createObject(snapshot);
@@ -630,7 +622,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         // create clone for the source
         Volume clone = new Volume();
         clone.setId(URIUtil.createId(Volume.class));
-        clone.setLabel(volume.getLabel() + "_" + repGroupName);
+        clone.setLabel(volume.getLabel() + "-" + repGroupName);
         clone.setPool(volume.getPool());
         clone.setStorageController(volume.getStorageController());
         clone.setProject(new NamedURI(volume.getProject().getURI(), clone.getLabel()));

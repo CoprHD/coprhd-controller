@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import util.EnumOption;
 import util.StorageSystemTypeUtils;
 import util.StringOption;
 
@@ -171,6 +172,22 @@ public class StorageProviderTypes {
 		}
 
 		return allproviders;
+	}
+
+	public static List<EnumOption> getStorageProviderPortMap() {
+		String alltypes = "all";
+		List<EnumOption> StorageProviderPortMap = new ArrayList<EnumOption>();
+
+		StorageSystemTypeList storagetypelist = StorageSystemTypeUtils.getAllStorageSystemTypes(alltypes);
+		for (StorageSystemTypeRestRep storagetypeRest : storagetypelist.getStorageSystemTypes()) {
+			StorageProviderPortMap
+					.add(new EnumOption(storagetypeRest.getStorageTypeName(), storagetypeRest.getNonSslPort()));
+
+			StorageProviderPortMap.add(
+					new EnumOption(storagetypeRest.getStorageTypeName() + "_useSSL", storagetypeRest.getSslPort()));
+		}
+
+		return StorageProviderPortMap;
 	}
 
 }

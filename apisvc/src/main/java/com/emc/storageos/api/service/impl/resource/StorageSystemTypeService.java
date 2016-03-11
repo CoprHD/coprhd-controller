@@ -47,22 +47,22 @@ public class StorageSystemTypeService extends TaskResourceService {
 	private static final Logger log = LoggerFactory.getLogger(StorageSystemTypeService.class);
 	private static final String EVENT_SERVICE_TYPE = "StorageSystemTypeService";
 
-	private static final String ISILON = "isilon";
-	private static final String VNX_BLOCK = "vnxblock";
-	private static final String VNXe = "vnxe";
-	private static final String VNX_FILE = "vnxfile";
-	private static final String VMAX = "smis";
-	private static final String NETAPP = "netapp";
-	private static final String NETAPPC = "netappc";
-	private static final String HITACHI = "hds";
-	private static final String IBMXIV = "ibmxiv";
-	private static final String VPLEX = "vplex";
-	private static final String OPENSTACK = "openstack";
-	private static final String SCALEIO = "scaleio";
-	private static final String SCALEIOAPI = "scaleioapi";
-	private static final String XTREMIO = "xtremio";
-	private static final String DATA_DOMAIN = "datadomain";
-	private static final String ECS = "ecs";
+//	private static final String ISILON = "isilon";
+//	private static final String VNX_BLOCK = "vnxblock";
+//	private static final String VNXe = "vnxe";
+//	private static final String VNX_FILE = "vnxfile";
+//	private static final String VMAX = "smis";
+//	private static final String NETAPP = "netapp";
+//	private static final String NETAPPC = "netappc";
+//	private static final String HITACHI = "hds";
+//	private static final String IBMXIV = "ibmxiv";
+//	private static final String VPLEX = "vplex";
+//	private static final String OPENSTACK = "openstack";
+//	private static final String SCALEIO = "scaleio";
+//	private static final String SCALEIOAPI = "scaleioapi";
+//	private static final String XTREMIO = "xtremio";
+//	private static final String DATA_DOMAIN = "datadomain";
+//	private static final String ECS = "ecs";
 
 	/**
 	 * Show compute image attribute.

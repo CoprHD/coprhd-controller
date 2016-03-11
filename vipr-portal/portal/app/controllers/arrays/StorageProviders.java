@@ -74,7 +74,8 @@ public class StorageProviders extends ViprResourceController {
         //renderArgs.put("elementManagerStorageProviderList", Arrays.asList(StorageSystemTypes.ELEMENT_MANAGER_OPTIONS));
         renderArgs.put("elementManagerStorageProviderList", StorageProviderTypes.getProvidersWithEMS());
         
-        List<EnumOption> defaultStorageProviderPortMap = Arrays.asList(EnumOption.options(DefaultStorageProviderPortMap.values()));
+        //List<EnumOption> defaultStorageProviderPortMap = Arrays.asList(EnumOption.options(DefaultStorageProviderPortMap.values()));
+        List<EnumOption> defaultStorageProviderPortMap = StorageProviderTypes.getStorageProviderPortMap();
         renderArgs.put("defaultStorageProviderPortMap", defaultStorageProviderPortMap);
     }
 
@@ -346,4 +347,6 @@ public class StorageProviders extends ViprResourceController {
             return null;
         }
     }
+    
+    
 }

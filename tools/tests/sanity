@@ -7567,7 +7567,7 @@ dr_basic_tests()
     # resume ACTIVE_DEGRADED site to prepare next standby-removing test
     echo "Waiting $DR_SITE_A_NAME and $DR_SITE_B_NAME to be stable ..."
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
-    echo "---RESUME OLD ACTIVE SITE ${DR_SITE_B_NAME} (ACTIVE_DEGRADED) after failover---"
+    echo "---RESUME OLD ACTIVE SITE ${DR_SITE_B_NAME} (ACTIVE_DEGRADED) AFTER FAILOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr resume --ip "${DR_SITE_A_IP}" $standby_site || { echo "resume dr standby site failed."; exit 1; }
@@ -7922,7 +7922,7 @@ dr_multisite_tests()
     # resume old active site (in ACTIVE_DEGRADED state)
     echo "Waiting $DR_SITE_A_NAME and $DR_SITE_C_NAME to be stable ..."
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_C_IP}"
-    echo "---RESUME OLD ACTIVE SITE ${DR_SITE_C_NAME} (ACTIVE_DEGRADED) after failover---"
+    echo "---RESUME OLD ACTIVE SITE ${DR_SITE_C_NAME} (ACTIVE_DEGRADED) AFTER FAILOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
     dr resume --ip "${DR_SITE_A_IP}" $standby_site_c || { echo "resume dr standby site c failed."; exit 1; }

@@ -52,6 +52,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -338,12 +339,25 @@ public class BlockSnapshotSessionManager {
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
 
+        boolean inApplication = false;
+        if (sourceObj instanceof Volume && ((Volume) sourceObj).getApplication(_dbClient) != null) {
+            inApplication = true;
+        } else if (sourceObj instanceof BlockSnapshot) {
+            BlockSnapshot sourceSnap = (BlockSnapshot) sourceObj;
+            NamedURI namedUri = sourceSnap.getParent();
+            if (!NullColumnValueGetter.isNullNamedURI(namedUri)) {
+                Volume source = _dbClient.queryObject(Volume.class, namedUri.getURI());
+                if (source != null && source.getApplication(_dbClient) != null) {
+                    inApplication = true;
+                }
+            }
+        }
         // Prepare the ViPR BlockSnapshotSession instances and BlockSnapshot
         // instances for any new targets to be created and linked to the
         // snapshot sessions.
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
         BlockSnapshotSession snapSession = snapSessionApiImpl.prepareSnapshotSession(snapSessionSourceObjList,
-                snapSessionLabel, newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId);
+                snapSessionLabel, newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId, inApplication);
 
         // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();

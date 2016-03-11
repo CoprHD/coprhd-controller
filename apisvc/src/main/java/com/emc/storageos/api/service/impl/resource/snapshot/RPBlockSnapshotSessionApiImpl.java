@@ -197,10 +197,10 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
-            String taskId) {
+            String taskId, boolean inApplication) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
         BlockSnapshotSession snapSession = snapSessionImpl.prepareSnapshotSessionFromSource(sourceObj, snapSessionLabel,
-                instanceLabel, taskId);
+                instanceLabel, taskId, inApplication);
         return snapSession;
     }
 

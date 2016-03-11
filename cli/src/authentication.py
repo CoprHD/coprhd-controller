@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright 2012 EMC Corporation
+# Copyright 2016 EMC Corporation
 # Copyright 2016 Intel Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

@@ -851,7 +851,7 @@ class Fileshare(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync,synctimeout):
+    def check_for_sync(self, result, sync,synctimeout=0):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]
@@ -939,7 +939,7 @@ class Fileshare(object):
         res = common.json_decode(s)
         return res['file_policy']
 
-    def continous_copies_start(self, filesharename):
+    def continous_copies_start(self, filesharename, sync):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -957,10 +957,14 @@ class Fileshare(object):
             "POST",
             Fileshare.URI_CONTINUOS_COPIES_START.format(fsid),
             body)
-
-        return
+        o = common.json_decode(s)
+        
+        if(sync):
+            return self.check_for_sync(o, sync)
+        else:
+            return
     
-    def continous_copies_pause(self, filesharename):
+    def continous_copies_pause(self, filesharename, sync):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -980,9 +984,12 @@ class Fileshare(object):
             Fileshare.URI_CONTINUOS_COPIES_PAUSE.format(fsid),
             body)
 
-        return
+        if(sync):
+            return self.check_for_sync(s, sync)
+        else:
+            return
     
-    def continous_copies_resume(self, filesharename):
+    def continous_copies_resume(self, filesharename, sync):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1002,9 +1009,12 @@ class Fileshare(object):
             Fileshare.URI_CONTINUOS_COPIES_RESUME.format(fsid),
             body)
 
-        return
+        if(sync):
+            return self.check_for_sync(s, sync)
+        else:
+            return
     
-    def continous_copies_stop(self, filesharename):
+    def continous_copies_stop(self, filesharename, sync):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1024,9 +1034,12 @@ class Fileshare(object):
             Fileshare.URI_CONTINUOS_COPIES_STOP.format(fsid),
             body)
 
-        return
+        if(sync):
+            return self.check_for_sync(s, sync)
+        else:
+            return
     
-    def continous_copies_failover(self, filesharename):
+    def continous_copies_failover(self, filesharename, sync):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1046,9 +1059,12 @@ class Fileshare(object):
             Fileshare.URI_CONTINUOS_COPIES_FAILOVER.format(fsid),
             body)
 
-        return
+        if(sync):
+            return self.check_for_sync(s, sync)
+        else:
+            return
     
-    def continous_copies_failback(self, filesharename):
+    def continous_copies_failback(self, filesharename, sync):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1068,9 +1084,12 @@ class Fileshare(object):
             Fileshare.URI_CONTINUOS_COPIES_FAILBACK.format(fsid),
             body)
 
-        return
+        if(sync):
+            return self.check_for_sync(s, sync)
+        else:
+            return
     
-    def continous_copies_create(self, filesharename):
+    def continous_copies_create(self, filesharename, sync):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         parms = {
@@ -1083,9 +1102,12 @@ class Fileshare(object):
             Fileshare.URI_CONTINUOS_COPIES_CREATE.format(fsid),
             body)
 
-        return
+        if(sync):
+            return self.check_for_sync(s, sync)
+        else:
+            return
     
-    def continous_copies_deactivate(self, filesharename):
+    def continous_copies_deactivate(self, filesharename, sync):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         parms = {
@@ -1098,9 +1120,12 @@ class Fileshare(object):
             Fileshare.URI_CONTINUOS_COPIES_DEACTIVATE.format(fsid),
             body)
 
-        return
+        if(sync):
+            return self.check_for_sync(s, sync)
+        else:
+            return
     
-    def continous_copies_refresh(self, filesharename):
+    def continous_copies_refresh(self, filesharename, sync):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         copy_dict = {
@@ -1117,7 +1142,10 @@ class Fileshare(object):
             Fileshare.URI_CONTINUOS_COPIES_REFRESH.format(fsid),
             body)
 
-        return
+        if(sync):
+            return self.check_for_sync(s, sync)
+        else:
+            return
     
     def change_vpool(self, filesharename, vpoolid):
         fsname = self.show(filesharename)
@@ -2725,6 +2753,11 @@ def continous_copies_start_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
+    continous_copies_start_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
+    
     continous_copies_start_parser.set_defaults(func=continous_copies_start)
 
 
@@ -2733,7 +2766,7 @@ def continous_copies_start(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_start(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_start(args.tenant + "/" + args.project + "/" + args.name, args.sync)
         return
     except SOSError as e:
         raise e
@@ -2761,6 +2794,10 @@ def continous_copies_pause_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
+    continous_copies_pause_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
     continous_copies_pause_parser.set_defaults(func=continous_copies_pause)
 
 
@@ -2769,7 +2806,7 @@ def continous_copies_pause(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_pause(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_pause(args.tenant + "/" + args.project + "/" + args.name, args.sync)
         return
     except SOSError as e:
         raise e
@@ -2798,6 +2835,10 @@ def continous_copies_resume_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
+    continous_copies_resume_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
     continous_copies_resume_parser.set_defaults(func=continous_copies_resume)
 
 
@@ -2806,7 +2847,7 @@ def continous_copies_resume(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_resume(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_resume(args.tenant + "/" + args.project + "/" + args.name, args.sync)
         return
     except SOSError as e:
         raise e
@@ -2834,6 +2875,10 @@ def continous_copies_stop_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
+    continous_copies_stop_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
     continous_copies_stop_parser.set_defaults(func=continous_copies_stop)
 
 
@@ -2842,7 +2887,7 @@ def continous_copies_stop(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_stop(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_stop(args.tenant + "/" + args.project + "/" + args.name, args.sync)
         return
     except SOSError as e:
         raise e
@@ -2872,6 +2917,10 @@ def continous_copies_failover_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
+    continous_copies_failover_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
     continous_copies_failover_parser.set_defaults(func=continous_copies_failover)
 
 
@@ -2880,7 +2929,7 @@ def continous_copies_failover(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_failover(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_failover(args.tenant + "/" + args.project + "/" + args.name, args.sync)
         return
     except SOSError as e:
         raise e
@@ -2908,6 +2957,10 @@ def continous_copies_failback_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
+    continous_copies_failback_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
     continous_copies_failback_parser.set_defaults(func=continous_copies_failback)
 
 
@@ -2916,7 +2969,7 @@ def continous_copies_failback(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_failback(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_failback(args.tenant + "/" + args.project + "/" + args.name, args.sync)
         return
     except SOSError as e:
         raise e
@@ -2944,6 +2997,10 @@ def continous_copies_create_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
+    continous_copies_create_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
     continous_copies_create_parser.set_defaults(func=continous_copies_create)
 
 
@@ -2952,7 +3009,7 @@ def continous_copies_create(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_create(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_create(args.tenant + "/" + args.project + "/" + args.name, args.sync)
         return
     except SOSError as e:
         raise e
@@ -2981,6 +3038,10 @@ def continous_copies_deactivate_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
+    continous_copies_deactivate_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
     continous_copies_deactivate_parser.set_defaults(func=continous_copies_deactivate)
 
 
@@ -2989,7 +3050,7 @@ def continous_copies_deactivate(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_deactivate(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_deactivate(args.tenant + "/" + args.project + "/" + args.name, args.sync)
         return
     except SOSError as e:
         raise e
@@ -3018,6 +3079,10 @@ def continous_copies_refresh_parser(subcommand_parsers, common_parser):
                                 dest='project',
                                 help='Name of project',
                                 required=True)
+    continous_copies_refresh_parser.add_argument('-synchronous', '-sync',
+                               dest='sync',
+                               help='Execute in synchronous mode',
+                               action='store_true')
     continous_copies_refresh_parser.set_defaults(func=continous_copies_refresh)
 
 
@@ -3026,7 +3091,7 @@ def continous_copies_refresh(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_refresh(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_refresh(args.tenant + "/" + args.project + "/" + args.name, args.sync)
         return
     except SOSError as e:
         raise e

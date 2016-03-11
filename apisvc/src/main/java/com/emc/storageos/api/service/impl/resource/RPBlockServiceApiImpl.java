@@ -105,7 +105,6 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.collect.Lists;
 
 /**
@@ -1822,7 +1821,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             try {
                 // If there is a change vpool volume, we need to ensure that we rollback protection on it.
-                // We want to return the volume back to it's original state.
+                // We want to return the volume back to its original state.
                 if (isChangeVpool || isChangeVpoolForProtectedVolume) {
                     Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
                     VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolId);
@@ -3311,7 +3310,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      *
      * @param primaryRecommendation The primary rec from the scheduler
      * @param secondaryRecommendation The secondary rec from the scheduler
-     * @param sourceVolume The volume that should be checked for it's backing volumes to be updated
+     * @param sourceVolume The volume that should be checked for its backing volumes to be updated
      * @param exportForMetroPoint Boolean set to true if we're MetroPoint
      * @param exportToHASideOnly Boolean set to true if we're only exportong to HA side
      * @param haVarrayConnectedToRp Only be used if isSrcAndHaSwapped == true, tells us which varray is the HA one

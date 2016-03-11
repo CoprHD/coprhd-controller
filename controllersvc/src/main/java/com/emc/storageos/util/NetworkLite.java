@@ -17,7 +17,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 
 /**
  * NetworkLite -- this is a read-only copy of a Network.
- * The purpose is to avoid the memory overhead of holding a Network with it's endpoint set
+ * The purpose is to avoid the memory overhead of holding a Network with its endpoint set
  * in certain critical paths like provisioning export groups. Using a separate structure
  * that parallels the Network minimizes impact to existing code structure and emphasizes
  * what fields are available (or not) and the fact that this structure cannot be re-persisted.

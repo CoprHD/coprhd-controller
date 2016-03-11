@@ -1,19 +1,20 @@
 package com.emc.storageos.systemservices.impl.util;
 
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.db.server.impl.DbRepairRunnable;
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
 import com.emc.vipr.model.sys.recovery.RecoveryStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
 
 /**
  * Class for handle node DB repair status combination
@@ -39,12 +40,12 @@ public class DbRepairStatusHandler {
 
     /**
      * Get node repair status(have combine db repair status and geodb repair status)
-     * it's trick to combine local db and geo db repair together since they can be triggered
+     * it's tricky to combine local db and geo db repair together since they can be triggered
      * individually, lots for workaround needed to be done to ensure it works correctly.
      * we set IN_PROGRESS before perform actual db repair in DbRepairRunable(before get DB_REPAIR lock)
      * hence we can use the IN_PROGRESS here to determine if there is other pending db repair,
      * so we can determine whether we can merge them together or not. For db repair triggered by scheduler,
-     * geo db repair doesn't know if there is local db finished it's work or not since IN_PROGRESS will be
+     * geo db repair doesn't know if there is local db finished its work or not since IN_PROGRESS will be
      * set to DONE (which means geo db repair is not aware of it is triggered by restart geo service alone
      * or node restart), we use INTERVAL_TIME_IN_MINUTES to make the decision.
      * Generally we follow the below rules:

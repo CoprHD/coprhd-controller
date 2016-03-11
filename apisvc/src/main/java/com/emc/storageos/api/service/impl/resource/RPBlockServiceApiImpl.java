@@ -2982,7 +2982,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         allowedOperations.add(VirtualPoolChangeOperationEnum.RP_UPGRADE_TO_METROPOINT);
                     }
                 } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
-                    if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVpool, newVpool,
+                    if (VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool, newVpool,
                                 _dbClient, notSuppReasonBuff)) {
                         // Allow the RP Protection add operation
                         allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);

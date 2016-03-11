@@ -3331,8 +3331,27 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
 
-                hasReplica = ControllerUtils.checkIfVolumeHasSnapshot(snapSource, dbClient) ||
-                        ControllerUtils.checkIfVolumeHasSnapshotSession(snapSource.getId(), dbClient); // only for volumes not in RG
+                hasReplica = ControllerUtils.checkIfVolumeHasSnapshot(snapSource, dbClient);
+
+                // check for VMAX3 individual session and group session
+                if (!hasReplica && snapSource.isVmax3Volume(dbClient)) {
+                    hasReplica = ControllerUtils.checkIfVolumeHasSnapshotSession(snapSource.getId(), dbClient);
+
+                    String rgName = snapSource.getReplicationGroupInstance();
+                    if (!hasReplica && NullColumnValueGetter.isNotNullValue(rgName)) {
+                        URI cgURI = snapSource.getConsistencyGroup();
+                        List<BlockSnapshotSession> sessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                                BlockSnapshotSession.class,
+                                ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(cgURI));
+
+                        for (BlockSnapshotSession session : sessionsList) {
+                            if (rgName.equals(session.getReplicationGroupInstance())) {
+                                hasReplica = true;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
 
             if (hasReplica) {

@@ -4713,10 +4713,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                         .getVolumeByAssociatedVolumesConstraint(cgSnapshot.getParent().getURI()
                                 .toString()), queryResults);
-                URI vplexVolumeURI = queryResults.iterator().next();
-
-                if (vplexVolumeURI != null) {
-                    volumeURIs.add(vplexVolumeURI);
+                URI vplexVolumeURI = null;
+                if(queryResults.iterator().hasNext()){
+                	vplexVolumeURI = queryResults.iterator().next();
+                	if (vplexVolumeURI != null) {
+                        volumeURIs.add(vplexVolumeURI);
+                    } 
                 } else {
                     volumeURIs.add(cgSnapshot.getParent().getURI());
                 }

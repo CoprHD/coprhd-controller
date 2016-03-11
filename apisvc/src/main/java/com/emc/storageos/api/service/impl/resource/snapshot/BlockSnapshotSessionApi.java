@@ -52,11 +52,12 @@ public interface BlockSnapshotSessionApi {
      * @param newTargetsName The requested name for the new linked targets.
      * @param snapSessionSnapshots This OUT parameter gets populated with the BlockSnaphot instances created for each session, if any.
      * @param taskId The unique task identifier.
+     * @param inAppication Is the source volume in an application 
      * 
      * @return
      */
     public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId);
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId, boolean inApplication);
 
     /**
      * Prepare a ViPR BlockSnapshotSession instance for the passed source object.
@@ -65,11 +66,12 @@ public interface BlockSnapshotSessionApi {
      * @param snapSessionLabel The snapshot session label.
      * @param instanceLabel The unique snapshot session instance label.
      * @param taskId The unique task identifier.
+     * @param inAppication Is the source volume in an application 
      * 
      * @return A ViPR BlockSnapshotSession instance for the passed source object
      */
     public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
-            String taskId);
+            String taskId, boolean inApplication);
 
     /**
      * Prepare ViPR BlockSnapshot instances for the new targets to be created and

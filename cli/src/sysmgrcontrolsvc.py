@@ -348,7 +348,7 @@ class Backup(object):
         return o
     
     
-    def backupset_pull_cancel(self, name):
+    def backupset_pull_cancel(self):
         uri = Backup.URI_BACKUPSET_PULL_CANCEL
         
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -1029,20 +1029,13 @@ def backupset_pull_cancel_parser(subcommand_parsers,common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         help='To cancel the pull a specific backup')
-    
-    mandatory_args = backupset_pull_cancel_parser.add_argument_group(
-        'mandatory arguments')
-    mandatory_args.add_argument('-name', '-n',
-                                help='Name of the backup',
-                                metavar='<backup name>',
-                                dest='name',
-                                required='True')
+
     backupset_pull_cancel_parser.set_defaults(func=backupset_pull_cancel)
 
 def backupset_pull_cancel(args):
     obj = Backup(args.ip, Backup.DEFAULT_SYSMGR_PORT)
     try:
-        res = obj.backupset_pull_cancel(args.name)
+        res = obj.backupset_pull_cancel()
         return res
     except SOSError as e:
         common.format_err_msg_and_raise(

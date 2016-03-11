@@ -70,7 +70,7 @@ public class DisasterRecovery extends ViprResourceController {
         }
     }
 
-    public static void list() {
+    private static void list() {
         list(false);
     }
 

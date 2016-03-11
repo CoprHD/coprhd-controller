@@ -240,7 +240,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         // insert DR active site info to ZK
         Site site = new Site();
         site.setUuid(getSiteId());
-        site.setName("Default Active Site");
+        site.setName("Default Site");
         site.setVdcShortId(vdcShortId);
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
@@ -1990,9 +1990,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public void deletePath(String path) {
         try {
+            if (_zkConnection.curator().checkExists().forPath(path) == null) {
+                log.info("Skip path deletion since {} doesn't exist", path);
+                return;
+            }
+            
             List<String> subPaths = _zkConnection.curator().getChildren().forPath(path);
             for (String subPath : subPaths) {
-                log.info("Subpath {} is going to be deleted", subPath);
+                log.info("Subpath {}/{} is going to be deleted", path, subPath);
             }
             
             DeleteBuilder deleteOp = _zkConnection.curator().delete();

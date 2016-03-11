@@ -23,7 +23,8 @@ conn %default
     authby=secret
     auto=route
     type=transport
-    esp=aes128gcm16!
+    esp=aes128gcm16-sha256!     
+    ike=aes128gcm16-sha256-prfsha256-ecp256!
     left=${LOCAL_IP}
 EOF
 )

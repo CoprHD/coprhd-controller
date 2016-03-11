@@ -652,21 +652,13 @@ public class DrUtil {
      * Check if all sites of local vdc are
      */
     public boolean isAllSitesStable() {
-        boolean bStable = true;
 
-        for (Site site : listSites()) {
-            if (site.getState().isDROperationOngoing()) {
-                return false;
-            }
-
-            int nodeCount = site.getNodeCount();
-            ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
-            if (state != ClusterInfo.ClusterState.STABLE) {
-                log.info("Site {} is not stable {}", site.getUuid(), state);
-                bStable = false;
-            }
+        try {
+            verifyAllSitesStable();
+            return true;
+        } catch (Exception e) {
+            return false;
         }
-        return bStable;
     }
 
     /**

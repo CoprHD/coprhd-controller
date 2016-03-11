@@ -463,8 +463,8 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
         s_logger.info(String.format("Checking isVPlexImport from [%s] to [%s]...", vpool1.getLabel(), vpool2.getLabel()));
 
         if (null != volume.getMirrors() && !volume.getMirrors().isEmpty()) {
-            notImportReasonBuff.append("Volume [" + volume.getLabel()
-                    + "] has continuous copies attached. Change vpool for a volume which has continuous copies is not allowed.");
+            notImportReasonBuff.append(String.format("Volume [%s] has continuous copies attached. "
+                    + "Change vpool for a volume which has continuous copies is not allowed.", volume.getLabel()));
             return false;
         }
 

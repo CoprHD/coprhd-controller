@@ -15,7 +15,6 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
-import java.nio.channels.FileChannel;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -23,6 +22,7 @@ import java.util.zip.ZipInputStream;
 import javax.ws.rs.core.MediaType;
 
 
+import com.emc.storageos.management.backup.exceptions.BackupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -317,7 +317,7 @@ public final class DownloadExecutor implements  Runnable {
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", pushUri, node);
             backupOps.setRestoreStatus(backupName, Status.DOWNLOAD_FAILED, e.getMessage(), false, true);
-            throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
+            throw BackupException.fatals.pullBackupFailed(backupName, errMsg);
         }
     }
 

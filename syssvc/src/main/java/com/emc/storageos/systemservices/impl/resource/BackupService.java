@@ -253,6 +253,8 @@ public class BackupService {
                 return backupOps.getBackupInfo(localBackupFolder, true);
             }
 
+            checkExternalServer();
+
             SchedulerConfig cfg = backupScheduler.getCfg();
 
             String serverUri = cfg.getExternalServerUrl();
@@ -502,7 +504,7 @@ public class BackupService {
             String curBackupName = backupOps.getCurrentBackupName();
             if (!backupName.equals(curBackupName)) {
                 String errmsg = curBackupName + " is downloading";
-                throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);
+                throw BackupException.fatals.pullBackupFailed(backupName, errmsg);
             }
             log.info("The backup {} is downloading, no need to trigger again", backupName);
         }else {
@@ -524,7 +526,7 @@ public class BackupService {
     private void checkExternalServer() {
         SchedulerConfig cfg = backupScheduler.getCfg();
         if (cfg.uploadUrl == null) {
-            throw SyssvcException.syssvcExceptions.externalBackupServerError("The server is not set");
+            throw BackupException.fatals.externalBackupServerError("The server is not set");
         }
     }
 
@@ -591,7 +593,7 @@ public class BackupService {
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", restoreURL, endpoint);
             log.error(errMsg);
-            setRestoreFailed(backupName, errMsg);
+            setRestoreFailed(backupName, errMsg, e);
         }
     }
 
@@ -630,12 +632,12 @@ public class BackupService {
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, backupName);
 
         if (!backupOps.isActiveSite()) {
-            setRestoreFailed(backupName, "The current site is not an active site");
+            setRestoreFailed(backupName, "The current site is not an active site", null);
             //no return here
         }
 
         if (!backupOps.isClusterStable()) {
-            setRestoreFailed(backupName, "The cluster is not stable");
+            setRestoreFailed(backupName, "The cluster is not stable", null);
             //no return here
         }
 
@@ -648,7 +650,7 @@ public class BackupService {
         }catch (Exception e) {
             if (backupOps.shouldHaveBackupData()) {
                 String errMsg = String.format("Invalid backup the node %s: %s", myNodeId, e.getMessage());
-                setRestoreFailed(backupName, errMsg);
+                setRestoreFailed(backupName, errMsg, e);
                 auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
                 //no return here
             }
@@ -667,7 +669,7 @@ public class BackupService {
         Exec.Result result = Exec.exec(120 * 1000, restoreCommand);
         switch (result.getExitValue()) {
             case 1:
-                setRestoreFailed(backupName, "Invalid password");
+                setRestoreFailed(backupName, "Invalid password", null);
                 //no return
         }
 
@@ -698,10 +700,10 @@ public class BackupService {
         return doRestore(backupName, isLocal, password, isGeoFromScratch);
     }
 
-    private Response setRestoreFailed(String backupName, String msg) {
+    private Response setRestoreFailed(String backupName, String msg, Throwable cause) {
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
         backupOps.setRestoreStatus(backupName, s, msg, false, false);
-        throw SyssvcException.syssvcExceptions.restoreFailed(backupName, msg);
+        throw BackupException.fatals.failedToRestoreBackup(backupName, cause);
     }
 
     /**
@@ -716,7 +718,25 @@ public class BackupService {
     public BackupRestoreStatus queryRestoreStatus(@QueryParam("backupname") String backupName,
                                                   @QueryParam("isLocal") @DefaultValue("false") boolean isLocal) {
         log.info("Query restore status backupName={} isLocal={}", backupName, isLocal);
+
+        if (!isLocal) {
+            checkExternalServer();
+
+            SchedulerConfig cfg = backupScheduler.getCfg();
+            String externalServerUrl = cfg.getExternalServerUrl();
+            String userName = cfg.getExternalServerUserName();
+            String password = cfg.getExternalServerPassword();
+            FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
+            try {
+                List<String> backupFiles = ftpClient.listFiles(backupName);
+            }catch (Exception e) {
+                log.error("Failed to list {} from server {}", backupName, externalServerUrl);
+                BackupException.fatals.backupFileNotFound(backupName);
+            }
+        }
+
         BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, isLocal);
+        status.setBackupName(backupName); // in case it is not saved in the ZK
 
         log.info("The backup/restore status:{}", status);
         return status;
@@ -799,7 +819,7 @@ public class BackupService {
                 newZipEntry(zos, in, fileName);
                 propertiesFileFound = true;
                 break;
-            } catch (SysClientException ex) {
+            } catch (Exception ex) {
                 log.info("info.properties file is not found on node {}, exception {}", node.getId(), ex.getMessage());
             }
         }

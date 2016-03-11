@@ -124,4 +124,10 @@ public interface FatalBackupExceptions {
 
     @DeclareServiceCode(ServiceCode.BACKUP_DISABLED_AS_ON_STANDBY)
     public FatalBackupException forbidBackupOnStandbySite();
+
+    @DeclareServiceCode(ServiceCode.BACKUP_PULL_FAILED)
+    public FatalBackupException pullBackupFailed(final String backupName, final String details);
+
+    @DeclareServiceCode(ServiceCode.BACKUP_CONNECTION_FAILED)
+    public FatalBackupException externalBackupServerError(final String details);
 }

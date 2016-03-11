@@ -2916,7 +2916,6 @@ public class VolumeIngestionUtil {
                         if (null == normalizedWWN) {
                             throw IngestionException.exceptions.exportedVolumeIsMissingWwn(unManagedVolume.getLabel());
                         }
-                        boolean foundExportMask = false;
                         if (exportMask.hasAnyExistingVolumes() && exportMask.getExistingVolumes().containsKey(normalizedWWN)) {
                             _logger.info(
                                     "Removing block object {} from existing volumes and adding to user created volumes of export mask {}",
@@ -2924,15 +2923,7 @@ public class VolumeIngestionUtil {
                             exportMask.removeFromExistingVolumes(blockObject);
                             exportMask.addToUserCreatedVolumes(blockObject);
                             updatedObjects.add(exportMask);
-                            foundExportMask = true;
                             exportGroups.addAll(ExportMaskUtils.getExportGroups(dbClient, exportMask));
-                        }
-                        if (foundExportMask) {
-                            _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
-                                    unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
-                            unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
-                            unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
-                            updatedObjects.add(unManagedExportMask);
                         }
                     }
 
@@ -2950,7 +2941,11 @@ public class VolumeIngestionUtil {
                             updatedObjects.add(exportGroup);
                         }
                     }
-
+                    _logger.info("breaking relationship between UnManagedExportMask {} and UnManagedVolume {}",
+                            unManagedExportMask.getMaskName(), unManagedVolume.forDisplay());
+                    unManagedVolume.getUnmanagedExportMasks().remove(unManagedExportMask.getId().toString());
+                    unManagedExportMask.getUnmanagedVolumeUris().remove(unManagedVolume.getId().toString());
+                    updatedObjects.add(unManagedExportMask);
                 }
             } else {
                 _logger.info("No unmanaged export masks found for the unmanaged volume {}", unManagedVolumes.get(0).getNativeGuid());
@@ -3618,10 +3613,12 @@ public class VolumeIngestionUtil {
     public static BlockConsistencyGroup getBlockObjectConsistencyGroup(UnManagedVolume unManagedVolume, BlockObject blockObj,
             IngestionRequestContext context, DbClient dbClient) {
         UnManagedConsistencyGroup umcg = getUnManagedConsistencyGroup(unManagedVolume, dbClient);
-        // Check if the UnManagedConsistencyGroup is present in the volume context which should have the updated info
-        UnManagedConsistencyGroup umcgInContext = context.findUnManagedConsistencyGroup(umcg.getLabel());
-        if (umcgInContext != null) {
-            umcg = umcgInContext;
+        if (umcg != null) {
+            // Check if the UnManagedConsistencyGroup is present in the volume context which should have the updated info
+            UnManagedConsistencyGroup umcgInContext = context.findUnManagedConsistencyGroup(umcg.getLabel());
+            if (umcgInContext != null) {
+                umcg = umcgInContext;
+            }
         }
 
         // In the case where IS_VOLUME_IN_CONSISTENCYGROUP flag is set to TRUE, but there is no UnManagedConsistencyGroup, we
@@ -4071,6 +4068,18 @@ public class VolumeIngestionUtil {
                 updatedObjects.add(fullCopy);
             }
         }
+    }
+
+    public static boolean isParentRPVolume(UnManagedVolume umVolume, DbClient dbClient) {
+        boolean isRPVolume = false;
+        if (umVolume != null && checkUnManagedResourceIsRecoverPointEnabled(umVolume)) {
+            return true;
+        }
+        // If this is a vplex backend volume, then check if the vplex virtual volume is RP enabled
+        if (umVolume != null && isVplexBackendVolume(umVolume)) {
+
+        }
+        return isRPVolume;
     }
 
 }

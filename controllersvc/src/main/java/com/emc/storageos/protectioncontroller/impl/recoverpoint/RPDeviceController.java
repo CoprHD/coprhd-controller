@@ -6266,22 +6266,29 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 boolean toadd = false;
                 URI volume = fullCopy.getAssociatedSourceVolume();
                 Volume sourceVol = _dbClient.queryObject(Volume.class, volume);
-                if (sourceVol != null &&
-                        sourceVol.getAssociatedVolumes() != null &&
+                if (sourceVol != null ) {
+                    if (!sourceVol.checkForRp()) {
+                        toadd = false;
+                    } else if (sourceVol.getAssociatedVolumes() != null &&
                         sourceVol.getAssociatedVolumes().size() == 2) {
-                    toadd = true;
-                } else if (sourceVol != null) {
-                    URI storage = sourceVol.getStorageController();
-                    if (!NullColumnValueGetter.isNullURI(storage)) {
-                        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
-                        if (storageSystem != null && storageSystem.getSystemType().equals(SystemType.vmax.name())) {
-                            toadd = true;
+                        // RP + VPLEX distributed
+                        toadd = true;
+                    } else {
+                        // RP + VMAX
+                        URI storage = sourceVol.getStorageController();
+                        if (!NullColumnValueGetter.isNullURI(storage)) {
+                            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+                            if (storageSystem != null && storageSystem.getSystemType().equals(SystemType.vmax.name())) {
+                                toadd = true;
+                            }
+                        } else {
+                            _log.error(String.format("The source %s storage system is null", sourceVol.getLabel()));
                         }
                     }
                 }
-
+                
                 // Only add the post-restore step if we are restoring a full copy whoes source
-                // volume is a distributed vplex volume
+                // volume is a distributed vplex or vmax volume
                 if (!NullColumnValueGetter.isNullURI(sourceVol.getProtectionController()) &&
                         toadd) {
                     ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, sourceVol.getProtectionController());

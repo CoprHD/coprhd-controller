@@ -18,7 +18,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -36,14 +35,13 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
-import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -330,7 +328,7 @@ public class BlockStorageScheduler {
             NetworkLite network = networkMap.get(netURI);
             Integer portsNeeded = net2PortsNeeded.get(netURI);
             if (portsNeeded == null || portsNeeded == 0) {
-                _log.info("No ports to be assigned for net: " + netURI);
+                _log.info("No ports to be assigned for network: " + netURI);
                 continue;
             }
 
@@ -338,12 +336,12 @@ public class BlockStorageScheduler {
             // Check that there are initiators to get assignments. This check is
             // needed for when initiators were eliminate by #filterRemoteInitiators
             if (initiators == null || initiators.isEmpty()) {
-                _log.info("No initiators to be assigned for net: " + netURI);
+                _log.info("No initiators to be assigned for network: " + netURI);
                 continue;
             }
 
             if (portUsageMap.get(netURI).isEmpty()) {
-                _log.info(String.format("No ports available for allocation net: %s [skipping]  ", netURI));
+                _log.info(String.format("No ports available for allocation on network: %s. Hence skipping this network", netURI));
                 continue;
                 //throw PlacementException.exceptions.cannotAllocateRequestedPorts(
                 //         network.getLabel(), system.getNativeGuid(), portsNeeded, 0, 0);
@@ -1799,7 +1797,7 @@ public class BlockStorageScheduler {
         }
 
         // Save the updated ExportMask
-        _dbClient.updateAndReindexObject(mask);
+        _dbClient.updateObject(mask);
     }
 
     /**

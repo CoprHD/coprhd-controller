@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
@@ -21,6 +24,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
  */
 public class BlockVolumeIngestionContext implements VolumeIngestionContext {
 
+    private static final Logger _logger = LoggerFactory.getLogger(BlockVolumeIngestionContext.class);
     protected DbClient _dbClient;
 
     private UnManagedVolume _unManagedVolume;
@@ -67,9 +71,19 @@ public class BlockVolumeIngestionContext implements VolumeIngestionContext {
      */
     @Override
     public void commit() {
-        // commit the UnmanagedConsistencyGroups and CGs to create
-        _dbClient.updateObject(getUmCGObjectsToUpdate());
-        _dbClient.updateObject(getCGObjectsToCreateMap().values());
+        for (UnManagedConsistencyGroup umcg : getUmCGObjectsToUpdate()) {
+            if (umcg.getInactive()) {
+                _logger.info("Deleting UnManagedConsistencyGroup {} (hash {})", umcg.forDisplay(), umcg.hashCode());
+            } else {
+                _logger.info("Updating UnManagedConsistencyGroup {} (hash {})", umcg.forDisplay(), umcg.hashCode());
+            }
+            _dbClient.updateObject(umcg);
+        }
+
+        for (BlockConsistencyGroup bcg : getCGObjectsToCreateMap().values()) {
+            _logger.info("Creating BlockConsistencyGroup {} (hash {})", bcg.forDisplay(), bcg.hashCode());
+            _dbClient.createObject(bcg);
+        }
     }
 
     /*

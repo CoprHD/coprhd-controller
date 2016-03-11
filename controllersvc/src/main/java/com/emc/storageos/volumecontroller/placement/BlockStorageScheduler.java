@@ -341,7 +341,7 @@ public class BlockStorageScheduler {
             }
 
             if (portUsageMap.get(netURI).isEmpty()) {
-                _log.info(String.format("No ports available for allocation on network: %s. Hence skipping this network", netURI));
+                _log.warn(String.format("No ports available for network: %s. Hence skipping allocation of ports in this network", netURI));
                 continue;                
             }
             // Allocate the storage ports.

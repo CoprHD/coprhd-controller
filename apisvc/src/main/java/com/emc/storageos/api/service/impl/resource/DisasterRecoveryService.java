@@ -1697,13 +1697,6 @@ public class DisasterRecoveryService {
     protected void precheckForFailoverLocally(String standbyUuid) {
         Site standby = drUtil.getLocalSite();
 
-        String localZKMode = drUtil.getLocalCoordinatorMode(LOCAL_HOST);
-        if (localZKMode == null || DrUtil.ZOOKEEPER_MODE_OBSERVER.equals(localZKMode) ||
-                DrUtil.ZOOKEEPER_MODE_READONLY.equals(localZKMode)) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Active site is available now, can't do failover");
-        }
-
         // API should be only send to local site
         if (!standby.getUuid().equals(standbyUuid)) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
@@ -1740,6 +1733,7 @@ public class DisasterRecoveryService {
 
         // this is standby site and NOT in ZK read-only or observer mode,
         // it means active is down and local ZK has been reconfig to participant
+        // this precheck implies that the active site is unreachable
         CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
         String myNodeId = addrLookupMap.getNodeId();
         String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);

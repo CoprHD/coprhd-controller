@@ -310,7 +310,7 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 }
 
                 ServiceError serviceError = ExternalDeviceException.errors.deleteVolumesFailed("doDeleteVolumes",
-                        errorMsgVolumes+errorMsgClones);
+                        errorMsgVolumes + errorMsgClones);
                 taskCompleter.error(dbClient, serviceError);
             } else if (!exception){
                 taskCompleter.ready(dbClient);
@@ -957,6 +957,26 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter);
         _log.info("{} doExportRemoveVolumes END ...", storage.getSerialNumber());
     }
+
+    @Override
+    public void doExportAddInitiator(StorageSystem storage,
+                                     ExportMask exportMask, Initiator initiator, List<URI> targets,
+                                     TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} doExportAddInitiator START ...", storage.getSerialNumber());
+        exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), Arrays.asList(initiator), targets, taskCompleter);
+        _log.info("{} doExportAddInitiator END ...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doExportAddInitiators(StorageSystem storage,
+                                      ExportMask exportMask, List<Initiator> initiators,
+                                      List<URI> targets, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} doExportAddInitiators START ...", storage.getSerialNumber());
+        exportMaskOperationsHelper.addInitiator(storage, exportMask.getId(), initiators, targets, taskCompleter);
+        _log.info("{} doExportAddInitiators END ...", storage.getSerialNumber());
+    }
+
 
     @Override
     public void doExportGroupDelete(StorageSystem storage,

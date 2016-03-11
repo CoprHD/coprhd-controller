@@ -727,11 +727,18 @@ public class BackupService {
             String userName = cfg.getExternalServerUserName();
             String password = cfg.getExternalServerPassword();
             FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
+            List<String> backupFiles = new ArrayList();
+
             try {
-                List<String> backupFiles = ftpClient.listFiles(backupName);
+                backupFiles = ftpClient.listFiles(backupName);
+                log.info("The backupFiles={}", backupFiles);
             }catch (Exception e) {
-                log.error("Failed to list {} from server {}", backupName, externalServerUrl);
-                BackupException.fatals.backupFileNotFound(backupName);
+                log.error("Failed to list {} from server {} e=", backupName, externalServerUrl, e);
+                throw BackupException.fatals.externalBackupServerError(backupName);
+            }
+
+            if (backupFiles.isEmpty()) {
+                throw BackupException.fatals.backupFileNotFound(backupName);
             }
         }
 

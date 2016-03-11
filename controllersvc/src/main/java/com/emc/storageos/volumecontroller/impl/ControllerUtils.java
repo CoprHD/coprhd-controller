@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1032,6 +1034,25 @@ public class ControllerUtils {
             return getSnapshotsPartOfReplicationGroup(snapshot.getReplicationGroupInstance(), snapshot.getStorageController(), dbClient);
         }
         return new ArrayList<BlockSnapshot>(Arrays.asList(snapshot));
+    }
+
+    /**
+     * BlockSnapshot instances associated to an BlockSnapshotSession will have its replicationGroupName field set in a
+     * different format than regular BlockSnapshot instances, e.g. system-serial+groupName.
+     *
+     * This method will extract and return only the group name, if required.
+     *
+     * @param groupName Replication group name, possibly containing the system serial.
+     * @return Replication group name.
+     */
+    public static String extractGroupName(String groupName) {
+        Pattern p = Pattern.compile("^\\S+\\+(\\S+)$");
+        Matcher matcher = p.matcher(groupName);
+
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        return groupName;
     }
 
     /**

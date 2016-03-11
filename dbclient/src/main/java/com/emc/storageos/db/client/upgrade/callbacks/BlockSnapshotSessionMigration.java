@@ -125,6 +125,7 @@ public class BlockSnapshotSessionMigration extends BaseCustomMigrationCallback {
             Volume parent = getDbClient().queryObject(Volume.class, snapshot.getParent());
             if (parent != null) {
                 snapshotSession.setReplicationGroupInstance(parent.getReplicationGroupInstance());
+                snapshotSession.setSessionSetName(parent.getReplicationGroupInstance());
             }
         }
         snapshotSession.setProject(snapshot.getProject());

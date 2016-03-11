@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +28,7 @@ import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -423,10 +425,19 @@ public class NetworkScheduler {
     public List<FCZoneReference> getFCZoneReferencesForKey(String key) {
         List<FCZoneReference> list = new ArrayList<FCZoneReference>();
         URIQueryResultList uris = new URIQueryResultList();
+        Iterator<FCZoneReference> itFCZoneReference = null;
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                 getFCZoneReferenceKeyConstraint(key), uris);
-        list.addAll(_dbClient.queryObject(FCZoneReference.class,
-                DataObjectUtils.iteratorToList(uris), true));
+        itFCZoneReference = _dbClient.queryIterativeObjects(FCZoneReference.class,
+                DataObjectUtils.iteratorToList(uris), true);
+        if (itFCZoneReference.hasNext()) {
+        	while (itFCZoneReference.hasNext()) {
+        		list.add(itFCZoneReference.next());        		
+        	}	
+        } else {
+        	_log.info("No FC Zone References for key found");
+        	return null;
+        }
         return list;
     }
 
@@ -462,7 +473,7 @@ public class NetworkScheduler {
      */
     List<NetworkSystem> getZoningNetworkSystems(NetworkLite iniNetwork,
             NetworkLite portNetwork) {
-        List<NetworkSystem> orderedNetworkSystems = new ArrayList<NetworkSystem>();
+        Iterator<NetworkSystem> orderedNetworkSystems = null;
         List<NetworkSystem> idleNetworkSystems = new ArrayList<NetworkSystem>();
         List<NetworkSystem> deRegisteredNetworkSystems = new ArrayList<NetworkSystem>();
         List<URI> iniNetSys = (iniNetwork == null) ?
@@ -479,24 +490,25 @@ public class NetworkScheduler {
             allSys.addAll(portNetSys);
         }
         if (!allSys.isEmpty()) {
-            orderedNetworkSystems = _dbClient.queryObject(NetworkSystem.class, allSys, true);
-            if (!orderedNetworkSystems.isEmpty()) {
-                for (NetworkSystem networkSystem : orderedNetworkSystems) {
-                    if (networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
-                        _log.info("Network System {} is not used as it is not registered.", networkSystem.getLabel());
-                        deRegisteredNetworkSystems.add(networkSystem);
-                    } else if (networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.toString()) ||
-                            networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.CREATED.toString())) {
-                        _log.info("Network System {} is moved to the end of Network System list as its discovery is not successful.",
-                                networkSystem.getLabel());
-                        idleNetworkSystems.add(networkSystem);
-                    }
-                }
-                orderedNetworkSystems.removeAll(deRegisteredNetworkSystems);
-                orderedNetworkSystems.removeAll(idleNetworkSystems);
-                Collections.shuffle(orderedNetworkSystems);
+            orderedNetworkSystems = _dbClient.queryIterativeObjects(NetworkSystem.class, allSys, true);
+            if (orderedNetworkSystems.hasNext()) {
+	            while (orderedNetworkSystems.hasNext()) {
+	            	NetworkSystem networkSystem = orderedNetworkSystems.next();
+	            	if (networkSystem.getRegistrationStatus().equals(RegistrationStatus.UNREGISTERED.toString())) {
+	                    _log.info("Network System {} is not used as it is not registered.", networkSystem.getLabel());
+	                    deRegisteredNetworkSystems.add(networkSystem);
+	                } else if (networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.ERROR.toString()) ||
+	                        networkSystem.getDiscoveryStatus().equals(DataCollectionJobStatus.CREATED.toString())) {
+	                    _log.info("Network System {} is moved to the end of Network System list as its discovery is not successful.",
+	                            networkSystem.getLabel());
+	                    idleNetworkSystems.add(networkSystem);
+	                }      	
+	            }
+                ((QueryResultList<URI>) orderedNetworkSystems).removeAll(deRegisteredNetworkSystems);
+                ((QueryResultList<URI>) orderedNetworkSystems).removeAll(idleNetworkSystems);
+                Collections.shuffle((List<?>) orderedNetworkSystems);
                 Collections.shuffle(idleNetworkSystems);
-                orderedNetworkSystems.addAll(idleNetworkSystems);
+                ((QueryResultList<URI>) orderedNetworkSystems).addAll((Collection)idleNetworkSystems);
             } else {
                 _log.warn("Could not find any active network systems that can be used to zone.");
             }
@@ -504,7 +516,7 @@ public class NetworkScheduler {
             _log.warn("Could not find any network systems that can be used to zone.");
 
         }
-        return orderedNetworkSystems;
+        return (List<NetworkSystem>) orderedNetworkSystems;
     }
 
     /**

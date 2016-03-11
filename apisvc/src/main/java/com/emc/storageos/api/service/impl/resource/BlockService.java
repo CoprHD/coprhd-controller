@@ -3263,7 +3263,7 @@ public class BlockService extends TaskResourceService {
             taskList.getTaskList().add(volumeTask);
         }
 
-        // if this vpool request change has a consistency group, set it's requested types
+        // if this vpool request change has a consistency group, set its requested types
         if (param.getConsistencyGroup() != null) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, param.getConsistencyGroup());
             if (cg != null && !cg.getInactive()) {

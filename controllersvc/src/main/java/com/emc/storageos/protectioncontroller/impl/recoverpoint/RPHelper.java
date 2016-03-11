@@ -1452,7 +1452,7 @@ public class RPHelper {
      *
      * The VPLEX Source volume has its internal site set as do both the associated/backing volumes.
      *
-     * The associated/backing volume that has the same internal site name as it's VPLEX Virtual volume
+     * The associated/backing volume that has the same internal site name as its VPLEX Virtual volume
      * is generally considered the "Active" copy and the other associated/backing volume's internal site name
      * would be considered the "Standby" copy.
      *
@@ -1491,7 +1491,7 @@ public class RPHelper {
      *
      * The VPLEX Source volume has its internal site set as do both the associated/backing volumes.
      *
-     * The associated/backing volume that has the same internal site name as it's VPLEX Virtual volume
+     * The associated/backing volume that has the same internal site name as its VPLEX Virtual volume
      * is generally considered the "Active" copy and the other associated/backing volume's internal site name
      * would be considered the "Standby" copy.
      *
@@ -1547,7 +1547,7 @@ public class RPHelper {
 
     /**
      * Rollback protection specific fields on the existing volume. This is normally invoked if there are
-     * errors during a change vpool operation. We want to return the volume back to it's un-protected state
+     * errors during a change vpool operation. We want to return the volume back to its un-protected state
      * or in the case of upgrade to MP then to remove any MP features from the protected volume.
      *
      * One of the biggest motivations is to ensure that the old vpool is set back on the existing volume.
@@ -1643,7 +1643,7 @@ public class RPHelper {
                         if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
                                 && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
                             associatedVolume.setVirtualPool(oldVpool.getId());
-                            _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].",
+                            _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
                                     associatedVolume.getLabel(),
                                     oldVpool.getLabel()));
                         }
@@ -1654,7 +1654,7 @@ public class RPHelper {
             }
 
             // Set the old vpool back on the volume
-            _log.info(String.format("Resetting vpool on volume [%s](%s) from (%s) back to it's original vpool (%s)",
+            _log.info(String.format("Resetting vpool on volume [%s](%s) from (%s) back to its original vpool (%s)",
                     volume.getLabel(), volume.getId(), volume.getVirtualPool(), oldVpool.getId()));
             volume.setVirtualPool(oldVpool.getId());
 

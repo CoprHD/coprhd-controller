@@ -39,7 +39,7 @@ public class RemoveApplicationFullCopy extends WaitForTasks<TaskResourceRep> {
         }
         
         List<URI> volList = Collections.singletonList(volumeId);
-        VolumeGroupFullCopyDetachParam input = new VolumeGroupFullCopyDetachParam(false, volList);
+        VolumeGroupFullCopyDetachParam input = new VolumeGroupFullCopyDetachParam(true, volList);
         TaskList taskList = getClient().application().detachApplicationFullCopy(applicationId, input);
         
         BlockStorageUtils.removeBlockResources(fullCopyIds, VolumeDeleteTypeEnum.FULL);

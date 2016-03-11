@@ -3542,6 +3542,8 @@ public class VolumeIngestionUtil {
         types.add(BlockConsistencyGroup.Types.RP.toString());
         cg.setRequestedTypes(types);
         cg.setTypes(types);
+        // By default, the array consistency is false.  However later when we iterate over volumes in the BCG and we
+        // see any replicationGroupInstance information, we'll flip this bit to true.  (See decorateRPVolumesCGInfo())
         cg.setArrayConsistency(false);
         cg.setTenant(project.getTenantOrg());
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
@@ -3575,27 +3577,19 @@ public class VolumeIngestionUtil {
 
             // Find any backing volumes associated with vplex volumes and add the CG reference to them as well.
             if (volume.isVPlexVolume(dbClient)) {
-
-                // We need the VPLEX ingest context to get the backend volume info
-                // This information is stored in the context if the vplex volume is the last volume
-                // in the ingestion. Otherwise we'll fish it out of the database in the findVolume()
-                // method below.
-                Map<String, BlockObject> createdMap = null;
-                Map<String, Set<DataObject>> updatedMap = null;
-                if (requestContext.getVolumeContext() instanceof RpVplexVolumeIngestionContext) {
-                    createdMap = ((RpVplexVolumeIngestionContext) requestContext.getVolumeContext()).getVplexVolumeIngestionContext()
-                            .getBlockObjectsToBeCreatedMap();
-                    updatedMap = ((RpVplexVolumeIngestionContext) requestContext.getVolumeContext()).getVplexVolumeIngestionContext()
-                            .getDataObjectsToBeUpdatedMap();
-                }
-
                 for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
                     // Find the associated volumes using the context maps or the db if they are already there
-                    Volume associatedVolume = VolumeIngestionUtil.findVolume(dbClient,
-                            createdMap,
-                            updatedMap,
-                            associatedVolumeIdStr);
+                    Volume associatedVolume = requestContext.findDataObjectByType(
+                            Volume.class, URI.create(associatedVolumeIdStr), true);
                     if (associatedVolume != null) {
+                        _logger.info("Setting BlockConsistencyGroup {} on VPLEX backend Volume {}", 
+                                rpCG.forDisplay(), associatedVolume.forDisplay());
+                        if (NullColumnValueGetter.isNotNullValue(associatedVolume.getReplicationGroupInstance())) {
+                            _logger.info(String.format(
+                                    "Turning on array consistency on the consistency group because CG info exists on volume %s", 
+                                    associatedVolume.getLabel()));
+                            rpCG.setArrayConsistency(true);
+                        }
                         associatedVolume.setConsistencyGroup(rpCG.getId());
                         updatedObjects.add(associatedVolume);
                     } else {
@@ -3605,6 +3599,13 @@ public class VolumeIngestionUtil {
                 }
             }
 
+            // Check for CG information, which tells us that this CG is array consistent (ignore VPLEX, it uses replicationGroupInstance
+            // in a transient way during ingestion and will be cleared at the end of ingestion.
+            if (!volume.isVPlexVolume(dbClient) && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+                _logger.info(String.format("Turning on array consistency on the consistency group because CG info exists on volume %s", volume.getLabel()));
+                rpCG.setArrayConsistency(true);
+            }
+            
             updatedObjects.add(volume);
         }
     }

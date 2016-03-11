@@ -82,6 +82,7 @@ import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.model.property.PropertyConstants;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -725,6 +726,7 @@ public class DisasterRecoveryService {
 
         // This String is only used to output human readable message to user when Exception is thrown
         String siteNameStr = StringUtils.join(siteNameList, ',');
+        precheckForPause(siteNameStr);
 
         try {
             // the site(s) to be paused must be checked as well
@@ -776,6 +778,21 @@ public class DisasterRecoveryService {
             } catch (Exception ignore) {
                 log.error(String.format("Lock release failed when pausing standby site: %s", siteIdStr));
             }
+        }
+    }
+
+    private void precheckForPause(String siteNames) {
+        PropertyInfo targetProperty = coordinator.getPropertyInfo();
+        String firewallEnabled = targetProperty.getProperty("system_enable_firewall");
+        if (firewallEnabled != null && firewallEnabled.equals("no")) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "firewall has been disabled." +
+                    "Please make sure to keep it enabled until every standby site has been resumed");
+        }
+
+        String ipsecEnabled = ipsecConfig.getIpsecStatus();
+        if (ipsecEnabled != null && ipsecEnabled.equals("enabled")) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "ipsec has been disabled." +
+                    "Please make sure to keep it enabled until every standby site has been resumed");
         }
     }
 

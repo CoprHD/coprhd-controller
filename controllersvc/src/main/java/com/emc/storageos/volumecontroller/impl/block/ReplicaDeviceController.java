@@ -426,8 +426,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             // Add step to remove volume from its Replication Group before linking its target
             // -volume was added to RG as part of create volume step
             // otherwise linking single target will fail when it sees the source in group
-            waitFor = _blockDeviceController.addStepToRemoveFromConsistencyGroup(workflow, systemURI, cgURI, Arrays.asList(volume.getId()),
-                    waitFor, false);
+            if (!snapGroupNames.isEmpty()) {
+                waitFor = _blockDeviceController.addStepToRemoveFromConsistencyGroup(workflow, systemURI, cgURI,
+                        Arrays.asList(volume.getId()), waitFor, false);
+            }
 
             // snapshot targets
             Map<String, List<URI>> snapGroupToSnapshots = new HashMap<String, List<URI>>();
@@ -464,8 +466,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     _blockDeviceController.rollbackMethodNullMethod(), null);
 
             // Add step to add back the source volume to its group which was removed before linking target
-            waitFor = _blockDeviceController.addStepToAddToConsistencyGroup(workflow, systemURI, cgURI,
-                    existingVolume.getReplicationGroupInstance(), Arrays.asList(volume.getId()), waitFor);
+            if (!snapGroupNames.isEmpty()) {
+                waitFor = _blockDeviceController.addStepToAddToConsistencyGroup(workflow, systemURI, cgURI,
+                        existingVolume.getReplicationGroupInstance(), Arrays.asList(volume.getId()), waitFor);
+            }
 
             // Add steps to add new targets to their snap groups
             for (Map.Entry<String, List<URI>> entry : snapGroupToSnapshots.entrySet()) {
@@ -610,7 +614,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
         snapshot.setSnapsetLabel(existingSnapSnapSetLabel);
 
-        snapshot.setLabel(volume.getLabel() + "-" + repGroupName);
+        snapshot.setLabel(volume.getLabel() + "-" + ControllerUtils.extractGroupName(repGroupName));
 
         snapshot.setTechnologyType(BlockSnapshot.TechnologyType.NATIVE.name());
         _dbClient.createObject(snapshot);

@@ -149,11 +149,11 @@ class Backup(object):
     URI_BACKUP_SET_UPLOAD = "/backupset/backup/upload?tag={0}"
     
     #New APIs for restore and download 
-    URI_BACKUPSET_RESTORE = '/backupset/restore'
-    URI_BACKUPSET_RESTORE_STATUS = '/backupset/backup/restore/status'
+    URI_BACKUPSET_RESTORE = '/backupset/restore?backupname={0}&isLocal={1}&password={2}'
+    URI_BACKUPSET_RESTORE_STATUS = '/backupset/restore/status?backupname={0}&isLocal={1}'
     URI_BACKUPSET_EXTERNAL = '/backupset/external'
-    URI_BACKUPSET_EXTERNAL_QUERY = '/backupset/external/backup'
-    URI_BACKUPSET_PULL = '/backupset/pull'
+    URI_BACKUPSET_EXTERNAL_QUERY = '/backupset/external/backup?name={0}'
+    URI_BACKUPSET_PULL = '/backupset/pull?file={0}'
     URI_BACKUPSET_PULL_CANCEL ='/backupset/pull/cancel'
     DEFAULT_SYSMGR_PORT = "4443"
     
@@ -280,32 +280,30 @@ class Backup(object):
     
     
     #Functions for new restore and download APIs
-    def backupset_restore(self, bname, islocal, passwd):
-        body = None
-        uri = Backup.URI_BACKUPSET_RESTORE +"?"+"backupname="+bname+"&"+"isLocal="+islocal \
-        + "&" + "password=" +passwd
-        
-        
+    def backupset_restore(self, name, islocal, passwd):
         
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
-            uri, body)
+            Backup.URI_BACKUPSET_RESTORE.format(name, islocal, passwd), 
+            None)
+        if(not s):
+            return None
+
         o = common.json_decode(s)
         return o
     
     
-    def backupset_restore_status(self, bname, islocal):
-        body = None
-        uri = Backup.URI_BACKUPSET_RESTORE_STATUS +"?"+"backupname="+bname+"&"+"isLocal="+islocal
-        
-        
-        
+    def backupset_restore_status(self, name, islocal):
         
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
-            uri, body)
+            Backup.URI_BACKUPSET_RESTORE_STATUS.format(name, islocal),
+            None)
+        if(not s):
+            return None
+
         o = common.json_decode(s)
         return o
     
@@ -323,8 +321,9 @@ class Backup(object):
         return o
     
     
-    def get_backupsets_info(self,bname):
-        uri = Backup.URI_BACKUPSET_EXTERNAL_QUERY + "?name=" + bname
+    def get_backupsets_info(self, name):
+        uri = Backup.URI_BACKUPSET_EXTERNAL_QUERY.format(name)
+
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri,
                                              None)
@@ -334,9 +333,10 @@ class Backup(object):
         o = common.json_decode(s)
         return o
     
-    
-    def backupset_pull(self, bname):
-        uri = Backup.URI_BACKUPSET_PULL + "?file=" + bname
+    def backupset_pull(self, name, force=False):
+        uri = Backup.URI_BACKUPSET_PULL.format(name)
+        if(force is True):
+            uri += '&force=true'    
         
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST", uri,
@@ -348,8 +348,8 @@ class Backup(object):
         return o
     
     
-    def backupset_pull_cancel(self, bname):
-        uri = Backup.URI_BACKUPSET_PULL + "?file=" + bname
+    def backupset_pull_cancel(self, name):
+        uri = Backup.URI_BACKUPSET_PULL_CANCEL
         
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "POST", uri,
@@ -862,14 +862,13 @@ def backupset_restore_parser(subcommand_parsers,common_parser):
 
     mandatory_args = backupset_restore_parser.add_argument_group(
         'mandatory arguments')
-
-    mandatory_args.add_argument('-backupname','-bname',
+    mandatory_args.add_argument('-name', '-n',
                                 help='Name of the backup',
-                                dest='bname',
+                                metavar='<backup name>',
+                                dest='name',
                                 required='True')
-    
     mandatory_args.add_argument('-islocal','-isl',
-                                help='Mention if the site is local or not',
+                                help='Mention if the backup is on local or external server',
                                 dest='islocal',
                                 metavar ='<islocal>',
                                 required='True')
@@ -879,11 +878,10 @@ def backupset_restore_parser(subcommand_parsers,common_parser):
 def backupset_restore(args):
     obj = Backup(args.ip, Backup.DEFAULT_SYSMGR_PORT)
     try:
-        if (args.bname):
-            passwd = common.get_password("ftp server")
+        if (args.name):
+            passwd = common.get_password("root user")
        
-        res = obj.backupset_restore(args.bname, args.islocal, passwd)
-        return common.format_json_object(res)
+        res = obj.backupset_restore(args.name, args.islocal, passwd)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "restore",
@@ -905,15 +903,13 @@ def backupset_restore_status_parser(subcommand_parsers,common_parser):
 
     mandatory_args = backupset_restore_status_parser.add_argument_group(
         'mandatory arguments')
-
-    mandatory_args.add_argument('-backupname','-bname',
+    mandatory_args.add_argument('-name', '-n',
                                 help='Name of the backup',
-                                dest='bname',
-                                required='True',
-                                metavar ='<bname>')
-    
+                                metavar='<backup name>',
+                                dest='name',
+                                required='True')
     mandatory_args.add_argument('-islocal','-isl',
-                                help='Mention if the site is local or not',
+                                help='Mention if the backup is on local or external server',
                                 dest='islocal',
                                 metavar ='<islocal>',
                                 required='True')
@@ -923,7 +919,7 @@ def backupset_restore_status_parser(subcommand_parsers,common_parser):
 def backupset_restore_status(args):
     obj = Backup(args.ip, Backup.DEFAULT_SYSMGR_PORT)
     try:
-        res = obj.backupset_restore_status(args.bname, args.islocal)
+        res = obj.backupset_restore_status(args.name, args.islocal)
         return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -970,18 +966,17 @@ def get_backupsets_info_parser(subcommand_parsers,common_parser):
     
     mandatory_args = get_backupsets_info_parser.add_argument_group(
         'mandatory arguments')
-
-    mandatory_args.add_argument('-backupname','-bname',
+    mandatory_args.add_argument('-name', '-n',
                                 help='Name of the backup',
-                                dest='bname',
+                                metavar='<backup name>',
+                                dest='name',
                                 required='True')
-    
     get_backupsets_info_parser.set_defaults(func=get_backupsets_info)
 
 def get_backupsets_info(args):
     obj = Backup(args.ip, Backup.DEFAULT_SYSMGR_PORT)
     try:
-        res = obj.get_backupsets_info(args.bname)
+        res = obj.get_backupsets_info(args.name)
         return res
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -1003,18 +998,21 @@ def backupset_pull_parser(subcommand_parsers,common_parser):
     
     mandatory_args = backupset_pull_parser.add_argument_group(
         'mandatory arguments')
-
-    mandatory_args.add_argument('-backupname','-bname',
+    mandatory_args.add_argument('-name', '-n',
                                 help='Name of the backup',
-                                dest='bname',
+                                metavar='<backup name>',
+                                dest='name',
                                 required='True')
-    
+    backupset_pull_parser.add_argument('-force',
+                help='Pull backupset forcibly',
+                action='store_true',
+                dest='force')
     backupset_pull_parser.set_defaults(func=backupset_pull)
 
 def backupset_pull(args):
     obj = Backup(args.ip, Backup.DEFAULT_SYSMGR_PORT)
     try:
-        res = obj.backupset_pull(args.bname)
+        res = obj.backupset_pull(args.name, args.force)
         return res
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -1034,18 +1032,17 @@ def backupset_pull_cancel_parser(subcommand_parsers,common_parser):
     
     mandatory_args = backupset_pull_cancel_parser.add_argument_group(
         'mandatory arguments')
-
-    mandatory_args.add_argument('-backupname','-bname',
+    mandatory_args.add_argument('-name', '-n',
                                 help='Name of the backup',
-                                dest='bname',
+                                metavar='<backup name>',
+                                dest='name',
                                 required='True')
-    
     backupset_pull_cancel_parser.set_defaults(func=backupset_pull_cancel)
 
 def backupset_pull_cancel(args):
     obj = Backup(args.ip, Backup.DEFAULT_SYSMGR_PORT)
     try:
-        res = obj.backupset_pull_cancel(args.bname)
+        res = obj.backupset_pull_cancel(args.name)
         return res
     except SOSError as e:
         common.format_err_msg_and_raise(

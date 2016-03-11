@@ -445,7 +445,9 @@ public class SystemsMapper {
 		to.setIsDefaultMDM(from.getIsDefaultMDM());
 		to.setIsOnlyMDM(from.getIsOnlyMDM());
 		to.setIsElementMgr(from.getIsElementMgr());
-		
+		to.setNonSslPort(from.getNonSslPort());
+		to.setSslPort(from.getSslPort());
+
 		return to;
 	}
 
@@ -463,7 +465,9 @@ public class SystemsMapper {
 		to.setIsDefaultMDM(from.getIsDefaultMDM());
 		to.setIsOnlyMDM(from.getIsOnlyMDM());
 		to.setIsElementMgr(from.getIsElementMgr());
-		
+		to.setNonSslPort(from.getNonSslPort());
+		to.setSslPort(from.getSslPort());
+
 		return to;
 	}
 }

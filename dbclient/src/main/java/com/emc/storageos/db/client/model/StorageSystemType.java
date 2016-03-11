@@ -20,14 +20,17 @@ public class StorageSystemType extends DataObject {
 
 	// Storage array URI in string
 	private String storageTypeId;
-	
+
 	// Default SSL
 	private Boolean isDefaultSsl = false;
 
 	private boolean isDefaultMDM = false;
 	private boolean isOnlyMDM = false;
 	private boolean isElementMgr = false;
-	
+
+	private String sslPort;
+	private String nonSslPort;
+
 	@Name("storageTypeName")
 	public String getStorageTypeName() {
 		return storageTypeName;
@@ -87,7 +90,7 @@ public class StorageSystemType extends DataObject {
 		this.isDefaultSsl = isDefaultSsl;
 		setChanged("isDefaultSsl");
 	}
-	
+
 	@Name("isDefaultMDM")
 	public Boolean getIsDefaultMDM() {
 		return isDefaultMDM;
@@ -97,7 +100,7 @@ public class StorageSystemType extends DataObject {
 		this.isDefaultMDM = isDefaultMDM;
 		setChanged("isDefaultMDM");
 	}
-	
+
 	@Name("isOnlyMDM")
 	public Boolean getIsOnlyMDM() {
 		return isOnlyMDM;
@@ -107,7 +110,7 @@ public class StorageSystemType extends DataObject {
 		this.isOnlyMDM = isOnlyMDM;
 		setChanged("isOnlyMDM");
 	}
-	
+
 	@Name("isElementMgr")
 	public Boolean getIsElementMgr() {
 		return isElementMgr;
@@ -117,7 +120,27 @@ public class StorageSystemType extends DataObject {
 		this.isElementMgr = isElementMgr;
 		setChanged("isElementMgr");
 	}
-		
+
+	@Name("sslPort")
+	public String getSslPort() {
+		return sslPort;
+	}
+
+	public void setSslPort(String sslPort) {
+		this.sslPort = sslPort;
+		setChanged("sslPort");
+	}
+
+	@Name("nonSslPort")
+	public String getNonSslPort() {
+		return nonSslPort;
+	}
+
+	public void setNonSslPort(String nonSslPort) {
+		this.nonSslPort = nonSslPort;
+		setChanged("nonSslPort");
+	}
+
 	public static enum StorageType {
 		block, file, object
 	}

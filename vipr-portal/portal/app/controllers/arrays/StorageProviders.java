@@ -63,11 +63,17 @@ public class StorageProviders extends ViprResourceController {
     	renderArgs.put("interfaceTypeOptions", StorageProviderTypes.getProviderOption());
         //renderArgs.put("interfaceTypeOptions", StorageProviderTypes.OPTIONS);
         //renderArgs.put("optionsSIO", StorageProviderTypes.optionSIO);
-        renderArgs.put("sslDefaultStorageProviderList", Arrays.asList(StorageProviderTypes.SSL_DEFAULT_OPTIONS));
-        renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
-        renderArgs.put("mdmDefaultStorageProviderList", Arrays.asList(StorageSystemTypes.MDM_DEFAULT_OPTIONS));
-        renderArgs.put("mdmonlyProviderList", Arrays.asList(StorageSystemTypes.MDM_ONLY_OPTIONS));
-        renderArgs.put("elementManagerStorageProviderList", Arrays.asList(StorageSystemTypes.ELEMENT_MANAGER_OPTIONS));
+        //renderArgs.put("sslDefaultStorageProviderList", Arrays.asList(StorageProviderTypes.SSL_DEFAULT_OPTIONS));
+        renderArgs.put("sslDefaultStorageProviderList", StorageProviderTypes.getProvidersWithSSL());
+        //renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
+        renderArgs.put("nonSSLStorageSystemList", StorageProviderTypes.getProvidersWithoutSSL());
+        //renderArgs.put("mdmDefaultStorageProviderList", Arrays.asList(StorageSystemTypes.MDM_DEFAULT_OPTIONS));
+        renderArgs.put("mdmDefaultStorageProviderList", StorageProviderTypes.getProvidersWithMDM());
+        //renderArgs.put("mdmonlyProviderList", Arrays.asList(StorageSystemTypes.MDM_ONLY_OPTIONS));
+        renderArgs.put("mdmonlyProviderList", StorageProviderTypes.getProvidersWithOnlyMDM());
+        //renderArgs.put("elementManagerStorageProviderList", Arrays.asList(StorageSystemTypes.ELEMENT_MANAGER_OPTIONS));
+        renderArgs.put("elementManagerStorageProviderList", StorageProviderTypes.getProvidersWithEMS());
+        
         List<EnumOption> defaultStorageProviderPortMap = Arrays.asList(EnumOption.options(DefaultStorageProviderPortMap.values()));
         renderArgs.put("defaultStorageProviderPortMap", defaultStorageProviderPortMap);
     }

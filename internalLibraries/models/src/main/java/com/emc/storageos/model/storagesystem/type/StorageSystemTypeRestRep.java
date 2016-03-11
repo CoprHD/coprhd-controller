@@ -4,7 +4,6 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-
 import com.emc.storageos.model.DataObjectRestRep;
 
 @XmlAccessorType(XmlAccessType.PROPERTY)
@@ -20,7 +19,8 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	private boolean isDefaultMDM = false;
 	private boolean isOnlyMDM = false;
 	private boolean isElementMgr = false;
-	
+	private String nonSslPort;
+	private String sslPort;
 
 	public StorageSystemTypeRestRep() {
 	}
@@ -70,7 +70,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	public void setStorageTypeDispName(String storageTypeDispName) {
 		this.storageTypeDispName = storageTypeDispName;
 	}
-	
+
 	@XmlElement(name = "isDefaultSsl")
 	public boolean getIsDefaultSsl() {
 		return isDefaultSsl;
@@ -79,7 +79,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	public void setIsDefaultSsl(boolean isDefaultSsl) {
 		this.isDefaultSsl = isDefaultSsl;
 	}
-	
+
 	@XmlElement(name = "isDefaultMDM")
 	public boolean getIsDefaultMDM() {
 		return isDefaultMDM;
@@ -88,7 +88,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	public void setIsDefaultMDM(boolean isDefaultMDM) {
 		this.isDefaultMDM = isDefaultMDM;
 	}
-	
+
 	@XmlElement(name = "isOnlyMDM")
 	public boolean getIsOnlyMDM() {
 		return isOnlyMDM;
@@ -97,7 +97,7 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 	public void setIsOnlyMDM(boolean isOnlyMDM) {
 		this.isOnlyMDM = isOnlyMDM;
 	}
-	
+
 	@XmlElement(name = "isElementMgr")
 	public boolean getIsElementMgr() {
 		return isElementMgr;
@@ -105,6 +105,24 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 
 	public void setIsElementMgr(boolean isElementMgr) {
 		this.isElementMgr = isElementMgr;
+	}
+
+	@XmlElement(name = "sslPort")
+	public String getSslPort() {
+		return sslPort;
+	}
+
+	public void setSslPort(String sslPort) {
+		this.sslPort = sslPort;
+	}
+
+	@XmlElement(name = "nonSslPort")
+	public String getNonSslPort() {
+		return nonSslPort;
+	}
+
+	public void setNonSslPort(String nonSslPort) {
+		this.nonSslPort = nonSslPort;
 	}
 
 	@Override
@@ -120,6 +138,10 @@ public class StorageSystemTypeRestRep extends DataObjectRestRep {
 		builder.append(isSmiProvider);
 		builder.append(", isDefaultSsl=");
 		builder.append(isDefaultSsl);
+		builder.append(", nonSslPort=");
+		builder.append(nonSslPort);
+		builder.append(", sslPort=");
+		builder.append(sslPort);
 		builder.append("]");
 		return builder.toString();
 	}

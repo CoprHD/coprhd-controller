@@ -1,22 +1,20 @@
 #!/usr/bin/python
 
-/*
- * Copyright 2012 EMC Corporation
- * Copyright 2016 Intel Corporation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
+# Copyright 2012 EMC Corporation
+# Copyright 2016 Intel Corporation
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 
 import os
 import sys
@@ -495,7 +493,7 @@ class Authentication(object):
                                        validatecertificate, maxpagesize,
                                        add_groupobjectclasses, remove_groupobjectclasses,
                                        add_groupmemberattributes, remove_groupmemberattributes,
-                                       force_groupattributeupdate):
+                                       force_groupattributeupdate, autoRegCoprHDNImportOSProjects):
         '''
         Makes REST API call to generate the cookiefile for the
         specified user after validation.
@@ -548,24 +546,28 @@ class Authentication(object):
                     whitelist['add'].append(iter1)
 
         groupobjectclasses['remove'] = []
-        for iter1 in remove_groupobjectclasses:
-            if(iter1 is not ""):
-                groupobjectclasses['remove'].append(iter1)
+        if(remove_groupobjectclasses is not None):
+            for iter1 in remove_groupobjectclasses:
+                if(iter1 is not ""):
+                    groupobjectclasses['remove'].append(iter1)
 
         groupobjectclasses['add'] = []
-        for iter1 in add_groupobjectclasses:
-            if(iter1 is not ""):
-                groupobjectclasses['add'].append(iter1)
+        if(add_groupobjectclasses is not None):
+            for iter1 in add_groupobjectclasses:
+                if(iter1 is not ""):
+                    groupobjectclasses['add'].append(iter1)
 
         groupmemberattributes['remove'] = []
-        for iter1 in remove_groupmemberattributes:
-            if(iter1 is not ""):
-                groupmemberattributes['remove'].append(iter1)
+        if(remove_groupmemberattributes is not None):
+            for iter1 in remove_groupmemberattributes:
+                if(iter1 is not ""):
+                    groupmemberattributes['remove'].append(iter1)
 
         groupmemberattributes['add'] = []
-        for iter1 in add_groupmemberattributes:
-            if(iter1 is not ""):
-                groupmemberattributes['add'].append(iter1)
+        if(add_groupmemberattributes is not None):
+            for iter1 in add_groupmemberattributes:
+                if(iter1 is not ""):
+                    groupmemberattributes['add'].append(iter1)
 
         '''for domain in add_domains:
                 domainlist.append({'domain': domain})
@@ -577,6 +579,9 @@ class Authentication(object):
                  'name': name,
                  'description': description,
                  'disable': disable}
+
+        if(autoRegCoprHDNImportOSProjects is not None):
+            parms['autoRegCoprHDNImportOSProjects'] = autoRegCoprHDNImportOSProjects
         
         if(searchbase is not None):
             parms['search_base'] = searchbase
@@ -1156,6 +1161,7 @@ def update_keystone_provider(config, sectioniter, mode, obj):
     disable = get_attribute_value(config, sectioniter, 'disable')
     add_domains = config.get(sectioniter, 'add-domains')
     remove_domains = config.get(sectioniter, 'remove-domains')
+    autoReg = config.get(sectioniter, 'autoRegCoprHDNImportOSProjects')
     groupattr = get_attribute_value(config, sectioniter, 'groupattr')
     defined_and_valid_value('disable', disable,
                             Authentication.BOOL_VALS)
@@ -1170,7 +1176,7 @@ def update_keystone_provider(config, sectioniter, mode, obj):
                 remove_domains.split(','), None,
                 None, None, description,
                 disable, None, None, None,
-                None, None, None, False)
+                None, None, None, False, autoReg)
 
 
 def update_other_providers(config, sectioniter, mode, obj):
@@ -1213,7 +1219,7 @@ def update_other_providers(config, sectioniter, mode, obj):
                 disable, None, maxpagesize,
                 add_groupobjectclassnames.split(','), remove_groupobjectclassnames.split(','),
                 add_groupmemberattributetypenames.split(','), remove_groupmemberattributetypenames.split(','),
-                force_groupattributeupdate)
+                force_groupattributeupdate, None)
 
 
 

@@ -652,9 +652,9 @@ public class DrUtil {
      * Check if all sites of local vdc are
      */
     public boolean isAllSitesStable() {
-
         try {
             verifyAllSitesStable();
+            verifyNoOngoingJobOnSite();
             return true;
         } catch (Exception e) {
             return false;
@@ -666,14 +666,18 @@ public class DrUtil {
      */
     public void verifyAllSitesStable() {
         for (Site site : listSites()) {
-            if (site.getState().isDROperationOngoing()) {
-                throw APIException.serviceUnavailable.siteOnGoingJob(site.getName(), site.getState().name());
-            }
-
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), state.name());
+            }
+        }
+    }
+
+    public void verifyNoOngoingJobOnSite() {
+        for (Site site : listSites()) {
+            if (site.getState().isDROperationOngoing()) {
+                throw APIException.serviceUnavailable.siteOnGoingJob(site.getName(), site.getState().name());
             }
         }
     }

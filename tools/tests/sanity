@@ -7564,13 +7564,12 @@ dr_basic_tests()
     dr waitforstable --ip "${DR_SITE_B_IP}" 10 600
     dr waitforstate $standby_site ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_B_IP}"
 
-    # readd ACTIVE_DEGRADED site to prepare next standby-removing test
-    echo "Waiting $DR_SITE_A_NAME to be stable ..."
+    # resume ACTIVE_DEGRADED site to prepare next standby-removing test
+    echo "Waiting $DR_SITE_A_NAME and $DR_SITE_B_NAME to be stable ..."
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
+    echo "---RESUME OLD ACTIVE SITE ${DR_SITE_B_NAME} (ACTIVE_DEGRADED) AFTER FAILOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
-    echo "---RESUME OLD ACTIVE SITE---"
-    echo "Resuming site ${DR_SITE_B_NAME} (ACTIVE_DEGRADED) to site ${DR_SITE_A_NAME} (ACTIVE) after failover ..."
     dr resume --ip "${DR_SITE_A_IP}" $standby_site || { echo "resume dr standby site failed."; exit 1; }
     echo "Resuming done"
     echo "Resuming site uuid is $standby_site"
@@ -7580,7 +7579,7 @@ dr_basic_tests()
     echo "Wait standby resuming done ..."
     dr waitforstate $standby_site STANDBY_SYNCED 30 1200
 
-    # NOTE: after switchover and failover (then readd old active), site A is active and site B is standby
+    # NOTE: after switchover and failover (then resume old active), site A is active and site B is standby (STANDBY_SYNCED state)
 
     # delete standby
     echo "---DELETE STANDBY $standby_site---"
@@ -7920,13 +7919,12 @@ dr_multisite_tests()
     dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
     dr waitforstate $standby_site_c ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_C_IP}"
 
-    # readd ACTIVE_DEGRADED
-    echo "Waiting $DR_SITE_A_NAME to be stable ..."
+    # resume old active site (in ACTIVE_DEGRADED state)
+    echo "Waiting $DR_SITE_A_NAME and $DR_SITE_C_NAME to be stable ..."
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_C_IP}"
+    echo "---RESUME OLD ACTIVE SITE ${DR_SITE_C_NAME} (ACTIVE_DEGRADED) AFTER FAILOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
-    echo "---RESUME OLD ACTIVE SITE---"
-    echo "Resuming site ${DR_SITE_C_NAME} (ACTIVE_DEGRADED) to site ${DR_SITE_A_NAME} (ACTIVE) after failover ..."
     dr resume --ip "${DR_SITE_A_IP}" $standby_site_c || { echo "resume dr standby site c failed."; exit 1; }
     echo "Resuming done"
     echo "Resuming site uuid is $standby_site_c"

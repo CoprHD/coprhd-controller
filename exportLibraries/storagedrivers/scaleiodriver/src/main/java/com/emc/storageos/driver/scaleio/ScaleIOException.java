@@ -4,9 +4,9 @@
  */
 package com.emc.storageos.driver.scaleio;
 
-import com.emc.storageos.svcs.errorhandling.model.ExceptionMessagesProxy;
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.driver.scaleio.errorhandling.model.ExceptionMessagesProxy;
+import com.emc.storageos.driver.scaleio.errorhandling.resources.InternalException;
+import com.emc.storageos.driver.scaleio.errorhandling.resources.ServiceCode;
 
 /**
  * Exception class to be used by ScaleIO component to throw respective

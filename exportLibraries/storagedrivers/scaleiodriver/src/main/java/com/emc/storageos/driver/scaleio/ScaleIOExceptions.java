@@ -4,9 +4,9 @@
  */
 package com.emc.storageos.driver.scaleio;
 
-import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.driver.scaleio.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.driver.scaleio.errorhandling.annotations.MessageBundle;
+import com.emc.storageos.driver.scaleio.errorhandling.resources.ServiceCode;
 
 /**
  * This interface holds all the methods used to create {@link ScaleIOException}s

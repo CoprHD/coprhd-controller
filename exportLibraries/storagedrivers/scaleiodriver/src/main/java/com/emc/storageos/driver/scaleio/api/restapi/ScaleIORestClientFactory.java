@@ -5,11 +5,11 @@
 
 package com.emc.storageos.driver.scaleio.api.restapi;
 
-import java.net.URI;
-
-import com.emc.storageos.services.restutil.RestClientFactory;
-import com.emc.storageos.services.restutil.RestClientItf;
+import com.emc.storageos.driver.scaleio.serviceutils.restutil.RestClientFactory;
+import com.emc.storageos.driver.scaleio.serviceutils.restutil.RestClientItf;
 import com.sun.jersey.api.client.Client;
+
+import java.net.URI;
 
 public class ScaleIORestClientFactory extends RestClientFactory {
 

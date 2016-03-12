@@ -8,7 +8,7 @@ import com.emc.storageos.driver.scaleio.ScaleIOException;
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.request.*;
 import com.emc.storageos.driver.scaleio.api.restapi.response.*;
-import com.emc.storageos.services.restutil.StandardRestClient;
+import com.emc.storageos.driver.scaleio.serviceutils.restutil.StandardRestClient;
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;

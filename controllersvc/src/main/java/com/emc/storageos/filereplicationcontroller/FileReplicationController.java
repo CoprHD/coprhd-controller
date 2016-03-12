@@ -4,12 +4,12 @@
  */
 package com.emc.storageos.filereplicationcontroller;
 
-import com.emc.storageos.Controller;
-import com.emc.storageos.volumecontroller.ControllerException;
-
 import java.net.URI;
-
 import java.util.List;
+
+import com.emc.storageos.Controller;
+import com.emc.storageos.model.file.FileSystemReplicationRPOParams;
+import com.emc.storageos.volumecontroller.ControllerException;
 
 /**
  * 
@@ -41,5 +41,17 @@ public interface FileReplicationController extends Controller {
      * @throws ControllerException
      */
     public void performRemoteContinuousCopies(URI storage, URI copyId, String opType, String opId) throws ControllerException;
+
+    /**
+     * Perform remote protection operation
+     * 
+     * @param storage
+     * @param fs
+     * @param FileSystemReplicationRPOParams params
+     * @param opId
+     * @throws ControllerException
+     */
+    public void updateFileSystemReplicationRPO(URI storage, URI fs, FileSystemReplicationRPOParams param, String opId)
+            throws ControllerException;
 
 }

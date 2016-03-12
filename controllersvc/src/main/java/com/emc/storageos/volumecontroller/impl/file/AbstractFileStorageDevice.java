@@ -258,4 +258,9 @@ public abstract class AbstractFileStorageDevice implements FileStorageDevice,
         throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
+    @Override
+    public void doModifyReplicationRPO(StorageSystem system, FileShare source, FileShare target,
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+    }
 }

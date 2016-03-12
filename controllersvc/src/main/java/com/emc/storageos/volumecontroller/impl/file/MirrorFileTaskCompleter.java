@@ -155,6 +155,7 @@ public class MirrorFileTaskCompleter extends TaskCompleter {
                 case FAILBACK_FILE_MIRROR:
                 case RESYNC_FILE_MIRROR:
                 case REFRESH_FILE_MIRROR:
+                case MODIFY_FILE_MIRROR_RPO:
                     auditFile(dbClient, opType, opStatus, opStage, extParam);
                     break;
 

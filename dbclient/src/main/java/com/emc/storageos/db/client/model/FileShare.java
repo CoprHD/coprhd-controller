@@ -460,21 +460,24 @@ public class FileShare extends FileObject implements ProjectResource {
         setChanged("notificationLimit");
     }
 
-    //Since schema is lock so not adding setChanged and annotation..
+    @Name("rpoValue")
     public Long getRpoValue() {
         return rpoValue;
     }
 
     public void setRpoValue(Long rpoValue) {
         this.rpoValue = rpoValue;
+        setChanged("rpoValue");
     }
 
+    @Name("rpoType")
     public String getRpoType() {
         return rpoType;
     }
 
     public void setRpoType(String rpoType) {
         this.rpoType = rpoType;
+        setChanged("rpoType");
     }
 
 }

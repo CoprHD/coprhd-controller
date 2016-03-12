@@ -4,19 +4,29 @@
    */
 package com.emc.storageos.model.file;
 
+import java.io.Serializable;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "filesystem_rpo_update")
 
-public class FileSystemReplicationRPOParams {
+public class FileSystemReplicationRPOParams implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     private Long rpoValue;
-    private String rpoType;
+    private String rpoType = ReplicationRPOType.HOURS.name();
+
+    public enum ReplicationRPOType {
+        MINUTES, HOURS, DAYS
+    }
 
     public FileSystemReplicationRPOParams() {
     }
 
+    /**
+     * File system replication RPO value.
+     */
     @XmlElement(name = "rpo_value", required = true)
     public Long getRpoValue() {
         return rpoValue;
@@ -32,9 +42,10 @@ public class FileSystemReplicationRPOParams {
      * MINUTES
      * HOURS
      * DAYS
-     * 
+     * Default value: Hours
      */
-    @XmlElement(name = "rpo_type", required = true)
+
+    @XmlElement(name = "rpo_type")
     public String getRpoType() {
         return rpoType;
     }

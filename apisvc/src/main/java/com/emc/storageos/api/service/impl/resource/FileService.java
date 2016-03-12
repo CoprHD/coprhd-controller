@@ -3513,8 +3513,7 @@ public class FileService extends TaskResourceService {
                 throw APIException.badRequests
                         .unableToProcessRequest("Error occured while getting Filesystem policy Snapshots task information");
 
-            }
-            else if (taskObject.isReady()) {
+            } else if (taskObject.isReady()) {
                 URIQueryResultList snapshotsURIs = new URIQueryResultList();
                 _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id),
                         snapshotsURIs);
@@ -3639,7 +3638,7 @@ public class FileService extends TaskResourceService {
      * 
      * @param param File system RPO update parameters
      * @param id the URN of a ViPR File system
-     * @brief update file system RPO
+     * @brief update file system replication RPO
      * @return Task resource representation
      * @throws InternalException
      */
@@ -3654,10 +3653,11 @@ public class FileService extends TaskResourceService {
         _log.info("Update file system replication RPO request received. Filesystem: {}", id.toString());
         _log.info("Request body: {}", param.toString());
 
-        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
-
         FileShare fs = queryResource(id);
+        ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
+        ArgValidator.checkFieldValueFromEnum(param.getRpoType(), "rpo_type",
+                EnumSet.allOf(FileSystemReplicationRPOParams.ReplicationRPOType.class));
 
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());
         StringBuffer notSuppReasonBuff = new StringBuffer();

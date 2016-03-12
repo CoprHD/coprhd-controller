@@ -511,6 +511,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      */
     public BiosCommandResult doModifyReplicationPolicy(StorageSystem system, String policyName, String schedule) {
         try {
+
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
             JobState policyState = policy.getLastJobState();
@@ -520,6 +521,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                 modifiedPolicy.setSchedule(schedule);
                 modifiedPolicy.setName(policyName);
                 isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+                _log.info("Modify Replication Policy- {} with new schedule - {} finished successfully", policyName, schedule);
                 return BiosCommandResult.createSuccessfulResult();
             } else {
                 _log.error("Replication Policy - {} can't be MODIFIED because policy has an active job", policy.toString());

@@ -839,6 +839,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     public void updateFileSystemReplicationRPO(URI storage, URI fsuri, FileSystemReplicationRPOParams param, String opId)
             throws ControllerException {
 
+        log.info("update FileSystem {} Replication RPO started", fsuri);
         TaskCompleter completer = null;
         StorageSystem system = dbClient.queryObject(StorageSystem.class, storage);
 

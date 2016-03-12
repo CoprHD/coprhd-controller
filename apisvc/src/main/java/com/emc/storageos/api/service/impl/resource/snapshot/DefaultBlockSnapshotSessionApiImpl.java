@@ -390,7 +390,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sourceCount, int newTargetCount,
-            String newTargetsName) {
+            String newTargetsName, boolean inApplication) {
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
 
         for (int i = 0; i < newTargetCount; i++) {
@@ -401,7 +401,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
                 String label = snapsetLabel;
                 String rgName = sourceObj.getReplicationGroupInstance();
-                if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                if (NullColumnValueGetter.isNotNullValue(rgName) && inApplication) {
                     // There can be multiple RGs in a CG, in such cases generate unique name
                     if (sourceObjList.size() > 1) {
                         label = String.format("%s-%s-%s", snapsetLabel, rgName, ++count);

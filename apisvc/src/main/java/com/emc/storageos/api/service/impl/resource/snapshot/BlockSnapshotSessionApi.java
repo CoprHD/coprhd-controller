@@ -81,11 +81,12 @@ public interface BlockSnapshotSessionApi {
      * @param sessionCount The snapshot session count when preparing snapshots for multiple sessions.
      * @param newTargetCount The number of new targets to be created.
      * @param newTargetsName The requested name for the new linked targets.
+     * @param inAppication Is the source volume in an application 
      *
      * @return A map containing the prepared BlockSnapshot instances, keyed by the snapshot URI.
      */
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
-            String newTargetsName);
+            String newTargetsName, boolean inApplication);
 
     /**
      * Prepare a ViPR BlockSnapshot instance for a new target to be created and

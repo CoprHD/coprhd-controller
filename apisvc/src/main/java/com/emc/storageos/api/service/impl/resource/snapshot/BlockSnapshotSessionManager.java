@@ -444,6 +444,19 @@ public class BlockSnapshotSessionManager {
 
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
+        boolean inApplication = false;
+        if (snapSessionSourceObj instanceof Volume && ((Volume) snapSessionSourceObj).getApplication(_dbClient) != null) {
+            inApplication = true;
+        } else if (snapSessionSourceObj instanceof BlockSnapshot) {
+            BlockSnapshot sourceSnap = (BlockSnapshot) snapSessionSourceObj;
+            NamedURI namedUri = sourceSnap.getParent();
+            if (!NullColumnValueGetter.isNullNamedURI(namedUri)) {
+                Volume source = _dbClient.queryObject(Volume.class, namedUri.getURI());
+                if (source != null && source.getApplication(_dbClient) != null) {
+                    inApplication = true;
+                }
+            }
+        }
         // Get the target information.
         int newLinkedTargetsCount = param.getNewLinkedTargets().getCount();
         String newTargetsName = param.getNewLinkedTargets().getTargetName();
@@ -459,7 +472,8 @@ public class BlockSnapshotSessionManager {
         // Prepare the BlockSnapshot instances to represent the new linked targets.
         List<Map<URI, BlockSnapshot>> snapshots = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObjs, 0,
                 newLinkedTargetsCount,
-                newTargetsName);
+                newTargetsName,
+                inApplication);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();

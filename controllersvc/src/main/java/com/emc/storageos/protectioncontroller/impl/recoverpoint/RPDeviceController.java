@@ -6152,7 +6152,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     /**
      * Adds the necessary RecoverPoint controller steps that need to be executed prior
      * to restoring a volume from full copy. The pre-restore step is required if we
-     * are restoring a VPLEX distributed full copy
+     * are restoring a VPLEX distributed or VMAX full copy
      *
      * @param workflow the Workflow being constructed
      * @param waitFor the step that the newly created steps will wait for.
@@ -6164,13 +6164,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public String addPreRestoreFromFullcopySteps(Workflow workflow, String waitFor, URI storageSystemURI, List<URI> fullCopies,
             String taskId) {
         if (fullCopies != null && !fullCopies.isEmpty()) {
-            List<Volume> rpVplexVolumes = checkIfDistributedVplexFullCopies(fullCopies);
-            if (!rpVplexVolumes.isEmpty()) {
+            List<Volume> sourceVolumes =checkIfDistributedVplexOrVmaxFullCopies(fullCopies);
+            if (!sourceVolumes.isEmpty()) {
                 Map<String, RecreateReplicationSetRequestParams> rsetParams = new HashMap<String, RecreateReplicationSetRequestParams>();
                 List<URI> volumeURIs = new ArrayList<URI>();
-                URI rpSystemId = rpVplexVolumes.get(0).getProtectionController();
+                URI rpSystemId = sourceVolumes.get(0).getProtectionController();
                 ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
-                for (Volume vol : rpVplexVolumes) {
+                for (Volume vol : sourceVolumes) {
                     RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, vol.getId());
                     rsetParams.put(RPHelper.getRPWWn(vol.getId(), _dbClient), rsetParam);
                     volumeURIs.add(vol.getId());
@@ -6208,6 +6208,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * Adds the necessary RecoverPoint controller steps that need to be executed after
      * restoring a volume from full copy. The post-restore step is required if we
      * are restoring a VPLEX full copy, whoes source volume is a distributed VPLEX volume
+     * or a VMAX volume
      *
      * @param workflow the Workflow being constructed
      * @param waitFor the step that the newly created steps will wait for.
@@ -6219,13 +6220,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     public String addPostRestoreFromFullcopySteps(Workflow workflow, String waitFor, URI storageSystemURI, List<URI> fullCopies,
             String taskId) {
         if (fullCopies != null && !fullCopies.isEmpty()) {
-            List<Volume> rpVplexVolumes = checkIfDistributedVplexFullCopies(fullCopies);
-            if (!rpVplexVolumes.isEmpty()) {
+            List<Volume> sourceVolumes = checkIfDistributedVplexOrVmaxFullCopies(fullCopies);
+            if (!sourceVolumes.isEmpty()) {
                 Map<String, RecreateReplicationSetRequestParams> rsetParams = new HashMap<String, RecreateReplicationSetRequestParams>();
                 List<URI> volumeURIs = new ArrayList<URI>();
-                URI rpSystemId = rpVplexVolumes.get(0).getProtectionController();
+                URI rpSystemId = sourceVolumes.get(0).getProtectionController();
                 ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
-                for (Volume vol : rpVplexVolumes) {
+                for (Volume vol : sourceVolumes) {
                     RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, vol.getId());
                     rsetParams.put(RPHelper.getRPWWn(vol.getId(), _dbClient), rsetParam);
                     volumeURIs.add(vol.getId());
@@ -6250,41 +6251,56 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
-     * Check if the full copies source volumes are distributed vplex volumes
+     * Check if the full copies source volumes are distributed vplex volumes or VMAX volume
      *
      * @param fullcopies - URI of full copies
-     * @return - the VPLEX distributed source volumes
+     * @return - the source volumes that are vmax or vplex distributed volumes
      */
-    private List<Volume> checkIfDistributedVplexFullCopies(List<URI> fullcopies) {
-        List<Volume> vplexVolumes = new ArrayList<Volume>();
+    private List<Volume> checkIfDistributedVplexOrVmaxFullCopies(List<URI> fullcopies) {
+        List<Volume> sourceVolumes = new ArrayList<Volume>();
 
         for (URI fullCopyUri : fullcopies) {
             Volume fullCopy = _dbClient.queryObject(Volume.class, fullCopyUri);
             if (fullCopy != null) {
-                boolean vplexDistBackingVolume = false;
+                boolean toadd = false;
                 URI volume = fullCopy.getAssociatedSourceVolume();
                 Volume sourceVol = _dbClient.queryObject(Volume.class, volume);
-                if (sourceVol != null &&
-                        sourceVol.getAssociatedVolumes() != null &&
+                if (sourceVol != null ) {
+                    if (!sourceVol.checkForRp()) {
+                        toadd = false;
+                    } else if (sourceVol.getAssociatedVolumes() != null &&
                         sourceVol.getAssociatedVolumes().size() == 2) {
-                    vplexDistBackingVolume = true;
+                        // RP + VPLEX distributed
+                        toadd = true;
+                    } else {
+                        // RP + VMAX
+                        URI storage = sourceVol.getStorageController();
+                        if (!NullColumnValueGetter.isNullURI(storage)) {
+                            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+                            if (storageSystem != null && storageSystem.getSystemType().equals(SystemType.vmax.name())) {
+                                toadd = true;
+                            }
+                        } else {
+                            _log.error(String.format("The source %s storage system is null", sourceVol.getLabel()));
+                        }
+                    }
                 }
-
+                
                 // Only add the post-restore step if we are restoring a full copy whoes source
-                // volume is a distributed vplex volume
+                // volume is a distributed vplex or vmax volume
                 if (!NullColumnValueGetter.isNullURI(sourceVol.getProtectionController()) &&
-                        vplexDistBackingVolume) {
+                        toadd) {
                     ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, sourceVol.getProtectionController());
                     if (rpSystem == null) {
                         // Verify non-null storage device returned from the database client.
                         throw DeviceControllerExceptions.recoverpoint.failedConnectingForMonitoring(sourceVol.getProtectionController());
                     }
 
-                    vplexVolumes.add(sourceVol);
+                    sourceVolumes.add(sourceVol);
                 }
             }
         }
-        return vplexVolumes;
+        return sourceVolumes;
     }
 
     /**

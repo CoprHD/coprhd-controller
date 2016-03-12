@@ -11410,6 +11410,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             CloneRestoreCompleter completer) throws InternalException {
 
         Volume firstFullCopy = getDataObject(Volume.class, fullcopies.get(0), _dbClient);
+        if (!firstFullCopy.isVPlexVolume(_dbClient)) {
+            return waitFor;
+        }
         BlockObject firstSource = BlockObject.fetch(_dbClient, firstFullCopy.getAssociatedSourceVolume());
         if (!NullColumnValueGetter.isNullURI(firstSource.getConsistencyGroup())) {
             completer.addConsistencyGroupId(firstSource.getConsistencyGroup());

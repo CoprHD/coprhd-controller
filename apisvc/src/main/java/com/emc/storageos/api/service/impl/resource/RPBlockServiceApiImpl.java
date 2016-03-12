@@ -2660,7 +2660,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Don't add replication group instance to the snapshot name if this is an RP bookmark
         if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString()) && isInApplication) {
             modifiedSnapshotName = modifiedSnapshotName + "-"  + volume.getReplicationGroupInstance() + "-" + index;
-        } else if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString()) && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+        } else if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString())) {
             modifiedSnapshotName = modifiedSnapshotName + "-" + index;
         }
 

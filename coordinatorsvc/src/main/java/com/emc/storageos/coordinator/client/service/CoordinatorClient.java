@@ -505,10 +505,9 @@ public interface CoordinatorClient {
      * Get control nodes state for specified site
      * 
      * @param siteId
-     * @param nodeCount
      * @return
      */
-    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount);
+    public ClusterInfo.ClusterState getControlNodesState(String siteId);
     
     /**
      * Get target info

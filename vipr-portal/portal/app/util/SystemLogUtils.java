@@ -14,8 +14,9 @@ public class SystemLogUtils {
     public static final String MESSAGES_LOG = "messages";
     public static final String NGINX_ACCESS_LOG = "nginx_access";
     public static final String NGINX_ERROR_LOG = "nginx_error";
+    public static final String BKUTILS_LOG = "bkutils";
     public static final String[] NON_SERVICE_LOGS = {
-            SYSTEM_EVENTS_LOG, MESSAGES_LOG, NGINX_ACCESS_LOG, NGINX_ERROR_LOG
+            SYSTEM_EVENTS_LOG, MESSAGES_LOG, NGINX_ACCESS_LOG, NGINX_ERROR_LOG, BKUTILS_LOG
     };
 
     public static String buildLogsUrl(String format, String nodeId, String logName, Integer severity,

@@ -2868,7 +2868,12 @@ public class VolumeIngestionUtil {
 
         boolean isVplexBackendVolume = false;
         boolean isRPVolume = false;
-        UnManagedVolume unManagedVolume = requestContext.getCurrentUnmanagedVolume();
+        UnManagedVolume unManagedVolume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        if (unManagedVolume != null) {
+            UnManagedVolume loadedUnmanagedVolume = requestContext.findDataObjectByType(UnManagedVolume.class, unManagedVolume.getId(),
+                    false);
+            unManagedVolume = loadedUnmanagedVolume != null ? loadedUnmanagedVolume : unManagedVolume;
+        }
 
         if (unManagedVolume != null) {
 
@@ -4069,8 +4074,23 @@ public class VolumeIngestionUtil {
                 clearFullCopiesFlags(volume, updatedObjects, dbClient);
                 clearMirrorsFlags(volume, updatedObjects, dbClient);
                 clearSnapshotsFlags(volume, updatedObjects, dbClient);
+                clearAssociatedVolumesReplicaFlags(volume, updatedObjects, dbClient);
                 volume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
             }
+        }
+    }
+
+    public static void clearAssociatedVolumesReplicaFlags(Volume volume, Set<DataObject> updatedObjects, DbClient dbClient) {
+        if (volume.getAssociatedVolumes() != null) {
+            List<Volume> associatedVolumes = new ArrayList<Volume>();
+            List<URI> associatedVolumesUris = new ArrayList<URI>(Collections2.transform(volume.getAssociatedVolumes(),
+                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            Iterator<Volume> associatedVolumesIterator = dbClient.queryIterativeObjects(Volume.class, associatedVolumesUris);
+            while (associatedVolumesIterator.hasNext()) {
+                associatedVolumes.add(associatedVolumesIterator.next());
+            }
+            _logger.info("Clearing internal volume flag of replicas of associatedVolumes of RP volume {}", volume.getLabel());
+            clearPersistedReplicaFlags(associatedVolumes, updatedObjects, dbClient);
         }
     }
 
@@ -4136,16 +4156,60 @@ public class VolumeIngestionUtil {
         }
     }
 
-    public static boolean isParentRPVolume(UnManagedVolume umVolume, DbClient dbClient) {
-        boolean isRPVolume = false;
+    public static UnManagedVolume getRPUnmanagedVolume(BlockObject blockObject, DbClient dbClient) {
+        UnManagedVolume umVolume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
         if (umVolume != null && checkUnManagedResourceIsRecoverPointEnabled(umVolume)) {
-            return true;
+            return umVolume;
         }
+
         // If this is a vplex backend volume, then check if the vplex virtual volume is RP enabled
         if (umVolume != null && isVplexBackendVolume(umVolume)) {
-
+            String vplexParentVolume = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
+                    umVolume.getVolumeInformation());
+            URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeInfoNativeIdConstraint(vplexParentVolume), unManagedVolumeList);
+            if (unManagedVolumeList.iterator().hasNext()) {
+                UnManagedVolume umv = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                if (umv != null && checkUnManagedResourceIsRecoverPointEnabled(umv)) {
+                    return umv;
+                }
+            }
         }
-        return isRPVolume;
+
+        return null;
+    }
+
+    public static BlockObject getRPVolume(IngestionRequestContext requestContext, BlockObject blockObject, DbClient dbClient) {
+        UnManagedVolume umVolume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        if (umVolume != null && checkUnManagedResourceIsRecoverPointEnabled(umVolume)) {
+            return blockObject;
+        }
+
+        // If this is a vplex backend volume, then check if the vplex virtual volume is RP enabled
+        if (umVolume != null && isVplexBackendVolume(umVolume)) {
+            String vplexParentVolumeGUID = PropertySetterUtil.extractValueFromStringSet(
+                    SupportedVolumeInformation.VPLEX_PARENT_VOLUME.toString(),
+                    umVolume.getVolumeInformation());
+            String vplexParentBlockObjectGUID = vplexParentVolumeGUID.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                    VolumeIngestionUtil.VOLUME);
+            BlockObject vplexParentBlockObject = requestContext.findCreatedBlockObject(vplexParentBlockObjectGUID);
+            if (vplexParentBlockObject == null) {
+                vplexParentBlockObject = VolumeIngestionUtil.getBlockObject(vplexParentBlockObjectGUID, dbClient);
+            }
+            URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+            dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getVolumeInfoNativeIdConstraint(vplexParentVolumeGUID), unManagedVolumeList);
+            if (unManagedVolumeList.iterator().hasNext()) {
+                UnManagedVolume umv = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeList.iterator().next());
+                if (umv != null && checkUnManagedResourceIsRecoverPointEnabled(umv)) {
+                    return vplexParentBlockObject;
+                }
+            }
+        }
+
+        return null;
     }
 
 }

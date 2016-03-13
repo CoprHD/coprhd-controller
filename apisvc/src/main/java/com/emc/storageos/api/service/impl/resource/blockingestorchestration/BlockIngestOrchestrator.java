@@ -876,8 +876,8 @@ public abstract class BlockIngestOrchestrator {
             updateObjects = new HashSet<DataObject>();
             requestContext.getDataObjectsToBeUpdatedMap().put(currentUnmanagedVolume.getNativeGuid(), updateObjects);
         }
-        String currentBlockObjectNativeGuid = 
-                currentUnmanagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
+        String currentBlockObjectNativeGuid = currentUnmanagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
+                VolumeIngestionUtil.VOLUME);
         for (BlockObject parent : parentReplicaMap.keySet()) {
             boolean parentIsCurrentUnManagedVolume = parent.getNativeGuid().equals(currentBlockObjectNativeGuid);
             // clear the parent internal flags
@@ -892,19 +892,19 @@ public abstract class BlockIngestOrchestrator {
                 updateObjects.add(parent);
             }
             boolean fullyIngestedVolume = true;
-            UnManagedVolume umVolume = parentIsCurrentUnManagedVolume ? 
-                    currentUnmanagedVolume : VolumeIngestionUtil.getUnManagedVolumeForBlockObject(parent, _dbClient);
-            boolean isParentRPVolume = umVolume != null && VolumeIngestionUtil.checkUnManagedResourceIsRecoverPointEnabled(umVolume);
+            UnManagedVolume parentRPUmVolume = VolumeIngestionUtil.getRPUnmanagedVolume(parent, _dbClient);
+            boolean isParentRPVolume = parentRPUmVolume != null;
             // if its RP volume, then check whether the RP CG is fully ingested.
             if (isParentRPVolume && !parentIsCurrentUnManagedVolume) {
                 List<UnManagedVolume> ingestedUnManagedVolumes = requestContext.findAllUnManagedVolumesToBeDeleted();
-                ingestedUnManagedVolumes.add(umVolume);
-                UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(requestContext, umVolume,
-                        _dbClient);
+                ingestedUnManagedVolumes.add(parentRPUmVolume);
+                UnManagedProtectionSet umpset = VolumeIngestionUtil.getUnManagedProtectionSetForUnManagedVolume(requestContext,
+                        parentRPUmVolume, _dbClient);
                 // If we are not able to find the unmanaged protection set from the unmanaged volume, it means that the unmanaged volume
                 // has already been ingested. In this case, try to get it from the managed volume
                 if (umpset == null) {
-                    umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(requestContext, parent, _dbClient);
+                    BlockObject parentRPVolume = VolumeIngestionUtil.getRPVolume(requestContext, parent, _dbClient);
+                    umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(requestContext, parentRPVolume, _dbClient);
                 }
                 fullyIngestedVolume = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient);
                 // If fully ingested, then setup the RP CG too.

@@ -229,13 +229,13 @@ public class VPlexApiConstants {
 
     // Number of milliseconds to wait before checking the status of
     // a VPlex command that is running asynchronously.
-    public static final int TASK_PENDING_WAIT_TIME = 10000;
+    public static final int TASK_PENDING_WAIT_TIME = 30000;
 
     // Maximum number of retries while checking the status of an
     // asynchronous command. This value times the wait time
     // determines how long we'll wait for the asynchronous
     // command to complete.
-    public static final int MAX_RETRIES = 60;
+    public static final int MAX_RETRIES = 240;
 
     // VPlex API null attribute value
     public static final String NULL_ATT_VAL = "null";

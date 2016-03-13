@@ -1433,6 +1433,19 @@ public class VPlexApiClient {
         updateVPLEXSessionId(response);
         return response;
     }
+    
+    static private int maxAsyncPollingRetries = VPlexApiConstants.MAX_RETRIES;
+    static private int maxMigrationAsyncPollingRetries = VPlexApiConstants.MAX_RETRIES;
+    
+    /**
+     * Polls for asynchronous completion using the default maximum retries.
+     * @see #waitForCompletion(ClientResponse, int)
+     * @param asyncResponse
+     * @return 
+     */
+    String waitForCompletion(ClientResponse asyncResponse) {
+        return waitForCompletion(asyncResponse, maxAsyncPollingRetries);
+    }
 
     /**
      * When a VPlex command is executed via a POST request, if that command
@@ -1445,21 +1458,25 @@ public class VPlexApiClient {
      * 
      * @param asyncResponse A response from the VPlex indicating a command is being run
      *            asynchronously because it is taking too long.
-     * 
+     * @param maxRetries -- Maximum polling attempts before timeout
      * @throws VPlexApiException When the command completes unsuccessfully or we
      *             time out because it is taking too long.
      */
-    String waitForCompletion(ClientResponse asyncResponse) throws VPlexApiException {
+    String waitForCompletion(ClientResponse asyncResponse, int maxRetries) throws VPlexApiException {
         MultivaluedMap<String, String> headers = asyncResponse.getHeaders();
         String taskResourceStr = headers.getFirst(VPlexApiConstants.LOCATION_HEADER);
         if (taskResourceStr == null) {
             throw new VPlexApiException("Can't find location for asynchronous reponse.");
         }
+        if (taskResourceStr.equals("force-timeout")) {
+            throw VPlexApiException.exceptions
+            .timeoutWaitingForAsyncOperationToComplete(taskResourceStr);
+        }
         s_logger.info("Waiting for task {} to complete", taskResourceStr);
         // Check the task for completion until we've reached the
         // maximum number of status checks.
         int retries = 0;
-        while (retries++ < VPlexApiConstants.MAX_RETRIES) {
+        while (retries++ < maxRetries) {
             ClientResponse taskResponse = get(URI.create(taskResourceStr));
             String responseStr = taskResponse.getEntity(String.class);
             s_logger.info("Wait for completion response is {}", responseStr);
@@ -1717,6 +1734,22 @@ public class VPlexApiClient {
      */
     public String getDrillDownInfoForDevice(String deviceName) throws VPlexApiException {
         return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
+    }
+
+    static public int getMaxAsyncPollingRetries() {
+        return maxAsyncPollingRetries;
+    }
+
+    static public void setMaxAsyncPollingRetries(int maxRetries) {
+        maxAsyncPollingRetries = maxRetries;
+    }
+
+    static public int getMaxMigrationAsyncPollingRetries() {
+        return maxMigrationAsyncPollingRetries;
+    }
+
+    static public void setMaxMigrationAsyncPollingRetries(int maxRetries) {
+        maxMigrationAsyncPollingRetries = maxRetries;
     }
 
 }

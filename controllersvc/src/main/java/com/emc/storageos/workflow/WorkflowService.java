@@ -363,7 +363,7 @@ public class WorkflowService {
             // Load the Workflow state from ZK
             workflow = (Workflow) _dataManager.getData(workflowPath, false);
             if (workflow == null) {
-                throw new WorkflowException("Could not load workflow for step: " + stepId);
+                throw WorkflowException.exceptions.workflowNotFound(workflowPath);
             }
             // Lock the Workflow
             lock = lockWorkflow(workflow);
@@ -942,7 +942,7 @@ public class WorkflowService {
             case CANCELLED:
                 throw new CancelledException();
             case ERROR:
-                if ((workflow._rollbackContOnError) && (workflow.isRollbackState())) {
+                if ((workflow.getRollbackContOnError()) && (workflow.isRollbackState())) {
                     _log.info("Allowing rollback to continue despite failure in previous rollback step.");
                     return false;
                 }
@@ -1717,6 +1717,51 @@ public class WorkflowService {
             timeInSeconds = System.currentTimeMillis() / MILLISECONDS_IN_SECOND;
         }
         return timeInSeconds;
+    }
+    
+    /**
+     * Sets the workflow's rollback continue on error flag given a stepId in the workflow.
+     * The normal use for this method is to be called from a step in the workflow when it
+     * is decided we no longer want to continue rollback due to rollback errors.
+     * To use this you should:
+     * 1.Call the setWorkflowRollbackContOnError flag setting value to false.
+     * 2.Terminate the step with an ERROR condition.
+     * After this if any rollback step reports an error (including the current step
+     * if it is a rollback step), this will cause cancellation of any further rollback steps.
+     * @param stepId
+     * @param value
+     */
+    public void setWorkflowRollbackContOnError(String stepId, boolean value) {
+        Workflow workflow = loadWorkflowFromStepId(stepId);
+        workflow.setRollbackContOnError(value);
+        _log.info("Setting rollback continue on error to {} for workflow {}", value, workflow.getWorkflowURI());
+        persistWorkflow(workflow);
+    }
+    
+    /**
+     * Given a step id in a workflow, will return the Workflow.
+     * @param stepId -- A step id of the workflow to be located
+     * @return Workflow object, or throws workflowNotFound exception
+     */
+    private Workflow loadWorkflowFromStepId(String stepId) {
+        String workflowPath = getZKStep2WorkflowPath(stepId);
+        Workflow workflow = null;
+        try {
+            // Get the workflow path from ZK
+            workflowPath = (String) _dataManager.getData(workflowPath, false);
+            // It is not an error to try and update using a non-existent stepId
+            if (workflowPath == null) {
+                throw WorkflowException.exceptions.workflowNotFound(stepId);
+            }
+            // Load the Workflow state from ZK
+            workflow = (Workflow) _dataManager.getData(workflowPath, false);
+            if (workflow == null) {
+                throw WorkflowException.exceptions.workflowNotFound(workflowPath);
+            }
+            return workflow;
+        } catch (Exception ex) {
+            throw WorkflowException.exceptions.workflowNotFound(stepId);
+        }
     }
 
     public static void completerStepSucceded(String stepId)

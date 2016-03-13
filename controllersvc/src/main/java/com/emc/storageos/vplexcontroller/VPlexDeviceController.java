@@ -5,7 +5,6 @@
 package com.emc.storageos.vplexcontroller;
 
 import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getDataObject;
-import static com.emc.storageos.vplexcontroller.VPlexControllerUtils.getVPlexAPIClient;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -50,6 +49,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -5249,6 +5249,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      */
     public void rollbackMigrateVirtualVolume(URI vplexURI, URI migrationURI,
             String migrateStepId, String stepId) throws WorkflowException {
+        Migration migration = null;
         try {
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -5264,7 +5265,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Get the migration.
-            Migration migration = _dbClient.queryObject(Migration.class, migrationURI);
+            migration = _dbClient.queryObject(Migration.class, migrationURI);
 
             // The migration could have failed due to an error or it may have
             // failed because it was cancelled outside the scope of the
@@ -5286,13 +5287,50 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (VPlexApiException vae) {
-            _log.error("Error during rollback of start migration: {}", vae.getMessage());
+            // Do not allow rollback to go any further COP-21257
+            _workflowService.setWorkflowRollbackContOnError(stepId, false);
+            _log.error("Error during rollback of start migration: {}", vae.getMessage(), vae);
+            if (migration != null) {
+                setOrClearVolumeInternalFlag(migration.getVolume(), true);
+                vae = VPlexApiException.exceptions.migrationRollbackFailureContactEMC(
+                        migration.getVolume().toString(), migration.getLabel());
+            }
+            
             WorkflowStepCompleter.stepFailed(stepId, vae);
         } catch (Exception e) {
             _log.error("Error during rollback of start migration: {}", e.getMessage());
+            // Do not allow rollback to go any further COP-21257
+            _workflowService.setWorkflowRollbackContOnError(stepId, false);
+            if (migration != null) {
+                setOrClearVolumeInternalFlag(migration.getVolume(), true);
+                e = VPlexApiException.exceptions.migrationRollbackFailureContactEMC(
+                        migration.getVolume().toString(), migration.getLabel());
+            }
             WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions
                     .rollbackMigrateVolume(migrationURI.toString(), e));
         }
+    }
+    
+    /**
+     * Sets or clears the volume internal flag. 
+     * For a virtual volume, this is normally set because it's in an 
+     * undetermined state (such as from a failed migration rollback).
+     * In this case EMC will have to be contacted to update things in the database.
+     * @param volumeURI
+     * @param set if true, sets the INTERNAL_OBJECT flag, if false clears it
+     */
+    void setOrClearVolumeInternalFlag(URI volumeURI, boolean set) {
+        Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+        if (set) {
+            _log.info(String.format("Setting volumes %s (%s) INTERNAL_OBJECT flag", 
+                    volume.getLabel(), volumeURI));
+            volume.addInternalFlags(DataObject.Flag.INTERNAL_OBJECT);
+        } else {
+            _log.info(String.format("Clearing volume %s (%s) INTERNAL_OBJECT flag", 
+                    volume.getLabel(), volumeURI));
+            volume.clearInternalFlags(DataObject.Flag.INTERNAL_OBJECT);
+        }
+        _dbClient.updateObject(volume);
     }
 
     /**
@@ -5311,12 +5349,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     public void commitMigration(URI vplexURI, URI virtualVolumeURI, URI migrationURI,
             Boolean rename, String stepId) throws WorkflowException {
         _log.info("Committing migration {}", migrationURI);
+        Migration migration = null;
+        VPlexApiClient client = null;
         try {
             // Update step state to executing.
             WorkflowStepCompleter.stepExecuting(stepId);
 
             // Get the migration.
-            Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
+            migration = getDataObject(Migration.class, migrationURI, _dbClient);
 
             // The migration could have already been committed outside of the
             // workflow, so check the status.
@@ -5324,26 +5364,54 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     migration.getMigrationStatus())) {
                 // Get the VPlex API client.
                 StorageSystem vplexSystem = getDataObject(StorageSystem.class, vplexURI, _dbClient);
-                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
+                client = getVPlexAPIClient(_vplexApiFactory, vplexSystem, _dbClient);
                 _log.info("Got VPlex API client for system {}", vplexURI);
 
                 // Make a call to the VPlex API client to commit the migration.
                 // Note that for ingested VPLEX volumes created outside ViPR, we
                 // don't want to update the name.
-                List<VPlexMigrationInfo> migrationInfoList = client.commitMigrations(
-                        Arrays.asList(migration.getLabel()), true, true, rename.booleanValue());
-                _log.info("Committed migration {}", migration.getLabel());
+                List<VPlexMigrationInfo> migrationInfoList = new ArrayList<VPlexMigrationInfo>();
+                Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
+                try {
+                    migrationInfoList = client.commitMigrations(
+                            Arrays.asList(migration.getLabel()), true, true, rename.booleanValue());
+                    _log.info("Committed migration {}", migration.getLabel());
+                } catch (VPlexApiException vae) {
+                    _log.error("Exception committing VPlex migration: " + vae.getMessage(), vae);
+                    boolean committed = false;
+                    // Check the migration status. Maybe it committed even though we had an error.
+                    VPlexMigrationInfo migrationInfo = client.getMigrationInfo(migration.getLabel());
+                    if (migrationInfo.getStatus().equalsIgnoreCase(
+                            VPlexMigrationInfo.MigrationStatus.COMMITTED.name())) {
+                        _log.info("Migration {} has committed despite exception", migration.getLabel());
+                        migrationInfoList.clear();
+                        migrationInfoList.add(migrationInfo);
+                        committed = true;
+                    } else {
+                        _log.info("Migration {} status {}", migration.getLabel(), migrationInfo.getStatus());
+                    }
+                    if (!committed) {
+                        // If the exception was a timeout, clear the rollback continue flag
+                        // This was observed at customer site COP-21257
+                        if (vae.getServiceCode() == ServiceCode.VPLEX_API_RESPONSE_TIMEOUT_ERROR) {
+                            // We are going to throw an error, but we don't want to rollback completely
+                            _workflowService.setWorkflowRollbackContOnError(stepId, false);
+                        }
+                        WorkflowStepCompleter.stepFailed(stepId, vae);
+                        return;
+                    }
+                }
 
                 // Initialize the migration info in the database.
                 migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.COMMITTED
                         .getStatusValue());
                 _dbClient.persistObject(migration);
                 _log.info("Update migration status to committed");
+                
 
                 // Update the virtual volume native id and associated
                 // volumes. Note that we don't update CoS until all
                 // commits are successful.
-                Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
                 VPlexVirtualVolumeInfo updatedVirtualVolumeInfo = migrationInfoList
                         .get(0).getVirtualVolumeInfo();
                 // Will be non-null if the VPLEX volume was manually
@@ -5386,19 +5454,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Regardless, we have to update the vpool, and we update the
                 // associated volumes in case it was committed outside of
                 // Bourne.
-                Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
-                StringSet assocVolumes = virtualVolume.getAssociatedVolumes();
-                if ((assocVolumes != null) && (!assocVolumes.isEmpty())) {
-                    if (migration.getSource() != null) {
-                        assocVolumes.remove(migration.getSource().toString());
-                    }
-                    assocVolumes.add(migration.getTarget().toString());
-                } else {
-                    assocVolumes = new StringSet();
-                    assocVolumes.add(migration.getTarget().toString());
-                    virtualVolume.setAssociatedVolumes(assocVolumes);
-                }
-                _dbClient.persistObject(virtualVolume);
+                associateVplexVolumeWithMigratedTarget(migration, virtualVolumeURI);
                 _log.info("Updated virtual volume.");
             }
 
@@ -5435,34 +5491,89 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String stepId) throws WorkflowException {
         // Update step state to executing.
         WorkflowStepCompleter.stepExecuting(stepId);
-
-        // Determine if any migration was successfully committed.
-        boolean migrationCommitted = false;
-        Iterator<URI> migrationIter = migrationURIs.iterator();
-        while (migrationIter.hasNext()) {
-            URI migrationURI = migrationIter.next();
-            Migration migration = _dbClient.queryObject(Migration.class, migrationURI);
-            if (VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue().equals(
-                    migration.getMigrationStatus())) {
-                migrationCommitted = true;
-                break;
+        
+        try {
+            // Determine if any migration was successfully committed.
+            boolean migrationCommitted = false;
+            Iterator<URI> migrationIter = migrationURIs.iterator();
+            while (migrationIter.hasNext()) {
+                URI migrationURI = migrationIter.next();
+                Migration migration = _dbClient.queryObject(Migration.class, migrationURI);
+                if (VPlexMigrationInfo.MigrationStatus.COMMITTED.getStatusValue().equals(
+                        migration.getMigrationStatus())) {
+                    migrationCommitted = true;
+                    continue;
+                }
+                Volume volume = _dbClient.queryObject(Volume.class, migration.getVolume());
+                VPlexApiClient client = getVPlexAPIClient(_vplexApiFactory, volume.getStorageController(), _dbClient);
+                VPlexMigrationInfo migrationInfo = client.getMigrationInfo(migration.getLabel());
+                if (migrationInfo.getStatus().equalsIgnoreCase(
+                        VPlexMigrationInfo.MigrationStatus.COMMITTED.name())) {
+                    migrationCommitted = true;
+                    migration.setMigrationStatus(VPlexMigrationInfo.MigrationStatus.COMMITTED.name());
+                    _dbClient.updateObject(migration);
+                    associateVplexVolumeWithMigratedTarget(migration, migration.getVolume());
+                    // Clear the internal flag for the source volume, making it visible so that
+                    // it can be deleted if desired by the user.
+                    setOrClearVolumeInternalFlag(migration.getSource(), false);
+                    continue;
+                }
             }
-        }
 
-        // All we want to do is prevent further rollback if any migration
-        // has been committed so that we don't end up deleting the migration
-        // targets of the committed migrations, which now hold the data.
-        // If the migration is not committed, then rollback of the migration
-        // creation step will cancel the migration.
-        if (migrationCommitted) {
-            _log.info("Migration is committed, failing rollback");
+            // All we want to do is prevent further rollback if any migration
+            // has been committed so that we don't end up deleting the migration
+            // targets of the committed migrations, which now hold the data.
+            // If the migration is not committed, then rollback of the migration
+            // creation step will cancel the migration.
+            if (migrationCommitted) {
+                _log.info("Migration is committed, failing rollback");
+                // Don't allow rollback to go further than the first error.
+                _workflowService.setWorkflowRollbackContOnError(stepId, false);
+                String opName = ResourceOperationTypeEnum.ROLLBACK_COMMIT_VOLUME_MIGRATION.getName();
+                ServiceError serviceError = VPlexApiException.errors.rollbackCommitMigration(opName);
+                WorkflowStepCompleter.stepFailed(stepId, serviceError);
+            } else {
+                _log.info("No Migrations are not committed");
+                WorkflowStepCompleter.stepSucceded(stepId);
+            }
+        } catch (Exception e) {
+            _log.info("Exception determining commit rollback state", e);
+            // Don't allow rollback to go further than the first error.
+            _workflowService.setWorkflowRollbackContOnError(stepId, false);
             String opName = ResourceOperationTypeEnum.ROLLBACK_COMMIT_VOLUME_MIGRATION.getName();
             ServiceError serviceError = VPlexApiException.errors.rollbackCommitMigration(opName);
             WorkflowStepCompleter.stepFailed(stepId, serviceError);
-        } else {
-            _log.info("No Migrations are not committed");
-            WorkflowStepCompleter.stepSucceded(stepId);
         }
+    }
+    
+    /**
+     * Updates the virtual volume by removing association to the migration source (if present)
+     * and adding association to the migration target.
+     * @param migration Migration structure
+     * @param virtualVolumeURI - URI of virtual volume
+     */
+    void associateVplexVolumeWithMigratedTarget(Migration migration, URI virtualVolumeURI) {
+     // Note that we don't set the device label and native id. If the
+        // migration was committed outside of Bourne, the virtual volume
+        // will still have the old name. If it was committed through
+        // Bourne, these values would already have been update.
+        // Regardless, we have to update the vpool, and we update the
+        // associated volumes in case it was committed outside of
+        // Bourne.
+        Volume virtualVolume = getDataObject(Volume.class, virtualVolumeURI, _dbClient);
+        StringSet assocVolumes = virtualVolume.getAssociatedVolumes();
+        if ((assocVolumes != null) && (!assocVolumes.isEmpty())) {
+            if (migration.getSource() != null) {
+                assocVolumes.remove(migration.getSource().toString());
+            }
+            assocVolumes.add(migration.getTarget().toString());
+        } else {
+            assocVolumes = new StringSet();
+            assocVolumes.add(migration.getTarget().toString());
+            virtualVolume.setAssociatedVolumes(assocVolumes);
+        }
+        _dbClient.updateObject(virtualVolume);
+        _log.info("Updated virtual volume.");
     }
 
     /**
@@ -10669,5 +10780,36 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
         }
     }
+    
+    private static VPlexApiClient getVPlexAPIClient(VPlexApiFactory vplexApiFactory,
+            URI vplexUri, DbClient dbClient) throws URISyntaxException { 
+        VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        updateTimeoutValues();
+        return client;
+    }
 
+    private static VPlexApiClient getVPlexAPIClient(VPlexApiFactory vplexApiFactory,
+            StorageSystem vplexSystem, DbClient dbClient) throws URISyntaxException { 
+        VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexSystem, dbClient);
+        updateTimeoutValues();
+        return client;
+    }
+    private static VPlexApiClient getVPlexAPIClient(VPlexApiFactory vplexApiFactory,
+            StorageProvider vplexMnmgtSvr, DbClient dbClient) throws URISyntaxException {
+        VPlexApiClient client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexMnmgtSvr, dbClient);
+        updateTimeoutValues();
+        return client;
+    }
+    
+    private static void updateTimeoutValues() {
+        // Update the timeout values
+        int maxAsyncPollingRetries = 
+                Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
+                "controller_vplex_max_async_polls"));
+        VPlexApiClient.setMaxAsyncPollingRetries(maxAsyncPollingRetries);
+        int maxMigrationAsyncPollingRetries = 
+                Integer.valueOf(ControllerUtils.getPropertyValueFromCoordinator(coordinator,
+                "controller_vplex_migration_max_async_polls"));
+        VPlexApiClient.setMaxMigrationAsyncPollingRetries(maxMigrationAsyncPollingRetries);
+    }
 }

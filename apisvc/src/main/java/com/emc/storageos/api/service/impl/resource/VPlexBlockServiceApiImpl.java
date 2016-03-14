@@ -3564,11 +3564,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                 }
             }
-        }
 
-        addVols.setVolumes(addVolumes.getVolumes());
-        addVols.setReplicationGroupName(addVolumes.getReplicationGroupName());
-        addVols.setConsistencyGroup(addVolumes.getConsistencyGroup());
+            addVols.setVolumes(addVolumes.getVolumes());
+            addVols.setReplicationGroupName(addVolumes.getReplicationGroupName());
+            addVols.setConsistencyGroup(addVolumes.getConsistencyGroup());
+        }
 
         return systemURI;
     }

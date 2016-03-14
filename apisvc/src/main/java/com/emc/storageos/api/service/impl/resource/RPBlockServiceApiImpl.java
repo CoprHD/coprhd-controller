@@ -34,6 +34,7 @@ import com.emc.storageos.api.service.impl.placement.RecoverPointScheduler.SwapCo
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityCalculatorFactory;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
@@ -105,7 +106,6 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.collect.Lists;
 
 /**
@@ -3730,6 +3730,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volumeUri.toString(),
                         "Volume has been deleted");
             }
+
+            BlockServiceUtils.validateVolumeNoReplica(volume, application, _dbClient);
 
             boolean vplex = RPHelper.isVPlexVolume(volume);
             if (vplex) {

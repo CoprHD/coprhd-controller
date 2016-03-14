@@ -5,6 +5,8 @@
 package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.services.util.StorageDriverManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import java.io.Serializable;
@@ -12,6 +14,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DiscoveredDataObject extends DataObject {
+
+    private static final Logger _log = LoggerFactory.getLogger(DiscoveredDataObject.class);
 
     // Unique Bourne identifier.
     private String _nativeGuid;
@@ -27,6 +31,8 @@ public class DiscoveredDataObject extends DataObject {
         if (context != null) {
             storageDriverManager = (StorageDriverManager)StorageDriverManager.
                     getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+        } else {
+            _log.info("Application context is null. Assuming not a real deployment.");
         }
     }
 

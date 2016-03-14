@@ -141,6 +141,59 @@ public class BlockStorageScheduler {
     }
 
     /**
+     * Assigns storage ports to initiators.
+     *
+     * @param system storage system which contains storage ports
+     * @param storagePorts storage ports to assign
+     * @param virtualArray virtual array which contains storage ports
+     * @param initiators list of initiators
+     * @param pathParams the export path parameters
+     * @param existingZoningMap existing zoning map in the mask
+     * @return assignments of storage ports to initiators
+     * @throws DeviceControllerException
+     */
+    public Map<URI, List<URI>> assignSelectedStoragePorts(StorageSystem system, List<StoragePort> storagePorts, URI virtualArray,
+                                                          List<Initiator> initiators,
+                                                          ExportPathParams pathParams,
+                                                          StringSetMap existingZoningMap) throws DeviceControllerException {
+        Map<Initiator, List<StoragePort>> assignments = new HashMap<>();
+        try {
+            // Group the new initiators by their networks - filter out those not in a network
+            Map<NetworkLite, List<Initiator>> initiatorsByNetwork = getInitiatorsByNetwork(initiators, existingZoningMap, _dbClient);
+            Map<Initiator, NetworkLite> initiatorsToNetworkLiteMap = getInitiatorToNetworkLiteMap(initiatorsByNetwork);
+            // Get the storage ports that can be used in the initiators networks
+            Map<NetworkLite, List<StoragePort>> portsByNetwork =
+                    selectStoragePortsInNetworks(storagePorts, initiatorsByNetwork.keySet(), virtualArray, pathParams);
+
+            StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssigner(system.getSystemType());
+            // Call StoragePortsAssigner once per host to do the assignments
+            Map <URI, Map<URI, List<Initiator>>> hostsToNetToInitiators =
+                    getHostInitiatorsMapFromNetworkLite(initiatorsByNetwork);
+            Map<URI, List<StoragePort>> allocatedPortsMap = getAllocatedPortsMap(portsByNetwork);
+
+            // Get the existing assignments in object form.
+            Map<Initiator, List<StoragePort>> existingAssignments =
+                    generateInitiatorsToStoragePortsMap(existingZoningMap, virtualArray);
+            // For each host, assign the ports to the appropriate initiators.
+            for (URI hostURI : hostsToNetToInitiators.keySet()) {
+                assigner.assignPortsToHost(assignments, hostsToNetToInitiators.get(hostURI),
+                        allocatedPortsMap, pathParams, existingAssignments, hostURI, initiatorsToNetworkLiteMap);
+
+            }
+            // Validate that minPaths was met across all assignments (existing and new).
+            validateMinPaths(system, pathParams, existingAssignments, assignments, initiators);
+            return convertAssignmentsToURIs(assignments);
+        } catch (PlacementException e) {
+            _log.error("Unable to assign storage Ports", e);
+            throw DeviceControllerException.exceptions.exceptionAssigningStoragePorts(e.getMessage(), e);
+        } catch (Exception e) {
+            _log.error("Unable to assign Storage Ports", e);
+            throw DeviceControllerException.exceptions.unexpectedExceptionAssigningPorts(e);
+        }
+    }
+
+
+    /**
      * Allocates and assigns StoragePorts.
      * 
      * @param system - The StorageSystem the ports will be assigned from.
@@ -1012,7 +1065,7 @@ public class BlockStorageScheduler {
      * and it must be a frontend port.
      *
      * @param storageSystemURI The URI of the storage system
-     * @param networkURI The URI of the network.
+     * @param networks collection of networks
      * @param varrayURI The URI of the virtual array.
      * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports. 
      *              Optional, can be null.
@@ -1021,9 +1074,28 @@ public class BlockStorageScheduler {
      */
     public Map<NetworkLite, List<StoragePort>> selectStoragePortsInNetworks(URI storageSystemURI, Collection<NetworkLite> networks,
             URI varrayURI, ExportPathParams pathParams) {
-        Map<NetworkLite, List<StoragePort>> portsInNetwork = new HashMap<NetworkLite, List<StoragePort>>();
         List<StoragePort> storagePorts = ExportUtils.getStorageSystemAssignablePorts(
-                                                _dbClient, storageSystemURI, varrayURI, pathParams);
+                _dbClient, storageSystemURI, varrayURI, pathParams);
+
+        return selectStoragePortsInNetworks(storagePorts, networks, varrayURI, pathParams);
+    }
+
+    /**
+     * Return list of storage ports from the given storage ports connected
+     * to the given network and with connectivity to the passed virtual
+     * array.
+     *
+     * @param storagePorts storage ports to process
+     * @param networks collection of networks
+     * @param varrayURI The URI of the virtual array.
+     * @param pathParams The ExportPathParameter settings which may contain a set of allowed ports.
+     *              Optional, can be null.
+     *
+     * @return The list of storage ports.
+     */
+    public Map<NetworkLite, List<StoragePort>> selectStoragePortsInNetworks(List<StoragePort> storagePorts, Collection<NetworkLite> networks,
+                                                                            URI varrayURI, ExportPathParams pathParams) {
+        Map<NetworkLite, List<StoragePort>> portsInNetwork = new HashMap<>();
         for (NetworkLite networkLite : networks) {
             URI networkURI = networkLite.getId();
             _log.info("Selecting ports for network {} {}", networkLite.getLabel(), networkLite.getId());

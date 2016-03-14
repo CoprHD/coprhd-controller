@@ -66,4 +66,8 @@ public interface ExternalDeviceErrors {
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_EXPAND_VOLUME_ERROR)
     public ServiceError expandVolumeFailed(String method, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_ADD_EXPORT_MASK_INITIATORS_ERROR)
+    public ServiceError addInitiatorsToExportMaskFailed(String method, String errorMsg);
+
+
 }

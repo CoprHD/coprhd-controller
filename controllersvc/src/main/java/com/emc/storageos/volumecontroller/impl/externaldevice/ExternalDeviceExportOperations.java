@@ -305,12 +305,12 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                     // process driver selected ports
                     if (validateSelectedPorts(availablePorts, selectedPorts, pathParams.getPathsPerInitiator())) {
                         List<com.emc.storageos.db.client.model.StoragePort> selectedPortsForMask = new ArrayList<>();
-
+                        URI varrayUri = exportGroup.getVirtualArray();
                         for (StoragePort driverPort : selectedPorts) {
                             com.emc.storageos.db.client.model.StoragePort port = nativeIdToAvailablePortMap.get(driverPort.getNativeId());
                             selectedPortsForMask.add(port);
                         }
-                        updateStoragePortsForAddInitiators((ExportMaskAddInitiatorCompleter) taskCompleter, exportMask, initiatorList, selectedPortsForMask);
+                        updateStoragePortsForAddInitiators((ExportMaskAddInitiatorCompleter) taskCompleter, storage, exportMask, initiatorList, selectedPortsForMask, varrayUri, pathParams);
                         taskCompleter.ready(dbClient);
                     } else {
                         //  selected ports are not valid. failure
@@ -709,10 +709,25 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     }
 
+    /**
+     * This method updates storage ports in export masks for new initiators, based on array selected ports.
+     *
+     * @param taskCompleter
+     * @param system
+     * @param exportMask
+     * @param initiatorList
+     * @param selectedPortsForMask
+     * @param virtualArray
+     * @param pathParams
+     * @param volumeURIs
+     */
     private void updateStoragePortsForAddInitiators(ExportMaskAddInitiatorCompleter taskCompleter,
+                                                    StorageSystem system,
                                                     ExportMask exportMask,
                                                     List<com.emc.storageos.db.client.model.Initiator> initiatorList,
-                                                    List<com.emc.storageos.db.client.model.StoragePort> selectedPortsForMask) {
+                                                    List<com.emc.storageos.db.client.model.StoragePort> selectedPortsForMask,
+                                                    URI virtualArray,
+                                                    ExportPathParams pathParams) {
         // update storage ports in completer
         List<URI> portUris = new ArrayList<>();
         for (com.emc.storageos.db.client.model.StoragePort port : selectedPortsForMask) {
@@ -722,23 +737,19 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         // update zoning map entries for new initiators
         // remove old entries for the initiators from the zoning map
-        StringSetMap zoningMap = exportMask.getZoningMap();
         List<URI> initiatorUris = toUris(initiatorList);
         for (URI initiatorUri : initiatorUris) {
             exportMask.removeZoningMapEntry(initiatorUri.toString());
         }
-
         // add new entries for the initiators to the zoning map
-        // Build assignments for new added initiators. We assign all ports to new initiators.
-        // This may not comply with pathsPerInitiator and may violate maxPaths. This is known issue for add initiators.
-        // May need to invest more time to address this in the future.
-        Map<URI, List<URI>> assignments = new HashMap<>();
-        for (URI initiatorUri : initiatorUris) {
-            assignments.put(initiatorUri, toUris(selectedPortsForMask));
-        }
+        // Build assignments for new added initiators.
+        Map<URI, List<URI>> assignments = blockScheduler.assignSelectedStoragePorts(system, selectedPortsForMask, virtualArray,
+                initiatorList,
+                pathParams,
+                exportMask.getZoningMap());
+
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
         dbClient.updateObject(exportMask);
-
     }
 
     private List<URI> toUris(List<? extends DataObject> dataObjects) {

@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -1076,6 +1077,26 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         _logger.info("did not find an already-instantiated ProtectionSet for ", psetLabel);
+        return null;
+    }
+
+    public BlockConsistencyGroup findExistingBlockConsistencyGroup(String psetLabel, NamedURI projectNamedUri, NamedURI tenantOrg) {
+        for (VolumeIngestionContext volumeContext : getRootIngestionRequestContext().getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext instanceof RecoverPointVolumeIngestionContext) {
+                RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) volumeContext;
+                BlockConsistencyGroup bcg = rpContext.getManagedBlockConsistencyGroup();
+                if (bcg != null) {
+                    if ((bcg.getLabel().equals(psetLabel)) 
+                     && (bcg.getProject().equals(projectNamedUri))
+                     && (bcg.getTenant().equals(tenantOrg))) {
+                        _logger.info("found already-instantiated BlockConsistencyGroup {} (hash {})", bcg.getLabel(), bcg.hashCode());
+                        return bcg;
+                    }
+                }
+            }
+        }
+
+        _logger.info("did not find an already-instantiated BlockConsistencyGroup for ", psetLabel);
         return null;
     }
 

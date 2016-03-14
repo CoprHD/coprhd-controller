@@ -3542,22 +3542,33 @@ public class VolumeIngestionUtil {
      *
      * @return BlockConsistencyGroup
      */
-    public static BlockConsistencyGroup createRPBlockConsistencyGroup(ProtectionSet pset, DbClient dbClient) {
-        BlockConsistencyGroup cg = new BlockConsistencyGroup();
-        cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
-        cg.setLabel(pset.getLabel());
+    public static BlockConsistencyGroup findOrCreateRPBlockConsistencyGroup(
+            RecoverPointVolumeIngestionContext rpContext, ProtectionSet pset, DbClient dbClient) {
+
         Project project = dbClient.queryObject(Project.class, pset.getProject());
-        cg.setProject(new NamedURI(pset.getProject(), project.getLabel()));
-        StringSet types = new StringSet();
-        types.add(BlockConsistencyGroup.Types.RP.toString());
-        cg.setRequestedTypes(types);
-        cg.setTypes(types);
-        // By default, the array consistency is false. However later when we iterate over volumes in the BCG and we
-        // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
-        cg.setArrayConsistency(false);
-        cg.setTenant(project.getTenantOrg());
+        NamedURI projectNamedUri = new NamedURI(pset.getProject(), project.getLabel());
+        BlockConsistencyGroup cg = rpContext.findExistingBlockConsistencyGroup(
+                pset.getLabel(), projectNamedUri, project.getTenantOrg());
+
+        if (cg != null) {
+            rpContext.setManagedBcgWasCreatedByAnotherContext(true);
+        } else {
+            cg = new BlockConsistencyGroup();
+            cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
+            cg.setLabel(pset.getLabel());
+            cg.setProject(projectNamedUri);
+            StringSet types = new StringSet();
+            types.add(BlockConsistencyGroup.Types.RP.toString());
+            cg.setRequestedTypes(types);
+            cg.setTypes(types);
+            // By default, the array consistency is false. However later when we iterate over volumes in the BCG and we
+            // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
+            cg.setArrayConsistency(false);
+            cg.setTenant(project.getTenantOrg());
+            _logger.info("Created new block consistency group: " + cg.getId().toString());
+        }
+        
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
-        _logger.info("Created new block consistency group: " + cg.getId().toString());
         return cg;
     }
 
@@ -4024,7 +4035,7 @@ public class VolumeIngestionUtil {
         }
 
         ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(requestContext, rpContext, umpset, dbClient);
-        BlockConsistencyGroup cg = VolumeIngestionUtil.createRPBlockConsistencyGroup(pset, dbClient);
+        BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(rpContext, pset, dbClient);
         List<Volume> volumes = new ArrayList<Volume>();
         // First try to get the RP volumes from the updated objects list. This will have the latest info for
         // the RP volumes. If not found in updated objects list, get from the DB.

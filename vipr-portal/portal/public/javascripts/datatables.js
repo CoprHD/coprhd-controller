@@ -46,6 +46,9 @@ function watchDatatableField(datatable, itemsJson, fieldName, triggerValues, fie
             var url = itemsJson({ids: ids.join(",")});
             var request = $.get(url, function(results) {
                 updateDatatableRows(datatable, results, fieldsToUpdate);
+                if (ids.length > results.length) {
+                    removeDatatableRows(datatable, ids, results);
+                }
             }).always(function () {
                 window.setTimeout(update, frequency);
             });
@@ -91,6 +94,37 @@ function updateDatatableRows(datatable, items, fields) {
         }
     }
     
+    if (updates) {
+        datatable.fnStandingRedraw();
+    }
+}
+
+/**
+ * Remove obsolete datatable rows with the provided items.
+ *
+ * @param datatable the datatable.
+ * @param inputs the ids sent to server.
+ * @param items the items received from server.
+ */
+function removeDatatableRows(datatable, inputs, items) {
+    // Get an array of ids from the result
+    var outputs = [];
+    for (var i = 0; i < items.length; i++) {
+        outputs[i] = items[i].id;
+    }
+
+    var updates = false;
+    var rows = datatable.fnGetData();
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+
+        if (inputs.indexOf(row.id) != -1 && outputs.indexOf(row.id) == -1) {
+            // if the server data doesn't contain an id specified in the request, delete the corresponding row from datatable
+            updates = true;
+            datatable.fnDeleteRow(i, null, false);
+        }
+    }
+
     if (updates) {
         datatable.fnStandingRedraw();
     }

@@ -806,7 +806,7 @@ class Configuration(object):
     URI_SITES_PAUSE = '/site/pause'
     URI_SITE_RESUME = '/site/{0}/resume'
     URI_SITE_ERROR = '/site/{0}/error'
-    URI_SITE_TIME = '/site/{0}/time'
+    URI_SITE_TIME = '/site/{0}/details'
     URI_SITE_SWITCHOVER = '/site/{0}/switchover'
     URI_SITE_FAILOVER = '/site/{0}/failover'
 

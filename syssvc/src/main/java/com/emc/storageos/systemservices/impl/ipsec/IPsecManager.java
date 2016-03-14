@@ -259,8 +259,7 @@ public class IPsecManager {
             verifyOngingVdcJob();
         }
 
-        drUtil.verifyNoOngoingJobOnSite();
-        drUtil.verifyAllSitesStable();
+        drUtil.verifyIPsecOpAllowable();
     }
 
     private void verifyOngingVdcJob() {

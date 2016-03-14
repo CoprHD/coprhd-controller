@@ -4596,6 +4596,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             URI volumeURI = volumeDescriptor.getVolumeURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
             if (volume != null ) {
+            	/*
+                 * No need to remove replication group as SRDF volume's 
+                 * rep group will be removed as part of srdf volume delete steps.
+                 */
             	if(!Volume.isSRDFProtectedTargetVolume(volume)){
             		String replicationGroup = volume.getReplicationGroupInstance();
                     if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {

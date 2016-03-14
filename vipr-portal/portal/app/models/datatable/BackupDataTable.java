@@ -29,17 +29,16 @@ public class BackupDataTable extends DataTable {
 
     public BackupDataTable(Type type) {
         addColumn("name");
-        addColumn("creationtime").setCssClass("time").setRenderFunction(
-                "render.localDate");
-        if (type == Type.LOCAL) {
-            addColumn("size").setRenderFunction("render.backupSize");
-        }
+        addColumn("creationtime").setCssClass("time");
         addColumn("actionstatus").setSearchable(false).setRenderFunction(
                 "render.uploadAndRestoreProgress");
         if (type == Type.LOCAL) {
+            addColumn("size").setRenderFunction("render.backupSize");
+            alterColumn("creationtime").setRenderFunction("render.localDate");
             addColumn("action").setSearchable(false).setRenderFunction(
                     "render.uploadAndRestoreBtn");
         } else if (type == Type.REMOTE) {
+            alterColumn("creationtime").setSearchable(false).setRenderFunction("render.externalLoading");
             addColumn("action").setSearchable(false).setRenderFunction(
                     "render.restoreBtn");
         }
@@ -111,7 +110,9 @@ public class BackupDataTable extends DataTable {
                 Logger.error("Could not encode backup name");
             }
             name = externalBackupName;
-            status = "LOADING"; // Async to get the detail backup info
+            // Async to get the detail backup info
+            status = "LOADING";
+            creationtime = -1;
         }
     }
 }

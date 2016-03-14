@@ -47,7 +47,7 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
         //update remote backups detail info
         if (type == REMOTE) {
             var dataTable = table.backup.dataTable.getDataTable();
-            var itemsJson = #{jsAction @externalItemsJson(':ids')/};
+            var itemsJson = #{jsAction @externalStatusJson(':ids')/};
             var checkUpdate = window.setInterval(function () {
                 if (stop) {
                     console.info("stop");
@@ -67,12 +67,12 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
             ids.push(row.id);
         }
 
-        console.info("ids: %s", ids);
         if (ids.length > 0) {
             var update = function (table) {
+                console.info("In update, ids: %s.\nCurrent time: %s.", JSON.stringify(ids), new Date($.now()));
                 var url = itemsJson({ids: ids.join(",")});
                 request = $.get(url, function (results) {
-                    console.info("request: %s", results);
+                    console.info("Get request: %s.\nCurrent time: %s.", JSON.stringify(results), new Date($.now()));
                     stop = true;
                     var field = ['creationtime', 'actionstatus', 'error', 'status'];
                     updateDatatableRows(table, results, field);
@@ -196,6 +196,14 @@ render.uploadAndRestoreProgressMessage = function(o, val) {
 
 render.uploadAndRestoreProgress = function(o, val) {
     return render.uploadAndRestoreProgressIcon(o, val) + " " + render.uploadAndRestoreProgressMessage(o, val);
+}
+
+render.externalLoading = function(o, val) {
+    if (o.aData.creationtime == '-1') {
+        return '<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span>';
+    } else {
+        return render.localDate(o,time_ms);
+    }
 }
 
 render.backupSize = function (o, val) {

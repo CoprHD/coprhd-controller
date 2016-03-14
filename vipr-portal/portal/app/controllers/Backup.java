@@ -100,6 +100,19 @@ public class Backup extends Controller {
         }
         renderJSON(results);
     }
+    
+    public static void externalStatusJson(@As(",") String[] ids) {
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        for (String id : ids) {
+            if (StringUtils.isNotBlank(id)) {
+                BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
+                backup.status = BackupUtils.getRestoreStatus(id, false).getStatus().name();
+                results.add(backup);
+            }
+
+        }
+        renderJSON(results);
+    }
 
     public static void create() {
         render();

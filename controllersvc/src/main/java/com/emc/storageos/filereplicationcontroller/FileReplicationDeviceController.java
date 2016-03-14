@@ -856,11 +856,13 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         try {
             for (String target : targetfileUris) {
                 FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
-                fileShare.setRpoValue(param.getCopies().get(0).getRpoParam().getRpoValue());
-                fileShare.setRpoType(param.getCopies().get(0).getRpoParam().getRpoType());
+                // Since only one replication copy is supported so using get(0)
+                // TODO Since schema is locked so passing values instead of FileShare object reference
+                Long rpoValue = param.getCopies().get(0).getRpoParam().getRpoValue();
+                String rpoType = param.getCopies().get(0).getRpoParam().getRpoType();
                 completer = new MirrorFileModifyRPOTaskCompleter(FileShare.class, fileShare.getId(), opId);
                 completer.setNotifyWorkflow(false);
-                getRemoteMirrorDevice(system).doModifyReplicationRPO(system, fileShare, targetFileShare, completer);
+                getRemoteMirrorDevice(system).doModifyReplicationRPO(system, rpoValue, rpoType, targetFileShare, completer);
             }
         } catch (Exception e) {
             log.error("Failed operation {}", opId, e);

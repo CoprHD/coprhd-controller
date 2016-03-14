@@ -131,10 +131,11 @@ public interface RemoteFileMirrorOperation {
      * Resume replication links.
      *
      * @param system
-     * @param source
+     * @param rpoValue
+     * @param rpoType
      * @param target
      * @param completer
      */
-    void doModifyReplicationRPO(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer);
+    void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer);
 
 }

@@ -95,9 +95,6 @@ public class FileShare extends FileObject implements ProjectResource {
 
     // policy associated with the file.
     private StringSet filePolicies;
-    
-    private Long rpoValue;
-    private String rpoType;
 
     public enum MirrorStatus {
         UNKNOWN("0"),
@@ -458,26 +455,6 @@ public class FileShare extends FileObject implements ProjectResource {
     public void setNotificationLimit(Long notificationLimit) {
         this.notificationLimit = notificationLimit;
         setChanged("notificationLimit");
-    }
-
-    @Name("rpoValue")
-    public Long getRpoValue() {
-        return rpoValue;
-    }
-
-    public void setRpoValue(Long rpoValue) {
-        this.rpoValue = rpoValue;
-        setChanged("rpoValue");
-    }
-
-    @Name("rpoType")
-    public String getRpoType() {
-        return rpoType;
-    }
-
-    public void setRpoType(String rpoType) {
-        this.rpoType = rpoType;
-        setChanged("rpoType");
     }
 
 }

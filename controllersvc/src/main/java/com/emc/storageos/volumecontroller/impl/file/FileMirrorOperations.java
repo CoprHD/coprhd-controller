@@ -129,11 +129,12 @@ public interface FileMirrorOperations {
      * Update Replication Policy of a filesystem
      * 
      * @param storage
-     * @param source
+     * @param rpoValue
+     * @param rpoType
      * @param target
      * @param taskCompleter
      * @throws DeviceControllerException
      */
-    void doModifyReplicationRPO(StorageSystem system,FileShare source, FileShare target, TaskCompleter completer)
+    void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
             throws DeviceControllerException;
 }

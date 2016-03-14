@@ -2344,8 +2344,8 @@ public class IsilonFileStorageDevice extends AbstractFileStorageDevice {
     }
 
     @Override
-    public void doModifyReplicationRPO(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer) {
-        mirrorOperations.doModifyReplicationRPO(system, source, target, completer);
+    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer) {
+        mirrorOperations.doModifyReplicationRPO(system, rpoValue, rpoType, target, completer);
     }
 
     @Override

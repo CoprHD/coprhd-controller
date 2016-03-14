@@ -743,10 +743,10 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     @Override
-    public void doModifyReplicationRPO(StorageSystem system, FileShare source, FileShare target, TaskCompleter completer)
+    public void doModifyReplicationRPO(StorageSystem system, Long rpoValue, String rpoType, FileShare target, TaskCompleter completer)
             throws DeviceControllerException {
         BiosCommandResult cmdResult = doModifyReplicationPolicy(system, target.getLabel(),
-                createSchedule(source.getRpoValue().toString(), source.getRpoType()));
+                createSchedule(rpoValue.toString(), rpoType));
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
         } else {

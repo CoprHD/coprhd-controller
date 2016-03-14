@@ -2025,12 +2025,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     public void createEphemeralNode(String path, byte[] data) throws Exception {
         log.info("create ephemeral node path={} data={}", path, data);
-        _zkConnection.curator().create().withMode(CreateMode.EPHEMERAL).
+        _zkConnection.curator().create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).
                 forPath(path, data);
     }
 
     public void deleteNode(String path) throws Exception {
         log.info("delete ephemeral node path={}", path);
         _zkConnection.curator().delete().forPath(path);
+    }
+
+    public List<String> getChildren(String path) throws Exception {
+        return _zkConnection.curator().getChildren().forPath(path);
     }
 }

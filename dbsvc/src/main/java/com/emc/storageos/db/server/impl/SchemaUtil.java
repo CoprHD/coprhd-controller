@@ -92,7 +92,8 @@ public class SchemaUtil {
     private static final int DEFAULT_REPLICATION_FACTOR = 1;
     private static final int MAX_REPLICATION_FACTOR = 5;
     private static final int DBINIT_RETRY_INTERVAL = 5;
-    private static final int DBINIT_RETRY_MAX = 20;
+    // waiting 5 mins to init schema
+    private static final int DBINIT_RETRY_MAX = 60; 
 
     private String _clusterName = DbClientContext.LOCAL_CLUSTER_NAME;
     private String _keyspaceName = DbClientContext.LOCAL_KEYSPACE_NAME;

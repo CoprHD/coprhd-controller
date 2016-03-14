@@ -1511,7 +1511,8 @@ public class RPHelper {
                 Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
                 if (associatedVolume != null && !associatedVolume.getInactive()) {
                     if (NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
-                            && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())) {
+                            && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())
+                            && NullColumnValueGetter.isNotNullValue(associatedVolume.getRpCopyName())) {
                         // If the internal site names are different, this is the standby internal site
                         standbyProductionCopyName = associatedVolume.getRpCopyName();
                         break;

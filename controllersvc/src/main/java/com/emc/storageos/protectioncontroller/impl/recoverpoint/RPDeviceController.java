@@ -244,7 +244,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String METHOD_EXPORT_ORCHESTRATE_STEP = "exportOrchestrationSteps";
     private static final String METHOD_EXPORT_ORCHESTRATE_ROLLBACK_STEP = "exportOrchestrationRollbackSteps";
     
-
     private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
     private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 

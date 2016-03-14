@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
+import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -1882,15 +1883,14 @@ public class RecoverPointScheduler implements Scheduler {
                 Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
                 
                 List<StoragePool> pools = new ArrayList<StoragePool>();                
-                if (existingVolume.getInternalSiteName().equalsIgnoreCase(backingVolume.getInternalSiteName())
-                        || NullColumnValueGetter.isNullValue(vpool.getHaVarrayConnectedToRp())) {
+                if (existingVolume.getInternalSiteName().equalsIgnoreCase(backingVolume.getInternalSiteName())) {
                     // Get the pools from the passed in vpool if the backing volume and existing volume have the
                     // same internal site or if the passed in vpool does not have a value for getHaVarrayConnectedToRp,
                     // which would mean we should use the main vpool for the HA vpool since no HA vpool was
                     // explicitly defined.
                     pools = VirtualPool.getValidStoragePools(vpool, dbClient, true);
                 } else {
-                    VirtualPool haVpool = dbClient.queryObject(VirtualPool.class, URI.create(vpool.getHaVarrayConnectedToRp()));
+                    VirtualPool haVpool = VirtualPoolChangeAnalyzer.getHaVpool(vpool, dbClient);
                     pools = VirtualPool.getValidStoragePools(haVpool, dbClient, true);
                 }
                 
@@ -1963,10 +1963,6 @@ public class RecoverPointScheduler implements Scheduler {
      * @return true or false depending whether the storage pools are available
      */
     private boolean verifyExistingSourceProtectionPools(Volume srcVolume, VirtualPool vpool, String cgName) {
-
-        // TODO: incorrect to get the pool information directly off of the srcVolume. If this is a VPLEX volume, srcVolume will
-        // not contain the pool information and we would need to fetch it from the backing volumes.
-        // JIRA - https://coprhd.atlassian.net/browse/COP-16684
         // Check if the storage pools used by the existing source and its journal are available in the current vpool
         List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, srcVolume.getConsistencyGroup(), srcVolume.getRpCopyName());
         Volume sourceJournal = sourceJournals.get(0);         

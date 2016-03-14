@@ -222,6 +222,12 @@ _boot_time_ipv4_vip_dup_test() {
     local node_count=$1
     local ipv4_vip=$2
     local node_num=$3
+
+    for (( n=1; n<=${node_count}; n++ )); do
+        local ip=$(_get_ovf_property "network_${n}_ipaddr")
+        [ "${ipv4_vip}" == "${ip}" ] && return 1
+    done
+
     local vip_mac_addr=$(arping -D -I ${NIC_NAME} -c 2 ${ipv4_vip} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq) # Sometimes gratuitous arp request puts FF:FF:FF:FF:FF:FF in the list
     [ -z "$vip_mac_addr" ] && {
         return 0 # This means no one grabed the vip yet
@@ -251,6 +257,14 @@ _boot_time_ipv6_vip_dup_test() {
     local node_count=$1
     local ipv6_vip=$2
     local node_num=$3
+
+    for (( n=1; n<=${node_count}; n++ )); do
+        local ip=$(_get_ovf_property "network_${n}_ipaddr6")
+        local compressed_nodeip6=$(_get_ipv6_compressed ${ip})
+        local compressed_vip6=$(_get_ipv6_compressed ${ipv6_vip})
+        [ "${compressed_vip6}" == "${compressed_nodeip6}" ] && return 1
+    done
+
     local vip_mac_addr=$(ndisc6 -m -w 1000 $(_get_ipv6_compressed ${ipv6_vip}) ${NIC_NAME} | egrep -o '([[:xdigit:]]{2}[:]){5}[[:xdigit:]]{2}' | uniq)
     [ -z "${vip_mac_addr}" ] && {
         return 0 # This means no one grabed the vip yet

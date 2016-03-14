@@ -752,4 +752,19 @@ public class LocalRepository {
             _log.warn("Failed to delete tmp file {}", filePath);
         }
     }
+
+    /**
+     * check if local ipsec configurations are synced between vdc properties and ipsec configuration files.
+     * @return
+     */
+    public boolean isLocalIpsecConfigSynced() {
+        final String prefix = "isLocalIpsecConfigSynced(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_LOCAL };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        _log.debug(prefix + result);
+
+        return result.getExitValue() == 0;
+    }
 }

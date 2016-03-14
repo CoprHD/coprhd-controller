@@ -151,12 +151,12 @@ public class DbBackupHandler extends BackupHandler {
                             }
                         });
                         if (cfSubFileList == null || cfSubFileList.length == 0) {
-                            log.warn("No snapshot directory created for cf: {}", cfDir.getName());
-                            cfBackupFolder.mkdir();
-                            continue;
+                            log.info("Stale empty cf foler: {}", cfDir.getName());
+                        } else {
+                            log.warn("No snapshot created for cf: {}", cfDir.getName());
                         }
-                        throw new FileNotFoundException(String.format(
-                                "Can't find snapshot directory: %s", snapshotFolder.getAbsolutePath()));
+                        cfBackupFolder.mkdir();
+                        continue;
                     }
                     // Moves snapshot folder and renames it with Column Family name
                     Files.move(snapshotFolder.toPath(), cfBackupFolder.toPath(),

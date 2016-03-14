@@ -18,6 +18,7 @@ SED="/usr/bin/sed"
 _usage() {
     set +Ex
     echo "Usage: $0 check-connection           return IPs with NO ipsec connections"       >&2
+    echo "   or: $0 check-local                check if local ipsec configuration files matches"    >&2
     echo "   or: $0 get-props  <ip>            get version and ipsec_key from given node"  >&2
     echo "   or: $0 sync-key   <ipsec-key>     write given key to vdc property file"       >&2
     echo "   or: $0 sync-status <ipsec-status> write given status to vdc property file"    >&2
@@ -212,11 +213,25 @@ _sync_key() {
     _sync_ipsec_property "ipsec_key" "${ipsec_key}"
 }
 
+_get_key_from_vdc_config() {
+    echo -n $(_get_prop "ipsec_key") 
+}
+
+_get_key_from_ipsec_config() {
+    cat /etc/ipsec.secrets | grep -oP '^\s*: PSK\s*\K\w+\s*' 2>/dev/null
+}
+
+_check_local_config() {
+    local key_vdc="$(_get_key_from_vdc_config)"
+    local key_ipsec="$(_get_key_from_ipsec_config)"
+    [[ ${key_vdc} = ${key_ipsec} ]]
+}
 
 case ${#} in
     0) _usage ;;
     1) case ${1} in
         check-connection)  _check_connection ;;
+        check-local)       _check_local_config ;;
         *)                 _usage
        esac ;;
     2) case ${1} in

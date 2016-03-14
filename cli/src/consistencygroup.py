@@ -218,7 +218,7 @@ class ConsistencyGroup(object):
         else:
             return o
 
-    def delete(self, name, project, tenant):
+    def delete(self, name, project, tenant, vipronly=False):
         '''
         This function will take consistency group name and project name
         as input and marks the particular consistency group as delete.
@@ -229,11 +229,14 @@ class ConsistencyGroup(object):
             return with status of the delete operation.
             false incase it fails to do delete.
         '''
+	params = ''
+        if (vipronly == True):
+            params += "?type=" + 'VIPR_ONLY'
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
-            self.URI_CONSISTENCY_GROUPS_DEACTIVATE.format(uri),
+            self.URI_CONSISTENCY_GROUPS_DEACTIVATE.format(uri) + params,
             None, None)
         return
 
@@ -608,13 +611,18 @@ def delete_parser(subcommand_parsers, common_parser):
                                metavar='<tenantname>',
                                dest='tenant',
                                help='container tenant name')
+    delete_parser.add_argument('-vipronly', '-vo',
+                            dest='vipronly',
+                            help='Delete only from ViPR',
+                            action='store_true')
+
     delete_parser.set_defaults(func=consistencygroup_delete)
 
 
 def consistencygroup_delete(args):
     obj = ConsistencyGroup(args.ip, args.port)
     try:
-        res = obj.delete(args.name, args.project, args.tenant)
+        res = obj.delete(args.name, args.project, args.tenant, args.vipronly)
         return res
     except SOSError as e:
         raise SOSError(SOSError.SOS_FAILURE_ERR, "Consistency Group " +

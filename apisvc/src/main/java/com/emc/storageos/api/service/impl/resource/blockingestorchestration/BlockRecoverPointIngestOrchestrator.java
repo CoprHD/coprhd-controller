@@ -96,7 +96,7 @@ import com.google.common.base.Joiner;
  *
  * Criteria for Full Ingestion of an RP CG:
  * - All Journals, Sources, and Targets associated with the UnManagedProtectionSet are now Managed volumes
- * - Validation occurs where needed, such as ensuring that the journals and targets are assigned to the right vpools (TODO)
+ * - Validation occurs where needed, such as ensuring that the journals and targets are assigned to the right vpools
  * - BlockConsistencyGroup and ProtectionSet objects are created and all ingested volumes therein are updated with references to them.
  *
  */

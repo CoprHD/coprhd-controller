@@ -487,16 +487,12 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_initiator(self, exportgroupname, tenantname,
-<<<<<<< HEAD
-                                  projectname, initators, hostlabel, sync,synctimeout=0):
-=======
                                   projectname, initators, hostlabel, sync,synctimeout=0, varray=None):
         varrayuri = None
         if(varray):
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
 
->>>>>>> 06d9eaafd749c1e45b6423759a6b1a1d92d7547f
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname, varrayuri)
 
@@ -513,9 +509,6 @@ class ExportGroup(object):
         return self.check_for_sync(o, sync,synctimeout)
 
     def exportgroup_remove_initiator(self, exportgroupname, tenantname,
-<<<<<<< HEAD
-                                     projectname, initators, hostlabel, sync,synctimeout=0):
-=======
                                      projectname, initators, hostlabel, sync,synctimeout=0, varray=None):
         
         varrayuri = None
@@ -523,7 +516,6 @@ class ExportGroup(object):
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
 
->>>>>>> 06d9eaafd749c1e45b6423759a6b1a1d92d7547f
         exportgroup_uri = self.exportgroup_query(exportgroupname, projectname,
                                                  tenantname, varrayuri)
 
@@ -551,9 +543,6 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_cluster(self, exportgroupname, tenantname, projectname,
-<<<<<<< HEAD
-                                clusternames, sync,synctimeout=0):
-=======
                                 clusternames, sync,synctimeout=0, varray=None):
         
         varrayuri = None
@@ -561,7 +550,6 @@ class ExportGroup(object):
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
 
->>>>>>> 06d9eaafd749c1e45b6423759a6b1a1d92d7547f
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname, varrayuri)
 
@@ -576,16 +564,12 @@ class ExportGroup(object):
         return self.check_for_sync(o, sync,synctimeout)
 
     def exportgroup_remove_cluster(self, exportgroupname, tenantname,
-<<<<<<< HEAD
-                                   projectname, clusternames, sync,synctimeout=0):
-=======
                                    projectname, clusternames, sync,synctimeout=0, varray=None):
         varrayuri = None
         if(varray):
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
 
->>>>>>> 06d9eaafd749c1e45b6423759a6b1a1d92d7547f
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname, varrayuri)
         # cluster search API does not take project parameter.
@@ -612,16 +596,12 @@ class ExportGroup(object):
          '''
 
     def exportgroup_add_host(self, exportgroupname, tenantname,
-<<<<<<< HEAD
-                             projectname, hostlabels, sync,synctimeout=0):
-=======
                              projectname, hostlabels, sync,synctimeout=0, varray=None):
         varrayuri = None
         if(varray):
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
 
->>>>>>> 06d9eaafd749c1e45b6423759a6b1a1d92d7547f
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname, varrayuri)
 
@@ -636,16 +616,12 @@ class ExportGroup(object):
         return self.check_for_sync(o, sync,synctimeout)
 
     def exportgroup_remove_host(self, exportgroupname, tenantname,
-<<<<<<< HEAD
-                                projectname, hostlabels, sync,synctimeout=0):
-=======
                                 projectname, hostlabels, sync,synctimeout=0, varray=None):
         varrayuri = None
         if(varray):
             varrayObject = VirtualArray(self.__ipAddr, self.__port)
             varrayuri = varrayObject.varray_query(varray)
 
->>>>>>> 06d9eaafd749c1e45b6423759a6b1a1d92d7547f
         exportgroup_uri = self.exportgroup_query(exportgroupname,
                                                  projectname, tenantname, varrayuri)
         host_uris = []

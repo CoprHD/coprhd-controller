@@ -2087,7 +2087,7 @@ public class VolumeIngestionUtil {
             throw IngestionException.exceptions.hostHasNoInitiators();
         }
         int unassignedInitiators = 0;
-        int totalPorts = 0;
+        int totalPaths = 0;
         StringSetMap zoningMap = ExportMaskUtils.getZoneMapFromZoneInfoMap(zoneInfoMap, initiators);
         if (null == zoningMap || zoningMap.isEmpty()) {
             _logger.error("No zoning information found for the initiators");
@@ -2115,30 +2115,31 @@ public class VolumeIngestionUtil {
                 _logger.info("Initiator {} of host {} is not assigned to any ports.",
                         new Object[] { initiator.getInitiatorPort(), hostName });
             } else if (ports.size() < pathParams.getPathsPerInitiator()) {
-                _logger.error("Initiator {} of host {} has a different number of ports ({}) than " +
-                        "what is required according to the virtual pool ({})", new Object[] { initiator.getInitiatorPort(),
+                _logger.error("Initiator {} of host {} has fewer SAN paths than what is required according to the virtual pool "
+                        + "({} are zoned, but {} are required)", new Object[] { initiator.getInitiatorPort(),
                                 hostName, ports.size(), pathParams.getPathsPerInitiator() });
                 throw IngestionException.exceptions.hostZoningHasDifferentPortCount(
                         initiator.getInitiatorPort(), hostName,
                         String.valueOf(ports.size()), String.valueOf(pathParams.getPathsPerInitiator()));
             } else {
-                totalPorts += ports.size();
+                totalPaths += ports.size();
                 _logger.info("Initiator {} of host {} has {} paths", new Object[] { initiator.getInitiatorPort(),
                         hostName, ports.size(), ports.size() });
             }
 
         }
-        if (totalPorts < pathParams.getMinPaths()) {
-            _logger.error(String.format("Host %s (%s) has fewer ports assigned %d than min_paths %d",
-                    hostName, hostURI.toString(), totalPorts, pathParams.getMinPaths()));
+        if (totalPaths < pathParams.getMinPaths()) {
+            _logger.error(String.format("Host %s (%s) has fewer paths assigned %d than min_paths %d",
+                    hostName, hostURI.toString(), totalPaths, pathParams.getMinPaths()));
             throw IngestionException.exceptions.hostZoningHasFewerPorts(hostName,
-                    String.valueOf(totalPorts), String.valueOf(pathParams.getMinPaths()));
+                    String.valueOf(totalPaths), String.valueOf(pathParams.getMinPaths()));
         }
-        if (totalPorts > pathParams.getMaxPaths()) {
-            _logger.error(String.format("Host %s (%s) has more ports assigned %d than max_paths %d",
-                    hostName, hostURI.toString(), totalPorts, pathParams.getMaxPaths()));
-            throw IngestionException.exceptions.hostZoningHasMorePorts(hostName,
-                    String.valueOf(totalPorts), String.valueOf(pathParams.getMaxPaths()));
+        if (totalPaths > pathParams.getMaxPaths()) {
+            _logger.warn(String.format("Host %s (%s) has more paths assigned %d than max_paths %d",
+                    hostName, hostURI.toString(), totalPaths, pathParams.getMaxPaths()));
+            // TODO: i think this should be a log warning, not an exception
+            // throw IngestionException.exceptions.hostZoningHasMorePorts(hostName,
+            //      String.valueOf(totalPaths), String.valueOf(pathParams.getMaxPaths()));
         }
         if (unassignedInitiators > 0) {
             _logger.info(String.format("Host %s (%s) has %d unassigned initiators",

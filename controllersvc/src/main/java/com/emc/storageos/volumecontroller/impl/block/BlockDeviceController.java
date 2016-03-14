@@ -6301,7 +6301,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                    waitFor, storage, storageSystem.getSystemType(),
                    this.getClass(),
                    removeFromConsistencyGroupMethod(storage, cgUri, removeVolumeList, false),
-                    addToConsistencyGroupMethod(storage, cgUri, groupName, removeVolumeList), null);
+                   addToConsistencyGroupMethod(storage, cgUri, groupName, removeVolumeList), null);
 
            // remove replication group if the CG will become empty
            if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, removeVolumeList, storage)) {

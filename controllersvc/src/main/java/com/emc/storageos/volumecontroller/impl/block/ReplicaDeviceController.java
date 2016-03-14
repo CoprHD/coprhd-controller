@@ -1134,18 +1134,17 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapshots.get(0));
         Volume sourceVol = _dbClient.queryObject(Volume.class, snap.getParent());
 
-        // delete replication group from array if no more clones in the group.
-        if (ControllerUtils.replicationGroupHasNoOtherSnapshot(_dbClient, repGroupName, snapshots, storage)) {
+        // delete replication group from array if no more snapshots in the group.
+        boolean rgHasNoOtherSnapshot = ControllerUtils.replicationGroupHasNoOtherSnapshot(_dbClient, repGroupName, snapshots, storage);
+        if (rgHasNoOtherSnapshot) {
             log.info(String.format("Adding step to delete the replication group %s", repGroupName));
             String sourceRepGroupName = sourceVol.getReplicationGroupInstance();
-            /*
-             * waitFor = workflow.createStep(BlockDeviceController.DELETE_GROUP_STEP_GROUP,
-             * String.format("Deleting replication group  %s", repGroupName),
-             * waitFor, storage, storageSystem.getSystemType(),
-             * BlockDeviceController.class,
-             * _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, true, false, sourceRepGroupName),
-             * _blockDeviceController.rollbackMethodNullMethod(), null);
-             */
+            waitFor = workflow.createStep(BlockDeviceController.DELETE_GROUP_STEP_GROUP,
+                    String.format("Deleting replication group  %s", repGroupName),
+                    waitFor, storage, storageSystem.getSystemType(),
+                    BlockDeviceController.class,
+                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, true, false, sourceRepGroupName),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
         }
 
         // get snap session associated if any
@@ -1153,7 +1152,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         if (sessions.iterator().hasNext()) {
             BlockSnapshotSession session = sessions.iterator().next();
             // if deleting snapshot group, add step to mark snap session inactive
-            if (ControllerUtils.replicationGroupHasNoOtherSnapshot(_dbClient, repGroupName, snapshots, storage)) {
+            if (rgHasNoOtherSnapshot) {
                 waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
                         String.format("marking snap session %s inactive", session.getLabel()), waitFor, storage,
                         _blockDeviceController.getDeviceType(storage), this.getClass(),

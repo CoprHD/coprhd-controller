@@ -4090,17 +4090,34 @@ public class VolumeIngestionUtil {
         }
     }
 
+    /**
+     * Clear the flags of the snapshot sessions of the RP volume
+     *
+     * @param blockObject the block Object to clear flags on
+     * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
+     * @param dbClient dbClient reference.
+     */
     public static void clearSnapshotSessionsFlags(BlockObject blockObject, Set<DataObject> updatedObjects, DbClient dbClient) {
         URIQueryResultList queryResults = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(blockObject.getId()), queryResults);
         Iterator<URI> resultsIter = queryResults.iterator();
         while (resultsIter.hasNext()) {
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, resultsIter.next());
+            _logger.info("Clearing internal volume flag of snapshot session {} of RP volume {}", snapSession.getLabel(),
+                    blockObject.getLabel());
             snapSession.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
             updatedObjects.add(snapSession);
         }
     }
 
+    /**
+     * Clear the internal flags of the replicas of associatedVolumes of RP volume
+     *
+     * @param requestContext current unManagedVolume Ingestion context.
+     * @param volume the Volume Objects to clear flags on
+     * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
+     * @param dbClient dbClient reference.
+     */
     public static void clearAssociatedVolumesReplicaFlags(IngestionRequestContext requestContext, Volume volume,
             Set<DataObject> updatedObjects, DbClient dbClient) {
         List<Volume> associatedVolumes = new ArrayList<Volume>();
@@ -4127,6 +4144,7 @@ public class VolumeIngestionUtil {
     /**
      * Clear the flags of the snapshots of the RP volume
      *
+     * @param requestContext current unManagedVolume Ingestion context.
      * @param volumes the Volume Objects to clear flags on
      * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
@@ -4159,6 +4177,7 @@ public class VolumeIngestionUtil {
     /**
      * Clear the flags of the mirrors of the RP volume
      *
+     * @param requestContext current unManagedVolume Ingestion context.
      * @param volumes the Volume Objects to clear flags on
      * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
@@ -4189,6 +4208,7 @@ public class VolumeIngestionUtil {
     /**
      * Clear the flags of the full copies of the RP volume
      *
+     * @param requestContext current unManagedVolume Ingestion context.
      * @param volumes the Volume Objects to clear flags on
      * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
@@ -4217,11 +4237,33 @@ public class VolumeIngestionUtil {
         }
     }
 
+    /**
+     * Gets the RP unmanaged volume corresponding to the passed in block object.
+     * If the unmanaged volume corresponding to block object is RP protected, returns back the same unmanaged volume.
+     *
+     * If the unmanaged volume corresponding to block object is a VPLEX backend volume, returns the unmanaged volume
+     * corresponding to the VPLEX virtual volume
+     *
+     * @param blockObject Block object
+     * @param dbClient dbClient reference
+     * @return RP protected unmanaged volume, null if not RP protected.
+     */
     public static UnManagedVolume getRPUnmanagedVolume(BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume umVolume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
         return getRPUnmanagedVolume(umVolume, dbClient);
     }
 
+    /**
+     * Gets the RP unmanaged volume corresponding to the passed in unmanaged volume.
+     * If the passed in unmanaged volume is RP protected, returns back the same unmanaged volume.
+     *
+     * If the passed in unmanaged volume is a VPLEX backend volume, returns the unmanaged volume
+     * corresponding to the VPLEX virtual volume
+     *
+     * @param umVolume Unmanaged volume
+     * @param dbClient dbClient reference
+     * @return RP protected unmanaged volume, null if not RP protected.
+     */
     public static UnManagedVolume getRPUnmanagedVolume(UnManagedVolume umVolume, DbClient dbClient) {
         if (umVolume != null && checkUnManagedResourceIsRecoverPointEnabled(umVolume)) {
             return umVolume;
@@ -4246,6 +4288,21 @@ public class VolumeIngestionUtil {
         return null;
     }
 
+    /**
+     * Gets the RP block object corresponding to the passed in block object.
+     * The unamanged volume corresponding to the block object is retrieved to determine the RP properties
+     * because the RP properties might not yet be set in the BlockObject.
+     *
+     * If the passed in block object is RP protected, returns back the same block object.
+     *
+     * If the passed in block object is a VPLEX backend volume, returns the block object
+     * corresponding to the VPLEX virtual volume
+     *
+     * @param requestContext current unManagedVolume Ingestion context.
+     * @param blockObject Block object
+     * @param dbClient dbClient reference
+     * @return RP protected block object, null if not RP protected.
+     */
     public static BlockObject getRPVolume(IngestionRequestContext requestContext, BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume umVolume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
         if (umVolume != null && checkUnManagedResourceIsRecoverPointEnabled(umVolume)) {

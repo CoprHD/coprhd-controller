@@ -3472,18 +3472,19 @@ public class VolumeIngestionUtil {
      * if it has already been created in another volume context within the scope of this
      * ingestion request.
      *
-     * @param umpset Unmanaged protection set for which a protection set has to be created
      * @param rpContext the current RecoverPointVolumeIngestionContext being ingested
+     * @param umpset Unmanaged protection set for which a protection set has to be created
      * @param dbClient a reference to the database client
      * @return newly created protection set
      */
     public static ProtectionSet findOrCreateProtectionSet(
-            IngestionRequestContext requestContext, RecoverPointVolumeIngestionContext rpContext, 
+            RecoverPointVolumeIngestionContext rpContext, 
             UnManagedProtectionSet umpset, DbClient dbClient) {
         StringSetMap unManagedCGInformation = umpset.getCGInformation();
         String rpProtectionId = PropertySetterUtil.extractValueFromStringSet(
                 SupportedCGInformation.PROTECTION_ID.toString(), unManagedCGInformation);
 
+        IngestionRequestContext requestContext = rpContext.getRootIngestionRequestContext();
         ProtectionSet pset = rpContext.findExistingProtectionSet(
                 umpset.getCgName(), rpProtectionId, umpset.getProtectionSystemUri(), umpset.getNativeGuid());
 
@@ -3535,12 +3536,14 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Create a block consistency group for the given protection set
+     * Creates a block consistency group for the given protection set, or finds one first
+     * if it has already been created in another volume context within the scope of this
+     * ingestion request.
      *
-     * @param pset protection set
-     * @param dbClient
-     *
-     * @return BlockConsistencyGroup
+     * @param rpContext the current RecoverPointVolumeIngestionContext being ingested
+     * @param pset the ProtectionSet
+     * @param dbClient a reference to the database client
+     * @return a BlockConsistencyGroup for the volume context and ProtectionSet
      */
     public static BlockConsistencyGroup findOrCreateRPBlockConsistencyGroup(
             RecoverPointVolumeIngestionContext rpContext, ProtectionSet pset, DbClient dbClient) {
@@ -4034,8 +4037,9 @@ public class VolumeIngestionUtil {
             rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
         }
 
-        ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(requestContext, rpContext, umpset, dbClient);
+        ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(rpContext, umpset, dbClient);
         BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(rpContext, pset, dbClient);
+
         List<Volume> volumes = new ArrayList<Volume>();
         // First try to get the RP volumes from the updated objects list. This will have the latest info for
         // the RP volumes. If not found in updated objects list, get from the DB.

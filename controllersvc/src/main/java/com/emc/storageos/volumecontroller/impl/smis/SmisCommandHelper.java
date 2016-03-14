@@ -26,8 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMDataType;
@@ -7199,7 +7197,7 @@ public class SmisCommandHelper implements SmisConstants {
 
         if (sfsEntries != null && !sfsEntries.isEmpty()) {
             for (String entry : sfsEntries) {
-                if (entry.contains(entryLabel)) {
+                if (entry.contains(entryLabel) || entry.contains(groupSynchronizedAspectLabel)) {
                 	removeEntryList.add(entry);
                 }
             }

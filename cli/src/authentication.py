@@ -1,20 +1,21 @@
 #!/usr/bin/python
 
-# Copyright 2016 EMC Corporation
-# Copyright 2016 Intel Corporation
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+'''
+ * Copyright 2016 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+'''
 
 import os
 import sys
@@ -335,7 +336,7 @@ class Authentication(object):
                  'disable': disable}
 
         if(autoRegCoprHDNImportOSProjects is not None and autoRegCoprHDNImportOSProjects is not ""):
-            parms['autoRegCoprHDNImportOSProjects'] = autoRegCoprHDNImportOSProjects
+            parms['autoreg_coprhd_import_osprojects'] = autoRegCoprHDNImportOSProjects
 
         if(searchbase is not None and searchbase is not ""):
             parms['search_base'] = searchbase
@@ -581,7 +582,7 @@ class Authentication(object):
                  'disable': disable}
 
         if(autoRegCoprHDNImportOSProjects is not None):
-            parms['autoRegCoprHDNImportOSProjects'] = autoRegCoprHDNImportOSProjects
+            parms['autoreg_coprhd_import_osprojects'] = autoRegCoprHDNImportOSProjects
         
         if(searchbase is not None):
             parms['search_base'] = searchbase
@@ -1009,7 +1010,7 @@ def add_keystone_provider(config, sectioniter, obj, mode):
     disable = config.get(sectioniter, 'disable')
     groupattr = config.get(sectioniter, 'groupattr')
     domains = config.get(sectioniter, 'domains')
-    autoReg = config.get(sectioniter, 'autoRegCoprHDNImportOSProjects')
+    autoReg = config.get(sectioniter, 'autoreg-coprhd-import-osprojects')
 
     if((url is "") or (managerdn is "") or (name is "") or
                 (description is "")):
@@ -1161,7 +1162,7 @@ def update_keystone_provider(config, sectioniter, mode, obj):
     disable = get_attribute_value(config, sectioniter, 'disable')
     add_domains = config.get(sectioniter, 'add-domains')
     remove_domains = config.get(sectioniter, 'remove-domains')
-    autoReg = config.get(sectioniter, 'autoRegCoprHDNImportOSProjects')
+    autoReg = config.get(sectioniter, 'autoreg-coprhd-import-osprojects')
     groupattr = get_attribute_value(config, sectioniter, 'groupattr')
     defined_and_valid_value('disable', disable,
                             Authentication.BOOL_VALS)

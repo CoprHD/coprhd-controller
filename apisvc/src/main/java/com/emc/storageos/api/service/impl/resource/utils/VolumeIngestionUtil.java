@@ -28,6 +28,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -3560,6 +3561,9 @@ public class VolumeIngestionUtil {
             cg.setProject(projectNamedUri);
             StringSet types = new StringSet();
             types.add(BlockConsistencyGroup.Types.RP.toString());
+            if (rpContext instanceof RpVplexVolumeIngestionContext) {
+                types.add(BlockConsistencyGroup.Types.VPLEX.toString());
+            }
             cg.setRequestedTypes(types);
             cg.setTypes(types);
             // By default, the array consistency is false. However later when we iterate over volumes in the BCG and we

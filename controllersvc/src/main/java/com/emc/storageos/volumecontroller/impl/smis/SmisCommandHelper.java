@@ -7192,25 +7192,24 @@ public class SmisCommandHelper implements SmisConstants {
             String sourceReplicationGroupName) {
         List<String>sfsEntries = getEMCSFSEntries(system, replicationSvc);
         String entryLabel = formatReplicaLabelForSFSEntry(system.getSerialNumber(), replicaReplicationGroupName, sourceReplicationGroupName);
-        List<String> removeEntryList = new ArrayList<String>();
+        String removeEntry = null;
 
         if (sfsEntries != null && !sfsEntries.isEmpty()) {
             for (String entry : sfsEntries) {
                 if (entry.contains(entryLabel)) {
-                	removeEntryList.add(entry);
+                    removeEntry = entry;
+                    break;
                 }
             }
         }
-        if (removeEntryList.isEmpty()) {
+        if (removeEntry == null) {
             _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName, 
                     sourceReplicationGroupName));
             return;
         }
         try {
-        	String[] removeEntries = new String[removeEntryList.size()];
-        	removeEntries = removeEntryList.toArray(removeEntries);
             CIMArgument[] inArgs = new CIMArgument[] {
-                    _cimArgument.stringArray("SFSEntries", removeEntries)};
+                    _cimArgument.stringArray("SFSEntries", new String[] { removeEntry }) };
             CIMArgument[] outArgs = new CIMArgument[5];
             invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
         } catch (WBEMException e) {

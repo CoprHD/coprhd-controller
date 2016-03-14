@@ -362,10 +362,8 @@ public class VPlexApiMigrationManager {
             if (cleanup) {
                 try {
                     cleanCommittedMigrations(migrationArgBuilder.toString());
-                } catch (VPlexApiException vae) {
-                    s_logger.error(
-                            "Error cleaning migrations after successful commit: {}",
-                            vae.getMessage(), vae);
+                } catch (Exception e) {
+                    s_logger.error("Error cleaning migrations after successful commit: {}", e.getMessage(), e);
                 }
             }
 
@@ -373,10 +371,8 @@ public class VPlexApiMigrationManager {
             if (remove) {
                 try {
                     removeCommittedOrCanceledMigrations(migrationArgBuilder.toString());
-                } catch (VPlexApiException vae) {
-                    s_logger.error(
-                            "Error removing migration records after successful commit: {}",
-                            vae.getMessage(), vae);
+                } catch (Exception e) {
+                    s_logger.error("Error removing migration records after successful commit: {}", e.getMessage(), e);
                 }
             }
 
@@ -384,10 +380,8 @@ public class VPlexApiMigrationManager {
             // each committed migration.
             try {
                 updateVirtualVolumeInfoAfterCommit(virtualVolumeName, migrationInfoList, rename);
-            } catch (VPlexApiException vae) {
-                s_logger.error(
-                        "Error updating virtual volume after successful commit: {}",
-                        vae.getMessage(), vae);
+            } catch (Exception e) {
+                s_logger.error("Error updating virtual volume after successful commit: {}", e.getMessage(), e);
             }
 
             return migrationInfoList;

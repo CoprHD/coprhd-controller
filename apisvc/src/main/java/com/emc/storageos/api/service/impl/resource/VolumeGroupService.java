@@ -1193,18 +1193,30 @@ public class VolumeGroupService extends TaskResourceService {
         List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();
         Set<String> setNames = new HashSet<String>();
         for (URI fullCopyURI : fullCopyURIsInRequest) {
+        	String repGroupName = null;
             ArgValidator.checkFieldUriType(fullCopyURI, Volume.class, "volume");
             // Get the full copy.
             Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
                     fullCopyURI, uriInfo, false, _dbClient);
-
+            
+            
+            if(fullCopyVolume.isVPlexVolume(_dbClient)){
+            	Volume backedVol = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                if (backedVol != null) {
+                    repGroupName = backedVol.getReplicationGroupInstance();
+                }
+            } else{
+            	repGroupName = fullCopyVolume.getReplicationGroupInstance();
+            }
+            
+            
             // skip repeated array groups
-            if (arrayGroupNames.contains(fullCopyVolume.getReplicationGroupInstance())) {
+            if (arrayGroupNames.contains(repGroupName)) {
                 log.info("Skipping repetitive request for Full Copy array group {}. Full Copy: {}",
-                        fullCopyVolume.getReplicationGroupInstance(), fullCopyVolume.getLabel());
+                		repGroupName, fullCopyVolume.getLabel());
                 continue;
             }
-            arrayGroupNames.add(fullCopyVolume.getReplicationGroupInstance());
+            arrayGroupNames.add(repGroupName);
 
             verifyReplicaForCopyRequest(fullCopyVolume, volumeGroupUri);
 
@@ -1227,7 +1239,7 @@ public class VolumeGroupService extends TaskResourceService {
         Map<String, Volume> repGroupToFullCopyMap = new HashMap<String, Volume>();
         for (Volume fullCopy : fullCopies) {
             String repGroupName = fullCopy.getReplicationGroupInstance();
-            if (repGroupName == null && fullCopy.isVPlexVolume(_dbClient)) {
+            if (fullCopy.isVPlexVolume(_dbClient)) {
                 // get backend source volume to get RG name
                 Volume backedVol = VPlexUtil.getVPLEXBackendVolume(fullCopy, true, _dbClient);
                 if (backedVol != null) {
@@ -3319,8 +3331,27 @@ public class VolumeGroupService extends TaskResourceService {
                     }
                 }
 
-                hasReplica = ControllerUtils.checkIfVolumeHasSnapshot(snapSource, dbClient) ||
-                        ControllerUtils.checkIfVolumeHasSnapshotSession(snapSource.getId(), dbClient); // only for volumes not in RG
+                hasReplica = ControllerUtils.checkIfVolumeHasSnapshot(snapSource, dbClient);
+
+                // check for VMAX3 individual session and group session
+                if (!hasReplica && snapSource.isVmax3Volume(dbClient)) {
+                    hasReplica = ControllerUtils.checkIfVolumeHasSnapshotSession(snapSource.getId(), dbClient);
+
+                    String rgName = snapSource.getReplicationGroupInstance();
+                    if (!hasReplica && NullColumnValueGetter.isNotNullValue(rgName)) {
+                        URI cgURI = snapSource.getConsistencyGroup();
+                        List<BlockSnapshotSession> sessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                                BlockSnapshotSession.class,
+                                ContainmentConstraint.Factory.getBlockSnapshotSessionByConsistencyGroup(cgURI));
+
+                        for (BlockSnapshotSession session : sessionsList) {
+                            if (rgName.equals(session.getReplicationGroupInstance())) {
+                                hasReplica = true;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
 
             if (hasReplica) {

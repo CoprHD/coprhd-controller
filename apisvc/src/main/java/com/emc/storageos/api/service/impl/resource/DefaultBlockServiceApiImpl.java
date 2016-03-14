@@ -225,7 +225,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         }
 
         if (VirtualPool.vPoolSpecifiesProtection(newVirtualPool) &&
-                VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume,
+                VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume,
                         volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
             allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
         }
@@ -649,7 +649,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
         for (Volume volume : volumes) {
-            if (volume.getReplicationGroupInstance() != null) {
+            if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                 groupNames.add(volume.getReplicationGroupInstance());
             }
         }

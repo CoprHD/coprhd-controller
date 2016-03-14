@@ -1140,16 +1140,16 @@ public class RPHelper {
      * @param cg The ViPR CG
      * @param size The size requested
      * @param volumeCount Number of volumes in the request
-     * @param copyInternalSiteName The RP Copy Internal Site Name
+     * @param copyName The RP copy name
      * @return true if an additional journal is required, false otherwise.
      */
-    public boolean isAdditionalJournalRequiredForCG(String journalPolicy, BlockConsistencyGroup cg, String size, Integer volumeCount,
-            String copyInternalSiteName) {
+    public boolean isAdditionalJournalRequiredForRPCopy(String journalPolicy, BlockConsistencyGroup cg, 
+    						String size, Integer volumeCount,String copyName) {
         boolean additionalJournalRequired = false;
 
         if (journalPolicy != null && (journalPolicy.endsWith("x") || journalPolicy.endsWith("X"))) {
             List<Volume> cgVolumes = RPHelper.getAllCgVolumes(cg.getId(), _dbClient);
-            List<Volume> journalVolumes = RPHelper.findExistingJournalsForCopy(_dbClient, cg.getId(), copyInternalSiteName);
+            List<Volume> journalVolumes = RPHelper.findExistingJournalsForCopy(_dbClient, cg.getId(), copyName);
 
             // Find all the journals for this site and calculate their cumulative size in bytes
             Long cgJournalSize = 0L;
@@ -1159,7 +1159,7 @@ public class RPHelper {
             }
             cgJournalSizeInBytes = SizeUtil.translateSize(String.valueOf(cgJournalSize));
             _log.info(String.format("Cumulative total journal/metadata size for RP Copy [%s] : %s GB ",
-                    copyInternalSiteName,
+                    copyName,
                     SizeUtil.translateSize(cgJournalSizeInBytes, SizeUtil.SIZE_GB)));
 
             // Find all the volumes for this site (excluding journals) and calculate their cumulative size in bytes
@@ -1167,16 +1167,16 @@ public class RPHelper {
             Long cgVolumeSizeInBytes = 0L;
             for (Volume cgVolume : cgVolumes) {
                 if (!cgVolume.checkPersonality(Volume.PersonalityTypes.METADATA.name())
-                        && copyInternalSiteName.equalsIgnoreCase(cgVolume.getInternalSiteName())) {
+                        && copyName.equalsIgnoreCase(cgVolume.getRpCopyName()) && !cgVolume.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                     cgVolumeSize += cgVolume.getProvisionedCapacity();
                 }
             }
             cgVolumeSizeInBytes = SizeUtil.translateSize(String.valueOf(cgVolumeSize));
-            _log.info(String.format("Cumulative RP Copy [%s] size : %s GB", copyInternalSiteName,
+            _log.info(String.format("Cumulative RP Copy [%s] size : %s GB", copyName,
                     SizeUtil.translateSize(cgVolumeSizeInBytes, SizeUtil.SIZE_GB)));
 
             Long newCgVolumeSizeInBytes = cgVolumeSizeInBytes + (Long.valueOf(SizeUtil.translateSize(size)) * volumeCount);
-            _log.info(String.format("New cumulative RP Copy [%s] size after the operation would be : %s GB", copyInternalSiteName,
+            _log.info(String.format("New cumulative RP Copy [%s] size after the operation would be : %s GB", copyName,
                     SizeUtil.translateSize(newCgVolumeSizeInBytes, SizeUtil.SIZE_GB)));
 
             Float multiplier = Float.valueOf(journalPolicy.substring(0, journalPolicy.length() - 1)).floatValue();
@@ -1191,7 +1191,7 @@ public class RPHelper {
         }
 
         StringBuilder msg = new StringBuilder();
-        msg.append(String.format("RP Copy [%s]: ", copyInternalSiteName));
+        msg.append(String.format("RP Copy [%s]: ", copyName));
 
         if (additionalJournalRequired) {
             msg.append("Additional journal required");

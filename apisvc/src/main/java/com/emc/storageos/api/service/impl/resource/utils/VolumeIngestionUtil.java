@@ -3003,13 +3003,9 @@ public class VolumeIngestionUtil {
         blockObject.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
 
         // snapshot sessions
-        URIQueryResultList queryResults = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(blockObject.getId()), queryResults);
-        Iterator<URI> resultsIter = queryResults.iterator();
-        while (resultsIter.hasNext()) {
-            BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, resultsIter.next());
-            snapSession.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
-            updatedObjects.add(snapSession);
+        // Do not clear the flags for snapshot sessions associated with RP volumes.
+        if (getRPUnmanagedVolume(unManagedVolume, dbClient) == null) {
+            clearSnapshotSessionsFlags(blockObject, updatedObjects, dbClient);
         }
 
         if ((blockObject instanceof Volume) && (isVplexBackendVolume || isRPVolume)) {
@@ -4044,7 +4040,7 @@ public class VolumeIngestionUtil {
         }
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
-        clearPersistedReplicaFlags(volumes, updatedObjects, dbClient);
+        clearPersistedReplicaFlags(requestContext, volumes, updatedObjects, dbClient);
 
         RecoverPointVolumeIngestionContext rpContext = null;
 
@@ -4062,9 +4058,10 @@ public class VolumeIngestionUtil {
             _logger.info("setting managed ProtectionSet on RecoverPoint context {} to {}", rpContext, pset);
             rpContext.setManagedProtectionSet(pset);
         } else {
-            _logger.info("Creating BlockConsistencyGroup {} (hash {})", cg.forDisplay(), cg.hashCode());
+            // In case of replica ingested last, the ingestion context will not be RecoverPointVolumeIngestionContext
+            _logger.info("Persisting BlockConsistencyGroup {} (hash {})", cg.forDisplay(), cg.hashCode());
             dbClient.createObject(cg);
-            _logger.info("Creating ProtectionSet {} (hash {})", pset.forDisplay(), pset.hashCode());
+            _logger.info("Persisting ProtectionSet {} (hash {})", pset.forDisplay(), pset.hashCode());
             dbClient.createObject(pset);
             // the protection set was created, so delete the unmanaged one
             _logger.info("Deleting UnManagedProtectionSet {} (hash {})", umpset.forDisplay(), umpset.hashCode());
@@ -4079,29 +4076,51 @@ public class VolumeIngestionUtil {
      * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void clearPersistedReplicaFlags(List<Volume> volumes, Set<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearPersistedReplicaFlags(IngestionRequestContext requestContext, List<Volume> volumes,
+            Set<DataObject> updatedObjects, DbClient dbClient) {
         for (Volume volume : volumes) {
             if (!Volume.PersonalityTypes.METADATA.toString().equals(volume.getPersonality())) {
-                clearFullCopiesFlags(volume, updatedObjects, dbClient);
-                clearMirrorsFlags(volume, updatedObjects, dbClient);
-                clearSnapshotsFlags(volume, updatedObjects, dbClient);
-                clearAssociatedVolumesReplicaFlags(volume, updatedObjects, dbClient);
+                clearFullCopiesFlags(requestContext, volume, updatedObjects, dbClient);
+                clearMirrorsFlags(requestContext, volume, updatedObjects, dbClient);
+                clearSnapshotsFlags(requestContext, volume, updatedObjects, dbClient);
+                clearSnapshotSessionsFlags(volume, updatedObjects, dbClient);
+                clearAssociatedVolumesReplicaFlags(requestContext, volume, updatedObjects, dbClient);
                 volume.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
             }
         }
     }
 
-    public static void clearAssociatedVolumesReplicaFlags(Volume volume, Set<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearSnapshotSessionsFlags(BlockObject blockObject, Set<DataObject> updatedObjects, DbClient dbClient) {
+        URIQueryResultList queryResults = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(blockObject.getId()), queryResults);
+        Iterator<URI> resultsIter = queryResults.iterator();
+        while (resultsIter.hasNext()) {
+            BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, resultsIter.next());
+            snapSession.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+            updatedObjects.add(snapSession);
+        }
+    }
+
+    public static void clearAssociatedVolumesReplicaFlags(IngestionRequestContext requestContext, Volume volume,
+            Set<DataObject> updatedObjects, DbClient dbClient) {
+        List<Volume> associatedVolumes = new ArrayList<Volume>();
         if (volume.getAssociatedVolumes() != null) {
-            List<Volume> associatedVolumes = new ArrayList<Volume>();
-            List<URI> associatedVolumesUris = new ArrayList<URI>(Collections2.transform(volume.getAssociatedVolumes(),
+            StringSet managedVolumesInDB = new StringSet(volume.getAssociatedVolumes());
+            for (String volumeId : volume.getAssociatedVolumes()) {
+                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
+                if (null != bo && bo instanceof Volume) {
+                    associatedVolumes.add((Volume) bo);
+                    managedVolumesInDB.remove(bo.getId().toString());
+                }
+            }
+            List<URI> associatedVolumesUris = new ArrayList<URI>(Collections2.transform(managedVolumesInDB,
                     CommonTransformerFunctions.FCTN_STRING_TO_URI));
             Iterator<Volume> associatedVolumesIterator = dbClient.queryIterativeObjects(Volume.class, associatedVolumesUris);
             while (associatedVolumesIterator.hasNext()) {
                 associatedVolumes.add(associatedVolumesIterator.next());
             }
             _logger.info("Clearing internal volume flag of replicas of associatedVolumes of RP volume {}", volume.getLabel());
-            clearPersistedReplicaFlags(associatedVolumes, updatedObjects, dbClient);
+            clearPersistedReplicaFlags(requestContext, associatedVolumes, updatedObjects, dbClient);
         }
     }
 
@@ -4112,7 +4131,8 @@ public class VolumeIngestionUtil {
      * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void clearSnapshotsFlags(Volume volume, Set<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearSnapshotsFlags(IngestionRequestContext requestContext, Volume volume, Set<DataObject> updatedObjects,
+            DbClient dbClient) {
         URIQueryResultList snapshotURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
                 volume.getId()), snapshotURIs);
@@ -4123,6 +4143,17 @@ public class VolumeIngestionUtil {
             snap.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
             updatedObjects.add(snap);
         }
+
+        // clear the flags of any snapshots created in the context
+        for (BlockObject createdObject : requestContext.getBlockObjectsToBeCreatedMap().values()) {
+            if (createdObject instanceof BlockSnapshot) {
+                BlockSnapshot snapshot = (BlockSnapshot) createdObject;
+                if (snapshot.getParent() != null && volume.getId().equals(snapshot.getParent().getURI())) {
+                    _logger.info("Clearing internal volume flag of snapshot {} of RP volume {}", snapshot.getLabel(), volume.getLabel());
+                    snapshot.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+                }
+            }
+        }
     }
 
     /**
@@ -4132,10 +4163,19 @@ public class VolumeIngestionUtil {
      * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void clearMirrorsFlags(Volume volume, Set<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearMirrorsFlags(IngestionRequestContext requestContext, Volume volume, Set<DataObject> updatedObjects,
+            DbClient dbClient) {
         if (volume.getMirrors() != null) {
-            List<URI> mirrorUris = new ArrayList<URI>(Collections2.transform(volume.getMirrors(),
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            StringSet mirrorsInDB = new StringSet(volume.getMirrors());
+            for (String volumeId : volume.getMirrors()) {
+                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
+                if (null != bo && bo instanceof BlockMirror) {
+                    _logger.info("Clearing internal volume flag of mirror {} of RP volume {}", bo.getLabel(), volume.getLabel());
+                    bo.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+                    mirrorsInDB.remove(bo.getId().toString());
+                }
+            }
+            List<URI> mirrorUris = new ArrayList<URI>(Collections2.transform(mirrorsInDB, CommonTransformerFunctions.FCTN_STRING_TO_URI));
             Iterator<BlockMirror> mirrorIterator = dbClient.queryIterativeObjects(BlockMirror.class, mirrorUris);
             while (mirrorIterator.hasNext()) {
                 BlockMirror mirror = mirrorIterator.next();
@@ -4153,10 +4193,20 @@ public class VolumeIngestionUtil {
      * @param updatedObjects a Set of DataObjects to be updated in the database at the end of ingestion
      * @param dbClient - dbClient reference.
      */
-    public static void clearFullCopiesFlags(Volume volume, Set<DataObject> updatedObjects, DbClient dbClient) {
+    public static void clearFullCopiesFlags(IngestionRequestContext requestContext, Volume volume, Set<DataObject> updatedObjects,
+            DbClient dbClient) {
         if (volume.getFullCopies() != null) {
-            List<URI> fullCopiesUris = new ArrayList<URI>(Collections2.transform(volume.getFullCopies(),
-                    CommonTransformerFunctions.FCTN_STRING_TO_URI));
+            StringSet fullCopiesInDB = new StringSet(volume.getFullCopies());
+            for (String volumeId : volume.getFullCopies()) {
+                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeId));
+                if (null != bo && bo instanceof Volume) {
+                    _logger.info("Clearing internal volume flag of full copy {} of RP volume {}", bo.getLabel(), volume.getLabel());
+                    bo.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
+                    fullCopiesInDB.remove(bo.getId().toString());
+                }
+            }
+            List<URI> fullCopiesUris = new ArrayList<URI>(
+                    Collections2.transform(fullCopiesInDB, CommonTransformerFunctions.FCTN_STRING_TO_URI));
             Iterator<Volume> fullCopiesIterator = dbClient.queryIterativeObjects(Volume.class, fullCopiesUris);
             while (fullCopiesIterator.hasNext()) {
                 Volume fullCopy = fullCopiesIterator.next();
@@ -4169,6 +4219,10 @@ public class VolumeIngestionUtil {
 
     public static UnManagedVolume getRPUnmanagedVolume(BlockObject blockObject, DbClient dbClient) {
         UnManagedVolume umVolume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+        return getRPUnmanagedVolume(umVolume, dbClient);
+    }
+
+    public static UnManagedVolume getRPUnmanagedVolume(UnManagedVolume umVolume, DbClient dbClient) {
         if (umVolume != null && checkUnManagedResourceIsRecoverPointEnabled(umVolume)) {
             return umVolume;
         }

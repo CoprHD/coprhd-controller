@@ -16,6 +16,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.ReplicationStrategy;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestStrategyFactory.VolumeType;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
@@ -28,6 +29,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
@@ -100,6 +102,12 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
             StringSet syncAspectInfoForVolume = PropertySetterUtil.extractValuesFromStringSet(
                     SupportedVolumeInformation.SNAPSHOT_SESSIONS.toString(), unManagedVolume.getVolumeInformation());
             if ((syncAspectInfoForVolume != null) && (!syncAspectInfoForVolume.isEmpty())) {
+                Project project = requestContext.getProject();
+                // If this is a vplex backend volume, then the front end project should be set as snapshot session's project
+                if (requestContext instanceof VplexVolumeIngestionContext && VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume)) {
+                    project = ((VplexVolumeIngestionContext) requestContext).getFrontendProject();
+                }
+
                 for (String syncAspectInfo : syncAspectInfoForVolume) {
                     String[] syncAspectInfoComponents = syncAspectInfo.split(":");
                     String syncAspectName = syncAspectInfoComponents[0];
@@ -116,7 +124,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                         session.setLabel(syncAspectName);
                         session.setSessionLabel(syncAspectName);
                         session.setParent(new NamedURI(volume.getId(), volume.getLabel()));
-                        session.setProject(new NamedURI(requestContext.getProject().getId(), volume.getLabel()));
+                        session.setProject(new NamedURI(project.getId(), volume.getLabel()));
                         session.setStorageController(volume.getStorageController());
                         session.setSessionInstance(syncAspectObjPath);
                         StringSet linkedTargetURIs = new StringSet();

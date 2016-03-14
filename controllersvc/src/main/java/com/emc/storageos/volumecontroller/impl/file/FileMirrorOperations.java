@@ -63,7 +63,7 @@ public interface FileMirrorOperations {
     void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
 
     /**
-     * Resume Mirror link
+     * Resume Mirror link , this operation will enable the policy
      * 
      * @param system
      * @param target

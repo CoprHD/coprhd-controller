@@ -154,7 +154,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
-            cmdResult = this.doResumeReplicationPolicy(system, policyName);
+            cmdResult = doResumeReplicationPolicy(system, policyName);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
             } else {
@@ -392,26 +392,25 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      * 
      * @param system
      * @param policyName
-     * @return
+     * 
      */
     public BiosCommandResult doResumeReplicationPolicy(StorageSystem system, String policyName) {
         try {
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState = policy.getLastJobState();
+            if (!policy.getEnabled()) {
+                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+                modifiedPolicy.setName(policyName);
+                modifiedPolicy.setEnabled(true);
 
-            if (policyState.equals(JobState.paused)) {
-                IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
-                sshDmApi.executeSsh("sync jobs" + " " + "resume" + " " + policyName, "");
-                _log.info("doResumeReplicationPolicy for replication policy {}- finished successfully", policyName);
+                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+
+                _log.info("Replication Policy - {} ENABLED successfully", policy.toString());
                 return BiosCommandResult.createSuccessfulResult();
-
             } else {
-                _log.error("Replication Policy - {} can't be RESUMED because policy's last job is in {} state", policyName,
-                        policyState);
                 ServiceError error = DeviceControllerErrors.isilon
-                        .jobFailed(
-                                "doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
+                        .jobFailed("doResumeReplicationPolicy as : Replication Policy can't be RESUMED because "
+                                + "policy is already in Active state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {

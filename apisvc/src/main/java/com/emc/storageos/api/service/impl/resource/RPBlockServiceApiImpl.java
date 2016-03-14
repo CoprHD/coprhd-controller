@@ -2956,41 +2956,48 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Doesn't matter if this is VPLEX or not, if we have a
         // protected volume and we're looking to move to an unprotected
         // state return the RP_REMOVE_PROTECTION as the allowed operation
+        // should it meet the correct criteria.
         if (volume.checkForRp()
                 && VirtualPool.vPoolSpecifiesProtection(currentVpool)
-                && !VirtualPool.vPoolSpecifiesProtection(newVpool)
-                && VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
-                        _dbClient, notSuppReasonBuff)) {
-            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_REMOVE_PROTECTION);
+                && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {            
+           if (VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                    _dbClient, notSuppReasonBuff)) {
+               allowedOperations.add(VirtualPoolChangeOperationEnum.RP_REMOVE_PROTECTION);
+           }
         }
 
-        boolean vplex = RPHelper.isVPlexVolume(volume);
-        // Check to see if this is a VPLEX volume
-        if (vplex) {
-            // Get the varray for the volume.
-            URI volumeVarrayURI = volume.getVirtualArray();
-            StringSet newVirtualPoolVarrays = newVpool.getVirtualArrays();
-            if ((newVirtualPoolVarrays != null) && (!newVirtualPoolVarrays.isEmpty())
-                    && (!newVirtualPoolVarrays.contains(volumeVarrayURI.toString()))) {
-                // The VirtualPool is not allowed because it is not available in the
-                // volume varray.
-                notSuppReasonBuff.append("The VirtualPool is not available to the volume's varray");
-            } else if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
-                    && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)
-                    && VirtualPoolChangeAnalyzer.isSupportedRPChangeProtectionVirtualPoolChange(volume, currentVpool, newVpool,
-                            _dbClient, notSuppReasonBuff)) {
-                // Allow the RP change protection operation
-                allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED_CHANGE);
-            } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)
-                    && VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVpool, newVpool,
-                            _dbClient, notSuppReasonBuff)) {
-                // Allow the RP Protection add operation
+        // All other operations depend on the new vpool at the minimum
+        // specifying RP Protection.
+        if (VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+            boolean vplex = RPHelper.isVPlexVolume(volume);
+            // Check to see if this is a VPLEX volume
+            if (vplex) {
+                // Get the varray for the volume.
+                URI volumeVarrayURI = volume.getVirtualArray();
+                StringSet newVirtualPoolVarrays = newVpool.getVirtualArrays();
+                if ((newVirtualPoolVarrays != null) && (!newVirtualPoolVarrays.isEmpty())
+                        && (!newVirtualPoolVarrays.contains(volumeVarrayURI.toString()))) {
+                    // The VirtualPool is not allowed because it is not available in the
+                    // volume varray.
+                    notSuppReasonBuff.append("The VirtualPool is not available to the volume's varray");
+                } else if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                        && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+                    if (VirtualPoolChangeAnalyzer.isSupportedUpgradeToMetroPointVirtualPoolChange(volume, currentVpool, newVpool,
+                                _dbClient, notSuppReasonBuff)) {
+                        // Allow the RP change protection operation
+                        allowedOperations.add(VirtualPoolChangeOperationEnum.RP_UPGRADE_TO_METROPOINT);
+                    }
+                } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+                    if (VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                                _dbClient, notSuppReasonBuff)) {
+                        // Allow the RP Protection add operation
+                        allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
+                    }
+                }
+            } else if (VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool,
+                            newVpool, _dbClient, notSuppReasonBuff)) {
                 allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
             }
-        } else if (VirtualPool.vPoolSpecifiesProtection(newVpool)
-                && VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool,
-                        newVpool, _dbClient, notSuppReasonBuff)) {
-            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
         }
 
         return allowedOperations;

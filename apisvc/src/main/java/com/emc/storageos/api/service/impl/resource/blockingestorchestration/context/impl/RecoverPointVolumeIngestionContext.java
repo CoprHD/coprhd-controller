@@ -72,6 +72,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     private List<UnManagedVolume> _unmanagedTargetVolumesToUpdate;
     private UnManagedProtectionSet _unManagedProtectionSet;
 
+    // flags to help with final ingestion
+    private boolean _managedPsetWasCreatedByAnotherContext = false;
+    private boolean _managedBcgWasCreatedByAnotherContext = false;
+
     /**
      * Constructor.
      *
@@ -201,6 +205,24 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     }
 
     /**
+     * Sets whether or not the managed ProtectionSet was created by another context already.
+     * 
+     * @param managedPsetWasCreatedByAnotherContext true if the ProtectionSet was created by another context
+     */
+    public void setManagedPsetWasCreatedByAnotherContext(boolean managedPsetWasCreatedByAnotherContext) {
+        this._managedPsetWasCreatedByAnotherContext = managedPsetWasCreatedByAnotherContext;
+    }
+
+    /**
+     * Sets whether or not the managed BlockConsistencyGroup was created by another context already.
+     * 
+     * @param managedBcgWasCreatedByAnotherContext true if the BlockConsistencyGroup was created by another context
+     */
+    public void setManagedBcgWasCreatedByAnotherContext(boolean managedBcgWasCreatedByAnotherContext) {
+        this._managedBcgWasCreatedByAnotherContext = managedBcgWasCreatedByAnotherContext;
+    }
+
+    /**
      * Adds a source Volume to the list of Volumes that should be updated
      * when this RecoverPoint ingestion process is committed.
      *
@@ -301,11 +323,17 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         // commit the ProtectionSet, if created, and remove the UnManagedProtectionSet
-        if (null != _managedProtectionSet) {
-            _logger.info("Creating ProtectionSet {} (hash {})", 
-                    _managedProtectionSet.forDisplay(), _managedProtectionSet.hashCode());
-            _managedProtectionSet.getVolumes().add(_managedBlockObject.getId().toString());
-            _dbClient.createObject(_managedProtectionSet);
+        ProtectionSet managedProtectionSet = getManagedProtectionSet();
+        if (null != managedProtectionSet) {
+            if (getManagedBlockObject() != null) {
+                managedProtectionSet.getVolumes().add(_managedBlockObject.getId().toString());
+            }
+
+            if (!_managedPsetWasCreatedByAnotherContext) {
+                _logger.info("Creating ProtectionSet {} (hash {})", 
+                        managedProtectionSet.forDisplay(), managedProtectionSet.hashCode());
+                _dbClient.createObject(managedProtectionSet);
+            }
 
             // the protection set was created, so delete the unmanaged one
             _logger.info("Deleting UnManagedProtectionSet {} (hash {})", 
@@ -314,10 +342,12 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         // commit the BlockConsistencyGroup, if created
-        if (null != _managedBlockConsistencyGroup) {
-            _logger.info("Creating BlockConsistencyGroup {} (hash {})" + 
-                    _managedBlockConsistencyGroup.forDisplay(), _managedBlockConsistencyGroup.hashCode());
-            _dbClient.createObject(_managedBlockConsistencyGroup);
+        if (null != getManagedBlockConsistencyGroup()) {
+            if (!_managedBcgWasCreatedByAnotherContext) {
+                _logger.info("Creating BlockConsistencyGroup {} (hash {})" + 
+                        _managedBlockConsistencyGroup.forDisplay(), _managedBlockConsistencyGroup.hashCode());
+                _dbClient.createObject(_managedBlockConsistencyGroup);
+            }
         }
 
         ExportGroup exportGroup = getExportGroup();
@@ -1017,6 +1047,36 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase) {
         return getRootIngestionRequestContext().findDataObjectByType(clazz, id, fallbackToDatabase);
+    }
+
+    /**
+     * Finds an existing ProtectionSet in any RecoverPoint volume ingestion context within the scope of this ingestion request.
+     * 
+     * @param psetLabel the label for the ProtectionSet
+     * @param rpProtectionId the RecoverPoint protection set id
+     * @param protectionSystemUri the RecoverPoint device URI
+     * @param umpsetNativeGuid the nativeGuid for the discovered UnManagedProtectionSet
+     * @return
+     */
+    public ProtectionSet findExistingProtectionSet(String psetLabel, String rpProtectionId, URI protectionSystemUri, String umpsetNativeGuid) {
+        for (VolumeIngestionContext volumeContext : getRootIngestionRequestContext().getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext instanceof RecoverPointVolumeIngestionContext) {
+                RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) volumeContext;
+                ProtectionSet pset = rpContext.getManagedProtectionSet();
+                if (pset != null) {
+                    if ((pset.getLabel().equals(psetLabel)) 
+                     && (pset.getProtectionId().equals(rpProtectionId))
+                     && (pset.getProtectionSystem().equals(protectionSystemUri))
+                     && (pset.getNativeGuid().equals(umpsetNativeGuid))) {
+                        _logger.info("found already-instantiated ProtectionSet {} (hash {})", pset.getLabel(), pset.hashCode());
+                        return pset;
+                    }
+                }
+            }
+        }
+
+        _logger.info("did not find an already-instantiated ProtectionSet for ", psetLabel);
+        return null;
     }
 
 }

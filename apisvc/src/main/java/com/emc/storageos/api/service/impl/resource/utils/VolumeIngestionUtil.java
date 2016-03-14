@@ -2992,8 +2992,10 @@ public class VolumeIngestionUtil {
             if (canDeleteUnManagedVolume(unManagedVolume)) {
                 _logger.info("Set unmanaged volume inactive: {}", unManagedVolume.forDisplay());
                 unManagedVolume.setInactive(true);
+                requestContext.getUnManagedVolumesToBeDeleted().add(unManagedVolume);
+            } else {
+                updatedObjects.add(unManagedVolume);
             }
-            updatedObjects.add(unManagedVolume);
         } else {
             _logger.info("No unmanaged volume found for the block object {}", blockObject.getNativeGuid());
         }
@@ -4010,14 +4012,15 @@ public class VolumeIngestionUtil {
         ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(requestContext, umpset, dbClient);
         BlockConsistencyGroup cg = VolumeIngestionUtil.createRPBlockConsistencyGroup(pset, dbClient);
         List<Volume> volumes = new ArrayList<Volume>();
+        StringSet managedVolumesInDB = new StringSet(pset.getVolumes());
         // First try to get the RP volumes from the updated objects list. This will have the latest info for
         // the RP volumes. If not found in updated objects list, get from the DB.
-        StringSet managedVolumesInDB = new StringSet(pset.getVolumes());
-        for (DataObject updatedObject : updatedObjects) {
-            if (pset.getVolumes().contains(updatedObject.getId().toString())) {
-                _logger.info("\tadding volume object " + updatedObject.forDisplay());
-                volumes.add((Volume) updatedObject);
-                managedVolumesInDB.remove(updatedObject.getId().toString());
+        for (String volumeId : pset.getVolumes()) {
+            DataObject bo = requestContext.findInUpdatedObjects(URI.create(volumeId));
+            if (null != bo && bo instanceof Volume) {
+                _logger.info("\tadding volume object " + bo.forDisplay());
+                volumes.add((Volume) bo);
+                managedVolumesInDB.remove(bo.getId().toString());
             }
         }
 
@@ -4058,6 +4061,14 @@ public class VolumeIngestionUtil {
             rpContext.setManagedBlockConsistencyGroup(cg);
             _logger.info("setting managed ProtectionSet on RecoverPoint context {} to {}", rpContext, pset);
             rpContext.setManagedProtectionSet(pset);
+        } else {
+            _logger.info("Creating BlockConsistencyGroup {} (hash {})", cg.forDisplay(), cg.hashCode());
+            dbClient.createObject(cg);
+            _logger.info("Creating ProtectionSet {} (hash {})", pset.forDisplay(), pset.hashCode());
+            dbClient.createObject(pset);
+            // the protection set was created, so delete the unmanaged one
+            _logger.info("Deleting UnManagedProtectionSet {} (hash {})", umpset.forDisplay(), umpset.hashCode());
+            dbClient.removeObject(umpset);
         }
     }
 

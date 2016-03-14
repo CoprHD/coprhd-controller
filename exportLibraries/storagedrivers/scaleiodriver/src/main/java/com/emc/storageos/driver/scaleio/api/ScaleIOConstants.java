@@ -47,6 +47,7 @@ public class ScaleIOConstants {
     public static final String OPERATIONAL_STATUS_CONNECTED="Normal";
     public static final Long maxVolumeSize = 1048576L;
     public static final Long minVolumeSize = 1L;
+    public static final Long GB_BYTE = 1073741824L;
     public enum TaskType{
         DISCOVER_STORAGE_SYSTEM,
         DISCOVER_STORAGE_POOLS,

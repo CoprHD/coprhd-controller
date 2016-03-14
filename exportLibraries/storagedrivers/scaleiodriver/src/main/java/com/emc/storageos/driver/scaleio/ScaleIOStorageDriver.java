@@ -16,15 +16,6 @@
  */
 package com.emc.storageos.driver.scaleio;
 
-import java.util.*;
-
-import org.apache.commons.lang.mutable.MutableBoolean;
-import org.apache.commons.lang.mutable.MutableInt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-
 import com.emc.storageos.driver.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.driver.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.driver.scaleio.api.restapi.response.*;
@@ -35,6 +26,14 @@ import com.emc.storageos.storagedriver.RegistrationData;
 import com.emc.storageos.storagedriver.model.*;
 import com.emc.storageos.storagedriver.storagecapabilities.CapabilityInstance;
 import com.emc.storageos.storagedriver.storagecapabilities.StorageCapabilities;
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apache.commons.lang.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+import java.util.*;
 
 public class ScaleIOStorageDriver extends AbstractStorageDriver implements BlockStorageDriver {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDriver.class);
@@ -126,12 +125,24 @@ public class ScaleIOStorageDriver extends AbstractStorageDriver implements Block
 
             if (restClient != null) {
                 ScaleIOVolume result;
-
                 try {
-
+                    volume.setRequestedCapacity(newCapacity);
+                    newCapacity = newCapacity/ScaleIOConstants.GB_BYTE;
+                    //size must be a positive number in granularity of 8 GB
+                    if(newCapacity % 8 != 0){
+                        long tmp = Math.floorDiv(newCapacity,8)*8;
+                        if(tmp < newCapacity){
+                            newCapacity=tmp+8;
+                        }else{
+                            newCapacity=tmp;
+                        }
+                    }
                     result = restClient.modifyVolumeCapacity(volume.getNativeId(), String.valueOf(newCapacity));
 
                     if (result != null) {
+                        Long sizeInBytes = Long.parseLong(result.getSizeInKb()) * 1024;
+                        volume.setProvisionedCapacity(sizeInBytes);
+                        volume.setAllocatedCapacity(sizeInBytes);
                         task.setStatus(DriverTask.TaskStatus.READY);
                         task.setMessage("Volume " + volume.getNativeId() + " expanded to " + newCapacity + " GB");
                         return task;

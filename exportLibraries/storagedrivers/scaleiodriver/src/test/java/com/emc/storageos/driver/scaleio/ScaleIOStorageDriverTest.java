@@ -135,7 +135,7 @@ public class ScaleIOStorageDriverTest {
         driver.createVolumes(storageVolumes, capabilities);
 
         long capacity = volume.getAllocatedCapacity() / (long) Math.pow(10, 9); //convert bytes to GB
-        capacity += 8;
+        capacity = volume.getAllocatedCapacity() * 2;
 
         // Expand storage volume
         task = driver.expandVolume(volume, capacity);

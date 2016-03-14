@@ -172,7 +172,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     // Various steps for workflows
     private static final String STEP_REMOVE_PROTECTION = "rpRemoveProtectionStep";
     private static final String STEP_CG_CREATION = "rpCgCreation";
-    private static final String STEP_CG_UPDATE = "rpCgUpdate";
+    private static final String STEP_CG_MODIFY = "rpCgModify";
     private static final String STEP_EXPORT_GROUP = "rpExportGroup";
     private static final String STEP_DV_REMOVE_CG = "rpDvRemoveCG";
     private static final String STEP_DV_REMOVE_VOLUME_EXPORT = "rpDvRemoveVolumeExport";
@@ -5709,12 +5709,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Workflow.Method cgCreationExecutionRollbackMethod = new Workflow.Method(METHOD_CG_MODIFY_ROLLBACK_STEP,
                 rpSystem.getId());
 
-        workflow.createStep(STEP_CG_UPDATE, "Modify consistency group subtask for RP CG: " + cgParams.getCgName(),
+        workflow.createStep(STEP_CG_MODIFY, "Modify consistency group subtask for RP CG: " + cgParams.getCgName(),
                 STEP_EXPORT_ORCHESTRATION, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
                 cgCreationExecuteMethod, cgCreationExecutionRollbackMethod, stepId);
 
-        // TODO BH fix this once my other PR goes to master
-        return STEP_CG_UPDATE;
+        return STEP_CG_MODIFY;
     }
 
     /**
@@ -6366,5 +6365,4 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
         return lockName;
     }
-
 }

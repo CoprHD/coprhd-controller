@@ -3205,7 +3205,7 @@ recoverpoint_ingest_export_test()
 
     rp_target_vpool=rp_targets
     if [ "${RPXIO_TESTS}" = "1" ]; then
-	rp_target_vpool=rpxio_targets
+        rp_target_vpool=rpxio_targets
     fi
 
     # Run discovery
@@ -3217,7 +3217,7 @@ recoverpoint_ingest_export_test()
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
-	RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
+        RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
     elif [ "${vpool}" = "rp${rptypetag}_crr" ]; then
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_TGT_JRNL}"
@@ -3227,7 +3227,7 @@ recoverpoint_ingest_export_test()
             run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
         fi
         run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_crr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}
-	RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY3}
+        RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY3}
     elif [ "${vpool}" = "rp${rptypetag}_clr" ]; then
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_V1TGT}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_V1TGT_JRNL}"
@@ -3235,7 +3235,7 @@ recoverpoint_ingest_export_test()
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY3} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_V3TGT_JRNL}"
         run unmanagedvolume ingest_unexport ${RECOVERPOINT_VARRAY1} ${rp_target_vpool} $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC_JRNL}"
         run unmanagedvolume ingest_export ${RECOVERPOINT_VARRAY1} rp${rptypetag}_clr $PROJECT --volspec "${RECOVERPOINT_INGEST_EXPORT_VOL1_SRC}" --host ${RP_HOSTNAME}
-	RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
+        RECOVERPOINT_TGT_VARRAY=${RECOVERPOINT_VARRAY1}
     fi
 
     # Verify the CG got created; fail script if this fails.
@@ -3490,12 +3490,20 @@ recoverpoint_vpool_change_test()
     noprotection_vpool=${2}
     rp_vpool=${3}
     rp_cg=${4}
+    upgrade_to_mp=${5}
 
-    secho 'Change Virtual Pool - Remove Protection'
-    run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
+    # Perform Upgrade to MP if the variable is present,
+    # Only RP+VPLEX Distributed CRR is eligible for this operation (for now).
+    if [ a${upgrade_to_mp} != a ] ; then
+        secho 'Change Virtual Pool - Upgrade To MetroPoint'
+        run volume change_cos ${PROJECT}/${base_volume} ${upgrade_to_mp}
+    else
+        secho 'Change Virtual Pool - Remove Protection'
+        run volume change_cos ${PROJECT}/${base_volume} ${noprotection_vpool}
 
-    secho 'Change Virtual Pool - Add Protection'
-    run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
+        secho 'Change Virtual Pool - Add Protection'
+        run volume change_cos ${PROJECT}/${base_volume} ${rp_vpool} --consistencyGroup ${rp_cg}
+    fi
 }
 
 recoverpoint_vpool_change_replication_mode_test()
@@ -3721,12 +3729,14 @@ recoverpoint_tests()
         secho 'Run RP tests'
 
         # Setup CGs
-	rp_cg_setup
+        rp_cg_setup
 
+        # Default source varrays
         rp_src_varray=$RECOVERPOINT_VARRAY1
         rpvplex_src_varray=$RECOVERPOINT_VARRAY1
         rpmp_src_varray=$RECOVERPOINT_VARRAY1
 
+        # Vpools for change vpool - Remove Protection
         rp_noprotection_vpool='rp_noprotection'
         rpvplex_noprotection_vpool='rpvplexdist_noprotection'
         rpmp_noprotection_vpool='rpvplexdist_noprotection'
@@ -3746,7 +3756,7 @@ recoverpoint_tests()
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
             rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rpvplex_tgt_vpool='rpvplex_targets'
-            # RP+VPLEX CDP uses VPLEX local, set this for no protection vpool
+            # RP+VPLEX CDP uses VPLEX local, set as the no protection vpool
             rpvplex_noprotection_vpool='rpvplexlocal_noprotection'
 
             # MP
@@ -3822,84 +3832,63 @@ recoverpoint_tests()
         rpxiovolume=${RP_METROPOINT_VOLUME}
         rpxiovolumetarget=${xiovolume}'-target-'${rpxio_active_tgt_varray}
 
-        # Setup test volumes...
-        # Either use volumes that have gone through the change vpool process or
-        # use straight up created RP volumes.
-        if [ "$RP_CHANGE_VPOOL" = "1" ]; then
-            secho 'RP change vpool volumes'
 
-            if [ "$RP_TESTS" = "1" ]; then
-                echo 'RP change vpool...'
-                recoverpoint_vpool_change_test ${rpvolume} ${rp_base_cvp} ${rp_src_varray} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
-            fi
-
-            if [ "$RPVPLEX_TESTS" = "1" ]; then
-                echo 'RP+VPLEX change vpool...NOT SUPPORTED YET!!'
-                #recoverpoint_vpool_change_test ${rpvplexvolume} ${rpvplex_base_cvp1} ${rpvplex_src_varray} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
-            fi
-
-            if [ "$RPMP_TESTS" = "1" ]; then
-                echo 'RP MP change vpool...NOT SUPPORTED YET!!'
-            fi
-
-            if [ "$RPXIO_TESTS" = "1" ]; then
-                echo 'RP XIO change vpool...NOT SUPPORTED YET!!'
-            fi
-        else
-            if [ "$RPVPLEX_TESTS" = "1" ]; then
-                rptypetag="vplex"
-	    elif [ "${RPMP_TESTS}" = "1" ]; then
-                rptypetag="mp"
-	    elif [ "${RPXIO_TESTS}" = "1" ]; then
-                rptypetag="xio"
-            fi
-
-            if [ "$RP_INGESTTESTS" = "1" ]; then
-                secho 'RP ingest volumes'
-
-                if [ "$RP_CDP" = "1" ] ; then
-                    recoverpoint_ingest_test rp${rptypetag}_cdp
-		    if [ "${RPXIO_TESTS}" = "0" ]; then
-			recoverpoint_ingest_export_test rp${rptypetag}_cdp
-		    else
-			secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
-		    fi
-                fi
-
-                if [ "$RP_CRR" = "1" ] ; then
-                    recoverpoint_ingest_test rp${rptypetag}_crr
-                    recoverpoint_ingest_export_test rp${rptypetag}_crr
-                fi
-                        
-                if [ "$RP_CLR" = "1" ] ; then
-                    recoverpoint_ingest_test rp${rptypetag}_clr
-                    recoverpoint_ingest_export_test rp${rptypetag}_clr
-                fi
-
-		secho "RP ingest tests complete"
-		return
-            fi
-
-            if [ "$RP_TESTS" = "1" ]; then
-                secho 'RP volume create...'
-                run volume create ${rpvolume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
-
-            if [ "$RPVPLEX_TESTS" = "1" ]; then
-                secho 'RP+VPLEX volume create...'
-                run volume create ${rpvplexvolume} $PROJECT ${rpvplex_src_varray} ${rpvplex_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_VPLEX_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
-
-            if [ "$RPMP_TESTS" = "1" ]; then
-                secho 'MetroPoint volume create...'
-                run volume create ${rpmpvolume} $PROJECT ${rpmp_src_varray} ${rpmp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
-
-            if [ "$RPXIO_TESTS" = "1" ]; then
-                secho 'XIO volume create...'
-                run volume create ${rpxiovolume} $PROJECT ${rpxio_src_varray} ${rpxio_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_XIO_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
-            fi
+        if [ "$RPVPLEX_TESTS" = "1" ]; then
+            rptypetag="vplex"
+        elif [ "${RPMP_TESTS}" = "1" ]; then
+            rptypetag="mp"
+        elif [ "${RPXIO_TESTS}" = "1" ]; then
+            rptypetag="xio"
         fi
+
+        # Ingest specific tests
+        if [ "$RP_INGESTTESTS" = "1" ]; then
+            secho 'RP ingest volumes'
+
+            if [ "$RP_CDP" = "1" ] ; then
+                recoverpoint_ingest_test rp${rptypetag}_cdp
+                if [ "${RPXIO_TESTS}" = "0" ]; then
+                    recoverpoint_ingest_export_test rp${rptypetag}_cdp
+                else
+                    secho "XIO Export Tests Disabled; Export host registration in physical network needs work"
+                fi
+            fi
+
+            if [ "$RP_CRR" = "1" ] ; then
+                recoverpoint_ingest_test rp${rptypetag}_crr
+                recoverpoint_ingest_export_test rp${rptypetag}_crr
+            fi
+                    
+            if [ "$RP_CLR" = "1" ] ; then
+                recoverpoint_ingest_test rp${rptypetag}_clr
+                recoverpoint_ingest_export_test rp${rptypetag}_clr
+            fi
+
+            secho "RP ingest tests complete"
+            return
+        fi
+
+        # RP Volume create
+        if [ "$RP_TESTS" = "1" ]; then
+            secho 'RP volume create...'
+            run volume create ${rpvolume} $PROJECT ${rp_src_varray} ${rp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+        fi
+
+        if [ "$RPVPLEX_TESTS" = "1" ]; then
+            secho 'RP+VPLEX volume create...'
+            run volume create ${rpvplexvolume} $PROJECT ${rpvplex_src_varray} ${rpvplex_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_VPLEX_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+        fi
+
+        if [ "$RPMP_TESTS" = "1" ]; then
+            secho 'MetroPoint volume create...'
+            run volume create ${rpmpvolume} $PROJECT ${rpmp_src_varray} ${rpmp_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_METROPOINT_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+        fi
+
+        if [ "$RPXIO_TESTS" = "1" ]; then
+            secho 'XIO volume create...'
+            run volume create ${rpxiovolume} $PROJECT ${rpxio_src_varray} ${rpxio_src_vpool} $RP_VOLUME_SIZE --consistencyGroup $RP_XIO_CONSISTENCY_GROUP --count=$RP_VOLUME_COUNT
+        fi
+
 
         # Have to account for "-1" being added to volume name if
         # volume count is greater than 1.
@@ -3911,26 +3900,33 @@ recoverpoint_tests()
         fi
 
         # Run change vpool tests on the volume if the flag is set.
+        # These tests will:
+        #  1. Remove protection from the RP volume.
+        #  2. Add protection to the now unprotected volume.
+        #  3. Upgrade to MP (only in the case of MP CRR tests - for now)
         if [ "$RP_CHANGE_VPOOL" = "1" ]; then
-            secho 'RP change vpool volumes'
-
             if [ "$RP_TESTS" = "1" ]; then
                 secho 'RP change vpool...'
                 recoverpoint_vpool_change_test ${rpvolume}${volume_name_modifier} ${rp_noprotection_vpool} ${rp_src_vpool} ${RP_CONSISTENCY_GROUP}
             fi
 
             if [ "$RPVPLEX_TESTS" = "1" ]; then
-                echo 'RP+VPLEX change vpool...NOT SUPPORTED YET!!'
-                #recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                secho 'RP+VPLEX change vpool...'
+                if [ "$RP_CRR" = "1" ]; then
+                    # Upgrade to MetroPoint change vpool test
+                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP} rpmp_crr
+                else
+                    recoverpoint_vpool_change_test ${rpvplexvolume}${volume_name_modifier} ${rpvplex_noprotection_vpool} ${rpvplex_src_vpool} ${RP_VPLEX_CONSISTENCY_GROUP}
+                fi
             fi
 
             if [ "$RPMP_TESTS" = "1" ]; then
-                echo 'MP change vpool...NOT SUPPORTED YET!!'
+                secho 'MP change vpool...NOT YET SUPPORTED!!'
                 #recoverpoint_vpool_change_test ${rpmpvolume}${volume_name_modifier} ${rpmp_noprotection_vpool} ${rpmp_src_vpool} ${RP_METROPOINT_CONSISTENCY_GROUP}
             fi
 
             if [ "$RPXIO_TESTS" = "1" ]; then
-                secho 'RP XIO change vpool'
+                secho 'RP XIO change vpool...'
                 recoverpoint_vpool_change_test ${rpxiovolume}${volume_name_modifier} ${rpxio_noprotection_vpool} ${rpxio_src_vpool} ${RP_XIO_CONSISTENCY_GROUP}
             fi
         fi

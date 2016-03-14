@@ -10,8 +10,6 @@ public class SiteMonitorResult implements CoordinatorSerializable {
     
     public static final String CONFIG_KIND = "siteMonitorState";
     public static final String CONFIG_ID = "global";
-    
-    private static final String ENCODING_SEPARATOR = "\0";
 
     private long dbQuorumLostSince;
     
@@ -33,9 +31,7 @@ public class SiteMonitorResult implements CoordinatorSerializable {
 
     @Override
     public String encodeAsString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(dbQuorumLostSince);
-        return sb.toString();
+        return String.valueOf(dbQuorumLostSince);
     }
 
     @Override
@@ -43,7 +39,13 @@ public class SiteMonitorResult implements CoordinatorSerializable {
         if (infoStr == null) {
             return null;
         }
-        return new SiteMonitorResult(Long.valueOf(infoStr));
+
+        try {
+            return new SiteMonitorResult(Long.valueOf(infoStr));
+        } catch (NumberFormatException e) {
+            return new SiteMonitorResult();
+        }
+
     }
 
     @Override

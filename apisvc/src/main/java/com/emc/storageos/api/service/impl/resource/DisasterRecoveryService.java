@@ -120,6 +120,7 @@ public class DisasterRecoveryService {
     private static final int SITE_CONNECT_TEST_TIMEOUT = 10 * 1000;
     private static final int SITE_CONNECTION_TEST_PORT = 443;
     private static final String LOCAL_HOST = "localhost";
+    private static final String SYSTEM_ENABLE_FIREWALL = "system_enable_firewall";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -783,14 +784,14 @@ public class DisasterRecoveryService {
 
     private void precheckForPause(String siteNames) {
         PropertyInfo targetProperty = coordinator.getPropertyInfo();
-        String firewallEnabled = targetProperty.getProperty("system_enable_firewall");
+        String firewallEnabled = targetProperty.getProperty(SYSTEM_ENABLE_FIREWALL);
         if (firewallEnabled != null && firewallEnabled.equals("no")) {
             throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "firewall has been disabled." +
                     "Please make sure to keep it enabled until every standby site has been resumed");
         }
 
         String ipsecEnabled = ipsecConfig.getIpsecStatus();
-        if (ipsecEnabled != null && ipsecEnabled.equals("enabled")) {
+        if (ipsecEnabled != null && !ipsecEnabled.equals("enabled")) {
             throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "ipsec has been disabled." +
                     "Please make sure to keep it enabled until every standby site has been resumed");
         }

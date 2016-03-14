@@ -65,6 +65,7 @@ public class DrUtil {
     private static final String DR_OPERATION_LOCK = "droperation";
     private static final String RECORD_AUDITLOG_LOCK = "droperationauditlog";
     private static final int LOCK_WAIT_TIME_SEC = 5; // 5 seconds
+    private static final String ZK_SERVER_STATE = "zk_server_state";
 
     public static final String KEY_ADD_STANDBY_TIMEOUT = "add_standby_timeout_millis";
     public static final String KEY_REMOVE_STANDBY_TIMEOUT = "remove_standby_timeout_millis";
@@ -75,7 +76,7 @@ public class DrUtil {
     public static final String KEY_FAILOVER_ACTIVE_SITE_TIMEOUT = "failover_active_site_timeout_millis";
     public static final String KEY_DB_GC_GRACE_PERIOD = "db_gc_grace_period_millis";
     public static final String KEY_MAX_NUMBER_OF_DR_SITES = "max_number_of_dr_sites";
-    
+
     private CoordinatorClient coordinator;
 
     public DrUtil() {
@@ -509,8 +510,8 @@ public class DrUtil {
             try (BufferedReader input = new BufferedReader(new InputStreamReader(sock.getInputStream()))) {
                 String answer;
                 while ((answer = input.readLine()) != null) {
-                    if (answer.startsWith("zk_server_state")) {
-                        String state = StringUtils.trim(answer.substring("zk_server_state".length()));
+                    if (answer.startsWith(ZK_SERVER_STATE)) {
+                        String state = StringUtils.trim(answer.substring(ZK_SERVER_STATE.length()));
                         log.info("Get current zookeeper mode {}", state);
                         return state;
                     }

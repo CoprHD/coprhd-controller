@@ -2137,9 +2137,6 @@ public class VolumeIngestionUtil {
         if (totalPaths > pathParams.getMaxPaths()) {
             _logger.warn(String.format("Host %s (%s) has more paths assigned %d than max_paths %d",
                     hostName, hostURI.toString(), totalPaths, pathParams.getMaxPaths()));
-            // TODO: i think this should be a log warning, not an exception
-            // throw IngestionException.exceptions.hostZoningHasMorePorts(hostName,
-            //      String.valueOf(totalPaths), String.valueOf(pathParams.getMaxPaths()));
         }
         if (unassignedInitiators > 0) {
             _logger.info(String.format("Host %s (%s) has %d unassigned initiators",

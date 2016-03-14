@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_URI_TO_STRING;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -43,6 +44,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -67,6 +69,7 @@ import com.google.common.base.Joiner;
 public class ReplicaDeviceController implements Controller, BlockOrchestrationInterface {
     private static final Logger log = LoggerFactory.getLogger(ReplicaDeviceController.class);
     private static final String MARK_SNAP_SESSIONS_INACTIVE = "markSnapSessionsInactive";
+    private static final String REMOVE_TARGET_ID_FROM_SNAP_SESSION = "removeTargetIdsFromSnapSession";
     private DbClient _dbClient;
     private BlockDeviceController _blockDeviceController;
 
@@ -504,6 +507,35 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     snapSession.setInactive(true);
                     _dbClient.updateObject(snapSession);
                 }
+            }
+        } finally {
+            WorkflowStepCompleter.stepSucceded(stepId);
+        }
+    }
+
+    public Workflow.Method removeTargetFromSnapSessionMethod(URI snapSession, List<URI> targetIds) {
+        return new Workflow.Method(REMOVE_TARGET_ID_FROM_SNAP_SESSION, snapSession, targetIds);
+    }
+
+    /**
+     * A workflow step that removes the target snapshot uris from the snap session object in database.
+     *
+     * @param snapSession the snap session
+     * @param targetIds the target ids
+     * @param stepId -- Workflow Step Id.
+     */
+    public void removeTargetIdsFromSnapSession(URI snapSession, List<URI> targetIds, String stepId) {
+        try {
+            BlockSnapshotSession snapSessionObj = _dbClient.queryObject(BlockSnapshotSession.class, snapSession);
+            if (snapSessionObj != null) {
+                log.info("Removing target ids {} from snap session {}",
+                        Joiner.on(", ").join(targetIds), snapSessionObj.getLabel());
+                List<String> targets = newArrayList(transform(targetIds, FCTN_URI_TO_STRING));
+                StringSet linkedTargets = snapSessionObj.getLinkedTargets();
+                if (linkedTargets != null) {
+                    linkedTargets.removeAll(targets);
+                }
+                _dbClient.updateObject(snapSessionObj);
             }
         } finally {
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -1099,6 +1131,44 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         log.info(String.format("Step created for remove snapshots [%s] to group on device [%s]",
                 Joiner.on("\t").join(snapshots), storage));
 
+        BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapshots.get(0));
+        Volume sourceVol = _dbClient.queryObject(Volume.class, snap.getParent());
+
+        // delete replication group from array if no more clones in the group.
+        if (ControllerUtils.replicationGroupHasNoOtherSnapshot(_dbClient, repGroupName, snapshots, storage)) {
+            log.info(String.format("Adding step to delete the replication group %s", repGroupName));
+            String sourceRepGroupName = sourceVol.getReplicationGroupInstance();
+            /*
+             * waitFor = workflow.createStep(BlockDeviceController.DELETE_GROUP_STEP_GROUP,
+             * String.format("Deleting replication group  %s", repGroupName),
+             * waitFor, storage, storageSystem.getSystemType(),
+             * BlockDeviceController.class,
+             * _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, true, false, sourceRepGroupName),
+             * _blockDeviceController.rollbackMethodNullMethod(), null);
+             */
+        }
+
+        // get snap session associated if any
+        List<BlockSnapshotSession> sessions = getSnapSessionsForCGVolume(sourceVol);
+        if (sessions.iterator().hasNext()) {
+            BlockSnapshotSession session = sessions.iterator().next();
+            // if deleting snapshot group, add step to mark snap session inactive
+            if (ControllerUtils.replicationGroupHasNoOtherSnapshot(_dbClient, repGroupName, snapshots, storage)) {
+                waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
+                        String.format("marking snap session %s inactive", session.getLabel()), waitFor, storage,
+                        _blockDeviceController.getDeviceType(storage), this.getClass(),
+                        markSnapSessionsInactiveMethod(Arrays.asList(session.getId())),
+                        _blockDeviceController.rollbackMethodNullMethod(), null);
+            } else {
+                // add step to remove the linked target ids from snap session object
+                waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
+                        String.format("updating linked target ids for snap session %s", session.getLabel()), waitFor, storage,
+                        _blockDeviceController.getDeviceType(storage), this.getClass(),
+                        removeTargetFromSnapSessionMethod(session.getId(), snapshots),
+                        _blockDeviceController.rollbackMethodNullMethod(), null);
+            }
+        }
+
         return waitFor;
     }
 
@@ -1125,7 +1195,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     String.format("Deleting replication group  %s", repGroupName),
                     waitFor, storage, storageSystem.getSystemType(),
                     BlockDeviceController.class,
-                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, false, false, sourceRepGroupName),
+                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, true, false, sourceRepGroupName),
                     _blockDeviceController.rollbackMethodNullMethod(), null);
         }
         return waitFor;

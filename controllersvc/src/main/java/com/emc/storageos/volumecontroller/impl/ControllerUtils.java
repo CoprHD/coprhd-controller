@@ -6,6 +6,8 @@ package com.emc.storageos.volumecontroller.impl;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getBlockSnapshotSessionBySessionInstance;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
 
 import java.math.BigDecimal;
@@ -1166,7 +1168,7 @@ public class ControllerUtils {
                     URI cloneID = iter.next();
                     Volume clone = dbClient.queryObject(Volume.class, cloneID);
                     if (clone != null && !clone.getInactive()
-                            && NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
+                            && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                         return true;
                     }
                 }
@@ -1180,7 +1182,7 @@ public class ControllerUtils {
                     URI mirrorID = itr.next();
                     BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
                     if (mirror != null && !mirror.getInactive()
-                            && NullColumnValueGetter.isNotNullValue(mirror.getReplicationGroupInstance())) {
+                            && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                         return true;
                     }
                 }
@@ -1195,7 +1197,7 @@ public class ControllerUtils {
                 URI snapshotID = it.next();
                 BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
                 if (snapshot != null && !snapshot.getInactive()
-                        && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                        && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                     return true;
                 }
             }
@@ -1210,7 +1212,7 @@ public class ControllerUtils {
                     URI sessionID = itr.next();
                     BlockSnapshotSession session = dbClient.queryObject(BlockSnapshotSession.class, sessionID);
                     if (session != null && !session.getInactive()
-                            && NullColumnValueGetter.isNotNullValue(session.getReplicationGroupInstance())) {
+                            && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                         return true;
                     }
                 }
@@ -1912,6 +1914,23 @@ public class ControllerUtils {
 
         s_logger.info("rpVolumeCount {} volume size {}", rpVolumeCount, volumes.size());
         return rpVolumeCount == volumes.size();
+    }
+
+    /**
+     * Returns true if the Replication group has no snapshot other than the given ones.
+     *
+     * @param dbClient the db client
+     * @param rgName the RG name
+     * @param snapshots the snapshots
+     * @param storage the storage
+     * @return true, if successful
+     */
+    public static boolean replicationGroupHasNoOtherSnapshot(DbClient dbClient, String rgName, Collection<URI> snapshots, URI storage) {
+        List<BlockSnapshot> snapshotsInRG = getSnapshotsPartOfReplicationGroup(rgName, storage, dbClient);
+        List<URI> snapshotURsInRG = newArrayList(transform(snapshotsInRG, fctnDataObjectToID()));
+        s_logger.info("Snapshot count in RG: {}, given snapshots count: {}", snapshotsInRG.size(), snapshots.size());
+        snapshotURsInRG.removeAll(snapshots);
+        return snapshotURsInRG.isEmpty();
     }
 
     /**

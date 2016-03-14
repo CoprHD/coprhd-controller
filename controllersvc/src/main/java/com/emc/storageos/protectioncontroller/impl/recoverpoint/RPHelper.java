@@ -1402,10 +1402,10 @@ public class RPHelper {
                             sourceVolume.getRpCopyName());
 
                     // Check for Stanbdy journals in the case of MetroPoint
-                    String standbyInternalSite = getStandbyInternalSite(dbClient, sourceVolume);
-                    if (standbyInternalSite != null) {
+                    String standbyCopyName = getStandbyProductionCopyName(dbClient, sourceVolume);
+                    if (standbyCopyName != null) {
                         sourceJournals.addAll(RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(),
-                                standbyInternalSite));
+                                standbyCopyName));
                     }
 
                     allRelatedVolumes.addAll(sourceJournals);
@@ -1418,7 +1418,7 @@ public class RPHelper {
 
                         if (includeJournalVolumes) {
                             List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient,
-                                    targetVolume.getConsistencyGroup(), targetVolume.getInternalSiteName());
+                                    targetVolume.getConsistencyGroup(), targetVolume.getRpCopyName());
                             allRelatedVolumes.addAll(targetJournals);
                         }
                     }

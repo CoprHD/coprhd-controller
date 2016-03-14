@@ -39,6 +39,7 @@ public class RPRecommendation extends Recommendation {
 	private ProtectionType protectionType;
 	//Size in Bytes of each resource
 	private Long size;
+	private String rpCopyName;
 		 	 
 	public VPlexRecommendation getVirtualVolumeRecommendation() {
 		return virtualVolumeRecommendation;
@@ -275,4 +276,12 @@ public class RPRecommendation extends Recommendation {
 		}
 		return buff.toString();
 	}
+
+    public String getRpCopyName() {
+        return rpCopyName;
+    }
+
+    public void setRpCopyName(String rpCopyName) {
+        this.rpCopyName = rpCopyName;
+    }
 }

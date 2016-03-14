@@ -103,8 +103,11 @@ public class IPSecMonitor implements Runnable {
 
             log.info("Found problem nodes which are: " + Arrays.toString(problemNodes));
 
-            log.info("step 2: get latest ipsec properties of the no connection nodes");
-            Map<String, String> latest = getLatestIPSecProperties(problemNodes);
+            log.info("step 2: get latest ipsec properties of all nodes of the cluster");
+            String[] allNodes = LocalRepository.getInstance().getAllNodesIncluster();
+            log.info("all nodes in the cluster are: " + Arrays.toString(allNodes));
+            Map<String, String> latest = getLatestIPSecProperties(allNodes);
+
             if (latest == null) {
                 log.info("no latest ipsec properties found, skip following check steps");
                 return;

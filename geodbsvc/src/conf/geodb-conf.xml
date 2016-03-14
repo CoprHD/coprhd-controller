@@ -90,5 +90,10 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="schemaUtil" ref="dbschemautil"/>
     </bean>
-	
+
+    <bean id="dbCompactWorker" class="com.emc.storageos.db.server.impl.DbCompactWorker">
+        <property name="retryTimes" value="3"/>
+        <property name="initialDelayInHour" value="0"/>
+        <property name="intervalInHour" value="120"/>
+    </bean>	
 </beans>

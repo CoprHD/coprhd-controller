@@ -6,23 +6,25 @@ package controllers;
 
 import static controllers.Common.flashException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.BackupInfo;
 import models.datatable.BackupDataTable;
 import models.datatable.BackupDataTable.Type;
 
 import org.apache.commons.lang.StringUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.data.binding.As;
 import play.data.validation.Required;
-import play.data.validation.Valid;
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
 import util.BackupUtils;
-import util.BourneUtil;
 import util.MessagesUtils;
 import util.datatable.DataTablesSupport;
 
@@ -42,6 +44,7 @@ import controllers.util.FlashException;
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class Backup extends Controller {
+    private static final Logger log = LoggerFactory.getLogger(Backup.class);
 
     protected static final String SAVED_SUCCESS = "backup.save.success";
     protected static final String DELETED_SUCCESS = "backup.delete.success";
@@ -85,9 +88,9 @@ public class Backup extends Controller {
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
-                    ExternalBackupInfo backupInfo = BackupUtils.getExternalBackup(id);
+                    BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
                     BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
-                    if (backupInfo.getCreateTime() != null) {
+                    if (backupInfo.getCreateTime() != 0) {
                         backup.creationtime = backupInfo.getCreateTime();
                     }
                     backup.status = backupInfo.getRestoreStatus().getStatus().name();
@@ -158,15 +161,16 @@ public class Backup extends Controller {
     }
 
     public static void restore(String id, Type type) {
-        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
-        renderArgs.put("status", status);
-        renderArgs.put("id", id);
-        renderArgs.put("type", type);
-
         if (type == Type.REMOTE) { // pull first if remote backup set
             BackupUtils.pullBackup(id);
         }
-        
+
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
+        renderArgs.put("status", status);
+        renderArgs.put("percentages", new RestoreStatus(status).percentageMap);
+        renderArgs.put("id", id);
+        renderArgs.put("type", type);
+
         render();
     }
 
@@ -259,22 +263,27 @@ public class Backup extends Controller {
 
     public static class RestoreStatus {
         private String backupName;
-        private long backupSize;
-        private long downloadSize;
         private BackupRestoreStatus.Status status;
         private boolean isGeo;
-
-        private String message;
+        private Map<String, Long> sizeToDownload;
+        private Map<String, Long> downloadedSize;
+        private Map<String, Integer> percentageMap;
+        private String details;
 
         public RestoreStatus(BackupRestoreStatus origin) {
             this.backupName = origin.getBackupName();
-            this.backupSize = origin.getBackupSize();
-            this.downloadSize = origin.getDownoadSize();
+            this.sizeToDownload = origin.getSizeToDownload();
+            this.downloadedSize = origin.getDownloadedSize();
             this.status = origin.getStatus();
             this.isGeo = origin.isGeo();
-            this.message = origin.getStatus().getMessage();
+            this.details = origin.getDetails();
+
+            percentageMap = new HashMap<String, Integer>(sizeToDownload.size());
+            for (String hostname : sizeToDownload.keySet()) {
+                int percentage = sizeToDownload.get(hostname) == 0L ? 0
+                        : (int) (downloadedSize.get(hostname) * 100 / sizeToDownload.get(hostname));
+                percentageMap.put(hostname, percentage);
+            }
         }
-
     }
-
 }

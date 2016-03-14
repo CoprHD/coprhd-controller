@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -932,6 +933,17 @@ public class Volume extends BlockObject implements ProjectResource {
     public boolean isVPlexVolume(DbClient dbClient) {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageController());
         return DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType());
+    }
+    
+    /**
+     * Check whether the given volume is vmax3 volume
+     * 
+     * @param volume
+     * @return {@link Boolean}
+     */
+    public boolean isVmax3Volume(DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, this.getStorageController());
+        return (storage != null && storage.checkIfVmax3());
     }
 
     public static boolean isSRDFProtectedTargetVolume(Volume volume) {

@@ -166,7 +166,7 @@ class ConsistencyGroup(object):
                 "consistency groupwith name: " + name + " already exists",
                 SOSError.ENTRY_ALREADY_EXISTS_ERR)
 
-    def update(self, name, project, tenant, add_volumes, remove_volumes, sync,synctimeout):
+    def update(self, name, project, tenant, add_volumes, remove_volumes, sync,synctimeout=0):
         '''
         This function is used to add or remove volumes from consistency group
         It will update the consistency  group with given volumes.
@@ -218,7 +218,7 @@ class ConsistencyGroup(object):
         else:
             return o
 
-    def delete(self, name, project, tenant):
+    def delete(self, name, project, tenant, vipronly=False):
         '''
         This function will take consistency group name and project name
         as input and marks the particular consistency group as delete.
@@ -229,11 +229,14 @@ class ConsistencyGroup(object):
             return with status of the delete operation.
             false incase it fails to do delete.
         '''
+	params = ''
+        if (vipronly == True):
+            params += "?type=" + 'VIPR_ONLY'
         uri = self.consistencygroup_query(name, project, tenant)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
-            self.URI_CONSISTENCY_GROUPS_DEACTIVATE.format(uri),
+            self.URI_CONSISTENCY_GROUPS_DEACTIVATE.format(uri) + params,
             None, None)
         return
 
@@ -259,7 +262,7 @@ class ConsistencyGroup(object):
                        "Consistency Group " + name + ": not found")
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync,synctimeout):
+    def check_for_sync(self, result, sync,synctimeout=0):
         if(len(result["resource"]) > 0):
             resource = result["resource"]
             return (
@@ -608,13 +611,18 @@ def delete_parser(subcommand_parsers, common_parser):
                                metavar='<tenantname>',
                                dest='tenant',
                                help='container tenant name')
+    delete_parser.add_argument('-vipronly', '-vo',
+                            dest='vipronly',
+                            help='Delete only from ViPR',
+                            action='store_true')
+
     delete_parser.set_defaults(func=consistencygroup_delete)
 
 
 def consistencygroup_delete(args):
     obj = ConsistencyGroup(args.ip, args.port)
     try:
-        res = obj.delete(args.name, args.project, args.tenant)
+        res = obj.delete(args.name, args.project, args.tenant, args.vipronly)
         return res
     except SOSError as e:
         raise SOSError(SOSError.SOS_FAILURE_ERR, "Consistency Group " +
@@ -761,7 +769,7 @@ def snapshot_parser(subcommand_parsers, common_parser):
     sscreate_parser.add_argument('-createinactive', '-ci',
                                  dest='createinactive',
                                  action='store_true',
-                                 help='Create snaphsot with inactive state')
+                                 help='Create snapshot with inactive state')
 
     #snapshot list
     sslist_parser = subcommand_parsers.add_parser(

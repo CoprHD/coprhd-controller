@@ -5,37 +5,33 @@
 
 package com.emc.storageos.systemservices.impl;
 
-import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
-import com.emc.storageos.systemservices.impl.property.PropertyManager;
-import com.emc.storageos.systemservices.impl.security.SecretsManager;
-import com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate;
-
-import com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor;
-import com.emc.storageos.systemservices.impl.util.MailHandler;
 import org.apache.cassandra.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
+import com.emc.storageos.coordinator.client.service.DrUtil;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.security.AbstractSecuredWebServer;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
+import com.emc.storageos.systemservices.SysSvc;
+import com.emc.storageos.systemservices.impl.audit.SystemAudit;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
+import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
+import com.emc.storageos.systemservices.impl.jobs.DiagnosticsScheduler;
+import com.emc.storageos.systemservices.impl.property.PropertyManager;
+import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
+import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import com.emc.storageos.systemservices.impl.upgrade.ClusterAddressPoller;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.upgrade.RemoteRepository;
 import com.emc.storageos.systemservices.impl.upgrade.UpgradeManager;
+import com.emc.storageos.systemservices.impl.upgrade.beans.SoftwareUpdate;
+import com.emc.storageos.systemservices.impl.util.DrPostFailoverDBCheckHandler;
+import com.emc.storageos.systemservices.impl.util.DrSiteNetworkMonitor;
+import com.emc.storageos.systemservices.impl.util.MailHandler;
 import com.emc.storageos.systemservices.impl.vdc.VdcManager;
-import com.emc.storageos.systemservices.impl.recovery.RecoveryManager;
-import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
-import com.emc.storageos.coordinator.client.service.DrUtil;
-import com.emc.storageos.systemservices.SysSvc;
-import com.emc.storageos.systemservices.impl.audit.SystemAudit;
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.server.impl.DbServiceImpl;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Default SysSvc implementation - starts/stops REST service
@@ -84,6 +80,12 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     @Autowired
     private DrSiteNetworkMonitor _drSiteNetworkMonitor;
+
+    @Autowired
+    private DiagnosticsScheduler diagnosticsScheduler;
+    
+    @Autowired
+    private DrPostFailoverDBCheckHandler drPostFailoverDBCheckHandler;
 
     public void setUpgradeManager(UpgradeManager upgradeMgr) {
         _upgradeMgr = upgradeMgr;
@@ -183,6 +185,10 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _drNetworkMonitorThread.start();
     }
 
+    private void startDiagnosticsScheduler() {
+        diagnosticsScheduler.start();
+    }
+
     @Override
     public void start() throws Exception {
         if (_app != null) {
@@ -201,8 +207,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startNewVersionCheck();
             startUpgradeManager();
             startSecretsManager();
-            startPropertyManager();
-            startVdcManager();
             startIpReconfigManager();
             
             //config cassandra as client mode to avoid load yaml file
@@ -214,11 +218,18 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
                 startSystemAudit(_dbClient);
             }
             _svcBeacon.start();
-
+            // start property manager and vdc manager after beacon is registered
+            // since they would update beacon
+            startPropertyManager();
+            startVdcManager();
 
             if (drUtil.isActiveSite()) {
                 startNetworkMonitor();
             }
+
+            startDiagnosticsScheduler();
+            
+            drPostFailoverDBCheckHandler.run();
         } else {
             throw new Exception("No app found.");
         }

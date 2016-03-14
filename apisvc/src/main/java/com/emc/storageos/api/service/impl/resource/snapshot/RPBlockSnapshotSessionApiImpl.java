@@ -64,7 +64,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         if (URIUtil.isType(requestedSourceURI, Volume.class)) {
             Volume sourceVolume = (Volume) requestedSourceObj;
             boolean protectionBased = RPHelper.isProtectionBasedSnapshot(sourceVolume,
-                    BlockSnapshot.TechnologyType.NATIVE.name());
+                    BlockSnapshot.TechnologyType.NATIVE.name(), _dbClient);
             if (protectionBased) {
                 throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
             }
@@ -197,10 +197,10 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
-            String taskId) {
+            String taskId, boolean inApplication) {
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
         BlockSnapshotSession snapSession = snapSessionImpl.prepareSnapshotSessionFromSource(sourceObj, snapSessionLabel,
-                instanceLabel, taskId);
+                instanceLabel, taskId, inApplication);
         return snapSession;
     }
 
@@ -230,7 +230,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sessionCount, int newTargetCount,
-            String newTargetsName) {
+            String newTargetsName, boolean inApplication) {
         // Important: that the only difference between these snapshots and snapshots created with the
         // create snapshot APIs is that the parent and project NamedURIs for those snapshots use the
         // snapshot label rather than the source label. This is an inconsistency between non-RP snaps
@@ -238,7 +238,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
         BlockObject sourceObj = sourceObjList.get(0);
         BlockSnapshotSessionApi snapSessionImpl = getImplementationForBackendSystem(sourceObj.getStorageController());
         List<Map<URI, BlockSnapshot>> snapshotMap = snapSessionImpl.prepareSnapshotsForSession(sourceObjList, sessionCount, newTargetCount,
-                newTargetsName);
+                newTargetsName, inApplication);
         for (Map<URI, BlockSnapshot> map : snapshotMap) {
             for (BlockSnapshot snapshot : map.values()) {
                 // This is a native snapshot so do not set the consistency group, otherwise

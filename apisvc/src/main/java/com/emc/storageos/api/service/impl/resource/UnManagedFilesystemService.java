@@ -439,7 +439,7 @@ public class UnManagedFilesystemService extends TaggedResource {
 
                     if (StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
 
-                        sPort = getIsilonStoragePort(port, nasUri, _dbClient, neighborhood.getId());
+                        sPort = getIsilonStoragePort(port, neighborhood.getId());
 
                     } else {
                         sPort = compareAndSelectPortURIForUMFS(system, port,
@@ -524,6 +524,9 @@ public class UnManagedFilesystemService extends TaggedResource {
                             // Step 2 : Convert them to nfs Share ACL
                             // Step 3 : Keep them as a list to store in db, down the line at a shot
                             umNfsAcl.setFileSystemId(filesystem.getId()); // Important to relate the shares to a FileSystem.
+                            if(umNfsAcl.getPermissions().isEmpty()){
+                                continue;
+                            }
                             createNFSACL(umNfsAcl, fsNfsShareAcls, filesystem);
                             // Step 4: Update the UnManaged Share ACL : Set Inactive as true
                             umNfsAcl.setInactive(true);
@@ -804,42 +807,14 @@ public class UnManagedFilesystemService extends TaggedResource {
      * @return StoragePort
      */
 
-    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, String nasUri, DbClient dbClient, URI virtualArray) {
-        StoragePort sp = null;
-        NASServer nasServer = null;
-
-        if (StringUtils.equals("VirtualNAS", URIUtil.getTypeName(nasUri))) {
-            nasServer = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
-        }
-        else {
-            nasServer = dbClient.queryObject(PhysicalNAS.class, URI.create(nasUri));
-        }
+    private StoragePort getIsilonStoragePort(StoragePort umfsStoragePort, URI virtualArray) {
 
         List<URI> virtualArrayPorts = returnAllPortsInVArray(virtualArray);
-        StringSet virtualArrayPortsSet = new StringSet();
-
-        StringSet storagePorts = nasServer.getStoragePorts();
-
-        for (URI tempVarrayPort : virtualArrayPorts) {
-            virtualArrayPortsSet.add(tempVarrayPort.toString());
+        
+        if(virtualArrayPorts.contains(umfsStoragePort.getId())){
+            return umfsStoragePort;
         }
-
-        StringSet commonPorts = null;
-
-        if (virtualArrayPorts != null && storagePorts != null) {
-            commonPorts = new StringSet(storagePorts);
-            commonPorts.retainAll(virtualArrayPortsSet);
-        }
-
-        if (commonPorts.contains(umfsStoragePort.getId())) {
-            sp = umfsStoragePort;
-        } else {
-            List<String> tempList = new ArrayList<String>(commonPorts);
-            Collections.shuffle(tempList);
-            sp = dbClient.queryObject(StoragePort.class,
-                    URI.create(tempList.get(0)));
-        }
-        return sp;
+        return null;
     }
 
     @Override

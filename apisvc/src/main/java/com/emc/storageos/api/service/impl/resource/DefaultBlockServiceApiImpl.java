@@ -225,7 +225,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         }
 
         if (VirtualPool.vPoolSpecifiesProtection(newVirtualPool) &&
-                VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume,
+                VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume,
                         volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
             allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
         }
@@ -284,18 +284,24 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             return toTask(consistencyGroup, task, op);
         } else {
             // ScaleIO does not have explicit CGs, so we can just update the database and complete
-            List<Volume> addVolumes = _dbClient.queryObject(Volume.class, addVolumesList, true);
-            for (Volume volume : addVolumes) {
+            Iterator<Volume> addVolumeItr = _dbClient.queryIterativeObjects(Volume.class, addVolumesList);
+            List<Volume> addVolumes = new ArrayList<Volume>();
+            while (addVolumeItr.hasNext()) {
+                Volume volume = addVolumeItr.next();
                 volume.setConsistencyGroup(consistencyGroup.getId());
+                addVolumes.add(volume);
             }
 
-            List<Volume> removeVolumes = _dbClient.queryObject(Volume.class, removeVolumesList, true);
-            for (Volume volume : removeVolumes) {
-                volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+            Iterator<Volume> removeVolumeItr = _dbClient.queryIterativeObjects(Volume.class, removeVolumesList);
+            List<Volume> removeVolumes = new ArrayList<Volume>();
+            while (removeVolumeItr.hasNext()) {
+                Volume volume = removeVolumeItr.next();
+                volume.setConsistencyGroup(consistencyGroup.getId());
+                removeVolumes.add(volume);
             }
 
-            _dbClient.updateAndReindexObject(addVolumes);
-            _dbClient.updateAndReindexObject(removeVolumes);
+            _dbClient.updateObject(addVolumes);
+            _dbClient.updateObject(removeVolumes);
             return toCompletedTask(consistencyGroup, task, op);
         }
     }
@@ -396,12 +402,14 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         ApplicationAddVolumeList addVolumeList = new ApplicationAddVolumeList() ;
 
         Map<URI, List<URI>> addCGVolsMap = new HashMap<URI, List<URI>>();
+        String newRGName = volumeList.getReplicationGroupName();
         for (URI voluri : volumeList.getVolumes()) {
             Volume volume = _dbClient.queryObject(Volume.class, voluri);
             if (volume == null || volume.getInactive()) {
                 _log.info(String.format("The volume %s does not exist or has been deleted", voluri));
                 continue;
             }
+
             URI cgUri = volume.getConsistencyGroup();
             if (!NullColumnValueGetter.isNullURI(cgUri)) {
                 List<URI> vols = addCGVolsMap.get(cgUri);
@@ -415,12 +423,13 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
                         String.format("The volume %s is not in a consistency group", volume.getLabel()));
             }
+
+            String rgName = volume.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(rgName) && !rgName.equals(newRGName)) {
+                throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
+                        String.format("The volume %s is already in an array replication group, only the existing group name is allowed.", volume.getLabel()));
+            }
         }
-        
-        List<Volume> vgVols = CustomQueryUtility
-                .queryActiveResourcesByConstraint(_dbClient, Volume.class,
-                        AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(application.getId().toString()));
-        boolean canCGHaveReplica = vgVols.isEmpty() ? true : false;
 
         Set<URI> appReadyCGUris = new HashSet<URI>();
         Set<Volume> appReadyCGVols = new HashSet<Volume>();
@@ -443,17 +452,6 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             if (!cgVolumeURIs.containsAll(cgVolsToAdd) || cgVolsToAdd.size() != cgVolumeURIs.size()) {
                 throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolume.getLabel(),
                         "not all volumes in consistency group are in the add volume list");
-            }
-
-            StringSet fullCopies = firstVolume.getFullCopies();
-            if ((fullCopies != null && !fullCopies.isEmpty()) || ControllerUtils.checkIfVolumeHasSnapshot(firstVolume, _dbClient)) {
-                if (canCGHaveReplica) {
-                    canCGHaveReplica = false; // only one CG can have replica
-                } else {
-                    // adding volumes with existing clones/snapshots is not supported when application is not empty, or two or more CGs in the order have replicas
-                    throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
-                            "Volume with replicas cannot be added if volume group is not empty, or volumes being added from other consistency group have replicas");
-                }
             }
 
             if (ControllerUtils.isVnxVolume(firstVolume, _dbClient) && !ControllerUtils.isNotInRealVNXRG(firstVolume, _dbClient)) {
@@ -651,7 +649,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                 .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
         for (Volume volume : volumes) {
-            if (volume.getReplicationGroupInstance() != null) {
+            if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                 groupNames.add(volume.getReplicationGroupInstance());
             }
         }

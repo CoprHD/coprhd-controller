@@ -30,7 +30,7 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
     // New volume generated when the snapshot was created or exported
     private String _newVolumeNativeId;
 
-    // Set of snapshots generated at the same time, with the same consistency group
+    // Label for snapshots generated at the same time, with the same consistency group or volume group.
     private String _snapsetLabel;
 
     // Source ALU, for convenience
@@ -92,6 +92,17 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
 
     // This value is an indicator if the snapshot is read only or writable
     private Boolean _isReadOnly;
+
+    // Mode used to create this snapshot.
+    // NO_COPY - for VMAX2, VNX, VMAX3 sessions
+    // COPY - supported only on VMAX3 sessions
+    private String copyMode = CopyMode.nocopy.toString();
+    
+    // Enum defines copy modes for array snapshot sessions.
+    public enum CopyMode {
+        copy,
+        nocopy
+    }
 
     public enum TechnologyType {
         NATIVE,
@@ -395,5 +406,15 @@ public class BlockSnapshot extends BlockObject implements ProjectResourceSnapsho
         URIQueryResultList exportGroupURIs = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory.getBlockObjectExportGroupConstraint(getId()), exportGroupURIs);
         return exportGroupURIs.iterator().hasNext();
+    }
+
+    @Name("copyMode")
+    public String getCopyMode() {
+        return copyMode;
+    }
+
+    public void setCopyMode(String copyMode) {
+        this.copyMode = copyMode;
+        setChanged("copyMode");
     }
 }

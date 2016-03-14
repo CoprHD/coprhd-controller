@@ -5,14 +5,19 @@
 package com.emc.storageos.management.backup;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.text.DateFormat;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -20,6 +25,8 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.management.JMX;
 import javax.management.MBeanServerConnection;
@@ -29,8 +36,11 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
-import com.emc.storageos.model.property.PropertyConstants;
+import com.emc.storageos.management.backup.util.FtpClient;
+import com.emc.vipr.model.sys.backup.BackupInfo;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -276,6 +286,34 @@ public class BackupOps {
         return new File(BackupConstants.RESTORE_DIR, backupFolder);
     }
 
+    public Map<String, Long> getInternalDownloadSize(String backupName) {
+        Map<String, Long> downloadSize = new HashMap();
+
+        File folder = getDownloadDirectory(backupName);
+        File[] files = getBackupFiles(folder);
+
+        try {
+            String localHostName = InetAddress.getLocalHost().getHostName();
+            Map<String, URI> nodes = getNodesInfo();
+            for (Map.Entry<String, URI> node : nodes.entrySet()) {
+                String hostname = toHostName(node.getKey());
+                if (hostname.equals(localHostName)) {
+                    continue; // zip file has already been downloaded
+                }
+                long size = 0;
+                for (File f : files) {
+                    if (belongToNode(f, hostname)) {
+                        size += f.length();
+                    }
+                }
+                downloadSize.put(hostname, size);
+            }
+        }catch(URISyntaxException | UnknownHostException e) {
+            log.error("Failed to set download size e=", e.getMessage());
+        }
+
+        return downloadSize;
+    }
     /**
      * Create backup file on all nodes
      * 
@@ -372,6 +410,64 @@ public class BackupOps {
         checkBackup(infoPropertyFile, isGeo);
     }
 
+    public List<URI> getOtherNodes() throws URISyntaxException, UnknownHostException {
+        Map<String, URI> nodes = getNodesInfo();
+        String localHostName = InetAddress.getLocalHost().getHostName();
+        List<URI> uris = new ArrayList();
+        for (Map.Entry<String, URI> node : nodes.entrySet()) {
+            String hostname = toHostName(node.getKey());
+            if (hostname.equals(localHostName)) {
+                continue;
+            }
+
+            uris.add(node.getValue());
+        }
+        return uris;
+    }
+
+    public URI getMyURI() throws URISyntaxException, UnknownHostException {
+        Map<String, URI> nodes = getNodesInfo();
+        String localHostName = InetAddress.getLocalHost().getHostName();
+        for (Map.Entry<String, URI> node : nodes.entrySet()) {
+            String hostname = toHostName(node.getKey());
+            if (hostname.equals(localHostName)) {
+                return node.getValue();
+            }
+        }
+
+        log.error("Can't find my URI localhost={}", localHostName);
+        
+        return null;
+    }
+
+    public List<String> getBackupFileNames(File backupFolder) throws UnknownHostException, URISyntaxException {
+        File[] backupFiles = getBackupFiles(backupFolder);
+
+        if (backupFiles == null) {
+            String errMsg = String.format("The %s contains no backup files", backupFolder.getAbsolutePath());
+            throw new RuntimeException(errMsg);
+        }
+
+        List<String> filenames = new ArrayList();
+
+        for (File f : backupFiles) {
+            filenames.add(f.getName());
+        }
+
+        return filenames;
+    }
+
+    private String toHostName(String nodeName) {
+        return nodeName.replace("node", "vipr");
+    }
+
+    private boolean belongToNode(File file, String nodeName) {
+        String filename = file.getName();
+        return filename.contains(nodeName) ||
+               filename.contains(BackupConstants.BACKUP_INFO_SUFFIX) ||
+               filename.contains(BackupConstants.BACKUP_ZK_FILE_SUFFIX);
+    }
+
     private File[] getBackupFiles(File backupFolder) {
         FilenameFilter filter = new FilenameFilter() {
             @Override
@@ -450,7 +546,7 @@ public class BackupOps {
 
     public void persistCurrentBackupInfo(String backupName, boolean isLocal) {
         ConfigurationImpl config = new ConfigurationImpl();
-        config.setKind(BackupConstants.BACKUP_RESTORE_STATUS);
+        config.setKind(BackupConstants.PULL_RESTORE_STATUS);
         config.setId(Constants.GLOBAL_ID);
         config.setConfig(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY, backupName);
         config.setConfig(BackupConstants.CURRENT_DOWNLOADING_BACKUP_ISLOCAL_KEY, Boolean.toString(isLocal));
@@ -459,9 +555,14 @@ public class BackupOps {
         log.info("Persist current backup info to zk successfully");
     }
 
-    public Map<String, String> getCurrentBackupInfo() {
+    public String getCurrentBackupName() {
+        Map<String, String> currentBackupInfo = getCurrentBackupInfo();
+        return currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+    }
+
+    private Map<String, String> getCurrentBackupInfo() {
         Configuration cfg = coordinatorClient.queryConfiguration(coordinatorClient.getSiteId(),
-                BackupConstants.BACKUP_RESTORE_STATUS, Constants.GLOBAL_ID);
+                BackupConstants.PULL_RESTORE_STATUS, Constants.GLOBAL_ID);
 
         Map<String, String> allItems = (cfg == null) ? new HashMap<String, String>() : cfg.getAllConfigs(false);
 
@@ -477,24 +578,28 @@ public class BackupOps {
     /**
      * Persist download status to ZK
      */
-    public void setBackupFileSize(String backupName, long size) {
-        updateRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOADING, size, 0, false, true, true);
+    public void setBackupFileNames(String backupName, List<String> filenames) {
+        updateRestoreStatus(backupName, null, null, null, 0, false, filenames, true, false);
     }
 
-    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, boolean increaseCompleteNumber) {
-        updateRestoreStatus(backupName, s, 0, 0, increaseCompleteNumber, false, true);
+    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, String details,
+                                 boolean increaseCompleteNumber, boolean doLock) {
+        updateRestoreStatus(backupName, s, details, null, 0, increaseCompleteNumber, null, true, doLock);
     }
 
-    public void updateDownloadSize(String backupName, long size) {
-        updateRestoreStatus(backupName, null, 0, size, false, false, false);
+    public void updateDownloadedSize(String backupName, long size, boolean doLock) {
+        updateRestoreStatus(backupName, null, null, null, size, false, null, false, doLock);
     }
 
-    private void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, long backupSize, long increasedSize,
-                                              boolean increaseCompletedNodeNumber, boolean resetCompletedNumber, boolean doLog) {
+    public void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, String details,
+                                     Map<String, Long>downloadSize, long increasedSize, boolean increaseCompletedNodeNumber,
+                                     List<String> backupfileNames, boolean doLog, boolean doLock) {
         InterProcessLock lock = null;
         try {
-            lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
-                    -1, TimeUnit.MILLISECONDS); // -1= no timeout
+            if (doLock) {
+                lock = getLock(BackupConstants.RESTORE_STATUS_UPDATE_LOCK,
+                        -1, TimeUnit.MILLISECONDS); // -1= no timeout
+            }
 
             if (doLog) {
                 log.info("get lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
@@ -502,50 +607,87 @@ public class BackupOps {
 
             BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
 
-            if ( status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ) {
-                if (!s.getStatus().canBeCanceled()) {
-                    log.info("current status {} can't be canceled", s);
-                    return;
-                }
+            if (!canBeUpdated(status, s)) {
+                return;
             }
 
             s.setBackupName(backupName);
 
             if (status != null) {
-                s.setStatus(status);
+                s.setStatusWithDetails(status, details);
             }
 
-            if (backupSize > 0) {
-                s.setBackupSize(backupSize);
+            if (downloadSize != null) {
+                s.setSizeToDownload(downloadSize);
             }
 
             if (increasedSize > 0) {
-                long newSize = s.getDownoadSize() + increasedSize;
-                s.setDownoadSize(newSize);
+                try {
+                    String localHostName = InetAddress.getLocalHost().getHostName();
+                    s.increaseDownloadedSize(localHostName, increasedSize);
+                }catch (UnknownHostException e) {
+                    log.error("Failed to set downloaded size e=", e);
+                }
             }
 
             if (increaseCompletedNodeNumber) {
                 s.increaseNodeCompleted();
             }
 
-            if (resetCompletedNumber) {
-                s.resetNodeCompleted();
+            if (backupfileNames != null) {
+                s.setBackupFileNames(backupfileNames);
             }
 
+            updateBackupRestoreStatus(s);
+
             persistBackupRestoreStatus(s, false, doLog);
+
+            if (doLog) {
+                log.info("Persist backup restore status {} to zk successfully", s);
+            }
         }finally {
             if (doLog) {
                 log.info("To release lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
             }
-            releaseLock(lock);
+
+            if (doLock) {
+                releaseLock(lock);
+            }
         }
 
-        if (doLog) {
-            log.info("Persist backup restore status to zk successfully");
+    }
+
+    private void updateBackupRestoreStatus(BackupRestoreStatus s) {
+        BackupRestoreStatus.Status restoreStatus = s.getStatus();
+        if ( restoreStatus == BackupRestoreStatus.Status.DOWNLOADING) {
+            long nodeNumber = getHosts().size();
+            if (s.getNodeCompleted() == nodeNumber ) {
+                s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOAD_SUCCESS, null);
+                restoreStatus = BackupRestoreStatus.Status.DOWNLOAD_SUCCESS;
+            }
+        }
+
+        if (restoreStatus == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS ||
+                restoreStatus == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED ||
+                restoreStatus  == BackupRestoreStatus.Status.DOWNLOAD_FAILED ) {
+            clearCurrentBackupInfo();
         }
     }
 
-    private void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal, boolean doLog) {
+    private boolean canBeUpdated(BackupRestoreStatus.Status status, BackupRestoreStatus s) {
+        if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+            return false;
+        }
+
+        if ( (status == BackupRestoreStatus.Status.DOWNLOAD_CANCELLED) && (!s.getStatus().canBeCanceled())) {
+            log.info("current status {} can't be canceled", s);
+            return false;
+        }
+
+        return true;
+    }
+
+    public void persistBackupRestoreStatus(BackupRestoreStatus status, boolean isLocal, boolean doLog) {
         if (doLog) {
             log.info("Persist backup restore status {}", status);
         }
@@ -643,17 +785,19 @@ public class BackupOps {
             return;
         }
 
-        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
-
-        if (!s.getStatus().canBeCanceled()) {
-            log.info("The current backup can't be canceled because its status is {}", s);
-            return;
-        }
-
         if (!isLocal) {
-            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, false);
+            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, null, false, true);
             log.info("Persist the cancel flag into ZK");
         }
+    }
+
+    public File getBackupDir(String backupName, boolean isLocal) {
+        String name = backupName;
+        if (backupName.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
+            name = FilenameUtils.removeExtension(backupName);
+        }
+
+        return isLocal ? new File(getBackupDir(), name) : new File(BackupConstants.RESTORE_DIR, name);
     }
 
     class CreateBackupCallable extends BackupCallable<Void> {
@@ -835,10 +979,12 @@ public class BackupOps {
             return;
         }
         File infoFile = new File(targetDir, backupTag + BackupConstants.BACKUP_INFO_SUFFIX);
+        Date now = new Date();
         try (OutputStream fos = new FileOutputStream(infoFile)) {
             Properties properties = new Properties();
             properties.setProperty(BackupConstants.BACKUP_INFO_VERSION, getCurrentVersion());
             properties.setProperty(BackupConstants.BACKUP_INFO_HOSTS, getHostsWithDualInetAddrs().values().toString());
+            properties.setProperty(BackupConstants.BACKUP_INFO_CREATE_TIME, Long.toString(now.getTime()));
             properties.store(fos, null);
             // Guarantee ower/group owner/permissions of infoFile is consistent with other backup files
             FileUtils.chown(infoFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
@@ -1011,26 +1157,57 @@ public class BackupOps {
     }
 
     public boolean isDownloadInProgress() {
-        CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
+        try {
+            CoordinatorClientImpl client = (CoordinatorClientImpl) coordinatorClient;
 
-        String lockOwner = getDownloadOwnerPath();
-        return client.nodeExists(lockOwner);
+            String path = getDownloadOwnerPath();
+            log.info("Download zk path={}", path);
+            List<String> downloaders = client.getChildren(path);
+            return (downloaders != null) && (!downloaders.isEmpty());
+        }catch(KeeperException.NoNodeException e) {
+            return false; // no downloading is running
+        } catch (Exception e) {
+            log.error("Failed to check downloading tasks e=",e);
+            throw BackupException.fatals.failedToReadZkInfo(e);
+        }
     }
 
-    public void setDownloadOwner() throws Exception {
-        String lockOwner = getDownloadOwnerPath();
+    public boolean isDownloadComplete(String backupName) {
+        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
+        if ( s.getStatus() != BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+            return false;
+        }
+
+        File downloadFolder = getDownloadDirectory(backupName);
+
+        try {
+            checkBackup(downloadFolder);
+        }catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+
+    private String getMyDownloadingZKPath() {
+        String downloadersPath = getDownloadOwnerPath();
         CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
         CoordinatorClientInetAddressMap addrMap = client.getInetAddessLookupMap();
         String myNodeId= addrMap.getNodeId();
-        log.info("lockOwner={} svcId={}", lockOwner, myNodeId);
-        client.createEphemeralNode(lockOwner, myNodeId.getBytes());
+        return downloadersPath+"/"+myNodeId;
     }
 
-    public void deleteDownloadOwner() throws Exception {
-        String lockOwner = getDownloadOwnerPath();
-        log.info("lockOwner={}", lockOwner);
+    public void registerDownloader() throws Exception {
+        String path = getMyDownloadingZKPath();
         CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
-        client.deleteNode(lockOwner);
+        log.info("register downloader: {}", path);
+        client.createEphemeralNode(path, null);
+    }
+
+    public void unregisterDownloader() throws Exception {
+        String path = getMyDownloadingZKPath();
+        log.info("unregister downloader: {}", path);
+        CoordinatorClientImpl client = (CoordinatorClientImpl)coordinatorClient;
+        client.deleteNode(path);
     }
 
     private String getDownloadOwnerPath() {
@@ -1071,7 +1248,7 @@ public class BackupOps {
             lock.release();
             log.info("Release lock successful");
         } catch (Exception ignore) {
-            log.error("Release lock failed", ignore);
+            log.warn("Release lock failed", ignore);
         }
     }
 
@@ -1111,8 +1288,7 @@ public class BackupOps {
                 try {
                     List<BackupSetInfo> nodeBackupFileList = (List<BackupSetInfo>) task.getResponse().getFuture().get();
                     clusterBackupFiles.addAll(nodeBackupFileList, task.getRequest().getNode());
-                    log.info("List backup on node({})success",
-                            task.getRequest().getHost());
+                    log.info("List backup on node({})success", task.getRequest().getHost());
                 } catch (CancellationException e) {
                     log.warn("The task of listing backup on node({}) was canceled",
                             task.getRequest().getHost(), e);
@@ -1212,7 +1388,7 @@ public class BackupOps {
         long creationTime = 0;
         for (BackupFile file : filesForTag) {
             size += file.info.getSize();
-            if (file.type == BackupType.zk) {
+            if (file.type == BackupType.info) {
                 creationTime = file.info.getCreateTime();
             }
         }
@@ -1320,6 +1496,202 @@ public class BackupOps {
         }
 
         return nodesInfo;
+    }
+
+    /**
+     * Query info of a remote backup, if the backup has been downloaded, get info from local downloaded directory
+     * @param backupName
+     * @param serverUri
+     * @param username
+     * @param password
+     * @return
+     * @throws IOException
+     */
+    public BackupInfo getBackupInfo(String backupName, String serverUri, String username, String password) throws IOException {
+        log.info("To get backup info of {} from server={} ", backupName, serverUri);
+
+        File backupFolder= getDownloadDirectory(backupName);
+        try {
+            checkBackup(backupFolder);
+            log.info("The backup {} for this node has already been downloaded", backupName);
+            BackupInfo info = getBackupInfo(backupFolder, false);
+            info.setRestoreStatus(queryBackupRestoreStatus(backupName, false));
+            return info;
+        } catch (Exception e) {
+            // The backup has not been downloaded yet or is invalid, query from the server
+        }
+
+        BackupInfo backupInfo = new BackupInfo();
+        backupInfo.setFileName(backupName);
+
+        FtpClient client = new FtpClient(serverUri, username, password);
+        InputStream in = client.download(backupName);
+        ZipInputStream zin = new ZipInputStream(in);
+        ZipEntry zentry = zin.getNextEntry();
+
+        while (zentry != null) {
+            if (isPropEntry(zentry)) {
+                log.info("Found the property file={}", zentry.getName());
+                setBackupInfo(zin, backupInfo);
+                break;
+            }
+            zentry = zin.getNextEntry();
+        }
+
+        try {
+            zin.closeEntry();
+            zin.close();
+        }catch (IOException e) {
+            log.debug("Failed to close the stream e", e);
+            // it's a known issue to use curl
+            //it's safe to ignore this exception here.
+        }
+
+        return backupInfo;
+    }
+
+    private boolean isPropEntry(ZipEntry zentry) {
+        return zentry.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
+    }
+
+    private void setBackupInfo(ZipInputStream zin, BackupInfo backupInfo) throws IOException {
+        Properties properties = loadProperties(zin);
+
+        backupInfo.setVersion(getBackupVersion(properties));
+        backupInfo.setCreateTime(getCreateTime(properties, backupInfo.getFileName()));
+        backupInfo.setRestoreStatus(queryBackupRestoreStatus(backupInfo.getFileName(), false));
+    }
+
+    /**
+     * Get backup info from local disk, it could be the local backup or the downloaded remote backup
+     * @param backupFolder the folder of local backup
+     * @return
+     */
+    public BackupInfo getBackupInfo(File backupFolder, boolean isLocal) {
+        File[] backupFiles = getBackupFiles(backupFolder);
+
+        File propFile = null;
+        long size = 0;
+
+        for (File backupFile : backupFiles) {
+            size += backupFile.length();
+
+            if (backupFile.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                propFile = backupFile;
+            }
+        }
+
+        BackupInfo backupInfo = new BackupInfo();
+
+        String backupName = backupFolder.getName();
+        backupInfo.setFileName(backupName);
+
+        try (FileInputStream in = new FileInputStream(propFile)) {
+            Properties properties = loadProperties(in);
+            backupInfo.setVersion(getBackupVersion(properties));
+            backupInfo.setCreateTime(getCreateTime(properties, backupName));
+        }catch (IOException e) {
+            log.error("Failed to get backup info from {} e=", propFile.getName(), e);
+        }
+
+        backupInfo.setFileSize(size);
+
+        return backupInfo;
+    }
+
+    private String getBackupVersion(Properties properties) {
+        return properties.getProperty(BackupConstants.BACKUP_INFO_VERSION);
+    }
+
+    private long getCreateTime(Properties properties, String backupName) {
+        long time = getCreateTimeFromProperties(properties);
+        if ( time != 0 )
+            return time;
+
+        //This can happen if the backup file is made before Yoda,
+        // try to get the create time from the backup name
+        time = getCreateTimeFromName(backupName);
+
+        log.info("create time ={}", time);
+        return time;
+    }
+
+    private long getCreateTimeFromProperties(Properties properties) {
+        String stime = properties.getProperty(BackupConstants.BACKUP_INFO_CREATE_TIME);
+        return stime == null ? 0 : Long.parseLong(stime);
+    }
+
+    public long getCreateTimeFromPropFile(File propFile) {
+        long time = 0;
+
+        try (FileInputStream in = new FileInputStream(propFile)) {
+            Properties properties = loadProperties(in);
+            time = getCreateTimeFromProperties(properties);
+        }catch (IOException e) {
+            log.error("Failed to get create time from prop file {} e=", propFile.getName(), e);
+        }
+
+        return time;
+    }
+
+    private Properties loadProperties(InputStream in) {
+        Properties properties = new Properties();
+        try {
+            properties.load(in);
+        }catch(IOException e) {
+            log.error("Failed to load properties e=", e);
+        }
+
+        return properties;
+    }
+
+    private long getCreateTimeFromName(String backupName) {
+        if (backupName == null) {
+            log.error("Backup file name is empty");
+            throw new IllegalArgumentException("Backup file name is empty");
+        }
+
+        if (!backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
+            log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
+            throw new IllegalArgumentException("Invalid backup file name: " + backupName);
+        }
+
+        String[] nameSegs = backupName.split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
+
+        for (String segment : nameSegs) {
+            if (isTimeFormat(segment)) {
+                log.info("Backup({}) create time is: {}", backupName, segment);
+                return convertTime(segment);
+            }
+        }
+
+        log.info("Could not get create time from backup name");
+        return 0;
+    }
+
+    private long convertTime(String stime) {
+        long time = 0;
+
+        DateFormat df = new SimpleDateFormat(BackupConstants.SCHEDULED_BACKUP_DATE_PATTERN);
+        try {
+            Date date = df.parse(stime);
+            time = date.getTime();
+        }catch (Exception e) {
+            log.error("Failed to parse time {} e=", stime, e);
+            time= 0;
+        }
+
+        log.info("time={}", time);
+        return time;
+    }
+
+    private boolean isTimeFormat(String nameSegment) {
+        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_DATE_REGEX_PATTERN,
+                BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
+
+        Pattern backupNamePattern = Pattern.compile(regex);
+
+        return backupNamePattern.matcher(nameSegment).find();
     }
 
     public URI getFirstNodeURI() throws URISyntaxException {

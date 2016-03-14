@@ -70,6 +70,7 @@ import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
+import com.emc.storageos.coordinator.client.model.VdcConfigVersion;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
@@ -236,10 +237,10 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         vdcConfig.setId(vdcShortId);
         persistServiceConfiguration(vdcConfig);
 
-        // insert DR acitve site info to ZK
+        // insert DR active site info to ZK
         Site site = new Site();
         site.setUuid(getSiteId());
-        site.setName("Default Active Site");
+        site.setName("Default Site");
         site.setVdcShortId(vdcShortId);
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
@@ -620,7 +621,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 }
             }
         } catch (final Exception e) {
-            log.info("Failed to persist service configuration e=",e);
+            log.error("Failed to persist service configuration e=",e);
             throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
         }
     }
@@ -732,7 +733,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 || kind.equals(SiteError.CONFIG_KIND)
                 || kind.equals(PowerOffState.CONFIG_KIND)
                 || kind.equals(SiteMonitorResult.CONFIG_KIND)
-                || kind.equals(DOWNLOADINFO_KIND)) {
+                || kind.equals(DOWNLOADINFO_KIND)
+                || kind.equals(DB_DOWNTIME_TRACKER_CONFIG)) {
             return true;
         }
         return false;
@@ -1433,11 +1435,11 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     @Override
     public ClusterInfo.ClusterState getControlNodesState() {
-        return getControlNodesState(_zkConnection.getSiteId(), getNodeCount());
+        return getControlNodesState(_zkConnection.getSiteId());
     }
 
     @Override
-    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+    public ClusterInfo.ClusterState getControlNodesState(String siteId) {
         try {
             // get target repository and configVersion
             final RepositoryInfo targetRepository = getTargetInfo(RepositoryInfo.class);
@@ -1449,12 +1451,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                     RepositoryInfo.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
             final Map<Service, ConfigVersion> controlNodesConfigVersions = getAllNodeInfos(
                     ConfigVersion.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
-
+            final Map<Service, VdcConfigVersion> controlNodesVdcConfigVersions = getAllNodeInfos(
+                    VdcConfigVersion.class, CONTROL_NODE_SYSSVC_ID_PATTERN, siteId);
+            
             return getControlNodesState(targetRepository, controlNodesInfo, targetProperty,
-                    controlNodesConfigVersions, targetPowerOffState, nodeCount);
+                    controlNodesConfigVersions, controlNodesVdcConfigVersions, targetPowerOffState, siteId);
         } catch (Exception e) {
             log.info("Fail to get the control node information ", e);
-            return null;
+            return ClusterInfo.ClusterState.UNKNOWN;
         }
     }
     
@@ -1471,38 +1475,56 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      *            control nodes' configVersions
      * @param targetPowerOffState
      *            target poweroff state
+     * @param siteId
      * @return Control nodes' state
      */
     private ClusterInfo.ClusterState getControlNodesState(final RepositoryInfo targetGiven,
-            final Map<Service, RepositoryInfo> infos,
-            final PropertyInfoRestRep targetPropertiesGiven,
-            final Map<Service, ConfigVersion> configVersions,
-            final PowerOffState targetPowerOffState, 
-            int nodeCount) {
+                                                          final Map<Service, RepositoryInfo> infos,
+                                                          final PropertyInfoRestRep targetPropertiesGiven,
+                                                          final Map<Service, ConfigVersion> configVersions,
+                                                          final Map<Service, VdcConfigVersion> vdcConfigVersions,
+                                                          final PowerOffState targetPowerOffState,
+                                                          String siteId) {
         if (targetGiven == null || targetPropertiesGiven == null || targetPowerOffState == null) {
             // only for first time target initializing
             return ClusterInfo.ClusterState.INITIALIZING;
         }
 
-        if (infos == null || infos.size() != nodeCount || configVersions == null
-                || configVersions.size() != nodeCount) {
+        DrUtil drUtil = new DrUtil(this);
+        Site site = drUtil.getSiteFromLocalVdc(siteId);
+        SiteState siteState = site.getState();
+        int siteNodeCount = site.getNodeCount();
+        if (infos == null || infos.size() != siteNodeCount || configVersions == null
+                || configVersions.size() != siteNodeCount) {
+            return ClusterInfo.ClusterState.DEGRADED;
+        }
+
+        if (siteState == SiteState.STANDBY_ERROR) {
+            log.info("Control nodes' state DEGRADED since DR site state is STANDBY_ERROR");
             return ClusterInfo.ClusterState.DEGRADED;
         }
 
         // 1st. Find nodes which currents and versions are different from target's
         List<String> differentCurrents = getDifferentCurrentsCommon(targetGiven, infos);
         List<String> differentVersions = getDifferentVersionsCommon(targetGiven, infos);
-
+        
         // 2nd. Find nodes which configVersions are different from target's
         // Note : we use config version to judge if properties on a node are sync-ed with target's.
         List<String> differentConfigVersions = getDifferentConfigVersionCommon(
                 targetPropertiesGiven, configVersions);
-
+        List<String> differentVdcConfigVersions = getDifferentVdcConfigVersionCommon(vdcConfigVersions);
+        
         if (targetPowerOffState.getPowerOffState() != PowerOffState.State.NONE) {
             log.info("Control nodes' state POWERINGOFF");
             return ClusterInfo.ClusterState.POWERINGOFF;
         } else if (!differentConfigVersions.isEmpty()) {
             log.info("Control nodes' state UPDATING: {}", Strings.repr(targetPropertiesGiven));
+            return ClusterInfo.ClusterState.UPDATING;
+        } else if (!differentVdcConfigVersions.isEmpty()) {
+            log.info("Control nodes' state UPDATING vdc config version: {}", Strings.repr(differentVdcConfigVersions));
+            return ClusterInfo.ClusterState.UPDATING;
+        } else if (siteState.isDROperationOngoing()) {
+            log.info("Control nodes' state UPDATING since DR operation ongoing: {}", siteState);
             return ClusterInfo.ClusterState.UPDATING;
         } else if (differentCurrents.isEmpty() && differentVersions.isEmpty()) {
             // check for the extra upgrading states
@@ -1713,6 +1735,30 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return differentConfigVersions;
     }
 
+    /**
+     * Common method to compare vdcConfigVersions with target's vdcConfigVersion
+     * 
+     * @param vdcConfigVersions
+     *            nodes' vdcConfigVersions
+     * @return list of nodes which configVersions are different from the target's
+     */
+    private List<String> getDifferentVdcConfigVersionCommon(
+            final Map<Service, VdcConfigVersion> vdcConfigVersions) {
+        List<String> differentConfigVersions = new ArrayList<String>();
+
+        SiteInfo targetSiteInfo = getTargetInfo(SiteInfo.class);
+        if (targetSiteInfo == null) {
+            return differentConfigVersions;
+        }
+        String targetVdcConfigVersion = String.valueOf(targetSiteInfo.getVdcConfigVersion());
+        for (Map.Entry<Service, VdcConfigVersion> entry : vdcConfigVersions.entrySet()) {
+            if (!StringUtils.equals(targetVdcConfigVersion, entry.getValue().getConfigVersion())) {
+                differentConfigVersions.add(entry.getKey().getId());
+            }
+        }
+        return differentConfigVersions;
+    }
+    
     /**
      * The method to identify and return the node which is currently holding the persistent upgrade
      * lock
@@ -1944,16 +1990,22 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public void deletePath(String path) {
         try {
+            if (_zkConnection.curator().checkExists().forPath(path) == null) {
+                log.info("Skip path deletion since {} doesn't exist", path);
+                return;
+            }
+            
             List<String> subPaths = _zkConnection.curator().getChildren().forPath(path);
             for (String subPath : subPaths) {
-                log.info("Subpath {} is going to be deleted", subPath);
+                log.info("Subpath {}/{} is going to be deleted", path, subPath);
             }
             
             DeleteBuilder deleteOp = _zkConnection.curator().delete();
             deleteOp.deletingChildrenIfNeeded();
             deleteOp.forPath(path);
         } catch (Exception ex) {
-            CoordinatorException.fatals.unableToDeletePath(path, ex);
+            log.error("Failed to delete ZK path: {}", path, ex);
+            throw CoordinatorException.fatals.unableToDeletePath(path, ex);
         }
     }
 
@@ -1973,12 +2025,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     public void createEphemeralNode(String path, byte[] data) throws Exception {
         log.info("create ephemeral node path={} data={}", path, data);
-        _zkConnection.curator().create().withMode(CreateMode.EPHEMERAL).
+        _zkConnection.curator().create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).
                 forPath(path, data);
     }
 
     public void deleteNode(String path) throws Exception {
         log.info("delete ephemeral node path={}", path);
         _zkConnection.curator().delete().forPath(path);
+    }
+
+    public List<String> getChildren(String path) throws Exception {
+        return _zkConnection.curator().getChildren().forPath(path);
     }
 }

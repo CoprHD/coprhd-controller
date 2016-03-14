@@ -26,8 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMDataType;
@@ -95,6 +93,7 @@ import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPolicy.IG_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
@@ -182,8 +181,12 @@ public class SmisCommandHelper implements SmisConstants {
                 append(" -- Attempting invokeMethod ").append(methodName).append(" on\n").
                 append("  objectPath=").append(objectPath.toString()).
                 append(" with arguments: \n");
-        for (CIMArgument arg : inArgs) {
-            inputInfoBuffer.append("    inArg[").append(index++).append("]=").append(arg.toString()).append('\n');
+        if (inArgs != null) {
+            for (CIMArgument arg : inArgs) {
+                if (arg != null) {
+                    inputInfoBuffer.append("    inArg[").append(index++).append("]=").append(arg.toString()).append('\n');
+                }
+            }
         }
         _log.info(inputInfoBuffer.toString());
         long start = System.nanoTime();
@@ -2440,8 +2443,8 @@ public class SmisCommandHelper implements SmisConstants {
 
     public CIMArgument[] getAddVolumesToMaskingGroupInputArguments(StorageSystem storageDevice, String storageGroupName,
             List<URI> volumeURIList, String[] deviceNumbers, boolean forceFlag) throws Exception {
-        CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storageDevice, extractGroupName(storageGroupName),
-                MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+        CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storageDevice,
+                ControllerUtils.extractGroupName(storageGroupName), MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
         String[] volumeNames = getBlockObjectAlternateNames(volumeURIList);
         CIMObjectPath[] members = _cimPath.getVolumePaths(storageDevice, volumeNames);
         List<CIMArgument> argsList = new ArrayList<CIMArgument>();
@@ -4223,16 +4226,6 @@ public class SmisCommandHelper implements SmisConstants {
         return id;
     }
 
-
-    public String getConsistencyGroupName(BlockObject bo, StorageSystem storageSystem) {
-        if (bo.getConsistencyGroup() == null) {
-            return null;
-        }
-        final BlockConsistencyGroup group =
-                _dbClient.queryObject(BlockConsistencyGroup.class, bo.getConsistencyGroup());
-        return getConsistencyGroupName(group, storageSystem);
-    }
-
     public String getConsistencyGroupName(final BlockConsistencyGroup group,
             final StorageSystem storageSystem) {
         String groupName = null;
@@ -6007,7 +6000,8 @@ public class SmisCommandHelper implements SmisConstants {
             String replicationGroupName, List<URI> replicas) throws Exception {
         List<URI> replicasToAdd = new ArrayList<URI>();
         replicasToAdd.addAll(replicas);
-        CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(storage, extractGroupName(replicationGroupName));
+        CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(storage,
+                ControllerUtils.extractGroupName(replicationGroupName));
         List<URI> volumesInRG = findVolumesInReplicationGroup(
                 storage, replicationGroupPath, replicas);
         replicasToAdd.removeAll(volumesInRG);
@@ -6673,7 +6667,8 @@ public class SmisCommandHelper implements SmisConstants {
             StorageSystem storage, BlockObject blockObject,
             BlockSnapshot snapshot) throws WBEMException {
 
-        if (blockObject.hasConsistencyGroup()) {
+        if (blockObject.hasConsistencyGroup()
+                && NullColumnValueGetter.isNotNullValue(blockObject.getReplicationGroupInstance())) {
             return getSettingsDefineStateFromSourceGroup(storage, blockObject);
         }
         return getSettingsDefineStateFromSource(storage, blockObject);
@@ -6752,7 +6747,7 @@ public class SmisCommandHelper implements SmisConstants {
     public List<CIMObjectPath> getSettingsDefineStateFromSourceGroup(
             StorageSystem storage, BlockObject groupMember) throws WBEMException {
         List<CIMObjectPath> settingsDefineStatePaths = new ArrayList<>();
-        String groupName = getConsistencyGroupName(groupMember, storage);
+        String groupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(groupMember, _dbClient);
         CIMObjectPath groupPath = _cimPath.getReplicationGroupPath(storage,
                 groupName);
 
@@ -7165,11 +7160,9 @@ public class SmisCommandHelper implements SmisConstants {
     // TODO Constantize these strings
 
     public CIMArgument[] fabricateSourceGroupSynchronizationAspectInputArguments(StorageSystem system,
-            BlockConsistencyGroup cg,
-            String sessionLabel) {
+            String repGrpName, String sessionLabel) {
         List<String> addSFSEntries = new ArrayList<>();
         addSFSEntries.add("AddSFSEntries");
-        String repGrpName = cg.getCgNameOnStorageSystem(system.getId());
         addSFSEntries.add(formatSessionLabelForFabrication(system.getSerialNumber(), repGrpName, sessionLabel));
         return new CIMArgument[] {
                 _cimArgument.stringArray("SFSEntries", addSFSEntries.toArray(new String[addSFSEntries.size()]))
@@ -7179,23 +7172,123 @@ public class SmisCommandHelper implements SmisConstants {
     private String formatSessionLabelForFabrication(String systemSerial, String replicationGroupName, String sessionLabel) {
         return String.format("%s+%s##SSNAME+%s", systemSerial, replicationGroupName, sessionLabel);
     }
+    
+    private String formatSessionLabelForFabrication(String systemSerial, String replicationGroupName) {
+        return String.format("%s+%s##SSNAME", systemSerial, replicationGroupName);
+    }
 
     /**
-     * BlockSnapshot instances associated to an BlockSnapshotSession will have its replicationGroupName field set in a
-     * different format than regular BlockSnapshot instances, e.g. system-serial+groupName.
-     *
-     * This method will extract and return only the group name, if required.
-     *
-     * @param groupName Replication group name, possibly containing the system serial.
-     * @return Replication group name.
+     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group name 
+     * and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost replication group. 
+     * @param system 
+     * @param replicationSvc
+     * @param replicaReplicationGroupName
+     * @param sourceReplicationGroupName
+     * @return
      */
-    public String extractGroupName(String groupName) {
-        Pattern p = Pattern.compile("^\\S+\\+(\\S+)$");
-        Matcher matcher = p.matcher(groupName);
+    public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
+            CIMObjectPath replicationSvc,
+            String replicaReplicationGroupName,
+            String sourceReplicationGroupName) {
+        List<String>sfsEntries = getEMCSFSEntries(system, replicationSvc);
+        String entryLabel = formatReplicaLabelForSFSEntry(system.getSerialNumber(), replicaReplicationGroupName, sourceReplicationGroupName);
+        List<String> removeEntryList = new ArrayList<String>();
 
-        if (matcher.matches()) {
-            return matcher.group(1);
+        if (sfsEntries != null && !sfsEntries.isEmpty()) {
+            for (String entry : sfsEntries) {
+                if (entry.contains(entryLabel)) {
+                	removeEntryList.add(entry);
+                }
+            }
         }
-        return groupName;
+        if (removeEntryList.isEmpty()) {
+            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName, 
+                    sourceReplicationGroupName));
+            return;
+        }
+        try {
+        	String[] removeEntries = new String[removeEntryList.size()];
+        	removeEntries = removeEntryList.toArray(removeEntries);
+            CIMArgument[] inArgs = new CIMArgument[] {
+                    _cimArgument.stringArray("SFSEntries", removeEntries)};
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
+        } catch (WBEMException e) {
+            _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
+        }
+    }
+
+    /**
+     * Remove EMCSFSEntry containing the groupSynchronizedAspect information. It would find the entry using the snap session
+     * source replication group name, then remove it. This operation is necessary before deleting an attached snaphost session replication
+     * group.
+     * 
+     * @param system
+     * @param replicationSvc
+     * @param sourceReplicationGroupName
+     * @return
+     */
+    public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
+            CIMObjectPath replicationSvc,
+            String sourceReplicationGroupName) {
+        List<String> sfsEntries = getEMCSFSEntries(system, replicationSvc);
+        String groupSynchronizedAspectLabel = formatSessionLabelForFabrication(system.getSerialNumber(), sourceReplicationGroupName);
+        List<String> removeEntryList = new ArrayList<String>();
+
+        if (sfsEntries != null && !sfsEntries.isEmpty()) {
+            for (String entry : sfsEntries) {
+                if (entry.contains(groupSynchronizedAspectLabel)) {
+                    removeEntryList.add(entry);
+                }
+            }
+        }
+        if (removeEntryList.isEmpty()) {
+            _log.info(String.format("The SFS entry is not found for the source group %s",
+                    sourceReplicationGroupName));
+            return;
+        }
+        try {
+            String[] removeEntries = new String[removeEntryList.size()];
+            removeEntries = removeEntryList.toArray(removeEntries);
+            CIMArgument[] inArgs = new CIMArgument[] {
+                    _cimArgument.stringArray("SFSEntries", removeEntries) };
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
+        } catch (WBEMException e) {
+            _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
+        }
+    }
+
+    /**
+     * Construct a String using clone/snapshot replication group name and source replication group name for searching the EMCSFSEntries.
+     * @param systemSerial array serial number
+     * @param replicaReplicationGroupName - clone/snapshot replication group name
+     * @param sourceRGName - source replication group name
+     * @return constructed string
+     */
+    private String formatReplicaLabelForSFSEntry(String systemSerial, String replicaReplicationGroupName, String sourceRGName) {
+        return String.format("%s+%s#%s+%s#", systemSerial, sourceRGName, systemSerial, replicaReplicationGroupName);
+    }
+
+    /**
+     * Get EMCSFSEntries
+     * @param storage
+     * @param replicationSvc
+     * @return the list of EMCSFSEntries
+     */
+    public List<String> getEMCSFSEntries(StorageSystem storage, CIMObjectPath replicationSvc) {
+        CIMArgument[] outArgs = new CIMArgument[5];
+        try {
+            invokeMethod(storage, replicationSvc, SmisConstants.EMC_LIST_SFSENTRIES, null, outArgs);
+            for (CIMArgument arg : outArgs) {
+                if (arg != null && arg.getName().equalsIgnoreCase(SmisConstants.SFSENTRIES)) {
+                    String[] entries = (String[]) arg.getValue();
+                    return asList(entries);
+                }
+            }
+        } catch (WBEMException e) {
+            _log.error("get EMCSFSEntries -- WBEMException: ", e);
+        }
+        return null;
     }
 }

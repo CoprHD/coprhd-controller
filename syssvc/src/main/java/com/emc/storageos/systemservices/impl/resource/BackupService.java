@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.systemservices.impl.resource;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -12,8 +13,10 @@ import java.io.PipedOutputStream;
 import java.io.PipedInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import java.net.URI;
@@ -27,7 +30,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.core.*;
 
-import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +64,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.vipr.model.sys.backup.BackupSets;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
-import com.emc.vipr.model.sys.backup.ExternalBackupInfo;
+import com.emc.vipr.model.sys.backup.BackupInfo;
 import com.emc.vipr.model.sys.backup.ExternalBackups;
 
 import static com.emc.vipr.model.sys.backup.BackupUploadStatus.Status;
@@ -234,58 +236,41 @@ public class BackupService {
      *
      * @brief Get a specific backup file info
      * @param backupFileName The name of backup file
+     * @param isLocal The backup is local or not, false by default
      * @prereq none
      * @return Info of a specific backup file
      */
     @GET
-    @Path("external/backup/")
+    @Path("backup/info/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public ExternalBackupInfo queryExternalBackup(@QueryParam("name") String backupFileName) {
-        log.info("Received query backup on external server request, file name={}", backupFileName);
+    public BackupInfo queryBackupInfo(@QueryParam("name") String backupFileName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
+        log.info("Query backup info backupFileName={} isLocal={}", backupFileName, isLocal);
         try {
-            ExternalBackupInfo externalBackupInfo = new ExternalBackupInfo();
-            externalBackupInfo.setFileName(backupFileName);
-            externalBackupInfo.setCreateTime(getBackupCreateTime(backupFileName));
-            externalBackupInfo.setRestoreStatus(queryRestoreStatus(backupFileName, false));
-            log.info("External Backup info: {}", externalBackupInfo);
-            return externalBackupInfo;
+            if (isLocal) {
+                //query info of a local backup
+                File localBackupFolder = backupOps.getBackupDir(backupFileName, true);
+                return backupOps.getBackupInfo(localBackupFolder, true);
+            }
+
+            checkExternalServer();
+
+            SchedulerConfig cfg = backupScheduler.getCfg();
+
+            String serverUri = cfg.getExternalServerUrl();
+            String username = cfg.getExternalServerUserName();
+            String password = cfg.getExternalServerPassword();
+
+            BackupInfo backupInfo =  backupOps.getBackupInfo(backupFileName, serverUri, username, password);
+
+            log.info("The backupInfo={}", backupInfo);
+            return backupInfo;
         } catch (Exception e) {
             log.error("Failed to query external backup info", e);
             throw APIException.internalServerErrors.queryExternalBackupFailed(e);
         }
     }
 
-    private Long getBackupCreateTime(String backupName) {
-        if (backupName == null) {
-            log.error("Backup file name is empty");
-            throw new IllegalArgumentException("Backup file name is empty");
-        }
-        if (!backupName.contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
-            log.error("Backup file name should contain {}", BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
-            throw new IllegalArgumentException("Invalid backup file name: " + backupName);
-        }
-
-        String[] nameSegs = backupName.split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER);
-        for (String segment : nameSegs) {
-            if (isTimeFormat(segment)) {
-                log.info("Backup({}) create time is: {}", backupName, segment);
-                return Long.parseLong(segment);
-            }
-        }
-        log.info("Could not get create time from backup name");
-        return null;
-    }
-
-    private boolean isTimeFormat(String nameSegment) {
-        String regex = String.format(BackupConstants.SCHEDULED_BACKUP_DATE_REGEX_PATTERN,
-                BackupConstants.SCHEDULED_BACKUP_DATE_FORMAT.length());
-        Pattern backupNamePattern = Pattern.compile(regex);
-        if (backupNamePattern.matcher(nameSegment).find()) {
-            return true;
-        }
-        return false;
-    }
 
     /**
      * Create a near Point-In-Time copy of DB & ZK data files on all controller nodes.
@@ -450,7 +435,7 @@ public class BackupService {
             if (!file.exists()) {
                 return Response.status(Response.Status.NOT_FOUND).build();
             }
-            InputStream input = new FileInputStream(file);
+            InputStream input = new BufferedInputStream(new FileInputStream(file));
             return Response.ok(input).type(MediaType.APPLICATION_OCTET_STREAM).build();
         } catch (Exception e) {
             throw APIException.internalServerErrors.getObjectFromError(
@@ -466,95 +451,133 @@ public class BackupService {
      */
     @POST
     @Path("internal/pull")
-    public Response downloadBackupFile(String backupName) {
-        log.info("To download backupName={}", backupName);
+    public Response downloadBackupFile(@QueryParam("backupname") String backupName, @QueryParam("endpoint") URI endpoint) {
+        log.info("To download files of backupname={} endpoint={}", backupName, endpoint);
 
-        downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps);
-
+        downloadTask = new DownloadExecutor(backupName, backupOps, endpoint);
         Thread downloadThread = new Thread(downloadTask);
         downloadThread.setDaemon(true);
-        downloadThread.setName("backupDownloadThread");
+        downloadThread.setName("PullBackupFromOtherNode");
         downloadThread.start();
 
         return Response.status(202).build();
     }
 
+    @GET
+    @Path("internal/pull-file/")
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
+    public Response getBackupFile(@QueryParam("backupname") String backupName, @QueryParam("filename") String filename) {
+        log.info("Get backup file {} from {}", filename, backupName);
+
+        File downloadDir = backupOps.getDownloadDirectory(backupName);
+        File backupFile = new File(downloadDir, filename);
+
+        final InputStream in;
+        try {
+            in = new FileInputStream(backupFile);
+        } catch (IOException e) {
+            throw BackupException.fatals.backupFileNotFound(filename);
+        }
+
+        return Response.ok(in).type(MediaType.APPLICATION_OCTET_STREAM).build();
+    }
+
     /**
-     *  Download backup data from the backup FTP server
-     *  each node will only downloads its own backup data
+     * Download backup data from the backup FTP server
+     * each node will only downloads its own backup data
      *
      * @param backupName the name of the backup on the FTP server
-     * @return server response indicating if the operation succeeds.
+     * @param force  true to remove the downloaded data and start from the beginning
+     * @return server response indicating if the operation is accpeted or not.
      */
     @POST
     @Path("pull/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public Response pullBackup(@QueryParam("file") String backupName ) {
-        log.info("To pull the backup file {}", backupName);
+    public Response pullBackup(@QueryParam("file") String backupName, @QueryParam("force") @DefaultValue("false") boolean force) {
+        log.info("To pull the backup file {} force={}", backupName, force);
 
         checkExternalServer();
 
-        if (backupOps.isDownloadInProgress()) {
-            Map<String, String> currentBackupInfo = backupOps.getCurrentBackupInfo();
-            String curBackupName = currentBackupInfo.get(BackupConstants.CURRENT_DOWNLOADING_BACKUP_NAME_KEY);
+        if (!force && backupOps.isDownloadComplete(backupName)) {
+            log.info("The backup file {} has already been downloaded", backupName);
+        }else if (backupOps.isDownloadInProgress()) {
+            String curBackupName = backupOps.getCurrentBackupName();
             if (!backupName.equals(curBackupName)) {
                 String errmsg = curBackupName + " is downloading";
-                throw SyssvcException.syssvcExceptions.pullBackupFailed(backupName, errmsg);
+                throw BackupException.fatals.pullBackupFailed(backupName, errmsg);
             }
             log.info("The backup {} is downloading, no need to trigger again", backupName);
         }else {
-            setBackupFileSize(backupName);
-            notifyOtherNodes(backupName);
+            initDownload(backupName);
+
+            downloadTask = new DownloadExecutor(backupScheduler.getCfg(), backupName, backupOps);
+
+            Thread downloadThread = new Thread(downloadTask);
+            downloadThread.setDaemon(true);
+            downloadThread.setName("PullBackupFromRemoteServer");
+            downloadThread.start();
 
             auditBackup(OperationTypeEnum.PULL_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, backupName);
-            log.info("done");
         }
+
         return Response.status(202).build();
     }
 
     private void checkExternalServer() {
         SchedulerConfig cfg = backupScheduler.getCfg();
         if (cfg.uploadUrl == null) {
-            throw SyssvcException.syssvcExceptions.externalBackupServerError("The server is not set");
+            throw BackupException.fatals.externalBackupServerError("The server is not set");
         }
     }
 
-    private void setBackupFileSize(String backupName) {
-        log.info("To set backup file size");
+    private void initDownload(String backupName) {
+        log.info("init download");
         SchedulerConfig cfg = backupScheduler.getCfg();
+
+        //Step1: get the size of compressed backup file from server
         long size = 0;
         try {
             FtpClient client = new FtpClient(cfg.uploadUrl, cfg.uploadUserName, cfg.getExternalServerPassword());
             size = client.getFileSize(backupName);
         }catch(Exception  e) {
             log.warn("Failed to get the backup file size, e=", e);
+            throw BackupException.fatals.failedToGetBackupSize(backupName, e);
+        }
+
+        //Step2: init status
+        BackupRestoreStatus s = new BackupRestoreStatus();
+        s.setBackupName(backupName);
+        s.setStatusWithDetails(BackupRestoreStatus.Status.DOWNLOADING, null);
+        try {
+            Map<String,URI> nodesInfo = backupOps.getNodesInfo();
+            int numberOfNodes = nodesInfo.size();
+            Map<String, Long> sizesToDownload = new HashMap(numberOfNodes);
+            Map<String, Long> downloadedSizes = new HashMap(numberOfNodes);
+            for (int i =1; i <= numberOfNodes; i++) {
+                sizesToDownload.put("vipr"+i, (long)0);
+                downloadedSizes.put("vipr"+i, (long)0);
+            }
+
+            // the zipped backup file will be downloaded to this node
+            // so set the size to be downloaded on this node to the size of zip file
+            String localHostName = InetAddress.getLocalHost().getHostName();
+            sizesToDownload.put(localHostName, size);
+            s.setSizeToDownload(sizesToDownload);
+
+            // check if we've already downloaded some part of zip file before,
+            // if so, updated the downloaded size
+            File downloadFolder = backupOps.getDownloadDirectory(backupName);
+            File zipfile = new File(downloadFolder, backupName);
+            if (zipfile.exists()) {
+                downloadedSizes.put(localHostName, zipfile.length());
+            }
+            s.setDownloadedSize(downloadedSizes);
+        }catch(UnknownHostException |URISyntaxException e) {
+            log.error("Failed to set the download size e={}", e.getMessage());
             throw new RuntimeException(e);
         }
 
-        backupOps.setBackupFileSize(backupName, size);
-    }
-
-    private void notifyOtherNodes(String backupName) {
-        URI pushUri = SysClientFactory.URI_NODE_BACKUPS_PULL;
-
-        URI endpoint = null;
-        try {
-            Map<String, URI > nodes = backupOps.getNodesInfo();
-            log.info("nodes to notify {}", nodes);
-            for (URI addr : nodes.values()) {
-                endpoint = addr;
-                log.info("Notify {}", addr);
-                SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(endpoint);
-                sysClient.post(pushUri, null, backupName);
-            }
-        }catch (Exception e) {
-            String errMsg = String.format("Failed to send %s to %s", pushUri, endpoint);
-            log.error(errMsg);
-            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.DOWNLOAD_FAILED;
-            s.setMessage(errMsg);
-            backupOps.setRestoreStatus(backupName, s, false);
-            throw SysClientException.syssvcExceptions.pullBackupFailed(backupName, errMsg);
-        }
+        backupOps.persistBackupRestoreStatus(s, false, true);
     }
 
     private void redirectRestoreRequest(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
@@ -570,10 +593,7 @@ public class BackupService {
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", restoreURL, endpoint);
             log.error(errMsg);
-            BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
-            s.setMessage(errMsg);
-            backupOps.setRestoreStatus(backupName, s, false);
-            throw SysClientException.syssvcExceptions.restoreFailed(backupName, errMsg);
+            setRestoreFailed(backupName, errMsg, e);
         }
     }
 
@@ -612,16 +632,16 @@ public class BackupService {
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, backupName);
 
         if (!backupOps.isActiveSite()) {
-            setRestoreFailed(backupName, "The current site is not an active site");
+            setRestoreFailed(backupName, "The current site is not an active site", null);
             //no return here
         }
 
         if (!backupOps.isClusterStable()) {
-            setRestoreFailed(backupName, "The cluster is not stable");
+            setRestoreFailed(backupName, "The cluster is not stable", null);
             //no return here
         }
 
-        File backupDir= getBackupDir(backupName, isLocal);
+        File backupDir= backupOps.getBackupDir(backupName, isLocal);
 
         String myNodeId = backupOps.getCurrentNodeId();
 
@@ -630,7 +650,7 @@ public class BackupService {
         }catch (Exception e) {
             if (backupOps.shouldHaveBackupData()) {
                 String errMsg = String.format("Invalid backup the node %s: %s", myNodeId, e.getMessage());
-                setRestoreFailed(backupName, errMsg);
+                setRestoreFailed(backupName, errMsg, e);
                 auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
                 //no return here
             }
@@ -649,7 +669,7 @@ public class BackupService {
         Exec.Result result = Exec.exec(120 * 1000, restoreCommand);
         switch (result.getExitValue()) {
             case 1:
-                setRestoreFailed(backupName, "Invalid password");
+                setRestoreFailed(backupName, "Invalid password", null);
                 //no return
         }
 
@@ -680,11 +700,10 @@ public class BackupService {
         return doRestore(backupName, isLocal, password, isGeoFromScratch);
     }
 
-    private Response setRestoreFailed(String backupName, String msg) {
+    private Response setRestoreFailed(String backupName, String msg, Throwable cause) {
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
-        s.setMessage(msg);
-        backupOps.setRestoreStatus(backupName, s, false);
-        throw SyssvcException.syssvcExceptions.restoreFailed(backupName, msg);
+        backupOps.setRestoreStatus(backupName, s, msg, false, false);
+        throw BackupException.fatals.failedToRestoreBackup(backupName, cause);
     }
 
     /**
@@ -696,21 +715,38 @@ public class BackupService {
     @Path("restore/status")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public BackupRestoreStatus queryRestoreStatus(@QueryParam("backupname") String backupName, @QueryParam("isLocal") boolean isLocal) {
+    public BackupRestoreStatus queryRestoreStatus(@QueryParam("backupname") String backupName,
+                                                  @QueryParam("isLocal") @DefaultValue("false") boolean isLocal) {
         log.info("Query restore status backupName={} isLocal={}", backupName, isLocal);
-        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, isLocal);
 
-        log.info("done");
-        return status;
-    }
+        if (!isLocal) {
+            checkExternalServer();
 
-    private File getBackupDir(String backupName, boolean isLocal) {
-        if (backupName.endsWith(BackupConstants.COMPRESS_SUFFIX)) {
-            backupName = FilenameUtils.removeExtension(backupName);
+            SchedulerConfig cfg = backupScheduler.getCfg();
+            String externalServerUrl = cfg.getExternalServerUrl();
+            String userName = cfg.getExternalServerUserName();
+            String password = cfg.getExternalServerPassword();
+            FtpClient ftpClient = new FtpClient(externalServerUrl, userName, password);
+            List<String> backupFiles = new ArrayList();
+
+            try {
+                backupFiles = ftpClient.listFiles(backupName);
+                log.info("The backupFiles={}", backupFiles);
+            }catch (Exception e) {
+                log.error("Failed to list {} from server {} e=", backupName, externalServerUrl, e);
+                throw BackupException.fatals.externalBackupServerError(backupName);
+            }
+
+            if (backupFiles.isEmpty()) {
+                throw BackupException.fatals.backupFileNotFound(backupName);
+            }
         }
 
-        File backupDir = isLocal ? new File(backupOps.getBackupDir(), backupName) : new File(BackupConstants.RESTORE_DIR, backupName);
-        return backupDir;
+        BackupRestoreStatus status = backupOps.queryBackupRestoreStatus(backupName, isLocal);
+        status.setBackupName(backupName); // in case it is not saved in the ZK
+
+        log.info("The backup/restore status:{}", status);
+        return status;
     }
 
     /**
@@ -759,6 +795,7 @@ public class BackupService {
 
         List<NodeInfo> nodes = ClusterNodesUtil.getClusterNodeInfo(new ArrayList<>(Arrays.asList(uniqueNodes.toArray(new String[uniqueNodes
                 .size()]))));
+
         if (nodes.size() < uniqueNodes.size()) {
             log.info("Only {}/{} nodes available for the backup, cannot download.", uniqueNodes.size(), nodes.size());
             return;
@@ -775,6 +812,29 @@ public class BackupService {
         boolean propertiesFileFound = false;
         int collectFileCount = 0;
         int totalFileCount = files.size() * 2;
+
+        //upload *_info.properties file first
+        for (final NodeInfo node : nodes) {
+            String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
+                    node.getIpAddress(), node.getPort());
+            SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
+                    URI.create(baseNodeURL));
+            try {
+                String fileName = backupTag + BackupConstants.BACKUP_INFO_SUFFIX;
+                String fullFileName = backupTag + File.separator + fileName;
+                InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
+                newZipEntry(zos, in, fileName);
+                propertiesFileFound = true;
+                break;
+            } catch (Exception ex) {
+                log.info("info.properties file is not found on node {}, exception {}", node.getId(), ex.getMessage());
+            }
+        }
+
+        if (!propertiesFileFound) {
+            throw new FileNotFoundException(String.format("No live node contains %s%s", backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
+        }
+
         for (final NodeInfo node : nodes) {
             String baseNodeURL = String.format(SysClientFactory.BASE_URL_FORMAT,
                     node.getIpAddress(), node.getPort());
@@ -789,20 +849,6 @@ public class BackupService {
                 newZipEntry(zos, in, fileName);
                 collectFileCount++;
             }
-
-            try {
-                String fileName = backupTag + BackupConstants.BACKUP_INFO_SUFFIX;
-                String fullFileName = backupTag + File.separator + fileName;
-                InputStream in = sysClient.post(postUri, InputStream.class, fullFileName);
-                newZipEntry(zos, in, fileName);
-                propertiesFileFound = true;
-            } catch (SysClientException ex) {
-                log.info("info.properties file is not found on node {}, exception {}", node.getId(), ex.getMessage());
-            }
-        }
-
-        if (!propertiesFileFound) {
-            throw new FileNotFoundException(String.format("No live node contains %s%s", backupTag, BackupConstants.BACKUP_INFO_SUFFIX));
         }
 
         // We only close ZIP stream when everything is OK, or the package will be extractable but missing files.
@@ -815,8 +861,12 @@ public class BackupService {
         List<String> nameList = new ArrayList<>();
 
         for (BackupFile file : files) {
-            nameList.add(file.info.getName());
-            nameList.add(file.info.getName() + ".md5");
+            String filename = file.info.getName();
+            if (filename.endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                continue;
+            }
+            nameList.add(filename);
+            nameList.add(filename + BackupConstants.MD5_SUFFIX);
         }
 
         Collections.sort(nameList, new Comparator<String>() {

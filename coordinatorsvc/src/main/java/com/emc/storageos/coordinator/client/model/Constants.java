@@ -37,15 +37,19 @@ public interface Constants {
     public static final String DATA_REVISION_TMP = FileUtils.generateTmpFileName("datarevisionconfig.properties.new");
     public static final String KEY_DATA_REVISION = "target_data_revision";
     public static final String KEY_DATA_REVISION_COMMITTED = "target_data_revision_committed";
+    public static final String KEY_VDC_CONFIG_VERSION = "vdc_config_version";
 
     //ipsec command constants
     public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String IPSEC_KEY = "ipsec_key";
     public static final String IPSEC_STATUS = "ipsec_status";
     public static final String IPSEC_CHECK_CONNECTION = "check-connection";
+    public static final String IPSEC_GET_ALL_NODES = "get-all-nodes";
     public static final String IPSEC_GET_PROPS = "get-props";
     public static final String IPSEC_SYNC_KEY = "sync-key";
     public static final String IPSEC_SYNC_STATUS = "sync-status";
+    public static final String IPSEC_CHECK_LOCAL = "check-local";
+
 
             
     // upload image

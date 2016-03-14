@@ -17,7 +17,6 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.MirrorList;
-
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
@@ -25,7 +24,6 @@ import com.emc.storageos.model.file.FileExportUpdateParam;
 import com.emc.storageos.model.file.FileNfsACLUpdateParams;
 import com.emc.storageos.model.file.FilePolicyList;
 import com.emc.storageos.model.file.FileReplicationCreateParam;
-import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
@@ -41,6 +39,7 @@ import com.emc.storageos.model.file.FileSystemUpdateParam;
 import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.NfsACL;
 import com.emc.storageos.model.file.NfsACLs;
+import com.emc.storageos.model.file.ScheduleSnapshotList;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -119,10 +118,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     protected String getNfsACLsUrl() {
         return "/file/filesystems/{id}/acl";
     }
-    
-	
 
-    
     @Override
     protected List<FileShareRestRep> getBulkResources(BulkIdParam input) {
         FileShareBulkRep response = client.post(FileShareBulkRep.class, input, getBulkUrl());
@@ -730,11 +726,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     public FilePolicyList getFilePolicies(URI fileSystemId) {
         return client.get(FilePolicyList.class, getIdUrl() + "/file-policies", fileSystemId);
     }
-    
-    
-    
-    
-    
+
     /**
      * Resume replication operation on a file system by ID
      * <p>
@@ -742,16 +734,16 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * 
      * @param id
      *            the ID of the file system.
-     *            
-     * @return a task for monitoring the progress of the operation.     * 
+     * 
+     * @return a task for monitoring the progress of the operation. *
      */
-    
+
     public Tasks<FileShareRestRep> resumeContinousCopies(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getIdUrl()+"/protection/continuous-copies/resume");
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/protection/continuous-copies/resume");
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }
-    
+
     /**
      * FailBack replication operation on a file system by ID
      * <p>
@@ -759,16 +751,16 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * 
      * @param id
      *            the ID of the file system.
-     *            
-     * @return a task for monitoring the progress of the operation.     * 
+     * 
+     * @return a task for monitoring the progress of the operation. *
      */
-    
+
     public Tasks<FileShareRestRep> failBackContinousCopies(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getIdUrl()+"/protection/continuous-copies/failback");
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/protection/continuous-copies/failback");
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }
-    
+
     /**
      * Get details of replication copy on a file system by ID
      * <p>
@@ -776,14 +768,30 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      * 
      * @param id
      *            the ID of the file system.
-     *            
-     * @return a task for monitoring the progress of the operation.     * 
+     * 
+     * @return a task for monitoring the progress of the operation. *
      */
-    
+
     public Tasks<FileShareRestRep> replicationInfo(URI id, FileReplicationParam param) {
-        UriBuilder builder = client.uriBuilder(getIdUrl()+"/protection/continuous-copies/{mid}");
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/protection/continuous-copies/{mid}");
         URI targetUri = builder.build(id);
         return postTasks(param, targetUri.getPath());
     }
-    
+
+    /**
+     * Get list of snapshot created by file policy
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{fileSystemId}/file-policies/{filePolicyId}/snapshots</tt>
+     * 
+     * @param fileSystemId
+     *            the ID of the file system.
+     * @param filePolicyId
+     *            the ID of the policy.
+     * @return list of snapshot created by file policy.
+     */
+    public ScheduleSnapshotList getFilePolicySnapshots(URI fileSystemId, URI filePolicyId) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/file-policies/{filePolicyId}/snapshots");
+        URI targetUri = builder.build(fileSystemId, filePolicyId);
+        return client.get(ScheduleSnapshotList.class, targetUri.getPath());
+    }
 }

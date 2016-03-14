@@ -1176,6 +1176,26 @@ public class IsilonApi {
     }
 
     /**
+     * List all snapshot created by policy
+     * 
+     * @param resumeToken
+     * @param pathBaseDir
+     * @return
+     * @throws IsilonException
+     */
+    public IsilonList<IsilonSnapshot> listSnapshotsCreatedByPolicy(String resumeToken, String policy) throws IsilonException {
+        if (policy == null || policy.isEmpty()) {
+            return null;
+        }
+        URI uri = URI_SNAPSHOTS;
+        StringBuffer URLBuffer = new StringBuffer(_baseUrl.resolve(uri).toString());
+        URLBuffer.append("?schedule=").append(policy);
+        uri = URI.create(URLBuffer.toString());
+        sLogger.info("get list of snapshots for policy {} and uri {} .", policy, uri.toString());
+        return list(uri, "snapshots", IsilonSnapshot.class, resumeToken);
+    }
+
+    /**
      * Create snapshot
      * 
      * @param name
@@ -2035,7 +2055,7 @@ public class IsilonApi {
         }
         return licenseStatus;
     }
-    
+
     /**
      * Checks to see if the SnapshotIQ service is enabled on the isilon device
      * 

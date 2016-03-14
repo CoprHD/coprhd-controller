@@ -88,6 +88,30 @@ def wait_for_state(args):
             print "giving up wait_for_state. counter %s args.length %s" % (timeCounter, args.length)
             raise Exception("Timeout occurred while waiting for standby state to %sbe %s" % (modifier,args.state))
 
+def wait_for_networkhealth(args):
+    timeCounter = 0
+    modifier=''
+    if args.n:
+        modifier='not '
+    print "Waiting for site network health to "+modifier+"be "+args.state
+    bourne.connect(args.ip)
+    while True:
+        try:
+            resp=bourne.dr_get_standby(args.uuid)
+            if args.n != (resp['network_health'] == args.state):
+                print "Standby network health is "+modifier+args.state
+                return
+        except:
+            print "Exception while checking for api success"
+            raise
+        time.sleep(args.sleep)
+        timeCounter += args.sleep
+        print  "Retrying... time elapsed: [" + str(timeCounter) + "s]"
+        if (timeCounter >= args.length):
+            print "giving up wait_for_networkhealth. counter %s args.length %s" % (timeCounter, args.length)
+            raise Exception("Timeout occurred while waiting for standby network health to %sbe %s" % (modifier,args.state))
+
+
 def dr_switch_over(args):
     bourne.connect(args.ip)
     bourne.dr_switchover(args.uuid)
@@ -167,6 +191,14 @@ waitforsync.add_argument('sleep', help = 'sleep of waiting time', type=float)
 waitforsync.add_argument('length', help = 'the whole waiting time', type=float)
 waitforsync.add_argument('-n', action='store_true',  help = 'wait for state to NOT equal')
 
+# "waitfornetworkhealth"
+waitfornetworkhealth = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitfornetworkhealth.add_argument('uuid',                help = 'uuid of standby site')
+waitfornetworkhealth.add_argument('state',         help = 'network health GOOD|BROKEN|SLOW')
+waitfornetworkhealth.add_argument('sleep', help = 'sleep of waiting time', type=float)
+waitfornetworkhealth.add_argument('length', help = 'the whole waiting time', type=float)
+waitfornetworkhealth.add_argument('-n', action='store_true',  help = 'wait for state to NOT equal')
+
 # switchover dr
 drswitchover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drswitchover.add_argument('uuid', help = 'uuid of standby site to be switched to')
@@ -236,6 +268,9 @@ elif (cmd == "resume"):
 elif (cmd == "waitforstate"):
     args = waitforsync.parse_args()
     wait_for_state(args)
+elif (cmd == "waitfornetworkhealth"):
+    args = waitfornetworkhealth.parse_args()
+    wait_for_networkhealth(args)
 elif (cmd == "switchover"):
     args = drswitchover.parse_args()
     dr_switch_over(args)

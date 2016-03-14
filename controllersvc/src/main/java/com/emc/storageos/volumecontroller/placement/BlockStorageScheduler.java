@@ -18,7 +18,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -36,14 +35,13 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
-import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.ExportPathParams;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
+import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
@@ -1028,7 +1026,7 @@ public class BlockStorageScheduler {
                     notInVarray.add(portName(sp));
                 }
             } else {
-                _log.debug("Storage port {} not selected because it's network {} " +
+                _log.debug("Storage port {} not selected because its network {} " +
                         "is not the requested network {}",
                         new Object[] { sp.getNativeGuid(), sp.getNetwork(), networkURI });
                 wrongNetwork.add(portName(sp));
@@ -1124,7 +1122,7 @@ public class BlockStorageScheduler {
                         routedPorts.add(portName(sp));
                     }
                 } else {
-                    _log.debug("Storage port {} not selected because it's network {} " +
+                    _log.debug("Storage port {} not selected because its network {} " +
                             "is not the requested network {}",
                             new Object[] { sp.getNativeGuid(), sp.getNetwork(), networkURI });
                     wrongNetwork.add(portName(sp));

@@ -2833,7 +2833,7 @@ public class RecoverPointScheduler implements Scheduler {
         // Get all the pools already recommended
         List<RPRecommendation> poolsInAllRecommendations = rpProtectionRecommendation.getPoolsInAllRecommendations();
 
-        // Get all the pools that can satisy the size constraint of (size * resourceCount)
+        // Get all the pools that can satisfy the size constraint of (size * resourceCount)
         List<RPRecommendation> reconsiderPools = new ArrayList<RPRecommendation>();
         StringBuffer buff = new StringBuffer();
         for (StoragePool storagePool : candidatePools) {
@@ -3106,7 +3106,7 @@ public class RecoverPointScheduler implements Scheduler {
     }
 
     /**
-     * Get the candidate internal site names associated with this storage pool (it's storage system) and the
+     * Get the candidate internal site names associated with this storage pool (its storage system) and the
      * protection system.
      *
      * @param protectionDevice protection system

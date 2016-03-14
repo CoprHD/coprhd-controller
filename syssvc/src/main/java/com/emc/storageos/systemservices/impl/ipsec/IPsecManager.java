@@ -10,7 +10,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
-import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.model.ipsec.IpsecParam;
@@ -244,25 +243,26 @@ public class IPsecManager {
     /**
      * make sure cluster is in stable status
      */
-    public void verifyClusterIsStable() {
-
-        // in GEO env, check if other vdcs are stable
-        if (drUtil.isMultivdc()) {
-            List<String> vdcIds = drUtil.getOtherVdcIds();
-            for (String peerVdcId : vdcIds) {
-                if (!geoClientManager.getGeoClient(peerVdcId).isVdcStable()) {
-                    log.error(vdcIds + " is not stable");
-                    throw APIException.serviceUnavailable.vdcNotStable(peerVdcId);
-                }
-            }
-
-            verifyOngingVdcJob();
-        }
-
-        drUtil.verifyIPsecOpAllowable();
+    public void verifyIPsecOpAllowable() {
+        verifyIPsecOpAllowableOverGeo();
+        drUtil.verifyIPsecOpAllowableWithinDR();
     }
 
-    private void verifyOngingVdcJob() {
+    private void verifyIPsecOpAllowableOverGeo() {
+        if (!drUtil.isMultivdc()) {
+            return;
+        }
+
+        // Other VDCs are stable
+        List<String> vdcIds = drUtil.getOtherVdcIds();
+        for (String peerVdcId : vdcIds) {
+            if (!geoClientManager.getGeoClient(peerVdcId).isVdcStable()) {
+                log.error(vdcIds + " is not stable");
+                throw APIException.serviceUnavailable.vdcNotStable(peerVdcId);
+            }
+        }
+
+        // No ongoing jobs
         VdcUtil.setDbClient(dbClient);
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
         VirtualDataCenter.ConnectionStatus vdcStatus = localVdc.getConnectionStatus();

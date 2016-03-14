@@ -653,14 +653,14 @@ public class DrUtil {
      */
     public boolean isAllSitesStable() {
         try {
-            verifyIPsecOpAllowable();
+            verifyIPsecOpAllowableWithinDR();
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    public void verifyIPsecOpAllowable() {
+    public void verifyIPsecOpAllowableWithinDR() {
         for (Site site : listSites()) {
             if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
                 log.info("IPsec is disallowed since site {} is paused.", site.getName(), site.getState());

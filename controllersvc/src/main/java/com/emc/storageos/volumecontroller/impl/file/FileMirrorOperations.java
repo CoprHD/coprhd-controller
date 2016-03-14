@@ -30,7 +30,8 @@ public interface FileMirrorOperations {
             throws DeviceControllerException;
 
     /**
-     * Stop Mirror link
+     * Stop Mirror link, this operation will dismantle the replication session and delete the policy.
+     * After this operation both File System will be independent and read-write enabled.
      * 
      * @param system
      * @param target

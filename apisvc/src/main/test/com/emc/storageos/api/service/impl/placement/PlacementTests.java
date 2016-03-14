@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.ExpectedException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -52,6 +53,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.server.DbClientTest.DbClientImplUnitTester;
 import com.emc.storageos.db.server.DbsvcTestBase;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
 import com.emc.storageos.volumecontroller.RPRecommendation;
@@ -636,7 +638,6 @@ public class PlacementTests extends DbsvcTestBase {
     
 
     @Test
-    @Ignore
     public void testDbClientSanity() {
         StoragePool pool1 = new StoragePool();
         pool1.setId(URI.create("pool1"));
@@ -652,7 +653,6 @@ public class PlacementTests extends DbsvcTestBase {
      * Request a single volume, ensure you get the bigger pool as a recommendation.
      */
     @Test
-    @Ignore
     public void testPlacementBlock() {
         // Create a Virtual Array
         VirtualArray varray = PlacementTestUtils.createVirtualArray(_dbClient, "varray1");
@@ -768,7 +768,6 @@ public class PlacementTests extends DbsvcTestBase {
      * Simple VPLEX local block placement.
      */
     @Test
-    @Ignore
     public void testPlacementVPlex() {
         String[] vplexFE = { "FE:FE:FE:FE:FE:FE:FE:00", "FE:FE:FE:FE:FE:FE:FE:01" };
         String[] vplexBE = { "BE:BE:BE:BE:BE:BE:BE:00", "BE:BE:BE:BE:BE:BE:BE:01" };
@@ -883,7 +882,6 @@ public class PlacementTests extends DbsvcTestBase {
      * VPLEX HA remote block placement.
      */
     @Test
-    @Ignore
     public void testPlacementVPlexHARemote() {
         String[] vplex1FE = { "FE:FE:FE:FE:FE:FE:FE:00", "FE:FE:FE:FE:FE:FE:FE:01" };
         String[] vplex1BE = { "BE:BE:BE:BE:BE:BE:BE:00", "BE:BE:BE:BE:BE:BE:BE:01" };
@@ -1083,7 +1081,6 @@ public class PlacementTests extends DbsvcTestBase {
      * Simple VPLEX local XIO block placement.
      */
     @Test
-    @Ignore
     public void testPlacementVPlexXIO() {
         String[] vplexFE = { "FE:FE:FE:FE:FE:FE:FE:00", "FE:FE:FE:FE:FE:FE:FE:01" };
         String[] vplexBE = { "BE:BE:BE:BE:BE:BE:BE:00", "BE:BE:BE:BE:BE:BE:BE:01" };
@@ -1222,7 +1219,6 @@ public class PlacementTests extends DbsvcTestBase {
      * Basic RP Placement test - VMAX
      */
     @Test
-    @Ignore
     public void testBasicRPPlacement() {
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
         String[] vmax2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
@@ -1472,7 +1468,6 @@ public class PlacementTests extends DbsvcTestBase {
      * Placement also should not fail here, and Pool1 should be chosen for both source and its journal.
      */
     @Test
-    @Ignore
     public void testBasicRPPlacement2() {
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
         String[] vmax2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
@@ -1729,7 +1724,6 @@ public class PlacementTests extends DbsvcTestBase {
      * This is a negative test. Placement should fail.
      */
     @Test
-    @Ignore
     public void testNegativeBasicRPPlacement() {
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
         String[] vmax2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
@@ -1915,56 +1909,15 @@ public class PlacementTests extends DbsvcTestBase {
         // Run single volume placement: Run 10 times to make sure placement fails. There are no pools for RP source that can satisfy the
         // requested size of volume.
         for (int i = 0; i < 10; i++) {
-            List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray1, project, rpTgtVpool, capabilities);
-
-            assertNotNull(recommendations);
-            assertTrue(!recommendations.isEmpty());
-            assertNotNull(recommendations.get(0));
-
-            RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
-            assertNotNull(rec.getSourceRecommendations());
-            assertTrue(!rec.getSourceRecommendations().isEmpty());
-            assertNotNull(rec.getProtectionDevice());
-            assertNotNull(rec.getPlacementStepsCompleted().name());
-            assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
-
-            for (RPRecommendation rpRec : rec.getSourceRecommendations()) {
-                assertNotNull(rpRec.getInternalSiteName());
-                assertNotNull(rpRec.getSourceStorageSystem());
-                assertNotNull(rpRec.getSourceStoragePool());
-                assertTrue("site1".equals(rpRec.getInternalSiteName()));
-                assertTrue("vmax1".equals(rpRec.getSourceStorageSystem().toString()));
-                assertTrue(("pool1".equals(rpRec.getSourceStoragePool().toString())));
-
-                assertNotNull(rpRec.getTargetRecommendations());
-                assertTrue(!rpRec.getTargetRecommendations().isEmpty());
-                for (RPRecommendation targetRec : rpRec.getTargetRecommendations()) {
-                    assertNotNull(targetRec.getSourceStoragePool());
-                    assertTrue("vmax2".equals(targetRec.getSourceStorageSystem().toString()));
-                    assertTrue("site2".equals(targetRec.getInternalSiteName()));
-                    assertTrue("pool5".equals(targetRec.getSourceStoragePool().toString())
-                            || "pool4".equals(targetRec.getSourceStoragePool().toString()));
-                }
+            boolean caught = false;
+            List recommendations = null;
+            try {
+            recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray1, project, rpTgtVpool, capabilities);
+            } catch (BadRequestException e) {
+                caught = true;
+                _log.info("Caught expected Exception", e);
             }
-
-            // source journal
-            assertNotNull(rec.getSourceJournalRecommendation());
-            assertNotNull(rec.getSourceJournalRecommendation().getSourceStoragePool());
-            assertNotNull(rec.getSourceJournalRecommendation().getInternalSiteName());
-            assertTrue(("pool1".equals(rec.getSourceJournalRecommendation().getSourceStoragePool().toString())));
-
-            // target journal
-            assertNotNull(rec.getTargetJournalRecommendations());
-            assertTrue(!rec.getTargetJournalRecommendations().isEmpty());
-            for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
-                assertNotNull(targetJournalRec.getSourceStoragePool());
-                assertTrue("pool5".equals(targetJournalRec.getSourceStoragePool().toString())
-                        || "pool4".equals(targetJournalRec.getSourceStoragePool().toString()));
-                assertTrue("site2".equals(targetJournalRec.getInternalSiteName()));
-                assertTrue("vmax2".equals(targetJournalRec.getSourceStorageSystem().toString()));
-
-            }
-            _log.info(rec.toString(_dbClient));
+            assertTrue(caught);
         }
     }
 
@@ -1972,7 +1925,6 @@ public class PlacementTests extends DbsvcTestBase {
      * RP placement tests with XIO (no VPLEX)
      */
     @Test
-    @Ignore
     public void testPlacementRpXIONoVplex() {
         String[] xio1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
         String[] xio2FE = { "51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01" };
@@ -2290,7 +2242,6 @@ public class PlacementTests extends DbsvcTestBase {
      */
 
     @Test
-    @Ignore
     public void testPlacementRpVplex() {
 
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
@@ -2669,7 +2620,6 @@ public class PlacementTests extends DbsvcTestBase {
      * RP VPLEX placement -- placement decision based on RP array visibility
      */
     @Test
-    @Ignore
     public void testPlacementRpVplexAdvancedSite2toSite1() {
 
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
@@ -3063,7 +3013,6 @@ public class PlacementTests extends DbsvcTestBase {
      * Metropoint placement - Single remote copy
      */
     @Test
-    @Ignore
     public void testPlacementRpMetropointCrr() {
 
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
@@ -3673,7 +3622,6 @@ public class PlacementTests extends DbsvcTestBase {
      */
 
     @Test
-    @Ignore
     public void testPlacementRpMetropointCdp() {
 
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
@@ -4343,7 +4291,6 @@ public class PlacementTests extends DbsvcTestBase {
      * RP VPLEX placement -- placement decision based on RP array visibility
      */
     @Test
-    @Ignore
     public void testPlacementRpVplexAdvancedSite1toSite2() {
 
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
@@ -4744,7 +4691,6 @@ public class PlacementTests extends DbsvcTestBase {
      * Protect HA side of the VPLEX Metro volume.
      */
     @Test
-    @Ignore
     public void testPlacementRpVplexProtectHASite() {
 
         String[] vmax1FE = { "50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01" };
@@ -5145,7 +5091,6 @@ public class PlacementTests extends DbsvcTestBase {
      */
 
     @Test
-    @Ignore
     public void testRpVplexConnectivtyAndPlacement() {
         // Create Tenant
         TenantOrg tenant = new TenantOrg();

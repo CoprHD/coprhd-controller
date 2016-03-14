@@ -31,8 +31,9 @@ public class MetaVolumeUtils {
         if (driverManager == null) {
             // Cannot get this bean from ControllerServiceImpl context,
             // since ControllerServiceImpl is not loaded by spring in apisvc (it is passed in ZK). The context is null.
-            driverManager = (StorageDriverManager)StorageDriverManager.
-                    getApplicationContext().getBean("storageDriverManager");
+            driverManager = ((StorageDriverManager.getApplicationContext() != null) ?
+                    (StorageDriverManager)StorageDriverManager.getApplicationContext().getBean("storageDriverManager") :
+                    null);
         }
         return driverManager;
     }
@@ -101,7 +102,7 @@ public class MetaVolumeUtils {
         MetaVolumeRecommendation recommendation = new MetaVolumeRecommendation();
 
         // For driver managed system we use regular volumes.
-        if (getDriverManager().isDriverManaged(storageSystem.getSystemType())) {
+        if (getDriverManager() != null && getDriverManager().isDriverManaged(storageSystem.getSystemType())) {
             recommendation.setCreateMetaVolumes(false);
             _log.info(String.format("Volume Create Recommendation (system type: %s): Use meta volumes: %s", storageSystem.getSystemType(),
                     recommendation.isCreateMetaVolumes()));
@@ -271,7 +272,7 @@ public class MetaVolumeUtils {
 
         MetaVolumeRecommendation recommendation = new MetaVolumeRecommendation();
 
-        if (getDriverManager().isDriverManaged(storageSystem.getSystemType())) {
+        if (getDriverManager() != null && getDriverManager().isDriverManaged(storageSystem.getSystemType())) {
             recommendation.setCreateMetaVolumes(false);
             _log.info(String.format("Volume Expand Recommendation (system type: %s): Use meta volumes: %s", storageSystem.getSystemType(),
                     recommendation.isCreateMetaVolumes()));

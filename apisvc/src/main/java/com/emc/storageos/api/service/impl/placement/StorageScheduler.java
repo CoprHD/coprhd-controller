@@ -1403,15 +1403,13 @@ public class StorageScheduler implements Scheduler {
     }
 
     @Override
-    public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, 
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, 
             VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         // Initially we're only going to return one recommendation set.
-        Set<List<Recommendation>>  recommendationSet = new HashSet<List<Recommendation>>();
         List<Recommendation> recommendations = 
                 getRecommendationsForResources(vArray, project, vPool, capabilities);
-        recommendationSet.add(recommendations);
-        return recommendationSet;
+        return recommendations;
     }
 
 }

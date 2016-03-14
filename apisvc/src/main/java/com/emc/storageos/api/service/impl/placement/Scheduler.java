@@ -29,10 +29,10 @@ public interface Scheduler {
      *    the ROOT virtual pool, e.g. a VPLEX_HA or SRDF_COPY virtual pool within the outer ROOT.)
      * @param capabilities -- the capabilites needed
      * @param currentRecommendations -- any existing recommendations in the current solution set
-     * @return -- One or more sets of solutions. Each solution contains a List of Recommendations.
+     * @return -- A scheduling solution containing a List of Recommendations.
      * The Recommendations may be any subclass of Recommendation.
      */
-    Set<List<Recommendation>> getRecommendationsForVpool(
+    List<Recommendation> getRecommendationsForVpool(
             VirtualArray vArray, Project project, 
             VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, 

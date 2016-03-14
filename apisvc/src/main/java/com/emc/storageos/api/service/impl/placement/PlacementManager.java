@@ -99,12 +99,16 @@ public class PlacementManager {
         return storageSchedulers.get(type);
     }
 
-    public List getRecommendationsForVolumeCreateRequest(VirtualArray virtualArray,
+    public List getRecommendationsForVolumeCreateRequest(VirtualArray vArray,
             Project project, VirtualPool vPool, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         // Get the volume placement based on passed parameters.
+        Map<VpoolUse, List<Recommendation>> currentRecommendations = new HashMap<VpoolUse, List<Recommendation>>();
         Scheduler scheduler = getBlockServiceImpl(vPool);
-        return scheduler.getRecommendationsForResources(virtualArray, project, vPool, capabilities);
+        // return scheduler.getRecommendationsForResources(virtualArray, project, vPool, capabilities);
+        List<Recommendation> recommendations = scheduler.getRecommendationsForVpool(
+                vArray, project, vPool, VpoolUse.ROOT, capabilities, currentRecommendations);
+        return recommendations;
     }
     
     public Map<VpoolUse, List<Recommendation>> getRecommendationsForVirtualPool(VirtualArray virtualArray,
@@ -116,13 +120,12 @@ public class PlacementManager {
         // Invoke the top level scheduler
         VpoolUse use = VpoolUse.ROOT;       // the apisvc vpool
         Scheduler scheduler = getNextScheduler(null, virtualPool, use);
-        Set<List<Recommendation>> newRecommendationSets = scheduler.getRecommendationsForVpool(
+        List<Recommendation> newRecommendations = scheduler.getRecommendationsForVpool(
                 virtualArray, project, virtualPool, use, capabilities, recommendationMap);
-        Iterator<List<Recommendation>> setIterator = newRecommendationSets.iterator();
-        if (setIterator.hasNext()) {
-            List<Recommendation> newRecommendations = newRecommendationSets.iterator().next();
-            recommendationMap.put(use, newRecommendations);
+        if (newRecommendations.isEmpty()) {
+           return recommendationMap;
         }
+        recommendationMap.put(VpoolUse.ROOT, newRecommendations);
         
         // VPLEX will automatically take care of the VPLEX_HA use
         
@@ -138,16 +141,12 @@ public class PlacementManager {
                 URI vPoolURI = entry.getValue().getVirtualPool();
                 VirtualPool vPool = dbClient.queryObject(VirtualPool.class, vPoolURI);
                 scheduler = getNextScheduler(null, vPool, use);
-                newRecommendationSets = scheduler.getRecommendationsForVpool(
+                newRecommendations  = scheduler.getRecommendationsForVpool(
                         vArray, project, vPool, use, capabilities, recommendationMap);
-                setIterator = newRecommendationSets.iterator();
-                if (setIterator.hasNext()) {
-                    List<Recommendation> newRecommendations = newRecommendationSets.iterator().next();
-                    if (recommendationMap.containsKey(use)) {
-                        recommendationMap.get(use).addAll(newRecommendations);
-                    } else {
-                        recommendationMap.put(use, newRecommendations);
-                    }
+                if (recommendationMap.containsKey(use)) {
+                    recommendationMap.get(use).addAll(newRecommendations);
+                } else {
+                    recommendationMap.put(use, newRecommendations);
                 }
             }
         }
@@ -244,6 +243,10 @@ public class PlacementManager {
         StringBuilder indentString = new StringBuilder();
         for (int i = 0; i < indent; i++) {
             indentString.append("  ->");
+        }
+        if (recommendation == null) {
+            _log.info("null recommendations");
+            return;
         }
         indentString.substring(indentString.length() - indent);
         String type = recommendation.getClass().getSimpleName();

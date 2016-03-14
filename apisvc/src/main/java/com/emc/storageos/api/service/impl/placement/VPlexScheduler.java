@@ -413,22 +413,16 @@ public class VPlexScheduler implements Scheduler {
 
         _log.info("Executing VPlex high availability placement strategy for Local VPLEX volumes");
 
-        // Initialize the list of recommendations and baseRecommendations (from lower schedulers).
+        // Initialize the list of recommendations that will be returned
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
-        List<Recommendation> baseRecommendations = new ArrayList<Recommendation>();
         
-        // Call the lower level scheduler to get it's recommendations.
+        // Call the lower level scheduler to get its baseRecommendations.
         Scheduler nextScheduler = _placementManager.getNextScheduler(
                 SchedulerType.vplex, vpool, vPoolUse);
         _log.info(String.format("Calling next scheduler: %s", nextScheduler.getClass().getSimpleName()));
-        Set<List<Recommendation>> baseRecommendationSets = 
+        List<Recommendation> baseRecommendations = 
                 nextScheduler.getRecommendationsForVpool(
                         varray, project, vpool, vPoolUse, capabilities, currentRecommendations);
-        // For now take the first recommendation set.
-        Iterator<List<Recommendation>> setIterator = baseRecommendationSets.iterator();
-        if (setIterator.hasNext()) {
-            baseRecommendations.addAll(setIterator.next());
-        }
         _log.info(String.format("Received %d recommendations from %s", 
                 baseRecommendations.size(), nextScheduler.getClass().getSimpleName()));
         List<StoragePool> allMatchingPools = _placementManager
@@ -560,20 +554,16 @@ public class VPlexScheduler implements Scheduler {
 
         // Initialize the list of recommendations.
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
-        List<Recommendation> baseRecommendations = new ArrayList<Recommendation>();
       
       // Call the lower level scheduler to get it's recommendations.
       Scheduler nextScheduler = _placementManager.getNextScheduler(
               SchedulerType.vplex, srcVpool, srcVpoolUse);
       _log.info(String.format("Calling next scheduler: %s", nextScheduler.getClass().getSimpleName()));
-      Set<List<Recommendation>> baseRecommendationSets = 
+      List<Recommendation> baseRecommendations =
               nextScheduler.getRecommendationsForVpool(
                       srcVarray, project, srcVpool, srcVpoolUse, capabilities, currentRecommendations);
-      // For now take the first recommendation set.
-      Iterator<List<Recommendation>> setIterator = baseRecommendationSets.iterator();
-      if (setIterator.hasNext()) {
-          baseRecommendations.addAll(setIterator.next());
-      }
+      _log.info(String.format("Received %d recommendations from %s", baseRecommendations.size(), 
+              nextScheduler.getClass().getSimpleName()));
       if (baseRecommendations.isEmpty()) {
           throw BadRequestException.badRequests.noVplexLocalRecommendationFromSubScheduler(
                   nextScheduler.getClass().getSimpleName(), srcVpool.getLabel(), srcVarray.getLabel());
@@ -1243,12 +1233,9 @@ public class VPlexScheduler implements Scheduler {
     }
 
     @Override
-    public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
         _log.info("Getting recommendations for VPlex volume placement");
-        
-        Set<List<Recommendation>> recommendationSet = new HashSet<List<Recommendation>>();
-       
 
         // Validate the VirtualPool specifies VPlex high availability, which
         // currently is the only supported means for creating high
@@ -1307,8 +1294,7 @@ public class VPlexScheduler implements Scheduler {
                 vArray, vplexSystemsForPlacement, null, vPool, isHAVolumeRequest, haVArray, haVPool, 
                 capabilities, project, vPoolUse, currentRecommendations);
 
-        recommendationSet.add(recommendations);
-        return recommendationSet;
+        return recommendations;
     }
 
 }

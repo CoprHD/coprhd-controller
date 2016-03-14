@@ -1242,18 +1242,16 @@ public class SRDFScheduler implements Scheduler {
     }
 
     @Override
-    public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, 
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, 
             VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
-       Set<List<Recommendation>> recommendationSet = new HashSet<List<Recommendation>>();
        List<Recommendation> recommendations;
        if (vPoolUse == VpoolUse.SRDF_COPY) {
            recommendations = getRecommendationsForCopy(vArray, project, vPool, capabilities, currentRecommendations.get(VpoolUse.ROOT));
        } else {
            recommendations = getRecommendationsForResources(vArray, project, vPool, capabilities);
        } 
-       recommendationSet.add(recommendations);
-       return recommendationSet;
+       return recommendations;
     }
     
     private List<Recommendation> getRecommendationsForCopy(VirtualArray vArray, Project project, 

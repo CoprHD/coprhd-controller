@@ -4255,9 +4255,9 @@ public class RecoverPointScheduler implements Scheduler {
     } // end PlacementStatus class
 
     @Override
-    public Set<List<Recommendation>> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
+    public List<Recommendation> getRecommendationsForVpool(VirtualArray vArray, Project project, VirtualPool vPool, VpoolUse vPoolUse,
             VirtualPoolCapabilityValuesWrapper capabilities, Map<VpoolUse, List<Recommendation>> currentRecommendations) {
-        // TODO Auto-generated method stub
-        return null;
+        // No special implementation based on Vpool - using original implementation
+        return getRecommendationsForResources(vArray, project, vPool, capabilities);
     }
 }

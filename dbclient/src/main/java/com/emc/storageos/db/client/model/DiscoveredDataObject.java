@@ -18,8 +18,12 @@ public class DiscoveredDataObject extends DataObject {
     // Indicates if the object is Southbound driver managed.
     private Boolean _isDriverManaged = false;
 
-    private static StorageDriverManager storageDriverManager = (StorageDriverManager)StorageDriverManager.
-                                              getApplicationContext().getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER);
+    // Junits don't have the application context populated, so for them storageDriverManager is null.
+    private static StorageDriverManager storageDriverManager = 
+            ((StorageDriverManager.getApplicationContext() != null) ?
+            (StorageDriverManager) StorageDriverManager.getApplicationContext()
+                    .getBean(StorageDriverManager.STORAGE_DRIVER_MANAGER) :
+            null);
     // known device types
     public static class Type implements Serializable {
         private static final long serialVersionUID = 1L;
@@ -89,7 +93,7 @@ public class DiscoveredDataObject extends DataObject {
             // check map  with types
             if (types.containsKey(typeName)) {
                 return types.get(typeName);
-            } else if (storageDriverManager.isDriverManaged(typeName)){
+            } else if (storageDriverManager != null && storageDriverManager.isDriverManaged(typeName)){
                 // check if this is new driver managed type
                 types.put(typeName, new Type(typeName, types.values().size()));
                 return types.get(typeName);
@@ -108,7 +112,7 @@ public class DiscoveredDataObject extends DataObject {
         }
 
         static public boolean isFileStorageSystem(String storageType) {
-            if (storageDriverManager.isDriverManaged(storageType)) {
+            if (storageDriverManager != null && storageDriverManager.isDriverManaged(storageType)) {
                 return storageDriverManager.isFileStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
@@ -117,7 +121,7 @@ public class DiscoveredDataObject extends DataObject {
         }
 
         static public boolean isProviderStorageSystem(String storageType) {
-            if (storageDriverManager.isDriverManaged(storageType)) {
+            if (storageDriverManager != null && storageDriverManager.isDriverManaged(storageType)) {
                 return storageDriverManager.isProviderStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);
@@ -142,7 +146,7 @@ public class DiscoveredDataObject extends DataObject {
         }
 
         static public boolean isBlockStorageSystem(String storageType) {
-            if (storageDriverManager.isDriverManaged(storageType)) {
+            if (storageDriverManager != null && storageDriverManager.isDriverManaged(storageType)) {
                 return storageDriverManager.isBlockStorageSystem(storageType);
             } else {
                 Type type = Type.valueOf(storageType);

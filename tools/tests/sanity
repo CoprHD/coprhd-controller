@@ -8375,7 +8375,7 @@ backuprestore_setup()
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_password "${BACKUP_SERVER_PASSWORD}"
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_url "${BACKUP_SERVER_URL}"
 
-    echo "Done url=${BACKUP_SERVER_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
+    echo -e "Done\nurl=${BACKUP_SERVER_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
 }
 
 backuprestore_tests()

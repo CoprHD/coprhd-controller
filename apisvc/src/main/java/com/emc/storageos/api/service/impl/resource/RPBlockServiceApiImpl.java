@@ -696,7 +696,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         numberOfVolumesInRequest,
                         sourceCopyName);
                 if (!isAdditionalSourceJournalRequired) {
-                    _log.info(String.format("Re-use existing Source Journals"));
+                    _log.info(String.format("Re-use existing Source Journal for copy [%s]", sourceCopyName));
                     // If the CG contains volumes already and no new additional journals are provisioned,
                     // then we simply update the reference on the source for the journal volume.
                     List<Volume> existingSourceJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), sourceCopyName);
@@ -704,8 +704,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     _log.info(String.format("Existing Primary Source Journal: [%s] (%s)", sourceJournal.getLabel(), sourceJournal.getId()));
 
                     if (VirtualPool.vPoolSpecifiesMetroPoint(vpool) && !isChangeVpoolForProtectedVolume) {
-                        String standbyCopyName = RPHelper.getStandbyProductionCopyName(_dbClient, cgSourceVolumes.get(0));
-                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), standbyCopyName);                        
+                        _log.info(String.format("Re-use existing Standby Journal for copy [%s]", standbySourceCopyName));
+                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), standbySourceCopyName);                        
                         standbyJournal = existingStandbyJournals.get(0);
                         _log.info(String.format("Existing Standby Source Journal: [%s] (%s)", standbyJournal.getLabel(),
                                 standbyJournal.getId()));
@@ -828,7 +828,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // journal volume operation
                 if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
                     VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
-                    String targetCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, targetCopyVarray.getId(), false);
+                    String targetCopyName = targetJournalRec.getRpCopyName();
+                    if (targetCopyName == null) {
+                        // Target RP copy name was not set on the recommendation, find it from the CG.
+                        targetCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, targetCopyVarray.getId(), false);
+                    }
                     boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(
                             protectionSettings.getJournalSize(), consistencyGroup, param.getSize(),
                             numberOfVolumesInRequest,
@@ -836,8 +840,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     if (!isAdditionalTargetJournalRequired) {
                         // If the CG contains volumes already and no new additional journals are provisioned,
                         // then we simply update the reference on the source for the journal volume.
-                        _log.info(String.format("Re-use existing Target Journal for target [%s]", targetJournalVarray.getLabel()));                                               
-                        List<Volume> existingTargetJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), targetJournalRec.getRpCopyName());                        
+                        _log.info(String.format("Re-use existing Target Journal for copy [%s]", targetCopyName));                                               
+                        List<Volume> existingTargetJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), targetCopyName);                        
                         Volume existingTargetJournalVolume = existingTargetJournals.get(0);                        
                         targetJournals.put(targetJournalVarray.getId(), existingTargetJournalVolume);
                         _log.info(String.format("Existing Target Journal: [%s] (%s)", existingTargetJournalVolume.getLabel(),

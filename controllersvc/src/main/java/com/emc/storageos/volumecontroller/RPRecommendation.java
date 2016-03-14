@@ -107,11 +107,20 @@ public class RPRecommendation extends Recommendation {
 	public void setSize(Long size) {
 		this.size = size;
 	}	
+	
+	public String getRpCopyName() {
+        return rpCopyName;
+    }
+
+    public void setRpCopyName(String rpCopyName) {
+        this.rpCopyName = rpCopyName;
+    }
 		
 	/**
-	 * Returns true of the specified internal site is already part of this recommendation
+	 * Returns true of the specified internal site is already part of this recommendation.
+	 * 
 	 * @param destInternalSiteName
-	 * @return
+	 * @return true if the internal site is found for a target recommendation
 	 */
 	public boolean containsTargetInternalSiteName(String destInternalSiteName) {
 		if (this.getTargetRecommendations() != null) {
@@ -251,6 +260,8 @@ public class RPRecommendation extends Recommendation {
 			siteId = "";
 		}
 		buff.append(printTabs + String.format("Internal Site	: %s %s %n", siteName, siteId));
+		buff.append(printTabs + String.format("RP Copy Name     : %s %n", 
+		        (this.getRpCopyName() == null ? "Not determined yet" : this.getRpCopyName())));
 		buff.append(printTabs + String.format("Virtual Array 	: %s %n", varray.getLabel()));
 		buff.append(printTabs + String.format("Virtual Pool  	: %s %n", vpool.getLabel()));
 		if (virtualVolumeRecommendation != null && virtualVolumeRecommendation.getVPlexStorageSystem() != null) {
@@ -276,12 +287,4 @@ public class RPRecommendation extends Recommendation {
 		}
 		return buff.toString();
 	}
-
-    public String getRpCopyName() {
-        return rpCopyName;
-    }
-
-    public void setRpCopyName(String rpCopyName) {
-        this.rpCopyName = rpCopyName;
-    }
 }

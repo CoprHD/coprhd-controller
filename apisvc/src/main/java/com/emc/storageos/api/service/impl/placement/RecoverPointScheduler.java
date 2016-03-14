@@ -1871,15 +1871,48 @@ public class RecoverPointScheduler implements Scheduler {
      * matched storage pools of the virtual pool being used in the current volume request
      *
      * @param vpool - virtual pool being used in the current volume request
-     * @param existingVolumeStoragePool - the existing volume's storage pool
+     * @param existingVolume - the existing volume
      * @return true or false depending whether the storage pool is in either list
      */
-    private boolean verifyStoragePoolAvailability(VirtualPool vpool, URI existingVolumeStoragePool) {
-        List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, dbClient, true);
-        if (!pools.isEmpty()) {
-            for (StoragePool pool : pools) {
-                if (pool.getId().equals(existingVolumeStoragePool)) {
-                    return true;
+    private boolean verifyStoragePoolAvailability(VirtualPool vpool, Volume existingVolume) {
+        if (existingVolume.isVPlexVolume(dbClient)) { 
+            // Have to check the backing volumes for VPLEX
+            int matchedPools = 0;
+            for (String backingVolumeId : existingVolume.getAssociatedVolumes()) {
+                Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(backingVolumeId));
+                
+                List<StoragePool> pools = new ArrayList<StoragePool>();                
+                if (existingVolume.getInternalSiteName().equalsIgnoreCase(backingVolume.getInternalSiteName())
+                        || NullColumnValueGetter.isNullValue(vpool.getHaVarrayConnectedToRp())) {
+                    // Get the pools from the passed in vpool if the backing volume and existing volume have the
+                    // same internal site or if the passed in vpool does not have a value for getHaVarrayConnectedToRp,
+                    // which would mean we should use the main vpool for the HA vpool since no HA vpool was
+                    // explicitly defined.
+                    pools = VirtualPool.getValidStoragePools(vpool, dbClient, true);
+                } else {
+                    VirtualPool haVpool = dbClient.queryObject(VirtualPool.class, URI.create(vpool.getHaVarrayConnectedToRp()));
+                    pools = VirtualPool.getValidStoragePools(haVpool, dbClient, true);
+                }
+                
+                if (!pools.isEmpty()) {
+                    for (StoragePool pool : pools) {
+                        if (pool.getId().equals(backingVolume.getPool())) {
+                            matchedPools++;
+                        }
+                    }
+                }
+            }
+            if (matchedPools == existingVolume.getAssociatedVolumes().size()) {
+                // All VPLEX backend pools matched up
+                return true;
+            }
+        } else {            
+            List<StoragePool> pools = VirtualPool.getValidStoragePools(vpool, dbClient, true);
+            if (!pools.isEmpty()) {
+                for (StoragePool pool : pools) {
+                    if (pool.getId().equals(existingVolume.getPool())) {
+                        return true;
+                    }
                 }
             }
         }
@@ -1896,11 +1929,10 @@ public class RecoverPointScheduler implements Scheduler {
      * @return true or false depending whether the existing volume's storage pool is available to the current virtual pool of the
      *         request
      */
-    private boolean verifyTargetStoragePoolAvailability(Volume volume, VirtualPool vpool) {
-    	
+    private boolean verifyTargetStoragePoolAvailability(Volume volume, VirtualPool vpool) {    	
     	if(volume.checkPersonality(Volume.PersonalityTypes.METADATA.name())) {
     		VirtualPool journalVpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-            if (verifyStoragePoolAvailability(journalVpool, volume.getPool())) {
+            if (verifyStoragePoolAvailability(journalVpool, volume)) {
                 return true;
             }
     	} else {
@@ -1913,7 +1945,7 @@ public class RecoverPointScheduler implements Scheduler {
 	                protectionVpoolId = settings.getVirtualPool();
 	            }
 	            VirtualPool protectionVpool = dbClient.queryObject(VirtualPool.class, protectionVpoolId);
-	            if (verifyStoragePoolAvailability(protectionVpool, volume.getPool())) {
+	            if (verifyStoragePoolAvailability(protectionVpool, volume)) {
 	                return true;
 	            }
 	        }
@@ -1943,11 +1975,11 @@ public class RecoverPointScheduler implements Scheduler {
             return false;
         }
         
-        if (!verifyStoragePoolAvailability(vpool, srcVolume.getPool())) {
+        if (!verifyStoragePoolAvailability(vpool, srcVolume)) {
             _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
                     "The storage pool %s used by an existing source volume cannot be used.", cgName, srcVolume.getPool()));
             return false;
-        } else if (!verifyStoragePoolAvailability(vpool, sourceJournal.getPool())) {
+        } else if (!verifyStoragePoolAvailability(vpool, sourceJournal)) {
             _log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
                     "The storage pool %s used by an existing source journal volume cannot be used.",
                     cgName, sourceJournal.getPool()));

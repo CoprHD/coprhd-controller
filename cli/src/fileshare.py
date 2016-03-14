@@ -67,6 +67,8 @@ class Fileshare(object):
     URI_CONTINUOS_COPIES_DEACTIVATE = '/file/filesystems/{0}/protection/continuous-copies/deactivate'
     URI_CONTINUOS_COPIES_REFRESH = '/file/filesystems/{0}/protection/continuous-copies/refresh'
     URI_VPOOL_CHANGE = '/file/filesystems/{0}/vpool-change'
+    
+    URI_SCHEDULE_SNAPSHOTS_LIST = '/file/filesystems/{0}/file-policies/{1}/snapshots'
 
     isTimeout = False
     timeout = 300
@@ -1070,10 +1072,11 @@ class Fileshare(object):
 
         return
     
-    def continous_copies_create(self, filesharename):
+    def continous_copies_create(self, filesharename, targetname=None):
         fsname = self.show(filesharename)
         fsid = fsname['id']
         parms = {
+                     'copy_name' : targetname,
                      'type' : "REMOTE_MIRROR"}
 
         body = json.dumps(parms)
@@ -1135,6 +1138,19 @@ class Fileshare(object):
             body)
 
         return
+    
+    def schedule_snapshots_list(self, filesharename, policyname, tenantname, policyid):
+        fsname = self.show(filesharename)
+        fsid = fsname['id']
+        
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            Fileshare.URI_SCHEDULE_SNAPSHOTS_LIST.format(fsid, policyid),
+            None)
+        
+        o = common.json_decode(s)
+        return o
 
 # Fileshare Create routines
 
@@ -2661,7 +2677,7 @@ def unassign_policy(args):
                       args.tenant, policyid)
         return
     except SOSError as e:
-        common.format_err_msg_and_raise("fileshare", "assign",
+        common.format_err_msg_and_raise("fileshare", "un-assign",
                                         e.err_text, e.err_code)
         
 
@@ -2939,6 +2955,10 @@ def continous_copies_create_parser(subcommand_parsers, common_parser):
                              metavar='<tenantname>',
                              dest='tenant',
                              help='Name of tenant')
+    continous_copies_create_parser.add_argument('-targetname', '-tgn',
+                             metavar='<targetname>',
+                             dest='target',
+                             help='Name of target')
     mandatory_args.add_argument('-project', '-pr',
                                 metavar='<projectname>',
                                 dest='project',
@@ -2952,7 +2972,7 @@ def continous_copies_create(args):
     try:
         if(not args.tenant):
             args.tenant = ""
-        res = obj.continous_copies_create(args.tenant + "/" + args.project + "/" + args.name)
+        res = obj.continous_copies_create(args.tenant + "/" + args.project + "/" + args.name, args.target)
         return
     except SOSError as e:
         raise e
@@ -3076,6 +3096,56 @@ def change_vpool(args):
     except SOSError as e:
         raise e
     
+
+
+def schedule_snapshots_list_parser(subcommand_parsers, common_parser):
+    schedule_snapshots_list_parser = subcommand_parsers.add_parser(
+        'schedule-snapshots-list',
+        description='ViPR Schedule snapshots list CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='List of schedule snapshots of a file system created by schedule policy')
+    mandatory_args = schedule_snapshots_list_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of filesystem',
+                                metavar='<filesystemname>',
+                                dest='name',
+                                required=True)
+    mandatory_args.add_argument('-policyname', '-polnm',
+                               metavar='<policyname>',
+                               dest='polname',
+                               help='Name of policy',
+                               required=True)
+    mandatory_args.add_argument('-tenant', '-tn',
+                            metavar='<tenantname>',
+                            dest='tenant',
+                            help='Name of tenant',
+                            required=True)
+    mandatory_args.add_argument('-project', '-pr',
+                            metavar='<projectname>',
+                            dest='project',
+                            help='Name of Project',
+                            required=True)
+
+    schedule_snapshots_list_parser.set_defaults(func=schedule_snapshots_list)
+
+
+def schedule_snapshots_list(args):
+    try:
+        from schedulepolicy import Schedulepolicy
+        policy = Schedulepolicy(args.ip,
+                        args.port).get_policy_from_name(args.polname, args.tenant)
+        policyid = policy['id']
+        obj = Fileshare(args.ip, args.port)
+        
+        res = obj.schedule_snapshots_list(args.tenant + "/" + args.project + "/" + args.name,
+                      args.polname,
+                      args.tenant, policyid)
+        return res
+    except SOSError as e:
+        common.format_err_msg_and_raise("fileshare", "schedule snapshots",
+                                        e.err_text, e.err_code)
+    
     
     
 
@@ -3197,3 +3267,6 @@ def fileshare_parser(parent_subparser, common_parser):
     
     #change vpool command parser
     change_vpool_parser(subcommand_parsers, common_parser)
+    
+    #schedule snapshots list parser
+    schedule_snapshots_list_parser(subcommand_parsers, common_parser)

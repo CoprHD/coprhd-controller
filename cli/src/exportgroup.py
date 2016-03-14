@@ -192,6 +192,7 @@ class ExportGroup(object):
                 "Export group with name " + name +
                 " already exists")
 
+
     def exportgroup_delete(self, name, project, tenant, sync,synctimeout=0, varray=None):
         '''
         This function will take export group name and project name as input and
@@ -656,7 +657,7 @@ class ExportGroup(object):
             self.URI_EXPORT_GROUP_UPDATE.format(exportgroup_uri), body)
         return common.json_decode(s)
 
-    def check_for_sync(self, result, sync,synctimeout):
+    def check_for_sync(self, result, sync,synctimeout=0):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]

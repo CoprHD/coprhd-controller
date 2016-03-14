@@ -307,10 +307,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             if (capabilities.getAddJournalCapacity()) {
                 if (rpProtectionRec.getStandbyJournalRecommendation() != null) {
-                    standbySourceCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), true);
-                    if (standbySourceCopyName == null) {
-                        standbySourceCopyName = varray.getLabel() + MP_STANDBY_COPY_SUFFIX;
-                    }
+                    standbySourceCopyName = varray.getLabel() + MP_STANDBY_COPY_SUFFIX;
                 }
             }
 
@@ -444,8 +441,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                     // All RP+VPLEX Metro volumes in this CG need to have their backing volume
                                     // references updated with the internal site names for exports.
                                     setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
-                                            sourceVol, true, false, originalVpool.getHaVarrayConnectedToRp(),
-                                            activeSourceCopyName, standbySourceCopyName);
+                                            sourceVol, true, false, originalVpool.getHaVarrayConnectedToRp());
                                     // We need to have all the existing RP+VPLEX Metro volumes from the CG
                                     // added to the volumeURI list so we can properly export the standby
                                     // leg to RP for each volume.
@@ -484,8 +480,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // which side(varray) to export.
                         // This value will only be used if isSrcAndHaSwapped == true.
                         setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
-                                sourceVolume, metroPointEnabled, isSrcAndHaSwapped, originalVpool.getHaVarrayConnectedToRp(),
-                                activeSourceCopyName, standbySourceCopyName);
+                                sourceVolume, metroPointEnabled, isSrcAndHaSwapped, originalVpool.getHaVarrayConnectedToRp());
 
                         // /////// TARGET(S) ///////////
                         List<URI> protectionTargets = new ArrayList<URI>();
@@ -3327,13 +3322,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param exportForMetroPoint Boolean set to true if we're MetroPoint
      * @param exportToHASideOnly Boolean set to true if we're only exportong to HA side
      * @param haVarrayConnectedToRp Only be used if isSrcAndHaSwapped == true, tells us which varray is the HA one
-     * @param activeSourceCopyName Active RP Copy name 
-     * @param standbySourceCopyName Standby RP Copy name
      */
     private void setInternalSitesForSourceBackingVolumes(RPRecommendation primaryRecommendation,
             RPRecommendation secondaryRecommendation, Volume sourceVolume,
             boolean exportForMetroPoint, boolean exportToHASideOnly,
-            String haVarrayConnectedToRp, String activeSourceCopyName, String standbySourceCopyName) {
+            String haVarrayConnectedToRp) {
         if (exportForMetroPoint) {
             // If this is MetroPoint request and we're looking at the SOURCE volume we need to ensure the
             // backing volumes are aware of which internal site they have been assigned (needed for exporting in
@@ -3346,16 +3339,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             Iterator<String> it = sourceVolume.getAssociatedVolumes().iterator();
             while (it.hasNext()) {
                 Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(it.next()));
+                VirtualArray backingVolumeVarray = _dbClient.queryObject(VirtualArray.class, backingVolume.getVirtualArray());
                 String rpSite = "";
                 // If this backing volume's varray is equal to the MetroPoint Source virtual volume's varray,
                 // then we're looking at the primary leg. Otherwise, it's the
                 // secondary leg. Set the InternalSiteName accordingly.
                 if (backingVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {
                     rpSite = primaryRecommendation.getInternalSiteName();
-                    backingVolume.setRpCopyName(activeSourceCopyName);
+                    backingVolume.setRpCopyName(backingVolumeVarray.getLabel() + MP_ACTIVE_COPY_SUFFIX);
                 } else {
                     rpSite = secondaryRecommendation.getInternalSiteName();
-                    backingVolume.setRpCopyName(standbySourceCopyName);
+                    backingVolume.setRpCopyName(backingVolumeVarray.getLabel() + MP_STANDBY_COPY_SUFFIX);
                 }
                 // Save the internal site name to the backing volume, will need this for exporting later
                 backingVolume.setInternalSiteName(rpSite);

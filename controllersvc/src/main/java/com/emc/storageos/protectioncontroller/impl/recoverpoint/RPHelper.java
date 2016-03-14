@@ -1095,15 +1095,15 @@ public class RPHelper {
      *
      * @param dbClient DbClient reference
      * @param cgURI URI of the CG to query
-     * @param rpCopyName Either a valid RP copy name.
+     * @param internalSiteNameOrCopyName Either a valid RP internal site name or the RP copy name.
      * @return Existing matching journals for the copy or internal site sorted from largest to smallest
      */
-    public static List<Volume> findExistingJournalsForCopy(DbClient dbClient, URI cgURI, String rpCopyName) {
+    public static List<Volume> findExistingJournalsForCopy(DbClient dbClient, URI cgURI, String internalSiteNameOrCopyName) {
         // Return as a list for easy consumption
         List<Volume> matchingJournals = new ArrayList<Volume>();
 
         // Ensure we have been passed valid arguments
-        if (dbClient == null || cgURI == null || rpCopyName == null) {
+        if (dbClient == null || cgURI == null || internalSiteNameOrCopyName == null) {
             return matchingJournals;
         }
 
@@ -1115,10 +1115,12 @@ public class RPHelper {
 
         // Filter journals based on internal site name or copy name matching the passed in value.
         if (cgJournalVolumes != null && !cgJournalVolumes.isEmpty()) {
-            for (Volume cgJournalVolume : cgJournalVolumes) {               
+            for (Volume cgJournalVolume : cgJournalVolumes) {
+                boolean internalSiteNamesMatch = (NullColumnValueGetter.isNotNullValue(cgJournalVolume.getInternalSiteName())
+                        && cgJournalVolume.getInternalSiteName().equals(internalSiteNameOrCopyName));
                 boolean copyNamesMatch = (NullColumnValueGetter.isNotNullValue(cgJournalVolume.getRpCopyName())
-                        && cgJournalVolume.getRpCopyName().equals(rpCopyName));
-                if (copyNamesMatch) {
+                        && cgJournalVolume.getRpCopyName().equals(internalSiteNameOrCopyName));
+                if (internalSiteNamesMatch || copyNamesMatch) {
                     matchingJournalsSortedBySize.put(cgJournalVolume.getProvisionedCapacity(), cgJournalVolume);
                 }
             }
@@ -1504,15 +1506,17 @@ public class RPHelper {
         String standbyProductionCopyName = null;
         if (sourceVolume != null
                 && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
-            // Check the associated volumes to find the non-matching internal site and return that one.
-            for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
-                Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
-                if (associatedVolume != null && !associatedVolume.getInactive()) {
-                    if (NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
-                            && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())) {
-                        // If the internal site names are different, this is the standby internal site
-                        standbyProductionCopyName = associatedVolume.getRpCopyName();
-                        break;
+            if (isMetroPointVolume(dbClient, sourceVolume)) {
+                // Check the associated volumes to find the non-matching internal site and return that one.
+                for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
+                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                    if (associatedVolume != null && !associatedVolume.getInactive()) {
+                        if (NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
+                                && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())) {
+                            // If the internal site names are different, this is the standby internal site
+                            standbyProductionCopyName = associatedVolume.getRpCopyName();
+                            break;
+                        }
                     }
                 }
             }

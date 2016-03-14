@@ -96,7 +96,7 @@ import com.google.common.base.Joiner;
  *
  * Criteria for Full Ingestion of an RP CG:
  * - All Journals, Sources, and Targets associated with the UnManagedProtectionSet are now Managed volumes
- * - Validation occurs where needed, such as ensuring that the journals and targets are assigned to the right vpools (TODO)
+ * - Validation occurs where needed, such as ensuring that the journals and targets are assigned to the right vpools
  * - BlockConsistencyGroup and ProtectionSet objects are created and all ingested volumes therein are updated with references to them.
  *
  */
@@ -294,6 +294,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volume.setRpCopyName(rpCopyName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setProtectionController(URI.create(rpProtectionSystem)); // This comes from UNMANAGED_CG discovery of Protection System
+        volume.setSyncActive(true); // This defaults to true for an active RP protection
     }
 
     /**
@@ -333,7 +334,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
                     .getVplexVolumeIngestionContext();
 
-            // Match the main VPLEX virtual volume varray to one of it's backing volume varrays.
+            // Match the main VPLEX virtual volume varray to one of its backing volume varrays.
             // Matching should indicate the volume is the VPLEX Source side.
             // Non-matching varrays will be the VPLEX HA side.
             for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
@@ -350,7 +351,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                             "Could not find associated volume: " + associatedVolumeIdStr + ", for VPLEX volume: " + volume.getLabel());
                 }
 
-                // Compare the varrays for the associated volume and it's VPLEX virtual volume
+                // Compare the varrays for the associated volume and its VPLEX virtual volume
                 if (associatedVolume.getVirtualArray().equals(volume.getVirtualArray())) {
                     associatedVolume.setInternalSiteName(rpInternalSiteName);
                     associatedVolume.setRpCopyName(rpCopyName);

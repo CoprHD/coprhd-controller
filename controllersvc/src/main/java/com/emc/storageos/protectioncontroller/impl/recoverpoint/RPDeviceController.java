@@ -225,7 +225,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     // Methods in the expand volume workflow
     public static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
-    private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "deleteRSetRollbackStep";
+    private static final String METHOD_DELETE_RSET_ROLLBACK_STEP = "recreateRSetStep"; // Intentionally recreateRSetStep
     public static final String METHOD_RECREATE_RSET_STEP = "recreateRSetStep";
 
     // Methods in the create RP snapshot workflow    

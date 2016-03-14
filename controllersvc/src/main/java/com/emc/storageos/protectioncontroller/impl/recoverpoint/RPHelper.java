@@ -1503,7 +1503,9 @@ public class RPHelper {
     public static String getStandbyProductionCopyName(DbClient dbClient, Volume sourceVolume) {
         String standbyProductionCopyName = null;
         if (sourceVolume != null
-                && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
+                && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())
+                && sourceVolume.getAssociatedVolumes() != null
+                && sourceVolume.getAssociatedVolumes().size() > 1) {
             // Check the associated volumes to find the non-matching internal site and return that one.
             for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
                 Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));

@@ -1607,7 +1607,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     }
                 }
 
-                // add steps to removed snapshots from the replication group
+                // add steps to remove snapshots from the replication group
                 for (Entry<String, List<URI>> entry : snapGroupCloneURIMap.entrySet()) {
                     waitFor = removeSnapshotsFromReplicationGroupStep(workflow, waitFor, system, cgURI, entry.getValue(), entry.getKey());
                 }

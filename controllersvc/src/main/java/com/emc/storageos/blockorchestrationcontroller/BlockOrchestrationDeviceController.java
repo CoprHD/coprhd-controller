@@ -603,6 +603,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     public void restoreFromFullCopy(URI storage, List<URI> fullCopyURIs, String taskId)
             throws InternalException {
         CloneRestoreCompleter completer = new CloneRestoreCompleter(fullCopyURIs, taskId);
+        s_logger.info("Creating steps for restore from full copy.");
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
@@ -613,11 +614,14 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _rpDeviceController.addPreRestoreFromFullcopySteps(
                     workflow, waitFor, storage, fullCopyURIs, taskId);
 
-            // Call the VplexDeviceController to add its steps for restore volume from snapshot
+            // Call the VplexDeviceController to add its steps for restore volume from full copy
             waitFor = _vplexDeviceController.addStepsForRestoreFromFullcopy(
                     workflow, waitFor, storage, fullCopyURIs, taskId, completer);
 
-            // Call the RPDeviceController to add its steps for post restore volume from snapshot
+            // Call the BlockDeviceController to add its stpes for restore volume from full copy
+            waitFor = _blockDeviceController.addStepsForRestoreFromFullcopy(workflow, waitFor, storage, fullCopyURIs, taskId, completer);
+            
+            // Call the RPDeviceController to add its steps for post restore volume from full copy
             waitFor = _rpDeviceController.addPostRestoreFromFullcopySteps(workflow, waitFor, storage, fullCopyURIs, taskId);
 
             // Finish up and execute the plan.

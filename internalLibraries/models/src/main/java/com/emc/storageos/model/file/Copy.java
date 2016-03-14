@@ -16,6 +16,7 @@ public class Copy implements Serializable {
     private static final long serialVersionUID = -8250892549720042299L;
     private URI copyID;
     private String type;
+    private FileSystemReplicationRPOParams rpoParam;
 
     /**
      * @return the copyID
@@ -28,8 +29,7 @@ public class Copy implements Serializable {
     public void setCopyID(URI copyID) {
         this.copyID = copyID;
     }
-    
-    
+
     /**
      * Type of protection.
      *
@@ -42,4 +42,14 @@ public class Copy implements Serializable {
     public void setType(String type) {
         this.type = type;
     }
+
+    @XmlElement(name = "filesystem_rpo_update")
+    public FileSystemReplicationRPOParams getRpoParam() {
+        return rpoParam;
+    }
+
+    public void setRpoParam(FileSystemReplicationRPOParams rpoParam) {
+        this.rpoParam = rpoParam;
+    }
+
 }

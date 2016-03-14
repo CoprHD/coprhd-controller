@@ -8,7 +8,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.Controller;
-import com.emc.storageos.model.file.FileSystemReplicationRPOParams;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.volumecontroller.ControllerException;
 
 /**
@@ -47,11 +47,11 @@ public interface FileReplicationController extends Controller {
      * 
      * @param storage
      * @param fs
-     * @param FileSystemReplicationRPOParams params
+     * @param FileReplicationParam params
      * @param opId
      * @throws ControllerException
      */
-    public void updateFileSystemReplicationRPO(URI storage, URI fs, FileSystemReplicationRPOParams param, String opId)
+    public void updateFileSystemReplicationRPO(URI storage, URI fs, FileReplicationParam param, String opId)
             throws ControllerException;
 
 }

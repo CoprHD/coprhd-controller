@@ -3647,7 +3647,7 @@ public class FileService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/protection/continuous-copies/update-rpo")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
-    public TaskResourceRep updateFileSystemReplicationRPO(@PathParam("id") URI id, FileSystemReplicationRPOParams param)
+    public TaskResourceRep updateFileSystemReplicationRPO(@PathParam("id") URI id, FileReplicationParam param)
             throws InternalException {
 
         _log.info("Update file system replication RPO request received. Filesystem: {}", id.toString());
@@ -3656,7 +3656,7 @@ public class FileService extends TaskResourceService {
         FileShare fs = queryResource(id);
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         ArgValidator.checkEntity(fs, id, isIdEmbeddedInURL(id));
-        ArgValidator.checkFieldValueFromEnum(param.getRpoType(), "rpo_type",
+        ArgValidator.checkFieldValueFromEnum(param.getCopies().get(0).getRpoParam().getRpoType(), "rpo_type",
                 EnumSet.allOf(FileSystemReplicationRPOParams.ReplicationRPOType.class));
 
         VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, fs.getVirtualPool());

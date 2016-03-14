@@ -7,9 +7,6 @@ package com.emc.storageos.model.file;
 import java.io.Serializable;
 
 import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlRootElement;
-
-@XmlRootElement(name = "filesystem_rpo_update")
 
 public class FileSystemReplicationRPOParams implements Serializable {
 

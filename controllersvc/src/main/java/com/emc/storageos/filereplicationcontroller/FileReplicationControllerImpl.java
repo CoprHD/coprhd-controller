@@ -13,7 +13,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
-import com.emc.storageos.model.file.FileSystemReplicationRPOParams;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
@@ -71,7 +71,7 @@ public class FileReplicationControllerImpl extends AbstractDiscoveredSystemContr
     }
 
     @Override
-    public void updateFileSystemReplicationRPO(URI storage, URI fs, FileSystemReplicationRPOParams param, String opId)
+    public void updateFileSystemReplicationRPO(URI storage, URI fs, FileReplicationParam param, String opId)
             throws ControllerException {
         execFS("updateFileSystemReplicationRPO", storage, fs, param, opId);
 

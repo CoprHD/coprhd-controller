@@ -28,7 +28,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.fileorchestrationcontroller.FileDescriptor;
 import com.emc.storageos.fileorchestrationcontroller.FileOrchestrationInterface;
-import com.emc.storageos.model.file.FileSystemReplicationRPOParams;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -836,7 +836,7 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
     }
 
     @Override
-    public void updateFileSystemReplicationRPO(URI storage, URI fsuri, FileSystemReplicationRPOParams param, String opId)
+    public void updateFileSystemReplicationRPO(URI storage, URI fsuri, FileReplicationParam param, String opId)
             throws ControllerException {
 
         log.info("update FileSystem {} Replication RPO started", fsuri);
@@ -856,8 +856,8 @@ public class FileReplicationDeviceController implements FileOrchestrationInterfa
         try {
             for (String target : targetfileUris) {
                 FileShare targetFileShare = dbClient.queryObject(FileShare.class, URI.create(target));
-                fileShare.setRpoValue(param.getRpoValue());
-                fileShare.setRpoType(param.getRpoType());
+                fileShare.setRpoValue(param.getCopies().get(0).getRpoParam().getRpoValue());
+                fileShare.setRpoType(param.getCopies().get(0).getRpoParam().getRpoType());
                 completer = new MirrorFileModifyRPOTaskCompleter(FileShare.class, fileShare.getId(), opId);
                 completer.setNotifyWorkflow(false);
                 getRemoteMirrorDevice(system).doModifyReplicationRPO(system, fileShare, targetFileShare, completer);

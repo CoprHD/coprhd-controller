@@ -8,7 +8,7 @@ import java.io.Serializable;
 
 import javax.xml.bind.annotation.XmlElement;
 
-public class FileSystemReplicationRPOParams implements Serializable {
+public class FileSystemReplicationSettings implements Serializable {
 
     private static final long serialVersionUID = 1L;
     private Long rpoValue;
@@ -18,7 +18,7 @@ public class FileSystemReplicationRPOParams implements Serializable {
         MINUTES, HOURS, DAYS
     }
 
-    public FileSystemReplicationRPOParams() {
+    public FileSystemReplicationSettings() {
     }
 
     /**

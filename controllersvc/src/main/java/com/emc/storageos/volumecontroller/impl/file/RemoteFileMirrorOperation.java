@@ -128,7 +128,7 @@ public interface RemoteFileMirrorOperation {
             String policyName);
 
     /**
-     * Resume replication links.
+     * Modify replication RPO.
      *
      * @param system
      * @param rpoValue

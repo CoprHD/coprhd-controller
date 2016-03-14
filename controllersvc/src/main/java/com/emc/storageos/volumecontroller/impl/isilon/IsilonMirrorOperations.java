@@ -502,7 +502,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
     }
 
     /**
-     * Call to device to my the RPO of policy
+     * Call to device to modify the RPO of policy
      * 
      * @param system
      * @param policyName

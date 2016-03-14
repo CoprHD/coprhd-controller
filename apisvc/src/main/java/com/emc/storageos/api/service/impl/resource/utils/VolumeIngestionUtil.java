@@ -28,7 +28,6 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.Inge
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RecoverPointVolumeIngestionContext;
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.RpVplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.impl.VplexVolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil.VolumeObjectProperties;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
@@ -3559,13 +3558,6 @@ public class VolumeIngestionUtil {
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(pset.getLabel());
             cg.setProject(projectNamedUri);
-            StringSet types = new StringSet();
-            types.add(BlockConsistencyGroup.Types.RP.toString());
-            if (rpContext instanceof RpVplexVolumeIngestionContext) {
-                types.add(BlockConsistencyGroup.Types.VPLEX.toString());
-            }
-            cg.setRequestedTypes(types);
-            cg.setTypes(types);
             // By default, the array consistency is false. However later when we iterate over volumes in the BCG and we
             // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
             cg.setArrayConsistency(false);
@@ -4041,6 +4033,7 @@ public class VolumeIngestionUtil {
 
         ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(rpContext, umpset, dbClient);
         BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(rpContext, pset, dbClient);
+        rpContext.getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
 
         List<Volume> volumes = new ArrayList<Volume>();
         // First try to get the RP volumes from the updated objects list. This will have the latest info for

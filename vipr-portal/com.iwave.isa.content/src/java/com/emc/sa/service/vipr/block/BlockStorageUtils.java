@@ -1191,7 +1191,7 @@ public class BlockStorageUtils {
             List<VolumeRestRep> parentVolumes = execute(new GetBlockVolumes(parentVolIds));
             if (parentVolumes != null && !parentVolumes.isEmpty()) {
                 for (VolumeRestRep parentVolume : parentVolumes) {
-                    String rgName = parentVolume.getReplicationGroupInstance();
+                    String rgName = stripRPTargetFromReplicationGroup(parentVolume.getReplicationGroupInstance());
                     URI storage = parentVolume.getStorageController();
                     if (!storageRgToVolumes.contains(storage, rgName)) {
                         storageRgToVolumes.put(storage, rgName, volume);
@@ -1218,5 +1218,24 @@ public class BlockStorageUtils {
     public static boolean isVplexVolume(VolumeRestRep volume, String storageSystemType) {
         return (volume.getHaVolumes() != null && !volume.getHaVolumes().isEmpty())
                 || (storageSystemType != null && storageSystemType.equals(StorageProvider.InterfaceType.vplex.name()));
+    }
+
+    public static String stripRPTargetFromReplicationGroup(String group) {
+        String[] parts = StringUtils.split(group, '-');
+        if (parts.length > 1 && parts[parts.length - 1].equals("RPTARGET")) {
+            return StringUtils.join(parts, '-', 0, parts.length - 1);
+        } else {
+            return group;
+        }
+    }
+
+    public static List<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
+        List<String> stripped = new ArrayList<String>();
+
+        for (String group : groups) {
+            stripped.add(stripRPTargetFromReplicationGroup(group));
+        }
+
+        return stripped;
     }
 }

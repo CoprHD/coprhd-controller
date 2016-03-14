@@ -58,7 +58,6 @@ public class AnnotationValue implements SchemaObject {
             	for (int i=0; i < vals.length; i++) {
             		sb.append(vals[i].getSimpleName() + ",");
             	}
-            	log.info(sb.toString());
             	this.value = sb.toString();
             }
             else {

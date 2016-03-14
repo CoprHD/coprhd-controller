@@ -639,6 +639,9 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
     private void prepareCapabilitiesForAddInitiators(ExportPathParams pathParams, StorageCapabilities capabilities) {
         // For add initiators, we pass path-per-initiator as a minPath
+        // TODO: may improve this implementation by calculating existing paths in the zoning map for old initiators
+        // and based on this to decide how many additional paths (if any) we need to
+        // meet minPath and maxPath.
         ExportPathsServiceOption numPath = new ExportPathsServiceOption(pathParams.getPathsPerInitiator(), pathParams.getMaxPaths());
         List<ExportPathsServiceOption> exportPathParams = new ArrayList<>();
         exportPathParams.add(numPath);

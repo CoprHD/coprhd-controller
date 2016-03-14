@@ -809,6 +809,7 @@ class Configuration(object):
     URI_SITE_TIME = '/site/{0}/details'
     URI_SITE_SWITCHOVER = '/site/{0}/switchover'
     URI_SITE_FAILOVER = '/site/{0}/failover'
+    URI_SITE_RETRY = '/site/{0}/retry'
 
     
     URI_CONFIG_PROPERTY_TYPE = ['ovf', 'config', 'mutated', 'obsolete', 'all' , 'secrets']
@@ -1266,6 +1267,16 @@ class Configuration(object):
             "POST",
             Configuration.URI_SITE_FAILOVER.format(siteuuid), None)
         return
+    
+    def retry_site(self, sitename):
+        siteuuid = self.site_name_to_uuid(sitename)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            Configuration.URI_SITE_RETRY.format(siteuuid), None)
+         
+        o = common.json_decode(s)
+        return o
     
 
 def skip_initial_setup_parser(subcommand_parsers, common_parser):
@@ -2996,6 +3007,36 @@ def failover_site(args):
             "site",
             e.err_text,
             e.err_code)
+        
+def retry_site_parser(subcommand_parsers,common_parser):
+    retry_site_parser = subcommand_parsers.add_parser(
+        'retry-site',
+        description='ViPR: CLI usage to perform retry operation on a standby site',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Retry operation on a standby site')
+
+    mandatory_args = retry_site_parser.add_argument_group(
+        'mandatory arguments')
+
+    mandatory_args.add_argument('-name','-n',
+                                help='Name of the site',
+                                dest='name',
+                                required='True')
+    
+    retry_site_parser.set_defaults(func=retry_site)
+
+def retry_site(args):
+    obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
+    try:
+        res = obj.retry_site(args.name)
+        return common.format_json_object(res)
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "retry",
+            "site",
+            e.err_text,
+            e.err_code)
 
 
 def system_parser(parent_subparser, common_parser):
@@ -3133,6 +3174,8 @@ def system_parser(parent_subparser, common_parser):
     resume_site_parser(subcommand_parsers, common_parser)
     
     site_error_parser(subcommand_parsers, common_parser)
+    
+    retry_site_parser(subcommand_parsers, common_parser)
     
     update_site_parser(subcommand_parsers,common_parser)
     

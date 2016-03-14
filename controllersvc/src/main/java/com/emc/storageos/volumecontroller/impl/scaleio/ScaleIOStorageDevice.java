@@ -524,7 +524,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup, String replicationGroupName, Boolean keepRGName, Boolean markInactive, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("Going to delete BlockConsistency Group {}", consistencyGroup);
-        if (consistencyGroup != null ) {
+        if (markInactive && consistencyGroup != null ) {
             BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, consistencyGroup);
             if (cg != null) {
                 dbClient.markForDeletion(cg);

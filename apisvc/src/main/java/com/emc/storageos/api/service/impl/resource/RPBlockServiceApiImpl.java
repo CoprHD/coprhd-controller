@@ -2520,13 +2520,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int index = 1;
         for (Volume volume : volumes) {
+            VolumeGroup volumeGroup = volume.getApplication(_dbClient);
+            boolean isInApplication = volumeGroup != null && !volumeGroup.getInactive();
             if (RPHelper.isProtectionBasedSnapshot(volume, snapshotType, _dbClient)
                     && snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
                 // For protection-based snapshots, get the protection domains we
                 // need to create snapshots on
                 for (String targetVolumeStr : volume.getRpTargets()) {
                     Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetVolumeStr));
-                    BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, targetVolume, 0, snapshotType);
+                    BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, targetVolume, 0, snapshotType, isInApplication);
                     snapshot.setOpStatus(new OpStatusMap());
                     snapshot.setEmName(snapshotName);
                     snapshot.setEmInternalSiteName(targetVolume.getInternalSiteName());
@@ -2548,7 +2550,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     isRPTarget = true;
                 }
 
-                BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null), index++, snapshotType);
+                BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null), index++, 
+                        snapshotType, isInApplication);
                 snapshot.setTechnologyType(snapshotType);
 
                 // Check to see if the RP Copy Name of this volume contains any of the RP Source
@@ -2582,9 +2585,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         !rpCopyNameContainsSrcSuffix) {
                     isFormerTarget = true;
                 }
-
-                VolumeGroup volumeGroup = volume.getApplication(_dbClient);
-                boolean isInApplication = volumeGroup != null && !volumeGroup.getInactive();
 
                 if (!isInApplication && (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex)) {
                     // For RP+Vplex targets (who are not former source volumes) and former target volumes,
@@ -2626,9 +2626,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param snapshotName The name to be given the snapshot
      * @param index Integer to make snapshot label unique in a group
      * @param snapshotType type of snapshot (NATIVE, RP, SRDF)
+     * @param isInApplication If the source volume is in application
      * @return A reference to the new BlockSnapshot instance.
      */
-    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapshotName, Volume targetVolume, int index, String snapshotType) {
+    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapshotName, Volume targetVolume, int index, 
+            String snapshotType, boolean isInApplication) {
         BlockSnapshot snapshot = new BlockSnapshot();
         snapshot.setId(URIUtil.createId(BlockSnapshot.class));
         URI cgUri = null;
@@ -2655,8 +2657,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         String modifiedSnapshotName = snapshotName;
 
         // Don't add replication group instance to the snapshot name if this is an RP bookmark
-        if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString()) && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+        if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString()) && isInApplication) {
             modifiedSnapshotName = modifiedSnapshotName + "-"  + volume.getReplicationGroupInstance() + "-" + index;
+        } else if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString())) {
+            modifiedSnapshotName = modifiedSnapshotName + "-" + index;
         }
 
         // We want snaps of targets to contain the varray label so we can distinguish multiple

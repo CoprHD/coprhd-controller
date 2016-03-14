@@ -800,9 +800,11 @@ public class AuthnConfigurationService extends TaggedResource {
             Map<URI, List<UserMapping>> mappings = _permissionsHelper.getAllUserMappingsForDomain(domainToCheck);
             Set<URI> tenantIDset;
             if (mappings == null) {
+            	_log.debug("No matching tenant found for domain {}", domainToCheck);
                 continue;
             }
             tenantIDset = mappings.keySet();
+            _log.debug("{} matching tenants found for domain {}", tenantIDset.size(), domainToCheck);
             List<TenantOrg> tenants = _dbClient.queryObject(TenantOrg.class,
                     new ArrayList<URI>(tenantIDset));
             if (tenants != null) {

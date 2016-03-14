@@ -653,31 +653,33 @@ public class DrUtil {
      */
     public boolean isAllSitesStable() {
         try {
-            verifyAllSitesStable();
-            verifyNoOngoingJobOnSite();
+            verifyIPsecOpAllowable();
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    /**
-     * Check if all sites of local vdc are stable
-     */
-    public void verifyAllSitesStable() {
+    public void verifyIPsecOpAllowable() {
+        for (Site site : listSites()) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                log.info("IPsec is disallowed since site {} is paused.", site.getName(), site.getState());
+                throw APIException.serviceUnavailable.sitePaused(site.getName());
+            }
+        }
+
+        for (Site site : listSites()) {
+            if (site.getState().isDROperationOngoing()) {
+                log.info("Site {} has onging job {}", site.getName(), site.getState());
+                throw APIException.serviceUnavailable.siteOnGoingJob(site.getName(), site.getState().name());
+            }
+        }
+
         for (Site site : listSites()) {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
                 throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), state.name());
-            }
-        }
-    }
-
-    public void verifyNoOngoingJobOnSite() {
-        for (Site site : listSites()) {
-            if (site.getState().isDROperationOngoing()) {
-                throw APIException.serviceUnavailable.siteOnGoingJob(site.getName(), site.getState().name());
             }
         }
     }

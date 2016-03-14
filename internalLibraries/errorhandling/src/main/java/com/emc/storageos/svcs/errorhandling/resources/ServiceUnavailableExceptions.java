@@ -64,4 +64,7 @@ public interface ServiceUnavailableExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
     public ServiceUnavailableException siteOnGoingJob(String name, String state);
+
+    @DeclareServiceCode(ServiceCode.SYS_CLUSTER_STATE_NOT_STABLE)
+    public ServiceUnavailableException sitePaused(String name);
 }

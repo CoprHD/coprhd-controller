@@ -26,8 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMDataType;
@@ -7174,6 +7172,10 @@ public class SmisCommandHelper implements SmisConstants {
     private String formatSessionLabelForFabrication(String systemSerial, String replicationGroupName, String sessionLabel) {
         return String.format("%s+%s##SSNAME+%s", systemSerial, replicationGroupName, sessionLabel);
     }
+    
+    private String formatSessionLabelForFabrication(String systemSerial, String replicationGroupName) {
+        return String.format("%s+%s##SSNAME", systemSerial, replicationGroupName);
+    }
 
     /**
      * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group name 
@@ -7190,30 +7192,71 @@ public class SmisCommandHelper implements SmisConstants {
             String sourceReplicationGroupName) {
         List<String>sfsEntries = getEMCSFSEntries(system, replicationSvc);
         String entryLabel = formatReplicaLabelForSFSEntry(system.getSerialNumber(), replicaReplicationGroupName, sourceReplicationGroupName);
-        String removeEntry = null;
+        List<String> removeEntryList = new ArrayList<String>();
+
         if (sfsEntries != null && !sfsEntries.isEmpty()) {
             for (String entry : sfsEntries) {
                 if (entry.contains(entryLabel)) {
-                    removeEntry = entry;
-                    break;
+                	removeEntryList.add(entry);
                 }
             }
         }
-        if (removeEntry == null) {
+        if (removeEntryList.isEmpty()) {
             _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName, 
                     sourceReplicationGroupName));
             return;
         }
-
         try {
+        	String[] removeEntries = new String[removeEntryList.size()];
+        	removeEntries = removeEntryList.toArray(removeEntries);
             CIMArgument[] inArgs = new CIMArgument[] {
-                    _cimArgument.stringArray("SFSEntries", new String[]{removeEntry})};
+                    _cimArgument.stringArray("SFSEntries", removeEntries)};
             CIMArgument[] outArgs = new CIMArgument[5];
             invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
         } catch (WBEMException e) {
             _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
         }
-        
+    }
+
+    /**
+     * Remove EMCSFSEntry containing the groupSynchronizedAspect information. It would find the entry using the snap session
+     * source replication group name, then remove it. This operation is necessary before deleting an attached snaphost session replication
+     * group.
+     * 
+     * @param system
+     * @param replicationSvc
+     * @param sourceReplicationGroupName
+     * @return
+     */
+    public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
+            CIMObjectPath replicationSvc,
+            String sourceReplicationGroupName) {
+        List<String> sfsEntries = getEMCSFSEntries(system, replicationSvc);
+        String groupSynchronizedAspectLabel = formatSessionLabelForFabrication(system.getSerialNumber(), sourceReplicationGroupName);
+        List<String> removeEntryList = new ArrayList<String>();
+
+        if (sfsEntries != null && !sfsEntries.isEmpty()) {
+            for (String entry : sfsEntries) {
+                if (entry.contains(groupSynchronizedAspectLabel)) {
+                    removeEntryList.add(entry);
+                }
+            }
+        }
+        if (removeEntryList.isEmpty()) {
+            _log.info(String.format("The SFS entry is not found for the source group %s",
+                    sourceReplicationGroupName));
+            return;
+        }
+        try {
+            String[] removeEntries = new String[removeEntryList.size()];
+            removeEntries = removeEntryList.toArray(removeEntries);
+            CIMArgument[] inArgs = new CIMArgument[] {
+                    _cimArgument.stringArray("SFSEntries", removeEntries) };
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
+        } catch (WBEMException e) {
+            _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
+        }
     }
 
     /**

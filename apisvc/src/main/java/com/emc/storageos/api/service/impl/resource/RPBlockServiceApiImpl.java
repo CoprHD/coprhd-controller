@@ -105,7 +105,6 @@ import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import com.emc.storageos.vplexcontroller.VPlexControllerUtils;
 import com.google.common.collect.Lists;
 
 /**
@@ -1822,7 +1821,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             try {
                 // If there is a change vpool volume, we need to ensure that we rollback protection on it.
-                // We want to return the volume back to it's original state.
+                // We want to return the volume back to its original state.
                 if (isChangeVpool || isChangeVpoolForProtectedVolume) {
                     Volume changeVpoolVolume = _dbClient.queryObject(Volume.class, rpProtectionRec.getVpoolChangeVolume());
                     VirtualPool oldVpool = _dbClient.queryObject(VirtualPool.class, oldVpoolId);
@@ -2521,13 +2520,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int index = 1;
         for (Volume volume : volumes) {
+            VolumeGroup volumeGroup = volume.getApplication(_dbClient);
+            boolean isInApplication = volumeGroup != null && !volumeGroup.getInactive();
             if (RPHelper.isProtectionBasedSnapshot(volume, snapshotType, _dbClient)
                     && snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
                 // For protection-based snapshots, get the protection domains we
                 // need to create snapshots on
                 for (String targetVolumeStr : volume.getRpTargets()) {
                     Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetVolumeStr));
-                    BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, targetVolume, 0, snapshotType);
+                    BlockSnapshot snapshot = prepareSnapshotFromVolume(volume, snapshotName, targetVolume, 0, snapshotType, isInApplication);
                     snapshot.setOpStatus(new OpStatusMap());
                     snapshot.setEmName(snapshotName);
                     snapshot.setEmInternalSiteName(targetVolume.getInternalSiteName());
@@ -2549,7 +2550,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     isRPTarget = true;
                 }
 
-                BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null), index++, snapshotType);
+                BlockSnapshot snapshot = prepareSnapshotFromVolume(volumeToSnap, snapshotName, (isRPTarget ? volume : null), index++, 
+                        snapshotType, isInApplication);
                 snapshot.setTechnologyType(snapshotType);
 
                 // Check to see if the RP Copy Name of this volume contains any of the RP Source
@@ -2583,9 +2585,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         !rpCopyNameContainsSrcSuffix) {
                     isFormerTarget = true;
                 }
-
-                VolumeGroup volumeGroup = volume.getApplication(_dbClient);
-                boolean isInApplication = volumeGroup != null && !volumeGroup.getInactive();
 
                 if (!isInApplication && (((isRPTarget || isFormerTarget) && vplex && !isFormerSource) || !vplex)) {
                     // For RP+Vplex targets (who are not former source volumes) and former target volumes,
@@ -2627,9 +2626,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param snapshotName The name to be given the snapshot
      * @param index Integer to make snapshot label unique in a group
      * @param snapshotType type of snapshot (NATIVE, RP, SRDF)
+     * @param isInApplication If the source volume is in application
      * @return A reference to the new BlockSnapshot instance.
      */
-    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapshotName, Volume targetVolume, int index, String snapshotType) {
+    protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapshotName, Volume targetVolume, int index, 
+            String snapshotType, boolean isInApplication) {
         BlockSnapshot snapshot = new BlockSnapshot();
         snapshot.setId(URIUtil.createId(BlockSnapshot.class));
         URI cgUri = null;
@@ -2656,8 +2657,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         String modifiedSnapshotName = snapshotName;
 
         // Don't add replication group instance to the snapshot name if this is an RP bookmark
-        if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString()) && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+        if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString()) && isInApplication) {
             modifiedSnapshotName = modifiedSnapshotName + "-"  + volume.getReplicationGroupInstance() + "-" + index;
+        } else if (!snapshotType.equalsIgnoreCase(TechnologyType.RP.toString())) {
+            modifiedSnapshotName = modifiedSnapshotName + "-" + index;
         }
 
         // We want snaps of targets to contain the varray label so we can distinguish multiple
@@ -2956,41 +2959,48 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Doesn't matter if this is VPLEX or not, if we have a
         // protected volume and we're looking to move to an unprotected
         // state return the RP_REMOVE_PROTECTION as the allowed operation
+        // should it meet the correct criteria.
         if (volume.checkForRp()
                 && VirtualPool.vPoolSpecifiesProtection(currentVpool)
-                && !VirtualPool.vPoolSpecifiesProtection(newVpool)
-                && VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
-                        _dbClient, notSuppReasonBuff)) {
-            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_REMOVE_PROTECTION);
+                && !VirtualPool.vPoolSpecifiesProtection(newVpool)) {            
+           if (VirtualPoolChangeAnalyzer.isSupportedRPRemoveProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                    _dbClient, notSuppReasonBuff)) {
+               allowedOperations.add(VirtualPoolChangeOperationEnum.RP_REMOVE_PROTECTION);
+           }
         }
 
-        boolean vplex = RPHelper.isVPlexVolume(volume);
-        // Check to see if this is a VPLEX volume
-        if (vplex) {
-            // Get the varray for the volume.
-            URI volumeVarrayURI = volume.getVirtualArray();
-            StringSet newVirtualPoolVarrays = newVpool.getVirtualArrays();
-            if ((newVirtualPoolVarrays != null) && (!newVirtualPoolVarrays.isEmpty())
-                    && (!newVirtualPoolVarrays.contains(volumeVarrayURI.toString()))) {
-                // The VirtualPool is not allowed because it is not available in the
-                // volume varray.
-                notSuppReasonBuff.append("The VirtualPool is not available to the volume's varray");
-            } else if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
-                    && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)
-                    && VirtualPoolChangeAnalyzer.isSupportedRPChangeProtectionVirtualPoolChange(volume, currentVpool, newVpool,
-                            _dbClient, notSuppReasonBuff)) {
-                // Allow the RP change protection operation
-                allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED_CHANGE);
-            } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)
-                    && VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVpool, newVpool,
-                            _dbClient, notSuppReasonBuff)) {
-                // Allow the RP Protection add operation
+        // All other operations depend on the new vpool at the minimum
+        // specifying RP Protection.
+        if (VirtualPool.vPoolSpecifiesProtection(newVpool)) {
+            boolean vplex = RPHelper.isVPlexVolume(volume);
+            // Check to see if this is a VPLEX volume
+            if (vplex) {
+                // Get the varray for the volume.
+                URI volumeVarrayURI = volume.getVirtualArray();
+                StringSet newVirtualPoolVarrays = newVpool.getVirtualArrays();
+                if ((newVirtualPoolVarrays != null) && (!newVirtualPoolVarrays.isEmpty())
+                        && (!newVirtualPoolVarrays.contains(volumeVarrayURI.toString()))) {
+                    // The VirtualPool is not allowed because it is not available in the
+                    // volume varray.
+                    notSuppReasonBuff.append("The VirtualPool is not available to the volume's varray");
+                } else if (VirtualPool.vPoolSpecifiesRPVPlex(currentVpool)
+                        && VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+                    if (VirtualPoolChangeAnalyzer.isSupportedUpgradeToMetroPointVirtualPoolChange(volume, currentVpool, newVpool,
+                                _dbClient, notSuppReasonBuff)) {
+                        // Allow the RP change protection operation
+                        allowedOperations.add(VirtualPoolChangeOperationEnum.RP_UPGRADE_TO_METROPOINT);
+                    }
+                } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVpool)) {
+                    if (VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool, newVpool,
+                                _dbClient, notSuppReasonBuff)) {
+                        // Allow the RP Protection add operation
+                        allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
+                    }
+                }
+            } else if (VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVpool,
+                            newVpool, _dbClient, notSuppReasonBuff)) {
                 allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
             }
-        } else if (VirtualPool.vPoolSpecifiesProtection(newVpool)
-                && VirtualPoolChangeAnalyzer.isSupportedRPVolumeVirtualPoolChange(volume, currentVpool,
-                        newVpool, _dbClient, notSuppReasonBuff)) {
-            allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
         }
 
         return allowedOperations;
@@ -3311,7 +3321,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      *
      * @param primaryRecommendation The primary rec from the scheduler
      * @param secondaryRecommendation The secondary rec from the scheduler
-     * @param sourceVolume The volume that should be checked for it's backing volumes to be updated
+     * @param sourceVolume The volume that should be checked for its backing volumes to be updated
      * @param exportForMetroPoint Boolean set to true if we're MetroPoint
      * @param exportToHASideOnly Boolean set to true if we're only exportong to HA side
      * @param haVarrayConnectedToRp Only be used if isSrcAndHaSwapped == true, tells us which varray is the HA one

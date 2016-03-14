@@ -257,10 +257,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public BlockSnapshotSession prepareSnapshotSession(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId) {
+            String newTargetsName, List<Map<URI, BlockSnapshot>> snapSessionSnapshots, String taskId, boolean inApplication) {
         // Create a single snap session based on a sample volume in the CG
         BlockObject source = sourceObjList.get(0);
-        BlockSnapshotSession snapSession = prepareSnapshotSessionFromSource(source, snapSessionLabel, snapSessionLabel, taskId);
+        BlockSnapshotSession snapSession = prepareSnapshotSessionFromSource(source, snapSessionLabel, snapSessionLabel, taskId, inApplication);
 
         /*
          * If linked targets are requested...
@@ -297,7 +297,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                         Volume srcBEVolume = VPlexUtil.getVPLEXBackendVolume((Volume) sourceObj, true, _dbClient);
                         rgName = srcBEVolume.getReplicationGroupInstance();
                     }
-                    if (NullColumnValueGetter.isNotNullValue(rgName)) {
+
+                    if (NullColumnValueGetter.isNotNullValue(rgName) && inApplication) {
                         // There can be multiple RGs in a CG, in such cases generate unique name
                         if (sourceObjList.size() > 1) {
                             label = String.format("%s-%s-%s", snapsetLabel, rgName, ++count);
@@ -325,7 +326,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public BlockSnapshotSession prepareSnapshotSessionFromSource(BlockObject sourceObj, String snapSessionLabel, String instanceLabel,
-            String taskId) {
+            String taskId, boolean inApplication) {
         BlockSnapshotSession snapSession = new BlockSnapshotSession();
         Project sourceProject = BlockSnapshotSessionUtils.querySnapshotSessionSourceProject(sourceObj, _dbClient);
 
@@ -338,7 +339,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             snapSession.setConsistencyGroup(sourceObj.getConsistencyGroup());
             snapSession.setSessionSetName(snapSessionLabel);
             String rgName = sourceObj.getReplicationGroupInstance();
-            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+            if (NullColumnValueGetter.isNotNullValue(rgName) && inApplication) {
                 snapSession.setReplicationGroupInstance(rgName);
                 // append RG name to user given label to uniquely identify sessions
                 // when there are multiple RGs in a CG
@@ -389,7 +390,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public List<Map<URI, BlockSnapshot>> prepareSnapshotsForSession(List<BlockObject> sourceObjList, int sourceCount, int newTargetCount,
-            String newTargetsName) {
+            String newTargetsName, boolean inApplication) {
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
 
         for (int i = 0; i < newTargetCount; i++) {
@@ -400,7 +401,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 String snapsetLabel = String.format("%s-%s", newTargetsName, i + 1);
                 String label = snapsetLabel;
                 String rgName = sourceObj.getReplicationGroupInstance();
-                if (NullColumnValueGetter.isNotNullValue(rgName)) {
+                if (NullColumnValueGetter.isNotNullValue(rgName) && inApplication) {
                     // There can be multiple RGs in a CG, in such cases generate unique name
                     if (sourceObjList.size() > 1) {
                         label = String.format("%s-%s-%s", snapsetLabel, rgName, ++count);

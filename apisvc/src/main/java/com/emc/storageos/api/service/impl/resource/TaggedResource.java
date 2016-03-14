@@ -6,16 +6,20 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-
 import java.text.MessageFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import com.emc.storageos.model.*;
-import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,11 +31,17 @@ import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
+import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.BulkRestRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TagAssignment;
 import com.emc.storageos.model.search.SearchResultResourceRep;
 import com.emc.storageos.model.search.SearchResults;
 import com.emc.storageos.model.search.Tags;
-import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authentication.RequestProcessingUtils;
+import com.emc.storageos.security.authentication.StorageOSUser;
+import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import com.emc.storageos.security.authorization.InheritCheckPermission;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -48,7 +58,7 @@ public abstract class TaggedResource extends ResourceService {
     private int _maxBulkSize = DEFAULT_MAX_BULK_SIZE;
 
     /**
-     * Derived class can set the max bulk size based on it's resource rep type.
+     * Derived class can set the max bulk size based on its resource rep type.
      */
     public void setMaxBulkSize(int maxBulkSize) {
         _maxBulkSize = maxBulkSize;

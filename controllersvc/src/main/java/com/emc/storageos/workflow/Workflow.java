@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.coordinator.client.service.impl.GenericSerializer;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
@@ -650,7 +650,7 @@ public class Workflow implements Serializable {
      * Given a group of steps, determines an overall state. The precedence is:
      * 1. If any step is reporting ERROR, ERROR is returned along with that step's message.
      * 2. Otherwise if any step is reporting CANCELLED, CANCELLED is returned along with that step's message.
-     * 3. Otherwise if any step is not returning a state of SUCCESS, CANCELLED, or ERROR, it's state and message are returned.
+     * 3. Otherwise if any step is not returning a state of SUCCESS, CANCELLED, or ERROR, its state and message are returned.
      * 4. Otherwise if all steps are returning SUCCESS, SUCCESS is returned with the original contents of errorMessage
      * (unless they were null).
      * 

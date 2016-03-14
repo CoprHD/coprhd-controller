@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * Attributes associated with a file system quota directory,
- * specified during it's creation.
+ * specified during its creation.
  * 
  */
 @XmlRootElement(name = "quota_directory_create")

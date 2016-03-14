@@ -28,10 +28,7 @@ import org.apache.curator.framework.recipes.queue.QueueSerializer;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
@@ -395,7 +392,7 @@ public class TestCoordinator extends CoordinatorClientImpl {
     }
 
     @Override
-    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+    public ClusterInfo.ClusterState getControlNodesState(String siteId) {
         return null;
     }
 
@@ -489,11 +486,6 @@ public class TestCoordinator extends CoordinatorClientImpl {
 
     @Override
     public void addSite(String siteId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setActiveSite(String siteId) {
         throw new UnsupportedOperationException();
     }
 

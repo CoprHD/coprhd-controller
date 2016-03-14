@@ -227,37 +227,155 @@ fi
 # #######################################################
 # # KIWI Modifications                                  #
 # #######################################################
-# kiwiPath="/usr/share/kiwi/modules"
-# 
-# #######################################################
-# # Changes for 3 digits to 5 digits version
-# FileValidator="$kiwiPath/KIWIXMLValidator.pm"
-# if [ -f $FileValidator ]; then
-#  echo "Modifying to fix version check for $FileValidator"
-#  sed -i."bak" 's/\($version !~ \/^\\d+\\.\\d+\\.\\d+$\/\)/\($version !~ \/^\\d+\\.\\d+\\.\\d+$\/\) \&\& \($version !~ \/^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+$\/\)/g' $FileValidator
-# fi
-# 
-# FilePreference="$kiwiPath/KIWIXMLPreferenceData.pm"
-# if [ -f $FilePreference ]; then
-#  echo "Modifying to fix version check for $FilePreference"
-#  sed -i."bak" 's/\( $ver !~ \/^\\d+?\\.\\d+?\\.\\d+?$\/smx \)/\( $ver !~ \/^\\d+?\\.\\d+?\\.\\d+?$\/smx \) \&\& \( $ver !~ \/^\\d+?\\.\\d+?\\.\\d+?\\.\\d+?\\.\\d+?$\/smx \)/g' $FilePreference
-# fi
-# 
-# 
-# #######################################################
-# # Modify zypper cache behaviour
-# sed -i "s|my @cache = (\"/var/cache/kiwi\");|my \$packageCache = (dirname \$root) . \"/packages\";\n\tmy @cache = (\"/var/cache/kiwi\", \$packageCache);|" $kiwiPath/KIWIRoot.pm
-# 
-# linenum=`grep -n "# KIWI Modules" $kiwiPath/KIWIRoot.pm|cut -d ":" -f1`
-# let newnum=$linenum-1
-# sed -i "$newnum i use File::Basename;" $kiwiPath/KIWIRoot.pm
-# 
-# linenum=`grep -n "Store zypper command parameters" $kiwiPath/KIWIManagerZypper.pm|cut -d ":" -f1`
-# let newnum=$linenum+2
-# sed -i "$newnum i my \$packageCache = (dirname \$root) . \"/packages\";" $kiwiPath/KIWIManagerZypper.pm
-# sed -i "s|'--pkg-cache-dir /var/cache/kiwi/packages'|\"--pkg-cache-dir \$packageCache\"|g" $kiwiPath/KIWIManagerZypper.pm
-# sed -i "s|my @zopts = ();|my @zopts = (\"--keep-packages\");|" $kiwiPath/KIWIManagerZypper.pm
-# sed -i -e '/keep packages on remote repos/,+6d' $kiwiPath/KIWIManagerZypper.pm
+kiwiPath="/usr/share/kiwi/modules"
+#######################################################
+# Changes for 3 digits to 5 digits version
+#######################################################
+FileValidator="$kiwiPath/KIWIXMLValidator.pm"
+FilePreference="$kiwiPath/KIWIXMLPreferenceData.pm"
+# Verify first if 3 digits mod is needed again
+if [ -f $FileValidator ] && [ -f $FileValidator.bak ]; then
+  grep --quiet '\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+' $FileValidator
+  if [ $? -ne 0 ]; then
+    rm $FileValidator.bak
+  fi
+fi
+if [ -f $FilePreference ] && [ -f $FilePreference.bak ]; then
+  grep --quiet '\\d+?\\.\\d+?\\.\\d+?\\.\\d+?\\.\\d+?' $FilePreference
+  if [ $? -ne 0 ]; then
+    rm $FilePreference.bak
+  fi
+fi
+# Apply modifications when needed
+if [ -f $FileValidator ] && [ ! -f $FileValidator.bak ]; then
+ echo "Modifying to fix version check for $FileValidator"
+ sed -i."bak" 's/\($version !~ \/^\\d+\\.\\d+\\.\\d+$\/\)/\($version !~ \/^\\d+\\.\\d+\\.\\d+$\/\) \&\& \($version !~ \/^\\d+\\.\\d+\\.\\d+\\.\\d+\\.\\d+$\/\)/g' $FileValidator
+fi
+
+if [ -f $FilePreference ] && [ ! -f $FilePreference.bak ]; then
+ echo "Modifying to fix version check for $FilePreference"
+ sed -i."bak" 's/\( $ver !~ \/^\\d+?\\.\\d+?\\.\\d+?$\/smx \)/\( $ver !~ \/^\\d+?\\.\\d+?\\.\\d+?$\/smx \) \&\& \( $ver !~ \/^\\d+?\\.\\d+?\\.\\d+?\\.\\d+?\\.\\d+?$\/smx \)/g' $FilePreference
+fi
+
+#######################################################
+# Modify zypper cache behaviour
+grep --quiet 'my @cache = ("/var/cache/kiwi", $packageCache)' $kiwiPath/KIWIRoot.pm
+if [ $? -ne 0 ]; then
+  sed -i "s|my @cache = (\"/var/cache/kiwi\");|my \$packageCache = (dirname \$root) . \"/packages\";\n\tmy @cache = (\"/var/cache/kiwi\", \$packageCache);|" $kiwiPath/KIWIRoot.pm
+
+  linenum=`grep -n "# KIWI Modules" $kiwiPath/KIWIRoot.pm|cut -d ":" -f1`
+  let newnum=$linenum-1
+  sed -i "$newnum i use File::Basename;" $kiwiPath/KIWIRoot.pm
+
+  linenum=`grep -n "Store zypper command parameters" $kiwiPath/KIWIManagerZypper.pm|cut -d ":" -f1`
+  let newnum=$linenum+2
+  sed -i "$newnum i my \$packageCache = (dirname \$root) . \"/packages\";" $kiwiPath/KIWIManagerZypper.pm
+  sed -i "s|'--pkg-cache-dir /var/cache/kiwi/packages'|\"--pkg-cache-dir \$packageCache\"|g" $kiwiPath/KIWIManagerZypper.pm
+  sed -i "s|my @zopts = ();|my @zopts = (\"--keep-packages\");|" $kiwiPath/KIWIManagerZypper.pm
+  sed -i -e '/keep packages on remote repos/,+6d' $kiwiPath/KIWIManagerZypper.pm
+fi
+
+#################################################################
+# Kiwi hack to fix the umount of /dev nodes in case of failure
+# Error: bin/rm: cannot remove /dev/pts : Device or resource busy
+#################################################################
+KiwiRoot="$kiwiPath/KIWIRoot.pm"
+linenum=$(grep -n "# umount failed - for /dev we can allow to lazy umount it (null might be held open)" $KiwiRoot)
+if [ "$linenum" == "" ]; then
+  perl -0777 -i."bak" -pe 's/[\s]*\$kiwi \-\> warning \(\"Umount of \$item failed\: \$data\"\)\;\n[\s]*\$kiwi \-\> skipped \(\)\;/\n\t\t\# umount failed \- for \/dev we can allow to lazy umount it \(null might be held open\)\n\t\tif \(\$item \=\~ \"\/dev\"\) \{\n\t\t\t\$kiwi \-\> loginfo \(\"Umounting path \(lazy\)\: \$item\\n\"\)\;\n\t\t\tmy \$data \= KIWIQX\:\:qxx \(\"umount \-l \\\"\$item\\\" 2\>\&1\"\)\;\n\t\t\tmy \$code \= \$\? \>\> 8\;\n\t\t}\n\t\tif \(\$code \!\= 0\) \{\$kiwi \-\> warning \(\"Umount of \$item failed\: \$data\"\)\;\n\t\t\t\$kiwi \-\> skipped \(\)\;\n\t\t\}/g' $KiwiRoot
+fi
+
+#################################################################
+# Kiwi hack to build appliances on containers
+# Error: error: failed to get canonical path of '/dev/mapper/...'
+#################################################################
+FileKIWIBoot="$kiwiPath/KIWIBoot.pm"
+# Verify first if mod is needed again
+if [ -f $FileKIWIBoot ] && [ -f $FileKIWIBoot.bak ]; then
+  grep --quiet '# Fix /usr/sbin/grub2-bios-setup: error: failed to get canonical path' $FileKIWIBoot
+  if [ $? -ne 0 ]; then
+    rm $FileKIWIBoot.bak
+  fi
+fi
+
+# Apply modifications when needed
+if [ -f $FileKIWIBoot ] && [ ! -f $FileKIWIBoot.bak ]; then
+  # If there's this block, then KIWI already patched the fix and there is no need to modify the source
+  grep --quiet '} elsif ($chainload) {' $FileKIWIBoot
+  if [ $? -ne 0 ]; then
+    patch=""
+    # on KIWI 7 the entry is $mount and KIWI 5 it is hardcoded to /mnt
+    rpm -q kiwi | grep --quiet 5.06.115
+    [ $? -eq 0 ] && patch="5.06.115"
+    rpm -q kiwi | grep --quiet 5.06.165
+    [ $? -eq 0 ] && patch="5.06.165"
+    rpm -q kiwi | grep --quiet 7.02
+    [ $? -eq 0 ] && patch="7.02"
+    if [ $patch = "5.06.115" ]; then
+      echo "Modifying to fix on container builds for $FileKIWIBoot version $patch"
+      linenum=$( grep -nr "Installing grub2:" $FileKIWIBoot | cut -d: -f1 )
+      if [ "$linenum" != "" ]; then
+        linerem=$(( ${linenum}-5 ))
+        cp $FileKIWIBoot ${FileKIWIBoot}.bak
+        sed -i "$((${linenum}+2))i\                        # Fix /usr/sbin/grub2-bios-setup: error: failed to get canonical path" $FileKIWIBoot
+        sed -i "$((${linenum}+3))i\                        \$status = KIWIQX::qxx (\"ls /.dockerinit &>/dev/null\");" $FileKIWIBoot
+        sed -i "$((${linenum}+4))i\                        \$result == \$? >> 8;" $FileKIWIBoot
+        sed -i "$((${linenum}+5))i\                        if (\$result = 0) {" $FileKIWIBoot
+        sed -i "$((${linenum}+6))i\                               \$loaderTarget = \$this->{loop};" $FileKIWIBoot
+        sed -i "$((${linenum}+7))i\                               my \$grubtool = \$locator -> getExecPath ('grub2-install');" $FileKIWIBoot
+        sed -i "$((${linenum}+8))i\                               my \$grubtoolopts = \"--grub-mkdevicemap=\$dmfile \";" $FileKIWIBoot
+        sed -i "$((${linenum}+9))i\                               \$grubtoolopts.= \"-d \$stages \";" $FileKIWIBoot
+        sed -i "$((${linenum}+10))i\                               \$grubtoolopts.= \"--root-directory=/mnt --force --no-nvram \";" $FileKIWIBoot
+        sed -i "$((${linenum}+11))i\                               \$status = KIWIQX::qxx (" $FileKIWIBoot
+        sed -i "$((${linenum}+12))i\                                      \"\$grubtool \$grubtoolopts \$loaderTarget 2>&1\"" $FileKIWIBoot
+        sed -i "$((${linenum}+13))i\                               );" $FileKIWIBoot
+        sed -i "$((${linenum}+14))i\                               \$result = \$? >> 8;" $FileKIWIBoot
+        sed -i "$((${linenum}+15))i\                        }" $FileKIWIBoot
+        sed -i "$((${linenum}+16))i\                        else {" $FileKIWIBoot
+        sed -i "$((${linenum}+28))i\                        }" $FileKIWIBoot
+        sed -i "${linerem}d" $FileKIWIBoot
+      fi
+    elif [ $patch = "5.06.165" ]; then
+      echo "Modifying to fix on container builds for $FileKIWIBoot version $patch"
+      linenum=$(grep -n "\$loaderTarget = readlink (\$bootdev)" $FileKIWIBoot | cut -d: -f1)
+      if [ "$linenum" != "" ]; then
+        linerem=$(( ${linenum}-1 ))
+        cp $FileKIWIBoot ${FileKIWIBoot}.bak
+        sed -i "${linenum}i\            } elsif (\$chainload) {" $FileKIWIBoot
+        sed -i "${linenum}i\                \$targetMessage= \"On disk partition\";" $FileKIWIBoot
+        sed -i "${linenum}i\                \$grubtoolopts.= \"--root-directory=/mnt --force --no-nvram \";" $FileKIWIBoot
+        sed -i "${linenum}i\                \$grubtoolopts.= \"-d \$stages \";" $FileKIWIBoot
+        sed -i "${linenum}i\                \$grubtoolopts = \"--grub-mkdevicemap=\$dmfile \";" $FileKIWIBoot
+        sed -i "${linenum}i\                \$grubtool = \$locator -> getExecPath ('grub2-install');" $FileKIWIBoot
+        sed -i "${linenum}i\                \$loaderTarget = \$this->{loop};" $FileKIWIBoot
+        sed -i "${linenum}i\            if (\$result == 0) {" $FileKIWIBoot
+        sed -i "${linenum}i\            \$result = \$? >> 8;" $FileKIWIBoot
+        sed -i "${linenum}i\            \$status = KIWIQX::qxx ( \"ls /.dockerinit &>/dev/null\" );" $FileKIWIBoot
+        sed -i "${linenum}i\            # Fix /usr/sbin/grub2-bios-setup: error: failed to get canonical path" $FileKIWIBoot
+        sed -i "${linerem}d" $FileKIWIBoot
+      fi
+    elif [ $patch = "7.02" ]; then
+      echo "Modifying to fix on container builds for $FileKIWIBoot version $patch"
+      linenum=$(grep -n "\$loaderTarget = readlink (\$bootdev)" $FileKIWIBoot | cut -d: -f1)
+      if [ "$linenum" != "" ]; then
+        linerem=$(( ${linenum}-1 ))
+        cp $FileKIWIBoot ${FileKIWIBoot}.bak
+        sed -i "${linenum}i\            } elsif (\$chainload) {" $FileKIWIBoot
+        sed -i "${linenum}i\                \$targetMessage= \"On disk partition\";" $FileKIWIBoot
+        sed -i "${linenum}i\                \$grubtoolopts.= \"--root-directory=\$mount --force --no-nvram \";" $FileKIWIBoot
+        sed -i "${linenum}i\                \$grubtoolopts.= \"-d \$stages \";" $FileKIWIBoot
+        sed -i "${linenum}i\                \$grubtoolopts = \"--grub-mkdevicemap=\$dmfile \";" $FileKIWIBoot
+        sed -i "${linenum}i\                \$grubtool = \$locator -> getExecPath ('grub2-install');" $FileKIWIBoot
+        sed -i "${linenum}i\                \$loaderTarget = \$this->{loop};" $FileKIWIBoot
+        sed -i "${linenum}i\            if (\$result == 0) {" $FileKIWIBoot
+        sed -i "${linenum}i\            \$result = \$? >> 8;" $FileKIWIBoot
+        sed -i "${linenum}i\            \$status = KIWIQX::qxx ( \"ls /.dockerinit &>/dev/null\" );" $FileKIWIBoot
+        sed -i "${linenum}i\            # Fix /usr/sbin/grub2-bios-setup: error: failed to get canonical path" $FileKIWIBoot
+        sed -i "${linerem}d" $FileKIWIBoot
+      fi
+    fi
+  fi
+fi
 
 #######################################################
 #Configure Firewall to allow ssh

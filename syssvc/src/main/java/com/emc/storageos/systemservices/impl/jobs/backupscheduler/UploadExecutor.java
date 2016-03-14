@@ -44,23 +44,21 @@ public class UploadExecutor {
         this.uploader = uploader;
     }
 
-    public void runOnce() throws Exception {
-        runOnce(null);
+    public void upload() throws Exception {
+        upload(null);
     }
 
-    public void runOnce(String backupTag) throws Exception {
+    public void upload(String backupTag) throws Exception {
+        setUploader(Uploader.create(cfg, cli));
         if (this.uploader == null) {
-            setUploader(Uploader.create(cfg, cli));
-            if (this.uploader == null) {
-                log.info("Upload URL is empty, upload disabled");
-                return;
-            }
+            log.info("Upload URL is empty, upload disabled");
+            return;
         }
 
         try (AutoCloseable lock = this.cfg.lock()) {
             this.cfg.reload();
             cleanupCompletedTags();
-            upload(backupTag);
+            doUpload(backupTag);
         } catch (Exception e) {
             log.error("Fail to run upload backup", e);
         }
@@ -119,7 +117,7 @@ public class UploadExecutor {
         return lastErrorMessage;
     }
 
-    private void upload(String backupTag) throws Exception {
+    private void doUpload(String backupTag) throws Exception {
         log.info("Begin upload");
 
         List<String> toUpload = getWaitingUploads(backupTag);
@@ -135,17 +133,16 @@ public class UploadExecutor {
         for (String tag : toUpload) {
             String errMsg = tryUpload(tag);
             if (errMsg == null) {
-                log.info("Upload backup {} successfully", tag);
+                log.info("Upload backup {} to {} successfully", tag, uploader.cfg.uploadUrl);
                 this.cfg.uploadedBackups.add(tag);
+                this.cfg.persist();
                 succUploads.add(tag);
             } else {
-                log.info("Upload backup {} failed", tag);
+                log.error("Upload backup {} to {} failed", tag, uploader.cfg.uploadUrl);
                 failureUploads.add(tag);
                 errMsgs.add(errMsg);
             }
         }
-
-        this.cfg.persist();
 
         if (!succUploads.isEmpty()) {
             List<String> descParams = this.cli.getDescParams(StringUtils.join(succUploads, ", "));
@@ -210,8 +207,7 @@ public class UploadExecutor {
             throw new IllegalStateException("Invalid query parameter");
         }
         this.cfg.reload();
-        log.info("Current uploaded backup list: {}",
-                this.cfg.uploadedBackups.toArray(new String[this.cfg.uploadedBackups.size()]));
+        log.info("Current uploaded backup list: {}", this.cfg.uploadedBackups);
         if (this.cfg.uploadedBackups.contains(backupTag)) {
             log.info("{} is in the uploaded backup list", backupTag);
             return new BackupUploadStatus(backupTag, Status.DONE, 100, null);
@@ -257,7 +253,7 @@ public class UploadExecutor {
     }
 
     /**
-     * Mark invalid for stale incompleted backup file on server based on the input filename.
+     * Mark invalid for stale incomplete backup file on server based on the input filename.
      *
      * @param toUploadedFileName the filename about to upload,
      */

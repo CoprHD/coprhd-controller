@@ -36,7 +36,6 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
     public static final String ENCODING_EQUAL = "=";
     public static final String ENCODING_NEWLINE = "\n";
     public static final String TARGET_PROPERTY = "upgradetargetpropertyoverride";
-    public static final String OLD_TARGET_PROPERTY = "upgradetargetproperty";
     public static final String TARGET_PROPERTY_ID = "global";
     public static final String TARGET_INFO = "targetInfo";
 
@@ -52,7 +51,8 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
             "storageos_id_ecdsa",
             "svcuser_id_rsa",
             "svcuser_id_dsa",
-            "svcuser_id_ecdsa"
+            "svcuser_id_ecdsa",
+            "ipsec_key"
             ));
 
     public PropertyInfoExt() {

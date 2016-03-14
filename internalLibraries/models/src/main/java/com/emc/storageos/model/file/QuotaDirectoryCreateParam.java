@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * Attributes associated with a file system quota directory,
- * specified during it's creation.
+ * specified during its creation.
  * 
  */
 @XmlRootElement(name = "quota_directory_create")
@@ -18,6 +18,9 @@ public class QuotaDirectoryCreateParam {
     private String name;
     private Boolean oplock;
     private String size; // Quota size - hard limit.
+    private int softLimit;
+    private int notificationLimit;
+    private int softGrace;
 
     // UNIX, NTFS, Mixed
     private String securityStyle = "unix";
@@ -44,7 +47,6 @@ public class QuotaDirectoryCreateParam {
     /**
      * User provided name of the quota directory.
      * 
-     * @valid none
      */
     @XmlElement(name = "name", required = true)
     public String getQuotaDirName() {
@@ -58,7 +60,6 @@ public class QuotaDirectoryCreateParam {
     /**
      * Limit total space usage within this quota directory (in Bytes)
      * 
-     * @valid none
      */
     @XmlElement(name = "size")
     public String getSize() {
@@ -69,11 +70,36 @@ public class QuotaDirectoryCreateParam {
         this.size = size;
     }
 
+    @XmlElement(name="soft_limit")
+    public int getSoftLimit() {
+        return softLimit;
+    }
+
+    public void setSoftLimit(int softLimit) {
+        this.softLimit = softLimit;
+    }
+
+    @XmlElement(name="notification_limit")
+    public int getNotificationLimit() {
+        return notificationLimit;
+    }
+
+    public void setNotificationLimit(int notificationLimit) {
+        this.notificationLimit = notificationLimit;
+    }
+
+    @XmlElement(name="soft_grace")
+    public int getSoftGrace() {
+        return softGrace;
+    }
+
+    public void setSoftGrace(int softGrace) {
+        this.softGrace = softGrace;
+    }
+
     /**
      * Flag to specify Read/Write cache enable for this quota directory.
      * 
-     * @valid true
-     * @valid false
      */
     @XmlElement(name = "oplock")
     public Boolean getOpLock() {
@@ -87,10 +113,10 @@ public class QuotaDirectoryCreateParam {
     /**
      * Security style for the quota directory.
      * Default is "UNIX".
-     * 
-     * @valid "UNIX" = Security style by default
-     * @valid "NTFS"
-     * @valid "Mixed"
+     * Valid values:
+     *   UNIX
+     *   NIFS
+     *   Mixed
      */
     @XmlElement(name = "security_style")
     public String getSecurityStyle() {

@@ -7,11 +7,16 @@
 		class="com.emc.storageos.volumecontroller.impl.plugins.RPStatisticsHelper">
 	</bean>
 
+	<bean id="unManagedObjectDiscoverer"
+        class="com.emc.storageos.volumecontroller.impl.recoverpoint.RPUnManagedObjectDiscoverer">
+    </bean>
+
 	<bean id="rp"
 		class="com.emc.storageos.volumecontroller.impl.plugins.RPCommunicationInterface">
 		<property name="executor" ref="rpexecutor" />
 		<property name="partitionManager" ref="partitionManager" />
 		<property name="xmlDumpGenerator" ref="rpXMLDumpgenerator" />
+		<property name="unManagedObjectDiscoverer" ref="unManagedObjectDiscoverer" />
 		<property name="rpStatsHelper" ref="rpStatsHelper" />
 	</bean>
 

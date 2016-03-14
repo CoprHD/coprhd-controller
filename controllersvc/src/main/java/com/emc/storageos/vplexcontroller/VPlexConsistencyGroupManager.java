@@ -28,6 +28,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
@@ -233,7 +234,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
 
             // Lets determine the VPlex consistency group that need to be created for this volume.
             ClusterConsistencyGroupWrapper clusterConsistencyGroup =
-                    getClusterConsistencyGroup(firstVPlexVolume, cg.getLabel());
+                    getClusterConsistencyGroup(firstVPlexVolume, cg);
 
             String cgName = clusterConsistencyGroup.getCgName();
             String clusterName = clusterConsistencyGroup.getClusterName();
@@ -337,7 +338,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             // adding volumes to a CG after volume creation.
             for (Volume vplexVolume : vplexVolumes) {
                 vplexVolume.setConsistencyGroup(cgURI);
-                dbClient.updateAndReindexObject(vplexVolume);
+                dbClient.updateObject(vplexVolume);
             }
 
             // Update workflow step state to success.
@@ -412,7 +413,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             Volume firstVPlexVolume = getDataObject(Volume.class, vplexVolumeURIs.get(0), dbClient);
 
             ClusterConsistencyGroupWrapper clusterConsistencyGroup =
-                    getClusterConsistencyGroup(firstVPlexVolume, cg.getLabel());
+                    getClusterConsistencyGroup(firstVPlexVolume, cg);
 
             String cgName = clusterConsistencyGroup.getCgName();
             String clusterName = clusterConsistencyGroup.getClusterName();
@@ -480,7 +481,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 // removed, the maps should contains the same key set so it doesn't matter
                 // which is used.
                 Map<URI, List<URI>> localAddVolumesMap = getLocalVolumesForUpdate(addVolumesList);
-                Map<URI, List<URI>> localRemoveVolumesMap = getLocalVolumesForUpdate(removeVolumesList);
+                Map<URI, List<URI>> localRemoveVolumesMap = getLocalVolumesForRemove(removeVolumesList);
                 Set<URI> localSystems = localAddVolumesMap.keySet();
                 if (localSystems.isEmpty()) {
                     localSystems = localRemoveVolumesMap.keySet();
@@ -560,7 +561,6 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 log.info("Created step for add volumes to consistency group.");
             } else if (isNewCg && addVolumesList != null && !addVolumesList.isEmpty() && !isFullCopy) {
                 addStepsForCreateConsistencyGroup(workflow, waitFor, vplexSystem, addVolumesList, false, cgURI);
-
             }
 
             TaskCompleter completer = new VPlexTaskCompleter(BlockConsistencyGroup.class,
@@ -591,7 +591,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
      * @throws Exception
      */
     @Override
-    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, String cgName) throws Exception {
+    public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, BlockConsistencyGroup cg) throws Exception {
         ClusterConsistencyGroupWrapper clusterConsistencyGroup = new ClusterConsistencyGroupWrapper();
 
         // If there are no associated volumes, we cannot determine the cluster name and if the
@@ -610,7 +610,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             clusterConsistencyGroup.setDistributed(distributed);
         }
 
-        clusterConsistencyGroup.setCgName(cgName);
+        clusterConsistencyGroup.setCgName(cg.getLabel());
 
         return clusterConsistencyGroup;
     }
@@ -713,5 +713,40 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             result = true;
         }
         return result;
+    }
+    
+    
+    /**
+     * Create a map of the backend volumes that need to remove from backend CG.
+     * Called during a consistency group update so that the corresponding backend 
+     * consistency groups can be updated.
+     * 
+     * @param vplexVolumes A list of VPLEX volumes.
+     * 
+     * @return A map of the backend volumes for the passed VPLEX volumes key'd
+     *         by the backend systems.
+     */
+    private Map<URI, List<URI>> getLocalVolumesForRemove(List<URI> vplexVolumes) {
+        Map<URI, List<URI>> localVolumesMap = new HashMap<URI, List<URI>>();
+        if ((vplexVolumes != null) && (!vplexVolumes.isEmpty())) {
+            for (URI vplexVolumeURI : vplexVolumes) {
+                Volume vplexVolume = getDataObject(Volume.class, vplexVolumeURI, dbClient);
+                StringSet associatedVolumes = vplexVolume.getAssociatedVolumes();
+                for (String assocVolumeId : associatedVolumes) {
+                    URI assocVolumeURI = URI.create(assocVolumeId);
+                    Volume assocVolume = getDataObject(Volume.class, assocVolumeURI, dbClient);
+                    if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) { 
+                        // The backend volume is in a backend CG
+                        URI assocSystemURI = assocVolume.getStorageController();
+                        if (!localVolumesMap.containsKey(assocSystemURI)) {
+                            List<URI> systemVolumes = new ArrayList<URI>();
+                            localVolumesMap.put(assocSystemURI, systemVolumes);
+                        }
+                        localVolumesMap.get(assocSystemURI).add(assocVolumeURI);
+                    }
+                }
+            }
+        }
+        return localVolumesMap;
     }
 }

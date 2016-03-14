@@ -19,7 +19,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,17 +75,23 @@ public class LocalRepository {
     private static final String _SYSTOOL_SET_SSL_PROPS = "--setsslprops";
     private static final String _SYSTOOL_SET_DATA_REVISION = "--set-data-revision";
     private static final String _SYSTOOL_GET_DATA_REVISION = "--get-data-revision";
+    private static final String _SYSTOOL_PURGE_DATA_REVISION = "--purge-data-revision";
+    private static final String _SYSTOOL_REBASE_ZK_SNAPSHOT = "--rebase-zk-snapshot";
 
     private static final String _SYSTOOL_REBOOT = "--reboot";
     private static final String _SYSTOOL_POWEROFF = "--poweroff";
     private static final String _SYSTOOL_RECONFIG = "--reconfig";
     private static final String _SYSTOOL_RECONFIG_PROPS = "--reconfig-props";
     private static final String _SYSTOOL_RESTART = "--restart";
+    private static final String _SYSTOOL_STOP = "--stop";
     private static final String _SYSTOOL_RELOAD = "--reload";
     private static final String _SYSTOOL_IS_APPLIANCE = "--is-appliance";
     private static final String _SYSTOOL_RECONFIG_COORDINATOR = "--reconfig-coordinator";
+    private static final String _SYSTOOL_REMOTE_SYSTOOL = "--remote-systool";
+    private static final String _SYSTOOL_RESTART_COORDINATOR = "--restart-coordinator";
 
-    private static final String _IPSECTOOL_CMD="/etc/ipsectool";
+    private static final String _IPSECTOOL_CMD = "/etc/ipsectool";
+    private static final String MASK_IPSEC_KEY_PATTERN = "ipsec_key=.*?\\n";
 
     // inject value from spring config.
     private String cmdZkutils;
@@ -254,9 +262,7 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd1 = { _SYSTOOL_CMD, _SYSTOOL_GET_VDC_PROPS };
-        String[] props = exec(prefix, cmd1);
-
-        _log.debug(prefix + "properties={}", Strings.repr(props));
+        String[] props = exec(prefix, MASK_IPSEC_KEY_PATTERN, cmd1);
         return new PropertyInfoExt(props);
     }
 
@@ -393,20 +399,36 @@ public class LocalRepository {
     }
 
     /**
-     * Reconfig local coordinatorsvc to observer(default mode), or pariticpant(when active site is down)
-     * For DR standby site only.  
-     * 
+     * Reconfig remote coordinatorsvc to observer(default mode), or pariticpant(when active site is down)
+     * For DR standby site only.
+     *
+     * @param nodeId
      * @param type
      * @throws LocalRepositoryException
      */
-    public void reconfigCoordinator(String type) throws LocalRepositoryException {
-        final String prefix = String.format("reconfigCoordinator(%s): ", type);
+    public void remoteReconfigCoordinator(String nodeId,String type) throws LocalRepositoryException {
+        final String prefix = String.format("reconfigCoordinator(%s): on %s", type,nodeId);
         _log.debug(prefix);
-        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RECONFIG_COORDINATOR, type };
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeId, _SYSTOOL_RECONFIG_COORDINATOR, type };
         final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
         checkFailure(result, prefix);
     }
-    
+
+    /**
+     * Restart a service on remote node
+     *
+     * @param nodeId
+     * @throws LocalRepositoryException
+     */
+    public void remoteRestartCoordinator(String nodeId, String type) throws LocalRepositoryException {
+        final String prefix = String.format("restart(): type=%s on %s", type,nodeId);
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REMOTE_SYSTOOL, nodeId, _SYSTOOL_RESTART_COORDINATOR, type };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+
     /**
      * Restart a service
      * 
@@ -418,6 +440,21 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RESTART, serviceName };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+    
+    /**
+     * Stop a service
+     * 
+     * @param serviceName service name
+     * @throws LocalRepositoryException
+     */
+    public void stop(final String serviceName) throws LocalRepositoryException {
+        final String prefix = "stop(): serviceName=" + serviceName + " ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_STOP, serviceName };
         final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
         checkFailure(result, prefix);
     }
@@ -463,9 +500,10 @@ public class LocalRepository {
      *
      * @param revisionTag
      * @param committed 
+     * @param vdcConfigVersion
      * @throws LocalRepositoryException
      */
-    public void setDataRevision(String revisionTag, boolean committed) throws LocalRepositoryException {
+    public void setDataRevision(String revisionTag, boolean committed, long vdcConfigVersion) throws LocalRepositoryException {
         final String prefix = String.format("setDataRevisionTag(): to=%s committed=%s" , revisionTag, committed);
         _log.debug(prefix);
 
@@ -478,6 +516,11 @@ public class LocalRepository {
         s.append(KEY_DATA_REVISION_COMMITTED);
         s.append(PropertyInfoExt.ENCODING_EQUAL);
         s.append(String.valueOf(committed));
+        s.append(PropertyInfoExt.ENCODING_NEWLINE);
+        s.append(KEY_VDC_CONFIG_VERSION);
+        s.append(PropertyInfoExt.ENCODING_EQUAL);
+        s.append(String.valueOf(vdcConfigVersion));
+        
         createTmpFile(tmpFilePath, s.toString(), prefix);
 
         try {
@@ -511,6 +554,29 @@ public class LocalRepository {
         return SiteInfo.DEFAULT_TARGET_VERSION;
     }
 
+    /***
+     * Purge old data revisions from local
+     * 
+     */
+    public void purgeDataRevision() throws LocalRepositoryException {
+        final String prefix = "purgeDataRevision(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_PURGE_DATA_REVISION };
+        exec(prefix, cmd);
+    }
+    
+    /***
+     * Use current zk snapshot as base for future operations
+     */
+    public void rebaseZkSnapshot() throws LocalRepositoryException {
+        final String prefix = "rebase zk snapshot(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_REBASE_ZK_SNAPSHOT };
+        exec(prefix, cmd);
+    }
+    
     /**
      * check ipsec connections between local machine and other nodes in vipr
      *
@@ -521,10 +587,27 @@ public class LocalRepository {
         final String prefix = "checkIpsecConnection(): ";
         _log.debug(prefix);
 
-        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_CONNECTION };
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_GET_ALL_NODES };
         String[] ips = exec(prefix, cmd);
 
         _log.debug(prefix + "ips without ipsec connection: ", Strings.repr(ips));
+        return ips;
+    }
+
+    /**
+     * get all nodes in the cluster, includes nodes in standby sites
+     *
+     * @return
+     * @throws LocalRepositoryException
+     */
+    public String[] getAllNodesIncluster() throws LocalRepositoryException {
+        final String prefix = "getAllNodesIncluster(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_CONNECTION };
+        String[] ips = exec(prefix, cmd);
+
+        _log.debug(prefix + "all ips the cluster: ", Strings.repr(ips));
         return ips;
     }
 
@@ -539,9 +622,8 @@ public class LocalRepository {
         _log.debug(prefix);
 
         final String[] cmd = { _IPSECTOOL_CMD, IPSEC_GET_PROPS, ip };
-        String[] props = exec(prefix, cmd);
+        String[] props = exec(prefix, MASK_IPSEC_KEY_PATTERN, cmd);
 
-        _log.debug(prefix + "properties={}", Strings.repr(props));
         return PropertyInfoUtil.splitKeyValue(props);
     }
 
@@ -560,6 +642,49 @@ public class LocalRepository {
         _log.info(prefix + "Success!");
     }
 
+    /**
+     * write given ipsec state to local file system.
+     *
+     * @param ipsecStatus
+     * @throws LocalRepositoryException
+     */
+    public void syncIpsecStatusToLocal(String ipsecStatus) throws LocalRepositoryException {
+        final String prefix = "syncIpsecStateToLocal(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_SYNC_STATUS, ipsecStatus };
+        exec(prefix, cmd);
+        _log.info(prefix + "Success!");
+    }
+
+    /**
+     * Reconfig local coordinatorsvc to observer(default mode), or pariticpant(when active site is down)
+     * For DR standby site only.  
+     * 
+     * @param type
+     * @throws LocalRepositoryException
+     */
+    public void reconfigCoordinator(String type) throws LocalRepositoryException {
+        final String prefix = String.format("reconfigCoordinator(%s): ", type);
+        _log.debug(prefix);
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RECONFIG_COORDINATOR, type };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
+    
+    /**
+     * Reset coordinator and restart services on standby site. It applies on DR standby site only
+     * 
+     * @throws LocalRepositoryException
+     */
+    public void restartCoordinator(String type) throws LocalRepositoryException {
+        final String prefix = String.format("resetCoordinator (%s): ", type);
+        _log.debug(prefix);
+
+        final String[] cmd = { _SYSTOOL_CMD, _SYSTOOL_RESTART_COORDINATOR, type};
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        checkFailure(result, prefix);
+    }
 
     /**
      * Common method checking exec execution failure
@@ -581,8 +706,19 @@ public class LocalRepository {
         _log.info(prefix + "Success!");
     }
 
+
+
     private static String[] exec(final String prefix, String[] cmd) throws LocalRepositoryException {
-        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        return exec(prefix, null, cmd);
+    }
+
+    private static String[] exec(final String prefix, String outputMaskPatternStr, String[] cmd) throws LocalRepositoryException {
+        Pattern maskFilter = null;
+        if (!StringUtils.isEmpty(outputMaskPatternStr)) {
+            maskFilter = Pattern.compile(outputMaskPatternStr);
+        }
+
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, maskFilter, cmd);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             _log.info(prefix + "Command failed. Result exit value: " + result.getExitValue());
             throw SyssvcException.syssvcExceptions.localRepoError(prefix + "Command failed: " + result);
@@ -630,7 +766,22 @@ public class LocalRepository {
         try {
             Files.delete(filePath);
         } catch (Exception e) {
-            _log.warn("Failed to delete tmp file");
+            _log.warn("Failed to delete tmp file {}", filePath);
         }
+    }
+
+    /**
+     * check if local ipsec configurations are synced between vdc properties and ipsec configuration files.
+     * @return
+     */
+    public boolean isLocalIpsecConfigSynced() {
+        final String prefix = "isLocalIpsecConfigSynced(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_LOCAL };
+        final Exec.Result result = Exec.sudo(_SYSTOOL_TIMEOUT, cmd);
+        _log.debug(prefix + result);
+
+        return result.getExitValue() == 0;
     }
 }

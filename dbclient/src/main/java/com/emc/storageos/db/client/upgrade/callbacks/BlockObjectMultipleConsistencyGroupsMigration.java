@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.svcs.errorhandling.resources.MigrationCallbackException;
 
 /**
  * Migration handler to migrate BlockObject consistencyGroup to the new
@@ -47,7 +48,7 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
     private static final Logger log = LoggerFactory.getLogger(BlockObjectMultipleConsistencyGroupsMigration.class);
 
     @Override
-    public void process() {
+    public void process() throws MigrationCallbackException {
         migrateRpConsistencyGroups();
         migrateBlockConsistencyGroups();
         migrateBlockVolumes();
@@ -178,7 +179,7 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
                                     primaryCg.addSystemConsistencyGroup(vplexStorageSystem.getId().toString(),
                                             BlockConsistencyGroupUtils.buildClusterCgName(clusterId, vplexCg.getLabel()));
 
-                                    if (primaryCg.getStorageController() == null) {
+                                    if (NullColumnValueGetter.isNullURI(primaryCg.getStorageController())) {
                                         primaryCg.setStorageController(vplexStorageSystem.getId());
                                     }
 
@@ -278,19 +279,17 @@ public class BlockObjectMultipleConsistencyGroupsMigration extends BaseCustomMig
                         cg.addSystemConsistencyGroup(cgVolume.getStorageController().toString(),
                                 BlockConsistencyGroupUtils.buildClusterCgName(clusterId, cg.getLabel()));
                     }
-                } else {
+                } else if (!NullColumnValueGetter.isNullURI(cg.getStorageController())) {
                     // Non-RP/Non-VPLEX/Non-RP+VPLEX
                     // Add an entry for the storage system -> consistency group name
-                    if (cg.getStorageController() != null) {
-                        cg.addSystemConsistencyGroup(cg.getStorageController().toString(), cg.getDeviceName());
-                    }
+                    cg.addSystemConsistencyGroup(cg.getStorageController().toString(), cg.getDeviceName());
                 }
 
                 // Remove type and deviceName fields
                 cg.setType(NullColumnValueGetter.getNullStr());
                 cg.setDeviceName(NullColumnValueGetter.getNullStr());
 
-                dbClient.persistObject(cg);
+                dbClient.updateObject(cg);
                 log.info("Migration of BlockConsistencyGroup {} complete.", cg.getLabel());
             }
         }

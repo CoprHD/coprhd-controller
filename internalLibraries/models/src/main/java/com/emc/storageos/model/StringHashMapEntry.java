@@ -8,7 +8,7 @@ package com.emc.storageos.model;
 import javax.xml.bind.annotation.XmlElement;
 
 /**
- * The class represent an entry for REST representation of a Map<String,String>
+ * The class represent an entry for REST representation of a Map (String, String)
  * 
  */
 public class StringHashMapEntry {

@@ -27,6 +27,7 @@ class Bucket(object):
     URI_BUCKET_CREATE = "/object/buckets"
     URI_BUCKET_SHOW = '/object/buckets/{0}'
     URI_BUCKET_DEACTIVATE = '/object/buckets/{0}/deactivate'
+    URI_BUCKET_ACL = '/object/buckets/{0}/acl'
 
     def __init__(self, ipAddr, port):
         '''
@@ -89,7 +90,7 @@ class Bucket(object):
     #Routine to delete Bucket 
     
     
-    def bucket_delete(self,tenant, project, name , forceDelete=False):
+    def bucket_delete(self,tenant, project, name , forceDelete=False, delete_type='FULL'):
         
         
         if(name):
@@ -99,6 +100,7 @@ class Bucket(object):
             if(forceDelete):
                 
                 request ['forceDelete']  = False
+            request ['delete_type'] = delete_type
             body = json.dumps(request)
             
        
@@ -186,6 +188,70 @@ class Bucket(object):
         return
          
 
+    def list_acl(self, tenant, project, name):
+        '''
+        Lists a ACL based on Bucket name
+        Parameters:
+            tenant: name of tenant
+            project: name of project			
+            name: name of Bucket
+        '''
+        bucket_uri = self.get_bucket_uri(tenant, project, name)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "GET",
+            Bucket.URI_BUCKET_ACL.format(bucket_uri),
+            None)
+        o = common.json_decode(s)
+        return o
+
+    def delete_acl(self, tenant, project, name):
+        
+        bucket_uri = self.get_bucket_uri(tenant, project, name)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port, "DELETE",
+            Bucket.URI_BUCKET_ACL.format(bucket_uri),
+            None)
+        o = common.json_decode(s)
+        return o
+		
+    # update acl for given bucket    
+    def put_acl(self, tenant, project, name, operation, permissions=None, domain=None, user=None, group=None, customgroup=None):
+        '''
+        Update the ACL of given bucket.
+        '''
+        bucket_uri = self.get_bucket_uri(tenant, project, name)
+        
+        bucket_acl_param = dict()
+        if(permissions):
+            bucket_acl_param['permissions'] = permissions
+        if(user):
+            bucket_acl_param['user'] = user
+        if(domain):
+            bucket_acl_param['domain'] = domain
+        if(group):
+            bucket_acl_param['group'] = group
+        if(customgroup):
+            bucket_acl_param['customgroup'] = customgroup
+
+
+        bucket_acl_update_request = {'acl':[bucket_acl_param]}
+
+        if("add"== operation):
+            request = {'add': bucket_acl_update_request}
+        elif("delete" == operation):
+            request = {'delete' : bucket_acl_update_request}
+        else:
+            request = {'modify' : bucket_acl_update_request}
+    
+        body = json.dumps(request)
+        
+        (s, h) = common.service_json_request(
+                    self.__ipAddr, self.__port, 
+                    "PUT", 
+                    Bucket.URI_BUCKET_ACL.format(bucket_uri) , body)
+        o = common.json_decode(s)
+        return o
+    
    
 # create command parser
 def create_parser(subcommand_parsers, common_parser):
@@ -285,6 +351,12 @@ def delete_parser(subcommand_parsers, common_parser):
                                choices = ["true" , "false"],
                                metavar='<forcedelete>',
                                help='force Delete option ')
+    delete_parser.add_argument('-deleteType', '-dt',
+                               dest='delete_type',
+                               metavar='<delete_type>',
+                               help='Delete bucket either from Inventory only or full delete, default FULL',
+                               default='FULL',
+                               choices=["FULL", "INTERNAL_DB_ONLY"])
 
     delete_parser.set_defaults(func=bucket_delete)
 
@@ -292,7 +364,7 @@ def delete_parser(subcommand_parsers, common_parser):
 def bucket_delete(args):
     obj = Bucket(args.ip, args.port)
     try:
-        obj.bucket_delete(args.tenant , args.project , args.name, args.forcedelete)
+        obj.bucket_delete(args.tenant , args.project , args.name, args.forcedelete, args.delete_type)
         return
     except SOSError as e:
         common.format_err_msg_and_raise("delete", "bucket",
@@ -394,6 +466,166 @@ def update_parser(subcommand_parsers, common_parser):
     update_parser.set_defaults(func=bucket_update)
 
 
+# routine to list the acl for a bucket
+def get_bucket_acl_parser(subcommand_parsers, common_parser):
+    get_bucket_acl_parser = subcommand_parsers.add_parser(
+        'list-acl',
+        description='ViPR Object Bucket ACL List CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='LIST ACL of Bucket')
+    mandatory_args = get_bucket_acl_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<objectname>',
+                                dest='name',
+                                help='Name of Bucket',
+                                required=True)
+    get_bucket_acl_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    get_bucket_acl_parser.set_defaults(func=bucket_acl_list)
+
+def bucket_acl_list(args):
+    if(not args.tenant):
+        args.tenant = ""
+    obj = Bucket(args.ip, args.port)
+    try:
+        res = obj.list_acl(args.tenant, args.project, args.name)
+        if ( res == {}):
+            print " No ACLs for the bucket"
+        else:
+            from common import TableGenerator
+            TableGenerator(res['acl'], ['domain','user','group','customgroup','permissions']).printTable() 
+        
+    except SOSError as e:
+        common.format_err_msg_and_raise("list-acl", "bucket",
+                                        e.err_text, e.err_code)
+        
+        
+def put_bucket_acl_parser(subcommand_parsers, common_parser):
+    put_bucket_acl_parser = subcommand_parsers.add_parser(
+        'acl',
+        description='ViPR Object Bucket ACL List CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Add/Update/Delete ACLs rules for Bucket ')
+    mandatory_args = put_bucket_acl_parser.add_argument_group(
+        'mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                dest='name',
+                                metavar='<bucketname>',
+                                help='Name of Bucket',
+                                required=True)
+    mandatory_args.add_argument('-operation', '-op',
+                                choices=["add", "update", "delete"],
+                                dest='operation',
+                                metavar='<acloperation>',
+                                help='bucket acl operation',
+                                required=True)
+    put_bucket_acl_parser.add_argument('-permissions', '-perm',
+                                    dest='permissions',
+                                    metavar='<permissions>',
+                                    help='Provide permission(s) for Acl with pipe delimited. example: execute|delete|write|read.' +
+                                    ' Available choices are read,write,execute,delete,privileged_write,full_control,read_acl,write_acl,none.')
+    put_bucket_acl_parser.add_argument('-tenant', '-tn',
+                                     metavar='<tenantname>',
+                                     dest='tenant',
+                                     help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    put_bucket_acl_parser.add_argument('-user', '-u',
+                                    dest='user',
+                                    metavar='<user>',
+                                    help='User')
+    put_bucket_acl_parser.add_argument('-domain','-dom',
+                                    dest='domain',
+                                    metavar='<domain>',
+                                    help='Domain')
+    put_bucket_acl_parser.add_argument('-group', '-grp',
+                                    dest='group',
+                                    metavar='<group>',
+                                    help='Group')
+    put_bucket_acl_parser.add_argument('-customgroup', '-custgrp',
+                                    dest='customgroup',
+                                    metavar='<customgroup>',
+                                    help='Custom Group')				    
+
+    
+    put_bucket_acl_parser.set_defaults(func=bucket_acl)
+
+def bucket_acl(args):
+    obj = Bucket(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        if(not args.user and not args.permissions):
+            raise SOSError(SOSError.CMD_LINE_ERR, "Anonymous user should be provided to add/update/delete acl rule")
+        if(args.user and args.group):
+            raise SOSError(SOSError.CMD_LINE_ERR, "User and Group cannot be specified together")	
+        
+        
+        res = obj.put_acl(args.tenant, args.project,
+                           args.name, 
+                           args.operation,
+                           args.permissions,
+                           args.domain,
+                           args.user,
+                           args.group,
+                           args.customgroup)
+
+
+    except SOSError as e:
+                
+        common.format_err_msg_and_raise("acl", "name",
+                                        e.err_text, e.err_code)
+
+
+# Bucket ACL Delete routines
+def delete_bucket_acl_parser(subcommand_parsers, common_parser):
+    delete_bucket_acl_parser = subcommand_parsers.add_parser(
+        'delete-acl',
+        description='ViPR ACL Delete CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Delete a ACL of bucket')
+    mandatory_args = delete_bucket_acl_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<bucketname>',
+                                dest='name',
+                                help='Name of Bucket',
+                                required=True)
+    delete_bucket_acl_parser.add_argument('-tenant', '-tn',
+                               metavar='<tenantname>',
+                               dest='tenant',
+                               help='Name of tenant')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    
+    delete_bucket_acl_parser.set_defaults(func=bucket_acl_delete)
+
+
+def bucket_acl_delete(args):
+    if(not args.tenant):
+        args.tenant = ""
+    obj = Bucket(args.ip, args.port)
+    try:
+        obj.delete_acl( args.tenant, args.project, args.name)
+    except SOSError as e:
+        common.format_err_msg_and_raise("delete-acl", "bucketname",
+                                        e.err_text, e.err_code)
+ 
 def bucket_update(args):
     obj = Bucket(args.ip, args.port)
     try:
@@ -433,5 +665,11 @@ def bucket_parser(parent_subparser, common_parser):
     delete_parser(subcommand_parsers, common_parser)
     
     update_parser(subcommand_parsers, common_parser)
+    #GET Bucket ACL
+    get_bucket_acl_parser(subcommand_parsers, common_parser)
+    #DELETE Bucket ACL
+    delete_bucket_acl_parser(subcommand_parsers, common_parser)
+    #PUT Bucket ACL
+    put_bucket_acl_parser(subcommand_parsers, common_parser)
 
     

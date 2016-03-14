@@ -6,7 +6,7 @@ package com.emc.sa.service;
 
 /**
  * This interface defines the parameter names for operation parameters.
- * 
+ *
  * @author jonnymiller
  */
 public interface ServiceParams {
@@ -24,7 +24,7 @@ public interface ServiceParams {
     public String PROTOCOL = "protocol";
     public String MULTIPATH_POLICY = "multipathPolicy";
     public String STORAGE_IO_CONTROL = "storageIOControl";
-    
+
     public String WINDOWS_DOMAIN = "domain";
     public String VOLUME_NAME = "volumeName";
     public String SHARE_NAME = "shareName";
@@ -36,27 +36,39 @@ public interface ServiceParams {
 
     public String COPY_NAME = "copyName";
 
+    public String MOBILITY_GROUP = "mobilityGroup";
+    public String MOBILITY_GROUP_RESOURCES = "mobilityGroupResources";
+
     public String PROJECT = "project";
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
     public String NAME = "name";
+    public String DESCRIPTION = "description";
     public String TYPE = "type";
     public String STORAGE_TYPE = "storageType";
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";
+    public String PROTECTION_SYSTEMS = "protectionSystems";
     public String REMOVED_VOLUMES = "removedVolumes";
     public String SNAPSHOTS = "snapshots";
     public String FILESYSTEMS = "fileSystems";
+    public String FILESYSTEM = "fileSystem";
+    public String FILE_COPIES = "fileCopies";
+    public String FILE_POLICY = "filePolicy";
     public String NFS_PERMISSIONS = "nfsPermissions";
     public String EXPORT_HOSTS = "exportHosts";
     public String FAILOVER_TARGET = "failoverTarget";
+    public String FAILOVER_TARGET_FILE = "failoverTargetFile";
+    public String IMAGE_TO_ACCESS = "imageToAccess";
+    public String POINT_IN_TIME = "pointInTime";
     public String NUMBER_OF_VOLUMES = "numberOfVolumes";
     public String NUMBER_OF_HOSTS = "numberOfHosts";
     public String COUNT = "count";
     public String VOLUME = "volume";
     public String SNAPSHOT = "snapshot";
+    public String SNAPSHOT_SESSION = "snapshotSession";
     public String EXPORT = "export";
     public String CONSISTENCY_GROUP = "consistencyGroup";
     public String HLU = "hlu";
@@ -67,6 +79,17 @@ public interface ServiceParams {
     public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
 
+    public String MOBILITY_GROUP_METHOD = "mobilityGroupMethod";
+
+    public String APPLICATION = "application";
+    public String APPLICATION_SUB_GROUP = "applicationSubGroup";
+    public String APPLICATION_COPY_SETS = "applicationCopySets";
+    public String NEW_APPLICATION_SUB_GROUP = "newApplicationSubGroup";
+    public String APPLICATION_SITE = "applicationSite";
+    public String FULL_COPY_NAME = "fullCopyName";
+    public String HIGH_AVAILABILITY = "highAvailability";
+
+    public String APPLICATION_SNAPSHOT_TYPE = "applicationSnapshotType";
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";
 
@@ -107,7 +130,7 @@ public interface ServiceParams {
     public String OPLOCK = "oplock";
     public String SECURITY_STYLE = "securityStyle";
     public String QUOTA_DIRECTORIES = "quotaDirectories";
-    
+
     public String SOFT_QUOTA = "softQuota";
     public String HARD_QUOTA = "hardQuota";
     public String RETENTION = "retention";
@@ -115,7 +138,20 @@ public interface ServiceParams {
     public String TENANT = "tenant";
     public String OWNER = "owner";
     public String BUCKET = "bucket";
-    
+    public String ACL_TYPE = "aclType";
+    public String ACL_NAME = "aclName";
+    public String ACL_DOMAIN = "aclDomain";
+    public String ACL_PERMISSION = "aclPermission";
+
+    public String ADVISORY_LIMIT = "advisoryLimit";
+    public String SOFT_LIMIT = "softLimit";
+    public String GRACE_PERIOD = "gracePeriod";
+
+    public String DELETE_TARGET = "deleteTarget";
+
+    public String LINKED_SNAPSHOT = "linkedSnapshot";
     public String LINKED_SNAPSHOT_NAME = "linkedSnapshotName";
     public String LINKED_SNAPSHOT_COUNT = "linkedSnapshotCount";
+    public String LINKED_SNAPSHOT_COPYMODE = "linkedSnapshotCopyMode";
+
 }

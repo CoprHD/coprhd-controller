@@ -40,13 +40,13 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.FileSystemConstants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
-import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
 import com.iwave.ext.netapp.model.CifsAccess;
 import com.iwave.ext.netapp.model.CifsAcl;
 
-public class NetAppFileStorageDevice implements FileStorageDevice {
+public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     private static final Logger _log = LoggerFactory
             .getLogger(NetAppFileStorageDevice.class);
 
@@ -477,8 +477,8 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
     }
 
     /*
-     * We check to see if fsMountPath is same as exportMountPath, if not we know that it's sub-directory
-     * Also we need to make sure that fsMountPath is a substring of exportMountPath if it were to be sub-directory.
+     * We check to see if fsMountPath is same as exportMountPath, if not we know that it's a sub-directory
+     * Also we need to make sure that fsMountPath is a substring of exportMountPath if it were to be a sub-directory.
      */
     private boolean checkIfSubDirectory(String fsMountPath, String exportMountPath) {
         if (exportMountPath.contains(fsMountPath) && !exportMountPath.equals(fsMountPath)) {
@@ -1840,6 +1840,24 @@ public class NetAppFileStorageDevice implements FileStorageDevice {
 
     @Override
     public BiosCommandResult deleteNfsACLs(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netapp.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult assignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netapp.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult unassignFilePolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
+        return BiosCommandResult.createErrorResult(
+                DeviceControllerErrors.netapp.operationNotSupported());
+    }
+
+    @Override
+    public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.netapp.operationNotSupported());
     }

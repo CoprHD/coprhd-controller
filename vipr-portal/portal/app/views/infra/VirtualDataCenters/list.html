@@ -3,7 +3,8 @@
    isRootUser =  currentUser?.commonName == 'root';
    isSecurityAdmin = currentUser?.roles?.find{ "SECURITY_ADMIN".equals(it.roleName)} != null
    isRestrictedSecurityAdmin = currentUser?.roles?.find{ "RESTRICTED_SECURITY_ADMIN".equals(it.roleName)} != null
-   isSelectable = isSecurityAdmin && isRootUser == false
+   isSystemAdmin = currentUser?.roles?.find{ "SYSTEM_ADMIN".equals(it.roleName)} != null
+   isSelectable = (isSecurityAdmin || isSystemAdmin) && isRootUser == false
 }%
 #{extends 'main.html'/}
 #{set navSelected: ['nav.virtualStorage', 'nav.vdcs'] /}
@@ -29,15 +30,15 @@
 	
 	    #{DataTable.buttonBar}
 	        #{if isRootUser == false}
-	    	    #{deadbolt.restrict roles:[['SECURITY_ADMIN']]}
-	    			#{Form.button name:'button.add', class:'success', icon:'plus', submit:'createForm'/}
-	    		    #{Form.button name:'button.delete', class:'danger', icon:'minus', submit:'deleteForm', 
-	                              data:['enabled':'selected', 'selection':'single', 'property':'canDelete', 'value':'true']/}
-	                #{Form.button name:'button.reconnect', class:'info', icon:'ok-circle', submit:'reconnectForm', 
-	                              data:['enabled':'selected', 'selection':'single', 'property':'canReconnect', 'value':'true']/}
-	                #{Form.button name:'button.disconnect', class:'warning', icon:'remove-circle', submit:'disconnectForm',
-	                              data:['enabled':'selected', 'selection':'single', 'property':'canDisconnect', 'value':'true']/}
-	    		#{/deadbolt.restrict}
+                #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['SYSTEM_ADMIN']]}
+		            #{Form.button name:'button.add', class:'success', icon:'plus', submit:'createForm'/}
+		            #{Form.button name:'button.delete', class:'danger', icon:'minus', submit:'deleteForm',
+		                          data:['enabled':'selected', 'selection':'single', 'property':'canDelete', 'value':'true']/}
+                    #{Form.button name:'button.reconnect', class:'info', icon:'ok-circle', submit:'reconnectForm',
+                                  data:['enabled':'selected', 'selection':'single', 'property':'canReconnect', 'value':'true']/}
+                    #{Form.button name:'button.disconnect', class:'warning', icon:'remove-circle', submit:'disconnectForm',
+                                  data:['enabled':'selected', 'selection':'single', 'property':'canDisconnect', 'value':'true']/}
+                #{/deadbolt.restrict}
 	        #{/if}
 	        #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
 	    	 #{Form.button name:'button.secretKey', class:'default', icon:'vipricon-secretkey', action:'showSecretKeyDialog()'/}
@@ -94,6 +95,7 @@ function renderLink(o, val) {
     var isRootUser = ${isRootUser};
     var isSecurityAdmin = ${isSecurityAdmin};
     var isRestrictedSecurityAdmin = ${isRestrictedSecurityAdmin};
+    var isSystemAdmin = ${isSystemAdmin};
     var url = #{jsAction (_edit ?: @edit(':id')) /};
     var href = url(data);
     if (status == 'CONNECT_PRECHECK_FAILED' || 
@@ -104,7 +106,7 @@ function renderLink(o, val) {
     else if (isRootUser && localVdc) {
     	return "<a href='"+href+"'>" + val + "</a>";
     }
-    else if (!isRootUser && (isSecurityAdmin || isRestrictedSecurityAdmin)) {
+    else if (!isRootUser && (isSecurityAdmin || isRestrictedSecurityAdmin || isSystemAdmin)) {
     	return "<a href='"+href+"'>" + val + "</a>";
     }
     return val;

@@ -17,8 +17,9 @@ GET     /dashboard                                      AdminDashboard.dashboard
 
 GET     /scheduledorders/edit/{id}              catalog.ScheduledOrders.edit
 
-GET     /backup/upload/{id}        Backup.upload
-*       /backup/{action}           Backup.{action}
+GET     /backup/upload/{id}                     Backup.upload
+GET     /backup/restore/name/{id}/type/{type}   Backup.restore
+*       /backup/{action}                        Backup.{action}
 
 GET     /hosts/edit/{id}       					compute.Hosts.edit
 *       /hosts/{action}        					compute.Hosts.{action}
@@ -121,13 +122,18 @@ GET     /networks/edit/{id}                     arrays.Networks.edit
 GET     /blockvirtualpools/edit/{id}            arrays.BlockVirtualPools.edit
 *       /blockvirtualpools/{action}             arrays.BlockVirtualPools.{action}
 
+GET     /mobilitygroups/edit/{id}               arrays.MobilityGroups.edit
+*       /mobilitygroups/{action}                arrays.MobilityGroups.{action}
+
 GET     /filevirtualpools/edit/{id}             arrays.FileVirtualPools.edit
 *       /filevirtualpools/{action}              arrays.FileVirtualPools.{action}
 
 GET     /objectvirtualpools/edit/{id}          arrays.ObjectVirtualPools.edit   
 *       /objectvirtualpools/{action}           arrays.ObjectVirtualPools.{action}
 
-GET     /site/edit/{id}          				infra.disasterrecovery.edit   
+GET     /site/edit/{id}          				infra.disasterrecovery.edit
+GET     /site/listPause            				infra.disasterrecovery.list(showPauseButton:'true')
+GET     /site/list                              infra.disasterrecovery.list(showPauseButton:'false')
 *       /site/{action}           				infra.disasterrecovery.{action}
 
 GET     /virtualarrays/edit/{id}                VirtualArrays.edit

@@ -7,13 +7,16 @@ package com.emc.storageos.volumecontroller.impl.xtremio.prov.utils;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -21,6 +24,7 @@ import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
+import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
@@ -35,6 +39,17 @@ public class XtremIOProvUtils {
 
     private static final String DOT_OPERATOR = "\\.";
     private static final Integer XIO_MIN_4X_VERSION = 4;
+
+    private static final Set<String> SUPPORTED_HOST_OS_SET = new HashSet<String>();
+
+    static {
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.Windows.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.Linux.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.AIX.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.Esx.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.HPUX.name());
+        SUPPORTED_HOST_OS_SET.add(Host.HostType.Other.name());
+    }
 
     public static void updateStoragePoolCapacity(XtremIOClient client, DbClient dbClient, StoragePool storagePool) {
         try {
@@ -63,7 +78,7 @@ public class XtremIOProvUtils {
     /**
      * Check if there is a volume with the given name
      * If found, return the volume
-     * 
+     *
      * @param client
      * @param label
      * @param clusterName
@@ -82,7 +97,7 @@ public class XtremIOProvUtils {
     /**
      * Check if there is a snapshot with the given name
      * If found, return the snapshot
-     * 
+     *
      * @param client
      * @param label
      * @param clusterName
@@ -101,7 +116,7 @@ public class XtremIOProvUtils {
     /**
      * Check if there is a consistency group with the given name
      * If found, return the consistency group
-     * 
+     *
      * @param client
      * @param label
      * @param clusterName
@@ -119,9 +134,31 @@ public class XtremIOProvUtils {
     }
 
     /**
+     * Check if there is a tag with the given name
+     * If found, return the tag
+     *
+     * @param client
+     * @param tagName
+     * @param tagEntityType
+     * @param clusterName
+     * @return XtrmIO tag if found else null
+     */
+    public static XtremIOTag isTagAvailableInArray(XtremIOClient client, String tagName, String tagEntityType, String clusterName) {
+        XtremIOTag tag = null;
+
+        try {
+            tag = client.getTagDetails(tagName, tagEntityType, clusterName);
+        } catch (Exception e) {
+            _log.info("Tag {} not available in Array.", tagName);
+        }
+
+        return tag;
+    }
+
+    /**
      * Check if there is a snapset with the given name
      * If found, return the snapset
-     * 
+     *
      * @param client
      * @param label
      * @param clusterName
@@ -141,7 +178,7 @@ public class XtremIOProvUtils {
     /**
      * Checks if there is folder with the given name and sub folders for volume and snapshots.
      * If not found, create them.
-     * 
+     *
      * @param client
      * @param rootVolumeFolderName
      * @return map of volume folder name and snapshot folder name
@@ -200,7 +237,7 @@ public class XtremIOProvUtils {
     /**
      * Checks if there are tags with the given name for volume and snapshots.
      * If not found, create them.
-     * 
+     *
      * @param client
      * @param rootTagName
      * @param clusterName
@@ -253,7 +290,7 @@ public class XtremIOProvUtils {
     /**
      * Checks if there are tags with the given name for consistency group.
      * If not found, create them.
-     * 
+     *
      * @param client
      * @param rootTagName
      * @param clusterName
@@ -296,7 +333,7 @@ public class XtremIOProvUtils {
     /**
      * Check the number of volumes under the tag/volume folder.
      * If zero, delete the tag/folder
-     * 
+     *
      * @param client
      * @param xioClusterName
      * @param volumeFolderName
@@ -310,6 +347,11 @@ public class XtremIOProvUtils {
             // Find the # volumes in folder, if the Volume folder is empty,
             // then delete the folder too
             XtremIOTag tag = client.getTagDetails(volumeFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), xioClusterName);
+            if (tag == null) {
+                _log.info("Tag {} not found on the array", volumeFolderName);
+                return;
+            }
+            _log.info("Got back tag details {}", tag.toString());
             String numOfVols = isVersion2 ? tag.getNumberOfDirectObjs() : tag.getNumberOfVolumes();
             int numberOfVolumes = Integer.parseInt(numOfVols);
             if (numberOfVolumes == 0) {
@@ -334,24 +376,29 @@ public class XtremIOProvUtils {
     /**
      * Get the XtremIO client for making requests to the system based
      * on the passed profile.
-     * 
+     *
      * @param accessProfile A reference to the access profile.
      * @param xtremioRestClientFactory xtremioclientFactory.
-     * 
+     *
      * @return A reference to the xtremio client.
      */
     public static XtremIOClient getXtremIOClient(StorageSystem system, XtremIOClientFactory xtremioRestClientFactory) {
         xtremioRestClientFactory.setModel(system.getFirmwareVersion());
+        if (null == system.getSmisProviderIP() || null == system.getSmisPortNumber()) {
+            _log.error("There is no active XtremIO Provider managing the system {}.", system.getSerialNumber());
+            throw XtremIOApiException.exceptions.noMgmtConnectionFound(system.getSerialNumber());
+        }
         XtremIOClient client = (XtremIOClient) xtremioRestClientFactory
                 .getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(system.getSmisProviderIP(),
-                                system.getSmisPortNumber())), system.getSmisUserName(), system.getSmisPassword(), true);
+                                system.getSmisPortNumber())),
+                        system.getSmisUserName(), system.getSmisPassword(), true);
         return client;
     }
 
     /**
      * Refresh the XIO Providers & its client connections.
-     * 
+     *
      * @param xioProviderList the XIO provider list
      * @param dbClient the db client
      * @return the list of active providers
@@ -369,7 +416,8 @@ public class XtremIOProvUtils {
                 xtremioRestClientFactory.setModel(provider.getVersionString());
                 XtremIOClient clientFromCache = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                         URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
-                                provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);
+                                provider.getPortNumber())),
+                        provider.getUserName(), provider.getPassword(), true);
                 if (null != clientFromCache && null != clientFromCache.getXtremIOXMSVersion()) {
                     isConnectionLive = true;
                 } else {
@@ -377,11 +425,13 @@ public class XtremIOProvUtils {
                     // remove the existing client connection
                     xtremioRestClientFactory.removeRESTClient(
                             URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
-                                    provider.getPortNumber())), provider.getUserName(), provider.getPassword());
+                                    provider.getPortNumber())),
+                            provider.getUserName(), provider.getPassword());
                     // Initialize with the new provider credentials.
                     XtremIOClient newXIOClient = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
                             URI.create(XtremIOConstants.getXIOBaseURI(provider.getIPAddress(),
-                                    provider.getPortNumber())), provider.getUserName(), provider.getPassword(), true);
+                                    provider.getPortNumber())),
+                            provider.getUserName(), provider.getPassword(), true);
                     if (null != newXIOClient.getXtremIOXMSVersion()) {
                         isConnectionLive = true;
                     }
@@ -409,5 +459,21 @@ public class XtremIOProvUtils {
 
     public static boolean is4xXtremIOModel(String model) {
         return (null != model && Integer.valueOf(model.split(DOT_OPERATOR)[0]) >= XIO_MIN_4X_VERSION);
+    }
+
+    /**
+     * Returns the XtremIO supported OS based on the initiator Host OS type.
+     *
+     * From API Doc: solaris, aix, windows, esx, other, linux, hpux
+     *
+     * @param hostURI - Host URI of the Initiator.
+     * @return operatingSystem type.
+     */
+    public static String getInitiatorHostOS(Host host) {
+        String osType = null;
+        if (SUPPORTED_HOST_OS_SET.contains(host.getType())) {
+            osType = host.getType().toLowerCase();
+        }
+        return osType;
     }
 }

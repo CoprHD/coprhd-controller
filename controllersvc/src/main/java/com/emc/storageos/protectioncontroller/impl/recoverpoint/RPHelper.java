@@ -7,8 +7,6 @@ package com.emc.storageos.protectioncontroller.impl.recoverpoint;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getRpSourceVolumeByTarget;
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getRpJournalVolumeParent;
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getSecondaryRpJournalVolumeParent;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
 import java.net.URI;
@@ -21,6 +19,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -30,12 +29,21 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -48,6 +56,7 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
@@ -59,8 +68,10 @@ import com.emc.storageos.recoverpoint.utils.RecoverPointClientFactory;
 import com.emc.storageos.recoverpoint.utils.RecoverPointUtils;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
 import com.emc.storageos.volumecontroller.impl.utils.MetaVolumeUtils;
 import com.google.common.base.Joiner;
@@ -98,9 +109,29 @@ public class RPHelper {
     }
 
     /**
+     * Get all of the replication set volumes for a list of volumes; the sources and all of their targets.
+     *
+     * @param volumeIds
+     * @param dbClient
+     * @return
+     */
+    public static Set<URI> getReplicationSetVolumes(List<URI> volumeIds, DbClient dbClient) {
+        Set<URI> volumeSet = new HashSet<URI>();
+        Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, volumeIds);
+        while (volumes.hasNext()) {
+            Volume volume = volumes.next();
+            RPHelper helper = new RPHelper();
+            helper.setDbClient(dbClient);
+            volumeSet.addAll(helper.getReplicationSetVolumes(volume));
+        }
+        return volumeSet;
+
+    }
+
+    /**
      * Get all of the volumes in this replication set; the source and all of its targets.
      * For a multi-CG protection, it only returns the targets (and source) associated with this one volume.
-     * 
+     *
      * @param volume volume object
      * @return list of volume URIs
      * @throws DeviceControllerException
@@ -122,7 +153,7 @@ public class RPHelper {
     /**
      * Helper Method: The caller wants to get the protection settings associated with a specific virtual array
      * and virtual pool. Handle the exceptions appropriately.
-     * 
+     *
      * @param vpool VirtualPool to look for
      * @param varray VirtualArray to protect to
      * @return the stored protection settings object
@@ -142,7 +173,7 @@ public class RPHelper {
 
     /**
      * Gets the virtual pool of the target copy.
-     * 
+     *
      * @param tgtVarray
      * @param srcVpool the base virtual pool
      * @return
@@ -159,7 +190,7 @@ public class RPHelper {
 
     /**
      * given one volume in an rset (either source or any target) return all source and target volumes in that rset
-     * 
+     *
      * @param vol
      * @return
      */
@@ -167,29 +198,34 @@ public class RPHelper {
         List<Volume> allVolumesInRSet = new ArrayList<Volume>();
 
         Volume sourceVol = null;
-        if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
+        if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
             sourceVol = volume;
         } else {
             sourceVol = getRPSourceVolumeFromTarget(_dbClient, volume);
         }
+
         if (sourceVol != null) {
             allVolumesInRSet.add(sourceVol);
-        }
 
-        for (String tgtVolId : sourceVol.getRpTargets()) {
-            if (tgtVolId.equals(volume.getId().toString())) {
-                allVolumesInRSet.add(volume);
-            } else {
-                Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
-                if (tgt != null && !tgt.getInactive()) {
-                    allVolumesInRSet.add(tgt);
-                }
+            if (sourceVol.getRpTargets() != null) {
+                for (String tgtVolId : sourceVol.getRpTargets()) {
+                    if (tgtVolId.equals(volume.getId().toString())) {
+                        allVolumesInRSet.add(volume);
+                    } else {
+                        Volume tgt = _dbClient.queryObject(Volume.class, URI.create(tgtVolId));
+                        if (tgt != null && !tgt.getInactive()) {
+                            allVolumesInRSet.add(tgt);
+                        }
 
-                // if this target was previously the Metropoint active source, go out and get the standby copy
-                if (tgt != null && isMetroPointVolume(tgt)) {
-                    allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
+                        // if this target was previously the Metropoint active source, go out and get the standby copy
+                        if (tgt != null && RPHelper.isMetroPointVolume(_dbClient, tgt)) {
+                            allVolumesInRSet.addAll(getMetropointStandbyCopies(tgt));
+                        }
+                    }
                 }
             }
+        } else if (volume.checkInternalFlags(Flag.PARTIALLY_INGESTED)) {
+            allVolumesInRSet.add(volume);
         }
 
         return allVolumesInRSet;
@@ -197,7 +233,7 @@ public class RPHelper {
 
     /**
      * Gets a volume's associated target volumes.
-     * 
+     *
      * @param volume the volume whose targets we want to find.
      * @return the list of associated target volumes.
      */
@@ -220,7 +256,7 @@ public class RPHelper {
     /**
      * This method will return all volumes that should be deleted based on the entire list of volumes to be deleted.
      * If this is the last source volume in the CG, this method will return all journal volumes as well.
-     * 
+     *
      * @param reqDeleteVolumes all volumes in the delete request
      * @return list of volumes to unexport and delete
      * @throws InternalException
@@ -252,6 +288,7 @@ public class RPHelper {
             // 1. Determine the consistency group.
             // 2. Keep track of the protection set if one is being referenced. This will be used
             // later to perform a cleanup operation.
+            // 3. If partially ingested volume, clean up corresponding unmanaged protection set
             for (Volume vol : allVolsInRSet) {
                 allVolsInRSetURI.add(vol.getId());
 
@@ -263,6 +300,13 @@ public class RPHelper {
                     // Keep track of the protection sets for a cleanup operation later in case we
                     // find any stale volume references
                     protectionSetIds.add(vol.getProtectionSet().getURI());
+                }
+                // If this is a partially ingested RP volume, clean up the corresponding unmanaged protection set
+                List<UnManagedProtectionSet> umpsets = CustomQueryUtility.getUnManagedProtectionSetByManagedVolumeId(_dbClient,
+                        vol.getId().toString());
+                for (UnManagedProtectionSet umpset : umpsets) {
+                    umpset.getManagedVolumeIds().remove(vol.getId().toString());
+                    _dbClient.updateObject(umpset);
                 }
             }
 
@@ -289,7 +333,7 @@ public class RPHelper {
             BlockConsistencyGroup cg = null;
             URI cgURI = cgToVolumesForDelete.getKey();
             cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-            List<Volume> cgVolumes = getCgVolumes(cgURI, _dbClient);
+            List<Volume> cgVolumes = getAllCgVolumes(cgURI, _dbClient);
 
             // determine if all of the source and target volumes in the consistency group are on the list
             // of volumes to delete; if so, we will add the journal volumes to the list.
@@ -318,7 +362,7 @@ public class RPHelper {
                 // We are removing the CG, determine all the journal volumes in it and
                 // add them to the list of volumes to be removed
                 if (cg != null) {
-                    List<Volume> allJournals = getCgVolumes(cg.getId(), Volume.PersonalityTypes.METADATA.toString());
+                    List<Volume> allJournals = getCgVolumes(_dbClient, cg.getId(), Volume.PersonalityTypes.METADATA.toString());
                     if (allJournals != null && !allJournals.isEmpty()) {
                         Set<URI> allJournalURIs = new HashSet<URI>();
                         for (Volume journalVolume : allJournals) {
@@ -378,7 +422,7 @@ public class RPHelper {
      * Gets volume descriptors for volumes in an RP protection to be deleted
      * handles vplex andnon-vplex as well as mixed storage configurations
      * (e.g. vplex source and non-vplex targets)
-     * 
+     *
      * @param systemURI System that the delete request belongs to
      * @param volumeURIs All volumes to be deleted
      * @param deletionType The type of deletion
@@ -490,27 +534,10 @@ public class RPHelper {
         return volumeDescriptors;
     }
 
-    private int getJournalRsetCount(List<URI> protectionSetVolumes, URI journalVolume) {
-        int rSetCount = 0;
-
-        Iterator<URI> iter = protectionSetVolumes.iterator();
-        while (iter.hasNext()) {
-            URI protectedVolumeID = iter.next();
-            Volume protectionVolume = _dbClient.queryObject(Volume.class, protectedVolumeID);
-            if (!protectionVolume.getInactive() &&
-                    !protectionVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.toString())
-                    && protectionVolume.getRpJournalVolume().equals(journalVolume)) {
-                rSetCount++;
-            }
-        }
-
-        return rSetCount;
-    }
-
     /**
      * Determine if the protection set's source volumes are represented in the volumeIDs list.
      * Used to figure out if we can perform full CG operations or just partial CG operations.
-     * 
+     *
      * @param dbClient db client
      * @param protectionSet protection set
      * @param volumeIDs volume IDs
@@ -548,7 +575,7 @@ public class RPHelper {
     /**
      * Determine if the consistency group's source volumes are represented in the volumeIDs list.
      * Used to figure out if we can perform full CG operations or just partial CG operations.
-     * 
+     *
      * @param dbClient db client
      * @param consistencyGroupUri the BlockConsistencyGroup ID
      * @param volumeIDs volume IDs
@@ -587,38 +614,8 @@ public class RPHelper {
     }
 
     /**
-     * Determines if a journal volume is shared by multiple replication sets.
-     * 
-     * @param protectionSetVolumes volumes from a protection set
-     * @param journalVolume journal volume
-     * @return true if journal is shared between more than one volume in a protection set
-     */
-    public boolean isJournalShared(List<URI> protectionSetVolumes, URI journalVolume) {
-        if (getJournalRsetCount(protectionSetVolumes, journalVolume) > 1) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Determines if a journal volume is active in a list of volumes.
-     * 
-     * @param protectionSetVolumes volumes from a protection set
-     * @param journalVolume journal volume
-     * @return true if journal is active with any active volume in a protection set
-     */
-    public boolean isJournalActive(List<URI> protectionSetVolumes, URI journalVolume) {
-        if (getJournalRsetCount(protectionSetVolumes, journalVolume) > 0) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * Given an RP source volume and a protection virtual array, give me the corresponding target volume.
-     * 
+     *
      * @param id source volume id
      * @param virtualArray virtual array protected to
      * @return Volume of the target
@@ -641,7 +638,7 @@ public class RPHelper {
 
     /**
      * Given a RP target volume, this method gets the corresponding source volume.
-     * 
+     *
      * @param dbClient the database client.
      * @param id target volume id.
      */
@@ -666,48 +663,10 @@ public class RPHelper {
     }
 
     /**
-     * Given a RP journal volume, this method gets the corresponding parent volume. The
-     * parent will either be a source or target volume.
-     * 
-     * @param dbClient the database client.
-     * @param id target volume id.
-     */
-    public static Volume getRPJournalParentVolume(DbClient dbClient, Volume journalVolume) {
-        // Source or target parent volume.
-        Volume parentVolume = null;
-
-        if (journalVolume == null) {
-            return parentVolume;
-        }
-
-        List<Volume> parentVolumes = CustomQueryUtility
-                .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                        getRpJournalVolumeParent(journalVolume.getId()));
-
-        // If we haven't found a primary journal volume parent then this volume might be
-        // a secondary journal volume. So try to find a secondary journal volume parent.
-        if (parentVolumes == null || parentVolumes.isEmpty()) {
-            parentVolumes = CustomQueryUtility
-                    .queryActiveResourcesByConstraint(dbClient, Volume.class,
-                            getSecondaryRpJournalVolumeParent(journalVolume.getId()));
-        }
-
-        if (parentVolumes != null && !parentVolumes.isEmpty()) {
-            // A RP journal volume will only be associated to 1 source or target volume so return
-            // the first entry.
-            parentVolume = parentVolumes.get(0);
-        }
-
-        return parentVolume;
-    }
-
-    /**
      * Gets the associated source volume given any type of RP volume. If a source volume
-     * is given, that volume is returned. For a source journal volume, the associated source
-     * volume is found and returned. For a target journal volume, the associated target
-     * volume is found and then its source volume is found and returned. For a target volume,
-     * the associated source volume is found and returned.
-     * 
+     * is given, that volume is returned. For a target journal volume, the associated target
+     * volume is found and then its source volume is found and returned.
+     *
      * @param dbClient the database client.
      * @param volume the volume for which we find the associated source volume.
      * @return the associated source volume.
@@ -727,16 +686,8 @@ public class RPHelper {
                 _log.info("Attempting to find RP source volume corresponding to target volume " + volume.getId());
                 sourceVolume = getRPSourceVolumeFromTarget(dbClient, volume);
             } else if (volume.getPersonality().equals(PersonalityTypes.METADATA.name())) {
-                _log.info("Attempting to find RP source volume corresponding to journal volume" + volume.getId());
-                Volume journalParent = getRPJournalParentVolume(dbClient, volume);
-                // The journal's parent might be a target volume. In this case we want
-                // to get the associated source.
-                if (journalParent.getPersonality().equals(PersonalityTypes.TARGET.name())) {
-                    sourceVolume = getRPSourceVolumeFromTarget(dbClient, journalParent);
-                } else {
-                    // The journal's parent is in fact the source volume.
-                    sourceVolume = journalParent;
-                }
+                _log.info("Journal volume found, there is no associated RP source so just return null.");
+                return sourceVolume;
             } else {
                 _log.warn("Attempting to find RP source volume corresponding to an unknown RP volume type, for volume " + volume.getId());
             }
@@ -754,9 +705,9 @@ public class RPHelper {
     /**
      * Convenience method that determines if the passed network is connected to the
      * passed varray.
-     * 
+     *
      * Check the assigned varrays list if it exist, if not check against the connect varrays.
-     * 
+     *
      * @param network
      * @param virtualArray
      * @return
@@ -771,7 +722,7 @@ public class RPHelper {
 
     /**
      * Check if initiator being added to export-group is good.
-     * 
+     *
      * @param exportGroup
      * @param initiator
      * @throws InternalException
@@ -803,7 +754,7 @@ public class RPHelper {
      * Check if any of the networks containing the RP site initiators contains storage
      * ports that are explicitly assigned or implicitly connected to the passed virtual
      * array.
-     * 
+     *
      * @param storageSystemURI The storage system who's connected networks we want to find.
      * @param protectionSystemURI The protection system used to find the site initiators.
      * @param siteId The side id for which we need to lookup associated initiators.
@@ -820,10 +771,8 @@ public class RPHelper {
         Set<URI> arrayTargetNetworks = new HashSet<URI>();
         arrayTargetNetworks.addAll(arrayTargetMap.keySet());
 
-        ProtectionSystem protectionSystem =
-                _dbClient.queryObject(ProtectionSystem.class, protectionSystemURI);
-        StringSet siteInitiators =
-                protectionSystem.getSiteInitiators().get(siteId);
+        ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, protectionSystemURI);
+        StringSet siteInitiators = protectionSystem.getSiteInitiators().get(siteId);
 
         // Build a List of RP site initiator networks
         Set<URI> rpSiteInitiatorNetworks = new HashSet<URI>();
@@ -875,7 +824,7 @@ public class RPHelper {
     /**
      * Determines if the given storage system has any active RecoverPoint protected
      * volumes under management.
-     * 
+     *
      * @param id the storage system id
      * @return true if the storage system has active RP volumes under management. false otherwise.
      */
@@ -899,7 +848,7 @@ public class RPHelper {
     /**
      * Helper method that determines what the potential provisioned capacity is of a VMAX volume.
      * The size returned may or may not be what the eventual provisioned capacity will turn out to be, but its pretty accurate estimate.
-     * 
+     *
      * @param requestedSize Size of the volume requested
      * @param volume volume
      * @param storageSystem storagesystem of the volume
@@ -916,8 +865,8 @@ public class RPHelper {
                 _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool()).getFastExpansion());
 
         if (metaRecommendation.isCreateMetaVolumes()) {
-            long metaMemberCount = volume.getIsComposite() ? metaRecommendation.getMetaMemberCount() + volume.getMetaMemberCount() :
-                    metaRecommendation.getMetaMemberCount() + 1;
+            long metaMemberCount = volume.getIsComposite() ? metaRecommendation.getMetaMemberCount() + volume.getMetaMemberCount()
+                    : metaRecommendation.getMetaMemberCount() + 1;
             vmaxPotentialProvisionedCapacity = metaMemberCount * metaRecommendation.getMetaMemberSize();
         } else {
             vmaxPotentialProvisionedCapacity = requestedSize;
@@ -927,7 +876,7 @@ public class RPHelper {
 
     /**
      * Get the FAPI RecoverPoint Client using the ProtectionSystem
-     * 
+     *
      * @param ps ProtectionSystem object
      * @return RecoverPointClient object
      * @throws RecoverPointException
@@ -960,7 +909,7 @@ public class RPHelper {
 
     /**
      * Determines if the given volume descriptor applies to an RP source volume.
-     * 
+     *
      * @param volumeDescriptor the volume descriptor.
      * @return true if the descriptor applies to an RP source volume, false otherwise.
      */
@@ -978,7 +927,7 @@ public class RPHelper {
 
     /**
      * Determines if the given volume descriptor applies to an RP target volume.
-     * 
+     *
      * @param volumeDescriptor the volume descriptor.
      * @return true if the descriptor applies to an RP target volume, false otherwise.
      */
@@ -993,15 +942,18 @@ public class RPHelper {
 
     /**
      * Determines if a volume is part of a MetroPoint configuration.
-     * 
+     *
+     * @param dbClient DbClient reference
      * @param volume the volume.
      * @return true if this is a MetroPoint volume, false otherwise.
      */
-    public boolean isMetroPointVolume(Volume volume) {
-        VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-        if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
-            _log.info("vpool specifies Metropoint RPCG requested");
-            return true;
+    public static boolean isMetroPointVolume(DbClient dbClient, Volume volume) {
+        if (volume != null) {
+            VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+            if (vpool != null && VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
+                _log.info(String.format("Volume's vpool [%s](%s) specifies Metropoint", vpool.getLabel(), vpool.getId()));
+                return true;
+            }
         }
         return false;
     }
@@ -1009,7 +961,7 @@ public class RPHelper {
     /**
      * Checks to see if the volume is a production journal. We check to see if the
      * volume's rp copy name lines up with any of the given production copies.
-     * 
+     *
      * @param productionCopies the production copies.
      * @param volume the volume.
      * @return true if the volume is a production journal, false otherwise.
@@ -1024,202 +976,13 @@ public class RPHelper {
     }
 
     /**
-     * Returns an existing journal volume to be used as journal for a new source volume.
-     * In 2.2, the largest sized journal volume already allocated to the CG will be returned.
-     * 
-     * @param cgSourceVolumes
-     * @param isMetropointStandby true only in the case when picking journals for MetroPoint stand-by copy
-     * @return
-     */
-    public Volume selectExistingJournalForSourceVolume(List<Volume> cgSourceVolumes, boolean isMetropointStandby) {
-        Volume existingCGJournalVolume = null;
-        Map<Long, List<URI>> cgJournalsBySize = new TreeMap<Long, List<URI>>(Collections.reverseOrder());
-        Volume journal = null;
-
-        for (Volume cgSourceVolume : cgSourceVolumes) {
-            if (isMetropointStandby) {
-                if (!NullColumnValueGetter.isNullURI(cgSourceVolume.getSecondaryRpJournalVolume())) {
-                    journal = _dbClient.queryObject(Volume.class, cgSourceVolume.getSecondaryRpJournalVolume());
-                }
-            } else {
-                if (!NullColumnValueGetter.isNullURI(cgSourceVolume.getRpJournalVolume())) {
-                    journal = _dbClient.queryObject(Volume.class, cgSourceVolume.getRpJournalVolume());
-                }
-            }
-
-            if (journal != null) {
-                if (!cgJournalsBySize.containsKey(journal.getProvisionedCapacity())) {
-                    cgJournalsBySize.put(journal.getProvisionedCapacity(), new ArrayList<URI>());
-                }
-                cgJournalsBySize.get(journal.getProvisionedCapacity()).add(journal.getId());
-            }
-        }
-
-        // Fetch the first journal in the list with the largest capacity.
-        for (Long journalSize : cgJournalsBySize.keySet()) {
-            existingCGJournalVolume = _dbClient.queryObject(Volume.class, cgJournalsBySize.get(journalSize).get(0));
-            break;
-        }
-
-        // We should never hit this case, but just in case we do, just return the journal volume of the first source volume in the list.
-        if (null == existingCGJournalVolume) {
-            URI existingJournalVolumeURI = isMetropointStandby ? cgSourceVolumes.get(0).getSecondaryRpJournalVolume() : cgSourceVolumes
-                    .get(0).getRpJournalVolume();
-            existingCGJournalVolume = _dbClient.queryObject(Volume.class, existingJournalVolumeURI);
-        }
-
-        return existingCGJournalVolume;
-    }
-
-    /**
-     * Returns an existing journal volume to be used as journal for a new target volume.
-     * In 2.2, the largest sized journal volume already allocated to the CG will be returned.
-     * 
-     * @param cgTargetVolumes Volumes in the consistency group
-     * @param varray protection varray
-     * @param copyInternalSiteName RP internal site of the volume
-     * @return existing Journal volume to be used/shared by volumes
-     */
-    public Volume selectExistingJournalForTargetVolume(List<Volume> cgTargetVolumes, URI varray, String copyInternalSiteName) {
-        Volume existingCGTargetJournalVolume = null;
-        List<Volume> validExistingTargetJournalVolumes = new ArrayList<Volume>();
-        Map<Long, List<Volume>> cgTargetJournalsBySize = new TreeMap<Long, List<Volume>>(Collections.reverseOrder());
-
-        for (Volume cgTargetVolume : cgTargetVolumes) {
-            // Make sure we only consider existing CG target volumes from the same virtual array
-            if (cgTargetVolume.getVirtualArray().equals(varray)
-                    && cgTargetVolume.getInternalSiteName().equalsIgnoreCase(copyInternalSiteName)) {
-                if (null != cgTargetVolume.getRpJournalVolume()) {
-                    Volume targetJournal = _dbClient.queryObject(Volume.class, cgTargetVolume.getRpJournalVolume());
-                    if (!cgTargetJournalsBySize.containsKey(targetJournal.getProvisionedCapacity())) {
-                        cgTargetJournalsBySize.put(targetJournal.getProvisionedCapacity(), new ArrayList<Volume>());
-                    }
-                    cgTargetJournalsBySize.get(targetJournal.getProvisionedCapacity()).add(targetJournal);
-                    validExistingTargetJournalVolumes.add(targetJournal);
-                }
-            }
-        }
-
-        // fetch the first journal in the list with the largest capacity.
-        for (Long targetJournalSize : cgTargetJournalsBySize.keySet()) {
-            existingCGTargetJournalVolume = cgTargetJournalsBySize.get(targetJournalSize).get(0);
-            break;
-        }
-        // we should never hit this case, but just in case we do, just return the journal volume of the first source volume in the list.
-        if (null == existingCGTargetJournalVolume) {
-            existingCGTargetJournalVolume = validExistingTargetJournalVolumes.get(0);
-        }
-        return existingCGTargetJournalVolume;
-    }
-
-    /**
-     * Return a list of journal volumes corresponding to the list of volumes to be deleted, that can be deleted.
-     * The logic for this is simple - if a journal volume in protection set is part of only those volumes that
-     * are in the delete request, then that journal can be delete. If there are other protection set volumes
-     * not part of the deleted that reference this journal then this journal will not be removed.
-     * 
-     * @param protectionSet - protection set of the volumes that are deleted
-     * @param rsetSrcVolumesToDelete - given the list of volumes to delete, determine journals corresponding to those that can be deleted.
-     * @return List<URI> of primary or secondary (if valid) journals that can be deleted
-     * @throws URISyntaxException
-     */
-    public Set<URI> determineJournalsToRemove(ProtectionSet protectionSet, List<URI> rsetSrcVolumesToDelete) {
-        StringSet protectionSetVolumes = protectionSet.getVolumes();
-        Map<URI, HashSet<URI>> psJournalVolumeMap = new HashMap<URI, HashSet<URI>>();
-        Map<URI, HashSet<URI>> volumeDeleteJournalVolumeMap = new HashMap<URI, HashSet<URI>>();
-        Set<URI> journalsToDelete = new HashSet<URI>();
-
-        // Build a map of journal volumes to protection set volumes that reference that journal volume.
-        for (String psVolumeID : protectionSetVolumes) {
-            Volume psVolume = _dbClient.queryObject(Volume.class, URI.create(psVolumeID));
-            if (psVolume == null) {
-                continue;
-            }
-            if (psVolume.getRpJournalVolume() != null) {
-                if (psJournalVolumeMap.get(psVolume.getRpJournalVolume()) == null) {
-                    psJournalVolumeMap.put(psVolume.getRpJournalVolume(), new HashSet<URI>());
-                }
-                psJournalVolumeMap.get(psVolume.getRpJournalVolume()).add(psVolume.getId());
-            }
-
-            if (psVolume.getSecondaryRpJournalVolume() != null) {
-                if (psJournalVolumeMap.get(psVolume.getSecondaryRpJournalVolume()) == null) {
-                    psJournalVolumeMap.put(psVolume.getSecondaryRpJournalVolume(), new HashSet<URI>());
-                }
-                psJournalVolumeMap.get(psVolume.getSecondaryRpJournalVolume()).add(psVolume.getId());
-            }
-        }
-
-        // Given the source volumes, find the targets based on the rset name.
-        // The source and target of a rset share the same rset name in a protection set.
-        Set<URI> rsetVolumesToDelete = new HashSet<URI>();
-        for (String psVolumeID : protectionSetVolumes) {
-            Volume psVolume = _dbClient.queryObject(Volume.class, URI.create(psVolumeID));
-            for (URI volume : rsetSrcVolumesToDelete) {
-                Volume rsetVolume = _dbClient.queryObject(Volume.class, URI.create(volume.toString()));
-                if (rsetVolume != null &&
-                        rsetVolume.getRSetName() != null &&
-                        psVolume != null &&
-                        psVolume.getRSetName() != null &&
-                        !psVolume.getPersonality().equalsIgnoreCase(Volume.PersonalityTypes.METADATA.toString()) &&
-                        rsetVolume.getRSetName().equalsIgnoreCase(psVolume.getRSetName())) {
-                    rsetVolumesToDelete.add(URI.create(psVolumeID));
-                }
-            }
-        }
-
-        // Build another map of all the journals that are referenced by the volumes in the delete request.
-        // This map includes journals on the target side as well
-        for (URI rsetVolumeToDelete : rsetVolumesToDelete) {
-            Volume volume = _dbClient.queryObject(Volume.class, rsetVolumeToDelete);
-            if (volume.getRpJournalVolume() != null) {
-                if (volumeDeleteJournalVolumeMap.get(volume.getRpJournalVolume()) == null) {
-                    volumeDeleteJournalVolumeMap.put(volume.getRpJournalVolume(), new HashSet<URI>());
-                }
-                volumeDeleteJournalVolumeMap.get(volume.getRpJournalVolume()).add(volume.getId());
-            }
-
-            if (volume.getSecondaryRpJournalVolume() != null) {
-                if (volumeDeleteJournalVolumeMap.get(volume.getSecondaryRpJournalVolume()) == null) {
-                    volumeDeleteJournalVolumeMap.put(volume.getSecondaryRpJournalVolume(), new HashSet<URI>());
-                }
-                volumeDeleteJournalVolumeMap.get(volume.getSecondaryRpJournalVolume()).add(volume.getId());
-            }
-        }
-
-        _log.info("ProtectionSet journalMap");
-        for (URI psJournalEntry : psJournalVolumeMap.keySet()) {
-            _log.info(String.format("%s : %s", psJournalEntry.toString(), Joiner.on(",").join(psJournalVolumeMap.get(psJournalEntry))));
-        }
-
-        _log.info("Volume delete journalMap");
-        for (URI journalVolumeEntry : volumeDeleteJournalVolumeMap.keySet()) {
-            _log.info(String.format("%s : %s", journalVolumeEntry.toString(),
-                    Joiner.on(",").join(volumeDeleteJournalVolumeMap.get(journalVolumeEntry))));
-        }
-
-        // Journals that are safe to remove are those journals in the volumes to delete list that are not
-        // referenced by volumes in the protection set volumes.
-        for (URI journalUri : volumeDeleteJournalVolumeMap.keySet()) {
-            int journalReferenceCount = volumeDeleteJournalVolumeMap.get(journalUri).size();
-            int psJournalReferenceCount = psJournalVolumeMap.get(journalUri).size();
-
-            if (journalReferenceCount == psJournalReferenceCount) {
-                _log.info("Deleting journal volume : " + journalUri.toString());
-                journalsToDelete.add(journalUri);
-            }
-        }
-        return journalsToDelete;
-    }
-
-    /**
      * Gets a list of RecoverPoint consistency group volumes.
-     * 
+     *
      * @param blockConsistencyGroupUri The CG to check
      * @param dbClient The dbClient instance
      * @return List of volumes in the CG
      */
-    public static List<Volume> getCgVolumes(URI blockConsistencyGroupUri, DbClient dbClient) {
+    public static List<Volume> getAllCgVolumes(URI blockConsistencyGroupUri, DbClient dbClient) {
         final List<Volume> cgVolumes = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Volume.class,
                         getVolumesByConsistencyGroup(blockConsistencyGroupUri));
@@ -1230,14 +993,14 @@ public class RPHelper {
     /**
      * Gets all the source volumes that belong in the specified RecoverPoint
      * consistency group.
-     * 
+     *
      * @param blockConsistencyGroupUri The CG to check
      * @param dbClient The dbClient instance
      * @return All Source volumes in the CG
      */
     public static List<Volume> getCgSourceVolumes(URI blockConsistencyGroupUri, DbClient dbClient) {
         List<Volume> cgSourceVolumes = new ArrayList<Volume>();
-        List<Volume> cgVolumes = getCgVolumes(blockConsistencyGroupUri, dbClient);
+        List<Volume> cgVolumes = getAllCgVolumes(blockConsistencyGroupUri, dbClient);
 
         // Filter only source volumes
         if (cgVolumes != null) {
@@ -1253,16 +1016,65 @@ public class RPHelper {
     }
 
     /**
-     * Gets all the volumes of the specified personality type in RecoverPoint
-     * consistency group.
-     * 
-     * @param blockConsistencyGroupUri The CG to check
-     * @param personality The personality of the volumes to filter with
+     * filters the list of volumes by source or target site; site is defined by a varray
+     *
+     * @param varrayId
+     * @param vpoolId
+     * @param volumes
+     * @return
+     */
+    public static List<Volume> getVolumesForSite(URI varrayId, URI vpoolId, Collection<Volume> volumes) {
+
+        List<Volume> volumesForSite = new ArrayList<Volume>();
+
+        String personality = null;
+        for (Volume volume : volumes) {
+            if (varrayId != null) {
+                if (vpoolId != null) {
+                    // for CDP volumes we need both varray and vpool to identify source or target
+                    if (volume.getVirtualArray().equals(varrayId) && volume.getVirtualPool().equals(vpoolId)) {
+                        volumesForSite.add(volume);
+                        personality = volume.getPersonality();
+                    }
+                } else if (volume.getVirtualArray().equals(varrayId)) {
+                    // check the first volume and include all source volumes
+                    volumesForSite.add(volume);
+                    personality = volume.getPersonality();
+                }
+            } else if (NullColumnValueGetter.isNotNullValue(volume.getPersonality())
+                    && volume.getPersonality().equals(Volume.PersonalityTypes.SOURCE.name())) {
+                volumesForSite.add(volume);
+                personality = volume.getPersonality();
+            }
+        }
+
+        // if the personality is source, include all source volumes including those not matching the passed in varray
+        if (Volume.PersonalityTypes.SOURCE.toString().equals(personality)) {
+            for (Volume volume : volumes) {
+                if (Volume.PersonalityTypes.SOURCE.toString().equals(volume.getPersonality())
+                        && !volume.getVirtualArray().equals(varrayId)) {
+                    volumesForSite.add(volume);
+                }
+            }
+        }
+
+        return volumesForSite;
+    }
+
+    /**
+     * Gets all the volumes of the specified personality type in RecoverPoint consistency group.
+     *
+     * @param dbClient
+     *            The dbClient instance
+     * @param blockConsistencyGroupUri
+     *            The CG to check
+     * @param personality
+     *            The personality of the volumes to filter with
      * @return All Source volumes in the CG
      */
-    public List<Volume> getCgVolumes(URI blockConsistencyGroupUri, String personality) {
+    public static List<Volume> getCgVolumes(DbClient dbClient, URI blockConsistencyGroupUri, String personality) {
         List<Volume> cgPersonalityVolumes = new ArrayList<Volume>();
-        List<Volume> cgVolumes = getCgVolumes(blockConsistencyGroupUri, _dbClient);
+        List<Volume> cgVolumes = getAllCgVolumes(blockConsistencyGroupUri, dbClient);
 
         // Filter volumes based on personality
         if (cgVolumes != null) {
@@ -1278,75 +1090,95 @@ public class RPHelper {
     }
 
     /**
-     * 
-     * Helper method that computes if journal volumes are required to be provisioned and added to the RP CG.
-     * 
-     * @param journalPolicy
-     * @param cg
-     * @param size
-     * @param volumeCount
-     * @param personality
-     * @param copyInternalSiteName
-     * @param metropointSecondary
-     * @return
+     * Queries the CG to find all the Journals for a specific RP Copy, returns the matching journals
+     * sorted from largest to smallest.
+     *
+     * @param dbClient DbClient reference
+     * @param cgURI URI of the CG to query
+     * @param internalSiteNameOrCopyName Either a valid RP internal site name or the RP copy name.
+     * @return Existing matching journals for the copy or internal site sorted from largest to smallest
      */
-    public boolean isAdditionalJournalRequiredForCG(String journalPolicy, BlockConsistencyGroup cg, String size, Integer volumeCount,
-            String personality,
-            String copyInternalSiteName) {
+    public static List<Volume> findExistingJournalsForCopy(DbClient dbClient, URI cgURI, String internalSiteNameOrCopyName) {
+        // Return as a list for easy consumption
+        List<Volume> matchingJournals = new ArrayList<Volume>();
+
+        // Ensure we have been passed valid arguments
+        if (dbClient == null || cgURI == null || internalSiteNameOrCopyName == null) {
+            return matchingJournals;
+        }
+
+        // Keep the matching journals sorted from largest to smallest
+        Map<Long, Volume> matchingJournalsSortedBySize = new TreeMap<Long, Volume>(Collections.reverseOrder());
+
+        // Get all journals for this CG
+        List<Volume> cgJournalVolumes = getCgVolumes(dbClient, cgURI, Volume.PersonalityTypes.METADATA.name());
+
+        // Filter journals based on internal site name or copy name matching the passed in value.
+        if (cgJournalVolumes != null && !cgJournalVolumes.isEmpty()) {
+            for (Volume cgJournalVolume : cgJournalVolumes) {
+                boolean internalSiteNamesMatch = (NullColumnValueGetter.isNotNullValue(cgJournalVolume.getInternalSiteName())
+                        && cgJournalVolume.getInternalSiteName().equals(internalSiteNameOrCopyName));
+                boolean copyNamesMatch = (NullColumnValueGetter.isNotNullValue(cgJournalVolume.getRpCopyName())
+                        && cgJournalVolume.getRpCopyName().equals(internalSiteNameOrCopyName));
+                if (internalSiteNamesMatch || copyNamesMatch) {
+                    matchingJournalsSortedBySize.put(cgJournalVolume.getProvisionedCapacity(), cgJournalVolume);
+                }
+            }
+        }
+
+        if (!matchingJournalsSortedBySize.isEmpty()) {
+            matchingJournals.addAll(matchingJournalsSortedBySize.values());
+        }
+
+        return matchingJournals;
+    }
+
+    /**
+     * Determines if an additional journal is required for this RP Copy.
+     *
+     * @param journalPolicy The current journal policy
+     * @param cg The ViPR CG
+     * @param size The size requested
+     * @param volumeCount Number of volumes in the request
+     * @param copyName The RP copy name
+     * @return true if an additional journal is required, false otherwise.
+     */
+    public boolean isAdditionalJournalRequiredForRPCopy(String journalPolicy, BlockConsistencyGroup cg, 
+    						String size, Integer volumeCount,String copyName) {
         boolean additionalJournalRequired = false;
 
         if (journalPolicy != null && (journalPolicy.endsWith("x") || journalPolicy.endsWith("X"))) {
-            List<Volume> cgVolumes = getCgVolumes(cg.getId(), personality);
-            Set<URI> journalVolumeURIs = new HashSet<URI>();
+            List<Volume> cgVolumes = RPHelper.getAllCgVolumes(cg.getId(), _dbClient);
+            List<Volume> journalVolumes = RPHelper.findExistingJournalsForCopy(_dbClient, cg.getId(), copyName);
+
+            // Find all the journals for this site and calculate their cumulative size in bytes
             Long cgJournalSize = 0L;
             Long cgJournalSizeInBytes = 0L;
-
-            // Get all the volumes of the specified personality (source/target)
-            // Since multiple RP source/target volume might reference the same journal
-            // we need to get a unique list of the journal volumes and use that to calculate sizes.
-            for (Volume cgVolume : cgVolumes) {
-                if (personality.equalsIgnoreCase(Volume.PersonalityTypes.SOURCE.toString())) {
-                    if (!NullColumnValueGetter.isNullURI(cgVolume.getRpJournalVolume())) {
-                        journalVolumeURIs.add(cgVolume.getRpJournalVolume());
-                    }
-                } else {
-                    if (copyInternalSiteName.equalsIgnoreCase(cgVolume.getInternalSiteName())) {
-                        if (!NullColumnValueGetter.isNullURI(cgVolume.getRpJournalVolume())) {
-                            journalVolumeURIs.add(cgVolume.getRpJournalVolume());
-                        }
-                    }
-                }
-            }
-
-            for (URI journalVolumeURI : journalVolumeURIs) {
-                Volume journalVolume = _dbClient.queryObject(Volume.class, journalVolumeURI);
+            for (Volume journalVolume : journalVolumes) {
                 cgJournalSize += journalVolume.getProvisionedCapacity();
             }
-
             cgJournalSizeInBytes = SizeUtil.translateSize(String.valueOf(cgJournalSize));
-            _log.info(String.format("Existing total metadata size for the CG : %s GB ",
+            _log.info(String.format("Cumulative total journal/metadata size for RP Copy [%s] : %s GB ",
+                    copyName,
                     SizeUtil.translateSize(cgJournalSizeInBytes, SizeUtil.SIZE_GB)));
 
+            // Find all the volumes for this site (excluding journals) and calculate their cumulative size in bytes
             Long cgVolumeSize = 0L;
             Long cgVolumeSizeInBytes = 0L;
             for (Volume cgVolume : cgVolumes) {
-                if (personality.equalsIgnoreCase(Volume.PersonalityTypes.TARGET.toString())) {
-                    if (copyInternalSiteName.equalsIgnoreCase(cgVolume.getInternalSiteName())) {
-                        cgVolumeSize += cgVolume.getProvisionedCapacity();
-                    }
-                } else {
+                if (!cgVolume.checkPersonality(Volume.PersonalityTypes.METADATA.name())
+                        && copyName.equalsIgnoreCase(cgVolume.getRpCopyName()) && !cgVolume.checkInternalFlags(Flag.INTERNAL_OBJECT)) {
                     cgVolumeSize += cgVolume.getProvisionedCapacity();
                 }
-
             }
-
             cgVolumeSizeInBytes = SizeUtil.translateSize(String.valueOf(cgVolumeSize));
-            _log.info(String.format("Cumulative %s copies size : %s GB", personality,
+            _log.info(String.format("Cumulative RP Copy [%s] size : %s GB", copyName,
                     SizeUtil.translateSize(cgVolumeSizeInBytes, SizeUtil.SIZE_GB)));
 
             Long newCgVolumeSizeInBytes = cgVolumeSizeInBytes + (Long.valueOf(SizeUtil.translateSize(size)) * volumeCount);
-            _log.info(String.format("New cumulative %s copies size after the operation would be : %s GB", personality,
+            _log.info(String.format("New cumulative RP Copy [%s] size after the operation would be : %s GB", copyName,
                     SizeUtil.translateSize(newCgVolumeSizeInBytes, SizeUtil.SIZE_GB)));
+
             Float multiplier = Float.valueOf(journalPolicy.substring(0, journalPolicy.length() - 1)).floatValue();
             _log.info(String.format("Based on VirtualPool's journal policy, journal capacity required is : %s",
                     (SizeUtil.translateSize(newCgVolumeSizeInBytes, SizeUtil.SIZE_GB) * multiplier)));
@@ -1359,7 +1191,7 @@ public class RPHelper {
         }
 
         StringBuilder msg = new StringBuilder();
-        msg.append(personality + "-Journal" + " : ");
+        msg.append(String.format("RP Copy [%s]: ", copyName));
 
         if (additionalJournalRequired) {
             msg.append("Additional journal required");
@@ -1374,11 +1206,11 @@ public class RPHelper {
     /*
      * Since there are several ways to express journal size policy, this helper method will take
      * the source size and apply the policy string to come up with a resulting size.
-     * 
+     *
      * @param sourceSizeStr size of the source volume
-     * 
+     *
      * @param journalSizePolicy the policy of the journal size. ("10gb", "min", or "3.5x" formats)
-     * 
+     *
      * @return journal volume size result
      */
     public static long getJournalSizeGivenPolicy(String sourceSizeStr, String journalSizePolicy, int resourceCount) {
@@ -1416,7 +1248,8 @@ public class RPHelper {
         // Third check: If the policy is a multiplier, perform the math, respecting the minimum value
         if (journalSizePolicy.endsWith("x") || journalSizePolicy.endsWith("X")) {
             float multiplier = Float.valueOf(journalSizePolicy.substring(0, journalSizePolicy.length() - 1)).floatValue();
-            long journalSize = ((long) (totalSourceSizeInBytes.longValue() * multiplier) < DEFAULT_RP_JOURNAL_SIZE_IN_BYTES) ? DEFAULT_RP_JOURNAL_SIZE_IN_BYTES
+            long journalSize = ((long) (totalSourceSizeInBytes.longValue() * multiplier) < DEFAULT_RP_JOURNAL_SIZE_IN_BYTES)
+                    ? DEFAULT_RP_JOURNAL_SIZE_IN_BYTES
                     : (long) (totalSourceSizeInBytes.longValue() * multiplier);
             return journalSize;
         }
@@ -1430,7 +1263,7 @@ public class RPHelper {
     /**
      * Determines if a Volume is being referenced as an associated volume by an RP+VPlex
      * volume of a specified personality type (SOURCE, TARGET, METADATA, etc.).
-     * 
+     *
      * @param volume the volume we are trying to find a parent RP+VPlex volume reference for.
      * @param dbClient the DB client.
      * @param types the personality types.
@@ -1457,9 +1290,22 @@ public class RPHelper {
     }
 
     /**
+     * Determines if a Volume is being referenced as an associated volume by an RP+VPlex
+     * volume of any personality type (SOURCE, TARGET, METADATA).
+     *
+     * @param volume the volume we are trying to find a parent RP+VPlex volume reference for.
+     * @param dbClient the DB client.
+     * @param types the personality types.
+     * @return true if this volume is associated to an RP+VPlex journal, false otherwise.
+     */
+    public static boolean isAssociatedToAnyRpVplexTypes(Volume volume, DbClient dbClient) {
+        return isAssociatedToRpVplexType(volume, dbClient, PersonalityTypes.SOURCE, PersonalityTypes.TARGET, PersonalityTypes.METADATA);
+    }
+
+    /**
      * returns the list of copies residing on the standby varray given the active production volume in a
      * Metropoint environment
-     * 
+     *
      * @param volume the active production volume
      * @return
      */
@@ -1506,7 +1352,7 @@ public class RPHelper {
 
     /**
      * Check to see if the target volume (based on varray) has already been provisioned
-     * 
+     *
      * @param volume Source volume to check
      * @param varrayToCheckURI URI of the varray we're looking for Targets
      * @param dbClient DBClient
@@ -1534,7 +1380,7 @@ public class RPHelper {
 
     /**
      * Helper method to retrieve all related volumes from a Source Volume
-     * 
+     *
      * @param sourceVolumeURI The source volume URI
      * @param dbClient DBClient
      * @param includeBackendVolumes Flag to optionally have backend volumes included (VPLEX)
@@ -1554,13 +1400,17 @@ public class RPHelper {
                 allRelatedVolumes.add(sourceVolume);
 
                 if (includeJournalVolumes) {
-                    Volume primaryJournalVolume = dbClient.queryObject(Volume.class, sourceVolume.getRpJournalVolume());
-                    allRelatedVolumes.add(primaryJournalVolume);
+                    List<Volume> sourceJournals = RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(),
+                            sourceVolume.getRpCopyName());
 
-                    if (!NullColumnValueGetter.isNullURI(sourceVolume.getSecondaryRpJournalVolume())) {
-                        Volume secondaryJournalVolume = dbClient.queryObject(Volume.class, sourceVolume.getSecondaryRpJournalVolume());
-                        allRelatedVolumes.add(secondaryJournalVolume);
+                    // Check for Stanbdy journals in the case of MetroPoint
+                    String standbyInternalSite = getStandbyInternalSite(dbClient, sourceVolume);
+                    if (standbyInternalSite != null) {
+                        sourceJournals.addAll(RPHelper.findExistingJournalsForCopy(dbClient, sourceVolume.getConsistencyGroup(),
+                                standbyInternalSite));
                     }
+
+                    allRelatedVolumes.addAll(sourceJournals);
                 }
 
                 if (sourceVolume.getRpTargets() != null) {
@@ -1569,8 +1419,9 @@ public class RPHelper {
                         allRelatedVolumes.add(targetVolume);
 
                         if (includeJournalVolumes) {
-                            Volume targetJournalVolume = dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume());
-                            allRelatedVolumes.add(targetJournalVolume);
+                            List<Volume> targetJournals = RPHelper.findExistingJournalsForCopy(dbClient,
+                                    targetVolume.getConsistencyGroup(), targetVolume.getInternalSiteName());
+                            allRelatedVolumes.addAll(targetJournals);
                         }
                     }
                 }
@@ -1597,22 +1448,110 @@ public class RPHelper {
     }
 
     /**
-     * Determines if a volume is part of a MetroPoint configuration.
-     * 
+     * MetroPoint Source volumes are represented as two copies (aka targets) in RecoverPoint.
+     *
+     * The VPLEX Source volume has its internal site set as do both the associated/backing volumes.
+     *
+     * The associated/backing volume that has the same internal site name as its VPLEX Virtual volume
+     * is generally considered the "Active" copy and the other associated/backing volume's internal site name
+     * would be considered the "Standby" copy.
+     *
+     * This method is a convenience to find the "Standby" copy name as it's currently not plainly
+     * found on the VPLEX Virtual Volume.
+     *
+     * @param dbClient DbClient reference
+     * @param sourceVolume The sourceVolume to check, we assume it's a MetroPoint volume
+     * @return The standby internal site name, null otherwise.
+     */
+    public static String getStandbyInternalSite(DbClient dbClient, Volume sourceVolume) {
+        String standbyInternalSite = null;
+        if (sourceVolume != null
+                && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
+            if (isMetroPointVolume(dbClient, sourceVolume)) {
+                // Check the associated volumes to find the non-matching internal site and return that one.
+                for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
+                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                    if (associatedVolume != null && !associatedVolume.getInactive()) {
+                        if (NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
+                                && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())) {
+                            // If the internal site names are different, this is the standby internal site
+                            standbyInternalSite = associatedVolume.getInternalSiteName();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return standbyInternalSite;
+    }
+
+    /**
+     * MetroPoint Source volumes are represented as two copies (aka targets) in RecoverPoint.
+     *
+     * The VPLEX Source volume has its internal site set as do both the associated/backing volumes.
+     *
+     * The associated/backing volume that has the same internal site name as its VPLEX Virtual volume
+     * is generally considered the "Active" copy and the other associated/backing volume's internal site name
+     * would be considered the "Standby" copy.
+     *
+     * This method is a convenience to find the "Standby" production copy name as it's currently not plainly
+     * found on the VPLEX Virtual Volume.
+     *
+     * @param dbClient DbClient reference
+     * @param sourceVolume The sourceVolume to check, we assume it's a MetroPoint volume
+     * @return The standby internal site name, null otherwise.
+     */
+    public static String getStandbyProductionCopyName(DbClient dbClient, Volume sourceVolume) {
+        String standbyProductionCopyName = null;
+        if (sourceVolume != null
+                && Volume.PersonalityTypes.SOURCE.name().equals(sourceVolume.getPersonality())) {
+            if (isMetroPointVolume(dbClient, sourceVolume)) {
+                // Check the associated volumes to find the non-matching internal site and return that one.
+                for (String associatedVolId : sourceVolume.getAssociatedVolumes()) {
+                    Volume associatedVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolId));
+                    if (associatedVolume != null && !associatedVolume.getInactive()) {
+                        if (NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
+                                && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())) {
+                            // If the internal site names are different, this is the standby internal site
+                            standbyProductionCopyName = associatedVolume.getRpCopyName();
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        return standbyProductionCopyName;
+    }
+
+    /**
+     * Determines if a volume is a VPLEX volume.
+     *
      * @param volume the volume.
-     * @return true if this is a MetroPoint volume, false otherwise.
+     * @return true if this is a VPLEX volume, false otherwise.
      */
     public static boolean isVPlexVolume(Volume volume) {
         return (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty());
     }
 
     /**
+     * Determines if a volume is a VPLEX Distributed (aka Metro) volume.
+     *
+     * @param volume the volume.
+     * @return true if this is a VPLEX Distributed (aka Metro) volume, false otherwise.
+     */
+    public static boolean isVPlexDistributedVolume(Volume volume) {
+        return (isVPlexVolume(volume) && (volume.getAssociatedVolumes().size() > 1));
+    }
+
+    /**
      * Rollback protection specific fields on the existing volume. This is normally invoked if there are
-     * errors during a change vpool operation. We want to return the volume back to it's un-protected state
+     * errors during a change vpool operation. We want to return the volume back to its un-protected state
      * or in the case of upgrade to MP then to remove any MP features from the protected volume.
-     * 
+     *
      * One of the biggest motivations is to ensure that the old vpool is set back on the existing volume.
-     * 
+     *
      * @param volume Volume to remove protection from
      * @param oldVpool The old vpool, this the original vpool of the volume before trying to add protection
      * @param dbClient DBClient object
@@ -1634,26 +1573,21 @@ public class RPHelper {
                 boolean lastSourceVolumeInCG = (cgSourceVolumes != null && cgSourceVolumes.size() == 1
                         && cgSourceVolumes.get(0).getId().equals(volume.getId()));
 
-                // Potentially rollback the journal volume
-                if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) {
-                    if (lastSourceVolumeInCG) {
-                        _log.info(String.format("Rolling back RP Journal (%s)", volume.getRpJournalVolume()));
-                        protectionSetVolumeIdsToRemove.add(volume.getRpJournalVolume().toString());
-                        rollbackVolume(volume.getRpJournalVolume(), dbClient);
-                    }
-                }
-                // Potentially rollback the standby journal volume
-                if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
-                    if (lastSourceVolumeInCG) {
-                        _log.info(String.format("Rolling back RP Journal (%s)", volume.getSecondaryRpJournalVolume()));
-                        protectionSetVolumeIdsToRemove.add(volume.getSecondaryRpJournalVolume().toString());
-                        rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
+                // Potentially rollback all journal volumes from the CG,
+                // the main use case for this is during a brand new CG create
+                // and the order needs to be rolled back so the entire CG would be
+                // blown away. This will quickly clean up the journals so a new
+                // order can be placed immediately.
+                if (lastSourceVolumeInCG) {
+                    List<Volume> journals = getCgVolumes(dbClient, volume.getConsistencyGroup(), Volume.PersonalityTypes.METADATA.name());
+                    for (Volume journal : journals) {
+                        _log.info(String.format("Rolling back RP Journal (%s)", journal.getLabel()));
+                        protectionSetVolumeIdsToRemove.add(journal.getId().toString());
+                        rollbackVolume(journal.getId(), dbClient);
                     }
                 }
 
                 // Null out any RP specific fields on the volume
-                volume.setRpJournalVolume(NullColumnValueGetter.getNullURI());
-                volume.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
                 volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                 volume.setPersonality(NullColumnValueGetter.getNullStr());
                 volume.setProtectionController(NullColumnValueGetter.getNullURI());
@@ -1666,14 +1600,7 @@ public class RPHelper {
                     // Rollback any target volumes that were created
                     for (String rpTargetId : resetRpTargets) {
                         protectionSetVolumeIdsToRemove.add(rpTargetId);
-                        Volume targetVol = rollbackVolume(URI.create(rpTargetId), dbClient);
-                        // Rollback any target journal volumes that were created
-                        if (targetVol != null && !NullColumnValueGetter.isNullURI(targetVol.getRpJournalVolume())) {
-                            if (lastSourceVolumeInCG) {
-                                protectionSetVolumeIdsToRemove.add(targetVol.getRpJournalVolume().toString());
-                                rollbackVolume(targetVol.getRpJournalVolume(), dbClient);
-                            }
-                        }
+                        rollbackVolume(URI.create(rpTargetId), dbClient);
                     }
                     resetRpTargets.clear();
                     volume.setRpTargets(resetRpTargets);
@@ -1704,30 +1631,7 @@ public class RPHelper {
                 volume.setProtectionSet(NullColumnValueGetter.getNullNamedURI());
             } else {
                 _log.info(String.format("Rollback changes for existing protected RP volume [%s]...", volume.getLabel()));
-
-                if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) {
-                    _log.info("Rollback the secondary journal");
-                    // Rollback the secondary journal volume if it was created
-                    rollbackVolume(volume.getSecondaryRpJournalVolume(), dbClient);
-
-                    // Clean up the Protection Set
-                    if (!NullColumnValueGetter.isNullNamedURI(volume.getProtectionSet())) {
-                        ProtectionSet protectionSet = dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet());
-                        if (protectionSet != null) {
-                            // Remove volume ID from the Protection Set
-                            protectionSet.getVolumes().remove(volume.getSecondaryRpJournalVolume().toString());
-                            dbClient.updateObject(protectionSet);
-                        }
-                    }
-
-                    List<Volume> allSourceVolumesInCG = getCgSourceVolumes(volume.getConsistencyGroup(), dbClient);
-                    if (!allSourceVolumesInCG.isEmpty()) {
-                        for (Volume vol : allSourceVolumesInCG) {
-                            // Remove the secondary journal reference
-                            vol.setSecondaryRpJournalVolume(NullColumnValueGetter.getNullURI());
-                        }
-                    }
-                }
+                // No specific rollback steps for existing protected volumes
             }
 
             // If this is a VPLEX volume, update the virtual pool references to the old vpool on
@@ -1739,7 +1643,7 @@ public class RPHelper {
                         if (!NullColumnValueGetter.isNullURI(associatedVolume.getVirtualPool())
                                 && associatedVolume.getVirtualPool().equals(volume.getVirtualPool())) {
                             associatedVolume.setVirtualPool(oldVpool.getId());
-                            _log.info(String.format("Backing volume [%s] has had it's virtual pool rolled back to [%s].",
+                            _log.info(String.format("Backing volume [%s] has had its virtual pool rolled back to [%s].",
                                     associatedVolume.getLabel(),
                                     oldVpool.getLabel()));
                         }
@@ -1750,7 +1654,7 @@ public class RPHelper {
             }
 
             // Set the old vpool back on the volume
-            _log.info(String.format("Resetting vpool on volume [%s](%s) from (%s) back to it's original vpool (%s)",
+            _log.info(String.format("Resetting vpool on volume [%s](%s) from (%s) back to its original vpool (%s)",
                     volume.getLabel(), volume.getId(), volume.getVirtualPool(), oldVpool.getId()));
             volume.setVirtualPool(oldVpool.getId());
 
@@ -1764,7 +1668,7 @@ public class RPHelper {
      * Cassandra level rollback of a volume. We set the volume to inactive and rename
      * the volume to indicate that rollback has occured. We do this so as to not
      * prevent subsequent use of the same volume name in the case of rollback/error.
-     * 
+     *
      * @param volumeURI URI of the volume to rollback
      * @param dbClient DBClient Object
      * @return The rolled back volume
@@ -1816,20 +1720,21 @@ public class RPHelper {
 
     /**
      * returns the list of journal volumes for one site
-     * 
+     *
      * If this is a CDP volume, journal volumes from both the production and target copies are returned
-     * 
+     *
      * @param varray
      * @param consistencyGroup
      * @return
      */
     private List<Volume> getJournalVolumesForSite(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
         List<Volume> journalVols = new ArrayList<Volume>();
-        List<Volume> volsInCg = getCgVolumes(consistencyGroup.getId(), _dbClient);
+        List<Volume> volsInCg = getAllCgVolumes(consistencyGroup.getId(), _dbClient);
         if (volsInCg != null) {
             for (Volume volInCg : volsInCg) {
                 if (Volume.PersonalityTypes.METADATA.toString().equals(volInCg.getPersonality())
-                        && !NullColumnValueGetter.isNullURI(volInCg.getVirtualArray()) && volInCg.getVirtualArray().equals(varray.getId())) {
+                        && !NullColumnValueGetter.isNullURI(volInCg.getVirtualArray())
+                        && volInCg.getVirtualArray().equals(varray.getId())) {
                     journalVols.add(volInCg);
                 }
             }
@@ -1840,23 +1745,25 @@ public class RPHelper {
     /**
      * returns a unique journal volume name by evaluating all journal volumes for the copy and increasing the count journal volume name is
      * in the form varrayName-cgname-journal-[count]
-     * 
+     *
      * @param varray
      * @param consistencyGroup
      * @return a journal name unique within the site
      */
     public String createJournalVolumeName(VirtualArray varray, BlockConsistencyGroup consistencyGroup) {
-        String journalPrefix = new StringBuilder(varray.getLabel()).append(VOL_DELIMITER).append(consistencyGroup.getLabel())
+        String journalPrefix = new StringBuilder(consistencyGroup.getLabel()).append(VOL_DELIMITER).append(varray.getLabel())
                 .append(VOL_DELIMITER)
                 .append(JOURNAL).toString();
         List<Volume> existingJournals = getJournalVolumesForSite(varray, consistencyGroup);
 
         // filter out old style journal volumes
         // new style journal volumes are named with the virtual array as the first component
+        // some journals may be ingested and not fit either style. Avoid those too.
         List<Volume> newStyleJournals = new ArrayList<Volume>();
         for (Volume journalVol : existingJournals) {
             String volName = journalVol.getLabel();
-            if (volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
+            if (volName != null && volName.length() >= journalPrefix.length() &&
+                    volName.substring(0, journalPrefix.length()).equals(journalPrefix)) {
                 newStyleJournals.add(journalVol);
             }
         }
@@ -1884,7 +1791,7 @@ public class RPHelper {
     /**
      * Determine the wwn of the volume in the format RP is looking for. For xtremio
      * this is the 128 bit identifier. For other array types it is the deafault.
-     * 
+     *
      * @param volumeURI the URI of the volume the operation is being performed on
      * @param dbClient
      * @return the wwn of the volume which rp requires to perform the operation
@@ -1900,7 +1807,7 @@ public class RPHelper {
 
     /**
      * Determine if the volume being protected is provisioned on an Xtremio Storage array
-     * 
+     *
      * @param volume The volume being provisioned
      * @param dbClient DBClient object
      * @return boolean indicating if the volume being protected is provisioned on an Xtremio Storage array
@@ -1914,17 +1821,57 @@ public class RPHelper {
     }
 
     /**
+     * Returns a set of all RP ports as their related Initiator URIs.
+     *
+     * @param dbClient - database client instance
+     * @return a Set of Initiator URIs
+     */
+    public static Set<URI> getBackendPortInitiators(DbClient dbClient) {
+        _log.info("Finding backend port initiators for all RP systems");
+        Set<URI> initiators = new HashSet<URI>();
+
+        List<URI> rpSystemUris = dbClient.queryByType(ProtectionSystem.class, true);
+        List<ProtectionSystem> rpSystems = dbClient.queryObject(ProtectionSystem.class, rpSystemUris);
+        for (ProtectionSystem rpSystem : rpSystems) {
+            for (Entry<String, AbstractChangeTrackingSet<String>> rpSitePorts : rpSystem.getSiteInitiators().entrySet()) {
+                for (String port : rpSitePorts.getValue()) {
+                    Initiator initiator = ExportUtils.getInitiator(port, dbClient);
+                    if (initiator != null) {
+                        // Review: OK to reduce to debug level
+                        _log.info("Adding initiator " + initiator.getId() + " with port: " + port);
+                        initiators.add(initiator.getId());
+                    }
+                }
+            }
+        }
+        return initiators;
+    }
+
+    /**
      * Does this snapshot require any sort of protection intervention? If it's a local array-based
      * snapshot, probably not. If it's a protection-based snapshot or a remote array-based snapshot
      * that requires protection intervention to ensure consistency between the source and target, then
      * you should go to the protection controller
-     * 
+     *
      * @param volume source volume
      * @param snapshotType The snapshot technology type.
-     * 
+     *
      * @return true if this is a protection based snapshot, false otherwise.
      */
-    public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
+    public static boolean isProtectionBasedSnapshot(Volume volume, String snapshotType, DbClient dbClient) {
+        // if volume is part of CG, and is snapshot type is not RP, then always create native Array snaps
+        String rgName = volume.getReplicationGroupInstance();
+        if (volume.isVPlexVolume(dbClient)) {
+            Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+            if (backendVol != null && !backendVol.getInactive()) {
+                rgName = backendVol.getReplicationGroupInstance();
+            }
+        }
+        if (NullColumnValueGetter.isNotNullValue(rgName) &&
+                !snapshotType.equalsIgnoreCase(BlockSnapshot.TechnologyType.RP.toString())) {
+            return false;
+        }
+
         // This is a protection based snapshot request if:
         // The volume allows for bookmarking (it's under protection) and
         // - The param either asked for a bookmark, or
@@ -1936,4 +1883,117 @@ public class RPHelper {
         }
         return false;
     }
+
+    /**
+     * Fetch the RP Protected target virtual pool uris.
+     *
+     * @param dbClient db client
+     * @return set of vpools that are RP target virtual pools
+     */
+    public static Set<URI> fetchRPTargetVirtualPools(DbClient dbClient) {
+        Set<URI> rpProtectedTargetVPools = new HashSet<URI>();
+        try {
+            List<URI> vpoolProtectionSettingsURIs = dbClient.queryByType(VpoolProtectionVarraySettings.class,
+                    true);
+            Iterator<VpoolProtectionVarraySettings> vPoolProtectionSettingsItr = dbClient
+                    .queryIterativeObjects(VpoolProtectionVarraySettings.class, vpoolProtectionSettingsURIs,
+                            true);
+            while (vPoolProtectionSettingsItr.hasNext()) {
+                VpoolProtectionVarraySettings rSetting = vPoolProtectionSettingsItr.next();
+                if (null != rSetting && !NullColumnValueGetter.isNullURI(rSetting.getVirtualPool())) {
+                    rpProtectedTargetVPools.add(rSetting.getVirtualPool());
+                }
+
+            }
+        } catch (Exception ex) {
+            _log.error("Exception occurred while fetching RP enabled virtualpools", ex);
+        }
+        return rpProtectedTargetVPools;
+    }
+
+    /**
+     * Creates an export group with the proper settings for RP usage
+     *
+     * @param internalSiteName internal site name of export
+     * @param virtualArray virtual array
+     * @param project project
+     * @param protectionSystem protection system
+     * @param storageSystem storage system
+     * @param numPaths number of paths
+     * @return an export group
+     */
+    public static ExportGroup createRPExportGroup(String internalSiteName, VirtualArray virtualArray, Project project,
+            ProtectionSystem protectionSystem,
+            StorageSystem storageSystem, Integer numPaths, boolean isJournalExport) {
+        ExportGroup exportGroup;
+        exportGroup = new ExportGroup();
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.addInternalFlags(Flag.INTERNAL_OBJECT, Flag.SUPPORTS_FORCE, Flag.RECOVERPOINT);
+        exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+        exportGroup.setVirtualArray(virtualArray.getId());
+        exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
+        // This name generation needs to match ingestion code found in RPDeviceController until
+        // we come up with better export group matching criteria.
+        String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
+        String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
+                + "_"
+                + virtualArray.getLabel();
+        // Remove all non alpha-numeric characters, excluding "_".
+        exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
+        exportGroup.setGeneratedName(exportGroupGeneratedName);
+        // When created by CoprHD natively, it's usually the CG name.
+        exportGroup.setLabel(exportGroupGeneratedName);
+        exportGroup.setVolumes(new StringMap());
+        exportGroup.setOpStatus(new OpStatusMap());
+        // TODO: May need to use a default size or compute based on the contents of the export mask.
+        exportGroup.setNumPaths(numPaths);
+        exportGroup.setType(ExportGroupType.Cluster.name());
+        exportGroup.setZoneAllInitiators(true);
+
+        // If this is an exportGroup intended only for journal volumes, set the RECOVERPOINT_JOURNAL flag
+        if (isJournalExport) {
+            exportGroup.addInternalFlags(Flag.RECOVERPOINT_JOURNAL);
+            String egName = exportGroup.getGeneratedName() + "_JOURNAL";
+            exportGroup.setGeneratedName(egName);
+            exportGroup.setLabel(egName);
+        }
+
+        return exportGroup;
+    }
+
+    /**
+     * Get the name of the copy associated with the varray ID and personality of the incoming volume.
+     *
+     * @param dbClient db client
+     * @param consistencyGroup cg
+     * @param varrayId varray ID
+     * @param productionCopy is this a production volume
+     * @return String associated with the existing copy name
+     */
+    public static String getCgCopyName(DbClient dbClient, BlockConsistencyGroup consistencyGroup, URI varrayId, boolean productionCopy) {
+        List<Volume> cgVolumes = RPHelper.getAllCgVolumes(consistencyGroup.getId(), dbClient);
+        if (cgVolumes == null) {
+            return null;
+        }
+
+        for (Volume cgVolume : cgVolumes) {
+            if (cgVolume.getPersonality() == null) {
+                continue;
+            }
+
+            if (!URIUtil.identical(cgVolume.getVirtualArray(), varrayId)) {
+                continue;
+            }
+
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.toString()) && productionCopy) {
+                return cgVolume.getRpCopyName();
+            }
+
+            if (cgVolume.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.toString()) && !productionCopy) {
+                return cgVolume.getRpCopyName();
+            }
+        }
+        return null;
+    }
+
 }

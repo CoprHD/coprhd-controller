@@ -2,6 +2,8 @@ package models.datatable;
 
 import static util.BourneUtil.getViprClient;
 
+import java.net.URI;
+import java.util.Iterator;
 import java.util.Set;
 
 import util.datatable.DataTable;
@@ -9,6 +11,7 @@ import util.datatable.DataTable;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 
 public class VirtualNasServerDataTable extends DataTable {
 
@@ -89,13 +92,36 @@ public class VirtualNasServerDataTable extends DataTable {
         private final String percentLoad;
 
         public VirtualNasServerInfo(VirtualNASRestRep vNasRestRep, boolean isProjectAccessible) {
-            this.id = vNasRestRep.getId().toString();
+
+            StringBuffer projectListWithIds = new StringBuffer();
             this.nasName = vNasRestRep.getNasName();
             this.storageDeviceURI = (vNasRestRep.getStorageDeviceURI() != null) ? vNasRestRep.getStorageDeviceURI().toString() : "";
             if (isProjectAccessible) {
-                if (vNasRestRep.getProject() != null) {
-                    ProjectRestRep projectRestRep = getViprClient().projects().get(vNasRestRep.getProject().getId());
-                    this.project = projectRestRep.getName();
+                Set<String> associatedProjects = vNasRestRep.getAssociatedProjects();
+                if (associatedProjects != null && !associatedProjects.isEmpty()) {
+                    StringBuffer projectList = new StringBuffer();
+
+                    for (Iterator<String> iterator = associatedProjects.iterator(); iterator.hasNext();) {
+                        String projectId = iterator.next();
+                        try {
+                            ProjectRestRep projectRestRep = getViprClient().projects().get(URI.create(projectId));
+                            projectList.append(projectRestRep.getName()).append(", ");
+                            projectListWithIds.append(projectRestRep.getName()).append("+").append(projectRestRep.getId()).append(",");
+                        } catch (ServiceErrorException serviceErrorException) {
+                            /*
+                             * Check if the error is due to insufficient permissions
+                             * Error code: 3000
+                             */
+                            if (serviceErrorException.getCode() == 3000) {
+                                continue;
+                            } else {
+                                throw serviceErrorException;
+                            }
+                        }
+                    }
+                    if ((projectList.length() - 2) >= 0) {
+                        this.project = projectList.substring(0, projectList.length() - 2);
+                    }
                 }
             }
 
@@ -118,6 +144,11 @@ public class VirtualNasServerDataTable extends DataTable {
             this.avgPercentagebusy = vNasRestRep.getAvgPercentagebusy();
             this.percentLoad = vNasRestRep.getPercentLoad();
 
+            if (projectListWithIds.length() > 0) {
+                this.id = vNasRestRep.getId().toString() + "~~~" + projectListWithIds.substring(0, projectListWithIds.length() - 1);
+            } else {
+                this.id = vNasRestRep.getId().toString() + "~~~";
+            }
         }
     }
 

@@ -136,7 +136,7 @@ class Snapshot(object):
         )
 
     def snapshot_create(self, otype, typename, ouri,
-                        snaplabel, inactive, rptype, sync ,readonly=False):
+                        snaplabel, inactive, rptype, sync ,readonly=False,synctimeout=0):
         '''new snapshot is created, for a given shares or volumes
             parameters:
                 otype      : either file or block or object
@@ -209,7 +209,7 @@ class Snapshot(object):
                 self.block_until_complete(
                     otype,
                     task['resource']['id'],
-                    task["id"])
+                    task["id"],synctimeout)
             )
         else:
             return o
@@ -321,7 +321,7 @@ class Snapshot(object):
             suri : Uri of the Snapshot.
     '''
 
-    def snapshot_delete_uri(self, otype, resourceUri, suri, sync):
+    def snapshot_delete_uri(self, otype, resourceUri, suri, sync,synctimeout):
         s = None
         if(otype == Snapshot.FILE):
 
@@ -360,13 +360,13 @@ class Snapshot(object):
                 self.block_until_complete(
                     otype,
                     task['resource']['id'],
-                    task["id"])
+                    task["id"],synctimeout)
             )
         else:
             return o
 
     def snapshot_delete(self, storageresType,
-                        storageresTypename, resourceUri, name, sync):
+                        storageresTypename, resourceUri, name, sync,synctimeout=0):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -376,10 +376,10 @@ class Snapshot(object):
             storageresType,
             resourceUri,
             snapshotUri,
-            sync)
+            sync,synctimeout)
 
     def snapshot_restore(self, storageresType,
-                         storageresTypename, resourceUri, name, sync):
+                         storageresTypename, resourceUri, name, sync,synctimeout=0, syncdirection=None):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -391,10 +391,11 @@ class Snapshot(object):
                 storageresTypename,
                 resourceUri,
                 snapshotUri,
-                sync)
+                sync,synctimeout,
+                syncdirection)
         )
 
-    def snapshot_restore_uri(self, otype, typename, resourceUri, suri, sync):
+    def snapshot_restore_uri(self, otype, typename, resourceUri, suri, sync,synctimeout=0,syncdirection=None):
         ''' Makes REST API call to restore Snapshot under a shares or volumes
             parameters:
                 otype    : either file or block or
@@ -407,6 +408,8 @@ class Snapshot(object):
                 restore the snapshot
         '''
         if(resourceUri.find("BlockConsistencyGroup") > 0):
+            if(syncdirection is not None):
+                Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_RESTORE = Snapshot.URI_CONSISTENCY_GROUPS_SNAPSHOT_RESTORE + "?" + "syncDirection=" + syncdirection
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",
@@ -414,6 +417,9 @@ class Snapshot(object):
                     resourceUri,
                     suri), None)
         else:
+            if(syncdirection is not None):
+                Snapshot.URI_SNAPSHOT_RESTORE = Snapshot.URI_SNAPSHOT_RESTORE + "?" + "syncDirection=" + syncdirection
+                
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port,
                 "POST",
@@ -421,14 +427,14 @@ class Snapshot(object):
         o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],synctimeout)
         else:
             return o
         
     
     
     def snapshot_resync(self, storageresType,
-                         storageresTypename, resourceUri, name, sync):
+                         storageresTypename, resourceUri, name, sync,synctimeout=0):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -440,7 +446,7 @@ class Snapshot(object):
                 storageresTypename,
                 resourceUri,
                 snapshotUri,
-                sync)
+                sync,synctimeout)
         )
         
     
@@ -460,7 +466,7 @@ class Snapshot(object):
                 snapshotUri)
         )
 
-    def snapshot_resync_uri(self, otype, typename, resourceUri, suri, sync):
+    def snapshot_resync_uri(self, otype, typename, resourceUri, suri, sync,synctimeout=0):
         ''' Makes REST API call to resync Snapshot under a shares or volumes
             parameters:
                 otype    : either file or block or
@@ -487,7 +493,7 @@ class Snapshot(object):
         o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],synctimeout)
         else:
             return o
         
@@ -520,7 +526,7 @@ class Snapshot(object):
     
         
 
-    def snapshot_activate_uri(self, otype, typename, resourceUri, suri, sync):
+    def snapshot_activate_uri(self, otype, typename, resourceUri, suri, sync,synctimeout=0):
 
         if(resourceUri.find("BlockConsistencyGroup") > 0):
             (s, h) = common.service_json_request(
@@ -538,7 +544,7 @@ class Snapshot(object):
                 None)
         o = common.json_decode(s)
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],synctimeout)
         else:
             return o
 
@@ -565,7 +571,7 @@ class Snapshot(object):
             sharename,
             description,
             permission_type,
-            sync, subdir):
+            sync, subdir,synctimeout=0):
 
         o = None
         if(protocol == "NFS"):
@@ -603,7 +609,7 @@ class Snapshot(object):
             o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],synctimeout)
         else:
             return o
 
@@ -617,7 +623,7 @@ class Snapshot(object):
             sharename,
             description,
             permission_type,
-            sync, subdir):
+            sync, subdir,synctimeout=0):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -630,7 +636,7 @@ class Snapshot(object):
                                              rootUserMapping,
                                              endpoints,
                                              sharename, description,
-                                             permission_type, sync, subdir)
+                                             permission_type, sync, subdir,synctimeout)
 
     ''' export a snapshot of a volume to given host.
         parameters:
@@ -652,7 +658,7 @@ class Snapshot(object):
                                    initiatorPort,
                                    initiatorNode,
                                    hlu,
-                                   sync):
+                                   sync,synctimeout):
         body = json.dumps({
             'host_id': host_id,
             'initiator_port': initiatorPort,
@@ -667,7 +673,7 @@ class Snapshot(object):
         o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],synctimeout)
         else:
             return o
 
@@ -678,7 +684,7 @@ class Snapshot(object):
             initiatorPort,
             initiatorNode,
             hlu,
-            sync):
+            sync,synctimeout):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -690,7 +696,7 @@ class Snapshot(object):
             initiatorPort,
             initiatorNode,
             hlu,
-            sync)
+            sync,synctimeout)
     ''' Unexport a snapshot of a filesystem
         parameters:
             otype         : either file or block
@@ -707,7 +713,7 @@ class Snapshot(object):
                                    suri,
                                    protocol,
                                    sharename,
-                                   sync):
+                                   sync,synctimeout=0):
 
         o = None
         if(protocol == "NFS"):
@@ -727,7 +733,7 @@ class Snapshot(object):
             o = common.json_decode(s)
 
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],synctimeout)
         else:
             return o
 
@@ -735,7 +741,7 @@ class Snapshot(object):
             self, storageresType, storageresTypename, resourceUri, name,
             protocol,
             sharename,
-            sync):
+            sync,synctimeout=0):
 
         snapshotUri = self.snapshot_query(
             storageresType,
@@ -744,7 +750,7 @@ class Snapshot(object):
             name)
         return self.snapshot_unexport_file_uri(
             storageresType, snapshotUri, protocol,
-            sharename, sync)
+            sharename, sync,synctimeout)
 
     '''
         Unexport a snapshot of a volume.
@@ -759,7 +765,7 @@ class Snapshot(object):
         '''
 
     def snapshot_unexport_volume_uri(
-            self, otype, suri, protocol, initiator, hlu, sync):
+            self, otype, suri, protocol, initiator, hlu, sync,synctimeout):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "DELETE",
@@ -771,7 +777,7 @@ class Snapshot(object):
             None)
         o = common.json_decode(s)
         if(sync):
-            return self.block_until_complete(otype, suri, o["id"])
+            return self.block_until_complete(otype, suri, o["id"],synctimeout)
         else:
             return o
 
@@ -779,7 +785,7 @@ class Snapshot(object):
             self, storageresType, storageresTypename, resourceUri, name,
             protocol,
             initiator_port,
-            hlu, sync):
+            hlu, sync,synctimeout):
         snapshotUri = self.snapshot_query(
             storageresType,
             storageresTypename,
@@ -792,7 +798,7 @@ class Snapshot(object):
                 protocol,
                 initiator_port,
                 hlu,
-                sync)
+                sync,synctimeout)
         )
 
     def get_exports_by_uri(self, otype, uri, subDir=None, allDir=None):
@@ -975,8 +981,11 @@ class Snapshot(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def block_until_complete(self, storageresType, resuri, task_id):
-        t = Timer(self.timeout, self.timeout_handler)
+    def block_until_complete(self, storageresType, resuri, task_id,synctimeout=0):
+        if synctimeout:
+            t = Timer(synctimeout, self.timeout_handler)
+        else:
+            t = Timer(self.timeout, self.timeout_handler)
         t.start()
         while(True):
             #out = self.show_by_uri(id)
@@ -1168,9 +1177,14 @@ def create_parser(subcommand_parsers, common_parser):
                                choices=Snapshot.BOOLEAN_TYPE)
 
     create_parser.add_argument('-synchronous', '-sync',
-                               dest='synchronous',
+                               dest='sync',
                                help='Synchronous snapshot create',
                                action='store_true')
+    create_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     group = create_parser.add_mutually_exclusive_group(required=True)
     group.add_argument('-filesystem', '-fs',
@@ -1190,7 +1204,8 @@ def create_parser(subcommand_parsers, common_parser):
 
 
 def snapshot_create(args):
-
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -1218,8 +1233,8 @@ def snapshot_create(args):
             args.name,
             args.inactive,
             args.type,
-            args.synchronous,
-            args.readonly)
+            args.sync,
+            args.readonly,args.synctimeout)
         return
 
     except SOSError as e:
@@ -1501,11 +1516,17 @@ def delete_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Synchronous snapshot delete',
                                action='store_true')
-
+    delete_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     delete_parser.set_defaults(func=snapshot_delete)
 
 
 def snapshot_delete(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -1522,7 +1543,7 @@ def snapshot_delete(args):
             storageresTypename,
             resourceUri,
             args.name,
-            args.sync)
+            args.sync,args.synctimeout)
         return
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
@@ -1625,12 +1646,18 @@ def export_file_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Synchronous snapshot export file',
                                action='store_true')
+    export_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     mandatory_args.set_defaults(func=snapshot_export_file)
 
 
 def snapshot_export_file(args):
-
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
 
@@ -1666,7 +1693,7 @@ def snapshot_export_file(args):
             args.description,
             args.permission_type,
             args.sync,
-            args.subdir)
+            args.subdir,args.synctimeout)
         if(args.sync is False):
             return
             # return common.format_json_object(res)
@@ -1753,12 +1780,18 @@ def export_volume_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Synchronous snapshot export',
                                action='store_true')
+    export_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     mandatory_args.set_defaults(func=snapshot_export_volume)
 
 
 def snapshot_export_volume(args):
-
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -1776,7 +1809,7 @@ def snapshot_export_volume(args):
             args.initiator_port,
             args.initiator_node,
             args.hlu,
-            args.sync)
+            args.sync,args.synctimeout)
         if(args.sync is False):
             return common.format_json_object(res)
     except SOSError as e:
@@ -1842,12 +1875,18 @@ def unexport_file_parser(subcommand_parsers, common_parser):
                                  dest='sync',
                                  help='Synchronous snapshot unexport file',
                                  action='store_true')
+    unexport_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     unexport_parser.set_defaults(func=snapshot_unexport_file)
 
 
 def snapshot_unexport_file(args):
-
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         if(args.protocol == "CIFS"):
@@ -1869,7 +1908,7 @@ def snapshot_unexport_file(args):
             storageresType, storageresTypename, resourceUri, args.name,
             args.protocol,
             args.share,
-            args.sync)
+            args.sync,args.synctimeout)
         if(args.sync is False):
             return
             # return common.format_json_object(res)
@@ -1939,12 +1978,18 @@ def unexport_volume_parser(subcommand_parsers, common_parser):
                                  dest='sync',
                                  help='Synchronous snapshot unexport',
                                  action='store_true')
+    unexport_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     unexport_parser.set_defaults(func=snapshot_unexport_volume)
 
 
 def snapshot_unexport_volume(args):
-
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -1960,7 +2005,7 @@ def snapshot_unexport_volume(args):
             args.protocol,
             args.initiatorPort,
             args.hlu,
-            args.sync)
+            args.sync,args.synctimeout)
         if(args.sync is False):
             return common.format_json_object(res)
 
@@ -2269,11 +2314,17 @@ def activate_parser(subcommand_parsers, common_parser):
                                  dest='sync',
                                  help='Synchronous snapshot activate',
                                  action='store_true')
-
+    activate_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
     mandatory_args.set_defaults(func=snapshot_activate)
 
 
 def snapshot_activate(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -2297,7 +2348,7 @@ def snapshot_activate(args):
             storageresTypename,
             resourceUri,
             snapshotUri,
-            args.sync)
+            args.sync,args.synctimeout)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
@@ -2356,11 +2407,22 @@ def restore_parser(subcommand_parsers, common_parser):
                                 dest='sync',
                                 help='Synchronous snapshot restore',
                                 action='store_true')
+    restore_parser.add_argument('-syncdirection', '-syncdir',
+                                metavar='<syncdirection>',
+                                dest='syncdirection',
+                                help='Specify the Sync direction for snapshot restore , Either SOURCE_TO_TARGET or TARGET_TO_SOURCE or NONE')
+    restore_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     mandatory_args.set_defaults(func=snapshot_restore)
 
 
 def snapshot_restore(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
@@ -2377,7 +2439,8 @@ def snapshot_restore(args):
             storageresTypename,
             resourceUri,
             args.name,
-            args.sync)
+            args.sync,args.synctimeout,
+            args.syncdirection)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
@@ -2437,18 +2500,25 @@ def resync_parser(subcommand_parsers, common_parser):
                                 dest='sync',
                                 help='Synchronous snapshot restore',
                                 action='store_true')
+    resync_parser.add_argument('-synctimeout','-syncto',
+                               help='sync timeout in seconds ',
+                               dest='synctimeout',
+                               default=0,
+                               type=int)
 
     mandatory_args.set_defaults(func=snapshot_resync)
 
 
 def snapshot_resync(args):
+    if not args.sync and args.synctimeout !=0:
+        raise SOSError(SOSError.CMD_LINE_ERR,"error: Cannot use synctimeout without Sync ")
     obj = Snapshot(args.ip, args.port)
     try:
         (storageresType, storageresTypename) = obj.get_storageAttributes(
-            args.filesystem, args.volume, args.consistencygroup)
+            None , args.volume, args.consistencygroup)
         resourceUri = obj.storageResource_query(
             storageresType,
-            args.filesystem,
+            None,
             args.volume,
             args.consistencygroup,
             args.project,
@@ -2458,7 +2528,7 @@ def snapshot_resync(args):
             storageresTypename,
             resourceUri,
             args.name,
-            args.sync)
+            args.sync,args.synctimeout)
 
     except SOSError as e:
         if (e.err_code == SOSError.SOS_FAILURE_ERR):

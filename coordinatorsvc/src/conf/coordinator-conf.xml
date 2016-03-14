@@ -3,10 +3,10 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <import resource="classpath:coordinator-var.xml"/>
     <import resource="classpath:jmx-conf.xml"/>
     <import resource="classpath:backup-zk-conf.xml"/>
     <import resource="classpath:coordinator-jmx-var.xml"/>
+    <import resource="classpath:coordinator-var.xml"/>
 
     <bean id="coordinatorsvc" class="com.emc.storageos.coordinator.service.impl.CoordinatorImpl" destroy-method="stop">
         <property name="config" ref="config"/>
@@ -17,17 +17,5 @@
     <!-- Overriding the value defined in jmx-conf.xml -->
     <bean id="loggingInitDelayInSeconds" class="java.lang.Integer" >
         <constructor-arg value="5" />
-    </bean>
-
-    <!-- Overriding the bean defined in coordinatorclient-var.xml, this one won't init itself automatically -->
-    <bean id="coordinator" class="com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl">
-        <property name="zkConnection" ref="zkconn"/>
-        <property name="sysSvcName" value="${syssvc.name}"/>
-        <property name="sysSvcVersion" value="${syssvc.version}"/>
-        <property name="nodeCount" ref="nodeCount"/>
-        <property name="inetAddessLookupMap" ref="inetAddessLookupMap"/>
-        <property name="defaultProperties" ref="defaultProperties"/>
-        <property name="ovfProperties" ref="ovfProperties"/>
-        <property name="dbVersionInfo" ref="dbVersionInfo"/>
     </bean>
 </beans>

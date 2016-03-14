@@ -7,6 +7,7 @@ package com.emc.vipr.client;
 import com.emc.vipr.client.exceptions.ViPRException;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.impl.SSLUtil;
+import sun.net.util.IPAddressUtil;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
@@ -171,7 +172,12 @@ public class ClientConfig {
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      */
     public void setHost(String host) {
-        this.host = host;
+        //sets literal ipv6 address to bracketed address
+        if (IPAddressUtil.isIPv6LiteralAddress(host)) {
+            this.host = String.format("[%s]",host);
+        } else {
+            this.host = host;
+        }
     }
 
     public int getPort() {
@@ -353,7 +359,7 @@ public class ClientConfig {
     /**
      * Sets the session key renew timeout
      * 
-     * @param tasksExecutionTimeoutSeconds
+     * @param sessionKeyRenewTimeout
      */
     public void setSessionKeyRenewTimeout(int sessionKeyRenewTimeout) {
         this.sessionKeyRenewTimeout = sessionKeyRenewTimeout;
@@ -376,8 +382,8 @@ public class ClientConfig {
      * important SSL security.
      * 
      * @param ignoreCertificates True if SSL trust should be disabled
-     * @see #setSocketFactory(javax.net.ssl.SSLSocketFactory)
-     * @see #setHostnameVerifier(javax.net.ssl.HostnameVerifier)
+     * @see #setSocketFactory(SSLSocketFactory) Please refer setSocketFactory(javax.net.ssl.SSLSocketFactory)
+     * @see #setHostnameVerifier(HostnameVerifier) Please refer #setHostnameVerifier(javax.net.ssl.HostnameVerifier)
      */
     public void setIgnoreCertificates(boolean ignoreCertificates) {
         if (ignoreCertificates) {
@@ -399,7 +405,6 @@ public class ClientConfig {
 
     /**
      * Sets the host and returns the updated configuration.
-     * 
      * @see #setHost(String)
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      * @return The updated ClientConfig object.
@@ -411,7 +416,6 @@ public class ClientConfig {
 
     /**
      * Sets the port and returns the updated configuration.
-     * 
      * @see #setPort(int)
      * @param port Target port to set.
      * @return The updated ClientConfig object.
@@ -423,7 +427,6 @@ public class ClientConfig {
 
     /**
      * Sets the protocol and returns the updated configuration.
-     * 
      * @see #setProtocol(String)
      * @param protocol HTTP Protocol to use.
      * @return The updated ClientConfig object.
@@ -435,7 +438,6 @@ public class ClientConfig {
 
     /**
      * Sets the connection timeout and returns the updated configuration.
-     * 
      * @see #setConnectionTimeout(int)
      * @param connectionTimeout Connection timeout to set.
      * @return The updated ClientConfig object.
@@ -447,7 +449,6 @@ public class ClientConfig {
 
     /**
      * Sets the read timeout and returns the updated configuration.
-     * 
      * @see #setReadTimeout(int)
      * @param readTimeout Read timeout to set.
      * @return The updated ClientConfig object.
@@ -459,7 +460,6 @@ public class ClientConfig {
 
     /**
      * Sets the media type and returns the updated configuration.
-     * 
      * @see #setMediaType(String)
      * @param mediaType Media type to set.
      * @return The updated ClientConfig object.
@@ -471,7 +471,6 @@ public class ClientConfig {
 
     /**
      * Sets the request logging enabled and returns the updated configuration.
-     * 
      * @see #setRequestLoggingEnabled(boolean)
      * @return The updated ClientConfig object.
      */
@@ -482,7 +481,6 @@ public class ClientConfig {
 
     /**
      * Sets the request logging disabled and returns the updated configuration.
-     * 
      * @see #setRequestLoggingEnabled(boolean)
      * @return The updated ClientConfig object.
      */
@@ -493,7 +491,6 @@ public class ClientConfig {
 
     /**
      * Sets the logging entity length and returns the updated configuration.
-     * 
      * @see #setLoggingEntityLength(int)
      * @param loggingEntityLength Logging entity length to set.
      * @return The updated ClientConfig object.
@@ -505,7 +502,6 @@ public class ClientConfig {
 
     /**
      * Sets the max retries and returns the updated configuration.
-     * 
      * @see #setMaxRetries(int)
      * @param maxRetries Max retries to set.
      * @return The updated ClientConfig object.
@@ -517,8 +513,7 @@ public class ClientConfig {
 
     /**
      * Sets the retry interval and returns the updated configuration.
-     * 
-     * @see #withRetryInterval(int)
+     * @see #setRetryInterval(int)
      * @param retryInterval Retry interval to set.
      * @return The updated ClientConfig object.
      */
@@ -529,7 +524,6 @@ public class ClientConfig {
 
     /**
      * Sets the task polling interval and returns the updated configuration.
-     * 
      * @see #setTaskPollingInterval(int)
      * @param taskPollingInterval Task polling interval to set
      * @return The updated ClientConfig object.
@@ -541,7 +535,6 @@ public class ClientConfig {
 
     /**
      * Sets the portal port and returns the updated configuration.
-     * 
      * @see #setPortalPort(int)
      * @param portalPort Target portal port to set.
      * @return The updated ClientConfig object.
@@ -553,8 +546,7 @@ public class ClientConfig {
 
     /**
      * Sets the SSLSocketFactory and returns the updated configuration.
-     * 
-     * @see #setSocketFactory(javax.net.ssl.SSLSocketFactory)
+     * @see #setSocketFactory(SSLSocketFactory)
      * @param factory The SSLSocketFactory to use
      * @return the updated ClientConfig object
      */
@@ -565,8 +557,7 @@ public class ClientConfig {
 
     /**
      * Sets the HostnameVerifier and returns the updated configuration.
-     * 
-     * @see #setHostnameVerifier(javax.net.ssl.HostnameVerifier)
+     * @see #setHostnameVerifier(HostnameVerifier)
      * @param verifier The HostnameVerifier to use
      * @return the updated ClientConfig object
      */
@@ -579,7 +570,6 @@ public class ClientConfig {
      * Sets the SSLSocketFactory and HostnameVerifier to ignore all SSL certificates and returns the updated
      * configuration. This is suitable for a default installation using self-signed certificates. This
      * is <b>not</b> intended for production use as it bypasses important SSL security.
-     * 
      * @see #setIgnoreCertificates(boolean)
      * @return the updated ClientConfig object
      */
@@ -590,7 +580,6 @@ public class ClientConfig {
 
     /**
      * Sets the session key renew timeout.
-     * 
      * @see #setSessionKeyRenewTimeout(int)
      * @return the updated ClientConfig object
      */

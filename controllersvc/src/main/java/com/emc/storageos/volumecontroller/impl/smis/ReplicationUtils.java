@@ -53,6 +53,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.google.common.base.Joiner;
 
 /**
@@ -190,6 +191,22 @@ public class ReplicationUtils {
     }
 
     /**
+     * Refresh the given storagesystem.
+     * 
+     * @param helper reference to SmisCommandHelper
+     * @param storage reference to StorageSystem
+     * @param force flag to run refresh or not if threshold is not met
+     */
+    public static void callEMCRefresh(SmisCommandHelper helper, StorageSystem storage, boolean force) {
+        try {
+            _log.info("Refreshing storagesystem: {}", storage.getId());
+            helper.callRefreshSystem(storage, null, force);
+        } catch (Exception e) {
+            _log.error("Exception callEMCRefresh", e);
+        }
+    }
+
+    /**
      * Gets the default ReplicationSettingData object from the system and updates
      * the ConsistentPointInTime property to true.
      * 
@@ -305,7 +322,7 @@ public class ReplicationUtils {
             DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) throws Exception {
         BlockConsistencyGroup blockConsistencyGroup = dbClient.queryObject(
                 BlockConsistencyGroup.class, replica.getConsistencyGroup());
-        String deviceName = blockConsistencyGroup.getCgNameOnStorageSystem(storage.getId());
+        String deviceName = ConsistencyGroupUtils.getSourceConsistencyGroupName(replica, dbClient);
         String label = blockConsistencyGroup.getLabel();
         CIMObjectPath path = cimPath.getReplicationGroupPath(storage, deviceName);
         CIMInstance instance = helper.checkExists(storage, path, false, false);
@@ -324,7 +341,7 @@ public class ReplicationUtils {
             DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
         Volume clone = dbClient.queryObject(Volume.class, cloneUri);
         Volume sourceVol = dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
-        String consistencyGroupName = helper.getConsistencyGroupName(sourceVol, storage);
+        String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVol, dbClient);
         String replicationGroupName = clone.getReplicationGroupInstance();
         return cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
     }
@@ -536,7 +553,7 @@ public class ReplicationUtils {
             DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
         BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorUri);
         Volume sourceVol = dbClient.queryObject(Volume.class, mirror.getSource());
-        String consistencyGroupName = helper.getConsistencyGroupName(sourceVol, storage);
+        String consistencyGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVol, dbClient);
         String replicationGroupName = mirror.getReplicationGroupInstance();
         return cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
     }

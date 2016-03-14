@@ -45,11 +45,22 @@
     function setDefaults() {
         var tftpDir = $('#computeImageServers_tftpBootDir');
         var installTo = $('#computeImageServers_osInstallTimeOut');
+        
+        var sshTimeout = $('#computeImageServers_sshTimeout');
+        var imageTimeout = $('#computeImageServers_imageImportTimeout');
+        
         if (!tftpDir.val()) {
         	tftpDir.val('/opt/tftpboot/');
         }
         if (!installTo.val()) {
         	installTo.val('3600');
+        }
+        
+        if (!sshTimeout.val()) {
+        	sshTimeout.val('20');
+        }
+        if (!imageTimeout.val()) {
+        	imageTimeout.val('1800');
         }
     }
     
@@ -98,6 +109,14 @@
     #{/field}
 
     #{field 'computeImageServers.osInstallTimeOut'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+    
+    #{field 'computeImageServers.sshTimeout'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+    
+    #{field 'computeImageServers.imageImportTimeout'}
       #{Form.inputTextControlGroup field:field, required:!editMode /}
     #{/field}
 

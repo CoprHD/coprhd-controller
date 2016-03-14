@@ -10,7 +10,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -48,23 +48,24 @@ import com.emc.storageos.db.client.model.ComputeBootPolicy;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeElementHBA;
 import com.emc.storageos.db.client.model.ComputeImageServer;
+import com.emc.storageos.db.client.model.ComputeImageServer.ComputeImageServerStatus;
 import com.emc.storageos.db.client.model.ComputeLanBoot;
 import com.emc.storageos.db.client.model.ComputeLanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeSanBoot;
+import com.emc.storageos.db.client.model.ComputeSanBootImage;
 import com.emc.storageos.db.client.model.ComputeSanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.ComputeSanBootImage;
-import com.emc.storageos.db.client.model.ComputeVirtualPool;
-import com.emc.storageos.db.client.model.ComputeVnic;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
@@ -98,10 +99,11 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  * ComputeSystemService manages the lifecycle of a Compute System and Compute Elements that belong to a ComputeSystem.
- * 
+ *
  * Operations (Compute System):
  * Get All
  * Get/Fetch
@@ -109,13 +111,13 @@ import com.google.common.base.Function;
  * Update
  * Delete
  * Register/Unregister
- * 
+ *
  * Operations (Compute Element):
  * Get All
- * 
+ *
  * @author Dranov,Vladislav
  * @author Prabhakara,Janardhan
- * 
+ *
  */
 @Path("/vdc/compute-systems")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
@@ -135,7 +137,7 @@ public class ComputeSystemService extends TaskResourceService {
 
     /**
      * Gets a detailed representation of the Compute System
-     * 
+     *
      * @param id
      *            the URN of a ViPR Compute System
      * @brief Show compute system
@@ -637,7 +639,7 @@ public class ComputeSystemService extends TaskResourceService {
 
     /**
      * Gets a list of all (active) ViPR Compute Systems.
-     * 
+     *
      * @brief List compute systems
      * @return A list of Name/Id pairs representing active Compute Systems. The
      *         IDs returned can be used to fetch more detailed information about
@@ -658,7 +660,7 @@ public class ComputeSystemService extends TaskResourceService {
 
     /**
      * Creates and discovers a Compute System in ViPR
-     * 
+     *
      * @param param
      *            An instance of {@link ComputeSystemCreate} representing a
      *            Compute System to be created, not null
@@ -675,8 +677,10 @@ public class ComputeSystemService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createComputeSystem(ComputeSystemCreate param)
             throws DatabaseException {
-        ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type",
-                EnumSet.of(ComputeSystem.Type.ucs));
+        // check device type
+        ArgValidator.checkFieldValueFromSystemType(param.getSystemType(), "system_type",
+                Arrays.asList(ComputeSystem.Type.ucs));
+
         ComputeSystem.Type deviceType = ComputeSystem.Type.valueOf(param.getSystemType());
 
         ArgValidator.checkFieldNotNull(param.getName(), "name");
@@ -715,7 +719,7 @@ public class ComputeSystemService extends TaskResourceService {
 
     /**
      * Discovers an already created Compute System
-     * 
+     *
      * @param id
      *            the URN of a ViPR Compute System
      * @brief Discover compute system
@@ -736,7 +740,7 @@ public class ComputeSystemService extends TaskResourceService {
 
     /**
      * Updates the Compute System, and (re)discovers it
-     * 
+     *
      * @param id
      *            the URN of a ViPR Compute System to be updated
      * @param param
@@ -803,7 +807,7 @@ public class ComputeSystemService extends TaskResourceService {
         associateImageServerToComputeSystem(imageServerURI, cs);
 
         cs.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(cs));
-        _dbClient.persistObject(cs);
+        _dbClient.updateObject(cs);
 
         recordAndAudit(cs, OperationTypeEnum.UPDATE_COMPUTE_SYSTEM, true, null);
 
@@ -813,7 +817,7 @@ public class ComputeSystemService extends TaskResourceService {
     /**
      * Deletes a Compute System and the discovered information about it from
      * ViPR
-     * 
+     *
      * @param id
      *            the URN of a ViPR Compute System to be deleted
      * @brief Delete compute system
@@ -859,7 +863,7 @@ public class ComputeSystemService extends TaskResourceService {
     /**
      * Registers a previously de-registered Compute System. (Creation and Discovery of the Compute System marks the Compute System
      * "Registered" by default)
-     * 
+     *
      * @param id the URN of a ViPR Compute System
      * @brief Register compute system
      * @return TaskResourceRep (asynchronous call)
@@ -900,7 +904,7 @@ public class ComputeSystemService extends TaskResourceService {
      * De-registers a previously registered Compute System. (Creation and
      * Discovery of the Compute System marks the Compute System "Registered" by
      * default)
-     * 
+     *
      * @param id
      *            the URN of a ViPR Compute System
      * @brief Deregister compute system
@@ -955,7 +959,7 @@ public class ComputeSystemService extends TaskResourceService {
     /**
      * Gets a list of all the Compute Systems in ViPR with detailed
      * representations for the given Id list
-     * 
+     *
      * @brief List data of compute systems
      * @return List of representations.
      */
@@ -970,7 +974,7 @@ public class ComputeSystemService extends TaskResourceService {
 
     /**
      * Fetches all the Compute Elements belonging to a Compute System in ViPR
-     * 
+     *
      * @param id
      *            the URN of a ViPR Compute System
      * @brief Show compute elements
@@ -1120,7 +1124,7 @@ public class ComputeSystemService extends TaskResourceService {
 
     /**
      * Record ViPR Event for the completed operations
-     * 
+     *
      * @param computeSystem
      * @param type
      * @param description
@@ -1165,8 +1169,7 @@ public class ComputeSystemService extends TaskResourceService {
      */
     private void associateImageServerToComputeSystem(URI imageServerURI,
             ComputeSystem cs) {
-        if (imageServerURI != null
-                && StringUtils.isNotBlank(imageServerURI.toString())) {
+        if (!NullColumnValueGetter.isNullURI(imageServerURI)) {
             ComputeImageServer imageServer = _dbClient.queryObject(
                     ComputeImageServer.class, imageServerURI);
             if (imageServer != null) {
@@ -1176,7 +1179,31 @@ public class ComputeSystemService extends TaskResourceService {
                         "compute image server", imageServerURI.toString());
             }
         } else {
-            cs.setComputeImageServer(NullColumnValueGetter.getNullURI());
+            List<URI> imageServerURIList = _dbClient.queryByType(
+                    ComputeImageServer.class, true);
+            ArrayList<URI> tempList = Lists.newArrayList(imageServerURIList
+                    .iterator());
+
+            if (tempList.size() == 1) {
+                Iterator<ComputeImageServer> imageServerItr = _dbClient
+                        .queryIterativeObjects(ComputeImageServer.class,
+                                tempList);
+                while (imageServerItr.hasNext()) {
+                    ComputeImageServer imageSvr = imageServerItr
+                            .next();
+                    if (imageSvr != null
+                            && imageSvr.getComputeImageServerStatus().equals(
+                                    ComputeImageServerStatus.AVAILABLE
+                                            .toString())) {
+                        _log.info(
+                                "Automatically associating compute System {} with available image Server {}.",
+                                cs.getLabel(), imageSvr.getLabel());
+                        cs.setComputeImageServer(imageSvr.getId());
+                    }
+                }
+            } else {
+                cs.setComputeImageServer(NullColumnValueGetter.getNullURI());
+            }
         }
     }
 }

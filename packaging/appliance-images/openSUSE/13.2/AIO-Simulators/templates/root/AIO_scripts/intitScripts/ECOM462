@@ -1,0 +1,79 @@
+#!/bin/bash
+
+### BEGIN INIT INFO
+# Provides:          ECOM462
+# Required-Start:    SimService iptables
+# Required-Stop:
+# Should-Stop:
+# Default-Start:     3 5
+# Default-Stop:
+# Description:       starts ECOM462 simulator
+### END INIT INFO
+#. /etc/rc.d/init.d/functions
+. /lib/lsb/init-functions
+. /etc/rc.status
+
+RETVAL=0
+ECOM_HOME=/data/simulators/ecom462
+DELAY=60
+ECOM80disable="/var/log/ECOM80enable"
+
+
+start() {
+
+            echo -n $"Starting ECOM462:..hold on 60sec .."
+            ${ECOM_HOME}/bin/ECOM462  >/var/log/ECOM462.log 2>&1 &
+            RETVAL=$?
+            return
+
+}
+
+stop() {
+
+        echo -n $"Stopping ECOM462: "
+	rm -f ${ECOM_HOME}/log/* >>/var/log/ECOM462.log 2>&1
+        killproc  -TERM ECOM462 >> /var/log/ECOM462.log 2>&1
+        RETVAL=$?
+	echo  "..Done"
+}
+
+
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  status)
+        cnt=`pgrep -f "ECOM462" |wc -l`
+        if(test $cnt -gt 3) ;
+        then
+                echo "ECOM462 simulator already running..."
+        else
+                echo "ECOM462 simulator not running."
+        fi
+
+
+        ;;
+  *)
+        echo $"Usage: ECOM462 {start|stop}"
+        exit 1
+        exit 1
+esac
+
+
+exit $RETVAL
+
+# copy this script to /etc/init.d
+
+# edit /etc/init.d/ECOM and change the ECOM_HOME=/temp/ecom to where ever you have installed simulator
+# 
+# chkconfig --add ECOM
+# chkconfig ECOM on
+
+# service ECOM start or stop or staus should now work
+#  /var/log/ECOM.log should have the start log
+# reboot should automatically start service
+

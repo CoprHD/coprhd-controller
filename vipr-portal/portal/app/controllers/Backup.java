@@ -6,15 +6,21 @@ package controllers;
 
 import static controllers.Common.flashException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
+import com.emc.vipr.model.sys.backup.BackupInfo;
 import models.datatable.BackupDataTable;
+import models.datatable.BackupDataTable.Type;
 
 import org.apache.commons.lang.StringUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.data.binding.As;
 import play.data.validation.Required;
-import play.data.validation.Valid;
 import play.data.validation.Validation;
 import play.mvc.Controller;
 import play.mvc.With;
@@ -38,42 +44,69 @@ import controllers.util.FlashException;
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class Backup extends Controller {
+    private static final Logger log = LoggerFactory.getLogger(Backup.class);
 
     protected static final String SAVED_SUCCESS = "backup.save.success";
     protected static final String DELETED_SUCCESS = "backup.delete.success";
     protected static final String DELETED_ERROR = "backup.delete.error";
 
-    public static void list() {
-        BackupDataTable dataTable = new BackupDataTable();
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+    public static void list(Type type) {
+        if (type == null) {
+            type = Type.LOCAL;
+        }
+
+        BackupDataTable dataTable = new BackupDataTable(type);
+        renderArgs.put("type", type);
         render(dataTable);
     }
 
-    public static void listJson() {
-        List<BackupDataTable.Backup> backups = BackupDataTable.fetch();
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+    public static void listJson(Type type) {
+        List<BackupDataTable.Backup> backups = BackupDataTable.fetch(type == null ? Type.LOCAL : type);
         renderJSON(DataTablesSupport.createJSON(backups, params));
     }
 
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void itemsJson(@As(",") String[] ids) {
-    	  List<BackupDataTable.Backup> results = Lists.newArrayList();
-          if (ids != null && ids.length > 0) {
-              for (String id : ids) {
-                  if (StringUtils.isNotBlank(id)) {
-                	  BackupSet backup = BackupUtils.getBackup(id);
-                      if (backup != null) {
-                          results.add(new BackupDataTable.Backup(backup));
-                      }
-                  }
-              }
-          }
-          renderJSON(results);
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        if (ids != null) {
+            for (String id : ids) {
+                if (StringUtils.isNotBlank(id)) {
+                    BackupSet backup = BackupUtils.getBackup(id);
+                    if (backup != null) {
+                        results.add(new BackupDataTable.Backup(backup));
+                    }
+                }
+            }
+        }
+        renderJSON(results);
     }
-    
+
+    public static void externalItemsJson(@As(",") String[] ids) {
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        if (ids != null) {
+            for (String id : ids) {
+                if (StringUtils.isNotBlank(id)) {
+                    BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
+                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
+                    if (backupInfo.getCreateTime() != 0) {
+                        backup.creationtime = backupInfo.getCreateTime();
+                    }
+                    backup.status = backupInfo.getRestoreStatus().getStatus().name();
+                    results.add(backup);
+                }
+            }
+        }
+        renderJSON(results);
+    }
+
     public static void create() {
         render();
     }
 
     public static void cancel() {
-        list();
+        list(Type.LOCAL);
     }
 
     @FlashException(keep = true, referrer = { "create" })
@@ -96,7 +129,7 @@ public class Backup extends Controller {
     }
 
     public static void edit(String id) {
-        list();
+        list(Type.LOCAL);
     }
 
     @FlashException(value = "list")
@@ -111,27 +144,68 @@ public class Backup extends Controller {
                 flash.success(MessagesUtils.get("backups.deleted"));
             }
         }
-        list();
+        list(Type.LOCAL);
     }
 
     @FlashException(value = "list")
     public static void upload(String id) {
-            BackupUtils.uploadBackup(id);
-            list();
+        BackupUtils.uploadBackup(id);
+        list(Type.LOCAL);
     }
-    
+
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void getUploadStatus(String id) {
-            BackupUploadStatus status = BackupUtils.getUploadStatus(id);
-            renderJSON(status);
-        
+        BackupUploadStatus status = BackupUtils.getUploadStatus(id);
+        renderJSON(status);
+
     }
-    
+
+    public static void restore(String id, Type type) {
+        if (type == Type.REMOTE) { // pull first if remote backup set
+            BackupUtils.pullBackup(id);
+        }
+
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
+        renderArgs.put("status", status);
+        renderArgs.put("percentages", new RestoreStatus(status).percentageMap);
+        renderArgs.put("id", id);
+        renderArgs.put("type", type);
+
+        render();
+    }
+
+    public static void cancelPullBackup(Type type) {
+        if (type == Type.REMOTE) {
+            BackupUtils.cancelPullBackup();
+        }
+        list(type);
+    }
+
+    public static void doRestore() {
+        Type type = params.get("restoreForm.type", Type.class);
+        boolean isLocal = type == Type.LOCAL;
+        String name = params.get("restoreForm.name");
+        RestoreForm restoreForm = new RestoreForm(name, params.get("restoreForm.password"), isLocal, params.get("restoreForm.isGeoFromScratch", boolean.class));
+        restoreForm.restore();
+
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(name, isLocal);
+        if (status.isNotSuccess()) {
+            list(type);
+        }
+        Maintenance.maintenance(Common.reverseRoute(Backup.class, "list", "type", type));
+    }
+
+    public static void getRestoreStatus(String id, Type type) {
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
+        renderJSON(new RestoreStatus(status));
+    }
+
     private static void backToReferrer() {
         String referrer = Common.getReferrer();
         if (StringUtils.isNotBlank(referrer)) {
             redirect(referrer);
         } else {
-            list();
+            list(Type.LOCAL);
         }
     }
 
@@ -163,4 +237,53 @@ public class Backup extends Controller {
         }
     }
 
+    public static class RestoreForm {
+
+        @Required
+        public String name;
+
+        @Required
+        public String password;
+
+        public boolean isLocal;
+
+        public boolean isGeoFromScratch = false;
+
+        public RestoreForm(String name, String password, boolean isLocal, boolean isGeo) {
+            this.name = name;
+            this.password = password;
+            this.isLocal = isLocal;
+            this.isGeoFromScratch = isGeo;
+        }
+
+        public void restore() throws ViPRException {
+            BackupUtils.restore(name, StringUtils.trimToNull(password), isLocal, isGeoFromScratch);
+        }
+    }
+
+    public static class RestoreStatus {
+        private String backupName;
+        private BackupRestoreStatus.Status status;
+        private boolean isGeo;
+        private Map<String, Long> sizeToDownload;
+        private Map<String, Long> downloadedSize;
+        private Map<String, Integer> percentageMap;
+        private String details;
+
+        public RestoreStatus(BackupRestoreStatus origin) {
+            this.backupName = origin.getBackupName();
+            this.sizeToDownload = origin.getSizeToDownload();
+            this.downloadedSize = origin.getDownloadedSize();
+            this.status = origin.getStatus();
+            this.isGeo = origin.isGeo();
+            this.details = origin.getDetails();
+
+            percentageMap = new HashMap<String, Integer>(sizeToDownload.size());
+            for (String hostname : sizeToDownload.keySet()) {
+                int percentage = sizeToDownload.get(hostname) == 0L ? 0
+                        : (int) (downloadedSize.get(hostname) * 100 / sizeToDownload.get(hostname));
+                percentageMap.put(hostname, percentage);
+            }
+        }
+    }
 }

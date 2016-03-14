@@ -1,10 +1,24 @@
 /*
- * Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
+ * Copyright 2013 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 /**
  * Authentication provider configuration data object
  */
@@ -16,6 +30,7 @@ public class AuthnProvider extends DataObject {
     private ProvidersType _mode;
     private String _description;
     private Boolean _disable;
+    private Boolean _autoRegCoprHDNImportOSProjects;
     private StringSet _serverUrls;
     private StringSet _domains;
     private String _serverCert;
@@ -30,12 +45,13 @@ public class AuthnProvider extends DataObject {
     private long _lastModified;
     private String _searchScope;
     private Boolean _validateCertificates;
+    private StringMap keys;
     private StringSet _groupObjectClassNames;
     private StringSet _groupMemberAttributeTypeNames;
 
     // names to be used in the 'mode' element of the Provider
     public static enum ProvidersType {
-        ldap, ad
+        ldap, ad, keystone
     }
 
     // values to be used for the searchScope element
@@ -84,6 +100,20 @@ public class AuthnProvider extends DataObject {
     public void setDisable(Boolean disable) {
         _disable = disable;
         setChanged("disable");
+    }
+
+    @Name("autoRegCoprHDNImportOSProjects")
+    public Boolean getAutoRegCoprHDNImportOSProjects() {
+        if (null != _autoRegCoprHDNImportOSProjects) {
+            return _autoRegCoprHDNImportOSProjects;
+        } else {
+            return false;
+        }
+    }
+
+    public void setAutoRegCoprHDNImportOSProjects(Boolean autoRegCoprHDNImportOSProjects) {
+        _autoRegCoprHDNImportOSProjects = autoRegCoprHDNImportOSProjects;
+        setChanged("autoRegCoprHDNImportOSProjects");
     }
 
     @Name("serverUrls")
@@ -226,6 +256,43 @@ public class AuthnProvider extends DataObject {
     public void setLastModified(Long lastModified) {
         _lastModified = lastModified;
         setChanged("lastModified");
+    }
+    @Name("keys")
+    public StringMap getKeys() {
+        return keys;
+    }
+    public String getKeyValue(String key) {
+        String value = null;
+        if (keys != null ) {
+            value = keys.get(key);
+        }
+        return (value == null) ? NullColumnValueGetter.getNullStr() : value;
+    }
+    public void setKeys(StringMap keys) {
+        this.keys = keys;
+        setChanged("keys");
+    }
+    public void addKey(String key, String value) {
+        if (getKeys() == null) {
+            setKeys(new StringMap());
+        }
+        getKeys().put(key, value);
+        setChanged("keys");
+    }
+    public void removeKey(String key) {
+        if (keys != null) {
+            getKeys().remove(key);
+            setChanged("keys");
+        }
+    }
+    public void removeKeys(String[] keyArray) {
+        if (keys != null) {
+        	for(String key : keyArray)
+        	{
+        		getKeys().remove(key);
+        	}
+        	setChanged("keys");
+        }
     }
 
     @AllowedGeoVersion(version = EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT)

@@ -5,12 +5,14 @@
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.mutable.MutableInt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -20,7 +22,9 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
+import com.google.common.collect.Collections2;
 
 /*
  * MULTIPLE_MASK_PER_HOST :
@@ -37,16 +41,14 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
     private static final Logger _logger = LoggerFactory.getLogger(MultipleMaskPerHostIngestOrchestrator.class);
 
     @Override
-    public <T extends BlockObject> void ingestExportMasks(UnManagedVolume unManagedVolume,
-            List<UnManagedExportMask> unManagedMasks, VolumeExportIngestParam param, ExportGroup exportGroup, T volume,
-            StorageSystem system, boolean exportGroupCreated, MutableInt masksIngestedCount,
-            List<Initiator> deviceInitiators, List<String> errorMessages) throws IngestionException {
-        super.ingestExportMasks(unManagedVolume, unManagedMasks, param, exportGroup,
-                volume, system, exportGroupCreated, masksIngestedCount, deviceInitiators, errorMessages);
+    public <T extends BlockObject> void ingestExportMasks(IngestionRequestContext requestContext, 
+            UnManagedVolume unManagedVolume, T blockObject, List<UnManagedExportMask> unManagedMasks, 
+            MutableInt masksIngestedCount) throws IngestionException {
+        super.ingestExportMasks(requestContext, unManagedVolume, blockObject, unManagedMasks, masksIngestedCount);
     }
 
     @Override
-    protected ExportMask getExportsMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
+    protected ExportMask getExportMaskAlreadyIngested(UnManagedExportMask mask, DbClient dbClient) {
         ExportMask exportMask = null;
         @SuppressWarnings("deprecation")
         List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(mask
@@ -65,4 +67,23 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         return exportMask;
     }
 
+    /* (non-Javadoc)
+     * @see com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockIngestExportOrchestrator#getExportMaskAlreadyCreated(com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask, com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.IngestionRequestContext)
+     */
+    @Override
+    protected ExportMask getExportMaskAlreadyCreated(UnManagedExportMask mask, IngestionRequestContext requestContext) {
+        List<ExportMask> exportMasks = requestContext.findAllNewExportMasks();
+        for (ExportMask createdMask : exportMasks) {
+            // COP-18184 : Check if the initiators are also matching
+            if (null != createdMask && createdMask.getInitiators() != null
+                    && createdMask.getInitiators().containsAll(mask.getKnownInitiatorUris())) {
+                _logger.info("Found already-created ExportMask {} matching all initiators of UnManagedExportMask {}",
+                        createdMask.getMaskName(), mask.getMaskName());
+                return createdMask;
+            }
+        }
+
+        _logger.info("No existing created mask found for UnManagedExportMask {}", mask.getMaskName());
+        return null;
+    }
 }

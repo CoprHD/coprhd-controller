@@ -47,6 +47,12 @@ def dr_get_standby(args):
     if args.property:
     	print standby[args.property]
 
+def dr_get_standby_details(args):
+    bourne.connect(args.ip)
+    standby=bourne.dr_get_standby_details(args.uuid)
+    if args.property:
+    	print standby[args.property]
+
 def dr_delete_standby(args):
     bourne.connect(args.ip)
     bourne.dr_delete_standby(args.uuid)
@@ -82,6 +88,30 @@ def wait_for_state(args):
             print "giving up wait_for_state. counter %s args.length %s" % (timeCounter, args.length)
             raise Exception("Timeout occurred while waiting for standby state to %sbe %s" % (modifier,args.state))
 
+def wait_for_networkhealth(args):
+    timeCounter = 0
+    modifier=''
+    if args.n:
+        modifier='not '
+    print "Waiting for site network health to "+modifier+"be "+args.state
+    bourne.connect(args.ip)
+    while True:
+        try:
+            resp=bourne.dr_get_standby(args.uuid)
+            if args.n != (resp['network_health'] == args.state):
+                print "Standby network health is "+modifier+args.state
+                return
+        except:
+            print "Exception while checking for api success"
+            raise
+        time.sleep(args.sleep)
+        timeCounter += args.sleep
+        print  "Retrying... time elapsed: [" + str(timeCounter) + "s]"
+        if (timeCounter >= args.length):
+            print "giving up wait_for_networkhealth. counter %s args.length %s" % (timeCounter, args.length)
+            raise Exception("Timeout occurred while waiting for standby network health to %sbe %s" % (modifier,args.state))
+
+
 def dr_switch_over(args):
     bourne.connect(args.ip)
     bourne.dr_switchover(args.uuid)
@@ -100,7 +130,7 @@ def dr_check_standby(args):
     bourne.connect(args.ip)
     # check if API exception is thrown on standby for POST 
     uri="/tenants/%s/projects" % bourne.tenant_getid()
-    errcode=1013
+    errcode=3002
     message="Disallowed operation on standby site. Please redirect your request to active site %s." % args.activeSiteVip
     bourne.api_check_error("POST", uri, 403, errcode, message)
     print "PASS. Successfully catch API exception for POST %s" % uri
@@ -124,7 +154,7 @@ except:
 
 # dr <cmd> <cmd_args>  [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
-parser.add_argument('cmd', help = 'cmd = (add|list|get|delete|pause|resume|waitforstate|waitforstable|switchover|failover|find|checkstandby|poweroffcluster)')
+parser.add_argument('cmd', help = 'cmd = (add|list|get|delete|pause|resume|waitforstate|waitforstable|switchover|failover|find|checkstandby|poweroffcluster|details)')
 parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
 
 # add dr standby
@@ -144,6 +174,11 @@ drgetstandby = argparse.ArgumentParser(parents = [parser], conflict_handler='res
 drgetstandby.add_argument('uuid',    		 	help = 'uuid of standby site')
 drgetstandby.add_argument('property', nargs='?',	help = 'return property of standby site')
 
+# get dr standby details
+drgetstandbydetails = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+drgetstandbydetails.add_argument('uuid',    		 	help = 'uuid of standby site')
+drgetstandbydetails.add_argument('property', nargs='?',	help = 'return property of standby site')
+
 # delete dr standby
 drdeletestandby = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 drdeletestandby.add_argument('uuid', help = 'uuid of standby site')
@@ -155,6 +190,14 @@ waitforsync.add_argument('state',         help = 'state of standby site')
 waitforsync.add_argument('sleep', help = 'sleep of waiting time', type=float)
 waitforsync.add_argument('length', help = 'the whole waiting time', type=float)
 waitforsync.add_argument('-n', action='store_true',  help = 'wait for state to NOT equal')
+
+# "waitfornetworkhealth"
+waitfornetworkhealth = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+waitfornetworkhealth.add_argument('uuid',                help = 'uuid of standby site')
+waitfornetworkhealth.add_argument('state',         help = 'network health GOOD|BROKEN|SLOW')
+waitfornetworkhealth.add_argument('sleep', help = 'sleep of waiting time', type=float)
+waitfornetworkhealth.add_argument('length', help = 'the whole waiting time', type=float)
+waitfornetworkhealth.add_argument('-n', action='store_true',  help = 'wait for state to NOT equal')
 
 # switchover dr
 drswitchover = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
@@ -210,6 +253,9 @@ elif (cmd == "list"):
 elif (cmd == "get"):
     args = drgetstandby.parse_args()
     dr_get_standby(args)
+elif (cmd == "details"):
+    args = drgetstandbydetails.parse_args()
+    dr_get_standby_details(args)
 elif (cmd == "delete"):
     args = drdeletestandby.parse_args()
     dr_delete_standby(args)
@@ -222,6 +268,9 @@ elif (cmd == "resume"):
 elif (cmd == "waitforstate"):
     args = waitforsync.parse_args()
     wait_for_state(args)
+elif (cmd == "waitfornetworkhealth"):
+    args = waitfornetworkhealth.parse_args()
+    wait_for_networkhealth(args)
 elif (cmd == "switchover"):
     args = drswitchover.parse_args()
     dr_switch_over(args)

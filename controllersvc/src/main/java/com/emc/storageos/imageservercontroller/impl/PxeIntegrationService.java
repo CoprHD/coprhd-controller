@@ -32,8 +32,8 @@ public class PxeIntegrationService {
    
 
     public void createSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
-        if (ci._isEsxi5x()) {
-            createEsxi5xSession(d, job, ci, imageServer);
+        if (ci._isEsxi5x()||ci._isEsxi6x()) {
+            createEsxiSession(d, job, ci, imageServer);
         } else if (ci._isRedhat() || ci._isCentos() || ci._isOracle()) {
             throw ImageServerControllerException.exceptions.unknownOperatingSystem();
         } else {
@@ -42,13 +42,13 @@ public class PxeIntegrationService {
     }
 
     /**
-     * Create PXE UUID config and PXE uuid boot.cfg files for ESXi 5.x
+     * Create PXE UUID config and PXE uuid boot.cfg files for ESXi 5.x and 6.x
      * and put them under tftpboot/pxelinux.cfg/.
      * 
      * @param session
      * @param os
      */
-    private void createEsxi5xSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
+    private void createEsxiSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         // create uuid file
         String s = ImageServerUtils.getResourceAsString(ESXI5X_UUID_TEMPLATE);
         StringBuilder sb = new StringBuilder(s);
@@ -63,7 +63,7 @@ public class PxeIntegrationService {
         s = d.readFile(imageServer.getTftpBootDir() + ci.getPathToDirectory() + "/boot.cfg");
         sb = new StringBuilder(s.trim());
         ImageServerUtils.replaceAll(sb, "/", "/" + ci.getPathToDirectory());
-        ImageServerUtils.replaceAll(sb, "runweasel", "runweasel vmkopts=debugLogToSerial:1 mem=512M ks=http://"
+        ImageServerUtils.replaceAll(sb, "runweasel", "runweasel vmkopts=debugLogToSerial:1 ks=http://"
                 + imageServer.getImageServerSecondIp() + ":" + imageServer.getImageServerHttpPort() + "/ks/"
                 + job.getPxeBootIdentifier() + " kssendmac");
 
@@ -106,7 +106,7 @@ public class PxeIntegrationService {
 
         String str = null;
         StringBuilder sb = null;
-        if (ci._isEsxi5x()) {
+        if (ci._isEsxi5x()||ci._isEsxi6x()) {
             sb = new StringBuilder(ImageServerUtils.getResourceAsString(ESXI5X_UNATTENDED_TEMPLATE));
             if (bootDeviceUuid != null) {
                 ImageServerUtils.replaceAll(sb, "${DATASTORE_SYM_LINK}",

@@ -34,7 +34,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -363,7 +362,7 @@ public class NetworkDeviceController implements NetworkController {
         String taskId = UUID.randomUUID().toString();
         List<Zone> zones = new ArrayList<Zone>();
         // Make the zone operations. Don't make the same zone more than once,
-        // as determined by it's key. The same zone shows up multiple times because it
+        // as determined by its key. The same zone shows up multiple times because it
         // must be recorded for each volume in the FCZoneReference table.
         HashSet<String> keySet = new HashSet<String>();
         for (NetworkFCZoneInfo fabricInfo : fabricInfos) {
@@ -411,11 +410,20 @@ public class NetworkDeviceController implements NetworkController {
                             FCZoneReference ref = _dbClient.queryObject(FCZoneReference.class, fabricInfo.getFcZoneReferenceId());
                             if (ref != null) {
                                 refKey = ref.getPwwnKey();
-                                _dbClient.markForDeletion(ref);
-                                _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
-                                        ref.getPwwnKey(), ref.getVolumeUri(), ref.getId().toString()));
-                                recordZoneEvent(ref, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
-                                        OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
+                                //Retrieve other zone references that have the same Port WWN. These zone references should be made
+                                //inactive as well since the initiator is no longer available. 
+                                URIQueryResultList queryResults = new URIQueryResultList();
+                                _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getFCZoneReferenceByWWNKey(refKey), queryResults);
+                                Iterator<URI> queryResultsIter = queryResults.iterator();
+                                while (queryResultsIter.hasNext()) {
+                                	FCZoneReference refForWWNKey = _dbClient.queryObject(FCZoneReference.class, queryResultsIter.next());
+                                    _dbClient.markForDeletion(refForWWNKey);
+                                    _log.info(String.format("Remove FCZoneReference key: %s volume %s id %s",
+                                            refForWWNKey.getPwwnKey(), refForWWNKey.getVolumeUri(), refForWWNKey.getId().toString()));
+                                    recordZoneEvent(refForWWNKey, OperationTypeEnum.REMOVE_SAN_ZONE.name(),
+                                            OperationTypeEnum.REMOVE_SAN_ZONE.getDescription());
+                                }
+  
                             }
                         }
                     } catch (DatabaseException ex) {

@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<!-- Ant Script to create a Jar file and restart the StorageOS services.
+     These scripts are used exclusively by certain team members to rapidly (a few seconds) build and deploy jar files to their devkit.
+     It is not meant to replace the gradle scripts, and is not expressedly supported by the release engineers.
+     
+     @author Bill Elliott IV
+-->
+<project name="discoveryplugins" default="CreateJar">
+    
+  <property name="jarfile" value="discoveryplugins" />
+    
+  <!-- <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, SetProperties,StopServices,CreateJarFile,StartServices" />  -->
+  <target name="CreateJar" description="Creates Jar file" depends="DetermineOS, StopServices, SetProperties, ChangePermissionJar, CreateJarFile, StartServices" />  
+    
+  <target name="DetermineOS" description="Determines the OS.">
+    <condition property="isMac">
+     <os family="mac" />
+    </condition>
+        
+    <condition property="isWindows">
+     <os family="windows" />
+    </condition>
+
+    <condition property="isUnix">
+     <os family="unix" />
+    </condition>
+  </target>
+    
+  <target name="SetProperties" description="Set properties for Windows." if="${isWindows}">
+    <!--  Drag in the environment variables -->
+    <property environment="env"/> 
+    <property name="storageos.ip" value="${env.STORAGEOS_IP}"/>
+    <property name="storageos.opt" value="${env.OPT_DRIVELETTER}}"/>
+  </target>
+    
+  <target name="CreateJarFile" description="Create Jar file.">
+    <echo message="Creating ${jarfile} jar file..."/>
+
+    <mkdir dir="dist" />
+    <jar jarfile="dist/storageos-${jarfile}.jar">
+        <fileset dir="bin"/>
+    </jar>
+    <scp file="dist/storageos-${jarfile}.jar" trust="true" todir="root:${storageos.password}@${storageos.ip}:/opt/storageos/lib"/>
+    <delete dir="dist" />
+  </target>
+    
+  <target name="StopServices" description="Stop the StorageOS services.">
+    <!--  Stop the services -->
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.password}" command="/etc/storageos/storageos stop" trust="true"/>
+  </target>
+
+  <target name="ChangePermissionJar" description="Change the permission of the jar">
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.password}" command="chmod 777 /opt/storageos/lib/storageos-${jarfile}.jar" trust="true"/>
+  </target>
+
+  <target name="StartServices" description="Start the StorageOS services.">
+    <!--  Start the services -->
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.password}" command="/etc/storageos/storageos start" trust="true"/>
+  </target> 
+
+  <target name="KillSingleService" description="Kill a single server and the monitor will restart it.">
+    <!--  Start the services -->
+    <sshexec host="${storageos.ip}" username="root" password="${storageos.password}" command="/workspace/killservice.sh discoveryplugins" trust="true"/>
+  </target> 
+
+</project>

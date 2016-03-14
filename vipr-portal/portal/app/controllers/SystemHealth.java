@@ -35,6 +35,7 @@ import play.mvc.Controller;
 import play.mvc.With;
 import util.AdminDashboardUtils;
 import util.BourneUtil;
+import util.DisasterRecoveryUtils;
 import util.MonitorUtils;
 import util.SystemLogUtils;
 import util.datatable.DataTablesSupport;
@@ -67,7 +68,7 @@ import controllers.security.Security;
 import controllers.util.Models;
 
 @With(Common.class)
-@Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+@Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
 public class SystemHealth extends Controller {
 
     public static final String PARAM_NODE_ID = "nodeId";
@@ -195,7 +196,9 @@ public class SystemHealth extends Controller {
         ClusterInfo clusterInfo = AdminDashboardUtils.getClusterInfo();
 
         renderArgs.put("severities", SEVERITIES);
-        renderArgs.put("orderTypes", ORDER_TYPES);
+        if(DisasterRecoveryUtils.isActiveSite()) {
+            renderArgs.put("orderTypes", ORDER_TYPES);
+        }
 
         Set<String> controlServiceNames = getControlServiceNames(nodeHealthList, clusterInfo);
         renderArgs.put("controlServices", controlServiceNames);
@@ -521,16 +524,17 @@ public class SystemHealth extends Controller {
         if (severity != null && severity > 0) {
             creator.setLogSeverity(severity);
         }
-        if (StringUtils.equalsIgnoreCase(orderTypes, OrderTypes.ALL.name())) {
-            creator.setOrderTypes(OrderTypes.ALL);
-        }
-        else if (StringUtils.equals(orderTypes, OrderTypes.ERROR.name())) {
-            creator.setOrderTypes(OrderTypes.ERROR);
+        if(DisasterRecoveryUtils.isActiveSite()) {
+            if (StringUtils.equalsIgnoreCase(orderTypes, OrderTypes.ALL.name())) {
+                creator.setOrderTypes(OrderTypes.ALL);
+            } else if (StringUtils.equals(orderTypes, OrderTypes.ERROR.name())) {
+                creator.setOrderTypes(OrderTypes.ERROR);
+            }
         }
         renderSupportPackage(creator);
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void getRecoveryStatus() {
         ViPRSystemClient client = BourneUtil.getSysClient();
         RecoveryStatus recoveryStatus = client.control().getRecoveryStatus();
@@ -547,7 +551,7 @@ public class SystemHealth extends Controller {
         renderJSON(jsonObj.toString());
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void nodeReboot(@Required String nodeId) {
         NodeHealth nodeHealth = MonitorUtils.getNodeHealth(nodeId);
         String node= nodeId;
@@ -566,7 +570,7 @@ public class SystemHealth extends Controller {
         }
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void minorityNodeRecovery() {
         new MinorityNodeRecoveryJob(getSysClient()).in(3);
         ViPRSystemClient client = BourneUtil.getSysClient();
@@ -580,7 +584,7 @@ public class SystemHealth extends Controller {
         render("@nodeRecovery");
     }
 
-    @Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
+    @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
     public static void serviceRestart(@Required String nodeId, @Required String serviceName) {
         new RestartServiceJob(getSysClient(), serviceName, nodeId).in(3);
         String node= nodeId;

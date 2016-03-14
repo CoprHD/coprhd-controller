@@ -26,6 +26,8 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -33,7 +35,9 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedConsistencyGroup;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedProtectionSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
@@ -51,16 +55,22 @@ public class DiscoveryUtils {
     private static final Logger _log = LoggerFactory.getLogger(DiscoveryUtils.class);
     public static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
     public static final String UNMANAGED_VOLUME = "UnManagedVolume";
+    public static final String UNMANAGED_CONSISTENCY_GROUP = "UnManagedConsistencyGroup";
 
     /**
      * get Matched Virtual Pools For Pool.
      * This is called to calculate supported vpools during unmanaged objects discovery
-     *
-     * @param poolUri
+     * 
+     * @param dbClient db client
+     * @param poolUri storage pool
+     * @param isThinlyProvisionedUnManagedObject is this thin provisioned?
+     * @param srdfProtectedVPoolUris srdf protected vpools
+     * @param rpProtectedVPoolUris RP protected vpools
+     * @param volumeType type of volume
      * @return
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
-            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, String volumeType) {
+            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, Set<URI> rpProtectedVPoolUris, String volumeType) {
         StringSet vpoolUriSet = new StringSet();
         // We should match all virtual pools as below:
         // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
@@ -272,12 +282,14 @@ public class DiscoveryUtils {
         List<StoragePool> modifiedPools = new ArrayList<StoragePool>();
         while (storagePoolIter.hasNext()) {
             StoragePool pool = dbClient.queryObject(StoragePool.class, storagePoolIter.next());
+            if (pool.getInactive()) {
+                continue;
+            }
             modifiedPools.add(pool);
             pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
-            dbClient.persistObject(pool);
+            dbClient.updateObject(pool);
         }
         ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVirtualPool(modifiedPools, dbClient, coordinator);
-        ;
 
         // Mark all Ports as incompatible
         URIQueryResultList storagePortURIs = new URIQueryResultList();
@@ -287,8 +299,11 @@ public class DiscoveryUtils {
         Iterator<URI> storagePortIter = storagePortURIs.iterator();
         while (storagePortIter.hasNext()) {
             StoragePort port = dbClient.queryObject(StoragePort.class, storagePortIter.next());
+            if (port.getInactive()) {
+                continue;
+            }
             port.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.INCOMPATIBLE.name());
-            dbClient.persistObject(port);
+            dbClient.updateObject(port);
         }
     }
 
@@ -465,7 +480,7 @@ public class DiscoveryUtils {
     }
 
     /**
-     * check Storage Volume exists in DB
+     * check Block Snapshot exists in DB
      * 
      * @param dbClient
      * @param nativeGuid
@@ -478,6 +493,24 @@ public class DiscoveryUtils {
         Iterator<BlockSnapshot> snapshotItr = snapshots.iterator();
         if (snapshotItr.hasNext()) {
             return snapshotItr.next();
+        }
+        return null;
+    }
+
+    /**
+     * check Protection Set exists in DB
+     * 
+     * @param dbClient
+     * @param nativeGuid
+     * @return
+     * @throws IOException
+     */
+    public static ProtectionSet checkProtectionSetExistsInDB(DbClient dbClient, String nativeGuid)
+            throws IOException {
+        List<ProtectionSet> cgs = CustomQueryUtility.getActiveProtectionSetByNativeGuid(dbClient, nativeGuid);
+        Iterator<ProtectionSet> cgsItr = cgs.iterator();
+        if (cgsItr.hasNext()) {
+            return cgsItr.next();
         }
         return null;
     }
@@ -502,6 +535,84 @@ public class DiscoveryUtils {
             }
         }
         return null;
+    }
+
+    /**
+     * check UnManagedVolume exists in DB by WWN
+     * 
+     * @param dbClient db client
+     * @param wwn WWN
+     * @return volume, if it's in the DB
+     */
+    public static UnManagedVolume checkUnManagedVolumeExistsInDBByWwn(DbClient dbClient, String wwn) {
+        URIQueryResultList unManagedVolumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedVolumeWwnConstraint(wwn), unManagedVolumeList);
+        if (unManagedVolumeList.iterator().hasNext()) {
+            URI unManagedVolumeURI = unManagedVolumeList.iterator().next();
+            UnManagedVolume volumeInfo = dbClient.queryObject(UnManagedVolume.class, unManagedVolumeURI);
+            if (!volumeInfo.getInactive()) {
+                return volumeInfo;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Check if a managed Volume exists in database, searching by WWN.
+     * 
+     * @param dbClient database client reference
+     * @param wwn the WWN to look for in the Volume table
+     * @return a Volume object, if it's in the database
+     */
+    public static Volume checkManagedVolumeExistsInDBByWwn(DbClient dbClient, String wwn) {
+        URIQueryResultList volumeList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeWwnConstraint(wwn), volumeList);
+        if (volumeList.iterator().hasNext()) {
+            URI volumeURI = volumeList.iterator().next();
+            Volume volumeInfo = dbClient.queryObject(Volume.class, volumeURI);
+            if (!volumeInfo.getInactive()) {
+                return volumeInfo;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * check unmanaged Protection Set exists in DB
+     * 
+     * @param dbClient a reference to the database client
+     * @param nativeGuid native guid of the protection set
+     * @return the unmanaged protection set associated with the native guid
+     * @throws IOException
+     */
+    public static UnManagedProtectionSet checkUnManagedProtectionSetExistsInDB(DbClient dbClient, String nativeGuid)
+            throws IOException {
+        List<UnManagedProtectionSet> cgs = CustomQueryUtility.getUnManagedProtectionSetByNativeGuid(dbClient, nativeGuid);
+        Iterator<UnManagedProtectionSet> cgsItr = cgs.iterator();
+        if (cgsItr.hasNext()) {
+            return cgsItr.next();
+        }
+        return null;
+    }
+
+    /**
+     * Get a Set of all UnManagedProtectionSet URIs for a given ProtectionSystem.
+     * 
+     * @param dbClient a reference to the database client
+     * @param protectionSystemUri the URI of the ProtectionSystem to check
+     * @return a Set of all UnManagedProtectionSets for a given ProtectionSystem
+     */
+    public static Set<URI> getAllUnManagedProtectionSetsForSystem(
+            DbClient dbClient, String protectionSystemUri) {
+        Set<URI> cgSet = new HashSet<URI>();
+        List<UnManagedProtectionSet> cgs = CustomQueryUtility.getUnManagedProtectionSetByProtectionSystem(dbClient, protectionSystemUri);
+        Iterator<UnManagedProtectionSet> cgsItr = cgs.iterator();
+        while (cgsItr.hasNext()) {
+            cgSet.add(cgsItr.next().getId());
+        }
+        
+        return cgSet;
     }
 
     /**
@@ -568,6 +679,64 @@ public class DiscoveryUtils {
         }
     }
 
+    /**
+     * Compares the set of unmanaged consistency groups for the current discovery operation
+     * to the set of unmanaged consistency groups already in the database from a previous
+     * discovery operation.  Removes existing database entries if the object was not present
+     * in the current discovery operation.
+     * 
+     * @param storageSystem - storage system containing the CGs
+     * @param currentUnManagedCGs - current list of unmanaged CGs
+     * @param dbClient - database client
+     * @param partitionManager - partition manager
+     */
+    public static void performUnManagedConsistencyGroupsBookKeeping(StorageSystem storageSystem, Set<URI> currentUnManagedCGs,
+            	DbClient dbClient, PartitionManager partitionManager) {
+
+        _log.info(" -- Processing {} discovered UnManaged Consistency Group Objects from -- {}",
+        		currentUnManagedCGs.size(), storageSystem.getLabel());        
+        // no consistency groups discovered 
+        if (currentUnManagedCGs.isEmpty()) {
+            return;
+        }
+        
+        // Get all available existing unmanaged CG URIs for this array from DB
+        URIQueryResultList allAvailableUnManagedCGsInDB = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedCGConstraint(storageSystem.getId()),              
+                allAvailableUnManagedCGsInDB);
+                
+        Set<URI> unManagedCGsInDBSet = new HashSet<URI>();
+        Iterator<URI> allAvailableUnManagedCGsItr = allAvailableUnManagedCGsInDB.iterator();
+        while (allAvailableUnManagedCGsItr.hasNext()) {
+        	unManagedCGsInDBSet.add(allAvailableUnManagedCGsItr.next());
+        }
+                
+        SetView<URI> onlyAvailableinDB = Sets.difference(unManagedCGsInDBSet, currentUnManagedCGs);
+
+        _log.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
+        if (!onlyAvailableinDB.isEmpty()) {
+            List<UnManagedConsistencyGroup> unManagedCGTobeDeleted = new ArrayList<UnManagedConsistencyGroup>();
+            Iterator<UnManagedConsistencyGroup> unManagedCGs = dbClient.queryIterativeObjects(UnManagedConsistencyGroup.class,
+                    new ArrayList<URI>(onlyAvailableinDB));
+
+            while (unManagedCGs.hasNext()) {
+            	UnManagedConsistencyGroup cg = unManagedCGs.next();
+                if (null == cg || cg.getInactive()) {
+                    continue;
+                }
+
+                _log.info("Setting UnManagedConsistencyGroup {} inactive", cg.getId());
+                cg.setStorageSystemUri(NullColumnValueGetter.getNullURI());
+                cg.setInactive(true);
+                unManagedCGTobeDeleted.add(cg);
+            }
+            if (!unManagedCGTobeDeleted.isEmpty()) {
+                partitionManager.updateAndReIndexInBatches(unManagedCGTobeDeleted, unManagedCGTobeDeleted.size(),
+                        dbClient, UNMANAGED_CONSISTENCY_GROUP);
+            }
+        }
+    }
+    
     public static void markInActiveUnManagedExportMask(URI storageSystemUri,
             Set<URI> discoveredUnManagedExportMasks, DbClient dbClient, PartitionManager partitionManager) {
 
@@ -603,7 +772,7 @@ public class DiscoveryUtils {
                 unManagedExportMasksToBeDeleted.add(uem);
             }
             if (!unManagedExportMasksToBeDeleted.isEmpty()) {
-                partitionManager.updateAndReIndexInBatches(unManagedExportMasksToBeDeleted, Constants.DEFAULT_PARTITION_SIZE,
+                partitionManager.updateAndReIndexInBatches(unManagedExportMasksToBeDeleted, unManagedExportMasksToBeDeleted.size(),
                         dbClient, UNMANAGED_EXPORT_MASK);
             }
         }
@@ -623,4 +792,70 @@ public class DiscoveryUtils {
                 .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
         return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
     }
+    
+    /**
+     * Determines if the UnManagedConsistencyGroup object exists in the database
+     * 
+     * @param nativeGuid - native Guid for the unmanaged consistency group
+     * @param dbClient - database client
+     * @return unmanagedCG - null if it does not exist in the database, otherwise it returns the 
+     *         UnManagedConsistencyGroup object from the database
+     * @throws IOException
+     */
+    public static UnManagedConsistencyGroup checkUnManagedCGExistsInDB(DbClient dbClient, String nativeGuid) {
+    	UnManagedConsistencyGroup unmanagedCG = null;
+    	URIQueryResultList unManagedCGList = new URIQueryResultList();
+    	dbClient.queryByConstraint(AlternateIdConstraint.Factory
+    			.getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
+    	if (unManagedCGList.iterator().hasNext()) {
+    		URI unManagedCGURI = unManagedCGList.iterator().next();
+    		unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);            
+    	}
+    	return unmanagedCG;
+    }
+
+    /**
+     * Dump & remove deleted namespaces in object storage
+     * 
+     * @param discoveredNamespaces
+     * @param dbClient
+     * @param storageSystemId
+     */
+    public static void checkNamespacesNotVisible(List<ObjectNamespace> discoveredNamespaces,
+            DbClient dbClient, URI storageSystemId) {
+        // Get the namespaces previousy discovered
+        URIQueryResultList objNamespaceURIs = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceObjectNamespaceConstraint(storageSystemId),
+                objNamespaceURIs);
+        Iterator<URI> objNamespaceIter = objNamespaceURIs.iterator();
+
+        List<URI> existingNamespacesURI = new ArrayList<URI>();
+        while (objNamespaceIter.hasNext()) {
+            existingNamespacesURI.add(objNamespaceIter.next());
+        }
+
+        List<URI> discoveredNamespacesURI = new ArrayList<URI>();
+        for (ObjectNamespace namespace : discoveredNamespaces) {
+            discoveredNamespacesURI.add(namespace.getId());
+        }
+
+        // Present in existing but not in discovered; remove them
+        Set<URI> namespacesDiff = Sets.difference(new HashSet<URI>(existingNamespacesURI), new HashSet<URI>(discoveredNamespacesURI));
+
+        if (!namespacesDiff.isEmpty()) {
+            Iterator<ObjectNamespace> objNamespaceIt = dbClient.queryIterativeObjects(ObjectNamespace.class, namespacesDiff, true);
+            while (objNamespaceIt.hasNext()) {
+                ObjectNamespace namespace = objNamespaceIt.next();
+                // Namespace is not associated with tenant
+                if (namespace.getTenant() == null) {
+                    _log.info("Object Namespace not visible & getting deleted {} : {}", namespace.getNativeId(), namespace.getId());
+                    namespace.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
+                    namespace.setInactive(true);
+                }
+                dbClient.updateObject(namespace);
+            }
+        }
+    }
+    
 }

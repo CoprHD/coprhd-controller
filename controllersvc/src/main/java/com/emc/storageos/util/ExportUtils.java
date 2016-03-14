@@ -53,8 +53,8 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-import com.google.common.collect.Collections2;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.TreeMultimap;
 
 public class ExportUtils {
@@ -88,6 +88,24 @@ public class ExportUtils {
         return null;
     }
 
+    /**
+     * Return a Set initiators for the given collection of port names (WWN or IQNs)
+     * 
+     * @param portNames [IN] - Port names to query
+     * @param dbClient [IN] - DbClient for DB access
+     * @return Set or Initiators looked up by the 'portNames'
+     */
+    public static Set<Initiator> getInitiators(Collection<String> portNames, DbClient dbClient) {
+        Set<Initiator> initiatorSet = new HashSet<>();
+        for (String portName : portNames) {
+            Initiator initiator = getInitiator(Initiator.toPortNetworkId(portName), dbClient);
+            if (initiator != null) {
+                initiatorSet.add(initiator);
+            }
+        }
+        return initiatorSet;
+    }
+    
     /**
      * A utility function method to get the user-created initiators from an export mask.
      * If an initiator is not found for a given user-created WWN, it is simply
@@ -816,9 +834,7 @@ public class ExportUtils {
     }
 
     /**
-     * Check the list of passed in initiators and check if HostName is null or
-     * Host is not null, if so, these are NOT RecovePoing initiators so return
-     * false. Otherwise we can assume they are, return true.
+     * Check the list of passed in initiators and check if the RP flag is set.
      * 
      * @param initiatorList
      *            List of Initiators

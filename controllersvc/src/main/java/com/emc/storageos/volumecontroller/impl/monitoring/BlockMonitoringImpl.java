@@ -29,6 +29,7 @@ import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
 import com.google.common.collect.Sets;
+import com.netflix.astyanax.connectionpool.ConnectionFactory;
 
 /**
  * Takes care monitoring for vmax and vnxblock storage devices.
@@ -38,7 +39,7 @@ public class BlockMonitoringImpl implements IMonitoringStorageSystem {
     private final Logger _logger = LoggerFactory.getLogger(BlockMonitoringImpl.class);
 
     /**
-     * Holds List of SMIS Provider's URI which are managed by this Bourne Node and it's callBack instance
+     * Holds List of SMIS Provider's URI which are managed by this Bourne Node and its callBack instance
      * Key : SMIS Provider's URI
      * Value: Callback instance of the MonitoringJob available on ZooKeeper
      */
@@ -294,7 +295,7 @@ public class BlockMonitoringImpl implements IMonitoringStorageSystem {
 
             if ((CompatibilityStatus.COMPATIBLE.name().equalsIgnoreCase(storageSystem.getCompatibilityStatus())
                     || CompatibilityStatus.UNKNOWN.name().equalsIgnoreCase(storageSystem.getCompatibilityStatus()))
-                    && Type.isProviderStorageSystem((Type.valueOf((storageSystem.getSystemType()))))
+                    && Type.isProviderStorageSystem(storageSystem.getSystemType())
                     && null != storageSystem.getActiveProviderURI() && !storageSystem.getInactive()
                     && !NullColumnValueGetter.getNullURI().equals(
                             storageSystem.getActiveProviderURI())) {

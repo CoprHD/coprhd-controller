@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.httpclient.util.URIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,7 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOCluster;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusterInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOClusters;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroupVolInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroups;
@@ -60,9 +62,9 @@ public class XtremIOV1Client extends XtremIOClient {
     public List<XtremIOVolume> getXtremIOVolumesForLinks(List<XtremIOObjectInfo> volumeLinks, String clusterName) throws Exception {
         List<XtremIOVolume> volumeList = new ArrayList<XtremIOVolume>();
         for (XtremIOObjectInfo volumeInfo : volumeLinks) {
-            log.debug("Trying to get volume details for {}", volumeInfo.getHref());
             try {
-                URI volumeURI = URI.create(volumeInfo.getHref());
+                URI volumeURI = URI.create(URIUtil.getFromPath(volumeInfo.getHref()));
+                log.debug("Trying to get volume details for {}", volumeURI.toString());
                 ClientResponse response = get(volumeURI);
                 XtremIOVolumes volumes = getResponseObject(XtremIOVolumes.class, response);
                 log.info("Volume {}", volumes.getContent().getVolInfo().get(1) + "-"
@@ -84,7 +86,8 @@ public class XtremIOV1Client extends XtremIOClient {
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         List<XtremIOSystem> discoveredXIOSystems = new ArrayList<XtremIOSystem>();
         for (XtremIOCluster cluster : xioClusters.getClusters()) {
-            URI clusterURI = URI.create(cluster.getHref());
+            URI clusterURI = URI.create(URIUtil.getFromPath(cluster.getHref()));
+            log.debug("Trying to get cluster details for {}", clusterURI.toString());
             response = get(clusterURI);
             XtremIOClusterInfo xioSystem = getResponseObject(XtremIOClusterInfo.class, response);
             log.info("System {}", xioSystem.getContent().getName() + "-"
@@ -102,7 +105,8 @@ public class XtremIOV1Client extends XtremIOClient {
         log.info("Returned Target Links size : {}", targetPortLinks.getPortInfo().length);
         List<XtremIOPort> targetPortList = new ArrayList<XtremIOPort>();
         for (XtremIOObjectInfo targetPortInfo : targetPortLinks.getPortInfo()) {
-            URI targetPortUri = URI.create(targetPortInfo.getHref());
+            URI targetPortUri = URI.create(URIUtil.getFromPath(targetPortInfo.getHref()));
+            log.debug("Trying to get port details for {}", targetPortUri.toString());
             response = get(targetPortUri);
             XtremIOPorts targetPorts = getResponseObject(XtremIOPorts.class, response);
             log.info("Target Port {}", targetPorts.getContent().getName() + "-"
@@ -120,7 +124,8 @@ public class XtremIOV1Client extends XtremIOClient {
         log.info("Returned Initiator Links size : {}", initiatorPortLinks.getInitiators().length);
         List<XtremIOInitiator> initiatorPortList = new ArrayList<XtremIOInitiator>();
         for (XtremIOObjectInfo initiatorPortInfo : initiatorPortLinks.getInitiators()) {
-            URI initiatorPortUri = URI.create(initiatorPortInfo.getHref());
+            URI initiatorPortUri = URI.create(URIUtil.getFromPath(initiatorPortInfo.getHref()));
+            log.debug("Trying to get initiator details for {}", initiatorPortUri.toString());
             response = get(initiatorPortUri);
             XtremIOInitiators initiatorPorts = getResponseObject(XtremIOInitiators.class, response);
             log.info("Initiator Port {}", initiatorPorts.getContent().getName() + "-"
@@ -138,6 +143,11 @@ public class XtremIOV1Client extends XtremIOClient {
         List<XtremIOVolume> volumeList = getXtremIOVolumesForLinks(Arrays.asList(volumeLinks.getVolumeInfo()), clusterName);
 
         return volumeList;
+    }
+
+    @Override
+    public List<XtremIOObjectInfo> getXtremIOConsistencyGroups(String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroups");
     }
 
     @Override
@@ -268,12 +278,13 @@ public class XtremIOV1Client extends XtremIOClient {
     }
 
     @Override
-    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String clusterName) throws Exception {
+    public XtremIOResponse createInitiator(String initiatorName, String igId, String portAddress, String os, String clusterName)
+            throws Exception {
         XtremIOInitiatorCreate initiatorCreate = new XtremIOInitiatorCreate();
         initiatorCreate.setInitiatorGroup(igId);
         initiatorCreate.setName(initiatorName);
         initiatorCreate.setPortAddress(portAddress);
-
+        // OS is not supported for V1 Client hence not setting.
         log.info("Calling Initiator Create with: {}", initiatorCreate.toString());
 
         ClientResponse response = post(XtremIOConstants.XTREMIO_INITIATORS_URI,
@@ -486,7 +497,8 @@ public class XtremIOV1Client extends XtremIOClient {
         XtremIOClusters xioClusters = getResponseObject(XtremIOClusters.class, response);
         log.info("Returned Clusters : {}", xioClusters.getClusters().length);
         for (XtremIOCluster cluster : xioClusters.getClusters()) {
-            URI clusterURI = URI.create(cluster.getHref());
+            URI clusterURI = URI.create(URIUtil.getFromPath(cluster.getHref()));
+            log.debug("Trying to get cluster details for {}", clusterURI.toString());
             response = get(clusterURI);
             XtremIOClusterInfo xioSystem = getResponseObject(XtremIOClusterInfo.class, response);
             log.info("System {}", xioSystem.getContent().getName() + "-"
@@ -535,5 +547,11 @@ public class XtremIOV1Client extends XtremIOClient {
     @Override
     public XtremIOConsistencyGroup getSnapshotSetDetails(String snapshotSetName, String clusterName) throws Exception {
         throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getSnapshotSetDetails");
+    }
+
+    @Override
+    public XtremIOConsistencyGroupVolInfo getXtremIOConsistencyGroupInfo(
+            XtremIOObjectInfo cgVolume, String clusterName) throws Exception {
+        throw XtremIOApiException.exceptions.operationNotSupportedForVersion("getXtremIOConsistencyGroupInfo");
     }
 }

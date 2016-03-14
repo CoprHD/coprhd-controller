@@ -4,20 +4,37 @@
  */
 package com.emc.storageos.systemservices.impl.security;
 
+import com.emc.storageos.coordinator.client.model.Site;
+import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.security.SecurityDisabler;
 import com.emc.storageos.security.authorization.*;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.sun.jersey.spi.container.ContainerRequest;
+import com.sun.jersey.spi.container.ContainerRequestFilter;
+import com.sun.jersey.spi.container.ContainerResponseFilter;
 import com.sun.jersey.spi.container.ResourceFilter;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
+
 import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 
 /**
  * Class implements ResourceFilterFactory to add permissions filter where needed
  */
 public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFactory {
+    private static final List<String> FORBIDDEN_PATHS = Arrays.asList("backupset", "control/cluster/recovery", "control/cluster/ipreconfig");
+    private static final List<String> READ_ONLY_PATHS = Arrays.asList("ipsec");
+    private static final List<String> CONFIG_PATHS = Arrays.asList("config");
+
+    private static final List<String> WRITE_METHODS = Arrays.asList("PUT", "POST");
+
     private BasePermissionsHelper _permissionsHelper;
 
     @Autowired(required = false)
@@ -25,6 +42,15 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
 
     private @Context
     UriInfo uriInfo;
+
+    private boolean isStandby = false; // default to false
+
+    public void setIsStandby(boolean isStandby) {
+        this.isStandby = isStandby;
+    }
+
+    @Autowired
+    private DrUtil drUtil;
 
     /**
      * PermissionsFilter for apisvc
@@ -86,7 +112,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
 
     @Override
     protected ResourceFilter getPreFilter() {
-        return null;
+        return new StandbySyssvcFilter();
     }
 
     @Override
@@ -108,5 +134,89 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
     @Override
     protected AbstractLicenseFilter getLicenseFilter() {
         return null;
+    }
+    /**
+     * Request filter for syssvc on standby node. We disable backup reuquests on standby.
+     */
+    private class StandbySyssvcFilter implements ResourceFilter, ContainerRequestFilter {
+        @Override
+        public ContainerRequest filter(ContainerRequest request) {
+            // allow all request on active site
+            // use a injected variable rather than querying with DrUtil every time
+            // because if a ZK quorum is lost on the active site all the ZK accesses will fail
+            // note that readonly mode is not enabled on the active site.
+            if (!isStandby) {
+                return request;
+            }
+            String path = request.getPath();
+            if (isForbidden(request)) {
+                throw APIException.forbidden.disallowOperationOnDrStandby(drUtil.getActiveSite().getVipEndPoint());
+            }
+
+            return request;
+        }
+
+        private boolean isForbidden(ContainerRequest request) {
+            if (isPathForbidden(request.getPath())) {
+                return true;
+            }
+
+            if (isPathInReadOnly(request.getPath()) && isWrite(request.getMethod())) {
+                return true;
+            }
+
+            if (isConfigurationPath(request.getPath()) &&
+                    !drUtil.getLocalSite().getState().equals(SiteState.STANDBY_SYNCED)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        private boolean isWrite(String method) {
+            for (String m : WRITE_METHODS) {
+                if (m.equalsIgnoreCase(method)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isPathInReadOnly(String path) {
+            for (String forbid : READ_ONLY_PATHS) {
+                if (path.startsWith(forbid)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isConfigurationPath(String path) {
+            for (String forbid : CONFIG_PATHS) {
+                if (path.startsWith(forbid)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean isPathForbidden(String path) {
+            for (String forbid : FORBIDDEN_PATHS) {
+                if (path.startsWith(forbid)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public ContainerRequestFilter getRequestFilter() {
+            return this;
+        }
+
+        @Override
+        public ContainerResponseFilter getResponseFilter() {
+            return null;
+        }
     }
 }

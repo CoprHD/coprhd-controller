@@ -24,7 +24,6 @@ public class SearchResults {
     /**
      * A list of resources matching the search parameters
      * 
-     * @valid none
      */
     @XmlElement(name = "resource")
     public List<SearchResultResourceRep> getResource() {

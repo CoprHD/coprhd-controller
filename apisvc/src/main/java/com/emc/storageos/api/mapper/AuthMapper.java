@@ -1,7 +1,21 @@
 /*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
+ * Copyright 2015 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
+
 package com.emc.storageos.api.mapper;
 
 import com.emc.storageos.db.client.model.AuthnProvider;
@@ -31,6 +45,7 @@ public class AuthMapper {
         to.setServerUrls(from.getServerUrls());
         to.setGroupWhitelistValues(from.getGroupWhitelistValues());
         to.setDisable(from.getDisable());
+        to.setAutoRegCoprHDNImportOSProjects(from.getAutoRegCoprHDNImportOSProjects());
         to.setDescription(from.getDescription());
         to.setMaxPageSize(from.getMaxPageSize());
         to.setGroupObjectClasses(from.getGroupObjectClassNames());
@@ -40,6 +55,35 @@ public class AuthMapper {
 
     public static final AuthnProvider map(AuthnCreateParam from) {
         AuthnProvider authn = new AuthnProvider();
+        if (from.getManagerDn() != null) {
+            authn.setManagerDN(from.getManagerDn());
+        }
+        if (from.getManagerPassword() != null) {
+            authn.setManagerPassword(from.getManagerPassword());
+        }
+        if (from.getDisable() != null) {
+            authn.setDisable(from.getDisable());
+        }
+        if (from.getAutoRegCoprHDNImportOSProjects() != null) {
+            authn.setAutoRegCoprHDNImportOSProjects(from.getAutoRegCoprHDNImportOSProjects());
+        } else {
+            authn.setAutoRegCoprHDNImportOSProjects(false);
+        }
+        StringSet urlStringSet = null;
+        if (from.getServerUrls() != null && !from.getServerUrls().isEmpty()) {
+        	urlStringSet = new StringSet();
+        	urlStringSet.addAll(from.getServerUrls());
+            authn.setServerUrls(urlStringSet);
+        }
+        if (from.getMode() != null) {
+            authn.setMode(from.getMode());
+        }
+        if (from.getLabel() != null) {
+            authn.setLabel(from.getLabel());
+        }
+        if (from.getDescription() != null) {
+            authn.setDescription(from.getDescription());
+        }
         if (from.getGroupAttribute() != null) {
             authn.setGroupAttribute(from.getGroupAttribute());
         }
@@ -57,15 +101,7 @@ public class AuthMapper {
             }
             authn.setDomains(trimmedDomains);
         }
-        if (from.getDisable() != null) {
-            authn.setDisable(from.getDisable());
-        }
-        if (from.getManagerDn() != null) {
-            authn.setManagerDN(from.getManagerDn());
-        }
-        if (from.getManagerPassword() != null) {
-            authn.setManagerPassword(from.getManagerPassword());
-        }
+        
         if (from.getSearchBase() != null) {
             authn.setSearchBase(from.getSearchBase());
         }
@@ -74,20 +110,6 @@ public class AuthMapper {
         }
         if (from.getSearchScope() != null) {
             authn.setSearchScope(from.getSearchScope());
-        }
-        if (from.getServerUrls() != null && !from.getServerUrls().isEmpty()) {
-            ss = new StringSet();
-            ss.addAll(from.getServerUrls());
-            authn.setServerUrls(ss);
-        }
-        if (from.getMode() != null) {
-            authn.setMode(from.getMode());
-        }
-        if (from.getLabel() != null) {
-            authn.setLabel(from.getLabel());
-        }
-        if (from.getDescription() != null) {
-            authn.setDescription(from.getDescription());
         }
 
         if (from.getMaxPageSize() != null) {

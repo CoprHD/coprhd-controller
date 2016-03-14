@@ -13,10 +13,18 @@ import java.util.Properties;
 import javax.ws.rs.core.UriBuilder;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.TaskList;
+import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.block.MirrorList;
 import com.emc.storageos.model.file.ExportRule;
 import com.emc.storageos.model.file.ExportRules;
 import com.emc.storageos.model.file.FileCifsShareACLUpdateParams;
 import com.emc.storageos.model.file.FileExportUpdateParam;
+import com.emc.storageos.model.file.FileNfsACLUpdateParams;
+import com.emc.storageos.model.file.FilePolicyList;
+import com.emc.storageos.model.file.FileReplicationCreateParam;
+import com.emc.storageos.model.file.FileReplicationParam;
 import com.emc.storageos.model.file.FileShareBulkRep;
 import com.emc.storageos.model.file.FileShareExportUpdateParams;
 import com.emc.storageos.model.file.FileShareRestRep;
@@ -27,9 +35,11 @@ import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.file.FileSystemShareList;
 import com.emc.storageos.model.file.FileSystemShareParam;
+import com.emc.storageos.model.file.FileSystemUpdateParam;
+import com.emc.storageos.model.file.FileSystemVirtualPoolChangeParam;
 import com.emc.storageos.model.file.NfsACL;
-import com.emc.storageos.model.file.NfsACLUpdateParams;
 import com.emc.storageos.model.file.NfsACLs;
+import com.emc.storageos.model.file.ScheduleSnapshotList;
 import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
@@ -99,17 +109,15 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     protected String getShareACLsUrl() {
         return getIdUrl() + "/shares/{shareName}/acl";
     }
-    
-	/**
-	 * Gets the base URL for NFS ACL for a filesystem:
-	 * <tt>/file/filesystems/{id}/acl</tt>
-	 * 
-	 * @return the NFS ACL URL.
-	 */
-	protected String getNfsACLsUrl() {
-		return "/file/filesystems/{id}/acl";
-	}
-    
+
+    /**
+     * Gets the base URL for NFS ACL for a filesystem: <tt>/file/filesystems/{id}/acl</tt>
+     * 
+     * @return the NFS ACL URL.
+     */
+    protected String getNfsACLsUrl() {
+        return "/file/filesystems/{id}/acl";
+    }
 
     @Override
     protected List<FileShareRestRep> getBulkResources(BulkIdParam input) {
@@ -141,6 +149,21 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     public Task<FileShareRestRep> create(URI projectId, FileSystemParam input) {
         URI targetUri = client.uriBuilder(baseUrl).queryParam(PROJECT_PARAM, projectId).build();
         return postTaskURI(input, targetUri);
+    }
+
+    /**
+     * Begins updating the given file system by ID.
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{id}</tt>
+     * 
+     * @param id
+     *            the ID of the file system to expand.
+     * @param input
+     *            the update configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> update(URI id, FileSystemUpdateParam input) {
+        return putTask(input, getIdUrl(), id);
     }
 
     /**
@@ -397,6 +420,27 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     }
 
     /**
+     * Delete file system acl
+     * 
+     * API Call: <tt>DELETE /file/filesystems/{id}/acl</tt>
+     * 
+     * @param id
+     *            the ID of the file system
+     * @param subDir
+     *            specific directory to delete acl .
+     */
+
+    public Task<FileShareRestRep> deleteAllNfsAcl(URI id, String subDir) {
+        UriBuilder builder = client.uriBuilder(getNfsACLsUrl());
+
+        if (subDir != null) {
+            builder.queryParam(SUBDIR_PARAM, subDir);
+        }
+        URI targetUri = builder.build(id);
+        return deleteTaskURI(targetUri);
+    }
+
+    /**
      * Gets the share ACLs for the given file system by ID.
      * <p>
      * API Call: <tt>GET /file/filesystems/{id}/shares/{shareName}/acl</tt>
@@ -411,7 +455,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
         ShareACLs response = client.get(ShareACLs.class, getShareACLsUrl(), id, shareName);
         return defaultList(response.getShareACLs());
     }
-    
+
     /**
      * Gets the all NFS ACLs for the given file system by ID.
      * <p>
@@ -433,7 +477,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
     /**
      * Gets the NFS ACLs for the given file system by ID.
      * <p>
-     * API Call: <tt>GET /file/filesystems/{id}/acl?subDir=<subDirId></tt>
+     * API Call: <tt>GET /file/filesystems/{id}/acl?subDir=subDirId</tt>
      * 
      * @param id
      *            the ID of the file system.
@@ -466,7 +510,7 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      *            the update/create configuration
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<FileShareRestRep> updateNfsACL(URI id, NfsACLUpdateParams param) {
+    public Task<FileShareRestRep> updateNfsACL(URI id, FileNfsACLUpdateParams param) {
         UriBuilder builder = client.uriBuilder(getNfsACLsUrl());
         URI targetUri = builder.build(id);
         return putTaskURI(param, targetUri);
@@ -504,5 +548,250 @@ public class FileSystems extends ProjectResources<FileShareRestRep> implements T
      */
     public Task<FileShareRestRep> deleteShareACL(URI id, String shareName) {
         return deleteTask(getShareACLsUrl(), id, shareName);
+    }
+
+    /**
+     * Gets the base URL for file continuous copies: <tt>/file/filesystems/{id}/protection/continuous-copies</tt>
+     * 
+     * @return the URL for continuous copies.
+     */
+    protected String getContinuousCopiesUrl() {
+        return getIdUrl() + "/protection/continuous-copies";
+    }
+
+    /**
+     * Begins creating a continuous copies for the given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/create</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the configuration of the new continuous copies.
+     * @return tasks for monitoring the progress of the operation(s).
+     */
+    public Task<FileShareRestRep> createFileContinuousCopies(URI id, FileReplicationCreateParam input) {
+        TaskResourceRep task = client.post(TaskResourceRep.class, input, getContinuousCopiesUrl() + "/create", id);
+        return new Task<FileShareRestRep>(client, task, FileShareRestRep.class);
+    }
+
+    /**
+     * Begins creating a continuous copies for the given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/start</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the configuration of the new continuous copies.
+     * @return tasks for monitoring the progress of the operation(s).
+     */
+    public Tasks<FileShareRestRep> startFileContinuousCopies(URI id, FileReplicationParam input) {
+        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/start", id);
+        return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
+    }
+
+    /**
+     * Gets the list of continuous copies for the given File System.
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/protection/continuous-copies</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @return the list of file continuous copy references.
+     */
+    public List<NamedRelatedResourceRep> getFileContinuousCopies(URI id) {
+        MirrorList response = client.get(MirrorList.class, getContinuousCopiesUrl(), id);
+        return defaultList(response.getMirrorList());
+    }
+
+    /**
+     * Begins deactivating a number of continuous copies for the given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/deactivate</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the file system delete param.
+     * @return tasks for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> deactivateFileContinuousCopies(URI id, FileSystemDeleteParam input) {
+        return postTask(input, getContinuousCopiesUrl() + "/deactivate", id);
+    }
+
+    /**
+     * Begins pausing a number of continuous copies for a given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/pause</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the copy configurations.
+     * @return tasks for monitoring the progress if the operations.
+     */
+    public Tasks<FileShareRestRep> pauseFileContinuousCopies(URI id, FileReplicationParam input) {
+        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/pause", id);
+        return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
+    }
+
+    /**
+     * Stop a number of continuous copies for a given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/stop</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the copy configurations.
+     * @return tasks for monitoring the progress if the operations.
+     */
+    public Tasks<FileShareRestRep> stopFileContinuousCopies(URI id, FileReplicationParam input) {
+        TaskList tasks = client.post(TaskList.class, input, getContinuousCopiesUrl() + "/stop", id);
+        return new Tasks<FileShareRestRep>(client, tasks.getTaskList(), FileShareRestRep.class);
+    }
+
+    /**
+     * Begins initiating failover for a given file system.
+     * <p>
+     * API Call: <tt>POST /file/filesystems/{id}/protection/continuous-copies/failover</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * @param input
+     *            the input configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<FileShareRestRep> failover(URI id, FileReplicationParam input) {
+        return postTasks(input, getContinuousCopiesUrl() + "/failover", id);
+    }
+
+    /**
+     * Changes the virtual pool for the given file system.
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{id}/vpool-change</tt>
+     * 
+     * @param input
+     *            the virtual pool change configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> changeFileVirtualPool(URI id, FileSystemVirtualPoolChangeParam input) {
+        return putTask(input, getIdUrl() + "/vpool-change", id);
+    }
+
+    /**
+     * Associate a file policy to a given file system
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{id}/assign-file-policy/{file_policy_uri}</tt>
+     * 
+     * @param fileSystemId
+     *            the ID of the file system.
+     * @param filePolicyId
+     *            the ID of the file policy.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> associateFilePolicy(URI fileSystemId, URI filePolicyId) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/assign-file-policy/{file_policy_uri}");
+        URI targetUri = builder.build(fileSystemId, filePolicyId);
+        return putTaskURI(null, targetUri);
+    }
+
+    /**
+     * Dissociate a file policy to a given file system
+     * <p>
+     * API Call: <tt>PUT /file/filesystems/{id}/assign-file-policy/{file_policy_uri}</tt>
+     * 
+     * @param fileSystemId
+     *            the ID of the file system.
+     * @param filePolicyId
+     *            the ID of the file policy.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<FileShareRestRep> dissociateFilePolicy(URI fileSystemId, URI filePolicyId) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/unassign-file-policy/{file_policy_uri}");
+        URI targetUri = builder.build(fileSystemId, filePolicyId);
+        return putTaskURI(null, targetUri);
+    }
+
+    /**
+     * Get File Policy associated with a File System
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{id}/file-policies</tt>
+     * 
+     * @param fileSystemId
+     *            the ID of the file system.
+     * @return a file policy list.
+     */
+    public FilePolicyList getFilePolicies(URI fileSystemId) {
+        return client.get(FilePolicyList.class, getIdUrl() + "/file-policies", fileSystemId);
+    }
+
+    /**
+     * Resume replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/resume</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * 
+     * @return a task for monitoring the progress of the operation. *
+     */
+
+    public Tasks<FileShareRestRep> resumeContinousCopies(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/protection/continuous-copies/resume");
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+
+    /**
+     * FailBack replication operation on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/failback</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * 
+     * @return a task for monitoring the progress of the operation. *
+     */
+
+    public Tasks<FileShareRestRep> failBackContinousCopies(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/protection/continuous-copies/failback");
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+
+    /**
+     * Get details of replication copy on a file system by ID
+     * <p>
+     * API Call: <tt>Post /file/filesystems/{id}/protection/continuous-copies/{mid}</tt>
+     * 
+     * @param id
+     *            the ID of the file system.
+     * 
+     * @return a task for monitoring the progress of the operation. *
+     */
+
+    public Tasks<FileShareRestRep> replicationInfo(URI id, FileReplicationParam param) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/protection/continuous-copies/{mid}");
+        URI targetUri = builder.build(id);
+        return postTasks(param, targetUri.getPath());
+    }
+
+    /**
+     * Get list of snapshot created by file policy
+     * <p>
+     * API Call: <tt>GET /file/filesystems/{fileSystemId}/file-policies/{filePolicyId}/snapshots</tt>
+     * 
+     * @param fileSystemId
+     *            the ID of the file system.
+     * @param filePolicyId
+     *            the ID of the policy.
+     * @return list of snapshot created by file policy.
+     */
+    public ScheduleSnapshotList getFilePolicySnapshots(URI fileSystemId, URI filePolicyId) {
+        UriBuilder builder = client.uriBuilder(getIdUrl() + "/file-policies/{filePolicyId}/snapshots");
+        URI targetUri = builder.build(fileSystemId, filePolicyId);
+        return client.get(ScheduleSnapshotList.class, targetUri.getPath());
     }
 }

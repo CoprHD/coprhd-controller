@@ -27,7 +27,6 @@ public class StorageProviderList {
     /**
      * List of Storage Providers.
      * 
-     * @valid none
      */
     @XmlElement(name = "storage_provider")
     public List<NamedRelatedResourceRep> getStorageProviders() {

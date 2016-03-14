@@ -16,6 +16,9 @@ import com.google.common.base.Strings;
 @Cf("StorageSystem")
 public class StorageSystem extends DiscoveredSystemObject {
 
+    // Unigue native identifier (system level identifier)
+    private String _nativeId;
+
     // serial number
     private String _serialNumber;
 
@@ -132,6 +135,37 @@ public class StorageSystem extends DiscoveredSystemObject {
     // storage system's ports average metrics. This number is computed via
     // {@link PortMetricProcessor#computeStorageSystemAvgPortMetrics}
     private Double averagePortMetrics;
+    
+
+    private Boolean supportSoftLimit;
+    
+    private Boolean supportNotificationLimit;
+
+    public static enum SupportedFileReplicationTypes {
+        REMOTE("remote"), LOCAL("local");
+
+        private final String _replicationType;
+
+        SupportedFileReplicationTypes(final String replicationType) {
+            _replicationType = replicationType;
+        }
+
+        public String getReplicationType() {
+            return _replicationType;
+        }
+
+        public static String getReplicationTypeName(final String replicationTypeIdentifier) {
+            for (SupportedFileReplicationTypes repType : copyOfValues) {
+                if (repType.getReplicationType().contains(replicationTypeIdentifier)) {
+                    return repType.toString();
+                }
+            }
+            return null;
+        }
+
+        private static final SupportedFileReplicationTypes[] copyOfValues = values();
+    }
+
 
     public static enum SupportedProvisioningTypes {
         THICK, THIN, THIN_AND_THICK, NONE
@@ -139,11 +173,11 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     // Namespace denotes the Element used in Discovery
     public static enum Discovery_Namespaces {
-        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, ALL
+        UNMANAGED_VOLUMES, UNMANAGED_FILESYSTEMS, BLOCK_SNAPSHOTS, UNMANAGED_CGS, ALL
     }
 
     public static enum SupportedReplicationTypes {
-        SRDF("4,5"), LOCAL("");
+        SRDF("4,5"), LOCAL(""), SRDFMetro("");
 
         private final String _replicationType;
 
@@ -564,6 +598,26 @@ public class StorageSystem extends DiscoveredSystemObject {
         this.supportedReplicationTypes = supportedReplicationTypes;
     }
 
+    @Name("supportSoftLimit")
+    public Boolean getSupportSoftLimit() {
+        return supportSoftLimit;
+    }
+
+    public void setSupportSoftLimit(Boolean supportSoftLimit) {
+        this.supportSoftLimit = supportSoftLimit;
+        setChanged("supportSoftLimit");
+    }
+    
+    @Name("supportNotificationLimit")
+    public Boolean getSupportNotificationLimit() {
+        return supportNotificationLimit;
+    }
+
+    public void setSupportNotificationLimit(Boolean supportNotificationLimit) {
+        this.supportNotificationLimit = supportNotificationLimit;
+        setChanged("supportNotificationLimit");
+    }
+
     @Name("connectedTo")
     public StringSet getRemotelyConnectedTo() {
         return remotelyConnectedTo;
@@ -631,5 +685,16 @@ public class StorageSystem extends DiscoveredSystemObject {
 
     public void setVplexAssemblyIdtoClusterId(StringMap vplexAssemblyIdtoClusterId) {
         this.vplexAssemblyIdtoClusterId = vplexAssemblyIdtoClusterId;
+    }
+
+    @Name("nativeId")
+    public String getNativeId() {
+        return _nativeId;
+    }
+
+
+    public void setNativeId(String nativeId) {
+        _nativeId = nativeId;
+        setChanged("nativeId");
     }
 }

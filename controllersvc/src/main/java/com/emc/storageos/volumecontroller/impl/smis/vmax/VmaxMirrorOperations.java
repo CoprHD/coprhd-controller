@@ -17,12 +17,12 @@ import javax.cim.CIMObjectPath;
 import javax.cim.UnsignedInteger32;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.db.client.model.SynchronizationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
@@ -37,6 +37,7 @@ import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGMirrorJob;
+import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.google.common.base.Joiner;
 
 public class VmaxMirrorOperations extends AbstractMirrorOperations {
@@ -57,7 +58,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             BlockMirror mirrorObj = _dbClient.queryObject(BlockMirror.class, mirror);
             Volume volumeObj = _dbClient.queryObject(Volume.class, sourceVolume);
             CIMObjectPath srcRepSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
-            String volumeGroupName = _helper.getConsistencyGroupName(volumeObj, storage);
+            String volumeGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(volumeObj, _dbClient);
             CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
             CIMObjectPath mirrorGroupPath = _cimPath.getReplicationGroupPath(storage, mirrorObj.getReplicationGroupInstance());
 
@@ -110,7 +111,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
             BlockMirror firstMirror = mirrors.get(0);
             Volume sourceVolume = _dbClient.queryObject(Volume.class, firstMirror.getSource());
-            String sourceGroupName = _helper.getConsistencyGroupName(sourceVolume, storage);
+            String sourceGroupName = ConsistencyGroupUtils.getSourceConsistencyGroupName(sourceVolume, _dbClient);
             String replicaLabel = ControllerUtils.generateLabel(sourceVolume.getLabel(), firstMirror.getLabel());
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);

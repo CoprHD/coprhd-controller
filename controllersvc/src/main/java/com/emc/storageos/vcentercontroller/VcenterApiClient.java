@@ -4,6 +4,16 @@
  */
 package com.emc.storageos.vcentercontroller;
 
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.vcentercontroller.exceptions.VcenterObjectConnectionException;
 import com.emc.storageos.vcentercontroller.exceptions.VcenterObjectNotFoundException;
@@ -35,11 +45,6 @@ import com.vmware.vim25.mo.ResourcePool;
 import com.vmware.vim25.mo.ServiceInstance;
 import com.vmware.vim25.mo.Task;
 import com.vmware.vim25.mo.VirtualMachine;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URL;
-import java.util.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -598,7 +603,7 @@ public class VcenterApiClient {
                 } else if (taskStatus == VcenterTaskMonitor.TaskStatus.ERROR) {
                     String errorMessage = "Add host " + hostname + " task failed - " + taskMonitor.errorDescription;
                     if (taskMonitor.errorDescription.contains("already exists.")) {
-                        errorMessage += " - Ensure adding host to correct cluster or remove host from it's existing cluster";
+                        errorMessage += " - Ensure adding host to correct cluster or remove host from its existing cluster";
                     }
                     _log.error(errorMessage);
                     throw new VcenterSystemException(errorMessage);

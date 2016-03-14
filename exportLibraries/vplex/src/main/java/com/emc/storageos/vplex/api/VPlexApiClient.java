@@ -288,8 +288,7 @@ public class VPlexApiClient {
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterId = clusterInfo.getName();
             // for each cluster get the virtual volume information.
-            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = 
-                    _discoveryMgr.getVirtualVolumesForCluster(clusterId);
+            List<VPlexVirtualVolumeInfo> clusterVirtualVolumeInfoList = _discoveryMgr.getVirtualVolumesForCluster(clusterId);
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);
                 String virtualVolumeName = virtualVolumeInfo.getName();
@@ -347,7 +346,7 @@ public class VPlexApiClient {
     }
 
     /**
-     * Finds the volume with the passed name and discovers it's structure.
+     * Finds the volume with the passed name and discovers its structure.
      * 
      * @param virtualVolumeName The name of the virtual volume.
      * 
@@ -397,7 +396,7 @@ public class VPlexApiClient {
             List<VolumeInfo> nativeVolumeInfoList, boolean isDistributed,
             boolean discoveryRequired, boolean preserveData, String winningClusterId, List<VPlexClusterInfo> clusterInfoList,
             boolean findVirtualVolume)
-            throws VPlexApiException {
+                    throws VPlexApiException {
         s_logger.info("Request for virtual volume creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createVirtualVolume(nativeVolumeInfoList, isDistributed,
                 discoveryRequired, preserveData, winningClusterId, clusterInfoList, findVirtualVolume);
@@ -434,7 +433,7 @@ public class VPlexApiClient {
      */
     public VPlexDeviceInfo createDeviceAndAttachAsMirror(VPlexVirtualVolumeInfo virtualVolume,
             List<VolumeInfo> nativeVolumeInfoList, boolean discoveryRequired, boolean preserveData)
-            throws VPlexApiException {
+                    throws VPlexApiException {
         s_logger.info("Request for mirror creation on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.createDeviceAndAttachAsMirror(virtualVolume, nativeVolumeInfoList, discoveryRequired, preserveData);
     }
@@ -521,7 +520,7 @@ public class VPlexApiClient {
     }
 
     /**
-     * Expands the virtual volume with the passed name to it's full expandable
+     * Expands the virtual volume with the passed name to its full expandable
      * capacity. This API would be invoked after natively expanding the backend
      * volume(s) of the virtual volume to provide additional capacity or say
      * migrating the backend volume(s) to volume(s) with a larger capacity.
@@ -534,7 +533,7 @@ public class VPlexApiClient {
      */
     public VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName,
             int expansionStatusRetryCount, long expansionStatusSleepTime)
-            throws VPlexApiException {
+                    throws VPlexApiException {
         s_logger.info("Request for virtual volume expansion on VPlex at {}", _baseURI);
         return _virtualVolumeMgr.expandVirtualVolume(virtualVolumeName, expansionStatusRetryCount,
                 expansionStatusSleepTime);
@@ -617,6 +616,7 @@ public class VPlexApiClient {
      * Commits the completed migrations with the passed names and tears down the
      * old devices and unclaims the storage volumes.
      * 
+     * @param virtualVolumeName The name of the virtual volume prior to the commit.
      * @param migrationNames The names of the migrations.
      * @param cleanup true to automatically cleanup after the commit.
      * @param remove true to automatically remove the migration record.
@@ -630,10 +630,10 @@ public class VPlexApiClient {
      * 
      * @throws VPlexApiException When an error occurs committing the migrations.
      */
-    public List<VPlexMigrationInfo> commitMigrations(List<String> migrationNames,
+    public List<VPlexMigrationInfo> commitMigrations(String virtualVolumeName, List<String> migrationNames,
             boolean cleanup, boolean remove, boolean rename) throws VPlexApiException {
         s_logger.info("Request to commit migrations on VPlex at {}", _baseURI);
-        return _migrationMgr.commitMigrations(migrationNames, cleanup, remove, rename);
+        return _migrationMgr.commitMigrations(virtualVolumeName, migrationNames, cleanup, remove, rename);
     }
 
     /**
@@ -1202,9 +1202,10 @@ public class VPlexApiClient {
     }
 
     public VPlexVirtualVolumeInfo upgradeVirtualVolumeToDistributed(VPlexVirtualVolumeInfo virtualVolume,
-            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId) throws VPlexApiException {
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId,
+            String transferSize) throws VPlexApiException {
         return _virtualVolumeMgr.createDistributedVirtualVolume(
-                virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId);
+                virtualVolume, newRemoteVolume, discoveryRequired, rename, clusterId, transferSize);
     }
 
     public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolume)
@@ -1389,23 +1390,6 @@ public class VPlexApiClient {
     ClientResponse post(URI resourceURI, String postData, String jsonFormat) {
         ClientResponse response = _client.post(resourceURI, postData, _vplexSessionId, jsonFormat);
         updateVPLEXSessionId(response);
-
-        // We add a sleep here to workaround an issue with the VPLEX API.
-        // When a new VPLEX artifact is successfully created (response status 200),
-        // and we subsequently make a request to GET all such artifacts, VPLEX
-        // on occasion does not return the artifact that was just successfully
-        // created. This is because the VPLEX is still asynchronously persisting
-        // the new object when it returns success and the subsequent GET, which
-        // occurs over a new connection (with a new VPLEX session) will not
-        // return the newly created object. My understanding is that we would
-        // have to make the GET request using the same VPLEX session id, which
-        // means we would have to get in the business of managing VPLEX session
-        // ids, which we really don't want to do. So, for now we add a small
-        // sleep interval after making POST requests (which are used to
-        // make configuration changes on the VPLEX) to allow the VPLEX time
-        // to persist changes completely and cause this issue to be far less
-        // likely to occur.
-        VPlexApiUtils.pauseThread(5000);
         return response;
     }
 

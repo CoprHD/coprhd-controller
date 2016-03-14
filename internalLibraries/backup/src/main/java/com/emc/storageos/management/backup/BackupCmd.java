@@ -17,11 +17,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
 import java.text.Format;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 //Suppress Sonar violation of Lazy initialization of static fields should be synchronized
 //This is a CLI application and main method will not be called by multiple threads
@@ -32,6 +35,9 @@ public class BackupCmd {
 
     private static final Options options = new Options();
     private static final String TOOL_NAME = "bkutils";
+    private static final String ONLY_RESTORE_SITE_ID = "osi";
+    private static final String LOG4J_FILE_NAME = "log4j.appender.R.RollingPolicy.ActiveFileName";
+    private static final String PRODUCT_HOME = "product.home";
     private static BackupOps backupOps;
     private static CommandLine cli;
     private static RestoreManager restoreManager;
@@ -41,7 +47,8 @@ public class BackupCmd {
         list("List all backups"),
         delete("Delete specific backup"),
         restore("Purge ViPR data and restore specific backup\n" +
-                "with args: <backup dir> <name>"),
+                "with args: <backup dir> <name> osi(optional)\n" +
+                "If \"osi\" is used, only site id will be retored\n"),
         quota("Get backup quota info, unit:GB\n"),
         force("Execute operation on quorum nodes"),
         purge("Purge the existing ViPR data with arg\n" +
@@ -134,6 +141,8 @@ public class BackupCmd {
     }
 
     private static void init(String[] args) {
+        initLogPermission();
+
         initCommandLine(args);
         initRestoreManager();
 
@@ -235,7 +244,7 @@ public class BackupCmd {
             return;
         }
         String[] restoreArgs = cli.getOptionValues(CommandType.restore.name());
-        if (restoreArgs.length != 2) {
+        if (restoreArgs.length < 2 || restoreArgs.length > 3) {
             System.out.println("Invalid number of restore args.");
             new HelpFormatter().printHelp(TOOL_NAME, options);
             System.exit(-1);
@@ -243,6 +252,15 @@ public class BackupCmd {
 
         String restoreSrcDir = restoreArgs[0];
         String snapshotName = restoreArgs[1];
+        if (restoreArgs.length == 3) {
+            if (ONLY_RESTORE_SITE_ID.equals(restoreArgs[2])) {
+                restoreManager.setOnlyRestoreSiteId(true);
+            } else {
+                System.out.println("If third parameter is specified for restore option, it can only be \"osi\"");
+                new HelpFormatter().printHelp(TOOL_NAME, options);
+                System.exit(-1);
+            }
+        }
 
         boolean geoRestoreFromScratch = false;
         if (cli.hasOption(CommandType.force.name())) {
@@ -265,5 +283,59 @@ public class BackupCmd {
         System.out.println("Start to get quota of backup...");
         int quota = backupOps.getQuotaGb();
         System.out.println(String.format("Quota of backup is: %d GB", quota));
+    }
+
+    private static void initLogPermission() {
+        String logPath = getLogPath();
+        if (logPath == null) {
+            log.warn("Unable to find log4j path, No perimission check.");
+            return;
+        }
+        File logFile = new File(logPath);
+
+        //Check if bkutils.log permission is 644
+        Set<PosixFilePermission> perms = new HashSet<PosixFilePermission>();
+        perms.add(PosixFilePermission.OWNER_READ);
+        perms.add(PosixFilePermission.OWNER_WRITE);
+        perms.add(PosixFilePermission.GROUP_READ);
+        perms.add(PosixFilePermission.OTHERS_READ);
+        try{
+            if (!logFile.exists()) {
+                log.info("Starting bkutils...");
+            }
+            Set<PosixFilePermission> permsRead = Files.getPosixFilePermissions(logFile.toPath());
+            if (!perms.equals(permsRead)) {
+                Files.setPosixFilePermissions(logFile.toPath(), perms);
+            }
+        }catch (IOException e) {
+            log.error("Failed to operate the log file {}. e=", logFile, e);
+        }
+    }
+
+    private static String getLogPath() {
+        ClassLoader cl = BackupCmd.class.getClassLoader();
+        InputStream istream;
+        URLConnection uConn;
+        String path = null;
+        Properties properties = new Properties();
+
+        try {
+            URL logProps = cl.getResource(System.getProperty("log4j.configuration"));
+            if (logProps == null) {
+                return null;
+            }
+            uConn = logProps.openConnection();
+            uConn.setUseCaches(false);
+            istream = uConn.getInputStream();
+            properties.load(istream);
+            path = properties.getProperty(LOG4J_FILE_NAME);
+            String homeEnv = "${" + PRODUCT_HOME + "}" ;
+            if (path.contains(homeEnv)) {
+                return path.replace(homeEnv, System.getProperty(PRODUCT_HOME));
+            }
+        } catch (IOException e) {
+            log.error("Failed to parse log4j conf file", e);
+        }
+        return path;
     }
 }

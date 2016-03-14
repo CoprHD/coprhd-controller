@@ -25,6 +25,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
@@ -32,6 +33,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
@@ -53,13 +55,14 @@ public class ImplicitUnManagedObjectsMatcher {
         List<URI> vpoolURIs = dbClient.queryByType(VirtualPool.class, true);
         List<VirtualPool> vpoolList = dbClient.queryObject(VirtualPool.class, vpoolURIs);
         Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(dbClient);
+        Set<URI> rpEnabledTargetVPools = RPHelper.fetchRPTargetVirtualPools(dbClient);
         for (VirtualPool vpool : vpoolList) {
-            matchVirtualPoolsWithUnManagedVolumes(vpool, srdfEnabledTargetVPools, dbClient);
+            matchVirtualPoolsWithUnManagedVolumes(vpool, srdfEnabledTargetVPools, rpEnabledTargetVPools, dbClient);
         }
     }
 
     public static void matchVirtualPoolsWithUnManagedVolumes(VirtualPool virtualPool, Set<URI> srdfEnabledTargetVPools,
-            DbClient dbClient) {
+            Set<URI> rpEnabledTargetVPools, DbClient dbClient) {
         List<UnManagedVolume> modifiedUnManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, StringSet> poolMapping = new HashMap<String, StringSet>();
 
@@ -124,7 +127,7 @@ public class ImplicitUnManagedObjectsMatcher {
                             modifiedUnManagedVolumes.add(unManagedVolume);
                         }
                     } else if (addVPoolToUnManagedObjectSupportedVPools(virtualPool, unManagedVolumeInfo,
-                            unManagedVolume, system, srdfEnabledTargetVPools)) {
+                            unManagedVolume, system, srdfEnabledTargetVPools, rpEnabledTargetVPools)) {
                         modifiedUnManagedVolumes.add(unManagedVolume);
                     }
 
@@ -158,17 +161,19 @@ public class ImplicitUnManagedObjectsMatcher {
 
     /**
      * add VPool to Supported VPool List of UnManaged Objects.
-     * 
-     * @param supportedVPoolsList the supported v pools list
      * @param virtualPool the virtual pool
      * @param unManagedObjectInfo the un managed object info
-     * @param unManagedObjectURI the un managed object uri
      * @param system the system (for Block systems, to verify policy matching)
+     * @param srdfEnabledTargetVPools SRDF enabled target vpools
+     * @param rpEnabledTargetVPools RP enabled target vpools
+     * @param supportedVPoolsList the supported v pools list
+     * @param unManagedObjectURI the un managed object uri
+     * 
      * @return true, if successful
      */
     private static boolean addVPoolToUnManagedObjectSupportedVPools(VirtualPool virtualPool,
             StringSetMap unManagedObjectInfo, UnManagedDiscoveredObject unManagedObject, StorageSystem system,
-            Set<URI> srdfEnabledTargetVPools) {
+            Set<URI> srdfEnabledTargetVPools, Set<URI> rpEnabledTargetVPools) {
         // if virtual pool is already part of supported vpool
         // List, then continue;
         StringSet supportedVPoolsList = unManagedObject.getSupportedVpoolUris();
@@ -199,10 +204,11 @@ public class ImplicitUnManagedObjectsMatcher {
                     return false;
                 }
             }
+
             // Verify whether unmanaged volume SRDF properties with the Vpool
             boolean srdfSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool
                     .getProtectionRemoteCopySettings().isEmpty());
-            boolean srdfTargetVpool = (srdfEnabledTargetVPools.contains(virtualPool.getId()));
+            boolean srdfTargetVpool = srdfEnabledTargetVPools == null ? false : (srdfEnabledTargetVPools.contains(virtualPool.getId()));
             StringSet remoteVolType = unManagedObjectInfo.get(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString());
             boolean isRegularVolume = (null == remoteVolType);
             boolean isSRDFSourceVolume = (null != remoteVolType && remoteVolType.contains(RemoteMirrorObject.Types.SOURCE.toString()));
@@ -221,6 +227,25 @@ public class ImplicitUnManagedObjectsMatcher {
                 _log.debug("Found a SRDFTarget volume & source srdf source vpool No need to update.");
                 return false;
             }
+
+            // Verify whether unmanaged volume RP properties with the Vpool
+            boolean isRPSourceVpool = (null != virtualPool.getProtectionVarraySettings() && !virtualPool
+                    .getProtectionVarraySettings().isEmpty());
+            boolean isRPTargetVpool = rpEnabledTargetVPools == null ? false : (rpEnabledTargetVPools.contains(virtualPool.getId()));
+            remoteVolType = unManagedObjectInfo.get(SupportedVolumeInformation.RP_PERSONALITY.toString());
+            isRegularVolume = (null == remoteVolType);
+            boolean isRPSourceVolume = (null != remoteVolType && remoteVolType.contains(Volume.PersonalityTypes.SOURCE.toString()));
+
+            if (isRegularVolume && (isRPSourceVpool || isRPTargetVpool)) {
+                _log.debug("Found a regular volume with RP Protection Virtual Pool. No need to update.");
+                return false;
+            } else if (isRPSourceVolume && !isRPSourceVpool) {
+                _log.debug("Found a RP unmanaged volume with non-rp virtualpool. No need to update.");
+                return false;
+            } else if (isRPSourceVolume && isRPTargetVpool) {
+                _log.debug("Found a RP source volume & target rp vpool. No need to update.");
+                return false;
+            }        
         }
 
         // Adding a fresh new VPool, if supportedVPoolList is
@@ -298,7 +323,7 @@ public class ImplicitUnManagedObjectsMatcher {
                             modifiedUnManagedFileSystems.add(unManagedFileSystem);
                         }
                     } else if (addVPoolToUnManagedObjectSupportedVPools(virtualPool, unManagedFileSystemInfo,
-                            unManagedFileSystem, null, null)) {
+                            unManagedFileSystem, null, null, null)) {
                         modifiedUnManagedFileSystems.add(unManagedFileSystem);
                     }
 

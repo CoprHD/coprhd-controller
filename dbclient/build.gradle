@@ -19,7 +19,7 @@ test {
 // To change the type of schema lock, modify the following schemaLock ext.
 // VALUE must be NONE, GEO or ALL, default is NONE.
 ext {
-    schemaLock = "NONE"
+    schemaLock = "ALL"
 }
 def schemaLockOption = project.ext.has('schemaLock')? project.ext.get('schemaLock') : "NONE"
 
@@ -44,4 +44,4 @@ task checkSchema(type: JavaExec, dependsOn: compileTestJava) {
     classpath = sourceSets.test.runtimeClasspath
 }
 
-assemble.dependsOn checkSchema
+//RAG assemble.dependsOn checkSchema

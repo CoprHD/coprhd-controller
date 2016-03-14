@@ -301,9 +301,26 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                 error_msg = "Requested resource not found"
             elif(response.status_code == 405):
                 error_msg = str(response.text)
-            elif(response.status_code == 503):
-                error_msg = "Service temporarily unavailable: The server" + \
-                    " is temporarily unable to service your request"
+            elif response.status_code == 503:
+                error_msg = ""
+                errorDetails = ""
+                errorDescription = ""
+
+                responseText = json_decode(response.text)
+
+                if 'code' in responseText:
+                    errorCode = responseText['code']
+                    error_msg = error_msg + "Error " + str(errorCode)
+
+                if 'details' in responseText:
+                    errorDetails = responseText['details']
+                    error_msg = error_msg + ": " + errorDetails
+                elif 'description' in responseText:
+                    errorDescription = responseText['description']
+                    error_msg = error_msg + ": " + errorDescription
+                else:
+                    error_msg = "Service temporarily unavailable: The server" + \
+                                " is temporarily unable to service your request"
             else:
                 error_msg = response.text
                 if isinstance(error_msg, unicode):
@@ -907,13 +924,18 @@ def show_resource(ipAddr, port, componentType, uri,
 
 # Timeout handler for synchronous operations
 def timeout_handler():
+    global IS_TASK_TIMEOUT
     IS_TASK_TIMEOUT = True
 
 
 # Blocks the operation until the task is complete/error out/timeout
-def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
+def block_until_complete(componentType, resource_uri, task_id, ipAddr, port,synctimeout=0):
+        global IS_TASK_TIMEOUT
         IS_TASK_TIMEOUT = False
-        t = Timer(300, timeout_handler)
+        if synctimeout:
+            t = Timer(synctimeout, timeout_handler)
+        else:
+            t = Timer(300, timeout_handler)
         t.start()
         while(True):
             out = get_task_by_resourceuri_and_taskId(
@@ -939,10 +961,28 @@ def block_until_complete(componentType, resource_uri, task_id, ipAddr, port):
                                    " is failed with error: " + error_message)
 
             if(IS_TASK_TIMEOUT):
-                print "Operation timed out."
+                print "Task did not complete in %d secs. Task still in progress. Please check the logs for task status"%synctimeout
                 IS_TASK_TIMEOUT = False
                 break
         return
+
+
+'''
+Returns the list of unmanaged tasks for a given resource_uri
+'''
+
+
+def get_unmanaged_tasks_by_resourceuri(componentType, resource_uri, ipAddr, port):
+
+            task_list_uri_constant = '/vdc/unmanaged/{0}/tasks'
+            (s, h) = service_json_request(
+                ipAddr, port, "GET",
+                task_list_uri_constant.format(resource_uri), None)
+            if (not s):
+                return []
+            o = json_decode(s)
+            res = o["task"]
+            return res
 
 
 '''
@@ -984,6 +1024,24 @@ def get_task_by_resourceuri_and_taskId(componentType, resource_uri,
             o = json_decode(s)
             return o
 
+'''
+Returns the single unmanaged task details for a given resource and its associated task
+parameter task_uri_constant : The URI constant for the task
+'''
+
+
+def get_unmanaged_task_by_resourceuri_and_taskId(componentType, resource_uri,
+                                       task_id, ipAddr, port):
+
+            
+            task_uri_constant = '/vdc/unmanaged/{0}/tasks/{1}/'
+            (s, h) = service_json_request(
+                ipAddr, port, "GET",
+                task_uri_constant.format(resource_uri,task_id), None)
+            if (not s):
+                return None
+            o = json_decode(s)
+            return o
 
 '''
 Returns the tasks details for a given task id
@@ -1032,6 +1090,46 @@ def list_tasks(ipAddr, port, componentType, project_name,
 	    if(res):
 	        return res
         raise SOSError(SOSError.NOT_FOUND_ERR, "Task Id: " + task_id + "not found")
+    
+    else:
+        # resourec_name is not given, get all tasks
+        all_tasks = []
+        for uri in uris:
+            res = get_tasks_by_resourceuri(componentType, uri, ipAddr, port)
+            if(res and len(res) > 0):
+                all_tasks += res
+        return all_tasks
+    
+def list_unmanaged_tasks(ipAddr, port, componentType, project_name,
+               resource_name=None, task_id=None):
+
+    resourceSearchUri = singletonURIHelperInstance.getUri(
+        componentType, "search_by_project")
+
+    uris = search_by_project(project_name, resourceSearchUri, ipAddr, port)
+
+    if(resource_name):
+        for uri in uris:
+            resource = show_resource(ipAddr, port, componentType,
+                                     uri, True)
+            if(resource['name'] == resource_name):
+                if(not task_id):
+                    return get_unmanaged_tasks_by_resourceuri(
+                        componentType, resource["id"], ipAddr, port)
+
+                else:
+                    res = get_unmanaged_task_by_resourceuri_and_taskId(
+                        componentType, resource["id"], task_id, ipAddr, port)
+                    if(res):
+                        return res
+        raise SOSError(SOSError.NOT_FOUND_ERR, "Resource with name: " +
+                       resource_name + " not found")
+    elif(task_id):
+        for uri in uris:
+            res = get_tasks_by_taskid(componentType, task_id, ipAddr, port)
+            if(res):
+                return res
+            raise SOSError(SOSError.NOT_FOUND_ERR, "Task Id: " + task_id + "not found")
     
     else:
         # resourec_name is not given, get all tasks

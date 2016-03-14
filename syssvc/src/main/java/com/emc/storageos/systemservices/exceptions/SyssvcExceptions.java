@@ -47,4 +47,7 @@ public interface SyssvcExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_INTERNAL_SERVICE_NAME_NOT_FOUND)
     public SyssvcInternalException serviceNameNotFoundException(final String parameter);
+
+    @DeclareServiceCode(ServiceCode.SYS_BACKUP_EXTERNAL_SERVER_ERROR)
+    public SyssvcInternalException externalBackupServerError(final String details);
 }

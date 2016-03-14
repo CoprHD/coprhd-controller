@@ -30,7 +30,7 @@ public interface RemoteMirroring {
      * @param forceAdd
      * @param completer
      */
-    void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup, boolean forceAdd, TaskCompleter completer);
+    void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup, TaskCompleter completer);
 
     /**
      * Create and establish a replication link between the given source and target volume.
@@ -44,13 +44,14 @@ public interface RemoteMirroring {
 
     /**
      * Create and establish replication links from a list of source and target volumes.
-     *
+     * 
      * @param system
      * @param sources
      * @param targets
      * @param completer
      */
-    void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer);
+    void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, boolean addWaitForCopyState,
+            TaskCompleter completer);
 
     /**
      * Detach a source and target from their replication link.
@@ -101,7 +102,7 @@ public interface RemoteMirroring {
      * @param consExempt
      * @param completer
      */
-    void doSuspendLink(StorageSystem system, Volume target, boolean consExempt, TaskCompleter completer);
+    void doSuspendLink(StorageSystem system, Volume target, boolean consExempt, boolean refreshVolumeProperties, TaskCompleter completer);
 
     /**
      * Resume replication links.
@@ -110,7 +111,7 @@ public interface RemoteMirroring {
      * @param target
      * @param completer
      */
-    void doResumeLink(StorageSystem system, Volume target, TaskCompleter completer);
+    void doResumeLink(StorageSystem system, Volume target, boolean refreshVolumeProperties, TaskCompleter completer);
 
     /**
      * Failover replication links.
@@ -229,8 +230,17 @@ public interface RemoteMirroring {
     void refreshStorageSystem(URI systemURI, List<URI> volumeURIsToCheck);
 
     /**
+     * Refresh the volume properties
+     * 
+     * @param systemURI reference to storage system
+     * @param volumeURIs List of volume URIs
+     * @throws Exception
+     */
+    void refreshVolumeProperties(URI systemURI, List<URI> volumeURIs) throws Exception;
+
+    /**
      * Change SRDF Copy Mode.
-     *
+     * 
      * @param system
      * @param target
      * @param completer

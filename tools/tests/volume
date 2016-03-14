@@ -223,10 +223,10 @@ def volume_delete(args):
     start = time.time()
     if (len(uris) > 1):
         print "Multi volume delete"
-        (o, s, m) = bourne.volume_multi_delete(uris, args.wait, args.vipronly)
+        (o, s, m) = bourne.volume_multi_delete(uris, args.wait, args.vipronly, args.force)
     elif (len(uris) == 1):
         print "Single volume delete"
-        (o, s, m) = bourne.volume_delete(uris[0], args.wait, args.vipronly)
+        (o, s, m) = bourne.volume_delete(uris[0], args.wait, args.vipronly, args.force)
     else:
         print "No active volumes to delete"
         o = "There were no active volumes to delete"
@@ -278,7 +278,7 @@ def volume_change_link(args):
     bourne.connect(args.ip)
     uri = bourne.volume_query(args.name)
     copy_uri = bourne.volume_query(args.copyURI)
-    changelink=bourne.volume_change_link(uri, args.operation, copy_uri, args.type)
+    changelink=bourne.volume_change_link(uri, args.operation, copy_uri, args.type, args.pit)
     print "Volume change link operation completed"
 
 def volume_verify(args):
@@ -478,6 +478,7 @@ delete = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
 delete.add_argument('name',	help = 'name of volume to be deleted')
 delete.add_argument('--wait', action='store_true', help = 'wait for the operation to complete')
 delete.add_argument('--vipronly', action='store_true', help = 'Delete only from ViPR')
+delete.add_argument('--force', action='store_true', help = 'Force delete even if internal')
 delete.add_argument('--project', help = 'delete all volumes in the project', action='store_true')
 
 # volume show uri
@@ -503,6 +504,7 @@ change_link.add_argument('name',		help = 'URI or full pathname of volume')
 change_link.add_argument('operation',	help = 'operation: stop, start, failover, failover_test, pause, resume')
 change_link.add_argument('copyURI', help = 'URI of copy to perform operation on')
 change_link.add_argument('type', help = 'type of protection for the source volume')
+change_link.add_argument('--pit', help = 'any UTC point-in-time formatted as "yyyy-MM-dd_HH:mm:ss" or datetime in milliseconds')
 
 # volume verify
 verify = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')

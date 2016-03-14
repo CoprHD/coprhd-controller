@@ -87,9 +87,8 @@ public class XtremIOCommunicationInterface extends
             String xmsVersion = xtremIOClient.getXtremIOXMSVersion();
             String minimumSupportedVersion = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
-            String compatibility = (VersionChecker.verifyVersionDetails(minimumSupportedVersion, xmsVersion) < 0) ?
-                    StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() :
-                    StorageSystem.CompatibilityStatus.COMPATIBLE.name();
+            String compatibility = (VersionChecker.verifyVersionDetails(minimumSupportedVersion, xmsVersion) < 0)
+                    ? StorageSystem.CompatibilityStatus.INCOMPATIBLE.name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
             provider.setCompatibilityStatus(compatibility);
             provider.setVersionString(xmsVersion);
 
@@ -212,13 +211,14 @@ public class XtremIOCommunicationInterface extends
     private void updateStorageSystemAndPools(XtremIOSystem system, StorageSystem systemInDB, List<StoragePool> pools) {
         StoragePool xioSystemPool = null;
         if (null != systemInDB) {
-            // systemInDB.set
+            String firmwareVersion = system.getVersion();
+            systemInDB.setFirmwareVersion(firmwareVersion);
             String minimumSupported = VersionChecker
                     .getMinimumSupportedVersion(StorageSystem.Type.xtremio).replace("-", ".");
             _logger.info("Minimum Supported Version {}", minimumSupported);
             String compatibility = (VersionChecker.verifyVersionDetails(minimumSupported,
-                    system.getVersion()) < 0) ? StorageSystem.CompatibilityStatus.INCOMPATIBLE
-                    .name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
+                    firmwareVersion) < 0) ? StorageSystem.CompatibilityStatus.INCOMPATIBLE
+                            .name() : StorageSystem.CompatibilityStatus.COMPATIBLE.name();
             systemInDB.setCompatibilityStatus(compatibility);
             systemInDB.setReachableStatus(true);
             _dbClient.persistObject(systemInDB);
@@ -328,11 +328,13 @@ public class XtremIOCommunicationInterface extends
                 List<XtremIOPort> scPorts = storageControllerPortMap.get(scName);
                 StorageHADomain haDomain = createStorageHADomain(system, scName, scPorts.size());
                 for (XtremIOPort targetPort : scPorts) {
-                    String portSpeedStr = targetPort.getPortSpeed().split("G")[0];
-                    try {
-                        portSpeed = Long.parseLong(portSpeedStr);
-                    } catch (NumberFormatException nfe) {
-                        portSpeed = 0L;
+                    if (targetPort.getPortSpeed() != null) {
+                        String portSpeedStr = targetPort.getPortSpeed().split("G")[0];
+                        try {
+                            portSpeed = Long.parseLong(portSpeedStr);
+                        } catch (NumberFormatException nfe) {
+                            portSpeed = 0L;
+                        }
                     }
 
                     String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system, targetPort.getPortAddress(),
@@ -405,7 +407,8 @@ public class XtremIOCommunicationInterface extends
                 } else {
                     Initiator initiatorObj = _dbClient.queryObject(Initiator.class, initiatorUris.get(0));
                     initiatorObj.setLabel(initiator.getName());
-                    _dbClient.persistObject(initiatorObj);
+                    initiatorObj.mapInitiatorName(system.getSerialNumber(), initiator.getName());
+                    _dbClient.updateObject(initiatorObj);
                 }
             }
         } catch (Exception e) {

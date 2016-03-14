@@ -30,10 +30,12 @@ SPECFILE_FQN=${RPM_SPECS_DIR}/ViPROpenStack-cc-conf.spec
 CINDER_CONF_FILE=${RPM_SOURCE_DIR}/cinder.conf
 VIPROPENSTACK_CONF=${RPM_SOURCE_DIR}/ViPROpenStackConfig.sh
 
+RABBITMQ_LICENSE_DIR=${RPM_SOURCE_DIR}/rabbitmq
+
 #
 all: get_sources build clean
 
-get_sources: ${SPECFILE_FQN} ${CINDER_CONF_FILE} ${VIPROPENSTACK_CONF} 
+get_sources: ${SPECFILE_FQN} ${CINDER_CONF_FILE} ${VIPROPENSTACK_CONF} ${RABBITMQ_LICENSE_DIR}
 
 ${SPECFILE_FQN}:
 	cp -f ${RUN_DIR}/ViPROpenStack-cc-conf.spec ${SPECFILE_FQN}
@@ -44,6 +46,9 @@ ${CINDER_CONF_FILE}:
 ${VIPROPENSTACK_CONF}:
 	cp -f ${RUN_DIR}/ViPROpenStackConfig.sh ${VIPROPENSTACK_CONF}
 
+${RABBITMQ_LICENSE_DIR}:
+	cp -rf ${RUN_DIR}/rabbitmq ${RPM_SOURCE_DIR}
+
 build:
 	rpmbuild -bb ${SPECFILE_FQN}
 
@@ -51,3 +56,4 @@ clean:
 	rm -f ${SPECFILE_FQN}
 	rm -f ${CINDER_CONF_FILE}
 	rm -f ${VIPROPENSTACK_CONF}
+	rm -rf ${RABBITMQ_LICENSE_DIR}

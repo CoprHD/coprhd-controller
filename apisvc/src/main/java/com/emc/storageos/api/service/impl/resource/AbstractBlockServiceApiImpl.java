@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VolumeGroup;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -1045,11 +1046,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             throw APIException.badRequests.noVolumesToSnap();
         }
 
-        // Validate VNX. Cannot create snapshot if volume is not in a real replication group
-        if (ControllerUtils.isNotInRealVNXRG(reqVolume, _dbClient)) {
-            throw APIException.badRequests.snapshotsNotSupportedForNonRealVNXRG();
-        }
-
         // Verify the vpools of the volumes to be snapped support
         // snapshots and the maximum snapshots has not been reached.
         // Also, check for a duplicate name.
@@ -1822,5 +1818,4 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             URI applicationId, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
-    
 }

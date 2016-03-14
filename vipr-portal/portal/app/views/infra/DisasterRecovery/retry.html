@@ -1,0 +1,95 @@
+%{
+  titleKey = 'disasterRecovery.title';
+}%
+#{extends 'nonav-wide-layout.html' /}
+#{set 'title'}&{titleKey}#{/set}
+
+#{Form.header titleKey:'disasterRecovery.title' /}
+#{alerts/}
+
+<div>
+#{if iamActiveSite }
+	<span>&{'disasterRecovery.switchover.unstable'}</span>
+#{/if}
+#{else}	
+	<span>&{'disasterRecovery.failover.unstable'}</span>
+#{/else}
+</div><br/>
+
+<div>
+   	<b style="font-size:14px">&{'disasterRecovery.switchover.active'}:</b>
+   	<span>${active_name}</span>
+</div><br/>
+<div>
+   	<b style="font-size:14px">&{'disasterRecovery.switchover.standby'}:</b>
+   	<span>${standby_name}</span>
+</div><br/><br/>
+
+#{if iamActiveSite }
+	#{Form.subheader titleKey:"disasterRecovery.switchover.subtitle" /}
+#{/if}
+#{else}
+	#{Form.subheader titleKey:"disasterRecovery.failover.subtitile" /}
+#{/else}
+<br/>
+<div id="switchdesc">
+	<div style="background-color:#ADE0C2; width:100%;height:52px;">
+		<br/>
+		<span>&nbsp;&nbsp;&{'disasterRecovery.switchover.setting'} <b>${standby_name}</b> &{'disasterRecovery.switchover.active.to'}</span>
+	</div>
+	<br/><br/>
+	<dl>
+  		#{if iamActiveSite }
+  			<dt id="loadingStatus"><b>&{'disasterRecovery.SwitchoverButton'}</b></dt>
+			<dd id="checkFailoverStatus">&{'disasterRecovery.switchover.progress'} #{loading/}</dd>
+		#{/if}
+		#{else}
+			<dt id="loadingStatus"><b>&{'disasterRecovery.FailoverButton'}</b></dt>
+			<dd id="checkFailoverStatus">&{'disasterRecovery.failover.progress'} #{loading/}</dd>
+		#{/else}
+	</dl>
+	<span id="failoverWarining">&{'disasterRecovery.failover.progress.warning'}</span>
+	<span id="redirectSite" hidden="hidden">
+		&{'disasterRecovery.switchover.login.instruction'} <a href="https://${standby_vip}" >${standby_name}</a>
+	</span>
+</div>
+
+<script>
+$(document).ready(function() {
+	checkFailoverStatusUpdates();
+});
+
+function checkFailoverStatusUpdates() {
+	window.setInterval(function() {
+		checkFailoverProgressUpdate()
+    }, 10000); // Check every 10 seconds
+}
+
+var checkFailoverProgress = #{jsAction @checkFailoverProgress(':uuid')/};
+
+function checkFailoverProgressUpdate() {
+	$.ajax({
+        method: "get",
+        url: checkFailoverProgress(({"uuid": "${site_uuid}"})),
+        dataType: "json",
+
+        success: function(result) {
+			if(result.state == "ACTIVE" || result.state == "STANDBY_SYNCED" ) {
+				$("#loadingStatus").text('&{'disasterRecovery.failover.complete'}');
+ 				$("#checkFailoverStatus").text('');
+ 				$("#failoverWarining").text('');
+ 				$("#redirectSite").show();
+			}
+			if(result.state == "STANDBY_ERROR") {
+				$("#loadingStatus").text('&{'disasterRecovery.failover.uncomplete'}');
+				$("#checkFailoverStatus").text('');
+				$("#failoverWarining").text('');
+				$("#redirectSite").text('&{'disasterRecovery.switchover.failed.instruction'}');
+				$("#redirectSite").show();
+			}
+        },
+        error: function() {
+        }
+	});
+}
+</script>

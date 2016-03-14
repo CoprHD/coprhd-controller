@@ -1513,7 +1513,7 @@ public class RPHelper {
                     if (NullColumnValueGetter.isNotNullValue(associatedVolume.getInternalSiteName())
                             && !associatedVolume.getInternalSiteName().equals(sourceVolume.getInternalSiteName())
                             && NullColumnValueGetter.isNotNullValue(associatedVolume.getRpCopyName())) {
-                        // If the internal site names are different, this is the standby internal site
+                        // If the internal site names are different, this is the standby volume
                         standbyProductionCopyName = associatedVolume.getRpCopyName();
                         break;
                     }

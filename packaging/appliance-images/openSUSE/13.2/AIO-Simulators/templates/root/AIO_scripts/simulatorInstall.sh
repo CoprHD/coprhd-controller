@@ -15,7 +15,7 @@ UNIT_FILES_LOCATION=$AIO_SCRIPTS_LOCATION/unit_files/*
 UPDATE_SCRIPTS_LOCATION=$AIO_SCRIPTS_LOCATION/bin/*
 DB_FILE_LOCATION=$AIO_SCRIPTS_LOCATION/dbFiles/*
 
-SIMULATOR_BUILD_LOCATION="https://build.coprhd.org/jenkins/userContent/simulators/"
+SIMULATOR_BUILD_LOCATION="http://build.coprhd.org/jenkins/userContent/simulators/"
 
 getLatestURL(){
 	VERSION=0

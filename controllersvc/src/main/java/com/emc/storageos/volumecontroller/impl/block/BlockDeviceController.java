@@ -4602,7 +4602,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                  * No need to remove replication group as SRDF volume's 
                  * rep group will be removed as part of srdf volume delete steps.
                  */
-            	if(!Volume.isSRDFProtectedTargetVolume(volume)){
+            	if(!Volume.isSRDFProtectedVolume(volume)){
             		String replicationGroup = volume.getReplicationGroupInstance();
                     if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
                         URI storage = volume.getStorageController();

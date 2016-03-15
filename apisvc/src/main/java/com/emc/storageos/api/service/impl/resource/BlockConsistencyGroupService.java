@@ -2285,7 +2285,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         List<Volume> targetVolumes = getTargetVolumes(targetCg, targetVarrayId);
 
         for (Volume tgtVolume : targetVolumes) {
-            if (!Volume.isSRDFProtectedTargetVolume(tgtVolume)) {
+            if (!Volume.isSRDFProtectedVolume(tgtVolume)) {
                 // All target volumes matching specified target virtual array must be SRDF
                 // protected.
                 throw APIException.badRequests.volumeMustBeSRDFProtected(tgtVolume.getId());

@@ -154,9 +154,11 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
-            cmdResult = doResumeReplicationPolicy(system, policyName);
+            cmdResult = doStartReplicationPolicy(system, policyName, completer);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
+            } else if (cmdResult.getCommandPending()) {
+                completer.statusPending(_dbClient, cmdResult.getMessage());
             } else {
                 completer.error(_dbClient, cmdResult.getServiceCoded());
             }

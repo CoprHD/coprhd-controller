@@ -216,7 +216,10 @@ public final class DownloadExecutor implements  Runnable {
 
         try {
             backupOps.checkBackup(backupFolder);
+            long size = backupOps.getSizeToDownload(remoteBackupFileName);
+            backupOps.updateDownloadedSize(remoteBackupFileName, size, false);
             log.info("The backup {} for this node has already been downloaded", remoteBackupFileName);
+            backupOps.setRestoreStatus(remoteBackupFileName, null, null, true, false);
             return; //no need to download again
         } catch (Exception e) {
             // no backup or invalid backup, so download it again
@@ -346,6 +349,8 @@ public final class DownloadExecutor implements  Runnable {
         long skip = file.length();
         log.info("To skip={} bytes", skip);
         in.skip(file.length());
+
+        backupOps.updateDownloadedSize(remoteBackupFileName, skip, doLock);
 
         int length;
         try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file, true))) {

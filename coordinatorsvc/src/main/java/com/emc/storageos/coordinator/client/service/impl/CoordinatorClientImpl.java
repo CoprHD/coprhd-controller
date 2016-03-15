@@ -240,7 +240,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         // insert DR active site info to ZK
         Site site = new Site();
         site.setUuid(getSiteId());
-        site.setName("Default Active Site");
+        site.setName("Default Site");
         site.setVdcShortId(vdcShortId);
         site.setSiteShortId(Constants.CONFIG_DR_FIRST_SITE_SHORT_ID);
         site.setState(SiteState.ACTIVE);
@@ -1130,7 +1130,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
 
         // add site specific properties
-        PropertyInfoExt siteScopePropInfo = getTargetInfo(PropertyInfoExt.class, getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        PropertyInfoExt siteScopePropInfo = getTargetInfo(getSiteId(), PropertyInfoExt.class);
         if (siteScopePropInfo != null) {
             info.getProperties().putAll(siteScopePropInfo.getProperties());
         }
@@ -1264,12 +1264,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         String kind = coordinatorInfo.kind;
 
         return getTargetInfo(siteId, clazz, id, kind);
-    }
-    
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id,
-            String kind) throws CoordinatorException {
-        
-        return getTargetInfo(null, clazz, id, kind);
     }
 
     private <T extends CoordinatorSerializable> T getTargetInfo(String siteId, final Class<T> clazz, String id,
@@ -1990,9 +1984,14 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
     public void deletePath(String path) {
         try {
+            if (_zkConnection.curator().checkExists().forPath(path) == null) {
+                log.info("Skip path deletion since {} doesn't exist", path);
+                return;
+            }
+            
             List<String> subPaths = _zkConnection.curator().getChildren().forPath(path);
             for (String subPath : subPaths) {
-                log.info("Subpath {} is going to be deleted", subPath);
+                log.info("Subpath {}/{} is going to be deleted", path, subPath);
             }
             
             DeleteBuilder deleteOp = _zkConnection.curator().delete();
@@ -2020,12 +2019,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     public void createEphemeralNode(String path, byte[] data) throws Exception {
         log.info("create ephemeral node path={} data={}", path, data);
-        _zkConnection.curator().create().withMode(CreateMode.EPHEMERAL).
+        _zkConnection.curator().create().creatingParentContainersIfNeeded().withMode(CreateMode.EPHEMERAL).
                 forPath(path, data);
     }
 
     public void deleteNode(String path) throws Exception {
         log.info("delete ephemeral node path={}", path);
         _zkConnection.curator().delete().forPath(path);
+    }
+
+    public List<String> getChildren(String path) throws Exception {
+        return _zkConnection.curator().getChildren().forPath(path);
     }
 }

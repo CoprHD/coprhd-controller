@@ -20,6 +20,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
  * This decorator is responsible for decorating the CG with the backend/regular volume.
@@ -34,7 +35,7 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
 
     @Override
     public void decorateCG(BlockConsistencyGroup cg, Collection<BlockObject> associatedObjects,
-            IngestionRequestContext requestContext)
+            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume)
             throws Exception {
 
         if (null == associatedObjects || associatedObjects.isEmpty()) {
@@ -51,7 +52,7 @@ public class BlockVolumeCGIngestDecorator extends BlockCGIngestDecorator {
             }
 
             // This volume is not in a CG of this type
-            if (blockObj.getReplicationGroupInstance() == null) {
+            if (NullColumnValueGetter.isNullValue(blockObj.getReplicationGroupInstance())) {
                 logger.info("BlockObject {} doesn't have replicationGroup name {}. No need to set system cg information.",
                         blockObj.getNativeGuid());
                 continue;

@@ -24,7 +24,10 @@
 		if (!editMode && !errors) {
     		setDefaults();
         }
-
+		var authType = $('#ldapSources_mode').val();
+		if (editMode && authType == '${keyStoneType}') {
+			$('#ldapSources_groupAttribute').prop("disabled", true);
+		}
     	$('#ldapSources_mode').on('change', setFormByType);
     	$('#ldapSources_mode').on('change', setDefaults);
 
@@ -55,6 +58,9 @@
     	    $('#ldapSources_searchScopeControlGroup').closest($ctrlElements).hide();
     	    $('#ldapSources_searchBaseControlGroup').closest($ctrlElements).hide();
     	    $('#ldapSources_searchFilterControlGroup').closest($ctrlElements).hide();
+    	    $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
+            $('#ldapSources_groupMemberAttributes').closest($ctrlElements).hide();
+            
         } else {
             $('#ldapSources_autoRegCoprHDNImportOSProjects').closest($ctrlElements).hide();
             $('#ldapSources_groupObjectClasses').closest($ctrlElements).hide();
@@ -74,6 +80,9 @@
 
         if (!group.val()) {
             group.val('CN');
+        }
+        if (authType == '${keyStoneType}') {
+        	group.val('tenant_id');
         }
         
         if (authType == '${ldapType}') {
@@ -128,6 +137,7 @@
      %{
         field.required = true
         field.value = domainString
+         
         field.helpTextKey = field.name + '.description'
       }%
       #{Form.textAreaControlGroup field:field /}

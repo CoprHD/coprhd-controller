@@ -17,10 +17,12 @@ package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +96,7 @@ import com.google.common.base.Joiner;
  *
  * Criteria for Full Ingestion of an RP CG:
  * - All Journals, Sources, and Targets associated with the UnManagedProtectionSet are now Managed volumes
- * - Validation occurs where needed, such as ensuring that the journals and targets are assigned to the right vpools (TODO)
+ * - Validation occurs where needed, such as ensuring that the journals and targets are assigned to the right vpools
  * - BlockConsistencyGroup and ProtectionSet objects are created and all ingested volumes therein are updated with references to them.
  *
  */
@@ -227,7 +229,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             // blockObject already ingested, now just update internalflags &
             // RP relationships. Run this logic always when volume NO_PUBLIC_ACCESS
             if (markUnManagedVolumeInactive(parentRequestContext, volume)) {
-                _logger.info("All the related replicas and parent of unManagedVolume {} has been ingested ",
+                _logger.info("All the related replicas and parent of unManagedVolume {} have been ingested ",
                         unManagedVolume.getNativeGuid());
                 unManagedVolume.setInactive(true);
                 // Add this unmanaged volume to the list of objects to be deleted if we succeed to run this whole ingestion.
@@ -292,6 +294,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         volume.setRpCopyName(rpCopyName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setInternalSiteName(rpInternalSiteName); // This comes from UNMANAGED_CG discovery of Protection System
         volume.setProtectionController(URI.create(rpProtectionSystem)); // This comes from UNMANAGED_CG discovery of Protection System
+        volume.setSyncActive(true); // This defaults to true for an active RP protection
     }
 
     /**
@@ -331,7 +334,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             VplexVolumeIngestionContext vplexVolumeContext = ((RpVplexVolumeIngestionContext) volumeContext.getVolumeContext())
                     .getVplexVolumeIngestionContext();
 
-            // Match the main VPLEX virtual volume varray to one of it's backing volume varrays.
+            // Match the main VPLEX virtual volume varray to one of its backing volume varrays.
             // Matching should indicate the volume is the VPLEX Source side.
             // Non-matching varrays will be the VPLEX HA side.
             for (String associatedVolumeIdStr : volume.getAssociatedVolumes()) {
@@ -348,7 +351,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
                             "Could not find associated volume: " + associatedVolumeIdStr + ", for VPLEX volume: " + volume.getLabel());
                 }
 
-                // Compare the varrays for the associated volume and it's VPLEX virtual volume
+                // Compare the varrays for the associated volume and its VPLEX virtual volume
                 if (associatedVolume.getVirtualArray().equals(volume.getVirtualArray())) {
                     associatedVolume.setInternalSiteName(rpInternalSiteName);
                     associatedVolume.setRpCopyName(rpCopyName);
@@ -577,7 +580,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         // Make sure all of the changed managed block objects get updated
         volumes.add((Volume) volumeContext.getManagedBlockObject());
-        List<DataObject> updatedObjects = new ArrayList<DataObject>();
+        Set<DataObject> updatedObjects = new HashSet<DataObject>();
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
         VolumeIngestionUtil.clearPersistedReplicaFlags(volumes, updatedObjects, _dbClient);
@@ -601,7 +604,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      * @param volumeContext
      */
     private void clearReplicaFlagsInIngestionContext(RecoverPointVolumeIngestionContext volumeContext) {
-        for (List<DataObject> updatedObjects : volumeContext.getDataObjectsToBeUpdatedMap().values()) {
+        for (Set<DataObject> updatedObjects : volumeContext.getDataObjectsToBeUpdatedMap().values()) {
             for (DataObject updatedObject : updatedObjects) {
                 if (updatedObject instanceof BlockMirror || updatedObject instanceof BlockSnapshot
                         || (updatedObject instanceof Volume && ((Volume) updatedObject).getAssociatedSourceVolume() != null)) {

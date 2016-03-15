@@ -423,15 +423,13 @@ public class AuthnConfigurationService extends TaggedResource {
     }
 
     /**
-     * Populate or Modify the keystone token
-     * in authentication provider.
+     * Returns new password when old password is different from new one. Otherwise returns old password.
      *
-     * @param provider
+     * @param provider AuthnProvider with new password.
+     * @param oldPassword Old password for AuthnProvider.
+     * @return Password.
      */
-    private void populateKeystoneToken(AuthnProvider provider, String oldPassword) {
-        Set<String> uris = provider.getServerUrls();
-
-        URI authUri = _keystoneUtils.retrieveUriFromServerUrls(uris);
+    private String getPassword(AuthnProvider provider, String oldPassword){
 
         String password = "";
         if (null == oldPassword) {
@@ -443,6 +441,23 @@ public class AuthnConfigurationService extends TaggedResource {
             password = (null == newPassword) ? oldPassword :
                     (oldPassword.equals(newPassword) ? oldPassword : newPassword);
         }
+
+        return password;
+    }
+
+    /**
+     * Populate or Modify the keystone token
+     * in authentication provider.
+     *
+     * @param provider
+     */
+    private void populateKeystoneToken(AuthnProvider provider, String oldPassword) {
+        Set<String> uris = provider.getServerUrls();
+
+        URI authUri = _keystoneUtils.retrieveUriFromServerUrls(uris);
+
+        String password = getPassword(provider, oldPassword);
+
         StringMap map = getUsernameAndTenant(provider);
 
         String username = map.get(CinderConstants.USERNAME);
@@ -535,7 +550,13 @@ public class AuthnConfigurationService extends TaggedResource {
             AuthnProvider provider, AuthnProviderParamsToValidate validateP) {
         String oldPassword = provider.getManagerPassword();
         boolean isAutoRegistered = provider.getAutoRegCoprHDNImportOSProjects();
+        //if the configured domain has tenant then we can't update 
+        //that domain.
+        checkForActiveTenantsUsingDomains(provider.getDomains());
         overlayProvider(provider, param);
+        // Set old password if new one is a blank or null.
+        provider.setManagerPassword(getPassword(provider, oldPassword));
+
         if (!provider.getDisable()) {
             _log.debug("Validating provider before modification...");
             validateP.setUrls(new ArrayList<String>(provider.getServerUrls()));
@@ -796,7 +817,7 @@ public class AuthnConfigurationService extends TaggedResource {
             Map<URI, List<UserMapping>> mappings = _permissionsHelper.getAllUserMappingsForDomain(domainToCheck);
             Set<URI> tenantIDset;
             if (mappings == null) {
-                _log.debug("No matching tenant found for domain {}", domainToCheck);
+            	_log.debug("No matching tenant found for domain {}", domainToCheck);
                 continue;
             }
             tenantIDset = mappings.keySet();

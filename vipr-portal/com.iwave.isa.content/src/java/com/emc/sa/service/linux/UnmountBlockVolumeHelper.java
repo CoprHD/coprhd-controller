@@ -8,12 +8,12 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.sa.util.VolumeWWNUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.sa.util.VolumeWWNUtils;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.emc.storageos.model.block.VolumeRestRep;
@@ -78,7 +78,7 @@ public class UnmountBlockVolumeHelper {
     }
 
     /**
-     * search through the volumes list to find the {@link VolumeSpec} which has the given wwn and return it's
+     * search through the volumes list to find the {@link VolumeSpec} which has the given wwn and return its
      * 'viprVolume' which is a {@link VolumeRestRep}
      */
     private BlockObjectRestRep findVolumeRestRepByWwn(String relatedWwn) {

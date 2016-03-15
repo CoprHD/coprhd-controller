@@ -1661,7 +1661,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * This method implements the API to re-link a target to either it's current
+     * This method implements the API to re-link a target to either its current
      * snapshot session or to a different snapshot session of the same source.
      * 
      * @brief Relink target volumes to snapshot sessions.

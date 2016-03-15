@@ -3003,7 +3003,7 @@ public class VolumeIngestionUtil {
         blockObject.clearInternalFlags(BlockIngestOrchestrator.INTERNAL_VOLUME_FLAGS);
 
         // snapshot sessions
-        // Do not clear the flags for snapshot sessions associated with RP volumes.
+        // Do not clear the flags for snapshot sessions associated with RP volumes till the RP CG is fully ingested.
         if (getRPUnmanagedVolume(unManagedVolume, dbClient) == null) {
             clearSnapshotSessionsFlags(blockObject, updatedObjects, dbClient);
         }

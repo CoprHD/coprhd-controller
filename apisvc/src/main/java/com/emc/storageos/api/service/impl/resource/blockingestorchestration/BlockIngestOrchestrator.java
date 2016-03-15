@@ -879,7 +879,7 @@ public abstract class BlockIngestOrchestrator {
         String currentBlockObjectNativeGuid = currentUnmanagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                 VolumeIngestionUtil.VOLUME);
         UnManagedProtectionSet umpset = null;
-        boolean fullyIngestedVolume = true;
+        boolean allRPCGVolumesIngested = true;
         boolean isParentRPVolume = false;
         for (BlockObject parent : parentReplicaMap.keySet()) {
             boolean parentIsCurrentUnManagedVolume = parent.getNativeGuid().equals(currentBlockObjectNativeGuid);
@@ -908,9 +908,9 @@ public abstract class BlockIngestOrchestrator {
                     BlockObject parentRPVolume = VolumeIngestionUtil.getRPVolume(requestContext, parent, _dbClient);
                     umpset = VolumeIngestionUtil.getUnManagedProtectionSetForManagedVolume(requestContext, parentRPVolume, _dbClient);
                 }
-                fullyIngestedVolume = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient);
+                allRPCGVolumesIngested = VolumeIngestionUtil.validateAllVolumesInCGIngested(ingestedUnManagedVolumes, umpset, _dbClient);
                 // If not fully ingested, mark the volume as internal. This will be marked visible when the RP CG is ingested
-                if (!fullyIngestedVolume) {
+                if (!allRPCGVolumesIngested) {
                     parent.addInternalFlags(INTERNAL_VOLUME_FLAGS);
                 }
             }
@@ -937,7 +937,7 @@ public abstract class BlockIngestOrchestrator {
                 }
 
                 // Snaps/mirror/clones of RP volumes should be made visible only after the RP CG has been fully ingested.
-                if (isParentRPVolume && !fullyIngestedVolume) {
+                if (isParentRPVolume && !allRPCGVolumesIngested) {
                     replica.addInternalFlags(INTERNAL_VOLUME_FLAGS);
                 }
                 if (null == requestContext.findCreatedBlockObject(replica.getNativeGuid())) {
@@ -946,7 +946,7 @@ public abstract class BlockIngestOrchestrator {
             }
         }
         // If RP volume and fully ingested, set up the RP CG
-        if (isParentRPVolume && fullyIngestedVolume && umpset != null) {
+        if (isParentRPVolume && allRPCGVolumesIngested && umpset != null) {
             VolumeIngestionUtil.setupRPCG(requestContext, umpset, currentUnmanagedVolume, updateObjects, _dbClient);
         }
     }

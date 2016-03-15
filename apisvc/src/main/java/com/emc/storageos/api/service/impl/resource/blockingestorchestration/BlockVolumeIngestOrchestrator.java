@@ -124,7 +124,7 @@ public class BlockVolumeIngestOrchestrator extends BlockIngestOrchestrator {
                         session.setLabel(syncAspectName);
                         session.setSessionLabel(syncAspectName);
                         session.setParent(new NamedURI(volume.getId(), volume.getLabel()));
-                        session.setProject(new NamedURI(project.getId(), volume.getLabel()));
+                        session.setProject(new NamedURI(project.getId(), project.getLabel()));
                         session.setStorageController(volume.getStorageController());
                         session.setSessionInstance(syncAspectObjPath);
                         StringSet linkedTargetURIs = new StringSet();

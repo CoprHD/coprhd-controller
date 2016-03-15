@@ -641,6 +641,9 @@ public enum ServiceCode {
     CEPH_OPERATION_EXCEPTION(67001),
     CEPH_INVALID_CREDENTIALS_ERROR(67002),
 
+    // RackHD errors
+    RACKHD_API_FAILURE(66000),
+    
     // ****************************
     // Old style of Service codes
     // ****************************

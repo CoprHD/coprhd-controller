@@ -476,7 +476,6 @@ public class VolumeGroupService extends TaskResourceService {
         if (volumeGroup.getInactive()) {
             throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), "The Volume Group has been deleted");
         }
-        // checkForApplicationPendingTasks(volumeGroup);
         boolean isChanged = false;
         String vgName = param.getName();
         if (vgName != null && !vgName.isEmpty() && !vgName.equalsIgnoreCase(volumeGroup.getLabel())) {

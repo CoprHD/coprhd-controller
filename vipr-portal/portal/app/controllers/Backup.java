@@ -90,10 +90,7 @@ public class Backup extends Controller {
                 if (StringUtils.isNotBlank(id)) {
                     BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
                     BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
-                    if (backupInfo.getCreateTime() != 0) {
-                        backup.creationtime = backupInfo.getCreateTime();
-                    }
-                    backup.status = backupInfo.getRestoreStatus().getStatus().name();
+                    backup.creationtime = backupInfo.getCreateTime() != 0 ? backupInfo.getCreateTime() : 0;
                     results.add(backup);
                 }
             }

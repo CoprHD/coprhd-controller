@@ -110,9 +110,9 @@ public class BackupDataTable extends DataTable {
                 Logger.error("Could not encode backup name");
             }
             name = externalBackupName;
-            // Async to get the detail backup info
+            // Async to get the detail backup info, so mark loading first
             status = "LOADING";
-            creationtime = -1;
+            creationtime = -1; // means Loading
         }
     }
 }

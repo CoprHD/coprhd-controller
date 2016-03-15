@@ -37,8 +37,6 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
 </div>
 
 <script type="text/javascript">
-    stop = false;
-    request = null;
     type = "${type}";
     LOCAL = "${models.datatable.BackupDataTable.Type.LOCAL}";
     REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
@@ -47,41 +45,60 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
         //update remote backups detail info
         if (type == REMOTE) {
             var dataTable = table.backup.dataTable.getDataTable();
-            var itemsJson = #{jsAction @externalStatusJson(':ids')/};
-            var checkUpdate = window.setInterval(function () {
-                if (stop) {
-                    console.info("stop");
-                    clearInterval(checkUpdate);
+            var interval = 1000; // 1 second
+
+            var restoreStatusJson = #{jsAction @externalStatusJson(':ids')/};
+            var backupInfoJson = #{jsAction @externalItemsJson(':ids')/};
+            stop = new Array();
+            request = new Array();
+            field = new Array();
+            stop[0] = stop[1] = false;
+            request[0] = request[1] = null;
+            field[0] = ['status'];
+            field[1] = ['creationtime'];
+            var updateRestoreStatus = window.setInterval(function () {
+                if (stop[0] === true) {
+                    console.info("To stop update restore status");
+                    clearInterval(updateRestoreStatus);
                     return;
                 }
-                updateRemoteListDetails(dataTable, itemsJson);
-            }, 1000); // Check every 1 seconds
+                updateRemoteListDetails(dataTable, restoreStatusJson, 0);
+            }, interval);
+            var updateBackupInfo = window.setInterval(function () {
+                if (stop[1] === true) {
+                    console.info("To stop update backup info");
+                    clearInterval(updateBackupInfo);
+                    return;
+                }
+                updateRemoteListDetails(dataTable, backupInfoJson, 1);
+            }, interval);
+
         }
     });
 
-    function updateRemoteListDetails(dataTable, itemsJson) {
+    function updateRemoteListDetails(dataTable, itemsJson, number) {
         var ids = new Array();
         var data = dataTable.fnGetData();
+        var update = function (table) {
+            console.info("In update %s, ids: %s.\nCurrent time: %s.", number, JSON.stringify(ids), new Date($.now()) );
+            var url = itemsJson({ids: ids.join(",")});
+            request[number] = $.get(url, function (results) {
+                console.info("Get request: %s, %s.\nCurrent time: %s.", number, JSON.stringify(results), new Date($.now()) );
+                stop[number] = true;
+                updateDatatableRows(table, results, field[number]);
+            });
+        };
+
         for (var i = 0; i < data.length; i++) {
             var row = data[i];
             ids.push(row.id);
         }
 
         if (ids.length > 0) {
-            var update = function (table) {
-                console.info("In update, ids: %s.\nCurrent time: %s.", JSON.stringify(ids), new Date($.now()));
-                var url = itemsJson({ids: ids.join(",")});
-                request = $.get(url, function (results) {
-                    console.info("Get request: %s.\nCurrent time: %s.", JSON.stringify(results), new Date($.now()));
-                    stop = true;
-                    var field = ['creationtime', 'actionstatus', 'error', 'status'];
-                    updateDatatableRows(table, results, field);
-                });
-            };
-            if (request == null) {
+            if (request[number] == null) {
                 update(dataTable);
-            } else if (stop) {
-                request.abort();
+            } else if (stop[number]) {
+                request[number].abort();
             }
         }
 
@@ -202,7 +219,7 @@ render.externalLoading = function(o, val) {
     if (o.aData.creationtime == '-1') {
         return '<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span>';
     } else {
-        return render.localDate(o,time_ms);
+        return render.localDate(o, val);
     }
 }
 

@@ -53,8 +53,10 @@ public class ObjectStorageUtils {
         
         if (acl.aclType.equalsIgnoreCase("GROUP")) {
             bucketAce.setGroup(acl.aclName);
-        } else {
+        } else if (acl.aclType.equalsIgnoreCase("USER")) {
             bucketAce.setUser(acl.aclName);
+        } else {
+            bucketAce.setCustomGroup(acl.aclName);
         }
         
         if (!StringUtils.isEmpty(acl.aclDomain)) {

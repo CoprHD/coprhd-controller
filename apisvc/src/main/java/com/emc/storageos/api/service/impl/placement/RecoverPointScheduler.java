@@ -3106,7 +3106,7 @@ public class RecoverPointScheduler implements Scheduler {
     }
 
     /**
-     * Get the candidate internal site names associated with this storage pool (it's storage system) and the
+     * Get the candidate internal site names associated with this storage pool (its storage system) and the
      * protection system.
      *
      * @param protectionDevice protection system

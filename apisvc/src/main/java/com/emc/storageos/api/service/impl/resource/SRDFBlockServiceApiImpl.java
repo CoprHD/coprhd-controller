@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.SupportedReplicationTypes;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
@@ -801,8 +802,13 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             // fetchSRDFVolumes() call,
             // Because that can only have happened if the RDF relationship was already torn down.
             if (volumeIDs.size() == 1) {
+                List<Class<? extends DataObject>> excludes = new ArrayList<Class<? extends DataObject>>();
+                if (excludeTypes != null) {
+                    excludes.addAll(excludeTypes);
+                }
+                excludes.add(Task.class);
                 String depMsg = _dependencyChecker.checkDependencies(object.getId(),
-                        object.getClass(), true, excludeTypes);
+                        object.getClass(), true, excludes);
                 if (depMsg != null) {
                     return depMsg;
                 }
@@ -1214,7 +1220,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 .queryActiveResourcesByConstraint(_dbClient, Volume.class,
                         AlternateIdConstraint.Factory.getVolumesByVolumeGroupId(group.getId().toString()));
         for (Volume volume : volumes) {
-            if (volume.getReplicationGroupInstance() != null) {
+            if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                 groupNames.add(volume.getReplicationGroupInstance());
             }
         }

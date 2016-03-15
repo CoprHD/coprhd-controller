@@ -336,7 +336,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
             // This step is currently used to ensure that any existing resources get added to native
             // CGs. Mainly used for VPLEX->RP+VPLEX change vpool. The existing VPLEX volume would not be
-            // in any CG and we now need it's backing volume(s) to be added to their local array CG.
+            // in any CG and we now need its backing volume(s) to be added to their local array CG.
             waitFor = postRPChangeVpoolSteps(workflow, waitFor, volumes, taskId);
 
             // Finish up and execute the plan.
@@ -430,6 +430,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             return waitFor;
         }
 
+        List<VolumeDescriptor> migratedBlockDataDescriptors = new ArrayList<VolumeDescriptor>();
+        
         // We could be performing a change vpool for RP+VPLEX / MetroPoint. This means
         // we could potentially have migrations that need to be done on the backend
         // volumes. If migration info exists we need to collect that ahead of time.
@@ -443,13 +445,21 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 // Load the migration objects for use later
                 Iterator<VolumeDescriptor> migrationIter = migrateDescriptors.iterator();
                 while (migrationIter.hasNext()) {
-                    Migration migration = s_dbClient.queryObject(Migration.class, migrationIter.next().getMigrationId());
+                    VolumeDescriptor migrationDesc = migrationIter.next();
+                    Migration migration = s_dbClient.queryObject(Migration.class, migrationDesc.getMigrationId());
                     volumesWithMigration.add(migration.getSource());
+                    
+                    Volume migratedVolume = s_dbClient.queryObject(Volume.class, migration.getVolume());
+                    VolumeDescriptor migratedBlockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                            migratedVolume.getStorageController(), migratedVolume.getId(), null,
+                            migratedVolume.getConsistencyGroup(), migrationDesc.getCapabilitiesValues());
+                    
+                    migratedBlockDataDescriptors.add(migratedBlockDataDesc);
                 }
             }
         }
 
-        List<VolumeDescriptor> blockDataDescriptors = new ArrayList<VolumeDescriptor>();
+        List<VolumeDescriptor> blockDataDescriptors = new ArrayList<VolumeDescriptor>();        
 
         for (VolumeDescriptor descr : rpVolumeDescriptors) {
             // If there are RP_EXISTING_SOURCE volume descriptors, we need to ensure the
@@ -479,25 +489,29 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     // deleted so let's skip it.
                     if (volumesWithMigration.contains(assocVolume.getId())) {
                         s_logger.info(String.format("Migration exists for [%s] so no need to add this volume to a backing array CG.",
-                                assocVolume.getLabel()));
+                                assocVolume.getLabel()));                                                
                         continue;
                     }
 
-                    // Create the BLOCK_DATA descriptor with the correct info
-                    // for creating the CG and adding the backing volume to it.
-                    VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
-                            assocVolume.getStorageController(), assocVolume.getId(), null,
-                            rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
-                    blockDataDescriptors.add(blockDataDesc);
-
-                    // Good time to update the backing volume with it's new CG
-                    assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
-                    s_dbClient.updateObject(assocVolume);
-
-                    s_logger.info(
-                            String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
-                                    assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(),
-                                    assocVolume.getStorageController()));
+                    // Only add the change vpool volume's backend volumes to the backend CGs if the getReplicationGroupInstance
+                    // field has been populated during the API prepare volume steps.
+                    if (NullColumnValueGetter.isNotNullValue(assocVolume.getReplicationGroupInstance())) {
+                        // Create the BLOCK_DATA descriptor with the correct info
+                        // for creating the CG and adding the backing volume to it.
+                        VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
+                                assocVolume.getStorageController(), assocVolume.getId(), null,
+                                rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
+                        blockDataDescriptors.add(blockDataDesc);
+    
+                        // Good time to update the backing volume with its new CG
+                        assocVolume.setConsistencyGroup(rpExistingSource.getConsistencyGroup());
+                        s_dbClient.updateObject(assocVolume);
+    
+                        s_logger.info(
+                                String.format("Backing volume [%s] needs to be added to CG [%s] on storage system [%s].",
+                                        assocVolume.getLabel(), rpExistingSource.getConsistencyGroup(),
+                                        assocVolume.getStorageController()));
+                    }
                 }
             }
         }
@@ -508,9 +522,16 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                     "postRPChangeVpoolCreateCG");
 
             // Add a step to update the local array consistency group with the volumes to add
-            waitFor = _blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, blockDataDescriptors, null);
+            waitFor = _blockDeviceController.addStepsForUpdateConsistencyGroup(workflow, waitFor, blockDataDescriptors, null);                        
         }
-
+        
+        // Consolidate all the block data descriptors to see if any replica steps are needed.
+        blockDataDescriptors.addAll(migratedBlockDataDescriptors);
+        s_logger.info("Checking for Replica steps");
+        // Call the ReplicaDeviceController to add its methods if volumes are added to CG, and the CG associated with replication
+        // group(s)
+        waitFor = _replicaDeviceController.addStepsForCreateVolumes(workflow, waitFor, blockDataDescriptors, taskId);
+        
         return waitFor;
     }
 
@@ -586,6 +607,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
     public void restoreFromFullCopy(URI storage, List<URI> fullCopyURIs, String taskId)
             throws InternalException {
         CloneRestoreCompleter completer = new CloneRestoreCompleter(fullCopyURIs, taskId);
+        s_logger.info("Creating steps for restore from full copy.");
         try {
             // Generate the Workflow.
             Workflow workflow = _workflowService.getNewWorkflow(this,
@@ -596,11 +618,14 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
             waitFor = _rpDeviceController.addPreRestoreFromFullcopySteps(
                     workflow, waitFor, storage, fullCopyURIs, taskId);
 
-            // Call the VplexDeviceController to add its steps for restore volume from snapshot
+            // Call the VplexDeviceController to add its steps for restore volume from full copy
             waitFor = _vplexDeviceController.addStepsForRestoreFromFullcopy(
                     workflow, waitFor, storage, fullCopyURIs, taskId, completer);
 
-            // Call the RPDeviceController to add its steps for post restore volume from snapshot
+            // Call the BlockDeviceController to add its stpes for restore volume from full copy
+            waitFor = _blockDeviceController.addStepsForRestoreFromFullcopy(workflow, waitFor, storage, fullCopyURIs, taskId, completer);
+            
+            // Call the RPDeviceController to add its steps for post restore volume from full copy
             waitFor = _rpDeviceController.addPostRestoreFromFullcopySteps(workflow, waitFor, storage, fullCopyURIs, taskId);
 
             // Finish up and execute the plan.

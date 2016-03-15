@@ -610,7 +610,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _log.info("Done invoking remove volume from storage group");
                 }
                 // For clones, 'replicationgroupinstance' property contains the Replication Group name.
-                if (volume.getReplicationGroupInstance() != null) {
+                if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                     removeVolumeFromConsistencyGroup(storageSystem, volume);
                 }
                 if (volume.getConsistencyGroup() != null) {
@@ -623,6 +623,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             cleanupAnyGroupBackupSnapshots(storageSystem, volume);
                         }
                         removeVolumeFromConsistencyGroup(storageSystem, volume);
+                    }
+                    // for VMAX3, delete the associated snapshot sessions before deleting the volume
+                    // volume may be removed from CG which has group session
+                    if (storageSystem.checkIfVmax3()) {
+                        cleanupAnyBackupSnapshots(storageSystem, volume);
                     }
                 } else {
                     // for VMAX3, clean up unlinked snapshot session, which is possible for ingested volume
@@ -1756,6 +1761,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     cleanupAnyGroupBackupSnapshots(storage, cgPath);
                 }
 
+                if (storage.deviceIsType(Type.vmax) && storage.checkIfVmax3()) {
+                    // if deleting snap session replication group, we need to remove the EMCSFSEntries first
+                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
+                }
+
                 if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
                     //  if deleting full copy replication group, we need to remove the EMCSFSEntries first
                     _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName,
@@ -2493,7 +2503,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             if (!storage.deviceIsType(Type.vnxblock)) {
                 BlockObject replica = BlockObject.fetch(_dbClient, blockObjects.get(0));
-                CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, replica.getReplicationGroupInstance(),
+                CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage,
+                        ControllerUtils.extractGroupName(replica.getReplicationGroupInstance()),
                         SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
 
                 List<URI> replicasPartOfGroup = _helper.findVolumesInReplicationGroup(storage, maskingGroupPath, blockObjects);

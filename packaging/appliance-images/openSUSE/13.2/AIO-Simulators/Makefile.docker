@@ -9,10 +9,10 @@
 # it is provided by or on behalf of EMC.
 #
 
-DEVKIT_BUILD=9
-DEVKIT_IMAGE=coprhddevkit:2.5.0.0.$(DEVKIT_BUILD)
-DEVKIT_LOCAL=CoprHDDevKit.x86_64-2.5.0.0.$(DEVKIT_BUILD).tbz
-DEVKIT_ADDRS=https://build.coprhd.org/jenkins/userContent/DevKits/2.5.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
+DEVKIT_BUILD=23
+DEVKIT_IMAGE=coprhddevkit:3.0.0.0.$(DEVKIT_BUILD)
+DEVKIT_LOCAL=CoprHDDevKit.x86_64-3.0.0.0.$(DEVKIT_BUILD).tbz
+DEVKIT_ADDRS=http://build.coprhd.org/jenkins/userContent/DevKits/3.0.0.0.$(DEVKIT_BUILD)/$(DEVKIT_LOCAL)
 DOCKER_RUN=docker run --rm --privileged --net=host -w /workspace -v "$(CURDIR)/..:/workspace" -v "/disks:/disks" $(DEVKIT_IMAGE)
 PRODUCT_FOLDER=AIO-Simulators
 .DEFAULT: appliance

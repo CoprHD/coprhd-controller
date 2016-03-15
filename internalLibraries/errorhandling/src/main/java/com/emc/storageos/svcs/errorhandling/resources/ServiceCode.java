@@ -635,6 +635,9 @@ public enum ServiceCode {
     EXTERNALDEVICE_ADD_EXPORT_MASK_INITIATORS_ERROR(66020),
     EXTERNALDEVICE_REMOVE_EXPORT_MASK_INITIATORS_ERROR(66021),
 
+    // RackHD errors
+    RACKHD_API_FAILURE(66000),
+    
     // ****************************
     // Old style of Service codes
     // ****************************

@@ -900,37 +900,6 @@ public class ControllerUtils {
 
     /**
      * Gets the volumes part of a given replication group.
-     * TODO look at below method (getVolumesPartOfRG()) while correcting this.
-     */
-    public static List<Volume> getVolumesPartOfRG(StorageSystem storage, URI cgURI /* TODO - use replicaitonGroupInstance */,
-            DbClient dbClient) {
-        List<Volume> volumes = new ArrayList<Volume>();
-        final BlockConsistencyGroup group =
-                dbClient.queryObject(BlockConsistencyGroup.class, cgURI);
-        String rgGroup = null;
-        if (group != null && storage != null) {
-            rgGroup = group.getCgNameOnStorageSystem(storage.getId());
-            if (rgGroup != null) {
-                final URIQueryResultList uriQueryResultList = new URIQueryResultList();
-                dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                        .getVolumeReplicationGroupInstanceConstraint(rgGroup), uriQueryResultList);
-                Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
-                        uriQueryResultList);
-                while (volumeIterator.hasNext()) {
-                    Volume volume = volumeIterator.next();
-                    if (volume != null && !volume.getInactive()) {
-                        volumes.add(volume);
-                    }
-                }
-            }
-        }
-
-        return volumes;
-    }
-
-    /**
-     * Gets the volumes part of a given replication group.
-     * TODO remove this method when the above method (getVolumesPartOfRG) takes in RepGroup name instead of CG
      * and add system check.
      * 
      * @param system the storage system where the replication group resides

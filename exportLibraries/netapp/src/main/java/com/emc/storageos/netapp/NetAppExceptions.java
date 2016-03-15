@@ -63,6 +63,9 @@ public interface NetAppExceptions {
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException listVolumeInfoFailed(final String volume);
+    
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException listQtreesFailed();
 
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException listAggregatesFailed(final String name);

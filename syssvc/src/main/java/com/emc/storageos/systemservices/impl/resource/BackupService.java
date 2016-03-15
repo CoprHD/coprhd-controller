@@ -354,6 +354,7 @@ public class BackupService {
         // job.setStatus(Status.NOT_STARTED);
         job.setStatus(Status.PENDING);
 
+        log.info("lbya job={}", job);
         SchedulerConfig cfg = backupScheduler.getCfg();
         cfg.persistBackupUploadStatus(job);
 
@@ -705,7 +706,7 @@ public class BackupService {
     }
 
     private Response setRestoreFailed(String backupName, String msg, Throwable cause) {
-        log.error("Set restore failed backup name:{} error: {} cause: {} ", new Object[] {backupName, msg, cause});
+        log.error("Set restore failed backup name:{} error: {} cause: ", new Object[] {backupName, msg, cause});
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
         backupOps.setRestoreStatus(backupName, s, msg, false, false);
         throw BackupException.fatals.failedToRestoreBackup(backupName, cause);

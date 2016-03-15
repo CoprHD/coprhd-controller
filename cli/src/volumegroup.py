@@ -50,6 +50,12 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_SNAPSHOT_SHOW= URI_VOLUME_GROUP_SNAPSHOT + "/{1}"
     URI_VOLUME_GROUP_SNAPSHOT_GET_COPY_SETS= URI_VOLUME_GROUP_SNAPSHOT + "/copy-sets"
 
+    # URIs for VolumeGroup Snapshot Session Operations
+    URI_VOLUME_GROUP_SNAPSESSION = "/volume-groups/block/{0}/protection/snapshot-sessions"
+    URI_VOLUME_GROUP_SNAPSESSION_LIST = URI_VOLUME_GROUP_SNAPSESSION
+    URI_VOLUME_GROUP_SNAPSESSION_SHOW= URI_VOLUME_GROUP_SNAPSESSION + "/{1}"
+    URI_VOLUME_GROUP_SNAPSESSION_GET_COPY_SETS = URI_VOLUME_GROUP_SNAPSESSION + "/copy-sets"
+
     def __init__(self, ipAddr, port):
         '''
         Constructor: takes IP address and port of the ViPR instance. These are
@@ -565,7 +571,7 @@ class VolumeGroup(object):
     def snapshot_query(self, name, snapshotname):
         '''
         This function will take the snapshot name and volume group name
-        as input and get uri of the first occurance of snapshot.
+        as input and get uri of the first occurrence of snapshot.
         paramters:
              name : Name of volume group.
              snapshotname : Name of the snapshot
@@ -616,6 +622,78 @@ class VolumeGroup(object):
 
         if('snapshot' in o):
             return o['snapshot']
+        else:
+            return []
+
+    # snapshot session
+    def volume_group_snapshotsession_list(self, name):
+        volumeGroupUri = self.query_by_name(name)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSESSION_LIST.format(volumeGroupUri), None)
+
+        o = common.json_decode(s)
+
+        if('snapshot_session' in o):
+            return o['snapshot_session']
+        else:
+            return []
+
+    def snapshotsession_query(self, name, snapshotsessionname):
+        '''
+        This function will take the snapshot session name and volume group name
+        as input and get uri of the first occurrence of snapshot session.
+        paramters:
+             name : Name of volume group.
+             snapshotsessionname : Name of the snapshot session
+        return
+            return with uri of the given snapshot session.
+        '''
+        uris = self.volume_group_snapshotsession_list(name)
+        for ss in uris:
+            if (ss['name'] == snapshotsessionname):
+                return ss['id']
+        raise SOSError(SOSError.SOS_FAILURE_ERR, "Snapshot session " + snapshotsessionname +
+                       ": not found")
+
+    def volume_group_snapshotsession_show(self, name, snapshotsessionname):
+        volumeGroupUri = self.query_by_name(name)
+        snapshotsessionUri = self.snapshotsession_query(name, snapshotsessionname)
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSESSION_SHOW.format(volumeGroupUri, snapshotsessionUri), None)
+
+        o = common.json_decode(s)
+        return o
+
+    def volume_group_snapshotsession_get_sets(self, name):
+        volumeGroupUri = self.query_by_name(name)
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSESSION_GET_COPY_SETS.format(volumeGroupUri), None)
+
+        o = common.json_decode(s)
+        return o
+
+    def volume_group_snapshotsession_get(self, name, setname):
+        volumeGroupUri = self.query_by_name(name)
+
+        request = dict()
+        request["copy_set_name"] = setname
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSESSION_GET_COPY_SETS.format(volumeGroupUri), json.dumps(request))
+
+        o = common.json_decode(s)
+
+        if('snapshot_session' in o):
+            return o['snapshot_session']
         else:
             return []
 
@@ -1847,6 +1925,224 @@ def volume_group_snapshot_get(args):
                 e.err_text,
                 e.err_code)
 
+# snapshot session
+# snapshotsession_list_parser
+def snapshotsession_list_parser(subcommand_parsers, common_parser):
+    snapshotsession_list_parser = subcommand_parsers.add_parser(
+        'snapshotsession-list',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get Snapshot Session list of a VolumeGroup',
+        description='ViPR List Snapshot Session of a VolumeGroup CLI usage.')
+
+    mandatory_args = snapshotsession_list_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    snapshotsession_list_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    snapshotsession_list_parser.set_defaults(func=volume_group_snapshotsession_list)
+
+# List Snapshot Session Function
+def volume_group_snapshotsession_list(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+        res= obj.volume_group_snapshotsession_list(args.name)
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot Session List: " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot session",
+                "list",
+                e.err_text,
+                e.err_code)
+
+# snapshotsession_show_parser
+def snapshotsession_show_parser(subcommand_parsers, common_parser):
+    snapshotsession_show_parser = subcommand_parsers.add_parser(
+        'snapshotsession-show',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Show a Snapshot Session details of a VolumeGroup',
+        description='ViPR Show Snapshot Session of a VolumeGroup CLI usage.')
+
+    mandatory_args = snapshotsession_show_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    mandatory_args.add_argument('-snapshotsessionname', '-ssn',
+                                metavar='<snapshotsessionname>',
+                                dest='snapshotsessionname',
+                                help='Name of Snapshot Session',
+                                required=True)
+    snapshotsession_show_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+
+    snapshotsession_show_parser.set_defaults(func=volume_group_snapshotsession_show)
+
+# Show Snapsnot Session Function
+def volume_group_snapshotsession_show(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        res= obj.volume_group_snapshotsession_show(args.name,
+            args.snapshotsessionname)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot Session Show: " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot session",
+                "show",
+                e.err_text,
+                e.err_code)
+
+# snapshotsession_get_sets_parser
+def snapshotsession_get_sets_parser(subcommand_parsers, common_parser):
+    snapshotsession_get_sets_parser = subcommand_parsers.add_parser(
+        'snapshotsession-get-sets',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get Snapshot Session copy set names of a VolumeGroup',
+        description='ViPR Get Snapshot Session Copy Set Names of a VolumeGroup CLI usage.')
+
+    mandatory_args = snapshotsession_get_sets_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    snapshotsession_get_sets_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    snapshotsession_get_sets_parser.set_defaults(func=volume_group_snapshotsession_get_sets)
+
+# Get Snapshot Session Copy Sets Function
+def volume_group_snapshotsession_get_sets(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        res= obj.volume_group_snapshotsession_get_sets(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot Session Get Sets: " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot session",
+                "get sets",
+                e.err_text,
+                e.err_code)
+
+
+# snapshotsession_get_parser
+def snapshotsession_get_parser(subcommand_parsers, common_parser):
+    snapshotsession_get_parser = subcommand_parsers.add_parser(
+        'snapshotsession-get',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get Snapshot Session of a VolumeGroup by set name',
+        description='ViPR Get Snapshot Session of a VolumeGroup by Copy Set Name CLI usage.')
+
+    mandatory_args = snapshotsession_get_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    snapshotsession_get_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+    snapshotsession_get_parser.add_argument('-setname', '-sn',
+                              dest='setname',
+                              help='Copy set name',
+                              required=True)
+    snapshotsession_get_parser.set_defaults(func=volume_group_snapshotsession_get)
+
+# Get Snapshot Session by Copy Set Name Function
+def volume_group_snapshotsession_get(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        res= obj.volume_group_snapshotsession_get(args.name, args.setname)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Snapshot Session Get" +
+                args.name + " with " + args.setname +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "snapshot session",
+                "get snapshot session by set name",
+                e.err_text,
+                e.err_code)
+
 # VolumeGroup Main parser routine
 def volume_group_parser(parent_subparser, common_parser):
     # main volume group parser
@@ -1932,3 +2228,16 @@ def volume_group_parser(parent_subparser, common_parser):
 
     # Get snapshots with set name of a volume group command parser
     snapshot_get_parser(subcommand_parsers, common_parser)
+
+    # snapshot session
+    # Get snapshot session list of a volume group command parser
+    snapshotsession_list_parser(subcommand_parsers, common_parser)
+
+    # Show snapshot session of a volume group command parser
+    snapshotsession_show_parser(subcommand_parsers, common_parser)
+
+    # Get snapshot session set names of a volume group command parser
+    snapshotsession_get_sets_parser(subcommand_parsers, common_parser)
+
+    # Get snapshot session with set name of a volume group command parser
+    snapshotsession_get_parser(subcommand_parsers, common_parser)

@@ -1066,11 +1066,11 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      * @param rpProtectionId the RecoverPoint protection set id
      * @param protectionSystemUri the RecoverPoint device URI
      * @param umpsetNativeGuid the nativeGuid for the discovered UnManagedProtectionSet
-     * @return
+     * @return an existing ProtectionSet matching the arguments
      */
     public ProtectionSet findExistingProtectionSet(String psetLabel, String rpProtectionId, URI protectionSystemUri, String umpsetNativeGuid) {
         for (VolumeIngestionContext volumeContext : getRootIngestionRequestContext().getProcessedUnManagedVolumeMap().values()) {
-            if (volumeContext instanceof RecoverPointVolumeIngestionContext) {
+            if (volumeContext != null && volumeContext instanceof RecoverPointVolumeIngestionContext) {
                 RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) volumeContext;
                 ProtectionSet pset = rpContext.getManagedProtectionSet();
                 if (pset != null) {
@@ -1089,6 +1089,14 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         return null;
     }
 
+    /**
+     * Finds an existing BlockConsistencyGroup in any RecoverPoint volume ingestion context within the scope of this ingestion request.
+     * 
+     * @param psetLabel the label of the associated ProtectionSet
+     * @param projectNamedUri the NamedUri of the Project for the BlockConsistencyGroup
+     * @param tenantOrg the Tenant for the BlockConsistencyGroup
+     * @return an existing BlockConsistencyGroup matching the arguments
+     */
     public BlockConsistencyGroup findExistingBlockConsistencyGroup(String psetLabel, NamedURI projectNamedUri, NamedURI tenantOrg) {
         for (VolumeIngestionContext volumeContext : getRootIngestionRequestContext().getProcessedUnManagedVolumeMap().values()) {
             if (volumeContext instanceof RecoverPointVolumeIngestionContext) {

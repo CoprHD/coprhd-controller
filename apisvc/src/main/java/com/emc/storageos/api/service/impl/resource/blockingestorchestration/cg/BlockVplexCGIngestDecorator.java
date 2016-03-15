@@ -121,6 +121,7 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
                                     cg.forDisplay(), backendVolume.forDisplay());
                             backendVolume.setConsistencyGroup(cg.getId());
                             // this volume is already set for creation by its parent volume context
+                            // so there's no need to add it into an updated objects collection at this point
                         }
                     }
                 }

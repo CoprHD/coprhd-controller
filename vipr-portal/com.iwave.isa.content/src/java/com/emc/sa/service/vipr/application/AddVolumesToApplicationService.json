@@ -16,7 +16,7 @@
       select: "many"
     },
     
-    applicationSubGroup:{
+    applicationAddToSubGroup:{
      type:"assetType.vipr.replicationGroup",
      required:"false"
     },

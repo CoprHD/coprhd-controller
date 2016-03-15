@@ -51,9 +51,14 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
             var backupInfoJson = #{jsAction @externalItemsJson(':ids')/};
             stop = new Array();
             request = new Array();
+            count = new Array();
             field = new Array();
-            stop[0] = stop[1] = false;
-            request[0] = request[1] = null;
+            stop[0] = false;
+            stop[1] = false
+            request[0] = null;
+            request[1] = null;
+            count[0] = 0;
+            count[1] = 0;
             field[0] = ['status'];
             field[1] = ['creationtime'];
             var updateRestoreStatus = window.setInterval(function () {
@@ -77,31 +82,33 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
     });
 
     function updateRemoteListDetails(dataTable, itemsJson, number) {
-        var ids = new Array();
         var data = dataTable.fnGetData();
-        var update = function (table) {
-            console.info("In update %s, ids: %s.\nCurrent time: %s.", number, JSON.stringify(ids), new Date($.now()) );
-            var url = itemsJson({ids: ids.join(",")});
+        var update = function (table, id) {
+            console.info("In update %s, id: %s.\nCurrent time: %s.", number, JSON.stringify(id), new Date($.now()) );
+            var url = itemsJson({ids: id});
             request[number] = $.get(url, function (results) {
                 console.info("Get request: %s, %s.\nCurrent time: %s.", number, JSON.stringify(results), new Date($.now()) );
-                stop[number] = true;
                 updateDatatableRows(table, results, field[number]);
+                request[number] = null;
+                count[number]++;
             });
+
         };
 
-        for (var i = 0; i < data.length; i++) {
-            var row = data[i];
-            ids.push(row.id);
-        }
-
-        if (ids.length > 0) {
-            if (request[number] == null) {
-                update(dataTable);
-            } else if (stop[number]) {
-                request[number].abort();
+        if (data.length > 0) {
+            for (var i = count[number]; i < data.length; i++) {
+                var row = data[i];
+                //send new request after the previous is finished
+                if (request[number] == null) {
+                    update(dataTable, row.id);
+                } else if (stop[number]) {
+                    request[number].abort();
+                }
+            }
+            if(data.length == count[number]) {
+                stop[number] = true;
             }
         }
-
     }
 
 render.uploadAndRestoreBtn = function(o, val) {

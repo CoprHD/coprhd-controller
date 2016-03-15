@@ -129,16 +129,17 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 log.warn("Skipping snapshot as it is null for volume {}", parentGUID);
                 continue;
             }
-            
+
             // If this name is a trigger/match for RP automated snapshots, ignore it as well
-            String snapName = (String)snapNameToProcess;
-            if ((snapName.contains(RP_SNAPSHOT_CRITERIA1) || snapName.contains(RP_SNAPSHOT_CRITERIA2)) && snapName.contains(RP_SNAPSHOT_CRITERIA3)) {
+            String snapName = (String) snapNameToProcess;
+            if ((snapName.contains(RP_SNAPSHOT_CRITERIA1) || snapName.contains(RP_SNAPSHOT_CRITERIA2))
+                    && snapName.contains(RP_SNAPSHOT_CRITERIA3)) {
                 log.warn("Skipping snapshot {} because it is internal to RP for volume {}", snapName, parentGUID);
                 continue;
             }
-            
+
             XtremIOVolume snap = xtremIOClient.getSnapShotDetails(snapNameToProcess.toString(), xioClusterName);
-            
+
             UnManagedVolume unManagedVolume = null;
             boolean isExported = !snap.getLunMaps().isEmpty();
             String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
@@ -347,12 +348,12 @@ public class XtremIOUnManagedVolumeDiscoverer {
                                         SupportedVolumeInformation.SNAPSHOTS.toString(), discoveredSnaps);
                             }
                         } else {
-                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                                    FALSE);
+                            unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
+                            unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
                         }
                     } else {
-                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
-                                FALSE);
+                        unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(), FALSE);
+                        unManagedVolume.getVolumeInformation().get(SupportedVolumeInformation.SNAPSHOTS.toString()).clear();
                     }
 
                     allCurrentUnManagedVolumeUris.add(unManagedVolume.getId());

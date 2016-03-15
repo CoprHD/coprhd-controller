@@ -583,7 +583,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         Set<DataObject> updatedObjects = new HashSet<DataObject>();
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
-        VolumeIngestionUtil.clearPersistedReplicaFlags(volumes, updatedObjects, _dbClient);
+        VolumeIngestionUtil.clearPersistedReplicaFlags(requestContext, volumes, updatedObjects, _dbClient);
         clearReplicaFlagsInIngestionContext(volumeContext);
 
         for (DataObject volume : updatedObjects) {

@@ -99,7 +99,7 @@ public class MachineTagUtils {
 
     /**
      * Sets the value of a Machine Tag on the Volume. If the machine tag already
-     * exists, it's value is replaced with @{link #tagValue}
+     * exists, its value is replaced with @{link #tagValue}
      */
     public static void setBlockVolumeTag(ViPRCoreClient client, URI volumeId, String tagName, String tagValue) {
         removeBlockVolumeTag(client, volumeId, tagName);

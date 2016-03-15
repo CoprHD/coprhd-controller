@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -1138,10 +1139,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // volume varray.
             notSuppReasonBuff.append("The VirtualPool is not available to the volume's varray");
         } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVirtualPool)) {
-            if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVirtualPool, newVirtualPool,
+            if (VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVirtualPool, newVirtualPool,
                     _dbClient, notSuppReasonBuff)) {
                 if (VirtualPool.vPoolSpecifiesRPVPlex(currentVirtualPool)) {
-                    allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED_CHANGE);
+                    allowedOperations.add(VirtualPoolChangeOperationEnum.RP_UPGRADE_TO_METROPOINT);
                 } else {
                     allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
                 }
@@ -3563,11 +3564,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                 }
             }
-        }
 
-        addVols.setVolumes(addVolumes.getVolumes());
-        addVols.setReplicationGroupName(addVolumes.getReplicationGroupName());
-        addVols.setConsistencyGroup(addVolumes.getConsistencyGroup());
+            addVols.setVolumes(addVolumes.getVolumes());
+            addVols.setReplicationGroupName(addVolumes.getReplicationGroupName());
+            addVols.setConsistencyGroup(addVolumes.getConsistencyGroup());
+        }
 
         return systemURI;
     }
@@ -3589,7 +3590,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (backingVolumes != null) {
                 for (String backingVolId : backingVolumes) {
                     Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                    if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
+                    if (backingVol != null && !backingVol.getInactive() && NullColumnValueGetter.isNotNullValue(backingVol.getReplicationGroupInstance())) {
                         groupNames.add(backingVol.getReplicationGroupInstance());
                     }
                 }

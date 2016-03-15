@@ -459,7 +459,7 @@ public class StoragePortService extends TaggedResource {
         Network newNetwork = null;
 
         // If the passed new network id is null, then just return. The user has not
-        // specified a network change. Note that removal from it's current network
+        // specified a network change. Note that removal from its current network
         // w/o reassigning to a new network is done by passing a new network id
         // of "" or "null".
         if (newNetworkId == null) {

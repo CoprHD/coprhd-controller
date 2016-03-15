@@ -336,7 +336,7 @@ public class VolumeService extends TaskResourceService {
             _log.info("Verifying for consistency group : " + consistencygroup_id);
             blockConsistencyGroup = (BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencygroup_id), getUserFromContext(), BlockConsistencyGroup.class);
             blockConsistencyGroupId = blockConsistencyGroup.getId();
-            if (blockConsistencyGroup.getTag() != null) {
+            if (blockConsistencyGroup.getTag() != null && consistencygroup_id.equals(blockConsistencyGroupId.toString().split(":")[3])) {
                 for (ScopedLabel tag : blockConsistencyGroup.getTag()) {
                     if (tag.getScope().equals("volume_types")) {
                         if (tag.getLabel().equals(volume_type)) {
@@ -348,6 +348,8 @@ public class VolumeService extends TaskResourceService {
                         }
                     }
                 }
+            } else {
+            	return CinderApiUtils.createErrorResponse(404, "Invalid Consistency Group Id : No Such Consistency grp exists");
             }
         }
 

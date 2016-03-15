@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.security.authorization.ACL;
@@ -152,7 +153,8 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
         final Project project = getCinderHelper().getProject(openstackTenantId,
                 getUserFromContext());
         final String volumeTypes = param.consistencygroup.volume_types;
-        if (null != project && getCinderHelper().getVpool(volumeTypes) != null) {
+        VirtualPool vPool = getCinderHelper().getVpool(volumeTypes);
+        if (null != project && vPool != null && vPool.getMultivolumeConsistency()) {
         	
             // Validate name
             ArgValidator.checkFieldNotEmpty(param.consistencygroup.name, "name");

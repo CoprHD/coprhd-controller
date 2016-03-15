@@ -7,7 +7,7 @@
       type:"assetType.vipr.application"
     },
     
-    copyName:{
+    applicationCopySets:{
       type:"assetType.vipr.restoreFullCopyName",
       required:"true"
     },

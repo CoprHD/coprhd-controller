@@ -18,6 +18,7 @@ import com.google.common.collect.Maps;
 import com.vmware.vim25.AlreadyExists;
 import com.vmware.vim25.DuplicateName;
 import com.vmware.vim25.HostConfigFault;
+import com.vmware.vim25.HostDatastoreSystemVvolDatastoreSpec;
 import com.vmware.vim25.HostFibreChannelHba;
 import com.vmware.vim25.HostFibreChannelTargetTransport;
 import com.vmware.vim25.HostFileSystemMountInfo;
@@ -437,6 +438,29 @@ public class HostStorageAPI {
         VmfsDatastoreCreateSpec createSpec = getVmfsDatastoreCreateSpec(disk, datastoreName);
         try {
             Datastore datastore = getDatastoreSystem().createVmfsDatastore(createSpec);
+            return datastore;
+        } catch (HostConfigFault e) {
+            throw new VMWareException(e);
+        } catch (DuplicateName e) {
+            throw new VMWareException(e);
+        } catch (RuntimeFault e) {
+            throw new VMWareException(e);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+    
+    /**
+     * to create vvol datastore
+     * 
+     * 
+     */
+    public Datastore createVVOLDatastore(String datastoreName) {
+        try {
+            HostDatastoreSystemVvolDatastoreSpec spec = new HostDatastoreSystemVvolDatastoreSpec();
+            spec.setName("test");
+            spec.setScId("scId");
+			Datastore datastore = getDatastoreSystem().createVvolDatastore(spec);
             return datastore;
         } catch (HostConfigFault e) {
             throw new VMWareException(e);

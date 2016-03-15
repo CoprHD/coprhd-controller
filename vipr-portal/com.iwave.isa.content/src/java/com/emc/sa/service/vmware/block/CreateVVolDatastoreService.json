@@ -1,0 +1,54 @@
+{
+  baseKey:"CreateVVolDatastore.Block.VMware",
+  serviceId:"VMware-CreateVVolDatastore",
+  fields:{
+    datastoreName:{
+      type:"text",
+      validation:{
+        regEx:"[a-zA-Z0-9 \\-\\_]+",
+        min: 2,
+        max: 128
+      }
+    },
+    vcenter:{
+      type:"assetType.vipr.vcenter"
+    },
+    datacenter:{
+      type:"assetType.vipr.datacenter"
+    },
+    blockStorageType: {
+          type:"assetType.vipr.blockStorageType",
+          lockable:true,
+          initialValue:"shared"
+    },
+    host:{
+      type:"assetType.vipr.esxHost"
+    },
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    volumes: {
+      type:"assetType.vipr.unmountedBlockVolume"
+    },
+    multipathPolicy: {
+        type: "choice",
+        initialValue: "DEFAULT",
+        select: "one",
+        options: {
+          "DEFAULT": "Default",
+          "VMW_PSP_FIXED": "Fixed",
+          "VMW_PSP_MRU": "Most Recently Used",
+          "VMW_PSP_RR": "Round Robin"
+        },
+        required: false,
+        lockable: true
+    },
+    storageIOControl: {
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    }
+  }
+}

@@ -558,7 +558,11 @@
         {
           "image": "icon_host_remove.png",
           "baseService": "VMware-UnexportVolume"
-        }
+        },
+        {
+          "image": "icon_storage_VMware_add.png",
+          "baseService": "VMware-CreateVVolDatastore"
+        },
       ]
     },
     {

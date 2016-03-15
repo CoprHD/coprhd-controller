@@ -30,6 +30,7 @@ import com.emc.sa.service.vipr.block.tasks.SetBlockVolumeMachineTag;
 import com.emc.sa.service.vipr.file.tasks.FindFilesystemWithDatastore;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
+import com.emc.sa.service.vmware.block.tasks.CreateVVolDatastore;
 import com.emc.sa.service.vmware.block.tasks.CreateVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.DetachLunsFromHost;
 import com.emc.sa.service.vmware.block.tasks.ExpandVmfsDatastore;
@@ -192,6 +193,14 @@ public class VMwareSupport {
         return datastore;
     }
 
+    
+    public Datastore createVVOLDatastore(HostSystem host, ClusterComputeResource cluster, 
+            BlockObjectRestRep volume, String datastoreName) {
+        Datastore datastore = execute(new CreateVVolDatastore(host,datastoreName));
+        ExecutionUtils.clearRollback();
+
+        return datastore;
+    }
     /**
      * Sets the multipath policy on the disks for the given host/cluster
      * 

@@ -4,5 +4,5 @@ dependencies{
         library(log4j),
         library(commons_io),
         library(guava),
-        "com.vmware:vijava:5.1"
+        "com.toastcoders:yavijava:6.0.01"
 }

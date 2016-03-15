@@ -10,12 +10,13 @@
     #{ifnot projects}
       <span class="text-warning">&{'resources.noprojects'}</span>
     #{/ifnot}
-    #{elseif projects}    
+    #{elseif projects}
+    		<input type="radio" name="group1" onclick="changeover(true)"/>
       		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
       		#{if application?.size()>0}
+      		<input type="radio" name="group1" onclick="changeover(false)"/>
       		#{Form.selectApplication application:application,selectedApplication:session?.activeApplicationId/}
     		#{/if}
-  
     #{/elseif}
   #{/tenantSelector}
 #{/if}
@@ -26,11 +27,38 @@
   #{/ifnot}
   #{elseif projects}
     <div class="well well-sm form-inline">
+    #{Form.controlGroup field:field, noLabel:noLabel}
+    		<input type="radio"/>
       		#{Form.selectProject projects:projects, selectedProject:session?.activeProjectId/}
       		#{if application?.size()>0}
+      		<input type="radio"/>
       		#{Form.selectApplication application:application,selectedApplication:session?.activeApplicationId/}
     		#{/if}
+    #{/Form.controlGroup}
     </div>
   #{/elseif}
 #{/else}
+<style type="text/css">
+.disable-dropdown {
+	background-color : #eeeeee;
+	cursor : not-allowed;
+	pointer-events : none;
+	opacity : 1;
+}
+</style>
 
+<script>
+function changeover(val) {
+	if (val == true) {
+		$('.application-select *').attr("disabled", true);
+		$('.application-select *').attr("style", "background-color:#eeeeee;cursor : not-allowed;pointer-events : none;opacity : 1;");
+		$('.application-select *').attr("style", "display:none");
+		$('.project-select *').removeAttr("disabled");
+	} else {
+		$('.application-select *').removeAttr("disabled");
+		$('.application-select *').removeClass("disable-dropdown");	
+		$('.project-select *').attr("disabled", true);
+		$('.project-select *').addClass("disable-dropdown");
+	}
+}
+</script>

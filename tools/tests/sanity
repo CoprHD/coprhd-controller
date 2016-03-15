@@ -7345,7 +7345,7 @@ dr_setup()
     set -o pipefail
 
     DR_SITE_A_IP=$BOURNE_IPADDR
-    security login $SYSADMIN $SYSADMIN_PASSWORD
+    security login $SYSADMIN $SYSADMIN_PASSWORD 10 600
     LOCAL_LDAP_GROUPUSER_USERNAME='ldapvipruser1@viprsanity.com'
 
 }
@@ -7359,7 +7359,7 @@ wait_for_site_stable()
     do
         echo "Waiting for $ip to be stable ..."
         BOURNE_IPADDR=$ip
-        security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+        security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
         dr waitforstable --ip "${ip}" 10 600
     done
     BOURNE_IPADDR=$old_bourne_ipaddr
@@ -7425,7 +7425,7 @@ dr_basic_tests()
     # login to standby with auth
     echo "---VERIFY PROJECT SYNCED $standby_site---"
     BOURNE_IPADDR=$DR_SITE_B_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     
     echo "---WAIT FOR STABLE $standby_site---"
     dr waitforstable 30 1200
@@ -7459,7 +7459,7 @@ dr_basic_tests()
     # pause standby
     echo "---PAUSE SITE $standby_site---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr pause $standby_site || { echo "pause dr standby site failed."; exit 1; }
 
     echo "---WAIT 30s FOR $active_site TO STABILIZE---"
@@ -7478,7 +7478,7 @@ dr_basic_tests()
     echo "---RESUME SITE $standby_site---"
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
     BOURNE_IPADDR="${DR_SITE_A_IP}"
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr resume $standby_site || { echo "resume dr standby site failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site---"
@@ -7486,9 +7486,8 @@ dr_basic_tests()
     echo "Syncing dr done"
 
     echo "---VERIFY NEW PROJECT FROM $standby_site---"
-    sleep 30
     BOURNE_IPADDR=$DR_SITE_B_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     echo "wait for $standby_site to become stable"
     dr waitforstable 30 1200
     project show ${projectid_new}
@@ -7497,27 +7496,27 @@ dr_basic_tests()
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     # there's no point in updating the property on both active and standby since they are shared
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
     dr waitforstable 10 600
     BOURNE_IPADDR=$DR_SITE_B_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 600
 
     # switchover to standby
     echo "---SWITCHOVER FROM TO $active_site TO $standby_site---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitfornetworkhealth $standby_site GOOD 30 1200
     dr switchover $standby_site || { echo "swichover dr standby site failed."; exit 1; }
 
     echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
     sleep 120
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 600
     BOURNE_IPADDR=$DR_SITE_B_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 600
 
     # verify switchover status
@@ -7534,7 +7533,7 @@ dr_basic_tests()
     sleep 60
     echo "Wait for site ${DR_SITE_A_NAME} to be stable ..."
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 800
     dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
 
     echo "sleep 2m until active site disappears"
@@ -7548,7 +7547,7 @@ dr_basic_tests()
 
     echo "Wait for site ${DR_SITE_A_NAME} to be stable ..."
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
 
     echo "Wait site state to become ACTIVE after failover ..."
@@ -7560,32 +7559,31 @@ dr_basic_tests()
     echo "Sleep 300s to wait old site to become ACTIVE_DEGRADED ..."
     sleep 300
     BOURNE_IPADDR=$DR_SITE_B_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable --ip "${DR_SITE_B_IP}" 10 600
     dr waitforstate $standby_site ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_B_IP}"
 
-    # readd ACTIVE_DEGRADED site to prepare next standby-removing test
-    echo "Waiting $DR_SITE_A_NAME to be stable ..."
+    # resume ACTIVE_DEGRADED site to prepare next standby-removing test
+    echo "Waiting $DR_SITE_A_NAME and $DR_SITE_B_NAME to be stable ..."
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}"
+    echo "---RESUME OLD ACTIVE SITE ${DR_SITE_B_NAME} (ACTIVE_DEGRADED) AFTER FAILOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
-    echo "---RESUME OLD ACTIVE SITE---"
-    echo "Resuming site ${DR_SITE_B_NAME} (ACTIVE_DEGRADED) to site ${DR_SITE_A_NAME} (ACTIVE) after failover ..."
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr resume --ip "${DR_SITE_A_IP}" $standby_site || { echo "resume dr standby site failed."; exit 1; }
     echo "Resuming done"
     echo "Resuming site uuid is $standby_site"
 
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     echo "Wait standby resuming done ..."
     dr waitforstate $standby_site STANDBY_SYNCED 30 1200
 
-    # NOTE: after switchover and failover (then readd old active), site A is active and site B is standby
+    # NOTE: after switchover and failover (then resume old active), site A is active and site B is standby (STANDBY_SYNCED state)
 
     # delete standby
     echo "---DELETE STANDBY $standby_site---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr delete $standby_site
 
     echo "---WAIT FOR REMOVED $standby_site---should throw exceptions---"
@@ -7609,8 +7607,35 @@ dr_basic_tests()
     set +o pipefail
 }
 
+time_start(){
+    startvar=starttime_$1
+    export "$startvar"=$(date +"%s")
+}
+time_finish(){
+    endvar=endtime_$1
+    startvar=starttime_$1
+    declare "$endvar"=$(date +"%s")
+    runtime=$(expr "${!endvar}" - "${!startvar}")
+    echo "$1=${runtime}s" >> $PERFORMANCE_FILE
+
+    #Record difference from last run if there was one
+    if [ ! -z ${!1} ] ; then
+        difference=$(expr "${runtime}" - "${!1%?}")
+        echo "$1_diff=${difference}s" >> $PERFORMANCE_FILE
+    fi
+}
+
+
 dr_multisite_tests()
 {
+    if [ -z $PERFORMANCE_FILE ] ; then
+        export PERFORMANCE_FILE=dr_performance_results
+    fi
+    if [ -e $PERFORMANCE_FILE ] ; then
+        source $PERFORMANCE_FILE
+        truncate -s 0 $PERFORMANCE_FILE
+    fi
+    #Time DR operations if DR_RECORD_TIME
     projectid=$(project query $PROJECT)
     echo "Project id of $PROJECT is $projectid."
 
@@ -7619,11 +7644,12 @@ dr_multisite_tests()
 
     echo "Change system property to allow root ssh login ..."
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
     dr waitforstable 10 600
     
     echo "---ADD STANDBY SITE B---"
+    time_start add_standby_b
     echo "Adding new standby into current vipr system"
     standby_site_b=$(dr add $DR_SITE_B_NAME "$DR_SITE_B_DESCRIPTION" "${DR_SITE_B_IP}" $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site failed."; echo $standby_site_b; exit 1; }
     echo "Adding dr done"
@@ -7659,6 +7685,7 @@ dr_multisite_tests()
     echo "---WAIT FOR SYNC $standby_site_b---"
     dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
+    time_finish add_standby_b
 
     echo "---WAIT 1m FOR $standby_site_b TO BOOTSTRAP---"
     sleep 60
@@ -7666,7 +7693,7 @@ dr_multisite_tests()
     # login to standby with auth
     echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_B_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
 
     echo "---WAIT FOR STABLE $standby_site_b---"
     dr waitforstable 30 1200
@@ -7698,7 +7725,9 @@ dr_multisite_tests()
 
     echo "---ADD STANDBY SITE C---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+
+    time_start add_standby_c
     echo "Adding new standby into current vipr system"
     standby_site_c=$(dr add $DR_SITE_C_NAME "$DR_SITE_C_DESCRIPTION" "${DR_SITE_C_IP}" $SYSADMIN $SYSADMIN_PASSWORD|tail -1) || { echo "Add dr site c failed."; echo $standby_site_c; exit 1; }
     echo "Adding dr site c done"
@@ -7734,6 +7763,7 @@ dr_multisite_tests()
     echo "---WAIT FOR SYNC $standby_site_c---"
     dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
     echo "Syncing dr done"
+    time_finish add_standby_c
 
     echo "---WAIT 1m FOR $standby_site_c TO BOOTSTRAP---"
     sleep 60
@@ -7741,7 +7771,7 @@ dr_multisite_tests()
     # login to standby with auth
     echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_c---"
     BOURNE_IPADDR=$DR_SITE_C_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
 
     echo "---WAIT FOR STABLE $standby_site_c---"
     dr waitforstable 30 1200
@@ -7773,7 +7803,7 @@ dr_multisite_tests()
     # login to standby with auth
     echo "---LOGIN TO STANDBY WITH SYNCED AUTH $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_B_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
 
     # verify sites in standby
     echo "---VERIFY sites from standby $standby_site_b---"
@@ -7786,7 +7816,9 @@ dr_multisite_tests()
     # pause standby b
     echo "---PAUSE SITE $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+
+    time_start pause_standby_b
     dr pause $standby_site_b || { echo "pause dr standby site b failed."; exit 1; }
 
     echo "---WAIT 30s FOR $active_site_b TO STABILIZE---"
@@ -7795,11 +7827,13 @@ dr_multisite_tests()
     echo "---WAIT FOR PAUSE $standby_site_b---"
     dr waitforstate $standby_site_b STANDBY_PAUSED 30 1200
     echo "Pausing dr done"
+    time_finish pause_standby_b
 
     wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_B_IP}" "${DR_SITE_C_IP}"
 
     # pause standby c
     echo "---PAUSE SITE $standby_site_c---"
+    time_start pause_standby_c
     dr pause $standby_site_c || { echo "pause dr standby site c failed."; exit 1; }
 
     echo "---WAIT 30s FOR $active_site_c TO STABILIZE---"
@@ -7808,6 +7842,7 @@ dr_multisite_tests()
     echo "---WAIT FOR PAUSE $standby_site_c---"
     dr waitforstate $standby_site_c STANDBY_PAUSED 30 1200
     echo "Pausing dr done"
+    time_finish pause_standby_c
 
     echo "---CREATE A NEW PROJECT ON ACTIVE---"
     PROJECT_NEW=${PROJECT}_new
@@ -7816,10 +7851,12 @@ dr_multisite_tests()
     echo "Project id of ${PROJECT_NEW} is ${projectid_new}."
 
     echo "---RESUME SITE $standby_site_b---"
+    time_start resume_standby_b
     dr resume $standby_site_b || { echo "resume dr standby site b failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site_b---"
     dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
+    time_finish resume_standby_b
     echo "Syncing dr done"
 
     echo "---WAIT 30s TO STABILIZE---"
@@ -7827,18 +7864,20 @@ dr_multisite_tests()
 
     echo "---VERIFY NEW PROJECT FROM $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_B_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     echo "wait for $standby_site_b to be stable"
     dr waitforstable 30 1200
     project show ${projectid_new}
 
     echo "---RESUME SITE $standby_site_c---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+    time_start resume_standby_c
     dr resume $standby_site_c || { echo "resume dr standby site c failed."; exit 1; }
 
     echo "---WAIT FOR SYNC $standby_site_c---"
     dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
+    time_finish resume_standby_c
     echo "Syncing dr done"
 
     echo "---WAIT 30s TO STABILIZE---"
@@ -7846,7 +7885,7 @@ dr_multisite_tests()
 
     echo "---VERIFY NEW PROJECT FROM $standby_site_c---"
     BOURNE_IPADDR=$DR_SITE_C_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     echo "wait for $standby_site_b to be stable"
     dr waitforstable 30 1200
     project show ${projectid_new}
@@ -7854,30 +7893,32 @@ dr_multisite_tests()
     # switchover test part
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 800
     BOURNE_IPADDR=$DR_SITE_C_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 800
 
     echo "---SWITCHOVER FROM TO $active_site TO $standby_site_c---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitfornetworkhealth $standby_site_c GOOD 30 1200
+    time_start switchover_standby_c
     dr switchover $standby_site_c || { echo "switchover dr standby site c failed."; exit 1; }
 
     echo "---WAIT ACTIVE AND STANDBY TO BE STABLE AFTER SWITCHOVER---"
     sleep 120
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 800
     BOURNE_IPADDR=$DR_SITE_C_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 800
 
     echo "---WAIT FOR SWITCHOVER FROM $active_site TO $standby_site DONE---"
     dr waitforstate $standby_site_c ACTIVE 10 1200 && echo "standby has been switched into active"
     dr waitforstate $active_site STANDBY_SYNCED 10 1200 && echo "active has been switched into standby"
+    time_finish switchover_standby_c
 
     # NOTE: active site and standby site has been switched, site A is standby and site C is active now
 
@@ -7889,16 +7930,17 @@ dr_multisite_tests()
     sleep 60
     echo "Wait for stable"
     BOURNE_IPADDR=$DR_SITE_B_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable --ip "${DR_SITE_B_IP}" 10 600
 
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
 
-    echo "sleep 2m until active site disappears"
-    sleep 120
+    echo "wait for site to become STANDBY_PAUSED before failover"
+    dr waitforstate $active_site STANDBY_PAUSED 30 1200
 
+    time_start failover_standby_a
     echo "Failover to promote site $DR_SITE_A_NAME as active"
     dr failover --ip "${DR_SITE_A_IP}" $active_site || { echo "failover to site $DR_SITE_A_NAME failed."; exit 1; }
     echo "Sleep 1m to wait failover"
@@ -7909,6 +7951,7 @@ dr_multisite_tests()
 
     echo "Wait site state to be PRIAMRY after failover"
     dr waitforstate $active_site ACTIVE 30 600 --ip "${DR_SITE_A_IP}"
+    time_finish failover_standby_a
 
     # failback test part
     echo "Starting old active site $DR_SITE_C_NAME services ..."
@@ -7916,35 +7959,38 @@ dr_multisite_tests()
     echo "Sleep 300 seconds to wait old site to become ACTIVE_DEGRADED ..."
     sleep 300
     BOURNE_IPADDR=$DR_SITE_C_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable --ip "${DR_SITE_C_IP}" 10 600
     dr waitforstate $standby_site_c ACTIVE_DEGRADED 30 600 --ip "${DR_SITE_C_IP}"
 
-    # readd ACTIVE_DEGRADED
-    echo "Waiting $DR_SITE_A_NAME to be stable ..."
+    # resume old active site (in ACTIVE_DEGRADED state)
+    echo "Waiting $DR_SITE_A_NAME and $DR_SITE_C_NAME to be stable ..."
+    wait_for_site_stable "${DR_SITE_A_IP}" "${DR_SITE_C_IP}"
+    echo "---RESUME OLD ACTIVE SITE ${DR_SITE_C_NAME} (ACTIVE_DEGRADED) AFTER FAILOVER---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
-    dr waitforstable --ip "${DR_SITE_A_IP}" 10 600
-    echo "---RESUME OLD ACTIVE SITE---"
-    echo "Resuming site ${DR_SITE_C_NAME} (ACTIVE_DEGRADED) to site ${DR_SITE_A_NAME} (ACTIVE) after failover ..."
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+    time_start failback_standby_c
     dr resume --ip "${DR_SITE_A_IP}" $standby_site_c || { echo "resume dr standby site c failed."; exit 1; }
     echo "Resuming done"
     echo "Resuming site uuid is $standby_site_c"
 
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     echo "Wait standby resuming done ..."
     dr waitforstate $standby_site_c STANDBY_SYNCED 30 1200
+    time_finish failback_standby_c
 
     # delete standby
     echo "---DELETE STANDBY $standby_site_b---"
     BOURNE_IPADDR=$DR_SITE_A_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+    time_start delete_standby_b
     dr delete $standby_site_b
 
     echo "---WAIT FOR REMOVED $standby_site_b---should throw exceptions---"
     dr waitforstate $standby_site_b STANDBY_REMOVING 30 600 -n|| echo "standby removed"
     echo "Removing dr done"
+    time_finish delete_standby_b
 
     # verify deleted
     echo "---VERIFY STANDBY DELETED $standby_site_b---should throw exceptions---"
@@ -7961,7 +8007,7 @@ dr_multisite_tests()
 
     # verify stanby C still syncs
     BOURNE_IPADDR=$DR_SITE_C_IP
-    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD
+    security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     project show $test_projectid
 
     #disabling pipefail option to pipe exit codes
@@ -8377,7 +8423,7 @@ backuprestore_setup()
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_password "${BACKUP_SERVER_PASSWORD}"
     syssvc $CONFIG_FILE "$vip" set_prop backup_external_location_url "${BACKUP_SERVER_URL}"
 
-    echo "Done url=${BACKUP_SERVER_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
+    echo -e "Done\nurl=${BACKUP_SERVER_URL} username=${BACKUP_SERVER_USERNAME} password=${BACKUP_SERVER_PASSWORD}"
 }
 
 backuprestore_tests()

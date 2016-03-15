@@ -426,12 +426,6 @@ public class TestCoordinator extends CoordinatorClientImpl {
     public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
         
     }
-    
-    @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws CoordinatorException {
-        return null;
-    }
 
     @Override
     public String getUpgradeLockOwner(String lockId) {

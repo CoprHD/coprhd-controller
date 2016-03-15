@@ -25,14 +25,14 @@ def security_login(args):
             return
         except:
             if not args.sleep:
-		raise
-            print "Exception while logging in, sleep for",args.sleep,"seconds and try again"
-        time.sleep(args.sleep)
-        timeCounter = time.time() - timeStart
-        print  "Retrying... time elapsed: [" + str(timeCounter) + "s]"
-        if (timeCounter >= args.length):
-            print "giving up login. counter %s is above maximum length %s" % (timeCounter, args.length)
-            raise Exception("Timeout occurred while attempting to login to ViPR")
+                raise
+                    print "Exception while logging in, sleep for",args.sleep,"seconds and try again"
+            time.sleep(args.sleep)
+            timeCounter = time.time() - timeStart
+            print  "Retrying... time elapsed: [" + str(timeCounter) + "s]"
+            if (timeCounter >= args.length):
+                print "giving up login. counter %s is above maximum length %s" % (timeCounter, args.length)
+                raise Exception("Timeout occurred while attempting to login to ViPR")
 
 def security_add_tenant_role(args):
     bourne.connect(args.ip)

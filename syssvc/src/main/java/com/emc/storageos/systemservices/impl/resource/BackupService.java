@@ -354,6 +354,8 @@ public class BackupService {
         job.setStatus(Status.NOT_STARTED);
         jobProducer.enqueue(job);
 
+        backupScheduler.getUploadExecutor().addPendingUploadTask(backupTag);
+
         return Response.status(ASYNC_STATUS).build();
     }
 

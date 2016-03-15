@@ -482,6 +482,17 @@
           "baseService": "DeleteBucket"
         }
       ]
-    }
+    },
+    {
+      "title": "rackhdservices.title",
+      "image": "icon_rackhd.png",
+      "description": "rackhdservices.description",
+      "services": [
+        {
+          "image": "icon_rackhd.png",
+          "baseService": "RackHdService"
+        }
+      ]
+    } 
   ]
 }

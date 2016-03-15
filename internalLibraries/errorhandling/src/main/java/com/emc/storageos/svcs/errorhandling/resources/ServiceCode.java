@@ -546,6 +546,9 @@ public enum ServiceCode {
     ECS_BUCKET_DELETE_ERROR(65011),
     ECS_BUCKET_GET_OWNER_ERROR(65012),
 
+    // RackHD errors
+    RACKHD_API_FAILURE(66000),
+    
     // ****************************
     // Old style of Service codes
     // ****************************

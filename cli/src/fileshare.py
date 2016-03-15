@@ -2749,7 +2749,7 @@ def policy_list(args):
 def continous_copies_start_parser(subcommand_parsers, common_parser):
     # start continous copies command parser
     continous_copies_start_parser = subcommand_parsers.add_parser(
-        'start-replication-copy',
+        'start-replication',
         description='ViPR fileshare replication start cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2790,7 +2790,7 @@ def continous_copies_start(args):
 def continous_copies_pause_parser(subcommand_parsers, common_parser):
     # pause continous copies command parser
     continous_copies_pause_parser = subcommand_parsers.add_parser(
-        'pause-replication-copy',
+        'pause-replication',
         description='ViPR fileshare replication pause cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2831,7 +2831,7 @@ def continous_copies_pause(args):
 def continous_copies_resume_parser(subcommand_parsers, common_parser):
     # resume continous copies command parser
     continous_copies_resume_parser = subcommand_parsers.add_parser(
-        'resume-replication-copy',
+        'resume-replication',
         description='ViPR fileshare replication resume cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2871,7 +2871,7 @@ def continous_copies_resume(args):
 def continous_copies_stop_parser(subcommand_parsers, common_parser):
     # stop continous copies command parser
     continous_copies_stop_parser = subcommand_parsers.add_parser(
-        'stop-replication-copy',
+        'stop-replication',
         description='ViPR fileshare replication stop cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2913,7 +2913,7 @@ def continous_copies_stop(args):
 def continous_copies_failover_parser(subcommand_parsers, common_parser):
     # failover continous copies command parser
     continous_copies_failover_parser = subcommand_parsers.add_parser(
-        'failover-replication-copy',
+        'failover-replication',
         description='ViPR fileshare replication failover cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -2953,7 +2953,7 @@ def continous_copies_failover(args):
 def continous_copies_failback_parser(subcommand_parsers, common_parser):
     # failback continous copies command parser
     continous_copies_failback_parser = subcommand_parsers.add_parser(
-        'failback-replication-copy',
+        'failback-replication',
         description='ViPR fileshare replication failback cli usage',
         parents=[common_parser],
         conflict_handler='resolve',

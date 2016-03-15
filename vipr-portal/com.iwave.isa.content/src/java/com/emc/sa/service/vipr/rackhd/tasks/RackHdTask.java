@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 
+import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.rackhd.RackHdUtils;
 import com.emc.sa.service.vipr.rackhd.gson.AffectedResource;
 import com.emc.sa.service.vipr.rackhd.gson.Context;
@@ -66,13 +67,19 @@ public class RackHdTask extends ViPRExecutionTask<String> {
 
         String nodeListResponse = makeRestCall(RACKHD_API_NODES);
         String nodeId = RackHdUtils.getAnyNode(nodeListResponse);         
-        //info("MENDES: Will execute against node ID " + nodeId);
 
+        ExecutionUtils.currentContext().logInfo("RackHD Workflow executing " +
+                "against node '" + nodeId + "'");
+        
         String apiWorkflowUri = "/api/1.1/nodes/" + nodeId + "/workflows";
 
         String workflowResponse = makeRestCall(apiWorkflowUri,
                 RackHdUtils.makePostBody(params, workflowName,playbookName));
 
+        ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
+                RackHdUtils.getWorkflowTaskId(workflowResponse) + 
+                " started at " + apiWorkflowUri + " with params " + params);
+        
         // Get results - wait for RackHD workflow to complete
 
         int intervals = 0;
@@ -83,7 +90,7 @@ public class RackHdTask extends ViPRExecutionTask<String> {
                     RackHdUtils.getWorkflowTaskId(workflowResponse));
             //updateAffectedResources(workflowResponse);
             if( RackHdUtils.isTimedOut(++intervals) ) {
-                error("RackHD workflow " + 
+                ExecutionUtils.currentContext().logError("RackHD Workflow " +
                         RackHdUtils.getWorkflowTaskId(workflowResponse) + 
                         " timed out.");
                 break;
@@ -91,7 +98,6 @@ public class RackHdTask extends ViPRExecutionTask<String> {
         }
         return workflowResponse;
     }
-
 
     private String makeRestCall(String uriString) {
         return makeRestCall(uriString,null);

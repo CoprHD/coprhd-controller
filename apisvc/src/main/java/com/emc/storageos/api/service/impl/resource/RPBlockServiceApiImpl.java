@@ -306,7 +306,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
             if (capabilities.getAddJournalCapacity()) {
                 if (rpProtectionRec.getStandbyJournalRecommendation() != null) {
-                    standbySourceCopyName = varray.getLabel() + MP_STANDBY_COPY_SUFFIX;
+                    standbySourceCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, varray.getId(), true);
+                    if (standbySourceCopyName == null) {
+                        standbySourceCopyName = varray.getLabel() + MP_STANDBY_COPY_SUFFIX;
+                    }
                 }
             }
 
@@ -440,7 +443,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                     // All RP+VPLEX Metro volumes in this CG need to have their backing volume
                                     // references updated with the internal site names for exports.
                                     setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
-                                            sourceVol, true, false, originalVpool.getHaVarrayConnectedToRp());
+                                            sourceVol, true, false, originalVpool.getHaVarrayConnectedToRp(),
+                                            activeSourceCopyName, standbySourceCopyName);
                                     // We need to have all the existing RP+VPLEX Metro volumes from the CG
                                     // added to the volumeURI list so we can properly export the standby
                                     // leg to RP for each volume.
@@ -479,7 +483,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // which side(varray) to export.
                         // This value will only be used if isSrcAndHaSwapped == true.
                         setInternalSitesForSourceBackingVolumes(sourceRec, haRec,
-                                sourceVolume, metroPointEnabled, isSrcAndHaSwapped, originalVpool.getHaVarrayConnectedToRp());
+                                sourceVolume, metroPointEnabled, isSrcAndHaSwapped, originalVpool.getHaVarrayConnectedToRp(),
+                                activeSourceCopyName, standbySourceCopyName);
 
                         // /////// TARGET(S) ///////////
                         List<URI> protectionTargets = new ArrayList<URI>();
@@ -690,7 +695,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         numberOfVolumesInRequest,
                         sourceCopyName);
                 if (!isAdditionalSourceJournalRequired) {
-                    _log.info(String.format("Re-use existing Source Journals"));
+                    _log.info(String.format("Re-use existing Source Journal for copy [%s]", sourceCopyName));
                     // If the CG contains volumes already and no new additional journals are provisioned,
                     // then we simply update the reference on the source for the journal volume.
                     List<Volume> existingSourceJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), sourceCopyName);
@@ -698,8 +703,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     _log.info(String.format("Existing Primary Source Journal: [%s] (%s)", sourceJournal.getLabel(), sourceJournal.getId()));
 
                     if (VirtualPool.vPoolSpecifiesMetroPoint(vpool) && !isChangeVpoolForProtectedVolume) {
-                        String standbyInternalSiteName = RPHelper.getStandbyInternalSite(_dbClient, cgSourceVolumes.get(0));
-                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), standbyInternalSiteName);                        
+                        _log.info(String.format("Re-use existing Standby Journal for copy [%s]", standbySourceCopyName));
+                        List<Volume> existingStandbyJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), standbySourceCopyName);                        
                         standbyJournal = existingStandbyJournals.get(0);
                         _log.info(String.format("Existing Standby Source Journal: [%s] (%s)", standbyJournal.getLabel(),
                                 standbyJournal.getId()));
@@ -822,7 +827,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 // journal volume operation
                 if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
                     VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
-                    String targetCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, targetCopyVarray.getId(), false);
+                    String targetCopyName = targetJournalRec.getRpCopyName();
+                    if (targetCopyName == null) {
+                        // Target RP copy name was not set on the recommendation, find it from the CG.
+                        targetCopyName = RPHelper.getCgCopyName(_dbClient, consistencyGroup, targetCopyVarray.getId(), false);
+                    }
                     boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForRPCopy(
                             protectionSettings.getJournalSize(), consistencyGroup, param.getSize(),
                             numberOfVolumesInRequest,
@@ -830,8 +839,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     if (!isAdditionalTargetJournalRequired) {
                         // If the CG contains volumes already and no new additional journals are provisioned,
                         // then we simply update the reference on the source for the journal volume.
-                        _log.info(String.format("Re-use existing Target Journal for target [%s]", targetJournalVarray.getLabel()));                                               
-                        List<Volume> existingTargetJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), targetJournalRec.getInternalSiteName());                        
+                        _log.info(String.format("Re-use existing Target Journal for copy [%s]", targetCopyName));                                               
+                        List<Volume> existingTargetJournals = RPHelper.findExistingJournalsForCopy(_dbClient, consistencyGroup.getId(), targetCopyName);                        
                         Volume existingTargetJournalVolume = existingTargetJournals.get(0);                        
                         targetJournals.put(targetJournalVarray.getId(), existingTargetJournalVolume);
                         _log.info(String.format("Existing Target Journal: [%s] (%s)", existingTargetJournalVolume.getLabel(),
@@ -3325,11 +3334,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param exportForMetroPoint Boolean set to true if we're MetroPoint
      * @param exportToHASideOnly Boolean set to true if we're only exportong to HA side
      * @param haVarrayConnectedToRp Only be used if isSrcAndHaSwapped == true, tells us which varray is the HA one
+     * @param activeSourceCopyName Active RP Copy name 
+     * @param standbySourceCopyName Standby RP Copy name
      */
     private void setInternalSitesForSourceBackingVolumes(RPRecommendation primaryRecommendation,
             RPRecommendation secondaryRecommendation, Volume sourceVolume,
             boolean exportForMetroPoint, boolean exportToHASideOnly,
-            String haVarrayConnectedToRp) {
+            String haVarrayConnectedToRp, String activeSourceCopyName, String standbySourceCopyName) {
         if (exportForMetroPoint) {
             // If this is MetroPoint request and we're looking at the SOURCE volume we need to ensure the
             // backing volumes are aware of which internal site they have been assigned (needed for exporting in
@@ -3342,17 +3353,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             Iterator<String> it = sourceVolume.getAssociatedVolumes().iterator();
             while (it.hasNext()) {
                 Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(it.next()));
-                VirtualArray backingVolumeVarray = _dbClient.queryObject(VirtualArray.class, backingVolume.getVirtualArray());
                 String rpSite = "";
                 // If this backing volume's varray is equal to the MetroPoint Source virtual volume's varray,
                 // then we're looking at the primary leg. Otherwise, it's the
                 // secondary leg. Set the InternalSiteName accordingly.
                 if (backingVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {
                     rpSite = primaryRecommendation.getInternalSiteName();
-                    backingVolume.setRpCopyName(backingVolumeVarray.getLabel() + MP_ACTIVE_COPY_SUFFIX);
+                    backingVolume.setRpCopyName(activeSourceCopyName);
                 } else {
                     rpSite = secondaryRecommendation.getInternalSiteName();
-                    backingVolume.setRpCopyName(backingVolumeVarray.getLabel() + MP_STANDBY_COPY_SUFFIX);
+                    backingVolume.setRpCopyName(standbySourceCopyName);
                 }
                 // Save the internal site name to the backing volume, will need this for exporting later
                 backingVolume.setInternalSiteName(rpSite);

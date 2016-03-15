@@ -325,12 +325,6 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
         
     }
-    
-    @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws CoordinatorException {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public String getUpgradeLockOwner(String lockId) {

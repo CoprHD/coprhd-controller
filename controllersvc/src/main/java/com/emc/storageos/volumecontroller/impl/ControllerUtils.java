@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1035,6 +1037,25 @@ public class ControllerUtils {
     }
 
     /**
+     * BlockSnapshot instances associated to an BlockSnapshotSession will have its replicationGroupName field set in a
+     * different format than regular BlockSnapshot instances, e.g. system-serial+groupName.
+     *
+     * This method will extract and return only the group name, if required.
+     *
+     * @param groupName Replication group name, possibly containing the system serial.
+     * @return Replication group name.
+     */
+    public static String extractGroupName(String groupName) {
+        Pattern p = Pattern.compile("^\\S+\\+(\\S+)$");
+        Matcher matcher = p.matcher(groupName);
+
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        return groupName;
+    }
+
+    /**
      * Filters the CG volumes by given Replication Group name and system.
      *
      * @param cgVolumes the cg volumes
@@ -1232,13 +1253,52 @@ public class ControllerUtils {
 
         return groupNames;
     }
+
+    /**
+     * Gets snapshot replication group names for given source volumes in Replication Group and snap session.
+     *
+     * @param volumes the volumes
+     * @param snapSession the snap session
+     * @param dbClient the db client
+     * @return the snapshot replication group names for snap session
+     */
+    public static Set<String> getSnapshotReplicationGroupNamesForSnapSession(List<Volume> volumes, BlockSnapshotSession snapSession,
+            DbClient dbClient) {
+        Set<String> groupNames = new HashSet<>();
+        StringSet linkedTargets = snapSession.getLinkedTargets();
+
+        // check if replica of any of these volumes have replicationGroupInstance set
+        for (Volume volume : volumes) {
+            URIQueryResultList snapshotList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()),
+                    snapshotList);
+            Iterator<URI> iter = snapshotList.iterator();
+            while (iter.hasNext()) {
+                URI snapshotID = iter.next();
+                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
+                if (snapshot != null && !snapshot.getInactive()
+                        && linkedTargets != null && linkedTargets.contains(snapshotID.toString())
+                        && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                    groupNames.add(snapshot.getReplicationGroupInstance());
+                }
+            }
+
+            if (!groupNames.isEmpty()) {
+                // no need to check other CG members
+                break;
+            }
+        }
+
+        return groupNames;
+    }
     
     /**
-     * Gets snapshot replication group names from source volumes in CG.
-     * 
-     * @param volumes
-     * @param dbClient
-     * @return
+     * Gets copy mode for snapshots in snapshot replication group.
+     *
+     * @param snapGroupName the snap group name
+     * @param storage the storage
+     * @param dbClient the db client
+     * @return the copy mode from snapshot group
      */
     public static String getCopyModeFromSnapshotGroup(String snapGroupName, URI storage,  DbClient dbClient) {
        List<BlockSnapshot> snapshots =  getSnapshotsPartOfReplicationGroup(snapGroupName, storage, dbClient);

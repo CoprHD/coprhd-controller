@@ -8,6 +8,10 @@ import java.net.URI;
 
 import javax.ws.rs.core.MediaType;
 
+<<<<<<< HEAD
+=======
+import org.codehaus.jettison.json.JSONObject;
+>>>>>>> a5559b7... Adding RackHD files created for RackHD-ViPR integration to private branch
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,21 +94,22 @@ public class RackHdRestClient extends StandardRestClient {
     protected int checkResponse(URI uri, ClientResponse response) { 
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode();
-        if (errorCode >= 300) {
-            String entity = null;
+        if (errorCode >= 300) { 
+            JSONObject obj = null;
+            int code = 0;
             try {
-                entity = response.getEntity(String.class);
-            } catch (Exception e) {   
-                log.error("Parsing the failure response object failed.  " +
-                        e.getMessage() + " where entity was " + 
-                        entity ,e);
+                obj = response.getEntity(JSONObject.class);
+                code = obj.getInt("httpStatusCode");
+            } catch (Exception e) {
+                log.error("Parsing the failure response object failed", e);
             }
-            if (errorCode == 404 || errorCode == 410) {
+
+            if (code == 404 || code == 410) {
                 throw RackHdException.exceptions.resourceNotFound(uri.toString());
-            } else if (errorCode == 401) {
+            } else if (code == 401) {
                 throw RackHdException.exceptions.authenticationFailure(uri.toString());
             } else {
-                throw RackHdException.exceptions.internalError(uri.toString(), entity);
+                throw RackHdException.exceptions.internalError(uri.toString(), obj.toString()); 
             }
         } else {
             return errorCode;

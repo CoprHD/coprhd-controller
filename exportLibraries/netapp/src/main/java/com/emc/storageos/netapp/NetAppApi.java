@@ -468,6 +468,16 @@ public class NetAppApi {
             throw NetAppException.exceptions.listVolumeInfoFailed(volume);
         }
     }
+    
+    public List<Qtree> listQtrees(Collection<String> attrs) throws NetAppException {
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            return netAppFacade.listQtrees();
+        } catch (Exception e) {
+            throw NetAppException.exceptions.listQtreesFailed();
+        }
+    }
 
     public List<AggregateInfo> listAggregates(String name)
             throws NetAppException {

@@ -339,11 +339,13 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             snapSession.setConsistencyGroup(sourceObj.getConsistencyGroup());
             snapSession.setSessionSetName(snapSessionLabel);
             String rgName = sourceObj.getReplicationGroupInstance();
-            if (NullColumnValueGetter.isNotNullValue(rgName) && inApplication) {
+            if (NullColumnValueGetter.isNotNullValue(rgName)) {
                 snapSession.setReplicationGroupInstance(rgName);
-                // append RG name to user given label to uniquely identify sessions
-                // when there are multiple RGs in a CG
-                instanceLabel = String.format("%s-%s", instanceLabel, rgName);
+                if (inApplication) {
+                    // append RG name to user given label to uniquely identify sessions
+                    // when there are multiple RGs in a CG
+                    instanceLabel = String.format("%s-%s", instanceLabel, rgName);
+                }
             }
         } else {
             snapSession.setParent(new NamedURI(sourceObj.getId(), sourceObj.getLabel()));

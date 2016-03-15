@@ -1,19 +1,19 @@
 package com.emc.sa.service.vipr.rackhd.gson;
 
-public class AffectedResource {
-    private String id;
-    private String name;
+public class AffectedResource { 
+    private String key;
+    private String value;
 
-    public String getId() {
-        return id;
+    public String getKey() {
+        return key;
     }
-    public void setId(String id) {
-        this.id = id;
+    public void setKey(String key) {
+        this.key = key;
     }
-    public String getName() {
-        return name;
+    public String getValue() {
+        return value;
     }
-    public void setName(String name) {
-        this.name = name;
+    public void setValue(String value) {
+        this.value = value; 
     }
 }

@@ -4,24 +4,24 @@
  */
 package com.emc.sa.service.vipr.rackhd;
 
-import com.emc.sa.service.vipr.ViPRExecutionUtils;
 import com.emc.sa.service.vipr.ViPRService;
-import com.emc.sa.service.vipr.rackhd.tasks.RackHdTask;
-/**import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
+import com.emc.sa.service.vipr.rackhd.gson.AffectedResource;
+import com.emc.sa.service.vipr.rackhd.gson.Context;
+import com.emc.sa.service.vipr.rackhd.gson.FinishedTask;
+import com.emc.sa.service.vipr.rackhd.gson.Job;
+import com.emc.sa.service.vipr.rackhd.gson.RackHdWorkflow;
+import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClientFactory;
-import com.emc.vipr.client.catalog.AssetOptions;
-import com.emc.vipr.model.catalog.AssetOption;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.sun.jersey.api.client.ClientResponse;
 
-import java.net.InetAddress;
+import java.io.IOException;
 import java.net.URI;
-import java.net.UnknownHostException;**/
-import java.util.Map;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
@@ -30,175 +30,168 @@ import com.emc.sa.engine.service.Service;
 @Service("RackHdService")
 public class RackHdService extends ViPRService {
 
-	//TODO: some of this code is also in RackHdProvider - factor code into utils class
+    private RackHdRestClient restClient;
 
-	// Name of parameter containing workflow name:
-	private static final String WORKFLOW_PARAM_NAME = "Workflow"; 
+    //TODO: much of this code is also in RackHdProvider - factor code into utils class
 
-	// Name of parameter containing playbook name:
-	private static final String PLAYBOOK_PARAM_NAME = "Playbook"; 
+    //TODO: move these hard-coded strings out
+    private static final String USER = "root";
+    private static final String PASSWORD = "ChangeMe1!";
+    private static final String RACKHDSCHEME = "http"; // include, else URI.resolve(..) fails
+    private static final String RACKHDSERVER = "lgloc189.lss.emc.com";
+    private static final String RACKHDSERVERPORT = "8080";
 
-	// Name of parameter containing node to run WF against:
-	private static final String PLAYBOOK_PARAM_NODE = "Node";
+    // Name of parameter containing workflow name:
+    private static final String WORKFLOW_PARAM_NAME = "Workflow"; 
 
-	private Map<String, Object> params = null;
-	private String workflowName = null;
-	private String playbookNames = null;
-	private List<String> playbookNameList = new ArrayList<>();
-	private String nodeId = null;
-	String nodeName = null;
-	String nodeIp = null;
+    // Name of parameter containing playbook name:
+    private static final String PLAYBOOK_PARAM_NAME = "Playbook"; 
+    private static final String RACKHD_API_NODES = "/api/1.1/nodes"; //include leading slash
+    private static final String RACKHD_API_WORKFLOWS = "/api/1.1/workflows";
+    private static final int RACKHD_WORKFLOW_CHECK_INTERVAL = 10; // secs
+    
+    // JSON converter
+    private static Gson gson = null;
 
-	@Override
-	public void precheck() throws Exception {
+    public RackHdService() {
+        RackHdRestClientFactory factory = new RackHdRestClientFactory();
+        factory.setMaxConnections(100);
+        factory.setMaxConnectionsPerHost(100);
+        factory.setNeedCertificateManager(false);
+        factory.setSocketConnectionTimeoutMs(3600000);
+        factory.setConnectionTimeoutMs(3600000);
+        factory.init();
+        String endpoint = RACKHDSCHEME + "://" + RACKHDSERVER + ":" + RACKHDSERVERPORT;
+        restClient = (RackHdRestClient) factory.getRESTClient(URI.create(endpoint), USER, PASSWORD, true);
+        gson = new Gson();
+    }
 
-		params = ExecutionUtils.currentContext().getParameters();
+    Map<String, Object> params = null;
+    String workflowName = null;
+    String playbookName = null;
 
-		// see if some params should be handled as lists
-		for( String paramKey : params.keySet() ){
-			//TODO: check behavior when list was locked in catalog fields
-			//   (see notes below where quotes are removed)
-			String csvRegex = "^\\s?\".*(\"\\s?,\\s?\".*)+\"\\s?$";
-			String paramValue = params.get(paramKey).toString();
-			if(paramValue.matches(csvRegex)) {
-				String param = paramValue.trim();
-				param = param.substring(1, param.length()-1);
-				String[] paramList = param.split("\"\\s?,\\s?\"");
-				params.put(paramKey, paramList);
-				warn("Replacing param '" + paramKey + "' of value '" + 
-						paramValue + "' with list '" + 
-						Arrays.toString(paramList) + "'");
-			}
-		}
+    @Override
+    public void precheck() throws Exception {
+        params = ExecutionUtils.currentContext().getParameters();
 
+        for( String paramKey : params.keySet() ){
+            info("RackHDService params: " + paramKey + " = " + params.get(paramKey));
+        }
 
-		// possible bug:  when catalog form is filled out, params have quotes
-		// around them, but when fields are locked in catalog, the quotes are missing.
-		for( String paramKey : params.keySet() ){
-			
-			if(!params.get(paramKey).getClass().equals(String.class)){
-				continue; // skip if not string
-			}
-			
-			String paramValue = params.get(paramKey).toString();
-			if(paramValue != null) {
-				if(paramValue.equals("\"\"")) {
-					params.put(paramKey, "");
-				}
-				else if(paramValue.length() > 2 &&
-						paramValue.endsWith("\"") && paramValue.startsWith("\"")) {
-					String unquotedParam = paramValue.substring(1, paramValue.length()-1);
-					warn("Removing quotes from param " + paramKey + ":" + paramValue +
-							"  (Result: " + unquotedParam + ")");
-					params.put(paramKey, unquotedParam);
-				}
-			}
-		}
+        // TODO: check empty/blank params and make null?  (empty consistency group in
+        //   XML payload was not null and threw invalid URI error
 
-		// ignore params with value 'null' 
-		//   TODO: find better way to pass in null params
-		for(Iterator<Map.Entry<String, Object>> it = params.entrySet().iterator(); it.hasNext();){
-			Map.Entry<String, Object> entry = it.next(); 
-			if( (entry.getValue() == null) ||
-					entry.getValue().toString().equals("") ||
-					entry.getValue().toString().equalsIgnoreCase("null") ) {
-				warn("Ignoring parameter: " + entry.getKey() + "=" + 
-						entry.getValue());
-				it.remove();
-			}
-		}
+        if(!params.containsKey(WORKFLOW_PARAM_NAME)) {
+            throw new IllegalStateException("No workflow specified " +
+                    "in param named " + WORKFLOW_PARAM_NAME + "'");
+        }
+        workflowName = params.get(WORKFLOW_PARAM_NAME).toString();
+        params.remove(WORKFLOW_PARAM_NAME);
 
-		/**
-		 * Temporary feature - Services can have only on ServiceDescriptor.
-		 * All we can do is lock down fields for different uses.
-		 * But sometimes we need a field to be populated differently, based
-		 * on the particular use.  For example: 'Node" can be selected from 
-		 * drop down of all nodes, or else it could be selected from a filtered
-		 * list of nodes - like a list of all nodes that are running ScaleIO MDM.
-		 * 
-		 * Ultimately, we could allow multiple service descriptors per service,
-		 * but need a way to select them.  Or - we could tag fields somehow
-		 * to control which fields appear on which service.
-		 *  
-		 * For now, we will do this hack: any variable name with an underscore, 
-		 * like 'Node_MDM', will have its value set on the variable that has the
-		 * name of the part of the variable that precedes the underscore.  So 
-		 * 'Node_MDM' will be passed on to RackHD as 'Node'.  (But if there is a 
-		 * conflict, it will generate an error. 
-		 */
-		Map<String, Object> paramsCopy = new HashMap<String, Object>(params);
-		StringBuffer paramErrs = new StringBuffer();
-		for(Iterator<Map.Entry<String, Object>> it = paramsCopy.entrySet().iterator(); it.hasNext();){
-			Map.Entry<String, Object> entry = it.next();
-			if(entry.getKey().contains("_")) {
-				String baseVarName = entry.getKey().split("_",2)[0];
-				if(params.containsKey(baseVarName)  &&
-						(!params.get(baseVarName).toString().
-								equals(entry.getValue().toString())) ) {
-					paramErrs.append(entry.getKey() + " with value '" +
-							entry.getValue() + "' cannot override " + 
-							baseVarName + " which already has a different " +
-							"value '" + params.get(baseVarName) + "'");
-				} 
-				params.put(baseVarName, entry.getValue());
-				params.remove(entry.getKey());
-			}
-		}
-		if(paramErrs.length()>0){
-			throw new IllegalStateException("Error overriding parameters.  " +
-					paramErrs + "  (Params with underscores like 'xxx_yyy' will " +
-					"override params named 'xxx')");
-		}
+        if(!params.containsKey(PLAYBOOK_PARAM_NAME)) {
+            info("No playbook specified.");
+            playbookName = null;
+        } else {
+            playbookName = params.get(PLAYBOOK_PARAM_NAME).toString();
+            params.remove(PLAYBOOK_PARAM_NAME);            
+        }
 
+        // TODO: fix: can't detect type, so interpret Storage Sizes in GB
+        for( String paramKey : params.keySet() ){
+            String p = params.get(paramKey).toString();
+            if(p.endsWith("GB")) {
+                String pNum = p.substring(0, p.length()-2);
+                if(StringUtils.isNumeric(pNum)) {
+                    params.put(paramKey, pNum);
+                }
+            }
+        }
+    }
 
-		// TODO: check empty/blank params and make null?  (empty consistency group in
-		//   XML payload was not null and threw invalid URI error
+    @Override
+    public void execute() throws Exception {
+        String nodeListResponse = makeRestCall(RACKHD_API_NODES);
+        String nodeId = RackHdUtils.getAnyNode(nodeListResponse);         
+        info("MENDES: Will execute against node ID " + nodeId);
 
-		if(!params.containsKey(WORKFLOW_PARAM_NAME)) {
-			throw new IllegalStateException("No workflow specified " +
-					"in param named " + WORKFLOW_PARAM_NAME + "'");
-		}
-		workflowName = params.get(WORKFLOW_PARAM_NAME).toString();
-		params.remove(WORKFLOW_PARAM_NAME);
+        String apiWorkflowUri = "/api/1.1/nodes/" + nodeId + "/workflows";
 
-		if(!params.containsKey(PLAYBOOK_PARAM_NAME)) {
-			info("No playbook specified.");
-			playbookNames = null;
-		} else {
-			playbookNames = params.get(PLAYBOOK_PARAM_NAME).toString();
-			params.remove(PLAYBOOK_PARAM_NAME);   
+        String workflowResponse = 
+                makeRestCall(apiWorkflowUri,RackHdUtils.makePostBody(params, workflowName,playbookName));
 
-			// convert playbook names to list (may be >1)
-			//TODO: allow playbooks to be associated with specific tasks in WF
-			//TODO: requires reading tasks for selected workflows (dependent AssetOptions providers?)   
-			for(String playbook: playbookNames.split(";")){
-				playbookNameList.add(playbook);
-			}
-		}
+        // Get results (wait for RackHD workflow to complete)
+        int intervals = 0;
+        while ( !RackHdUtils.isWorkflowComplete(workflowResponse) ||  // does complete flag matter?
+                RackHdUtils.isWorkflowValid(workflowResponse) ) { // status not updated from 'valid' even when complete?!
+            RackHdUtils.sleep(RACKHD_WORKFLOW_CHECK_INTERVAL);
+            workflowResponse = makeRestCall(RACKHD_API_WORKFLOWS + "/" + 
+                    RackHdUtils.getWorkflowTaskId(workflowResponse));
+            updateAffectedResources(workflowResponse);
+            //updateTaskStatus(workflowResponse);
+            if( RackHdUtils.isTimedOut(++intervals) ) {
+                error("RackHD workflow " + RackHdUtils.getWorkflowTaskId(workflowResponse) + " timed out.");
+                return;
+            }
+            //TODO: get tasks completed/total and update UI
+        }        
 
-		if(params.containsKey(PLAYBOOK_PARAM_NODE)) {
-			// If RackHD node ID specified, get RackHD name
-			nodeId = params.get(PLAYBOOK_PARAM_NODE).toString();
-		}
+        updateAffectedResources(workflowResponse);
+        //updateTaskStatus(workflowResponse);
 
-		// pass a proxy token that OE can use to login to ViPR API
-		params.put("ProxyToken", ExecutionUtils.currentContext().
-				getExecutionState().getProxyToken());
-	}
+        RackHdUtils.checkForWorkflowFailed(workflowResponse);  
+    }
 
-	@Override
-	public void execute() throws Exception {
-		ExecutionUtils.currentContext().logInfo("Starting RackHD Workflow '" +
-				workflowName + "'");
-		String workflowResponse =
-				ViPRExecutionUtils.execute(new RackHdTask(params,workflowName,playbookNameList,nodeId));
-		String errMsg = RackHdUtils.checkForWorkflowFailed(workflowResponse); 
-		if(StringUtils.isNotBlank(errMsg)) {
-			ExecutionUtils.currentContext().logError("RackHD Workflow " +
-					"completed, but failed.");
-			throw new IllegalStateException(errMsg);
-		}  
-		ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
-				"completed successfully.");
-	} 
+    private void updateAffectedResources(String workflowResponse) {
+        info("MENDES: updateAffectedResources  wf Response=" + workflowResponse);
+        RackHdWorkflow wf = 
+                RackHdUtils.getWorkflowObjFromJson(workflowResponse);  
+        for(FinishedTask task : Arrays.asList(wf.getFinishedTasks())) {
+            //String resultJson = 
+            //        task.getJob().getContext().getAnsibleResultFile();
+            Job j = task.getJob();
+            Context c = j.getContext();
+            String resultJson = c.getAnsibleResultFile();
+            info("MENDES: updateAffectedResources resultJson=" + resultJson);
+
+            try {
+                AffectedResource[] affectedResources = 
+                        gson.fromJson(resultJson,AffectedResource[].class);
+                for(AffectedResource rsrc:affectedResources ) {
+                    this.addAffectedResource(rsrc.getValue());
+                }
+            } catch(JsonSyntaxException e) {
+                // ignore syntax exceptions, if not valid JSON
+                // there may be an error msg in the response
+                warn("Response from RackHD did not contain valid Json.  "  + 
+                        "It was: " + resultJson);
+            }
+        }
+    }
+
+    private String makeRestCall(String uriString) {
+        return makeRestCall(uriString,null);
+    }
+
+    private String makeRestCall(String uriString, String postBody) {
+        info("RackHD request uri: " + uriString);
+
+        ClientResponse response = null;
+        if(postBody == null) {
+            response = restClient.get(uri(uriString));
+        } else {
+            info("RackHD request post body: " + postBody);
+            response = restClient.post(uri(uriString),postBody);
+        }
+
+        String responseString = null;
+        try {
+            responseString = IOUtils.toString(response.getEntityInputStream(),"UTF-8");
+        } catch (IOException e) {
+            error("Error getting response from RackHD for: " + uriString +
+                    " :: "+ e.getMessage());
+            e.printStackTrace();
+        }
+        return responseString;
+    }
+
 } 

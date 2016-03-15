@@ -127,6 +127,20 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
      * @param id
      *            the ID of the snapshot to deactivate.
      * 
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Tasks<BlockSnapshotRestRep> deactivate(URI id) {
+        return deactivate(id, VolumeDeleteTypeEnum.FULL);
+    }
+
+    /**
+     * Begins deactivating a given block snapshot by ID.
+     * <p>
+     * API Call: <tt>POST /block/snapshots/{id}/deactivate</tt>
+     * 
+     * @param id
+     *            the ID of the snapshot to deactivate.
+     * 
      * @param type
      *            {@code FULL} or {@code VIPR_ONLY}
      * 
@@ -204,7 +218,7 @@ public class BlockSnapshots extends ProjectResources<BlockSnapshotRestRep> imple
         List<NamedRelatedResourceRep> refs = listByVolume(volumeId);
         return getByRefs(refs, filter);
     }
-        
+
     /**
      * Begins creating a snapshot (or snapshots) of a given block volume by ID.
      * <p>

@@ -93,7 +93,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCleanupMetaVolumeMembersJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateMultiVolumeJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVolumeJob;
@@ -1760,6 +1759,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (cgPathInstance != null) {
                 if (storage.deviceIsType(Type.vnxblock)) {
                     cleanupAnyGroupBackupSnapshots(storage, cgPath);
+                }
+
+                if (storage.checkIfVmax3()) {
+                    // if deleting snap session replication group, we need to remove the EMCSFSEntries first
+                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
                 }
 
                 if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {

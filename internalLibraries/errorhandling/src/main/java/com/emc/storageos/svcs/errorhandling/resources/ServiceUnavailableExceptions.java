@@ -7,7 +7,6 @@ package com.emc.storageos.svcs.errorhandling.resources;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-import com.emc.vipr.model.sys.ClusterInfo;
 
 import java.net.URI;
 

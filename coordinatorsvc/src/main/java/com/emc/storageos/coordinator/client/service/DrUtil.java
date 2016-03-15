@@ -661,21 +661,23 @@ public class DrUtil {
     }
 
     public void verifyIPsecOpAllowableWithinDR() {
-        for (Site site : listSites()) {
+        List<Site> allSites = listSites();
+
+        for (Site site : allSites) {
             if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
                 log.info("IPsec is disallowed since site {} is paused.", site.getName());
                 throw APIException.serviceUnavailable.sitePaused(site.getName());
             }
         }
 
-        for (Site site : listSites()) {
+        for (Site site : allSites) {
             if (site.getState().isDROperationOngoing()) {
                 log.info("Site {} has onging job {}", site.getName(), site.getState());
                 throw APIException.serviceUnavailable.siteOnGoingJob(site.getName(), site.getState().name());
             }
         }
 
-        for (Site site : listSites()) {
+        for (Site site : allSites) {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);

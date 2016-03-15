@@ -14,10 +14,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
+import javafx.beans.binding.When;
+
 import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.vplex.api.VPlexCacheStatusInfo.InvalidateStatus;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo.WaitOnRebuildResult;
@@ -34,12 +35,11 @@ public class VPlexApiVirtualVolumeManager {
     private static Logger s_logger = LoggerFactory.getLogger(VPlexApiVirtualVolumeManager.class);
 
     // A reference to the API client.
-    private VPlexApiClient _vplexApiClient;
-    
+    private final VPlexApiClient _vplexApiClient;
 
     /**
      * Package protected constructor.
-     * 
+     *
      * @param client A reference to the API client.
      */
     VPlexApiVirtualVolumeManager(VPlexApiClient client) {
@@ -56,11 +56,11 @@ public class VPlexApiVirtualVolumeManager {
      * connected to one VPlex cluster in a VPlex metro configuration. The other
      * volumes should reside on a backend storage array connected to the other
      * VPlex cluster in a VPlex Metro configuration.
-     * 
+     *
      * NOTE: Currently, backend volumes newly exported to the VPlex must be
      * discovered prior to creating a virtual volume using them by invoking the
      * rediscoverStorageSystems API.
-     * 
+     *
      * @param nativeVolumeInfoList The native volume information.
      * @param isDistributed true for a distributed virtual volume, false
      *            otherwise.
@@ -72,9 +72,9 @@ public class VPlexApiVirtualVolumeManager {
      * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
      *            clusters.
      * @param findVirtualVolume If true findVirtualVolume method is called after virtual volume is created.
-     * 
+     *
      * @return The information for the created virtual volume.
-     * 
+     *
      * @throws VPlexApiException When an error occurs creating the virtual
      *             volume.
      */
@@ -197,16 +197,16 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Creates and attaches mirror device to the source device.
-     * 
+     *
      * @param virtualVolume The virtual volume information to which mirror will be attached
      * @param nativeVolumeInfoList The native volume information.
      * @param discoveryRequired true if the passed native volumes are newly
      *            exported and need to be discovered by the VPlex.
      * @param preserveData true if the native volume data should be preserved
      *            during mirror device creation.
-     * 
+     *
      * @return The VPlex device info that is attached as a mirror.
-     * 
+     *
      * @throws VPlexApiException When an error occurs creating and attaching device as a mirror
      */
     VPlexDeviceInfo createDeviceAndAttachAsMirror(VPlexVirtualVolumeInfo virtualVolume,
@@ -308,11 +308,11 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Attaches mirror device to the source device
-     * 
+     *
      * @param locality The constant that tells if its local or distributed volume
      * @param sourceVirtualVolumeName Name of the virtual volume
      * @param mirrorDeviceName Name of the mirror device
-     * 
+     *
      * @throws VPlexApiException When an error occurs attaching mirror device to the
      *             source volume device
      */
@@ -369,10 +369,10 @@ public class VPlexApiVirtualVolumeManager {
      * Deletes the virtual volume by destroying all the components (i.e,
      * extents, devices) that were created in the process of creating the
      * virtual and unclaiming the storage volume(s).
-     * 
+     *
      * @param nativeVolumeInfoList The same native volume info that was passed
      *            when the virtual volume was created.
-     * 
+     *
      * @throws VPlexApiException When an error occurs deleted the virtual
      *             volume.
      */
@@ -397,14 +397,14 @@ public class VPlexApiVirtualVolumeManager {
      * Deletes the virtual volume by destroying all the components (i.e,
      * extents, devices) that were created in the process of creating the
      * virtual and unclaiming the storage volume(s).
-     * 
+     *
      * @param virtualVolumeName The name of the virtual volume to be deleted.
      * @param unclaimVolumes true if the storage volumes should be unclaimed.
      * @param retryOnDismantleFailure When true, retries the delete if the
      *            dismantle of the virtual volume fails, which can occur if the
      *            volume was distributed and had previously been migrated. This is
      *            due to a bug in the VPLEX management software (zeph-q24801)
-     * 
+     *
      * @throws VPlexApiException When an error occurs deleted the virtual
      *             volume.
      */
@@ -471,9 +471,9 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Deletes the virtual volume and leaves the underlying structure intact.
-     * 
+     *
      * @param virtualVolumeName The name of the virtual volume to be destroyed.
-     * 
+     *
      * @throws VPlexApiException When an error occurs destroying the virtual
      *             volume.
      */
@@ -536,11 +536,11 @@ public class VPlexApiVirtualVolumeManager {
      * capacity. This API would be invoked after natively expanding the backend
      * volume(s) of the virtual volume to provide additional capacity or say
      * migrating the backend volume(s) to volume(s) with a larger capacity.
-     * 
+     *
      * @param virtualVolumeName The name of the virtual volume.
      * @param expansionStatusRetryCount Retry count to check virtual volume's expansion status.
      * @param expansionStatusSleepTime Sleep time in between expansion status check retries.
-     * 
+     *
      * @throws VPlexApiException When an exception occurs expanding the volume.
      */
     VPlexVirtualVolumeInfo expandVirtualVolume(String virtualVolumeName,
@@ -616,12 +616,12 @@ public class VPlexApiVirtualVolumeManager {
      * the purpose of updating the block count so that the volume specifies the
      * newly expanded capacity. Waits for a specified period of time for the
      * expansion to complete, which should happen quickly.
-     * 
+     *
      * @param clusterName The cluster for the virtual volume.
      * @param virtualVolumeInfo A reference to the virtual volume info.
      * @param expansionStatusRetryCount Retry count to check virtual volume's expansion status.
      * @param expansionStatusSleepTime Sleep time in between expansion status check retries.
-     * 
+     *
      * @throws VPlexApiException When an exception occurs attempting to update
      *             the virtual volume info.
      */
@@ -634,12 +634,13 @@ public class VPlexApiVirtualVolumeManager {
 
         while (++retryCount <= expansionStatusRetryCount) {
             try {
+                // Pause before obtaining the volume info.
+                VPlexApiUtils.pauseThread(expansionStatusSleepTime);
                 discoveryMgr.updateVirtualVolumeInfo(clusterName, virtualVolumeInfo);
                 s_logger.info("Expansion status is {}", virtualVolumeInfo.getExpansionStatus());
                 if (VPlexVirtualVolumeInfo.ExpansionStatus.INPROGRESS.getStatus().equals(
                         virtualVolumeInfo.getExpansionStatus())) {
                     s_logger.info("Expansion still in progress");
-                    VPlexApiUtils.pauseThread(expansionStatusSleepTime);
                     continue;
                 } else {
                     break;
@@ -668,12 +669,12 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Find the storage volumes identified by the passed native volume info,
      * discovering the storage volumes if required.
-     * 
+     *
      * @param nativeVolumeInfoList The native volume information.
      * @param discoveryRequired true if the passed native volumes are newly
      *            exported and need to be discovered by the VPlex.
      * @param clusterInfoList [OUT] param set to the cluster information.
-     * 
+     *
      * @throws VPlexApiException When an error occurs finding the storage
      *             volumes or the storage volumes are not all found.
      */
@@ -758,11 +759,11 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Claims the VPlex volumes in the passed map.
-     * 
+     *
      * @param storageVolumeInfoMap The VPlex volumes to claim.
      * @param preserveData true if the native volume data should be preserved
      *            during virtual volume creation.
-     * 
+     *
      * @throws VPlexApiException When an error occurs claiming the volumes.
      */
     void claimStorageVolumes(
@@ -844,10 +845,10 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Creates extents for the passed VPlex storage volumes. The extents so
      * created consume the entire volume.
-     * 
+     *
      * @param storageVolumeInfoList The VPlex storage volumes on which to create
      *            extents.
-     * 
+     *
      * @throws VPlexApiException When an error occurs creating the extents,
      */
     void createExtents(List<VPlexStorageVolumeInfo> storageVolumeInfoList)
@@ -898,10 +899,10 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Create local devices on the passed extents. The local devices so created
      * consume the entire extent.
-     * 
+     *
      * @param extentInfoList The list of extents on which to create local
      *            devices.
-     * 
+     *
      * @throws VPlexApiException When an error occurs creating the local
      *             devices.
      */
@@ -952,13 +953,13 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Creates a distributed device from the passed local devices.
-     * 
+     *
      * @param localDeviceInfoList The local devices to be used to construct the
      *            distributed device.
      * @param winningClusterId Used to set detach rules for distributed volumes.
-     * 
+     *
      * @return The name of the distributed device.
-     * 
+     *
      * @throws VPlexApiException When an error occurs creating the distributed
      *             device.
      */
@@ -1021,9 +1022,9 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Creates a virtual volume for the device with the passed context path.
-     * 
+     *
      * @param devicePath The context path of a local or distributed device.
-     * 
+     *
      * @throws VPlexApiException When an error occurs creating the virtual volume.
      */
     private void createVirtualVolume(String devicePath)
@@ -1065,10 +1066,10 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Creates the name given a virtual volume when it is created.
-     * 
+     *
      * @param nativeVolumeNames The names of the volume(s) passed when the
      *            virtual volume is created.
-     * 
+     *
      * @return The name of the virtual volume.
      */
     private String buildVirtualVolumeName(List<String> nativeVolumeNames) {
@@ -1094,11 +1095,11 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Tears down a virtual volume, distributed device, or local device.
-     * 
+     *
      * @param resourcePath The context path of the virtual volume or device.
      * @param unclaimVolumes true if the storage volumes should be unclaimed.
      * @param isDevice True if the resource is a device, false if it's a virtual volume.
-     * 
+     *
      * @throws VPlexApiException When an error occurs tearing down the resource.
      */
     private void dismantleResource(String resourcePath, boolean unclaimVolumes, boolean isDevice)
@@ -1158,9 +1159,9 @@ public class VPlexApiVirtualVolumeManager {
      * Attempts to find and delete the passed distributed device. Will attempt
      * to dismantle the distributed device by destroying all components used to
      * build up the device (i.e, extents and local volumes).
-     * 
+     *
      * @param deviceName The name of the distributed device.
-     * 
+     *
      * @throws VPlexApiException When an error occurs deleting the distributed
      *             device.
      */
@@ -1196,9 +1197,9 @@ public class VPlexApiVirtualVolumeManager {
      * Attempts to find and delete the local device with the passed name.Will
      * attempt to dismantle the local device by destroying all components used
      * to build up the device (i.e, extents).
-     * 
+     *
      * @param deviceInfo the backend storage volume info for the device.
-     * 
+     *
      * @throws VPlexApiException When an error occurs deleting the local
      *             device.
      */
@@ -1211,9 +1212,9 @@ public class VPlexApiVirtualVolumeManager {
      * Attempts to find and delete the local device with the passed name. Will
      * attempt to dismantle the local device by destroying all components used
      * to build up the device (i.e, extents).
-     * 
+     *
      * @param deviceName The name of the local device.
-     * 
+     *
      * @throws VPlexApiException When an error occurs deleting the distributed
      *             device.
      */
@@ -1244,9 +1245,9 @@ public class VPlexApiVirtualVolumeManager {
      * Attempts to find and delete the extent with the passed name. If
      * successfully delete, the method will also unclaim the storage volume from
      * which the extent was built.
-     * 
+     *
      * @param extentName The name of the extent.
-     * 
+     *
      * @throws When an error occurs deleting the extent or subsequently
      *             unclaiming the storage volume.
      */
@@ -1312,9 +1313,9 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Unclaim the storage volume with the passed name.
-     * 
+     *
      * @param storageVolumeName The storage volume name.
-     * 
+     *
      * @throws VPlexApiException When an error occurs unclaiming the storage
      *             volume.
      */
@@ -1366,7 +1367,7 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Creates a distributed virtual volume from a non-distributed one plus a new unclaimed
      * remote storage volume.
-     * 
+     *
      * @param virtualVolume - Existing non-distributed virtual volume.
      * @param newRemoteVolume - Unclaimed storage volume in remote cluster.
      * @param discoveryRequired - Set if discovery required.
@@ -1376,7 +1377,7 @@ public class VPlexApiVirtualVolumeManager {
      * @throws VPlexApiException
      */
     VPlexVirtualVolumeInfo createDistributedVirtualVolume(VPlexVirtualVolumeInfo virtualVolume,
-            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId, 
+            VolumeInfo newRemoteVolume, boolean discoveryRequired, boolean rename, String clusterId,
             String transferSize) throws VPlexApiException {
         // Determine the "local" device
         String virtualVolumeName = virtualVolume.getName();
@@ -1462,18 +1463,17 @@ public class VPlexApiVirtualVolumeManager {
             VPlexVirtualVolumeInfo vvInfo = discoveryMgr.findVirtualVolume(
                     localDevice.getCluster(), virtualVolumeName, false);
 
-            // If transferSize is set, set the rebuild size for the distributed device created by 
+            // If transferSize is set, set the rebuild size for the distributed device created by
             // device-attach mirror.
             VPlexDistributedDeviceInfo distDeviceInfo = discoveryMgr
                     .findDistributedDevice(localDevice.getName());
-            
+
             if (transferSize != null) {
-            	String deviceName = distDeviceInfo.getName();
-            	s_logger.info("Rebuild transfer size of {} will be set for device {}",transferSize, deviceName);            	
-            	setRebuildTransferSize(deviceName, transferSize);	
+                String deviceName = distDeviceInfo.getName();
+                s_logger.info("Rebuild transfer size of {} will be set for device {}", transferSize, deviceName);
+                setRebuildTransferSize(deviceName, transferSize);
             }
-            
-            
+
             // Compute updated name and rename the distributed virtual volume.
             if (rename) {
                 String remoteName = remoteDevice.getName().replaceAll(VPlexApiConstants.DEVICE_PREFIX, "");
@@ -1513,7 +1513,7 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Execute the "device attach-mirror" command.
-     * 
+     *
      * @param sourceDevicePath -- Path for the device in the existing virtual volume
      * @param mirrorDevicePath -- Path for the new device that will be attached as a mirror.It can be
      *            in the local cluster of the source device or in the remote cluster.
@@ -1535,7 +1535,7 @@ public class VPlexApiVirtualVolumeManager {
             if (rulesetName != null) {
                 argsMap.put(VPlexApiConstants.ARG_DASH_R, rulesetName);
             }
-                        
+
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, true);
             s_logger.info("Device Attach Mirror POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI, postDataObject.toString());
@@ -1562,28 +1562,28 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Execute the "rebuild set-transfer-size" command.
-     * 
+     *
      * @param deviceName -- Distributed device on which we need to set the rebuild size
      * @param transferSize -- The transfer size that needs to be set in VPLEX
      * @throws VPlexApiException
      */
-    
-    public void setRebuildTransferSize(String deviceName, String transferSize){
+
+    public void setRebuildTransferSize(String deviceName, String transferSize) {
         ClientResponse response = null;
         try {
-        	s_logger.info("Setting transfer size");
-        	URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_REBUILD_SET_TRANSFER_SIZE);
-        	s_logger.info("Rebuild Transfer size URI is {}", requestURI.toString());
-        	Map<String, String> argsMap = new HashMap<String, String>();
-        	StringBuilder deviceAndSize = new StringBuilder();
-        	deviceAndSize.append(deviceName);
-        	deviceAndSize.append(" ");
-        	deviceAndSize.append(transferSize);
-        	argsMap.put(VPlexApiConstants.ARG_DEVICES, deviceAndSize.toString());
-    	
+            s_logger.info("Setting transfer size");
+            URI requestURI = _vplexApiClient.getBaseURI().resolve(VPlexApiConstants.URI_REBUILD_SET_TRANSFER_SIZE);
+            s_logger.info("Rebuild Transfer size URI is {}", requestURI.toString());
+            Map<String, String> argsMap = new HashMap<String, String>();
+            StringBuilder deviceAndSize = new StringBuilder();
+            deviceAndSize.append(deviceName);
+            deviceAndSize.append(" ");
+            deviceAndSize.append(transferSize);
+            argsMap.put(VPlexApiConstants.ARG_DEVICES, deviceAndSize.toString());
+
             JSONObject postDataObject = VPlexApiUtils.createPostData(argsMap, false);
             s_logger.info("Rebuild Set Transfer Size POST data is {}", postDataObject.toString());
             response = _vplexApiClient.post(requestURI, postDataObject.toString());
@@ -1610,17 +1610,17 @@ public class VPlexApiVirtualVolumeManager {
             }
         }
     }
-    
+
     /**
      * Waits for the rebuild of the passed distributed volume to complete.
      * Will wait for up to 4 hours before it stops waiting and returns a
      * timeout result.
-     * 
+     *
      * @param virtualVolumeName The name of the virtual volume.
-     * 
+     *
      * @return A WaitOnRebuildResult indicating if the rebuild completed successfully,
      *         failed, or we timed out waiting for it to complete.
-     * 
+     *
      * @throws VPlexApiException
      */
     public WaitOnRebuildResult waitOnRebuildCompletion(String virtualVolumeName)
@@ -1657,7 +1657,7 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Returns the properties for a Distributed Device as name/value pairs.
-     * 
+     *
      * @param deviceName String
      * @return Map of property name to value
      * @throws VPlexApiException
@@ -1679,7 +1679,7 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Get the device components of a Distributed Device
-     * 
+     *
      * @param deviceName -- Distributed Device Name
      * @return -- List<VPlexResourceInfo>
      * @throws VPlexApiException
@@ -1693,12 +1693,12 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * Get the device components of a Distributed Device.
-     * 
+     *
      * @param ddInfo - The VPlex distributed device info for the device.
-     * 
+     *
      * @return A list of VPlexResourceInfo representing the components of the
      *         distributed device.
-     * 
+     *
      * @throws VPlexApiException When an error occurs finding the components for
      *             the distributed device.
      */
@@ -1724,7 +1724,7 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Rename a VPlex resource that subclasses VPlexResourceInfo.
      * Adjusts the path and name in the resourceInfo and returns the original object.
-     * 
+     *
      * @param resourceInfo - VPlexVirtualVolumeInfo, VPlexDistributedDeviceInfo, etc.
      * @param newName String -- the desired new name.
      * @return -- The original VPlexResourceInfo with updated path and name
@@ -1768,7 +1768,7 @@ public class VPlexApiVirtualVolumeManager {
      * is invalidated on all directors of the VPLEX cluster. Subsequent reads
      * from host applications will fetch data from storage volume due to cache
      * miss.
-     * 
+     *
      * NOTE: According to VPLEX engineering, the execution of the cache-invalidate
      * command will wait 5 minutes for the invalidation to complete. If it does
      * not complete successfully or in error within this time, the command will
@@ -1776,13 +1776,13 @@ public class VPlexApiVirtualVolumeManager {
      * field indicating that the invalidate is still in progress. In this case,
      * the cache-invalidate-status command must be executed to monitor the
      * progress until it completes.
-     * 
+     *
      * @param virtualVolumeName The name of the virtual volume.
-     * 
+     *
      * @return true if the invalidate cache is still in progress when the
      *         call returns and the status must be monitored until it completes,
      *         false otherwise.
-     * 
+     *
      * @throws VPlexApiException When an error occurs invalidating the cache.
      */
     public boolean invalidateVirtualVolumeCache(String virtualVolumeName)
@@ -1844,9 +1844,9 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Get the cache invalidate status information for the virtual volume with
      * the passed name.
-     * 
+     *
      * @param virtualVolumeName The name of the virtual volume.
-     * 
+     *
      * @return A reference to a VPlexCacheStatusInfo specifying the cache status
      *         information.
      */
@@ -1908,11 +1908,11 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Detaches the mirror specified by the passed mirror info from the
      * local VPLEX volume with the passed name.
-     * 
+     *
      * @param virtualVolumeName The name of the VPLEX Local volume.
      * @param mirrorDeviceName The name of the mirror to be detached.
      * @param discard The boolean value for discard
-     * 
+     *
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
     public void detachMirrorFromLocalVirtualVolume(String virtualVolumeName,
@@ -2000,11 +2000,11 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Detaches the mirror specified by the passed mirror info from the
      * Distributed VPLEX volume with the passed name.
-     * 
+     *
      * @param virtualVolumeName The name of the VPLEX Local volume.
      * @param mirrorDeviceName The name of the mirror to be detached.
      * @param discard The boolean value for discard
-     * 
+     *
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
     public void detachLocalMirrorFromDistributedVirtualVolume(String virtualVolumeName,
@@ -2092,12 +2092,12 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Detaches the mirror on the specified cluster from the distributed VPLEX
      * volume with the passed name.
-     * 
+     *
      * @param virtualVolumeName The name of the VPLEX distributed volume.
      * @param clusterId The cluster of the mirror to detach.
-     * 
+     *
      * @return The name of the detached mirror for use when reattaching the mirror.
-     * 
+     *
      * @throws VPlexApiException When an error occurs detaching the mirror from the volume.
      */
     public String detachMirrorFromDistributedVolume(String virtualVolumeName,
@@ -2184,10 +2184,10 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * Reattach the mirror on the specified cluster to the distributed VPLEX
      * volume with the passed name.
-     * 
+     *
      * @param virtualVolumeName The name of the VPLEX distributed volume.
      * @param detachedDeviceName The local device name of the mirror previously detached.
-     * 
+     *
      * @throws VPlexApiException When an error occurs reattaching the mirror to
      *             the volume.
      */
@@ -2317,7 +2317,7 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * This method finds virtual volume on the VPLEX and then updates virtual volume info.
-     * 
+     *
      * @param virtualVolumeName virtual volume name
      * @param discoveryMgr reference to VPlexApiDiscoveryManager
      * @return VPlexVirtualVolumeInfo object with updated info.
@@ -2347,7 +2347,7 @@ public class VPlexApiVirtualVolumeManager {
     /**
      * This method collapses the one legged device for the passed virtual volume device.
      * After this device will change back to local device.
-     * 
+     *
      * @param sourceDeviceName source device name
      */
     public void deviceCollapse(String sourceDeviceName) {
@@ -2399,7 +2399,7 @@ public class VPlexApiVirtualVolumeManager {
 
     /**
      * This method sets device visibility to local.
-     * 
+     *
      * @param sourceDeviceName source device name
      * @throws VPlexApiException
      */

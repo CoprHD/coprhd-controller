@@ -124,7 +124,7 @@ public class RPRecommendation extends Recommendation {
 	 */
 	public boolean containsTargetInternalSiteName(String destInternalSiteName) {
 		if (this.getTargetRecommendations() != null) {
-		for (RPRecommendation targetRec : this.getTargetRecommendations()) {																
+		    for (RPRecommendation targetRec : this.getTargetRecommendations()) {																
 				if (targetRec.getInternalSiteName().equals(destInternalSiteName)) {
 						return true;
 				}

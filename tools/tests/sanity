@@ -2515,39 +2515,24 @@ rp_vpool_setup()
         rp_noprotection
     fi
 
-    if [ "${RPVPLEX_TESTS}" = "1" ]; then
+    if [ "${RPVPLEX_TESTS}" = "1" -o "${RPMP_TESTS}" = "1" ]; then
         rp_targets
         rp_regular
         rpvplex_targets
         rpvplex_ha
         if [ "${RP_CDP}" = "1" ]; then
             rpvplex_cdp
-        fi
-        if [ "${RP_CRR}" = "1" ]; then
-            rpvplex_crr
-        fi
-        if [ "${RP_CLR}" = "1" ]; then
-            rpvplex_clr
-        fi
-        rpvplexlocal_noprotection
-        rpvplexdist_noprotection
-        rp_noprotection
-    fi
-
-    if [ "${RPMP_TESTS}" = "1" ]; then
-        rp_targets
-        rp_regular
-        rpvplex_targets
-        rpvplex_ha
-        if [ "${RP_CDP}" = "1" ]; then
             rpmp_cdp
         fi
         if [ "${RP_CRR}" = "1" ]; then
+            rpvplex_crr
             rpmp_crr
         fi
         if [ "${RP_CLR}" = "1" ]; then
+            rpvplex_clr
             rpmp_clr
         fi
+
         rpvplexlocal_noprotection
         rpvplexdist_noprotection
         rp_noprotection
@@ -3616,39 +3601,33 @@ recoverpoint_simulator_setup()
         run cos update block rpvplex_ha --storage $VMAX1_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX2_SIMULATOR_NATIVEGUID
         run cos update block rpvplex_ha --storage $VMAX3_SIMULATOR_NATIVEGUID
-        if [ "${RPVPLEX_TESTS}" = "1" ]; then
-            if [ "${RP_CDP}" = "1" ]; then
-                run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
-                run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
-                run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
-            fi
-            if [ "${RP_CRR}" = "1" ]; then
-                run cos update block rpvplex_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
-                run cos update block rpvplex_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
-                run cos update block rpvplex_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
-            fi
-            if [ "${RP_CLR}" = "1" ]; then
-                run cos update block rpvplex_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
-                run cos update block rpvplex_clr --storage $VMAX2_SIMULATOR_NATIVEGUID
-                run cos update block rpvplex_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
-            fi
-        fi
-        if [ "${RPMP_TESTS}" = "1" ]; then
-            if [ "${RP_CDP}" = "1" ]; then
+
+        if [ "${RP_CDP}" = "1" ]; then
+            run cos update block rpvplex_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
+            run cos update block rpvplex_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
+            run cos update block rpvplex_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
+
             run cos update block rpmp_cdp --storage $VMAX1_SIMULATOR_NATIVEGUID
             run cos update block rpmp_cdp --storage $VMAX2_SIMULATOR_NATIVEGUID
             run cos update block rpmp_cdp --storage $VMAX3_SIMULATOR_NATIVEGUID
-            fi
-            if [ "${RP_CRR}" = "1" ]; then
+        fi
+        if [ "${RP_CRR}" = "1" ]; then
+            run cos update block rpvplex_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
+            run cos update block rpvplex_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
+            run cos update block rpvplex_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
+
             run cos update block rpmp_crr --storage $VMAX1_SIMULATOR_NATIVEGUID
             run cos update block rpmp_crr --storage $VMAX2_SIMULATOR_NATIVEGUID
             run cos update block rpmp_crr --storage $VMAX3_SIMULATOR_NATIVEGUID
-            fi
-            if [ "${RP_CLR}" = "1" ]; then
+        fi
+        if [ "${RP_CLR}" = "1" ]; then
+            run cos update block rpvplex_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
+            run cos update block rpvplex_clr --storage $VMAX2_SIMULATOR_NATIVEGUID
+            run cos update block rpvplex_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
+
             run cos update block rpmp_clr --storage $VMAX1_SIMULATOR_NATIVEGUID
             run cos update block rpmp_clr --storage $VMAX2_SIMULATOR_NATIVEGUID
             run cos update block rpmp_clr --storage $VMAX3_SIMULATOR_NATIVEGUID
-            fi
         fi
     fi
 }

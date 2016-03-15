@@ -54,7 +54,6 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -66,10 +65,8 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
@@ -85,6 +82,7 @@ import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.model.property.PropertyConstants;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -121,6 +119,8 @@ public class DisasterRecoveryService {
 
     private static final int SITE_CONNECT_TEST_TIMEOUT = 10 * 1000;
     private static final int SITE_CONNECTION_TEST_PORT = 443;
+    private static final String LOCAL_HOST = "localhost";
+    private static final String SYSTEM_ENABLE_FIREWALL = "system_enable_firewall";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -727,6 +727,7 @@ public class DisasterRecoveryService {
 
         // This String is only used to output human readable message to user when Exception is thrown
         String siteNameStr = StringUtils.join(siteNameList, ',');
+        precheckForPause(siteNameStr);
 
         try {
             // the site(s) to be paused must be checked as well
@@ -778,6 +779,21 @@ public class DisasterRecoveryService {
             } catch (Exception ignore) {
                 log.error(String.format("Lock release failed when pausing standby site: %s", siteIdStr));
             }
+        }
+    }
+
+    private void precheckForPause(String siteNames) {
+        PropertyInfo targetProperty = coordinator.getPropertyInfo();
+        String firewallEnabled = targetProperty.getProperty(SYSTEM_ENABLE_FIREWALL);
+        if (firewallEnabled != null && firewallEnabled.equals("no")) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "firewall has been disabled." +
+                    "Please make sure to keep it enabled until every standby site has been resumed");
+        }
+
+        String ipsecEnabled = ipsecConfig.getIpsecStatus();
+        if (ipsecEnabled != null && !ipsecEnabled.equals("enabled")) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "ipsec has been disabled." +
+                    "Please make sure to keep it enabled until every standby site has been resumed");
         }
     }
 
@@ -1699,12 +1715,6 @@ public class DisasterRecoveryService {
     protected void precheckForFailoverLocally(String standbyUuid) {
         Site standby = drUtil.getLocalSite();
 
-        SiteMonitorResult siteMonitorResult = coordinator.getTargetInfo(standby.getUuid(), SiteMonitorResult.class);
-        if (siteMonitorResult == null || siteMonitorResult.isActiveSiteLeaderAlive() || siteMonitorResult.isActiveSiteStable()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Active site is available now, can't do failover");
-        }
-
         // API should be only send to local site
         if (!standby.getUuid().equals(standbyUuid)) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
@@ -1741,6 +1751,7 @@ public class DisasterRecoveryService {
 
         // this is standby site and NOT in ZK read-only or observer mode,
         // it means active is down and local ZK has been reconfig to participant
+        // this precheck implies that the active site is unreachable
         CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
         String myNodeId = addrLookupMap.getNodeId();
         String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);

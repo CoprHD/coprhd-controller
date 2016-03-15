@@ -346,7 +346,7 @@ public class VPlexApiClient {
     }
 
     /**
-     * Finds the volume with the passed name and discovers it's structure.
+     * Finds the volume with the passed name and discovers its structure.
      * 
      * @param virtualVolumeName The name of the virtual volume.
      * 
@@ -520,7 +520,7 @@ public class VPlexApiClient {
     }
 
     /**
-     * Expands the virtual volume with the passed name to it's full expandable
+     * Expands the virtual volume with the passed name to its full expandable
      * capacity. This API would be invoked after natively expanding the backend
      * volume(s) of the virtual volume to provide additional capacity or say
      * migrating the backend volume(s) to volume(s) with a larger capacity.

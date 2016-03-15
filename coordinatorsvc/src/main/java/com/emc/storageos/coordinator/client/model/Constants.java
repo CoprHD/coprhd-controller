@@ -44,6 +44,7 @@ public interface Constants {
     public static final String IPSEC_KEY = "ipsec_key";
     public static final String IPSEC_STATUS = "ipsec_status";
     public static final String IPSEC_CHECK_CONNECTION = "check-connection";
+    public static final String IPSEC_GET_ALL_NODES = "get-all-nodes";
     public static final String IPSEC_GET_PROPS = "get-props";
     public static final String IPSEC_SYNC_KEY = "sync-key";
     public static final String IPSEC_SYNC_STATUS = "sync-status";

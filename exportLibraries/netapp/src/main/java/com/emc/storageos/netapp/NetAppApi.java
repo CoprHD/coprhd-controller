@@ -1085,7 +1085,47 @@ public class NetAppApi {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https, vfilerName);
 
-            FailedStatus = netAppFacade.deleteSnapMirror(sourcePath, destPath);
+            FailedStatus = netAppFacade.destroyAsyncSnapMirror(sourcePath, destPath);
+
+            return FailedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+        }
+    }
+
+    public Boolean resyncSnapMirror(String sourcePath, String destPath, String vfilerName)
+            throws NetAppException {
+        Boolean FailedStatus = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            FailedStatus = netAppFacade.resyncSnapMirror(sourcePath, destPath);
+            return FailedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+        }
+    }
+
+    /**
+     * Breaks a SnapMirror relationship between a source and destination volume of a data protection mirror
+     * 
+     * @param sourcePath
+     * @param destPath
+     * @param vfilerName
+     * @return
+     * @throws NetAppException
+     */
+    public Boolean breakSnapMirror(String pathLocation, String vfilerName)
+            throws NetAppException {
+        Boolean FailedStatus = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            FailedStatus = netAppFacade.breakSnapMirrorSchedule(pathLocation);
 
             return FailedStatus;
 

@@ -145,10 +145,47 @@ public class SnapMirror {
         return true;
     }
 
-    /* delete source and target relation ship */
-    public boolean deleteSnapMirror(String sourceLocation, String destLocation) {
+    /**
+     * The snapmirror-destroy-async API removes only the SnapMirror relationship of a source and a destination Infinite Volume
+     * 
+     * @param sourceLocation
+     * @param destLocation
+     * @return
+     */
+    public boolean deleteAsyncSnapMirror(String sourceLocation, String destLocation) {
         Map<String, String> result = null;
         NaElement elem = new NaElement("snapmirror-destroy-async");
+
+        // Remaining params are optional
+        if (sourceLocation != null && !sourceLocation.isEmpty()) {
+
+            elem.addNewChild("source-location", sourceLocation);
+        }
+
+        if (destLocation != null && !destLocation.isEmpty()) {
+            elem.addNewChild("destination-location", destLocation);
+        }
+
+        try {
+            result = new HashMap<String, String>();
+            NaElement resultElem = server.invokeElem(elem);
+            for (Map.Entry entry : result.entrySet()) {
+
+            }
+
+        } catch (Exception e) {
+            String msg = "Failed to delete snapmirror of source-location=" + sourceLocation + "and destLocation=" + destLocation;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return true;
+
+    }
+
+    /* delete source and target relation ship */
+    public boolean releaseSnapMirror(String sourceLocation, String destLocation) {
+        Map<String, String> result = null;
+        NaElement elem = new NaElement("snapmirror-release");
 
         // Remaining params are optional
         if (sourceLocation != null && !sourceLocation.isEmpty()) {
@@ -208,31 +245,26 @@ public class SnapMirror {
 
     }
 
-    /* sync source and target relation ship */
-    public boolean breakSnapMirror(String sourceLocation, String destLocation) {
+    /**
+     * Breaks a SnapMirror relationship between a source and destination volume of a data protection mirror.
+     * 
+     * @param destLocation
+     * @return
+     */
+    public boolean breakSnapMirror(String volLocation) {
         Map<String, String> result = null;
         NaElement elem = new NaElement("snapmirror-break");
 
         // Remaining params are optional
-        if (sourceLocation != null && !sourceLocation.isEmpty()) {
-
-            elem.addNewChild("destination-location", sourceLocation);
-        }
-
-        if (destLocation != null && !destLocation.isEmpty()) {
-            elem.addNewChild("source-location", destLocation);
+        if (volLocation != null && !volLocation.isEmpty()) {
+            elem.addNewChild("destination-location", volLocation);
         }
 
         try {
-            result = new HashMap<String, String>();
-            NaElement resultElem = server.invokeElem(elem);
-            for (Map.Entry entry : result.entrySet()) {
-
-            }
+            server.invokeElem(elem);
 
         } catch (Exception e) {
-            String msg = "Failed to break snapmirror of source-location=" + sourceLocation +
-                    "and destLocation=" + destLocation;
+            String msg = "Failed to break snapmirror - destLocation=" + volLocation;
 
             log.error(msg, e);
             throw new NetAppException(msg, e);

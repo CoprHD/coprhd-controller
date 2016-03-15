@@ -351,10 +351,10 @@ public class BackupService {
 
         BackupUploadStatus job = new BackupUploadStatus();
         job.setBackupName(backupTag);
-        // job.setStatus(Status.NOT_STARTED);
         job.setStatus(Status.PENDING);
 
-        log.info("lbya job={}", job);
+        log.info("Upload job={}", job);
+        
         SchedulerConfig cfg = backupScheduler.getCfg();
         cfg.persistBackupUploadStatus(job);
 

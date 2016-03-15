@@ -27,6 +27,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy.VnxFastPolicy;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ObjectNamespace;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -42,7 +43,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
@@ -180,7 +180,7 @@ public class DiscoveryUtils {
 
     /**
      * Filters supported vPools in UnManaged Volume based on Auto-Tiering Policy.
-     *
+     * 
      * @param unManagedVolume the UnManaged volume
      * @param policyName the policy name associated with UnManaged volume
      * @param system the system
@@ -221,7 +221,7 @@ public class DiscoveryUtils {
 
     /**
      * Checks the UnManaged Volume's policy with vPool's policy.
-     *
+     * 
      * @param vPool the vPool
      * @param autoTierPolicyId the auto tier policy id on unmanaged volume
      * @param system the system
@@ -404,12 +404,12 @@ public class DiscoveryUtils {
             portsToRunNetworkConnectivity.addAll(notVisiblePorts);
         }
     }
-    
+
     /**
-     * checkVirtualNasNotVisible - verifies that all existing virtual nas servers on 
+     * checkVirtualNasNotVisible - verifies that all existing virtual nas servers on
      * given storage system are discovered or not.
      * If any of the existing virtual nas server is not discovered,
-     * Change the discovered status as not visible. 
+     * Change the discovered status as not visible.
      * 
      * @param discoveredVNasServers
      * @param dbClient
@@ -417,11 +417,11 @@ public class DiscoveryUtils {
      * @return
      * @throws IOException
      */
-    
+
     public static List<VirtualNAS> checkVirtualNasNotVisible(List<VirtualNAS> discoveredVNasServers,
             DbClient dbClient, URI storageSystemId) {
         List<VirtualNAS> modifiedVNas = new ArrayList<VirtualNAS>();
-        
+
         // Get the vnas servers previousy discovered
         URIQueryResultList vNasURIs = new URIQueryResultList();
         dbClient.queryByConstraint(
@@ -431,12 +431,12 @@ public class DiscoveryUtils {
 
         List<URI> existingVNasURI = new ArrayList<URI>();
         while (vNasIter.hasNext()) {
-        	existingVNasURI.add(vNasIter.next());
+            existingVNasURI.add(vNasIter.next());
         }
 
         List<URI> discoveredVNasURI = new ArrayList<URI>();
         for (VirtualNAS vNas : discoveredVNasServers) {
-        	discoveredVNasURI.add(vNas.getId());
+            discoveredVNasURI.add(vNas.getId());
         }
 
         Set<URI> vNasDiff = Sets.difference(new HashSet<URI>(existingVNasURI), new HashSet<URI>(discoveredVNasURI));
@@ -444,19 +444,19 @@ public class DiscoveryUtils {
         if (!vNasDiff.isEmpty()) {
             Iterator<VirtualNAS> vNasIt = dbClient.queryIterativeObjects(VirtualNAS.class, vNasDiff, true);
             while (vNasIt.hasNext()) {
-            	VirtualNAS vnas = vNasIt.next();
-            	modifiedVNas.add(vnas);
+                VirtualNAS vnas = vNasIt.next();
+                modifiedVNas.add(vnas);
                 _log.info("Setting discovery status of vnas {} as NOTVISIBLE", vnas.getNasName());
                 vnas.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.NOTVISIBLE.name());
                 // Set the nas state to UNKNOWN!!!
                 vnas.setNasState(VirtualNAS.VirtualNasState.UNKNOWN.name());
-                
+
             }
         }
 
-        //Persist the change!!!
-        if(!modifiedVNas.isEmpty()) {
-        	dbClient.persistObject(modifiedVNas);
+        // Persist the change!!!
+        if (!modifiedVNas.isEmpty()) {
+            dbClient.persistObject(modifiedVNas);
         }
         return modifiedVNas;
     }
@@ -611,7 +611,7 @@ public class DiscoveryUtils {
         while (cgsItr.hasNext()) {
             cgSet.add(cgsItr.next().getId());
         }
-        
+
         return cgSet;
     }
 
@@ -682,7 +682,7 @@ public class DiscoveryUtils {
     /**
      * Compares the set of unmanaged consistency groups for the current discovery operation
      * to the set of unmanaged consistency groups already in the database from a previous
-     * discovery operation.  Removes existing database entries if the object was not present
+     * discovery operation. Removes existing database entries if the object was not present
      * in the current discovery operation.
      * 
      * @param storageSystem - storage system containing the CGs
@@ -691,26 +691,26 @@ public class DiscoveryUtils {
      * @param partitionManager - partition manager
      */
     public static void performUnManagedConsistencyGroupsBookKeeping(StorageSystem storageSystem, Set<URI> currentUnManagedCGs,
-            	DbClient dbClient, PartitionManager partitionManager) {
+            DbClient dbClient, PartitionManager partitionManager) {
 
         _log.info(" -- Processing {} discovered UnManaged Consistency Group Objects from -- {}",
-        		currentUnManagedCGs.size(), storageSystem.getLabel());        
-        // no consistency groups discovered 
+                currentUnManagedCGs.size(), storageSystem.getLabel());
+        // no consistency groups discovered
         if (currentUnManagedCGs.isEmpty()) {
             return;
         }
-        
+
         // Get all available existing unmanaged CG URIs for this array from DB
         URIQueryResultList allAvailableUnManagedCGsInDB = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedCGConstraint(storageSystem.getId()),              
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageSystemUnManagedCGConstraint(storageSystem.getId()),
                 allAvailableUnManagedCGsInDB);
-                
+
         Set<URI> unManagedCGsInDBSet = new HashSet<URI>();
         Iterator<URI> allAvailableUnManagedCGsItr = allAvailableUnManagedCGsInDB.iterator();
         while (allAvailableUnManagedCGsItr.hasNext()) {
-        	unManagedCGsInDBSet.add(allAvailableUnManagedCGsItr.next());
+            unManagedCGsInDBSet.add(allAvailableUnManagedCGsItr.next());
         }
-                
+
         SetView<URI> onlyAvailableinDB = Sets.difference(unManagedCGsInDBSet, currentUnManagedCGs);
 
         _log.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
@@ -720,7 +720,7 @@ public class DiscoveryUtils {
                     new ArrayList<URI>(onlyAvailableinDB));
 
             while (unManagedCGs.hasNext()) {
-            	UnManagedConsistencyGroup cg = unManagedCGs.next();
+                UnManagedConsistencyGroup cg = unManagedCGs.next();
                 if (null == cg || cg.getInactive()) {
                     continue;
                 }
@@ -736,7 +736,7 @@ public class DiscoveryUtils {
             }
         }
     }
-    
+
     public static void markInActiveUnManagedExportMask(URI storageSystemUri,
             Set<URI> discoveredUnManagedExportMasks, DbClient dbClient, PartitionManager partitionManager) {
 
@@ -792,26 +792,26 @@ public class DiscoveryUtils {
                 .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
         return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
     }
-    
+
     /**
      * Determines if the UnManagedConsistencyGroup object exists in the database
      * 
      * @param nativeGuid - native Guid for the unmanaged consistency group
      * @param dbClient - database client
-     * @return unmanagedCG - null if it does not exist in the database, otherwise it returns the 
+     * @return unmanagedCG - null if it does not exist in the database, otherwise it returns the
      *         UnManagedConsistencyGroup object from the database
      * @throws IOException
      */
     public static UnManagedConsistencyGroup checkUnManagedCGExistsInDB(DbClient dbClient, String nativeGuid) {
-    	UnManagedConsistencyGroup unmanagedCG = null;
-    	URIQueryResultList unManagedCGList = new URIQueryResultList();
-    	dbClient.queryByConstraint(AlternateIdConstraint.Factory
-    			.getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
-    	if (unManagedCGList.iterator().hasNext()) {
-    		URI unManagedCGURI = unManagedCGList.iterator().next();
-    		unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);            
-    	}
-    	return unmanagedCG;
+        UnManagedConsistencyGroup unmanagedCG = null;
+        URIQueryResultList unManagedCGList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getCGInfoNativeIdConstraint(nativeGuid), unManagedCGList);
+        if (unManagedCGList.iterator().hasNext()) {
+            URI unManagedCGURI = unManagedCGList.iterator().next();
+            unmanagedCG = dbClient.queryObject(UnManagedConsistencyGroup.class, unManagedCGURI);
+        }
+        return unmanagedCG;
     }
 
     /**
@@ -857,5 +857,69 @@ public class DiscoveryUtils {
             }
         }
     }
-    
+
+    /**
+     * Find the Physical NAS by Native ID for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param Native id of the specified Physical NAS
+     * @return Physical NAS Server
+     */
+    public static PhysicalNAS findPhysicalNasByNativeId(DbClient dbClient, StorageSystem system, String nativeId) {
+        URIQueryResultList results = new URIQueryResultList();
+        PhysicalNAS physicalNas = null;
+
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, nativeId, NativeGUIDGenerator.PHYSICAL_NAS);
+
+        dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getPhysicalNasByNativeGuidConstraint(nasNativeGuid),
+                results);
+
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            PhysicalNAS tmpNas = dbClient.queryObject(PhysicalNAS.class, iter.next());
+
+            if (tmpNas != null && !tmpNas.getInactive()) {
+                physicalNas = tmpNas;
+                _log.info("found physical NAS {}", physicalNas.getNativeGuid() + ":" + physicalNas.getNasName());
+                break;
+            }
+        }
+        return physicalNas;
+    }
+
+    /**
+     * Find the Virtual NAS by Native ID for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param Native id of the specified Virtual NAS
+     * @return Virtual NAS Server
+     */
+    public static VirtualNAS findvNasByNativeId(DbClient dbClient, StorageSystem system, String nativeId) {
+        URIQueryResultList results = new URIQueryResultList();
+        VirtualNAS vNas = null;
+
+        // Set storage port details to vNas
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, nativeId, NativeGUIDGenerator.VIRTUAL_NAS);
+
+        dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getVirtualNASByNativeGuidConstraint(nasNativeGuid),
+                results);
+        Iterator<URI> iter = results.iterator();
+        while (iter.hasNext()) {
+            VirtualNAS tmpVnas = dbClient.queryObject(VirtualNAS.class, iter.next());
+
+            if (tmpVnas != null && !tmpVnas.getInactive()) {
+                vNas = tmpVnas;
+                _log.info("found virtual NAS {}", tmpVnas.getNativeGuid() + ":" + tmpVnas.getNasName());
+                break;
+            }
+        }
+        return vNas;
+
+    }
+
 }

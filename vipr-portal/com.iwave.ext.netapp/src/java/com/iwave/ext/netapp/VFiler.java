@@ -5,16 +5,16 @@
 
 package com.iwave.ext.netapp;
 
-import org.apache.log4j.Logger;
-
 import java.util.ArrayList;
 import java.util.List;
 
 import netapp.manage.NaElement;
 import netapp.manage.NaServer;
 
+import org.apache.log4j.Logger;
+
 public class VFiler {
-    private Logger log = Logger.getLogger(getClass());
+    private final Logger log = Logger.getLogger(getClass());
 
     private String name = "";
     private NaServer server = null;
@@ -54,8 +54,44 @@ public class VFiler {
                 vfNetInfo.setNetInterface(vfnet.getChildContent("interface"));
                 netInfo.add(vfNetInfo);
             }
-
             info.setInterfaces(netInfo);
+
+            // DNS servers!!
+            List<NameServerInfo> dnsServers = new ArrayList<NameServerInfo>();
+            for (NaElement dns : (List<NaElement>) filerInfo.getChildByName("dns-info").getChildren()) {
+                NameServerInfo dnsInfo = new NameServerInfo();
+                dnsInfo.setName(dns.getChildContent("dns-domain-name"));
+                List<VFNetInfo> servers = new ArrayList<VFNetInfo>();
+                for (NaElement server : (List<NaElement>) dns.getChildByName("dns-servers").getChildren()) {
+                    VFNetInfo vfNetInfo = new VFNetInfo();
+                    vfNetInfo.setIpAddress(server.getChildContent("ipaddress"));
+                    vfNetInfo.setNetInterface(server.getChildContent("interface"));
+                    vfNetInfo.setNetMask(server.getChildContent("netmask"));
+                    servers.add(vfNetInfo);
+                }
+                dnsInfo.setNameServers(servers);
+                dnsServers.add(dnsInfo);
+            }
+            info.setDnsServers(dnsServers);
+
+            // NIS servers!!
+            List<NameServerInfo> nisServers = new ArrayList<NameServerInfo>();
+            for (NaElement nis : (List<NaElement>) filerInfo.getChildByName("nis-info").getChildren()) {
+                NameServerInfo nisInfo = new NameServerInfo();
+                nisInfo.setName(nis.getChildContent("nis-domain-name"));
+                List<VFNetInfo> servers = new ArrayList<VFNetInfo>();
+                for (NaElement server : (List<NaElement>) nis.getChildByName("nis-servers").getChildren()) {
+                    VFNetInfo vfNetInfo = new VFNetInfo();
+                    vfNetInfo.setIpAddress(server.getChildContent("ipaddress"));
+                    vfNetInfo.setNetInterface(server.getChildContent("interface"));
+                    vfNetInfo.setNetMask(server.getChildContent("netmask"));
+                    servers.add(vfNetInfo);
+                }
+                nisInfo.setNameServers(servers);
+                nisServers.add(nisInfo);
+            }
+            info.setNisServers(nisServers);
+
             vFilers.add(info);
         }
 

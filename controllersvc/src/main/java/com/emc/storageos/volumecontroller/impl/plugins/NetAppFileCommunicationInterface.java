@@ -26,11 +26,14 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.CifsServerMap;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NasCifsServer;
+import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StorageHADomain;
@@ -41,6 +44,7 @@ import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExport;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFSExportMap;
@@ -57,6 +61,7 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.metering.netapp.NetAppFileCollectionException;
+import com.emc.storageos.plugins.metering.vnxfile.VNXFileCollectionException;
 import com.emc.storageos.util.VersionChecker;
 import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -66,12 +71,14 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.ZeroRecordGenera
 import com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileDBInsertion;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileZeroRecordGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.netapp.NetAppStatsRecorder;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.iwave.ext.netapp.AggregateInfo;
+import com.iwave.ext.netapp.NameServerInfo;
 import com.iwave.ext.netapp.VFNetInfo;
 import com.iwave.ext.netapp.VFilerInfo;
 import com.iwave.ext.netapp.model.CifsAcl;
@@ -125,7 +132,7 @@ public class NetAppFileCommunicationInterface extends
         ALLOCATED_CAPACITY("size-used"), PROVISIONED_CAPACITY("size-total"), STORAGE_POOL(
                 "containing-aggregate"), NATIVE_GUID("NativeGuid"), NAME("name"), VFILER("owning-vfiler");
 
-        private String _infoKey;
+        private final String _infoKey;
 
         SupportedNtpFileSystemInformation(String infoKey) {
             _infoKey = infoKey;
@@ -302,6 +309,12 @@ public class NetAppFileCommunicationInterface extends
                 system.getPortNumber(), system.getUsername(),
                 system.getPassword()).https(true).build();
 
+        List<PhysicalNAS> newNasServers = new ArrayList<PhysicalNAS>();
+        List<PhysicalNAS> existingNasServers = new ArrayList<PhysicalNAS>();
+
+        List<VirtualNAS> newvNasServers = new ArrayList<VirtualNAS>();
+        List<VirtualNAS> existingvNasServers = new ArrayList<VirtualNAS>();
+
         StorageHADomain portGroup = null;
         List<VFilerInfo> vFilers = netAppApi.listVFilers(null);
         if (null == vFilers || vFilers.isEmpty()) {
@@ -323,6 +336,7 @@ public class NetAppFileCommunicationInterface extends
                 }
             }
 
+            StringSet protocols = new StringSet();
             if (portGroup == null) {
                 portGroup = new StorageHADomain();
                 portGroup.setId(URIUtil.createId(StorageHADomain.class));
@@ -331,7 +345,6 @@ public class NetAppFileCommunicationInterface extends
                 portGroup.setNativeGuid(adapterNativeGuid);
                 portGroup.setStorageDeviceURI(system.getId());
 
-                StringSet protocols = new StringSet();
                 protocols.add(StorageProtocol.File.NFS.name());
                 protocols.add(StorageProtocol.File.CIFS.name());
                 portGroup.setFileSharingProtocols(protocols);
@@ -340,6 +353,24 @@ public class NetAppFileCommunicationInterface extends
             } else {
                 existingPortGroups.add(portGroup);
             }
+
+            PhysicalNAS existingNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, String.valueOf(DEFAULT_FILER));
+            if (existingNas != null) {
+                existingNas.setProtocols(protocols);
+                // existingNas.setCifsServersMap(cifsServersMap);
+                existingNasServers.add(existingNas);
+
+            } else {
+                VFilerInfo defaultvFiler = new VFilerInfo();
+                defaultvFiler.setName(DEFAULT_FILER);
+                PhysicalNAS physicalNas = createPhysicalNas(system, defaultvFiler);
+                if (physicalNas != null) {
+                    physicalNas.setProtocols(protocols);
+                    // physicalNas.setCifsServersMap(cifsServersMap);
+                    newNasServers.add(physicalNas);
+                }
+            }
+
         } else {
             _logger.debug("Number vFilers fouund: {}", vFilers.size());
             virtualFilers.addAll(vFilers);
@@ -382,6 +413,53 @@ public class NetAppFileCommunicationInterface extends
                     newPortGroups.add(portGroup);
                 } else {
                     existingPortGroups.add(portGroup);
+                }
+
+                // Get the Domain!!
+                CifsServerMap cifsServersMap = new CifsServerMap();
+                for (NameServerInfo dnsServer : vf.getDnsServers()) {
+                    _logger.info("Cifs Server {} for {} ", dnsServer.getName(), vf.getName());
+                    if (dnsServer.getName() != null) {
+                        // protocols.add(StorageProtocol.File.CIFS.name());
+
+                        NasCifsServer nasCifsServer = new NasCifsServer();
+                        dnsServer.getName();
+                        dnsServer.getNameServers();
+
+                        if (dnsServer.getNameServers() != null && !dnsServer.getNameServers().isEmpty()) {
+                            List<String> serverInterfaces = new ArrayList<String>();
+                            for (VFNetInfo server : dnsServer.getNameServers()) {
+                                serverInterfaces.add(server.getIpAddress());
+                            }
+                            nasCifsServer.setInterfaces(serverInterfaces);
+                        }
+
+                        nasCifsServer.setMoverIdIsVdm(true);
+                        nasCifsServer.setName(vf.getName());
+
+                        nasCifsServer.setDomain(dnsServer.getName());
+                        cifsServersMap.put(dnsServer.getName(), nasCifsServer);
+                    }
+                }
+
+                VirtualNAS existingNas = DiscoveryUtils.findvNasByNativeId(_dbClient, system, vf.getName());
+                if (existingNas != null) {
+                    existingNas.setProtocols(protocols);
+                    existingNas.setCifsServersMap(cifsServersMap);
+                    existingNas.setNasState("LOADED");
+                    existingNas.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                    PhysicalNAS parentNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, DEFAULT_FILER);
+                    if (parentNas != null) {
+                        existingNas.setParentNasUri(parentNas.getId());
+                    }
+                    existingvNasServers.add(existingNas);
+                } else {
+                    VirtualNAS vNas = createVirtualNas(system, vdm);
+                    if (vNas != null) {
+                        vNas.setProtocols(protocols);
+                        vNas.setCifsServersMap(cifsServersMap);
+                        newNasServers.add(vNas);
+                    }
                 }
             }
         }
@@ -1175,7 +1253,7 @@ public class NetAppFileCommunicationInterface extends
 
         // On netapp Systems this currently true.
         unManagedFileSystemCharacteristics.put(
-        		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                         .toString(), FALSE);
 
         if (null != storagePort) {
@@ -1877,7 +1955,7 @@ public class NetAppFileCommunicationInterface extends
                         unManagedFs.setHasShares(true);
                         unManagedFs.putFileSystemCharacterstics(
                                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                .toString(), TRUE);
+                                        .toString(), TRUE);
                         _logger.debug("SMB Share map for NetApp UMFS {} = {}",
                                 unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());
                     }
@@ -1909,7 +1987,7 @@ public class NetAppFileCommunicationInterface extends
                             unManagedCifsShareACLList.add(unManagedCifsShareACL);
                         }
                     }
-                    
+
                     // save the object
                     {
                         _dbClient.persistObject(unManagedFs);
@@ -2130,7 +2208,7 @@ public class NetAppFileCommunicationInterface extends
                             unManagedFs.setHasExports(true);
                             unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), TRUE);
+                                            .toString(), TRUE);
                             _dbClient.persistObject(unManagedFs);
                             _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),
                                     newUnManagedExportRules.size());
@@ -2274,6 +2352,86 @@ public class NetAppFileCommunicationInterface extends
         }
 
         return expRules;
+    }
+
+    /**
+     * Create Physical NAS for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param discovered DM of the specified VNX File storage array
+     * @return Physical NAS Server
+     * @throws VNXFileCollectionException
+     */
+    private PhysicalNAS createPhysicalNas(StorageSystem system, VFilerInfo vFiler) {
+
+        PhysicalNAS phyNas = new PhysicalNAS();
+        if (phyNas != null) {
+            phyNas.setNasName(vFiler.getName());
+            phyNas.setStorageDeviceURI(system.getId());
+            phyNas.setNativeId(String.valueOf(vFiler.getName()));
+            // phyNas.setNasState(dm.getRole());
+            phyNas.setId(URIUtil.createId(PhysicalNAS.class));
+            // Set storage port details to vNas
+            String physicalNasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                    system, String.valueOf(vFiler.getName()), NativeGUIDGenerator.PHYSICAL_NAS);
+            phyNas.setNativeGuid(physicalNasNativeGuid);
+            _logger.info("Physical NAS created with guid {} ", phyNas.getNativeGuid());
+
+            StringMap dbMetrics = phyNas.getMetrics();
+            // Set the Limit Metric keys!!
+            Long MaxObjects = 2048L;
+            Long MaxCapacity = 200L * 1024 * 1024 * 1024;
+
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            phyNas.setMetrics(dbMetrics);
+
+        }
+        return phyNas;
+
+    }
+
+    /**
+     * Create Virtual NAS for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param discovered VDM of the specified VNX File storage array
+     * @return Virtual NAS Server
+     * @throws VNXFileCollectionException
+     */
+    private VirtualNAS createVirtualNas(StorageSystem system, VFilerInfo vFiler) {
+
+        VirtualNAS vNas = new VirtualNAS();
+
+        vNas.setNasName(vFiler.getName());
+        vNas.setStorageDeviceURI(system.getId());
+        vNas.setNativeId(vFiler.getName());
+        vNas.setNasState("LOADED");
+        vNas.setId(URIUtil.createId(VirtualNAS.class));
+
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, vFiler.getName(), NativeGUIDGenerator.VIRTUAL_NAS);
+        vNas.setNativeGuid(nasNativeGuid);
+
+        PhysicalNAS parentNas = DiscoveryUtils.findPhysicalNasByNativeId(_dbClient, system, DEFAULT_FILER);
+
+        if (parentNas != null) {
+            vNas.setParentNasUri(parentNas.getId());
+
+            StringMap dbMetrics = vNas.getMetrics();
+            _logger.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
+
+            // Set the Limit Metric keys!!
+            Long MaxObjects = 2048L;
+            Long MaxCapacity = 200L * 1024 * 1024 * 1024;
+
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            vNas.setMetrics(dbMetrics);
+
+        }
+
+        return vNas;
     }
 
 }

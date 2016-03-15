@@ -13,6 +13,8 @@ public class VFilerInfo {
     private String uuid;         // UUID of the vFiler.
     private String ipspace;      // Name of the vFiler's ipspace.
     private List<VFNetInfo> interfaces;   // List of all network interfaces associated with this vFiler.
+    private List<NameServerInfo> dnsInfo; // List Name server info
+    private List<NameServerInfo> nisInfo;
 
     public String getName() {
         return name;
@@ -44,5 +46,21 @@ public class VFilerInfo {
 
     public void setInterfaces(List<VFNetInfo> interfaces) {
         this.interfaces = interfaces;
+    }
+
+    public List<NameServerInfo> getDnsServers() {
+        return dnsInfo;
+    }
+
+    public void setDnsServers(List<NameServerInfo> dnsInfo) {
+        this.dnsInfo = dnsInfo;
+    }
+
+    public List<NameServerInfo> getNisServers() {
+        return nisInfo;
+    }
+
+    public void setNisServers(List<NameServerInfo> nisInfo) {
+        this.nisInfo = nisInfo;
     }
 }

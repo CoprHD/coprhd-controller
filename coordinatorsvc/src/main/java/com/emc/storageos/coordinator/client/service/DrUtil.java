@@ -663,7 +663,7 @@ public class DrUtil {
     public void verifyIPsecOpAllowableWithinDR() {
         for (Site site : listSites()) {
             if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
-                log.info("IPsec is disallowed since site {} is paused.", site.getName(), site.getState());
+                log.info("IPsec is disallowed since site {} is paused.", site.getName());
                 throw APIException.serviceUnavailable.sitePaused(site.getName());
             }
         }

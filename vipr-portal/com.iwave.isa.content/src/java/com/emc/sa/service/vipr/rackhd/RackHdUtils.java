@@ -1,15 +1,22 @@
 package com.emc.sa.service.vipr.rackhd;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
+import com.emc.sa.engine.ExecutionUtils;
+import com.emc.sa.service.vipr.rackhd.gson.AffectedResource;
+import com.emc.sa.service.vipr.rackhd.gson.FinishedTask;
 import com.emc.sa.service.vipr.rackhd.gson.RackHdNode;
 import com.emc.sa.service.vipr.rackhd.gson.RackHdWorkflow;
+import com.emc.storageos.db.client.model.StringSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 
 //TODO: move log messages to separate file (for internationalization)
 
@@ -127,9 +134,48 @@ public class RackHdUtils {
                 equalsIgnoreCase(WORKFLOW_COMPLETE_STATE);
     }
 
-    public static String getWorkflowTaskId(String workflowResponse) {
+    public static String getWorkflowId(String workflowResponse) {
         RackHdWorkflow rackHdWorkflow = getWorkflowObjFromJson(workflowResponse);  
         return rackHdWorkflow.getId();
     }
 
+    public static List<String> updateAffectedResources(String workflowResponse) {
+        return updateAffectedResources(workflowResponse,null);
+    }
+    
+    public static List<String> updateAffectedResources(String workflowResponse,
+            List<String> finishedTasks) {
+        RackHdWorkflow wf = 
+               RackHdUtils.getWorkflowObjFromJson(workflowResponse);  
+       for(FinishedTask task : Arrays.asList(wf.getFinishedTasks())) {
+           if(finishedTasks.contains(task.getInstanceId())) {
+               continue;  // skip if already added resources for this task
+           }
+           String resultJson = 
+                   task.getJob().getContext().getAnsibleResultFile();
+           ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
+                   "result: " + resultJson);
+           try {
+               AffectedResource[] affectedResources = 
+                       gson.fromJson(resultJson,AffectedResource[].class);
+               for(AffectedResource rsrc:affectedResources ) {
+                   StringSet currentResources = ExecutionUtils.
+                           currentContext().getExecutionState().
+                           getAffectedResources();
+                   if(!currentResources.contains(rsrc.getValue())) {  
+                       ExecutionUtils.currentContext().logInfo("Adding " +
+                               " completed resource '" + rsrc.getKey() + "'");
+                       currentResources.add(rsrc.getValue());
+                       finishedTasks.add(task.getInstanceId());
+                   }
+               }
+           } catch(JsonSyntaxException e) {
+               // ignore syntax exceptions, if not valid JSON
+               // there may be an error msg in the response
+               ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
+                       "result was not valid JSON" + resultJson);
+           }
+       }
+       return finishedTasks;
+   }
 }

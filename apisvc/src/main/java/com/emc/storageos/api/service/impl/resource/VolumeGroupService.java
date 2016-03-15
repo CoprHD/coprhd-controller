@@ -2363,7 +2363,10 @@ public class VolumeGroupService extends TaskResourceService {
         Set<URI> cgs = new HashSet<URI>();
         for (BlockSnapshotSession snapSession : snapSessions) {
             checkForPendingTask(snapSession.getId(), _dbClient);
-            cgs.add(snapSession.getConsistencyGroup());
+            URI cg = snapSession.getConsistencyGroup();
+            if (!NullColumnValueGetter.isNullURI(cg)) {
+                cgs.add(cg);
+            }
         }
         for (URI cg : cgs) {
             checkForPendingTask(cg, _dbClient);

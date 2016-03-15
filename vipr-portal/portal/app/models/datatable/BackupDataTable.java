@@ -56,7 +56,7 @@ public class BackupDataTable extends DataTable {
         } else if (type == Type.REMOTE) {
             try {
                 for (String name : BackupUtils.getExternalBackups()) {
-                    results.add(new Backup(name));
+                    results.add(new Backup(name, true));
                 }
             } catch (Exception e) {
                 //should trim the error message, otherwise datatable.js#getErrorMessage will fail to parse the response
@@ -103,7 +103,7 @@ public class BackupDataTable extends DataTable {
             }
         }
 
-        public Backup(String externalBackupName) {
+        public Backup(String externalBackupName, boolean isSettingLoadingStatus) {
             try {
                 id = URLEncoder.encode(externalBackupName, "UTF-8");
             } catch (UnsupportedEncodingException e) {
@@ -111,8 +111,10 @@ public class BackupDataTable extends DataTable {
             }
             name = externalBackupName;
             // Async to get the detail backup info, so mark loading first
-            status = "LOADING";
-            creationtime = -1; // means Loading
+            if (isSettingLoadingStatus) {
+                status = "LOADING";
+                creationtime = -1; // means Loading
+            }
         }
     }
 }

@@ -83,26 +83,34 @@ public class Backup extends Controller {
         renderJSON(results);
     }
 
+    /**
+     * Only get the remote backup info
+     * @param ids
+     */
     public static void externalItemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
                     BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
-                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
-                    backup.creationtime = backupInfo.getCreateTime() != 0 ? backupInfo.getCreateTime() : 0;
+                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id, false);
+                    backup.creationtime = backupInfo.getCreateTime();
                     results.add(backup);
                 }
             }
         }
         renderJSON(results);
     }
-    
+
+    /**
+     * Only get the remote restore status
+     * @param ids
+     */
     public static void externalStatusJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         for (String id : ids) {
             if (StringUtils.isNotBlank(id)) {
-                BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
+                BackupDataTable.Backup backup = new BackupDataTable.Backup(id, false);
                 backup.status = BackupUtils.getRestoreStatus(id, false).getStatus().name();
                 results.add(backup);
             }

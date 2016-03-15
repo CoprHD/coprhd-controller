@@ -45,6 +45,8 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import sun.net.util.IPAddressUtil;
+
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
@@ -100,8 +102,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
-
-import sun.net.util.IPAddressUtil;
 
 /**
  * Helper for Smis commands
@@ -2330,7 +2330,8 @@ public class SmisCommandHelper implements SmisConstants {
         boolean tagSet = false;
         // Set/Unset the RP tag (if applicable)
         if (volume != null && storageSystem != null && volume.checkForRp() && storageSystem.getSystemType() != null
-                && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
+                && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())
+                && !storageSystem.checkIfVmax3()) {
             List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
             volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
 
@@ -4206,7 +4207,7 @@ public class SmisCommandHelper implements SmisConstants {
     /*
      * Giver 2 strings: str1 and str2, this method concatenates them by using the delimeter
      * and restricting the size of the resulting string to maxLength.
-     *
+     * 
      * Did not want to use NameGenerator._generate as that takes three inputs and if the third input
      * is null it appends a random UUID - which we do not want in the users of this method.
      */
@@ -6899,16 +6900,16 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Creates an explicitly sized array of generic type T, containing the given value for all its elements.
-     *
+     * 
      * Example:
      * toMultiElementArray(2, true); => boolean[] array = new boolean[2] { true, true};
-     *
+     * 
      * @param count size of the array
-     *
+     * 
      * @param value value for each element
-     *
+     * 
      * @param <T> type of array
-     *
+     * 
      * @return Array of T, containing the same value for each element.
      */
     public static <T> T[] toMultiElementArray(int count, T value) {
@@ -6928,11 +6929,11 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Get source object for a replica.
-     *
+     * 
      * @param dbClient
-     *
+     * 
      * @param replica
-     *
+     * 
      * @return source object
      */
     public BlockObject getSource(BlockObject replica) {
@@ -6969,13 +6970,13 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Get ReplicationSettingData instance.
-     *
+     * 
      * @param storageSystem A reference to the storage system
-     *
+     * 
      * @param elementName An optional name for the instance
-     *
+     * 
      * @param desiredValue DesiredCopyMethodology value
-     *
+     * 
      * @param steTargetSupplier Whether or not the TargetElementSupplier should also be specified.
      */
     @SuppressWarnings("rawtypes")
@@ -7191,11 +7192,14 @@ public class SmisCommandHelper implements SmisConstants {
         }
         return groupName;
     }
-    
+
     /**
-     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group name 
-     * and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost replication group. 
-     * @param system 
+     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group
+     * name
+     * and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost replication
+     * group.
+     * 
+     * @param system
      * @param replicationSvc
      * @param replicaReplicationGroupName
      * @param sourceReplicationGroupName
@@ -7205,7 +7209,7 @@ public class SmisCommandHelper implements SmisConstants {
             CIMObjectPath replicationSvc,
             String replicaReplicationGroupName,
             String sourceReplicationGroupName) {
-        List<String>sfsEntries = getEMCSFSEntries(system, replicationSvc);
+        List<String> sfsEntries = getEMCSFSEntries(system, replicationSvc);
         String entryLabel = formatReplicaLabelForSFSEntry(system.getSerialNumber(), replicaReplicationGroupName, sourceReplicationGroupName);
         String removeEntry = null;
         if (sfsEntries != null && !sfsEntries.isEmpty()) {
@@ -7217,24 +7221,25 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         if (removeEntry == null) {
-            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName, 
+            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName,
                     sourceReplicationGroupName));
             return;
         }
 
         try {
             CIMArgument[] inArgs = new CIMArgument[] {
-                    _cimArgument.stringArray("SFSEntries", new String[]{removeEntry})};
+                    _cimArgument.stringArray("SFSEntries", new String[] { removeEntry }) };
             CIMArgument[] outArgs = new CIMArgument[5];
             invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
         } catch (WBEMException e) {
             _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
         }
-        
+
     }
 
     /**
      * Construct a String using clone/snapshot replication group name and source replication group name for searching the EMCSFSEntries.
+     * 
      * @param systemSerial array serial number
      * @param replicaReplicationGroupName - clone/snapshot replication group name
      * @param sourceRGName - source replication group name
@@ -7246,6 +7251,7 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get EMCSFSEntries
+     * 
      * @param storage
      * @param replicationSvc
      * @return the list of EMCSFSEntries

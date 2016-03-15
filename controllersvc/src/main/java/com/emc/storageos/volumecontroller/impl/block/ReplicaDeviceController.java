@@ -68,8 +68,7 @@ import com.google.common.base.Joiner;
  */
 public class ReplicaDeviceController implements Controller, BlockOrchestrationInterface {
     private static final Logger log = LoggerFactory.getLogger(ReplicaDeviceController.class);
-    private static final String MARK_SNAP_SESSIONS_INACTIVE = "markSnapSessionsInactive";
-    private static final String REMOVE_TARGET_ID_FROM_SNAP_SESSION = "removeTargetIdsFromSnapSession";
+    private static final String MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID = "markSnapSessionsInactiveOrRemoveTargetId";
     private DbClient _dbClient;
     private BlockDeviceController _blockDeviceController;
 
@@ -398,10 +397,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     addStepToCreateSnapshotSession(workflow, systemURI, session.getId(), repGroupName, waitFor);
             
             // add step to delete the newly created session object from DB
-            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
+            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID,
                     String.format("marking snap session %s inactive", session.getLabel()), waitFor, systemURI,
                     _blockDeviceController.getDeviceType(systemURI), this.getClass(),
-                    markSnapSessionsInactiveMethod(Arrays.asList(session.getId())),
+                    markSnapSessionInactiveOrRemoveTargetIdsMethod(session.getId(), null),
                     _blockDeviceController.rollbackMethodNullMethod(), null);
         }
 
@@ -462,10 +461,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                         blockSnapshot.getId(), copyMode, waitFor);
             }
             // add step to delete the newly created session object from DB
-            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
+            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID,
                     String.format("marking snap session %s inactive", session.getLabel()), waitFor, systemURI,
                     _blockDeviceController.getDeviceType(systemURI), this.getClass(),
-                    markSnapSessionsInactiveMethod(Arrays.asList(session.getId())),
+                    markSnapSessionInactiveOrRemoveTargetIdsMethod(session.getId(), null),
                     _blockDeviceController.rollbackMethodNullMethod(), null);
 
             // Add step to add back the source volume to its group which was removed before linking target
@@ -487,55 +486,40 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return waitFor;
     }
 
-    public Workflow.Method markSnapSessionsInactiveMethod(List<URI> snapSessions) {
-        return new Workflow.Method(MARK_SNAP_SESSIONS_INACTIVE, snapSessions);
+    public Workflow.Method markSnapSessionInactiveOrRemoveTargetIdsMethod(URI snapSession, List<URI> targetIds) {
+        return new Workflow.Method(MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID, snapSession, targetIds);
     }
 
     /**
-     * A workflow step that marks volume's snap sessions inactive after
-     * the completion of adding the new volumes to the group session step.
+     * A workflow step that
+     * removes the given target ids from snap session object
+     * if no target ids provided or the linked target set is empty after removing given targets, it marks the snap session inactive.
      *
-     * @param snapSessions -- List<URI> of snapSessions
-     * @param stepId -- Workflow Step Id.
-     */
-    public void markSnapSessionsInactive(List<URI> snapSessions, String stepId) {
-        try {
-            for (URI uri : snapSessions) {
-                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, uri);
-                if (snapSession != null && !snapSession.getInactive()) {
-                    log.info("Marking snapshot session in-active: {}", snapSession.getLabel());
-                    snapSession.setInactive(true);
-                    _dbClient.updateObject(snapSession);
-                }
-            }
-        } finally {
-            WorkflowStepCompleter.stepSucceded(stepId);
-        }
-    }
-
-    public Workflow.Method removeTargetFromSnapSessionMethod(URI snapSession, List<URI> targetIds) {
-        return new Workflow.Method(REMOVE_TARGET_ID_FROM_SNAP_SESSION, snapSession, targetIds);
-    }
-
-    /**
-     * A workflow step that removes the target snapshot uris from the snap session object in database.
-     *
-     * @param snapSession the snap session
+     * @param snapSessionURI the snap session uri
      * @param targetIds the target ids
      * @param stepId -- Workflow Step Id.
      */
-    public void removeTargetIdsFromSnapSession(URI snapSession, List<URI> targetIds, String stepId) {
+    public void markSnapSessionsInactiveOrRemoveTargetId(URI snapSessionURI, List<URI> targetIds, String stepId) {
         try {
-            BlockSnapshotSession snapSessionObj = _dbClient.queryObject(BlockSnapshotSession.class, snapSession);
-            if (snapSessionObj != null) {
-                log.info("Removing target ids {} from snap session {}",
-                        Joiner.on(", ").join(targetIds), snapSessionObj.getLabel());
-                List<String> targets = newArrayList(transform(targetIds, FCTN_URI_TO_STRING));
-                StringSet linkedTargets = snapSessionObj.getLinkedTargets();
-                if (linkedTargets != null) {
-                    linkedTargets.removeAll(targets);
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+            StringSet linkedTargets = null;
+            if (snapSession != null && !snapSession.getInactive()) {
+                if (targetIds != null) {
+                    log.info("Removing target ids {} from snap session {}",
+                            Joiner.on(", ").join(targetIds), snapSession.getLabel());
+                    List<String> targets = newArrayList(transform(targetIds, FCTN_URI_TO_STRING));
+                    linkedTargets = snapSession.getLinkedTargets();
+                    if (linkedTargets != null) {
+                        log.info("target ids present: {}", Joiner.on(", ").join(linkedTargets));
+                        linkedTargets.removeAll(targets);
+                    }
                 }
-                _dbClient.updateObject(snapSessionObj);
+
+                if (targetIds == null || (linkedTargets == null || linkedTargets.isEmpty())) {
+                    log.info("Marking snap session in-active: {}", snapSession.getLabel());
+                    snapSession.setInactive(true);
+                }
+                _dbClient.updateObject(snapSession);
             }
         } finally {
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -1143,29 +1127,25 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     String.format("Deleting replication group  %s", repGroupName),
                     waitFor, storage, storageSystem.getSystemType(),
                     BlockDeviceController.class,
-                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, true, false, sourceRepGroupName),
+                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI,
+                            ControllerUtils.extractGroupName(repGroupName), true, false, sourceRepGroupName),
                     _blockDeviceController.rollbackMethodNullMethod(), null);
         }
 
         // get snap session associated if any
-        List<BlockSnapshotSession> sessions = getSnapSessionsForCGVolume(sourceVol);
-        if (sessions.iterator().hasNext()) {
-            BlockSnapshotSession session = sessions.iterator().next();
-            // if deleting snapshot group, add step to mark snap session inactive
-            if (rgHasNoOtherSnapshot) {
-                waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
-                        String.format("marking snap session %s inactive", session.getLabel()), waitFor, storage,
-                        _blockDeviceController.getDeviceType(storage), this.getClass(),
-                        markSnapSessionsInactiveMethod(Arrays.asList(session.getId())),
-                        _blockDeviceController.rollbackMethodNullMethod(), null);
-            } else {
-                // add step to remove the linked target ids from snap session object
-                waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
-                        String.format("updating linked target ids for snap session %s", session.getLabel()), waitFor, storage,
-                        _blockDeviceController.getDeviceType(storage), this.getClass(),
-                        removeTargetFromSnapSessionMethod(session.getId(), snapshots),
-                        _blockDeviceController.rollbackMethodNullMethod(), null);
-            }
+        List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                BlockSnapshotSession.class,
+                ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(snap.getId()));
+        Iterator<BlockSnapshotSession> itr = sessions.iterator();
+        if (itr.hasNext()) {
+            BlockSnapshotSession session = itr.next();
+            // add step to remove target ids from snap session object
+            // snap session will be marked inactive when removing last target
+            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID,
+                    String.format("marking snap session %s inactive or removing target ids", session.getLabel()), waitFor, storage,
+                    _blockDeviceController.getDeviceType(storage), this.getClass(),
+                    markSnapSessionInactiveOrRemoveTargetIdsMethod(session.getId(), snapshots),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
         }
 
         return waitFor;

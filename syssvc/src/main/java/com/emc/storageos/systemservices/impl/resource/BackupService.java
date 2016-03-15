@@ -351,7 +351,12 @@ public class BackupService {
 
         BackupUploadStatus job = new BackupUploadStatus();
         job.setBackupName(backupTag);
-        job.setStatus(Status.NOT_STARTED);
+        // job.setStatus(Status.NOT_STARTED);
+        job.setStatus(Status.PENDING);
+
+        SchedulerConfig cfg = backupScheduler.getCfg();
+        cfg.persistBackupUploadStatus(job);
+
         jobProducer.enqueue(job);
 
         return Response.status(ASYNC_STATUS).build();
@@ -373,7 +378,7 @@ public class BackupService {
         log.info("Received get upload status request, backup tag={}", backupTag);
         try {
             BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag);
-            log.info("Current upload status is: {}", uploadStatus);
+            log.info("lby Current upload status is: {}", uploadStatus);
             return uploadStatus;
         } catch (Exception e) {
             log.error("Failed to get upload status", e);
@@ -460,7 +465,7 @@ public class BackupService {
         downloadThread.setName("PullBackupFromOtherNode");
         downloadThread.start();
 
-        return Response.status(202).build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
     @GET
@@ -520,7 +525,7 @@ public class BackupService {
             auditBackup(OperationTypeEnum.PULL_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, backupName);
         }
 
-        return Response.status(202).build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
     private void checkExternalServer() {
@@ -612,7 +617,7 @@ public class BackupService {
 
         auditBackup(OperationTypeEnum.PULL_BACKUP_CANCEL, AuditLogManager.AUDITLOG_SUCCESS, null);
         log.info("done");
-        return Response.status(202).build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
     @POST
@@ -656,7 +661,7 @@ public class BackupService {
 
             log.info("The current node doesn't have valid backup data {} so redirect to virp1", backupDir.getAbsolutePath());
             redirectRestoreRequest(backupName, isLocal, password, isGeoFromScratch);
-            return Response.status(202).build();
+            return Response.status(ASYNC_STATUS).build();
         }
 
         String[] restoreCommand=new String[]{restoreCmd,
@@ -674,7 +679,7 @@ public class BackupService {
 
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_END, null, backupName);
         log.info("done");
-        return Response.status(202).build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
     /**

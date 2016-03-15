@@ -997,6 +997,7 @@ renderFunctions.restore.status.downloading=Downloading
 renderFunctions.restore.status.downloadsuccess=Download Successfully
 renderFunctions.restore.status.downloadfailed=Download Failed
 renderFunctions.restore.status.downloadcancel=Download Cancelled
+renderFunctions.restore.status.restoring=Restoring
 renderFunctions.restore.status.restorefailed=Restore Failed
 renderFunctions.restore.status.restoresuccess=Restore Successfully
 restore.title=Data Restore

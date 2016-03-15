@@ -132,6 +132,7 @@ render.uploadAndRestoreProgressIcon = function(o, val) {
             'DOWNLOAD_SUCCESS':    'label-success',
             'DOWNLOAD_FAILED':    'label-danger',
             'DOWNLOAD_CANCELLED':    'label-danger',
+            'RESTORING':    'label-info',
             'RESTORE_FAILED':    'label-danger',
             'RESTORE_SUCCESS':    'label-success'
         }
@@ -149,6 +150,7 @@ render.uploadAndRestoreProgressIcon = function(o, val) {
             'DOWNLOAD_SUCCESS':    'glyphicon glyphicon-ok',
             'DOWNLOAD_FAILED':    'glyphicon glyphicon-remove',
             'DOWNLOAD_CANCELLED':    'glyphicon glyphicon-warning-sign',
+            'RESTORING':    'glyphicon glyphicon-refresh rotate',
             'RESTORE_FAILED':    'glyphicon glyphicon-remove',
             'RESTORE_SUCCESS':    'glyphicon glyphicon-ok'
 	    };
@@ -175,6 +177,7 @@ render.uploadAndRestoreProgressMessage = function(o, val) {
         'DOWNLOAD_SUCCESS':    Messages.get("renderFunctions.restore.status.downloadsuccess"),
         'DOWNLOAD_FAILED':    Messages.get("renderFunctions.restore.status.downloadfailed"),
         'DOWNLOAD_CANCELLED':    Messages.get("renderFunctions.restore.status.downloadcancel"),
+        'RESTORING':    Messages.get("renderFunctions.restore.status.restoring"),
         'RESTORE_FAILED':    Messages.get("renderFunctions.restore.status.restorefailed"),
         'RESTORE_SUCCESS':    Messages.get("renderFunctions.restore.status.restoresuccess")
     };

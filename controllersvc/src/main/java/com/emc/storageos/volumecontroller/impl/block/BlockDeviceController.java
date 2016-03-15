@@ -4581,10 +4581,10 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         // delete replication group if it becomes empty
         // Get the list of descriptors which represent source volumes to be deleted
         List<VolumeDescriptor> volumeDescriptors = VolumeDescriptor.filterByType(volumes,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.SRDF_SOURCE,
-                        VolumeDescriptor.Type.SRDF_EXISTING_SOURCE,
-                        VolumeDescriptor.Type.SRDF_TARGET },
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA},
                 null);
+        
+        
 
         // If no source volumes, just return
         if (volumeDescriptors.isEmpty()) {
@@ -4597,18 +4597,26 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         for (VolumeDescriptor volumeDescriptor : volumeDescriptors) {
             URI volumeURI = volumeDescriptor.getVolumeURI();
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-            if (volume != null) {
-                String replicationGroup = volume.getReplicationGroupInstance();
-                if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
-                    URI storage = volume.getStorageController();
-                    String key = storage.toString() + replicationGroup;
-                    Set<URI> rgVolumeList = rgVolsMap.get(key);
-                    if (rgVolumeList == null) {
-                        rgVolumeList = new HashSet<URI>();
-                        rgVolsMap.put(key, rgVolumeList);
+            if (volume != null ) {
+            	/*
+                 * No need to remove replication group as SRDF volume's 
+                 * rep group will be removed as part of srdf volume delete steps.
+                 */
+            	if(!Volume.isSRDFProtectedVolume(volume)){
+            		String replicationGroup = volume.getReplicationGroupInstance();
+                    if (NullColumnValueGetter.isNotNullValue(replicationGroup)) {
+                        URI storage = volume.getStorageController();
+                        String key = storage.toString() + replicationGroup;
+                        Set<URI> rgVolumeList = rgVolsMap.get(key);
+                        if (rgVolumeList == null) {
+                            rgVolumeList = new HashSet<URI>();
+                            rgVolsMap.put(key, rgVolumeList);
+                        }
+                        rgVolumeList.add(volumeURI);
                     }
-                    rgVolumeList.add(volumeURI);
-                }
+            	} else{
+            		_log.info("post delete not required for SRDF Volume :{}",volume.getId());
+            	}
             }
         }
 

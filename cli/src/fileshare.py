@@ -2749,11 +2749,11 @@ def policy_list(args):
 def continous_copies_start_parser(subcommand_parsers, common_parser):
     # start continous copies command parser
     continous_copies_start_parser = subcommand_parsers.add_parser(
-        'continuous-copies-start',
-        description='ViPR fileshare continous copies start cli usage',
+        'start-replication-copy',
+        description='ViPR fileshare replication copy start cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Start the replication session')
+        help='Start replication copy of the File System')
     mandatory_args = continous_copies_start_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -2790,11 +2790,11 @@ def continous_copies_start(args):
 def continous_copies_pause_parser(subcommand_parsers, common_parser):
     # pause continous copies command parser
     continous_copies_pause_parser = subcommand_parsers.add_parser(
-        'continuous-copies-pause',
-        description='ViPR fileshare continous copies pause cli usage',
+        'pause-replication-copy',
+        description='ViPR fileshare replication copy pause cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Pause the replication session')
+        help='Pause replication copy of the File System')
     mandatory_args = continous_copies_pause_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -2831,11 +2831,11 @@ def continous_copies_pause(args):
 def continous_copies_resume_parser(subcommand_parsers, common_parser):
     # resume continous copies command parser
     continous_copies_resume_parser = subcommand_parsers.add_parser(
-        'continuous-copies-resume',
-        description='ViPR fileshare continous copies resume cli usage',
+        'resume-replication-copy',
+        description='ViPR fileshare replication copy resume cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Resume the paused replication session')
+        help='Resume replication copy of the File System')
     mandatory_args = continous_copies_resume_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -2871,11 +2871,11 @@ def continous_copies_resume(args):
 def continous_copies_stop_parser(subcommand_parsers, common_parser):
     # stop continous copies command parser
     continous_copies_stop_parser = subcommand_parsers.add_parser(
-        'continuous-copies-stop',
-        description='ViPR fileshare continous copies stop cli usage',
+        'stop-replication-copy',
+        description='ViPR fileshare replication copy stop cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Stop the replication session')
+        help='Stop replication copy of the File System')
     mandatory_args = continous_copies_stop_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -2913,11 +2913,11 @@ def continous_copies_stop(args):
 def continous_copies_failover_parser(subcommand_parsers, common_parser):
     # failover continous copies command parser
     continous_copies_failover_parser = subcommand_parsers.add_parser(
-        'continuous-copies-failover',
-        description='ViPR fileshare continous copies failover cli usage',
+        'failover-replication-copy',
+        description='ViPR fileshare replication copy failover cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Failover replication session')
+        help='Failover replication copy of the filesystem')
     mandatory_args = continous_copies_failover_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -2953,11 +2953,11 @@ def continous_copies_failover(args):
 def continous_copies_failback_parser(subcommand_parsers, common_parser):
     # failback continous copies command parser
     continous_copies_failback_parser = subcommand_parsers.add_parser(
-        'continuous-copies-failback',
-        description='ViPR fileshare continous copies failback cli usage',
+        'failback-replication-copy',
+        description='ViPR fileshare replication copy failback cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Failback replication session')
+        help='Failback replication copy of the filesystem')
     mandatory_args = continous_copies_failback_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -2993,11 +2993,11 @@ def continous_copies_failback(args):
 def continous_copies_create_parser(subcommand_parsers, common_parser):
     # create continous copies command parser
     continous_copies_create_parser = subcommand_parsers.add_parser(
-        'continuous-copies-create',
-        description='Create the replication copies for existing file system',
+        'create-replication-copy',
+        description='ViPR fileshare create replication copy cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Create the replication copies for existing file system')
+        help='Create replication copy of the File System')
     mandatory_args = continous_copies_create_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -3038,11 +3038,11 @@ def continous_copies_create(args):
 def continous_copies_deactivate_parser(subcommand_parsers, common_parser):
     # deactivate continous copies command parser
     continous_copies_deactivate_parser = subcommand_parsers.add_parser(
-        'continuous-copies-deactivate',
-        description='Deactivate the replication copies of file system',
+        'remove-replication-copy',
+        description='ViPR fileshare remove replication copy cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Deactivate the replication copies of file system')
+        help='Remove replication copy of the File System')
     mandatory_args = continous_copies_deactivate_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -3079,11 +3079,11 @@ def continous_copies_deactivate(args):
 def continous_copies_refresh_parser(subcommand_parsers, common_parser):
     # refresh continous copies command parser
     continous_copies_refresh_parser = subcommand_parsers.add_parser(
-        'continuous-copies-refresh',
-        description='ViPR fileshare continous copies refresh cli usage',
+        'refresh-replication-copy',
+        description='ViPR fileshare replication copy refresh cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Refresh the replication session')
+        help='Refresh replication copy of the filesystem')
     mandatory_args = continous_copies_refresh_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',
@@ -3124,7 +3124,7 @@ def change_vpool_parser(subcommand_parsers, common_parser):
         description='ViPR fileshare change vpool cli usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Change vpool of the fileshare')
+        help='Move File System from one virtual pool to another')
     mandatory_args = change_vpool_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of filesystem',

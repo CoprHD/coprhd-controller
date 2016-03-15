@@ -654,6 +654,9 @@ public enum ServiceCode {
     XIV_REST_DELETE_FAILURE(68004),
     XIV_REST_HOST_PARTOF_CLUSTER(68010),
 
+    // RackHD errors
+    RACKHD_API_FAILURE(66000),
+    
     // ****************************
     // Old style of Service codes
     // ****************************

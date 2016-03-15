@@ -697,7 +697,7 @@
         }
       ]
     },
-    {
+    { 
       "title": "guide.title",
       "image": "icon_host.png",
       "description": "guide.description",
@@ -727,6 +727,6 @@
           "baseService": "RemoveBlockSnapshot"
         }
       ]
-    }
+    } 
   ]
 }

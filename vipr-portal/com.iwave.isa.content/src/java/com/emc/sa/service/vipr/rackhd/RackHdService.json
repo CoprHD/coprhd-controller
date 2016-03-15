@@ -1,0 +1,42 @@
+{
+  baseKey:"RackHd.Service",
+  serviceId:"RackHdService",
+  fields:{
+    Workflow:{
+      type:"assetType.rackhd.workflow",
+      required: "true",
+      lockable: true
+    },
+    Playbook:{
+      type:"text",
+      required: "false",
+      initialValue: "playbook.yml",
+      lockable: true
+    },
+    Project:{
+      type:"assetType.rackhd.project",
+      lockable: true 
+    },
+    VirtualArray:{
+      type:"assetType.rackhd.varray",
+      lockable: true
+    },
+    VirtualPool:{
+      type:"assetType.rackhd.vpool",
+      lockable: true
+    },
+    VolumeName:{
+      type:"text"
+    }, 
+    Size:{
+      type:"text"
+    },        
+    NumberOfVolumes:{
+      type:"number",
+      initialValue: "1",
+      validation:{
+        min:1
+      }
+    }
+  }
+}

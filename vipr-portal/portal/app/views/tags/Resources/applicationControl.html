@@ -51,9 +51,9 @@
 function changeover(val) {
 	if (val == true) {
 		$('.application-select *').attr("disabled", true);
-		$('.application-select *').attr("style", "background-color:#eeeeee;cursor : not-allowed;pointer-events : none;opacity : 1;");
-		$('.application-select *').attr("style", "display:none");
+		$('.application-select *').addClass("disable-dropdown");
 		$('.project-select *').removeAttr("disabled");
+		$('.project-select *').removeClass("disable-dropdown");	
 	} else {
 		$('.application-select *').removeAttr("disabled");
 		$('.application-select *').removeClass("disable-dropdown");	

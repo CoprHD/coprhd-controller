@@ -560,7 +560,7 @@ public class RecoverPointImageManagementUtils {
         final int transactionTimeout = 3 * MAX_RETRIES;
         VerifyConsistencyGroupStateParam stateParam = new VerifyConsistencyGroupStateParam();
         // Create a state param object to verify the group state
-        // Specify the group copy that we want to verify it's state, add it to the copies list of the param object.
+        // Specify the group copy that we want to verify its state, add it to the copies list of the param object.
         stateParam.getCopies().add(groupCopy);
         // Create a state param object to verify the group copy state
         VerifyConsistencyGroupCopyStateParam copyStateParam = new VerifyConsistencyGroupCopyStateParam();

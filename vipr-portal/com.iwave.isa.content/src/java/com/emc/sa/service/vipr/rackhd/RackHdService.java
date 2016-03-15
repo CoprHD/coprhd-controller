@@ -47,12 +47,12 @@ public class RackHdService extends ViPRService {
     private static final String PLAYBOOK_PARAM_NAME = "Playbook"; 
 
 
-    
+
     // JSON converter
     private static Gson gson = null;
 
     public RackHdService() {
-         gson = new Gson();
+        gson = new Gson();
     }
 
     Map<String, Object> params = null;
@@ -99,13 +99,24 @@ public class RackHdService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-      
-       String workflowResponse =
-               ViPRExecutionUtils.execute(new RackHdTask(params,workflowName,playbookName));
-        
+
+        ExecutionUtils.currentContext().logInfo("Starting RackHD Workflow '" +
+                workflowName + "'");
+
+        String workflowResponse =
+                ViPRExecutionUtils.execute(new RackHdTask(params,workflowName,playbookName));
+
         updateAffectedResources(workflowResponse);
 
-        RackHdUtils.checkForWorkflowFailed(workflowResponse);  
+        String errMsg = RackHdUtils.checkForWorkflowFailed(workflowResponse); 
+        if(errMsg != null) {
+            ExecutionUtils.currentContext().logError("RackHD Workflow " +
+                    "completed, but failed.");
+            throw new IllegalStateException(errMsg);
+        }
+        
+        ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
+                "completed successfully.");
     }
 
     private void updateAffectedResources(String workflowResponse) {
@@ -118,8 +129,8 @@ public class RackHdService extends ViPRService {
             Job j = task.getJob();
             Context c = j.getContext();
             String resultJson = c.getAnsibleResultFile();
-            info("MENDES: updateAffectedResources resultJson=" + resultJson);
-
+            ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
+                    "result: " + resultJson);
             try {
                 AffectedResource[] affectedResources = 
                         gson.fromJson(resultJson,AffectedResource[].class);
@@ -129,8 +140,8 @@ public class RackHdService extends ViPRService {
             } catch(JsonSyntaxException e) {
                 // ignore syntax exceptions, if not valid JSON
                 // there may be an error msg in the response
-                warn("Response from RackHD did not contain valid Json.  "  + 
-                        "It was: " + resultJson);
+                ExecutionUtils.currentContext().logInfo("RackHD Workflow " +
+                        "result was not valid JSON" + resultJson);
             }
         }
     }

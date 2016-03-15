@@ -40,13 +40,16 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.FileSystemConstants;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileDeviceInputOutput;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.file.AbstractFileStorageDevice;
+import com.emc.storageos.volumecontroller.impl.file.FileMirrorOperations;
 import com.iwave.ext.netapp.model.CifsAccess;
 import com.iwave.ext.netapp.model.CifsAcl;
 
 public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
+
     private static final Logger _log = LoggerFactory
             .getLogger(NetAppFileStorageDevice.class);
 
@@ -65,6 +68,16 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     private static final String RW_HOSTS = "rwHosts";
     private static final int QUOTA_DIR_MAX_PATH = 100;
     private static final int QUOTA_DIR_MAX_NAME = 64;
+
+    private FileMirrorOperations mirrorOperations;
+
+    public FileMirrorOperations getMirrorOperations() {
+        return mirrorOperations;
+    }
+
+    public void setMirrorOperations(FileMirrorOperations mirrorOperations) {
+        this.mirrorOperations = mirrorOperations;
+    }
 
     public NetAppFileStorageDevice() {
     }
@@ -1860,6 +1873,33 @@ public class NetAppFileStorageDevice extends AbstractFileStorageDevice {
     public BiosCommandResult listSanpshotByPolicy(StorageSystem storageObj, FileDeviceInputOutput args) {
         return BiosCommandResult.createErrorResult(
                 DeviceControllerErrors.netapp.operationNotSupported());
+    }
+
+    // snapmirror operations
+    @Override
+    public void doCreateMirrorLink(StorageSystem system, URI source, URI target, TaskCompleter completer) {
+        getMirrorOperations().createMirrorFileShareLink(system, source, target, completer);
+    }
+
+    @Override
+    public void doStartMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer, String policyName) {
+        getMirrorOperations().startMirrorFileShareLink(system, target, completer, policyName);
+    }
+
+    @Override
+    public void doFailoverLink(StorageSystem systemTarget, FileShare target, TaskCompleter completer, String devSpecificPolicyName) {
+        getMirrorOperations().failoverMirrorFileShareLink(systemTarget, target, completer, devSpecificPolicyName);
+    }
+
+    @Override
+    public void doResyncLink(StorageSystem primarySystem, StorageSystem secondarySystem, FileShare target, TaskCompleter completer,
+            String devSpecificPolicyName) {
+        getMirrorOperations().resyncMirrorFileShareLink(primarySystem, secondarySystem, target, completer, devSpecificPolicyName);
+    }
+
+    @Override
+    public void doStopMirrorLink(StorageSystem system, FileShare target, TaskCompleter completer) {
+        getMirrorOperations().stopMirrorFileShareLink(system, target, completer);
     }
 
 }

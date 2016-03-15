@@ -637,7 +637,7 @@
           
     <bean id="isilonDevice" class="com.emc.storageos.volumecontroller.impl.isilon.IsilonFileStorageDevice">
         <property name="isilonApiFactory" ref="isilonapifactory"/>
-         <property name="mirrorOperations" ref="isilonMirrorOperations"/>
+        <property name="mirrorOperations" ref="isilonMirrorOperations"/>
         <property name="customConfigHandler" ref="customConfigHandler" />
     	<property name="configinfo">
     		<util:map map-class="java.util.HashMap" key-type="java.lang.String" value-type="java.lang.String">
@@ -883,9 +883,12 @@
             <property name="exportMaskOperationsHelper" ref="vnxeExportMaskOperationsHelper"/>
             <property name="snapshotOperations" ref="vnxeSnapshotOperations"/>
     </bean>
-
+	<bean id="netappMirrorFileOperations" class="com.emc.storageos.volumecontroller.impl.netapp.NetappMirrorFileOperations">
+        <property name="dbClient" ref="dbclient"/>
+    </bean>
     <bean id="netappFileDevice" class="com.emc.storageos.volumecontroller.impl.netapp.NetAppFileStorageDevice">
         <property name="dbClient" ref="dbclient"/>
+        <property name="mirrorOperations" ref="netappMirrorFileOperations"/>
     </bean>
     
    <bean id="netappcFileDevice" class="com.emc.storageos.volumecontroller.impl.netappc.NetAppClusterModeDevice">

@@ -519,7 +519,7 @@ public class NetAppApi {
             String convertedVers = "";
             for (int i = 0; i < parseVersion.length; i++) {
                 _logger.info(parseVersion[i]);
-                Number num = ((Number) NumberFormat.getInstance().parse(parseVersion[i])).intValue();
+                Number num = NumberFormat.getInstance().parse(parseVersion[i]).intValue();
                 convertedVers = convertedVers + num.toString() + ".";
             }
             convertedVers = convertedVers.substring(0, convertedVers.length() - 1);
@@ -1028,5 +1028,69 @@ public class NetAppApi {
             dest.setRootHosts((orig.getRootHosts()));
         }
 
+    }
+
+    public Boolean createSnapMirror(String sourcePath, String destPath, String vfilerName)
+            throws NetAppException {
+        Boolean FailedStatus = false;
+        try {
+
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            FailedStatus = netAppFacade.createSnapMirror(sourcePath, destPath);
+
+            return FailedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+        }
+    }
+
+    public Boolean initializeSnapMirror(String sourcePath, String destPath, String vfilerName)
+            throws NetAppException {
+        Boolean FailedStatus = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            FailedStatus = netAppFacade.initializeSnapMirror(sourcePath, destPath);
+
+            return FailedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+        }
+    }
+
+    public boolean setScheduleSnapMirror(String type, String scheduleTime, String sourceLocation, String destLocation, String vfilerName) {
+        Boolean FailedStatus = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            FailedStatus = netAppFacade.setSnapMirrorSchedule(type, scheduleTime, sourceLocation, destLocation);
+
+            return FailedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+        }
+    }
+
+    public Boolean destorySnapMirror(String sourcePath, String destPath, String vfilerName)
+            throws NetAppException {
+        Boolean FailedStatus = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            FailedStatus = netAppFacade.deleteSnapMirror(sourcePath, destPath);
+
+            return FailedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
+        }
     }
 }

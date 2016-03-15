@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,10 +36,12 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.Stat;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePool.CopyTypes;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageSystem.SupportedFileReplicationTypes;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
@@ -51,6 +54,7 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.netapp.NetAppApi;
 import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.plugins.AccessProfile;
@@ -107,6 +111,9 @@ public class NetAppFileCommunicationInterface extends
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String MANAGEMENT_INTERFACE = "e0M";
     private static final String SNAPSHOT = ".snapshot";
+
+    private static final String LICENSE_ACTIVATED = "Activated";
+    private static final String LICENSE_EVALUATION = "Evaluation";
 
     private static final Logger _logger = LoggerFactory
             .getLogger(NetAppFileCommunicationInterface.class);
@@ -391,6 +398,29 @@ public class NetAppFileCommunicationInterface extends
         return portGroups;
     }
 
+    /**
+     * Check license is valid or not
+     * 
+     * @param licenseStatus
+     *            Status of the license
+     * @param system
+     *            Storage System
+     * @return true/false
+     * @throws IsilonException
+     * @throws JSONException
+     */
+    private boolean isValidLicense(String licenseStatus, StorageSystem system)
+            throws IsilonException, JSONException {
+        Set<String> validLicenseStatus = new HashSet<String>();
+        validLicenseStatus.add(LICENSE_ACTIVATED);
+        validLicenseStatus.add(LICENSE_EVALUATION);
+
+        if (validLicenseStatus.contains(licenseStatus)) {
+            return true;
+        }
+        return false;
+    }
+
     private Map<String, List<StoragePool>> discoverStoragePools(StorageSystem system, List<StoragePool> poolsToMatchWithVpool)
             throws NetAppFileCollectionException, NetAppException {
 
@@ -398,6 +428,16 @@ public class NetAppFileCommunicationInterface extends
 
         List<StoragePool> newPools = new ArrayList<StoragePool>();
         List<StoragePool> existingPools = new ArrayList<StoragePool>();
+
+        boolean syncLicenseValid = true; // isValidLicense("Licnece", system);
+
+        // Set file replication type for Isilon storage system!!!
+        if (syncLicenseValid) {
+            StringSet supportReplicationTypes = new StringSet();
+            supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
+            supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
+            system.setSupportedReplicationTypes(supportReplicationTypes);
+        }
 
         _logger.info("Start storage pool discovery for storage system {}",
                 system.getId());
@@ -454,6 +494,21 @@ public class NetAppFileCommunicationInterface extends
                     newPools.add(pool);
                 } else {
                     existingPools.add(pool);
+                }
+
+                // Add the Copy type ASYNC & SYNC, if the Isilon is enabled with SyncIQ service!!
+                StringSet copyTypesSupported = new StringSet();
+
+                if (syncLicenseValid) {
+                    copyTypesSupported.add(CopyTypes.ASYNC.name());
+                    copyTypesSupported.add(CopyTypes.SYNC.name());
+                    pool.setSupportedCopyTypes(copyTypesSupported);
+                } else {
+                    if (pool.getSupportedCopyTypes() != null &&
+                            pool.getSupportedCopyTypes().contains(CopyTypes.ASYNC.name())) {
+                        pool.getSupportedCopyTypes().remove(CopyTypes.ASYNC.name());
+                        pool.getSupportedCopyTypes().remove(CopyTypes.SYNC.name());
+                    }
                 }
                 // Update Pool details with new discovery run
                 pool.setTotalCapacity(netAppPool.getSizeTotal()
@@ -1175,7 +1230,7 @@ public class NetAppFileCommunicationInterface extends
 
         // On netapp Systems this currently true.
         unManagedFileSystemCharacteristics.put(
-        		UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
+                UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
                         .toString(), FALSE);
 
         if (null != storagePort) {
@@ -1877,7 +1932,7 @@ public class NetAppFileCommunicationInterface extends
                         unManagedFs.setHasShares(true);
                         unManagedFs.putFileSystemCharacterstics(
                                 UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                .toString(), TRUE);
+                                        .toString(), TRUE);
                         _logger.debug("SMB Share map for NetApp UMFS {} = {}",
                                 unManagedFs.getLabel(), unManagedFs.getUnManagedSmbShareMap());
                     }
@@ -1909,7 +1964,7 @@ public class NetAppFileCommunicationInterface extends
                             unManagedCifsShareACLList.add(unManagedCifsShareACL);
                         }
                     }
-                    
+
                     // save the object
                     {
                         _dbClient.persistObject(unManagedFs);
@@ -2130,7 +2185,7 @@ public class NetAppFileCommunicationInterface extends
                             unManagedFs.setHasExports(true);
                             unManagedFs.putFileSystemCharacterstics(
                                     UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED
-                                    .toString(), TRUE);
+                                            .toString(), TRUE);
                             _dbClient.persistObject(unManagedFs);
                             _logger.info("File System {} has Exports and their size is {}", unManagedFs.getId(),
                                     newUnManagedExportRules.size());

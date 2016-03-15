@@ -1582,4 +1582,76 @@ public class NetAppFacade {
         return share.modifyNFSShare(exportPath, exportRules);
     }
 
+    /**
+     * creates snap mirror between source and destination and mirror state will be in uninitialized state
+     * 
+     * @param sourceLocation - source path of filesystem
+     * @param destLocation - destination path of filesystem
+     * @return
+     */
+    public boolean createSnapMirror(String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("create snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.createSnapMirror(sourceLocation, destLocation);
+    }
+
+    /**
+     * Initialize the snap mirror and state will be snapmirrored
+     * 
+     * @param sourceLocation
+     * @param destLocation
+     * @return
+     */
+    public boolean initializeSnapMirror(String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("initialise snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.initializeSnapMirror(sourceLocation, destLocation);
+    }
+
+    public boolean setSnapMirrorSchedule(String type, String scheduleTime, String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("set schedule snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.setSnapMirrorSchedule(type, scheduleTime, sourceLocation, destLocation);
+    }
+
+    /**
+     * delete the schedule for snap mirror
+     * 
+     * @param destinationLocation
+     * @return
+     */
+    public boolean deleteSnapMirrorSchedule(String destinationLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("delete snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.deleteSnapMirrorSchedule(destinationLocation);
+    }
+
+    /**
+     * delete the for snap mirror
+     * 
+     * @param sourceLocation
+     * @param destLocation
+     * @return
+     */
+    public boolean deleteSnapMirror(String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("delete snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.deleteSnapMirror(sourceLocation, destLocation);
+    }
+
 }

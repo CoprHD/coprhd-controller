@@ -396,13 +396,9 @@ public class RPVplexConsistencyGroupManager extends AbstractConsistencyGroupMana
                 (distributed ? "distribitued" : "local"), vplexVolume.getLabel(),
                 vplexVolume.getId(), vplexCluster, vplexURI));
 
-        // Check to see if the CG name already exists...
-        // First: Let's try to see if the CG value has been populated on the volume
-        // Second: Manually try and line up the CG name from the ViPR CG to the VPLEX CGs
-        if (NullColumnValueGetter.isNotNullValue(vplexVolume.getReplicationGroupInstance())) {
-            vplexCgName = BlockConsistencyGroupUtils.fetchCgName(vplexVolume.getReplicationGroupInstance());
-            log.info(String.format("CG name already set on volume: %s", vplexCgName));
-        } else if (cg.created(vplexURI)) {
+        // Check to see if the CG name already exists by manually trying to 
+        // line up the CG name from the ViPR CG to the VPLEX CGs.
+        if (cg.created(vplexURI)) {
             log.info("CG already exists on VPLEX, but we need to figure out the correct one to use...");
             List<String> validVPlexCGsForCluster = new ArrayList<String>();
 

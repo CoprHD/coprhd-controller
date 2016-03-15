@@ -368,7 +368,7 @@ public abstract class BlockIngestOrchestrator {
         if (null != umcg && null != umcg.getManagedVolumesMap() && !umcg.getManagedVolumesMap().isEmpty()) {
             for (Entry<String, String> managedVolumeEntry : umcg.getManagedVolumesMap().entrySet()) {
 
-                BlockObject bo = requestContext.findCreatedBlockObject(managedVolumeEntry.getKey());
+                BlockObject bo = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(managedVolumeEntry.getKey());
                 if (bo == null) {
                     // Next look in the updated objects.
                     bo = (BlockObject) requestContext.findInUpdatedObjects(URI.create(managedVolumeEntry.getKey()));
@@ -746,7 +746,8 @@ public abstract class BlockIngestOrchestrator {
                         rootBlockObject = VolumeIngestionUtil.getBlockObject(blockObjectNativeGUID, _dbClient);
                         // If the volumeobject is not found in DB. check in locally createdObjects.
                         if (rootBlockObject == null) {
-                            rootBlockObject = requestContext.findCreatedBlockObject(blockObjectNativeGUID);
+                            rootBlockObject = 
+                                    requestContext.getRootIngestionRequestContext().findCreatedBlockObject(blockObjectNativeGUID);
                         }
 
                         // Get the parent unmanagedvolume for the current unmanagedvolume.
@@ -888,7 +889,7 @@ public abstract class BlockIngestOrchestrator {
             // if no newly-created object can be found for the parent's native GUID
             // then that means this is an existing object from the database and should be
             // added to the collection of objects to be updated rather than created
-            if (null == requestContext.findCreatedBlockObject(parent.getNativeGuid())) {
+            if (null == requestContext.getRootIngestionRequestContext().findCreatedBlockObject(parent.getNativeGuid())) {
                 updateObjects.add(parent);
             }
             boolean fullyIngestedVolume = true;
@@ -1173,7 +1174,7 @@ public abstract class BlockIngestOrchestrator {
                 } else {
                     _logger.info("Checking for replica object in created object map");
                     String replicaGUID = replica.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-                    replicaBlockObject = requestContext.findCreatedBlockObject(replicaGUID);
+                    replicaBlockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(replicaGUID);
                     if (replicaBlockObject == null) {
                         _logger.info("Checking if the replica is ingested");
                         replicaBlockObject = VolumeIngestionUtil.getBlockObject(replicaGUID, _dbClient);

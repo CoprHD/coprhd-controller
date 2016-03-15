@@ -19,6 +19,7 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
@@ -644,7 +645,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
         String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-        return findCreatedBlockObject(objectGUID);
+        return getRootIngestionRequestContext().findCreatedBlockObject(objectGUID);
     }
 
     /*
@@ -874,12 +875,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public BlockObject findCreatedBlockObject(String nativeGuid) {
-
         BlockObject blockObject = getBlockObjectsToBeCreatedMap().get(nativeGuid);
-        if (blockObject == null) {
-            blockObject = _parentRequestContext.getBlockObjectsToBeCreatedMap().get(nativeGuid);
-        }
-
         return blockObject;
     }
 
@@ -915,7 +911,20 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public BlockObject findCreatedBlockObject(URI uri) {
-        return _parentRequestContext.findCreatedBlockObject(uri);
+
+        if (!URIUtil.isValid(uri)) {
+            _logger.warn("URI ({}) for findCreatedBlockObject is null or invalid", uri);
+            return null;
+        }
+
+        for (BlockObject bo : getBlockObjectsToBeCreatedMap().values()) {
+            if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
+                _logger.info("\tfound block object in RP request context: " + bo.forDisplay());
+                return bo;
+            }
+        }
+
+        return null;
     }
 
     /*

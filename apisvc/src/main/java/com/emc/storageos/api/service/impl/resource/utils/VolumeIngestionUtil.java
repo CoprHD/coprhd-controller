@@ -402,7 +402,7 @@ public class VolumeIngestionUtil {
             } else {
                 _logger.info("Volume not ingested yet {}. Checking in the created object map", targetId);
                 // check in the created object map
-                BlockObject blockObject = requestContext.findCreatedBlockObject(targetId);
+                BlockObject blockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(targetId);
                 if (blockObject != null) {
                     _logger.info("Found the volume in the created object map");
                     targetUriList.add(blockObject);
@@ -436,7 +436,7 @@ public class VolumeIngestionUtil {
             } else {
                 _logger.info("Mirror not ingested yet {}", targetId);
                 // check in the created object map
-                BlockObject blockObject = requestContext.findCreatedBlockObject(targetId);
+                BlockObject blockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(targetId);
                 if (blockObject != null) {
                     _logger.info("Found the mirror in the created object map");
                     targetUriList.add(blockObject);
@@ -470,7 +470,7 @@ public class VolumeIngestionUtil {
             } else {
                 _logger.info("Snap not ingested yet {}", targetId);
                 // check in the created object map
-                BlockObject blockObject = requestContext.findCreatedBlockObject(targetId);
+                BlockObject blockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(targetId);
                 if (blockObject != null) {
                     _logger.info("Found the snap in the created object map");
                     targetUriList.add(blockObject);
@@ -3482,7 +3482,6 @@ public class VolumeIngestionUtil {
         String rpProtectionId = PropertySetterUtil.extractValueFromStringSet(
                 SupportedCGInformation.PROTECTION_ID.toString(), unManagedCGInformation);
 
-        IngestionRequestContext requestContext = rpContext.getRootIngestionRequestContext();
         ProtectionSet pset = rpContext.findExistingProtectionSet(
                 umpset.getCgName(), rpProtectionId, umpset.getProtectionSystemUri(), umpset.getNativeGuid());
 
@@ -3509,7 +3508,7 @@ public class VolumeIngestionUtil {
                 pset.getVolumes().add(volumeID);
 
                 Volume volume = null;
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeID));
+                BlockObject bo = rpContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(volumeID));
                 if (bo != null && bo instanceof Volume) {
                     volume = (Volume) bo;
                 }
@@ -4058,7 +4057,7 @@ public class VolumeIngestionUtil {
             }
 
             for (String remainingVolumeId : managedVolumesInDB) {
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(remainingVolumeId));
+                BlockObject bo = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(remainingVolumeId));
                 if (null != bo && bo instanceof Volume) {
                     _logger.info("\tadding volume object " + bo.forDisplay());
                     volumes.add((Volume) bo);

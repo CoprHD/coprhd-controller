@@ -1158,62 +1158,60 @@ public class ControllerUtils {
         boolean isVNX = storage.deviceIsType(Type.vnxblock);
         // check if replica of any of these volumes have replicationGroupInstance set
         for (Volume volume : volumes) {
-            if (!isVNX) { // VNX doesn't have group clones/mirrors
-                // clone
-                URIQueryResultList cloneList = new URIQueryResultList();
+            if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+                if (!isVNX) { // VNX doesn't have group clones/mirrors
+                    // clone
+                    URIQueryResultList cloneList = new URIQueryResultList();
+                    dbClient.queryByConstraint(ContainmentConstraint.Factory
+                            .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
+                    Iterator<URI> iter = cloneList.iterator();
+                    while (iter.hasNext()) {
+                        URI cloneID = iter.next();
+                        Volume clone = dbClient.queryObject(Volume.class, cloneID);
+                        if (clone != null && !clone.getInactive()) {
+                            return true;
+                        }
+                    }
+
+                    // mirror
+                    URIQueryResultList mirrorList = new URIQueryResultList();
+                    dbClient.queryByConstraint(ContainmentConstraint.Factory
+                            .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
+                    Iterator<URI> itr = mirrorList.iterator();
+                    while (itr.hasNext()) {
+                        URI mirrorID = itr.next();
+                        BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
+                        if (mirror != null && !mirror.getInactive()) {
+                            return true;
+                        }
+                    }
+                }
+
+                // snapshot
+                URIQueryResultList list = new URIQueryResultList();
                 dbClient.queryByConstraint(ContainmentConstraint.Factory
-                        .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
-                Iterator<URI> iter = cloneList.iterator();
-                while (iter.hasNext()) {
-                    URI cloneID = iter.next();
-                    Volume clone = dbClient.queryObject(Volume.class, cloneID);
-                    if (clone != null && !clone.getInactive()
-                            && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
+                        .getVolumeSnapshotConstraint(volume.getId()), list);
+                Iterator<URI> it = list.iterator();
+                while (it.hasNext()) {
+                    URI snapshotID = it.next();
+                    BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
+                    if (snapshot != null && !snapshot.getInactive()) {
                         return true;
                     }
                 }
 
-                // mirror
-                URIQueryResultList mirrorList = new URIQueryResultList();
-                dbClient.queryByConstraint(ContainmentConstraint.Factory
-                        .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
-                Iterator<URI> itr = mirrorList.iterator();
-                while (itr.hasNext()) {
-                    URI mirrorID = itr.next();
-                    BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
-                    if (mirror != null && !mirror.getInactive()
-                            && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
-                        return true;
-                    }
-                }
-            }
-
-            // snapshot
-            URIQueryResultList list = new URIQueryResultList();
-            dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getVolumeSnapshotConstraint(volume.getId()), list);
-            Iterator<URI> it = list.iterator();
-            while (it.hasNext()) {
-                URI snapshotID = it.next();
-                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
-                if (snapshot != null && !snapshot.getInactive()
-                        && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
-                    return true;
-                }
-            }
-
-            // snapshot session
-            if (storage.checkIfVmax3()) {
-                URIQueryResultList sessionList = new URIQueryResultList();
-                dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                        getBlockSnapshotSessionByConsistencyGroup(cgURI), sessionList);
-                Iterator<URI> itr = sessionList.iterator();
-                while (itr.hasNext()) {
-                    URI sessionID = itr.next();
-                    BlockSnapshotSession session = dbClient.queryObject(BlockSnapshotSession.class, sessionID);
-                    if (session != null && !session.getInactive()
-                            && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
-                        return true;
+                // snapshot session
+                if (storage.checkIfVmax3()) {
+                    URIQueryResultList sessionList = new URIQueryResultList();
+                    dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                            getBlockSnapshotSessionByConsistencyGroup(cgURI), sessionList);
+                    Iterator<URI> itr = sessionList.iterator();
+                    while (itr.hasNext()) {
+                        URI sessionID = itr.next();
+                        BlockSnapshotSession session = dbClient.queryObject(BlockSnapshotSession.class, sessionID);
+                        if (session != null && !session.getInactive()) {
+                            return true;
+                        }
                     }
                 }
             }

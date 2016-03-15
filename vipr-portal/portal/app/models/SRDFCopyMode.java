@@ -8,9 +8,9 @@ import util.StringOption;
 
 @SuppressWarnings("squid:S1118")
 public class SRDFCopyMode {
-	public static final String ASYNCHRONOUS = "Asynchronous";
-	public static final String SYNCHRONOUS = "Synchronous";
-	public static final String ACTIVE = "Active";
+    public static final String ASYNCHRONOUS = "ASYNCHRONOUS";
+    public static final String SYNCHRONOUS = "SYNCHRONOUS";
+    public static final String ACTIVE = "ACTIVE";
 
 	public static final String[] VALUES = { ASYNCHRONOUS, SYNCHRONOUS, ACTIVE };
 

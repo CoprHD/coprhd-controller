@@ -330,7 +330,6 @@ public class VPlexApiMigrationManager {
         s_logger.info("Commit migrations URI is {}", requestURI.toString());
         ClientResponse response = null;
         try {
-            boolean forceAsynchronousTimeout = false;
             s_logger.info("Committing migrations");
             Map<String, String> argsMap = new HashMap<String, String>();
             argsMap.put(VPlexApiConstants.ARG_DASH_M, migrationArgBuilder.toString());
@@ -341,10 +340,6 @@ public class VPlexApiMigrationManager {
                     postDataObject.toString());
             String responseStr = response.getEntity(String.class);
             s_logger.info("Commit migrations response is {}", responseStr);
-            if (forceAsynchronousTimeout) {
-                response.setStatus(VPlexApiConstants.ASYNC_STATUS);
-                response.getHeaders().add(VPlexApiConstants.LOCATION_HEADER, "force-timeout");
-            }
             if (response.getStatus() != VPlexApiConstants.SUCCESS_STATUS) {
                 if (response.getStatus() == VPlexApiConstants.ASYNC_STATUS) {
                     s_logger.info("Commit migrations is completing asynchronously");

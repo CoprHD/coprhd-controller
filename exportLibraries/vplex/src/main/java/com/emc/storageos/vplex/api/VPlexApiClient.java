@@ -1468,10 +1468,6 @@ public class VPlexApiClient {
         if (taskResourceStr == null) {
             throw new VPlexApiException("Can't find location for asynchronous reponse.");
         }
-        if (taskResourceStr.equals("force-timeout")) {
-            throw VPlexApiException.exceptions
-            .timeoutWaitingForAsyncOperationToComplete(taskResourceStr);
-        }
         s_logger.info("Waiting for task {} to complete", taskResourceStr);
         // Check the task for completion until we've reached the
         // maximum number of status checks.
@@ -1736,18 +1732,34 @@ public class VPlexApiClient {
         return _discoveryMgr.getDrillDownInfoForDevice(deviceName);
     }
 
+    /**
+     * Returns the maximum number of retries for a polling operation.
+     * @return integer number of retries
+     */
     static public int getMaxAsyncPollingRetries() {
         return maxAsyncPollingRetries;
     }
 
+    /**
+     * Sets the maximuum number of retries for an async. polling operation.
+     * @param maxRetries integer
+     */
     static public void setMaxAsyncPollingRetries(int maxRetries) {
         maxAsyncPollingRetries = maxRetries;
     }
 
+    /**
+     * Returns the maximum number of async. retries for a migration commit.
+     * @return integer number of retries
+     */
     static public int getMaxMigrationAsyncPollingRetries() {
         return maxMigrationAsyncPollingRetries;
     }
 
+    /**
+     * Sets the maximum number of async. retries for a migration commit.
+     * @param maxRetries integer
+     */
     static public void setMaxMigrationAsyncPollingRetries(int maxRetries) {
         maxMigrationAsyncPollingRetries = maxRetries;
     }

@@ -3470,24 +3470,38 @@ public class VolumeIngestionUtil {
      * if it has already been created in another volume context within the scope of this
      * ingestion request.
      *
-     * @param rpContext the current RecoverPointVolumeIngestionContext being ingested
+     * @param requestContext the current IngestionRequestContext
+     * @param unManagedVolume the currently ingesting UnManagedVolume
      * @param umpset Unmanaged protection set for which a protection set has to be created
      * @param dbClient a reference to the database client
      * @return newly created protection set
      */
     public static ProtectionSet findOrCreateProtectionSet(
-            RecoverPointVolumeIngestionContext rpContext, 
+            IngestionRequestContext requestContext,
+            UnManagedVolume unManagedVolume,
             UnManagedProtectionSet umpset, DbClient dbClient) {
+
+        ProtectionSet pset = null;
         StringSetMap unManagedCGInformation = umpset.getCGInformation();
         String rpProtectionId = PropertySetterUtil.extractValueFromStringSet(
                 SupportedCGInformation.PROTECTION_ID.toString(), unManagedCGInformation);
 
-        ProtectionSet pset = rpContext.findExistingProtectionSet(
+        // if this is a recover point ingestion context, check for an existing PSET in memory
+        RecoverPointVolumeIngestionContext rpContext = null;
+        if (requestContext instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext;
+        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
+        }
+        if (rpContext != null) {
+            pset = rpContext.findExistingProtectionSet(
                 umpset.getCgName(), rpProtectionId, umpset.getProtectionSystemUri(), umpset.getNativeGuid());
+            if (pset != null) {
+                rpContext.setManagedPsetWasCreatedByAnotherContext(true);
+            }
+        }
 
-        if (pset != null) {
-            rpContext.setManagedPsetWasCreatedByAnotherContext(true);
-        } else {
+        if (pset == null) {
             pset = new ProtectionSet();
             pset.setId(URIUtil.createId(ProtectionSet.class));
             pset.setLabel(umpset.getCgName());
@@ -3508,7 +3522,7 @@ public class VolumeIngestionUtil {
                 pset.getVolumes().add(volumeID);
 
                 Volume volume = null;
-                BlockObject bo = rpContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(volumeID));
+                BlockObject bo = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(volumeID));
                 if (bo != null && bo instanceof Volume) {
                     volume = (Volume) bo;
                 }
@@ -3537,22 +3551,35 @@ public class VolumeIngestionUtil {
      * if it has already been created in another volume context within the scope of this
      * ingestion request.
      *
-     * @param rpContext the current RecoverPointVolumeIngestionContext being ingested
+     * @param requestContext the current IngestionRequestContext
+     * @param unManagedVolume the currently ingesting UnManagedVolume
      * @param pset the ProtectionSet
      * @param dbClient a reference to the database client
      * @return a BlockConsistencyGroup for the volume context and ProtectionSet
      */
     public static BlockConsistencyGroup findOrCreateRPBlockConsistencyGroup(
-            RecoverPointVolumeIngestionContext rpContext, ProtectionSet pset, DbClient dbClient) {
+            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume, 
+            ProtectionSet pset, DbClient dbClient) {
 
+        BlockConsistencyGroup cg = null;
         Project project = dbClient.queryObject(Project.class, pset.getProject());
         NamedURI projectNamedUri = new NamedURI(pset.getProject(), project.getLabel());
-        BlockConsistencyGroup cg = rpContext.findExistingBlockConsistencyGroup(
-                pset.getLabel(), projectNamedUri, project.getTenantOrg());
 
-        if (cg != null) {
-            rpContext.setManagedBcgWasCreatedByAnotherContext(true);
-        } else {
+        // if this is a recover point ingestion context, check for an existing CG in memory
+        RecoverPointVolumeIngestionContext rpContext = null;
+        if (requestContext instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext;
+        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
+        }
+        if (rpContext != null) {
+            cg = rpContext.findExistingBlockConsistencyGroup(pset.getLabel(), projectNamedUri, project.getTenantOrg());
+            if (cg != null) {
+                rpContext.setManagedBcgWasCreatedByAnotherContext(true);
+            }
+        }
+
+        if (cg == null) {
             cg = new BlockConsistencyGroup();
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(pset.getLabel());
@@ -3563,7 +3590,7 @@ public class VolumeIngestionUtil {
             cg.setTenant(project.getTenantOrg());
             _logger.info("Created new block consistency group: " + cg.getId().toString());
         }
-        
+
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
         return cg;
     }
@@ -4020,19 +4047,8 @@ public class VolumeIngestionUtil {
             Set<DataObject> updatedObjects, DbClient dbClient) {
         _logger.info("Ingesting all volumes associated with RP consistency group");
 
-        RecoverPointVolumeIngestionContext rpContext = null;
-
-        // the RP volume ingestion context will take care of persisting the
-        // new objects and deleting the old UnManagedProtectionSet
-        if (requestContext instanceof RecoverPointVolumeIngestionContext) {
-            rpContext = (RecoverPointVolumeIngestionContext) requestContext;
-        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
-            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
-        }
-
-        ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(rpContext, umpset, dbClient);
-        BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(rpContext, pset, dbClient);
-        rpContext.getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
+        ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(requestContext, unManagedVolume, umpset, dbClient);
+        BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(requestContext, unManagedVolume, pset, dbClient);
 
         List<Volume> volumes = new ArrayList<Volume>();
         // First try to get the RP volumes from the updated objects list. This will have the latest info for
@@ -4068,9 +4084,20 @@ public class VolumeIngestionUtil {
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, dbClient, requestContext);
         clearPersistedReplicaFlags(volumes, updatedObjects, dbClient);
 
+        RecoverPointVolumeIngestionContext rpContext = null;
+
+        // the RP volume ingestion context will take care of persisting the
+        // new objects and deleting the old UnManagedProtectionSet
+        if (requestContext instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext;
+        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
+        }
+
         if (rpContext != null) {
             _logger.info("setting managed BlockConsistencyGroup on RecoverPoint context {} to {}", rpContext, cg);
             rpContext.setManagedBlockConsistencyGroup(cg);
+            rpContext.getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
             _logger.info("setting managed ProtectionSet on RecoverPoint context {} to {}", rpContext, pset);
             rpContext.setManagedProtectionSet(pset);
         }

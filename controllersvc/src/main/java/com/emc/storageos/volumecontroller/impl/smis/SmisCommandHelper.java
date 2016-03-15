@@ -26,8 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMDataType;
@@ -4207,7 +4205,7 @@ public class SmisCommandHelper implements SmisConstants {
     /*
      * Giver 2 strings: str1 and str2, this method concatenates them by using the delimeter
      * and restricting the size of the resulting string to maxLength.
-     * 
+     *
      * Did not want to use NameGenerator._generate as that takes three inputs and if the third input
      * is null it appends a random UUID - which we do not want in the users of this method.
      */
@@ -6902,16 +6900,16 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Creates an explicitly sized array of generic type T, containing the given value for all its elements.
-     * 
+     *
      * Example:
      * toMultiElementArray(2, true); => boolean[] array = new boolean[2] { true, true};
-     * 
+     *
      * @param count size of the array
-     * 
+     *
      * @param value value for each element
-     * 
+     *
      * @param <T> type of array
-     * 
+     *
      * @return Array of T, containing the same value for each element.
      */
     public static <T> T[] toMultiElementArray(int count, T value) {
@@ -6931,11 +6929,11 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Get source object for a replica.
-     * 
+     *
      * @param dbClient
-     * 
+     *
      * @param replica
-     * 
+     *
      * @return source object
      */
     public BlockObject getSource(BlockObject replica) {
@@ -6972,13 +6970,13 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Get ReplicationSettingData instance.
-     * 
+     *
      * @param storageSystem A reference to the storage system
-     * 
+     *
      * @param elementName An optional name for the instance
-     * 
+     *
      * @param desiredValue DesiredCopyMethodology value
-     * 
+     *
      * @param steTargetSupplier Whether or not the TargetElementSupplier should also be specified.
      */
     @SuppressWarnings("rawtypes")
@@ -7176,6 +7174,10 @@ public class SmisCommandHelper implements SmisConstants {
         return String.format("%s+%s##SSNAME+%s", systemSerial, replicationGroupName, sessionLabel);
     }
 
+    private String formatSessionLabelForFabrication(String systemSerial, String replicationGroupName) {
+        return String.format("%s+%s##SSNAME", systemSerial, replicationGroupName);
+    }
+
     /**
      * BlockSnapshot instances associated to an BlockSnapshotSession will have its replicationGroupName field set in a
      * different format than regular BlockSnapshot instances, e.g. system-serial+groupName.
@@ -7214,6 +7216,7 @@ public class SmisCommandHelper implements SmisConstants {
         List<String> sfsEntries = getEMCSFSEntries(system, replicationSvc);
         String entryLabel = formatReplicaLabelForSFSEntry(system.getSerialNumber(), replicaReplicationGroupName, sourceReplicationGroupName);
         String removeEntry = null;
+
         if (sfsEntries != null && !sfsEntries.isEmpty()) {
             for (String entry : sfsEntries) {
                 if (entry.contains(entryLabel)) {
@@ -7227,7 +7230,6 @@ public class SmisCommandHelper implements SmisConstants {
                     sourceReplicationGroupName));
             return;
         }
-
         try {
             CIMArgument[] inArgs = new CIMArgument[] {
                     _cimArgument.stringArray("SFSEntries", new String[] { removeEntry }) };
@@ -7236,7 +7238,47 @@ public class SmisCommandHelper implements SmisConstants {
         } catch (WBEMException e) {
             _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
         }
+    }
 
+    /**
+     * Remove EMCSFSEntry containing the groupSynchronizedAspect information. It would find the entry using the snap session
+     * source replication group name, then remove it. This operation is necessary before deleting an attached snaphost session replication
+     * group.
+     *
+     * @param system
+     * @param replicationSvc
+     * @param sourceReplicationGroupName
+     * @return
+     */
+    public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
+            CIMObjectPath replicationSvc,
+            String sourceReplicationGroupName) {
+        List<String> sfsEntries = getEMCSFSEntries(system, replicationSvc);
+        String groupSynchronizedAspectLabel = formatSessionLabelForFabrication(system.getSerialNumber(), sourceReplicationGroupName);
+        List<String> removeEntryList = new ArrayList<String>();
+
+        if (sfsEntries != null && !sfsEntries.isEmpty()) {
+            for (String entry : sfsEntries) {
+                if (entry.contains(groupSynchronizedAspectLabel)) {
+                    removeEntryList.add(entry);
+                }
+            }
+        }
+        if (removeEntryList.isEmpty()) {
+            _log.info(String.format("The SFS entry is not found for the source group %s",
+                    sourceReplicationGroupName));
+            return;
+        }
+        try {
+            String[] removeEntries = new String[removeEntryList.size()];
+            removeEntries = removeEntryList.toArray(removeEntries);
+            CIMArgument[] inArgs = new CIMArgument[] {
+                    _cimArgument.stringArray("SFSEntries", removeEntries) };
+            CIMArgument[] outArgs = new CIMArgument[5];
+            invokeMethod(system, replicationSvc, SmisConstants.EMC_REMOVE_SFSENTRIES, inArgs, outArgs);
+        } catch (WBEMException e) {
+            _log.error("EMCRemoveSFSEntries -- WBEMException: ", e);
+        }
     }
 
     /**

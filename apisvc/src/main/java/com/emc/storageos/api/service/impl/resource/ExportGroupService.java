@@ -113,7 +113,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -2704,7 +2703,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param exportGroup
      */
     void removeBlockObjectsFromPathParamMap(Collection<URI> blockObjectURIs, ExportGroup exportGroup) {
-        // For each BlockObject, remove it's association to a ExportPathParam.
+        // For each BlockObject, remove its association to a ExportPathParam.
         for (URI blockObjectURI : blockObjectURIs) {
             String pathParamId = exportGroup.getPathParameters().get(blockObjectURI.toString());
             if (pathParamId == null)

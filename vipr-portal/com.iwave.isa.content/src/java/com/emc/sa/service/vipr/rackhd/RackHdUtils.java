@@ -4,7 +4,6 @@ import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 
-import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.rackhd.gson.RackHdNode;
 import com.emc.sa.service.vipr.rackhd.gson.RackHdWorkflow;
 import com.google.gson.Gson;
@@ -65,8 +64,6 @@ public class RackHdUtils {
     public static boolean isWorkflowValid(String workflowResponse) {
         RackHdWorkflow rackHdWorkflow = 
                 getWorkflowObjFromJson(workflowResponse);  
-        ExecutionUtils.currentContext().logInfo("RackHD workflow status " +
-                "(isValid?) =" + rackHdWorkflow.get_status());
         return rackHdWorkflow.get_status().
                 equalsIgnoreCase(WORKFLOW_VALID_STATE);
     }
@@ -95,8 +92,6 @@ public class RackHdUtils {
     public static boolean isWorkflowFailed(String workflowResponse) {
         RackHdWorkflow rackHdWorkflow = 
                 getWorkflowObjFromJson(workflowResponse);  
-        ExecutionUtils.currentContext().logInfo("RackHD workflow status " +
-                "(isFailed?)=" + rackHdWorkflow.get_status());
         String status = rackHdWorkflow.get_status();   
         // TODO: get failure states from workflow response
         return status.equalsIgnoreCase(WORKFLOW_FAILED_STATE) || 
@@ -104,9 +99,11 @@ public class RackHdUtils {
                 status.equalsIgnoreCase(WORKFLOW_CANCELLED_STATE);
     }
 
-    public static void checkForWorkflowFailed(String workflowResponse) {
+    public static String checkForWorkflowFailed(String workflowResponse) {
+        String errMsg = null;
+        
         if(isWorkflowFailed(workflowResponse)) { 
-            String errMsg = "Workflow failed.  Status is '" +
+            errMsg = "Workflow failed.  Status is '" +
                     getWorkflowObjFromJson(workflowResponse).get_status() +
                     "'.  Message from RackHD was: '" +
                     getWorkflowObjFromJson(workflowResponse).getContext().
@@ -119,15 +116,13 @@ public class RackHdUtils {
                 String prettyJson = gson.toJson(json);
                 errMsg = errMsg + "  Workflow details: " + prettyJson;
             }
-            throw new IllegalStateException(errMsg);
         }
+        return errMsg;
     }
     
     public static boolean isWorkflowComplete(String workflowResponse) {
         RackHdWorkflow rackHdWorkflow = 
-                getWorkflowObjFromJson(workflowResponse);  
-        ExecutionUtils.currentContext().logInfo("RackHD workflow complete=" + 
-                rackHdWorkflow.getCompleteEventString());       
+                getWorkflowObjFromJson(workflowResponse);       
         return rackHdWorkflow.getCompleteEventString().
                 equalsIgnoreCase(WORKFLOW_COMPLETE_STATE);
     }

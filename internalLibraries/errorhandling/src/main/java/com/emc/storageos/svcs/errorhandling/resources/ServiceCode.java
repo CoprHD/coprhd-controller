@@ -1,4 +1,4 @@
-/*
+		/*
  * Copyright 2013-2014 EMC Corporation
  * Copyright 2016 Intel Corporation
  *
@@ -653,7 +653,7 @@ public enum ServiceCode {
     XIV_REST_DELETE_FAILURE(68004),
     XIV_REST_HOST_PARTOF_CLUSTER(68010),
 
-// Orchestration Engine errors
+    // Orchestration Engine errors
     OE_API_FAILURE(66000),
 
     // ****************************

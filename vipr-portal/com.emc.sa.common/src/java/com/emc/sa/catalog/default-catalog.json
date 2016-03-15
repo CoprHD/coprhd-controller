@@ -695,7 +695,7 @@
           "image": "icon_delete_bucket.png",
           "baseService": "DeleteBucket"
         }
-      ]
+      ] 
     }, 
     { 
       "title": "guide.title",
@@ -728,7 +728,7 @@
         }
       ]
     }, 
-    {
+    { 
       "title": "oe_services.title",
       "image": "icon_orchestration.png",
       "description": "oe_services.description",

@@ -402,7 +402,7 @@ public class VolumeIngestionUtil {
             } else {
                 _logger.info("Volume not ingested yet {}. Checking in the created object map", targetId);
                 // check in the created object map
-                BlockObject blockObject = requestContext.findCreatedBlockObject(targetId);
+                BlockObject blockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(targetId);
                 if (blockObject != null) {
                     _logger.info("Found the volume in the created object map");
                     targetUriList.add(blockObject);
@@ -436,7 +436,7 @@ public class VolumeIngestionUtil {
             } else {
                 _logger.info("Mirror not ingested yet {}", targetId);
                 // check in the created object map
-                BlockObject blockObject = requestContext.findCreatedBlockObject(targetId);
+                BlockObject blockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(targetId);
                 if (blockObject != null) {
                     _logger.info("Found the mirror in the created object map");
                     targetUriList.add(blockObject);
@@ -470,7 +470,7 @@ public class VolumeIngestionUtil {
             } else {
                 _logger.info("Snap not ingested yet {}", targetId);
                 // check in the created object map
-                BlockObject blockObject = requestContext.findCreatedBlockObject(targetId);
+                BlockObject blockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(targetId);
                 if (blockObject != null) {
                     _logger.info("Found the snap in the created object map");
                     targetUriList.add(blockObject);
@@ -2087,7 +2087,7 @@ public class VolumeIngestionUtil {
             throw IngestionException.exceptions.hostHasNoInitiators();
         }
         int unassignedInitiators = 0;
-        int totalPorts = 0;
+        int totalPaths = 0;
         StringSetMap zoningMap = ExportMaskUtils.getZoneMapFromZoneInfoMap(zoneInfoMap, initiators);
         if (null == zoningMap || zoningMap.isEmpty()) {
             _logger.error("No zoning information found for the initiators");
@@ -2115,30 +2115,28 @@ public class VolumeIngestionUtil {
                 _logger.info("Initiator {} of host {} is not assigned to any ports.",
                         new Object[] { initiator.getInitiatorPort(), hostName });
             } else if (ports.size() < pathParams.getPathsPerInitiator()) {
-                _logger.error("Initiator {} of host {} has a different number of ports ({}) than " +
-                        "what is required according to the virtual pool ({})", new Object[] { initiator.getInitiatorPort(),
+                _logger.error("Initiator {} of host {} has fewer SAN paths than what is required according to the virtual pool "
+                        + "({} are zoned, but {} are required)", new Object[] { initiator.getInitiatorPort(),
                                 hostName, ports.size(), pathParams.getPathsPerInitiator() });
                 throw IngestionException.exceptions.hostZoningHasDifferentPortCount(
                         initiator.getInitiatorPort(), hostName,
                         String.valueOf(ports.size()), String.valueOf(pathParams.getPathsPerInitiator()));
             } else {
-                totalPorts += ports.size();
+                totalPaths += ports.size();
                 _logger.info("Initiator {} of host {} has {} paths", new Object[] { initiator.getInitiatorPort(),
                         hostName, ports.size(), ports.size() });
             }
 
         }
-        if (totalPorts < pathParams.getMinPaths()) {
-            _logger.error(String.format("Host %s (%s) has fewer ports assigned %d than min_paths %d",
-                    hostName, hostURI.toString(), totalPorts, pathParams.getMinPaths()));
+        if (totalPaths < pathParams.getMinPaths()) {
+            _logger.error(String.format("Host %s (%s) has fewer paths assigned %d than min_paths %d",
+                    hostName, hostURI.toString(), totalPaths, pathParams.getMinPaths()));
             throw IngestionException.exceptions.hostZoningHasFewerPorts(hostName,
-                    String.valueOf(totalPorts), String.valueOf(pathParams.getMinPaths()));
+                    String.valueOf(totalPaths), String.valueOf(pathParams.getMinPaths()));
         }
-        if (totalPorts > pathParams.getMaxPaths()) {
-            _logger.error(String.format("Host %s (%s) has more ports assigned %d than max_paths %d",
-                    hostName, hostURI.toString(), totalPorts, pathParams.getMaxPaths()));
-            throw IngestionException.exceptions.hostZoningHasMorePorts(hostName,
-                    String.valueOf(totalPorts), String.valueOf(pathParams.getMaxPaths()));
+        if (totalPaths > pathParams.getMaxPaths()) {
+            _logger.warn(String.format("Host %s (%s) has more paths assigned %d than max_paths %d",
+                    hostName, hostURI.toString(), totalPaths, pathParams.getMaxPaths()));
         }
         if (unassignedInitiators > 0) {
             _logger.info(String.format("Host %s (%s) has %d unassigned initiators",
@@ -3471,25 +3469,50 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Creates a protection set for the given unmanaged protection set
+     * Creates a protection set for the given unmanaged protection set, or finds one first
+     * if it has already been created in another volume context within the scope of this
+     * ingestion request.
      *
+     * @param requestContext the current IngestionRequestContext
+     * @param unManagedVolume the currently ingesting UnManagedVolume
      * @param umpset Unmanaged protection set for which a protection set has to be created
      * @param dbClient a reference to the database client
      * @return newly created protection set
      */
-    public static ProtectionSet createProtectionSet(
-            IngestionRequestContext requestContext, UnManagedProtectionSet umpset, DbClient dbClient) {
+    public static ProtectionSet findOrCreateProtectionSet(
+            IngestionRequestContext requestContext,
+            UnManagedVolume unManagedVolume,
+            UnManagedProtectionSet umpset, DbClient dbClient) {
+
+        ProtectionSet pset = null;
         StringSetMap unManagedCGInformation = umpset.getCGInformation();
         String rpProtectionId = PropertySetterUtil.extractValueFromStringSet(
                 SupportedCGInformation.PROTECTION_ID.toString(), unManagedCGInformation);
 
-        ProtectionSet pset = new ProtectionSet();
-        pset.setId(URIUtil.createId(ProtectionSet.class));
-        pset.setLabel(umpset.getCgName());
-        pset.setProtectionId(rpProtectionId);
-        pset.setProtectionStatus(ProtectionStatus.ENABLED.toString());
-        pset.setProtectionSystem(umpset.getProtectionSystemUri());
-        pset.setNativeGuid(umpset.getNativeGuid());
+        // if this is a recover point ingestion context, check for an existing PSET in memory
+        RecoverPointVolumeIngestionContext rpContext = null;
+        if (requestContext instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext;
+        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
+        }
+        if (rpContext != null) {
+            pset = rpContext.findExistingProtectionSet(
+                umpset.getCgName(), rpProtectionId, umpset.getProtectionSystemUri(), umpset.getNativeGuid());
+            if (pset != null) {
+                rpContext.setManagedPsetWasCreatedByAnotherContext(true);
+            }
+        }
+
+        if (pset == null) {
+            pset = new ProtectionSet();
+            pset.setId(URIUtil.createId(ProtectionSet.class));
+            pset.setLabel(umpset.getCgName());
+            pset.setProtectionId(rpProtectionId);
+            pset.setProtectionStatus(ProtectionStatus.ENABLED.toString());
+            pset.setProtectionSystem(umpset.getProtectionSystemUri());
+            pset.setNativeGuid(umpset.getNativeGuid());
+        }
 
         if (umpset.getManagedVolumeIds() != null) {
             for (String volumeID : umpset.getManagedVolumeIds()) {
@@ -3502,7 +3525,7 @@ public class VolumeIngestionUtil {
                 pset.getVolumes().add(volumeID);
 
                 Volume volume = null;
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(volumeID));
+                BlockObject bo = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(volumeID));
                 if (bo != null && bo instanceof Volume) {
                     volume = (Volume) bo;
                 }
@@ -3527,29 +3550,51 @@ public class VolumeIngestionUtil {
     }
 
     /**
-     * Create a block consistency group for the given protection set
+     * Creates a block consistency group for the given protection set, or finds one first
+     * if it has already been created in another volume context within the scope of this
+     * ingestion request.
      *
-     * @param pset protection set
-     * @param dbClient
-     *
-     * @return BlockConsistencyGroup
+     * @param requestContext the current IngestionRequestContext
+     * @param unManagedVolume the currently ingesting UnManagedVolume
+     * @param pset the ProtectionSet
+     * @param dbClient a reference to the database client
+     * @return a BlockConsistencyGroup for the volume context and ProtectionSet
      */
-    public static BlockConsistencyGroup createRPBlockConsistencyGroup(ProtectionSet pset, DbClient dbClient) {
-        BlockConsistencyGroup cg = new BlockConsistencyGroup();
-        cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
-        cg.setLabel(pset.getLabel());
+    public static BlockConsistencyGroup findOrCreateRPBlockConsistencyGroup(
+            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume, 
+            ProtectionSet pset, DbClient dbClient) {
+
+        BlockConsistencyGroup cg = null;
         Project project = dbClient.queryObject(Project.class, pset.getProject());
-        cg.setProject(new NamedURI(pset.getProject(), project.getLabel()));
-        StringSet types = new StringSet();
-        types.add(BlockConsistencyGroup.Types.RP.toString());
-        cg.setRequestedTypes(types);
-        cg.setTypes(types);
-        // By default, the array consistency is false. However later when we iterate over volumes in the BCG and we
-        // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
-        cg.setArrayConsistency(false);
-        cg.setTenant(project.getTenantOrg());
+        NamedURI projectNamedUri = new NamedURI(pset.getProject(), project.getLabel());
+
+        // if this is a recover point ingestion context, check for an existing CG in memory
+        RecoverPointVolumeIngestionContext rpContext = null;
+        if (requestContext instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext;
+        } else if (requestContext.getVolumeContext(unManagedVolume.getNativeGuid()) instanceof RecoverPointVolumeIngestionContext) {
+            rpContext = (RecoverPointVolumeIngestionContext) requestContext.getVolumeContext(unManagedVolume.getNativeGuid());
+        }
+        if (rpContext != null) {
+            cg = rpContext.findExistingBlockConsistencyGroup(pset.getLabel(), projectNamedUri, project.getTenantOrg());
+            if (cg != null) {
+                rpContext.setManagedBcgWasCreatedByAnotherContext(true);
+            }
+        }
+
+        if (cg == null) {
+            cg = new BlockConsistencyGroup();
+            cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
+            cg.setLabel(pset.getLabel());
+            cg.setProject(projectNamedUri);
+            // By default, the array consistency is false. However later when we iterate over volumes in the BCG and we
+            // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
+            cg.setArrayConsistency(false);
+            cg.setTenant(project.getTenantOrg());
+            _logger.info("Created new block consistency group: " + cg.getId().toString());
+        }
+
         cg.addSystemConsistencyGroup(pset.getProtectionSystem().toString(), pset.getLabel());
-        _logger.info("Created new block consistency group: " + cg.getId().toString());
         return cg;
     }
 
@@ -4005,8 +4050,9 @@ public class VolumeIngestionUtil {
             Set<DataObject> updatedObjects, DbClient dbClient) {
         _logger.info("Ingesting all volumes associated with RP consistency group");
 
-        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(requestContext, umpset, dbClient);
-        BlockConsistencyGroup cg = VolumeIngestionUtil.createRPBlockConsistencyGroup(pset, dbClient);
+        ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(requestContext, unManagedVolume, umpset, dbClient);
+        BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(requestContext, unManagedVolume, pset, dbClient);
+
         List<Volume> volumes = new ArrayList<Volume>();
         StringSet managedVolumesInDB = new StringSet(pset.getVolumes());
         // First try to get the RP volumes from the updated objects list. This will have the latest info for
@@ -4031,7 +4077,7 @@ public class VolumeIngestionUtil {
             }
 
             for (String remainingVolumeId : managedVolumesInDB) {
-                BlockObject bo = requestContext.findCreatedBlockObject(URI.create(remainingVolumeId));
+                BlockObject bo = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(remainingVolumeId));
                 if (null != bo && bo instanceof Volume) {
                     _logger.info("\tadding volume object " + bo.forDisplay());
                     volumes.add((Volume) bo);
@@ -4055,6 +4101,7 @@ public class VolumeIngestionUtil {
         if (rpContext != null) {
             _logger.info("setting managed BlockConsistencyGroup on RecoverPoint context {} to {}", rpContext, cg);
             rpContext.setManagedBlockConsistencyGroup(cg);
+            rpContext.getCGObjectsToCreateMap().put(cg.getId().toString(), cg);
             _logger.info("setting managed ProtectionSet on RecoverPoint context {} to {}", rpContext, pset);
             rpContext.setManagedProtectionSet(pset);
         } else {

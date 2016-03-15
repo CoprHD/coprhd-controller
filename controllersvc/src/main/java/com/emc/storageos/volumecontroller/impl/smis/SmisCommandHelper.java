@@ -43,8 +43,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import sun.net.util.IPAddressUtil;
-
 import com.emc.storageos.cimadapter.connections.cim.CimConnection;
 import com.emc.storageos.cimadapter.connections.cim.CimConstants;
 import com.emc.storageos.cimadapter.connections.cim.CimObjectPathCreator;
@@ -100,6 +98,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Sets;
+
+import sun.net.util.IPAddressUtil;
 
 /**
  * Helper for Smis commands
@@ -7179,31 +7179,9 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
-     * BlockSnapshot instances associated to an BlockSnapshotSession will have its replicationGroupName field set in a
-     * different format than regular BlockSnapshot instances, e.g. system-serial+groupName.
-     *
-     * This method will extract and return only the group name, if required.
-     *
-     * @param groupName Replication group name, possibly containing the system serial.
-     * @return Replication group name.
-     */
-    public String extractGroupName(String groupName) {
-        Pattern p = Pattern.compile("^\\S+\\+(\\S+)$");
-        Matcher matcher = p.matcher(groupName);
-
-        if (matcher.matches()) {
-            return matcher.group(1);
-        }
-        return groupName;
-    }
-
-    /**
-     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group
-     * name
-     * and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost replication
-     * group.
-     *
-     * @param system
+     * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group name 
+     * and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost replication group. 
+     * @param system 
      * @param replicationSvc
      * @param replicaReplicationGroupName
      * @param sourceReplicationGroupName
@@ -7226,7 +7204,7 @@ public class SmisCommandHelper implements SmisConstants {
             }
         }
         if (removeEntry == null) {
-            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName,
+            _log.info(String.format("The SFS entry is not found for the replica group %s and source group %s", replicaReplicationGroupName, 
                     sourceReplicationGroupName));
             return;
         }

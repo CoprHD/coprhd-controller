@@ -6299,6 +6299,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
        if (removeVolumeList != null && !removeVolumeList.isEmpty()) {
            Volume vol = _dbClient.queryObject(Volume.class, removeVolumeList.get(0));
            URI cgUri = vol.getConsistencyGroup();
+            String groupName = vol.getReplicationGroupInstance();
            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
            // call ReplicaDeviceController
            waitFor = _replicaDeviceController.addStepsForRemovingVolumesFromCG(workflow, waitFor, cgUri, removeVolumeList, opId);
@@ -6308,10 +6309,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                    waitFor, storage, storageSystem.getSystemType(),
                    this.getClass(),
                    removeFromConsistencyGroupMethod(storage, cgUri, removeVolumeList, false),
-                   addToConsistencyGroupMethod(storage, cgUri, null, removeVolumeList), null);
+                   addToConsistencyGroupMethod(storage, cgUri, groupName, removeVolumeList), null);
 
            // remove replication group if the CG will become empty
-           String groupName = vol.getReplicationGroupInstance();
            if (ControllerUtils.replicationGroupHasNoOtherVolume(_dbClient, groupName, removeVolumeList, storage)) {
                waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                        String.format("Deleting replication group for consistency group %s", cgUri.toString()),

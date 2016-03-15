@@ -851,7 +851,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private ProtectionSet createProtectionSet(RecoverPointVolumeIngestionContext volumeContext) {
         UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
-        ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(volumeContext, umpset, _dbClient);
+        ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(
+                volumeContext, volumeContext.getUnmanagedVolume(), umpset, _dbClient);
         volumeContext.setManagedProtectionSet(pset);
         return pset;
     }
@@ -864,7 +865,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private BlockConsistencyGroup createBlockConsistencyGroup(RecoverPointVolumeIngestionContext volumeContext) {
         ProtectionSet pset = volumeContext.getManagedProtectionSet();
-        BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(volumeContext, pset, _dbClient);
+        BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(
+                volumeContext, volumeContext.getUnmanagedVolume(), pset, _dbClient);
         volumeContext.setManagedBlockConsistencyGroup(cg);
         return cg;
     }

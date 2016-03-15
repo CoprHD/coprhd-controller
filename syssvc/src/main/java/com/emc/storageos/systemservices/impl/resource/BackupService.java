@@ -592,7 +592,6 @@ public class BackupService {
             sysClient.post(restoreURL, null, null);
         }catch (Exception e) {
             String errMsg = String.format("Failed to send %s to %s", restoreURL, endpoint);
-            log.error(errMsg);
             setRestoreFailed(backupName, errMsg, e);
         }
     }
@@ -701,6 +700,7 @@ public class BackupService {
     }
 
     private Response setRestoreFailed(String backupName, String msg, Throwable cause) {
+        log.error("Set restore failed backup name:{} error: {} cause: {} ", new Object[] {backupName, msg, cause});
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
         backupOps.setRestoreStatus(backupName, s, msg, false, false);
         throw BackupException.fatals.failedToRestoreBackup(backupName, cause);

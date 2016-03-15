@@ -1954,4 +1954,23 @@ public class ControllerUtils {
         dbClient.queryByConstraint(getBlockSnapshotSessionBySessionInstance(instance), resultList);
         return newArrayList(resultList.iterator());
     }
+
+    /**
+     * returns true if this replication group has already been created
+     * 
+     * @param storage
+     * @param replicationGroupName
+     * @return
+     */
+    public static boolean replicationGroupExists(URI storage, String replicationGroupName, DbClient dbClient) {
+        Iterator<BlockConsistencyGroup> allCgs = dbClient.queryIterativeObjects(BlockConsistencyGroup.class,
+                dbClient.queryByType(BlockConsistencyGroup.class, true));
+        while (allCgs.hasNext()) {
+            BlockConsistencyGroup cg = allCgs.next();
+            if (cg.created(storage, replicationGroupName)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

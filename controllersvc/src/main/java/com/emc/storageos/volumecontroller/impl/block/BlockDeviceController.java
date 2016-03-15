@@ -4400,7 +4400,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
 
             // make sure this array consistency group was not just created by another thread that held the lock
-            if (replicationGroupExists(storage, replicationGroupName)) {
+            if (ControllerUtils.replicationGroupExists(storage, replicationGroupName, _dbClient)) {
                 taskCompleter.ready(_dbClient);
                 return true;
             }
@@ -4415,18 +4415,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             return false;
         }
         return true;
-    }
-
-    public boolean replicationGroupExists(URI system, String replicationGroupInstance) {
-        Iterator<BlockConsistencyGroup> allCgs = _dbClient.queryIterativeObjects(BlockConsistencyGroup.class,
-                _dbClient.queryByType(BlockConsistencyGroup.class, true));
-        while (allCgs.hasNext()) {
-            BlockConsistencyGroup cg = allCgs.next();
-            if (cg.created(system, replicationGroupInstance)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public String addStepToAddToConsistencyGroup(Workflow workflow, URI storage, URI consistencyGroup, String replicationGroupName,

@@ -45,10 +45,7 @@ function watchDatatableField(datatable, itemsJson, fieldName, triggerValues, fie
         if (ids.length > 0) {
             var url = itemsJson({ids: ids.join(",")});
             var request = $.get(url, function(results) {
-                updateDatatableRows(datatable, results, fieldsToUpdate);
-                if (ids.length > results.length) {
-                    removeDatatableRows(datatable, ids, results);
-                }
+                updateDatatableRows(datatable, results, fieldsToUpdate, ids);
             }).always(function () {
                 window.setTimeout(update, frequency);
             });
@@ -59,18 +56,28 @@ function watchDatatableField(datatable, itemsJson, fieldName, triggerValues, fie
 
 /**
  * Updates the datatable rows with the provided items, updating only the fields specified for the matching row.
+ * Also remove the obsolete rows from the datatable.
  * 
  * @param datatable the datatable.
  * @param items the items to update.
  * @param fields the fields to update.
+ * @param ids the ids in the request. (optional)
  */
-function updateDatatableRows(datatable, items, fields) {
+function updateDatatableRows(datatable, items, fields, ids) {
     // Convert items to associative array (by ID)
     var data = new Array();
     for (var i = 0; i < items.length; i++) {
         data[items[i].id] = items[i];
     }
-    
+
+    // Use an associative array instead of Array.protocol.indexOf to support IE7/8.
+    var request = new Array();
+    if (ids) {
+        for (var i = 0; i < ids.length; i++) {
+            request[ids[i]] = true;
+        }
+    }
+
     var updates = false;
     var rows = datatable.fnGetData();
     for (var i = 0; i < rows.length; i++) {
@@ -91,40 +98,13 @@ function updateDatatableRows(datatable, items, fields) {
                 updates = true;
                 datatable.fnUpdate(row, i, undefined, false, false);
             }
-        }
-    }
-    
-    if (updates) {
-        datatable.fnStandingRedraw();
-    }
-}
-
-/**
- * Remove obsolete datatable rows with the provided items.
- *
- * @param datatable the datatable.
- * @param inputs the ids sent to server.
- * @param items the items received from server.
- */
-function removeDatatableRows(datatable, inputs, items) {
-    // Get an array of ids from the result
-    var outputs = [];
-    for (var i = 0; i < items.length; i++) {
-        outputs[i] = items[i].id;
-    }
-
-    var updates = false;
-    var rows = datatable.fnGetData();
-    for (var i = 0; i < rows.length; i++) {
-        var row = rows[i];
-
-        if (inputs.indexOf(row.id) != -1 && outputs.indexOf(row.id) == -1) {
+        } else if (ids && request[row.id]) {
             // if the server data doesn't contain an id specified in the request, delete the corresponding row from datatable
             updates = true;
             datatable.fnDeleteRow(i, null, false);
         }
     }
-
+    
     if (updates) {
         datatable.fnStandingRedraw();
     }

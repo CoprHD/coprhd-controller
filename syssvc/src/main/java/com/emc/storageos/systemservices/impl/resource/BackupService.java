@@ -354,7 +354,7 @@ public class BackupService {
         job.setStatus(Status.PENDING);
 
         log.info("Upload job={}", job);
-        
+
         SchedulerConfig cfg = backupScheduler.getCfg();
         cfg.persistBackupUploadStatus(job);
 
@@ -379,7 +379,7 @@ public class BackupService {
         log.info("Received get upload status request, backup tag={}", backupTag);
         try {
             BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag);
-            log.info("lby Current upload status is: {}", uploadStatus);
+            log.info("Current upload status is: {}", uploadStatus);
             return uploadStatus;
         } catch (Exception e) {
             log.error("Failed to get upload status", e);

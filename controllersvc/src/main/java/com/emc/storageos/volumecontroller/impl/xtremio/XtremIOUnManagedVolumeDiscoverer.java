@@ -621,27 +621,26 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     !matchedFCInitiators.isEmpty() ? knownFCStoragePortUris : knownIPStoragePortUris);
 
             updateZoningMap(mask, matchedFCInitiators, matchedFCPorts);
-
-            if (!unManagedExportMasksToCreate.isEmpty()) {
-                partitionManager.insertInBatches(unManagedExportMasksToCreate,
-                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
-                unManagedExportMasksToCreate.clear();
-            }
-            if (!unManagedExportMasksToUpdate.isEmpty()) {
-                partitionManager.updateInBatches(unManagedExportMasksToUpdate,
-                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
-                unManagedExportMasksToUpdate.clear();
-            }
-
-            if (!unManagedExportVolumesToUpdate.isEmpty()) {
-                partitionManager.updateAndReIndexInBatches(unManagedExportVolumesToUpdate,
-                        Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
-                unManagedExportVolumesToUpdate.clear();
-            }
-
-            DiscoveryUtils.markInActiveUnManagedExportMask(systemId, allCurrentUnManagedExportMaskUris, dbClient, partitionManager);
-
         }
+        
+        if (!unManagedExportMasksToCreate.isEmpty()) {
+            partitionManager.insertInBatches(unManagedExportMasksToCreate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
+            unManagedExportMasksToCreate.clear();
+        }
+        if (!unManagedExportMasksToUpdate.isEmpty()) {
+            partitionManager.updateInBatches(unManagedExportMasksToUpdate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_EXPORT_MASK);
+            unManagedExportMasksToUpdate.clear();
+        }
+
+        if (!unManagedExportVolumesToUpdate.isEmpty()) {
+            partitionManager.updateAndReIndexInBatches(unManagedExportVolumesToUpdate,
+                    Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
+            unManagedExportVolumesToUpdate.clear();
+        }
+
+        DiscoveryUtils.markInActiveUnManagedExportMask(systemId, allCurrentUnManagedExportMaskUris, dbClient, partitionManager);
 
     }
 

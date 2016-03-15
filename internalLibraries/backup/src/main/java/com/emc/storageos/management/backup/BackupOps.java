@@ -591,6 +591,15 @@ public class BackupOps {
         updateRestoreStatus(backupName, null, null, null, size, false, null, false, doLock);
     }
 
+    public long getSizeToDownload(String backupName) throws UnknownHostException {
+        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
+        Map<String, Long> map = s.getSizeToDownload();
+
+        String localHostName = InetAddress.getLocalHost().getHostName();
+
+        return map.get(localHostName);
+    }
+
     public void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, String details,
                                      Map<String, Long>downloadSize, long increasedSize, boolean increaseCompletedNodeNumber,
                                      List<String> backupfileNames, boolean doLog, boolean doLock) {

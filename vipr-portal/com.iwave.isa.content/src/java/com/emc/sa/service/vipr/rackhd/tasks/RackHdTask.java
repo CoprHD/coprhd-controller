@@ -2,49 +2,51 @@ package com.emc.sa.service.vipr.rackhd.tasks;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 
-import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.rackhd.RackHdUtils;
 import com.emc.sa.service.vipr.rackhd.gson.AffectedResource;
-import com.emc.sa.service.vipr.rackhd.gson.ViprOperation;
+import com.emc.sa.service.vipr.rackhd.gson.Context;
+import com.emc.sa.service.vipr.rackhd.gson.FinishedTask;
+import com.emc.sa.service.vipr.rackhd.gson.Job;
+import com.emc.sa.service.vipr.rackhd.gson.RackHdWorkflow;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClient;
 import com.emc.storageos.rackhd.api.restapi.RackHdRestClientFactory;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.sun.jersey.api.client.ClientResponse;
 
 public class RackHdTask extends ViPRExecutionTask<String> {
 
+    private static final String RACKHD_API_NODES = "/api/1.1/nodes"; //include leading slash
     private static final String RACKHD_API_WORKFLOWS = "/api/1.1/workflows";
-    private static final String RACKHD_API_NODES = "/api/1.1/nodes";
     private static final int RACKHD_WORKFLOW_CHECK_INTERVAL = 10; // secs
 
     //TODO: move these hard-coded strings out
     private static final String USER = "root";
     private static final String PASSWORD = "ChangeMe1!";
     private static final String RACKHDSCHEME = "http"; // include, else URI.resolve(..) fails
-    private static final String RACKHDSERVER = "localhost";
+    private static final String RACKHDSERVER = "lgloc189.lss.emc.com";
     private static final String RACKHDSERVERPORT = "8080";
 
-    private static final String NODE_NULL_VALUE = "null";
-    
+    private static final Gson gson = new Gson();
+
     private Map<String, Object> params;
     private String workflowName;
-    private List<String> playbookNameList;
-    private RackHdRestClient restClient;
-    private String nodeId;
+    private String playbookName;
 
-    public RackHdTask(Map<String, Object> params, String workflowName, List<String> playbookNameList, String nodeId) {
+    private RackHdRestClient restClient;
+
+    public RackHdTask(Map<String, Object> params, String workflowName, String playbookName) {
         super();
         this.params = params;
         this.workflowName = workflowName;
-        this.playbookNameList = playbookNameList;
-        this.nodeId = nodeId;
+        this.playbookName = playbookName;
 
         //init rest client
         RackHdRestClientFactory factory = new RackHdRestClientFactory();
@@ -56,82 +58,40 @@ public class RackHdTask extends ViPRExecutionTask<String> {
         factory.init();
         String endpoint = RACKHDSCHEME + "://" + 
                 RACKHDSERVER + ":" + RACKHDSERVERPORT;
-        restClient = (RackHdRestClient) factory.
-                getRESTClient(URI.create(endpoint), USER, PASSWORD, true);
+        restClient = (RackHdRestClient) factory.getRESTClient(URI.create(endpoint), USER, PASSWORD, true);
     }
-
-
-    int intervals = 0;
-    boolean timedOut = false;
 
     @Override
     public String executeTask() throws Exception {
-        String workflowResponse = null; 
 
-        String workflowId = startWorkflow();
-        List<URI> tasksStartedByRackHd = new ArrayList<>();
-        do {
-            workflowResponse = getRackHdWorkflowResponse(workflowId);
-            for(String ansibleResult : RackHdUtils.getAnsibleResults(workflowResponse)){
-                // see if it refers to an Operation with ViPR Tasks
-                ViprOperation viprOperation = RackHdUtils.parseViprTasks(ansibleResult);
-                if(viprOperation != null) {
-                    RackHdUtils.updateAffectedResources(viprOperation);
-                    List<TaskResourceRep> viprTaskIds = RackHdUtils.locateTasksInVipr(viprOperation,getClient());
-                    for(TaskResourceRep task : viprTaskIds ) {
-                        if(!tasksStartedByRackHd.contains(task)) {
-                            addOrderIdTag(task.getId());
-                            tasksStartedByRackHd.add(task.getId());
-                            ExecutionUtils.currentContext().logInfo("RackHD started " + 
-                                    " task '" + task.getName()+ "'  " +
-                                    task.getResource().getName()); 
-                        }
-                    }
-                } 
-                // else see if it's a list of resources
-                AffectedResource[] rsrcList = null;
-                if (viprOperation == null) {
-                    rsrcList = RackHdUtils.parseResourceList(ansibleResult);
-                    if(rsrcList != null) {
-                        RackHdUtils.updateAffectedResources(rsrcList);
-                    } 
-                }
-                // if neither, log result
-                if ((viprOperation == null) && (rsrcList == null)) {
-                    ExecutionUtils.currentContext().logInfo("A RackHD Workflow " + 
-                            "result was not recognized as a ViPR Task or " +
-                            "list of Affected Resources in ViPR: " + ansibleResult);
-                }
+        String nodeListResponse = makeRestCall(RACKHD_API_NODES);
+        String nodeId = RackHdUtils.getAnyNode(nodeListResponse);         
+        //info("MENDES: Will execute against node ID " + nodeId);
+
+        String apiWorkflowUri = "/api/1.1/nodes/" + nodeId + "/workflows";
+
+        String workflowResponse = makeRestCall(apiWorkflowUri,
+                RackHdUtils.makePostBody(params, workflowName,playbookName));
+
+        // Get results - wait for RackHD workflow to complete
+
+        int intervals = 0;
+        while ( !RackHdUtils.isWorkflowComplete(workflowResponse) ||  // does complete flag matter?
+                RackHdUtils.isWorkflowValid(workflowResponse) ) { // status not updated from 'valid' even when complete?!
+            RackHdUtils.sleep(RACKHD_WORKFLOW_CHECK_INTERVAL);
+            workflowResponse = makeRestCall(RACKHD_API_WORKFLOWS + "/" + 
+                    RackHdUtils.getWorkflowTaskId(workflowResponse));
+            //updateAffectedResources(workflowResponse);
+            if( RackHdUtils.isTimedOut(++intervals) ) {
+                error("RackHD workflow " + 
+                        RackHdUtils.getWorkflowTaskId(workflowResponse) + 
+                        " timed out.");
+                break;
             }
-        } while (RackHdUtils.isWorkflowRunning(workflowResponse) && !timedOut);
-        RackHdUtils.waitForTasks(tasksStartedByRackHd,getClient());
+        }
         return workflowResponse;
     }
 
-    private String getRackHdWorkflowResponse(String workflowId) {
-        RackHdUtils.sleep(RACKHD_WORKFLOW_CHECK_INTERVAL);
-        if( RackHdUtils.isTimedOut(++intervals) ) {
-            ExecutionUtils.currentContext().logError("RackHD Workflow " +
-                    workflowId + " timed out.");
-            timedOut = true;
-        }      
-        return makeRestCall(RACKHD_API_WORKFLOWS + "/" + workflowId); 
-    }
-
-    private String startWorkflow() {
-        String apiWorkflowUri = RACKHD_API_WORKFLOWS;
-        if( (nodeId != null) && (!nodeId.equals(NODE_NULL_VALUE)) ){
-            //TODO: instead of checking for "null", check for valid RackHD nodeID
-            apiWorkflowUri = RACKHD_API_NODES + "/" + nodeId + "/workflows";
-        }
-        String postBody = RackHdUtils.makePostBody(params,workflowName,playbookNameList);
-        String workflowResponse = makeRestCall(apiWorkflowUri, postBody);
-        String workflowId = RackHdUtils.getWorkflowId(workflowResponse);
-        ExecutionUtils.currentContext().logInfo("Started Workflow on RackHD.  " +
-                "ID " + workflowId + "  API Call: POST " + apiWorkflowUri + 
-                " with body " + postBody);
-        return workflowId;
-    }
 
     private String makeRestCall(String uriString) {
         return makeRestCall(uriString,null);

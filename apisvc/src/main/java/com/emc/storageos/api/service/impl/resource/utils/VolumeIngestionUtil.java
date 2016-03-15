@@ -2872,7 +2872,7 @@ public class VolumeIngestionUtil {
         if (unManagedVolume != null) {
             UnManagedVolume loadedUnmanagedVolume = requestContext.findDataObjectByType(UnManagedVolume.class, unManagedVolume.getId(),
                     false);
-            unManagedVolume = loadedUnmanagedVolume != null ? loadedUnmanagedVolume : unManagedVolume;
+            unManagedVolume = ((loadedUnmanagedVolume != null) ? loadedUnmanagedVolume : unManagedVolume);
         }
 
         if (unManagedVolume != null) {
@@ -4249,8 +4249,12 @@ public class VolumeIngestionUtil {
      * @return RP protected unmanaged volume, null if not RP protected.
      */
     public static UnManagedVolume getRPUnmanagedVolume(BlockObject blockObject, DbClient dbClient) {
-        UnManagedVolume umVolume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
-        return getRPUnmanagedVolume(umVolume, dbClient);
+        if (blockObject != null) {
+            UnManagedVolume umVolume = getUnManagedVolumeForBlockObject(blockObject, dbClient);
+            return getRPUnmanagedVolume(umVolume, dbClient);
+        }
+
+        return null;
     }
 
     /**

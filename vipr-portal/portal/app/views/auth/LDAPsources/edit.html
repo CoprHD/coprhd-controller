@@ -77,12 +77,14 @@
         var authType = $('#ldapSources_mode').val();
         var group = $('#ldapSources_groupAttribute');
         var search = $('#ldapSources_searchFilter');
+        var serverUrls = $('#ldapSources_serverUrls');
 
         if (!group.val()) {
             group.val('CN');
         }
         if (authType == '${keyStoneType}') {
         	group.val('tenant_id');
+            serverUrls.val('${keystoneServerURL}');
         }
         
         if (authType == '${ldapType}') {

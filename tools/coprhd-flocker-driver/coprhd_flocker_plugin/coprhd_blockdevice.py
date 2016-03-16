@@ -155,6 +155,32 @@ class CoprHDCLIDriver(object):
         except utils.SOSError:
                     Message.new(Debug="coprhd-get_volume_lunid failed").write(_logger)
     
+    @retry_wrapper
+    def get_volume_wwn(self, vol):
+        self.authenticate_user()
+        Message.new(Info="coprhd-get_volume_wwn" + vol).write(_logger)
+        try:
+           volumeuri = self.volume_obj.volume_query(
+                         self.tenant +
+                         "/" +
+                         self.project
+                         + "/" + vol)
+           if not volumeuri:
+            return
+           volumedetails = self.volume_obj.show_by_uri(volumeuri)
+           groupdetails = self.exportgroup_obj.exportgroup_show(
+                         self.hostexportgroup,
+                         self.project,
+                         self.tenant)
+           exportedvolumes =  groupdetails['volumes'] 
+           Message.new(Info="coprhd-get_volume_wwn for loop").write(_logger)
+           for evolumes in exportedvolumes:
+              if volumeuri == evolumes['id']:
+               return volumedetails['wwn']
+           return 
+        except utils.SOSError:
+                    Message.new(Debug="coprhd-get_volume_wwn failed").write(_logger)
+                    
     @retry_wrapper                
     def get_volume_details(self, vol):
         self.authenticate_user()

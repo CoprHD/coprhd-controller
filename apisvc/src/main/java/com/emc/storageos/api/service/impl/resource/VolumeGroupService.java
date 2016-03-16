@@ -56,10 +56,10 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
@@ -92,26 +92,26 @@ import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupSnapshotCreateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotOperationParam;
-import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionCreateParam;
-import com.emc.storageos.model.application.VolumeGroupSnapshotSessionOperationParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionDeactivateParam;
-import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionLinkTargetsParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionOperationParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRelinkTargetsParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
-import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -162,6 +162,7 @@ public class VolumeGroupService extends TaskResourceService {
     private static final String BLOCK = "block";
     private static final String ID_FIELD = "id";
     private static final String NAME_FIELD = "name";
+    private static final String RG_NAME_FIELD = "replication_group_name";
     private static final String VOLUMES_FIELD = "volumes";
     private static final String VOLUME_FIELD = "volume";
     private static final String COPY_SET_NAME_FIELD = "copy_set_name";
@@ -475,7 +476,6 @@ public class VolumeGroupService extends TaskResourceService {
         if (volumeGroup.getInactive()) {
             throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), "The Volume Group has been deleted");
         }
-        checkForApplicationPendingTasks(volumeGroup);
         boolean isChanged = false;
         String vgName = param.getName();
         if (vgName != null && !vgName.isEmpty() && !vgName.equalsIgnoreCase(volumeGroup.getLabel())) {
@@ -1192,18 +1192,30 @@ public class VolumeGroupService extends TaskResourceService {
         List<Volume> fullCopyVolumesInRequest = new ArrayList<Volume>();
         Set<String> setNames = new HashSet<String>();
         for (URI fullCopyURI : fullCopyURIsInRequest) {
+        	String repGroupName = null;
             ArgValidator.checkFieldUriType(fullCopyURI, Volume.class, "volume");
             // Get the full copy.
             Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
                     fullCopyURI, uriInfo, false, _dbClient);
-
+            
+            
+            if(fullCopyVolume.isVPlexVolume(_dbClient)){
+            	Volume backedVol = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume, true, _dbClient);
+                if (backedVol != null) {
+                    repGroupName = backedVol.getReplicationGroupInstance();
+                }
+            } else{
+            	repGroupName = fullCopyVolume.getReplicationGroupInstance();
+            }
+            
+            
             // skip repeated array groups
-            if (arrayGroupNames.contains(fullCopyVolume.getReplicationGroupInstance())) {
+            if (arrayGroupNames.contains(repGroupName)) {
                 log.info("Skipping repetitive request for Full Copy array group {}. Full Copy: {}",
-                        fullCopyVolume.getReplicationGroupInstance(), fullCopyVolume.getLabel());
+                		repGroupName, fullCopyVolume.getLabel());
                 continue;
             }
-            arrayGroupNames.add(fullCopyVolume.getReplicationGroupInstance());
+            arrayGroupNames.add(repGroupName);
 
             verifyReplicaForCopyRequest(fullCopyVolume, volumeGroupUri);
 
@@ -1226,7 +1238,7 @@ public class VolumeGroupService extends TaskResourceService {
         Map<String, Volume> repGroupToFullCopyMap = new HashMap<String, Volume>();
         for (Volume fullCopy : fullCopies) {
             String repGroupName = fullCopy.getReplicationGroupInstance();
-            if (repGroupName == null && fullCopy.isVPlexVolume(_dbClient)) {
+            if (fullCopy.isVPlexVolume(_dbClient)) {
                 // get backend source volume to get RG name
                 Volume backedVol = VPlexUtil.getVPLEXBackendVolume(fullCopy, true, _dbClient);
                 if (backedVol != null) {
@@ -2553,7 +2565,7 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * The method implements the API to re-link a target to either it's current snapshot sessions
+     * The method implements the API to re-link a target to either its current snapshot sessions
      * or to a different snapshot sessions of the same source in the volume group.
      * - Re-links targets for all the array replication groups within this Application.
      * - If partial flag is specified, it re-links targets only for set of array replication groups.
@@ -2983,6 +2995,7 @@ public class VolumeGroupService extends TaskResourceService {
             impactedCGs = new HashSet<URI>();
 
             if (param.hasVolumesToAdd()) {
+                ArgValidator.checkFieldNotEmpty(param.getAddVolumesList().getReplicationGroupName(), RG_NAME_FIELD);
                 addVols = validateAddVolumes(dbClient, param, volumeGroup, impactedCGs);
                 firstVol = addVols.get(0);
             }
@@ -3118,13 +3131,14 @@ public class VolumeGroupService extends TaskResourceService {
                 Set<URI> impactedCGs) {
             String addedVolType = null;
             String firstVolLabel = null;
+            URI consistencyGroupURI = null;
             List<URI> addVolList = param.getAddVolumesList().getVolumes();
             List<Volume> volumes = new ArrayList<Volume>();
             for (URI volUri : addVolList) {
                 ArgValidator.checkFieldUriType(volUri, Volume.class, "id");
                 Volume volume = dbClient.queryObject(Volume.class, volUri);
                 if (volume == null || volume.getInactive()) {
-                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(), "the volume has been deleted");
+                    throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volUri.toString(), "the volume has been deleted");
                 }
 
                 URI cgUri = volume.getConsistencyGroup();
@@ -3133,24 +3147,28 @@ public class VolumeGroupService extends TaskResourceService {
                             "Volume is not in a consistency group");
                 }
 
-                // check mirrors
-                Map<URI, Volume> volumesToUpdate = new HashMap<URI, Volume>();
-                boolean hasMirrors = hasMirrors(dbClient, volume, volumesToUpdate);
-                // clean up stale mirror entries
-                if (!volumesToUpdate.isEmpty()) {
-                    dbClient.updateObject(volumesToUpdate.values());
-                }
-                if (hasMirrors) {
+                if (consistencyGroupURI == null) { // first volume
+                    consistencyGroupURI = cgUri;
+                } else if (!consistencyGroupURI.equals(cgUri)) {
+                    // volume is not from the same CG
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                            "Volume has mirror");
+                            "Volume is not in the same consistency group as others in the same request");
                 }
+
+                BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+                if (cg == null || cg.getInactive()) {
+                    throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
+                            String.format("Consistency group %s does not exist", cgUri));
+                }
+
+                BlockServiceUtils.validateVolumeNoReplica(volume, volumeGroup, dbClient);
 
                 URI systemUri = volume.getStorageController();
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
                 String type = system.getSystemType();
                 if (!ALLOWED_SYSTEM_TYPES.contains(type)) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                            "The storage system type that the volume created in is not allowed ");
+                            "Storage system type that the volume created in is not allowed");
                 }
                 String volType = getVolumeType(volume, dbClient);
                 if (addedVolType == null) {
@@ -3159,7 +3177,7 @@ public class VolumeGroupService extends TaskResourceService {
                 }
                 if (!volType.equals(addedVolType)) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                            "The volume type is not same as others");
+                            "Volume type is not same as others");
                 }
 
                 // check to make sure this volume is not part of another application
@@ -3185,20 +3203,6 @@ public class VolumeGroupService extends TaskResourceService {
                         }
                         dbClient.updateObject(volume);
                         volume = dbClient.queryObject(Volume.class, volume.getId());
-                    }
-                }
-
-                // check to see if the volume in the request is already in a replication group
-                if (param.getAddVolumesList().getReplicationGroupName() != null) {
-                    String replicationGroupInstance = volume.getReplicationGroupInstance();
-                    if (volume.isVPlexVolume(dbClient)) {
-                        replicationGroupInstance = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient).getReplicationGroupInstance();
-                    }
-                    if (NullColumnValueGetter.isNotNullValue(replicationGroupInstance)) {
-                        throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(volume.getLabel(),
-                                String.format(
-                                        "the volume is already a member of an array replication group: %s; Application Sub Group should be left blank",
-                                        replicationGroupInstance));
                     }
                 }
 
@@ -3284,9 +3288,11 @@ public class VolumeGroupService extends TaskResourceService {
                             // check to see if the volume is part of another application or not part of an application
                             VolumeGroup grp = volToCheck.getApplication(dbClient);
                             if (grp == null) {
-                                throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
-                                        String.format("a volume, %s is part of the volume group %s but is not part of any application",
-                                                volToCheck.getLabel(), replicationGroupName));
+                                if (!replicationGroupName.equals(volumeInRepGrp.getReplicationGroupInstance())) {
+                                    throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
+                                            String.format("a volume, %s is part of the volume group %s but is not part of any application",
+                                                    volToCheck.getLabel(), replicationGroupName));
+                                }
                             } else if (!grp.getId().equals(volumeGroup.getId())) {
                                 throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(),
                                         String.format("a volume, %s is part of the volume group %s and is part of another application: %s",
@@ -3298,38 +3304,6 @@ public class VolumeGroupService extends TaskResourceService {
             }
 
             return volumes;
-        }
-
-        /**
-         * @param dbClient
-         * @param volume
-         * @param volumesToUpdate
-         * @return
-         */
-        private boolean hasMirrors(DbClient dbClient, Volume volume, Map<URI, Volume> volumesToUpdate) {
-            boolean hasMirrors = false;
-            StringSet mirrors = volume.getMirrors();
-            if (mirrors == null) {
-                if (volume.isVPlexVolume(dbClient)) {
-                    Volume backingVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient, false);
-                    if (backingVol != null && !backingVol.getInactive()) {
-                        mirrors = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient).getMirrors();
-                    }
-                }
-            }
-            if (mirrors != null) {
-                for (String mirrorId : mirrors) {
-                    BlockMirror mirror = dbClient.queryObject(BlockMirror.class, URI.create(mirrorId));
-                    if (mirror != null && !mirror.getInactive()) {
-                        hasMirrors = true;
-                        break;
-                    } else {
-                        volume.getMirrors().remove(mirrorId);
-                        volumesToUpdate.put(volume.getId(), volume);
-                    }
-                }
-            }
-            return hasMirrors;
         }
 
         /**

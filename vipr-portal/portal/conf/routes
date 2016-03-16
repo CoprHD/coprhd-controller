@@ -131,7 +131,9 @@ GET     /filevirtualpools/edit/{id}             arrays.FileVirtualPools.edit
 GET     /objectvirtualpools/edit/{id}          arrays.ObjectVirtualPools.edit   
 *       /objectvirtualpools/{action}           arrays.ObjectVirtualPools.{action}
 
-GET     /site/edit/{id}          				infra.disasterrecovery.edit   
+GET     /site/edit/{id}          				infra.disasterrecovery.edit
+GET     /site/listPause            				infra.disasterrecovery.list(showPauseButton:'true')
+GET     /site/list                              infra.disasterrecovery.list(showPauseButton:'false')
 *       /site/{action}           				infra.disasterrecovery.{action}
 
 GET     /virtualarrays/edit/{id}                VirtualArrays.edit

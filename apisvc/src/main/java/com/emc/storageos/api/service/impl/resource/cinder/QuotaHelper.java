@@ -364,8 +364,8 @@ public class QuotaHelper {
      */
     public UsageStats getStorageStats(URI vpool, URI projectId) {
         UsageStats objStats = new UsageStats();
-        long totalSnapshotsUsed = 0;
-        long totalSizeUsed = 0;
+        double totalSnapshotsUsed = 0;
+        double totalSizeUsed = 0;
         long totalVolumesUsed = 0;
         URIQueryResultList uris = new URIQueryResultList();
 
@@ -374,8 +374,8 @@ public class QuotaHelper {
             _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualPoolVolumeConstraint(vpool), volUris);
             for (URI voluri : volUris) {
                 Volume volume = _dbClient.queryObject(Volume.class, voluri);
-                if (volume != null && !volume.getInactive()) {
-                    totalSizeUsed += (long) (volume.getAllocatedCapacity() / GB);
+                if (volume != null && !volume.getInactive() && (volume.getProject().getURI().toString().equals(projectId.toString())) ) {
+                    totalSizeUsed +=  ((double)volume.getAllocatedCapacity() / GB);
                     totalVolumesUsed++;
                 }
 
@@ -386,7 +386,7 @@ public class QuotaHelper {
                     BlockSnapshot blockSnap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
                     if (blockSnap != null && !blockSnap.getInactive()) {
                         _log.info("ProvisionedCapacity = {} ", blockSnap.getProvisionedCapacity());
-                        totalSizeUsed += (long) (blockSnap.getProvisionedCapacity() / GB);
+                        totalSizeUsed += ((double)blockSnap.getProvisionedCapacity() / GB);
                         totalSnapshotsUsed++;
                     }
                 }
@@ -398,7 +398,7 @@ public class QuotaHelper {
             for (URI volUri : uris) {
                 Volume volume = _dbClient.queryObject(Volume.class, volUri);
                 if (volume != null && !volume.getInactive()) {
-                    totalSizeUsed += (long) (volume.getAllocatedCapacity() / GB);
+                    totalSizeUsed += ((double)volume.getAllocatedCapacity() / GB);
                     totalVolumesUsed++;
                 }
 
@@ -408,16 +408,16 @@ public class QuotaHelper {
                 for (URI snapUri : snapList) {
                     BlockSnapshot blockSnap = _dbClient.queryObject(BlockSnapshot.class, snapUri);
                     if (blockSnap != null && !blockSnap.getInactive()) {
-                        totalSizeUsed += (long) (blockSnap.getProvisionedCapacity() / GB);
+                        totalSizeUsed += ((double)blockSnap.getProvisionedCapacity() / GB);
                         totalSnapshotsUsed++;
                     }
                 }
             }
         }
 
-        objStats.snapshots = totalSnapshotsUsed;
+        objStats.snapshots = (long)totalSnapshotsUsed;
         objStats.volumes = totalVolumesUsed;
-        objStats.spaceUsed = totalSizeUsed;
+        objStats.spaceUsed = (long)(Math.ceil(totalSizeUsed));
 
         return objStats;
     }

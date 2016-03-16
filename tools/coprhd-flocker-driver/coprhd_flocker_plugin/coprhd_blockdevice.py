@@ -3,7 +3,6 @@
 # See LICENSE file for details..
 
 from uuid import UUID, uuid4
-from oslo.utils import excutils
 from decimal import *
 
 from flocker.node.agents.blockdevice import (
@@ -249,8 +248,7 @@ class CoprHDCLIDriver(object):
                     utils.SOSError.SOS_FAILURE_ERR,
                     "Volume " + name + ": create failed\n" + e.err_text)
             else:
-                with excutils.save_and_reraise_exception():
-                    Message.new(Debug="coprhd create_volume failed").write(_logger)
+                Message.new(Debug="coprhd create_volume failed").write(_logger)
 
     @retry_wrapper
     def unexport_volume(self, vol):
@@ -297,8 +295,7 @@ class CoprHDCLIDriver(object):
                     utils.SOSError.SOS_FAILURE_ERR,
                     "Volume " + name + ": Delete failed\n" + e.err_text)
             else:
-                with excutils.save_and_reraise_exception():
-                    Message.new(Debug="Volume : delete failed").write(_logger)
+                Message.new(Debug="Volume : delete failed").write(_logger)
                 
 @implementer(IProfiledBlockDeviceAPI)        
 @implementer(IBlockDeviceAPI)

@@ -153,7 +153,7 @@ public class QosService extends TaskResourceService {
         Iterator<QosSpecification> qosIter = _dbClient.queryIterativeObjects(QosSpecification.class, qosSpecsURI);
         while (qosIter.hasNext()) {
             QosSpecification activeQos = qosIter.next();
-            if(activeQos != null){
+            if(activeQos != null && hasTenantUsageAclOnQos(activeQos)){
                 _log.debug("Qos Specification found, id: {}", activeQos.getId());
                 qosListResp.getQos_specs().add(getDataFromQosSpecification(activeQos));
             }
@@ -185,7 +185,7 @@ public class QosService extends TaskResourceService {
 
         URI qos_URI = URIUtil.createId(QosSpecification.class, qos_id);
         QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, qos_URI);
-        if(qosSpecification != null){
+        if(qosSpecification != null && hasTenantUsageAclOnQos(qosSpecification)){
             _log.debug("Fetched Qos Specification, id: {}", qosSpecification.getId());
             qosDetailed.qos_spec = getDataFromQosSpecification(qosSpecification);
             // Self link points on a Virtual Pool assigned to Qos
@@ -327,7 +327,7 @@ public class QosService extends TaskResourceService {
 
         URI qos_URI = URIUtil.createId(QosSpecification.class, qos_id);
         QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, qos_URI);
-        if (qosSpecification != null) {
+        if (qosSpecification != null && hasTenantUsageAclOnQos(qosSpecification)) {
             objQosRestResp.getAssociation().add(getQosAssociation(qosSpecification));
         }
 
@@ -360,6 +360,20 @@ public class QosService extends TaskResourceService {
         cinderQosAssociation.id = qosSpecs.getVirtualPoolId().toString();
         cinderQosAssociation.association_type = "volume_type";
         return cinderQosAssociation;
+    }
+
+    /**
+     * Checks whether user's tenant has usage ACL on QoS
+     *
+     * @param qos Quality of Service
+     * @return true if tenant has usage ACL, false otherwise
+     */
+    private boolean hasTenantUsageAclOnQos(QosSpecification qos){
+        StorageOSUser user = getUserFromContext();
+        URI tenantId = URI.create(user.getTenantId());
+
+        VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, qos.getVirtualPoolId());
+        return _permissionsHelper.tenantHasUsageACL(tenantId, virtualPool);
     }
 
 

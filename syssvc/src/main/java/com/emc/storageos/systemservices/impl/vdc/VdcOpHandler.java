@@ -722,12 +722,10 @@ public abstract class VdcOpHandler {
                 
                 updateSwitchoverSiteState(site, SiteState.ACTIVE, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_ACTIVE, site.getNodeCount());
             } else {
-                coordinator.stopCoordinatorSvcMonitor();
                 isRebootNeeded = false;
                 flushVdcConfigToLocal();
                 proccessSingleNodeSiteCase();
                 refreshCoordinator();
-                coordinator.startCoordinatorSvcMonitor();
             }
         }
 

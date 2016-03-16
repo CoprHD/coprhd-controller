@@ -61,11 +61,11 @@ public class ScaleIOHelper {
      */
     public static boolean isFromSameStorageSystem(List<VolumeSnapshot> snapshots) {
         boolean isSameSys = false;
-        if (snapshots != null && snapshots.size() > 0) {
+        if (snapshots != null && !snapshots.isEmpty()) {
             String storageSystemId = snapshots.get(0).getStorageSystemId();
             isSameSys = true;
             for (VolumeSnapshot snapshot : snapshots) {
-                if (snapshot.getStorageSystemId() != storageSystemId) {
+                if (!snapshot.getStorageSystemId().equals(storageSystemId)) {
                     isSameSys = false;
                     break;
                 }
@@ -82,11 +82,11 @@ public class ScaleIOHelper {
      */
     public static boolean isFromSameCGgroup(List<VolumeSnapshot> snapshots) {
         boolean isSameCG = false;
-        if (snapshots != null && snapshots.size() > 0) {
+        if (snapshots != null && !snapshots.isEmpty()) {
             String groupId = snapshots.get(0).getConsistencyGroup();
             isSameCG = true;
             for (VolumeSnapshot snapshot : snapshots) {
-                if (snapshot.getConsistencyGroup() != groupId) {
+                if (!snapshot.getConsistencyGroup().equals(groupId)) {
                     isSameCG = false;
                     break;
                 }
@@ -112,11 +112,11 @@ public class ScaleIOHelper {
      */
     public static boolean isFromSameStorageSystemClone(List<VolumeClone> clones) {
         boolean isSameCG = false;
-        if (clones != null && clones.size() > 0) {
+        if (clones != null && !clones.isEmpty()) {
             String storageSystemId = clones.get(0).getStorageSystemId();
             isSameCG = true;
             for (VolumeClone clone  : clones) {
-                if (clone.getStorageSystemId() != storageSystemId) {
+                if (!clone.getStorageSystemId().equals(storageSystemId)) {
                     isSameCG = false;
                     break;
                 }
@@ -133,11 +133,11 @@ public class ScaleIOHelper {
      */
     public static boolean isFromSameCGgroupClone(List<VolumeClone> clones) {
         boolean isSameCG = false;
-        if (clones != null && clones.size() > 0) {
+        if (clones != null && !clones.isEmpty()) {
             String groupId = clones.get(0).getConsistencyGroup();
             isSameCG = true;
             for (VolumeClone clone : clones) {
-                if (clone.getConsistencyGroup() != groupId) {
+                if (!clone.getConsistencyGroup().equals(groupId)) {
                     isSameCG = false;
                     break;
                 }

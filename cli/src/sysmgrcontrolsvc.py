@@ -781,7 +781,7 @@ def trigger_dbconsistency_check_parser(subcommand_parsers, common_parser):
                                                        parents=[common_parser],
                                                        conflict_handler='res' +
                                                        'olve',
-                                                       help='TRIGGER DB Consistency check')
+                                                       help='Trigger DB Consistency check')
 
     trigger_dbconsistency_check_parser.set_defaults(func=db_con_check)
 

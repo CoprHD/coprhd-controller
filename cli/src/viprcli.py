@@ -92,7 +92,7 @@ common_parser.add_argument('-hostname', '-hn',
                            metavar='<hostname>',
                            default=vipr_ip,
                            dest='ip',
-                           help='Hostname (fully qualifiled domain name) ' +
+                           help='Hostname (fully qualified domain name) ' +
                            'or IPv4 address (i.e. 192.0.2.0) or IPv6 address' +
                            ' inside quotes and brackets ' +
                            '(i.e. "[2001:db8::1]") of ViPR')

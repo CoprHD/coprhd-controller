@@ -4205,7 +4205,7 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Giver 2 strings: str1 and str2, this method concatenates them by using the delimeter
      * and restricting the size of the resulting string to maxLength.
-     * 
+     *
      * Did not want to use NameGenerator._generate as that takes three inputs and if the third input
      * is null it appends a random UUID - which we do not want in the users of this method.
      */
@@ -6900,14 +6900,14 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Creates an explicitly sized array of generic type T, containing the given value for all its elements.
-     * 
+     *
      * Example:
      * toMultiElementArray(2, true); => boolean[] array = new boolean[2] { true, true};
-     * 
+     *
      * @param count size of the array
      * @param value value for each element
      * @param <T> type of array
-     * 
+     *
      * @return Array of T, containing the same value for each element.
      */
     public static <T> T[] toMultiElementArray(int count, T value) {
@@ -6927,10 +6927,10 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Get source object for a replica.
-     * 
+     *
      * @param dbClient
      * @param replica
-     * 
+     *
      * @return source object
      */
     public BlockObject getSource(BlockObject replica) {
@@ -6967,13 +6967,13 @@ public class SmisCommandHelper implements SmisConstants {
 
     /*
      * Get ReplicationSettingData instance.
-     * 
+     *
      * @param storageSystem A reference to the storage system
-     * 
+     *
      * @param elementName An optional name for the instance
-     * 
+     *
      * @param desiredValue DesiredCopyMethodology value
-     * 
+     *
      * @param steTargetSupplier Whether or not the TargetElementSupplier should also be specified.
      */
     @SuppressWarnings("rawtypes")
@@ -7177,10 +7177,9 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Remove EMCSFSEntry containing the groupSynchronized information. It would find the entry using the clone/snapshot replication group
-     * name
-     * and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost replication
-     * group.
-     * 
+     * name and source replication group name, then remove it. This operation is necessary before deleting an attached clone/snaphost
+     * replication group.
+     *
      * @param system the storage system
      * @param replicationSvc the replication service
      * @param replicaReplicationGroupName the replica replication group name
@@ -7225,7 +7224,6 @@ public class SmisCommandHelper implements SmisConstants {
      * @param system
      * @param replicationSvc
      * @param sourceReplicationGroupName
-     * @return
      */
     public void removeSFSEntryForReplicaReplicationGroup(StorageSystem system,
             CIMObjectPath replicationSvc,

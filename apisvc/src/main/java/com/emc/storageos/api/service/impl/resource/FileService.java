@@ -3763,9 +3763,9 @@ public class FileService extends TaskResourceService {
                     isSupported = true;
                 break;
 
-            // RESUME operation can be performed only if Mirror status is SUSPENDED.
+            // RESUME operation can be performed only if Mirror status is PAUSED.
             case "resume":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SUSPENDED.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.PAUSED.toString()))
                     isSupported = true;
                 break;
 

@@ -467,17 +467,6 @@ public interface CoordinatorClient {
     public LeaderSelector getLeaderSelector(String siteId, String leaderPath, LeaderSelectorListener listener) throws CoordinatorException;
 
     /**
-     * Get target info
-     * 
-     * @param clazz
-     * @param id
-     * @param kind
-     * @return
-     * @throws Exception
-     */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind) throws CoordinatorException;
-
-    /**
      * Set Target info
      * 
      * @param info

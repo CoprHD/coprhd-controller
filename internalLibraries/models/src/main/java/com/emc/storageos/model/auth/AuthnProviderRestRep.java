@@ -39,7 +39,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     /**
      * Description of the provider
-     * 
+     *
      */
     @XmlElement(name = "description")
     public String getDescription() {
@@ -54,7 +54,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
      * Specifies if a provider is disabled or enabled.
      * During the operation of the system, a disabled provider will exist but
      * not be considered when authenticating principals.
-     * 
+     *
      */
     @XmlElement(name = "disable")
     public Boolean getDisable() {
@@ -69,7 +69,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
      * Specifies if OpenStack Projects will be auto-registered as Tenants in CoprHD.
      *
      */
-    @XmlElement(name = "autoRegCoprHDNImportOSProjects")
+    @XmlElement(name = "autoreg_coprhd_import_osprojects")
     public Boolean getAutoRegCoprHDNImportOSProjects() {
         return autoRegCoprHDNImportOSProjects;
     }
@@ -100,7 +100,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     /**
      * Attribute for group search. This is the attribute name that will be used to represent group membership.
-     * 
+     *
      */
     @XmlElement(name = "group_attribute")
     public String getGroupAttribute() {
@@ -136,7 +136,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     /**
      * Distinguished Name for the bind user.
-     * 
+     *
      */
     @XmlElement(name = "manager_dn")
     public String getManagerDN() {
@@ -193,7 +193,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
     /**
      * Search base from which the LDAP search will start when authenticating
      * users. See also: search_scope
-     * 
+     *
      */
     @XmlElement(name = "search_base")
     public String getSearchBase() {
@@ -206,7 +206,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     /**
      * Key value pair representing the search filter criteria.
-     * 
+     *
      *        user. %u is user@company.com)
      */
     @XmlElement(name = "search_filter")
@@ -224,7 +224,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
      * Valid values:
      *  ONELEVEL = The search will start at the search_base location and continue up to one level deep
      *  SUBTREE = The search will start at the search_base location and continue through the entire tree
-     * 
+     *
      */
     @XmlElement(name = "search_scope")
     public String getSearchScope() {
@@ -253,7 +253,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     /**
      * Attribute for group's objectClass search. This is the attribute name that will be used to represent group's name.
-     * 
+     *
      */
     @XmlElementWrapper(name = "group_object_classes")
     @XmlElement(name = "group_object_class")
@@ -270,7 +270,7 @@ public class AuthnProviderRestRep extends DataObjectRestRep {
 
     /**
      * Attribute for group's member search. This is the attribute name that will be used to represent group members.
-     * 
+     *
      */
     @XmlElementWrapper(name = "group_member_attributes")
     @XmlElement(name = "group_member_attribute")

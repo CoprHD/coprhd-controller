@@ -132,7 +132,14 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
-            cmdResult = this.doPauseReplicationPolicy(system, policyName);
+            IsilonApi isi = getIsilonDevice(system);
+            IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
+            JobState policyState = policy.getLastJobState();
+
+            if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
+                doCancelReplicationPolicy(system, policyName);
+            }
+            cmdResult = doStopReplicationPolicy(system, policyName);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
             } else {
@@ -147,9 +154,11 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
         BiosCommandResult cmdResult = null;
         if (target.getParentFileShare() != null) {
             String policyName = target.getLabel();
-            cmdResult = this.doResumeReplicationPolicy(system, policyName);
+            cmdResult = doStartReplicationPolicy(system, policyName, completer);
             if (cmdResult.getCommandSuccess()) {
                 completer.ready(_dbClient);
+            } else if (cmdResult.getCommandPending()) {
+                completer.statusPending(_dbClient, cmdResult.getMessage());
             } else {
                 completer.error(_dbClient, cmdResult.getServiceCoded());
             }
@@ -372,7 +381,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                                "doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
+                        "doResumeReplicationPolicy as : Replication Policy Job can't be PAUSED because policy's last job is NOT in RUNNING state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -385,26 +394,26 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      * 
      * @param system
      * @param policyName
-     * @return
+     * 
      */
     public BiosCommandResult doResumeReplicationPolicy(StorageSystem system, String policyName) {
         try {
             IsilonApi isi = getIsilonDevice(system);
             IsilonSyncPolicy policy = isi.getReplicationPolicy(policyName);
-            JobState policyState = policy.getLastJobState();
+            if (!policy.getEnabled()) {
+                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+                modifiedPolicy.setName(policyName);
+                modifiedPolicy.setEnabled(true);
 
-            if (policyState.equals(JobState.paused)) {
-                IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
-                sshDmApi.executeSsh("sync jobs" + " " + "resume" + " " + policyName, "");
-                _log.info("doResumeReplicationPolicy for replication policy {}- finished successfully", policyName);
+                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
+
+                _log.info("Replication Policy - {} ENABLED successfully", policy.toString());
                 return BiosCommandResult.createSuccessfulResult();
-
             } else {
-                _log.error("Replication Policy - {} can't be RESUMED because policy's last job is in {} state", policyName,
-                        policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                                "doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
+                        "doResumeReplicationPolicy as : Replication Policy Job can't be RESUMED because policy's last job is NOT in PAUSED state");
+
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -427,15 +436,18 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
 
             if (policyState.equals(JobState.running) || policyState.equals(JobState.paused)) {
                 _log.info("Canceling Replication Policy  -{} because policy is in - {} state ", policyName, policyState);
-                IsilonSshApi sshDmApi = getIsilonDeviceSsh(system);
-                sshDmApi.executeSsh("sync jobs" + " " + "cancel" + " " + policyName, "");
+                IsilonSyncPolicy modifiedPolicy = new IsilonSyncPolicy();
+                modifiedPolicy.setName(policyName);
+                modifiedPolicy.setLastJobState(JobState.canceled);
+                isi.modifyReplicationPolicy(policyName, modifiedPolicy);
                 return BiosCommandResult.createSuccessfulResult();
+
             } else {
                 _log.error("Replication Policy - {} can't be CANCEL because policy's last job is in {} state", policyName,
                         policyState);
                 ServiceError error = DeviceControllerErrors.isilon
                         .jobFailed(
-                                "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
+                        "doCancelReplicationPolicy as : Replication Policy Job can't be Cancel because policy's last job is NOT in PAUSED state");
                 return BiosCommandResult.createErrorResult(error);
             }
         } catch (IsilonException e) {
@@ -580,7 +592,7 @@ public class IsilonMirrorOperations implements FileMirrorOperations {
      */
     public BiosCommandResult isiResyncPrep(StorageSystem primarySystem, StorageSystem secondarySystem, String policyName,
             TaskCompleter completer)
-                    throws IsilonException {
+            throws IsilonException {
 
         IsilonApi isiPrimary = getIsilonDevice(primarySystem);
         IsilonSyncJob job = new IsilonSyncJob();

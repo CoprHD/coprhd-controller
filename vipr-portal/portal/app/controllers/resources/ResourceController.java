@@ -79,10 +79,7 @@ public class ResourceController extends Controller {
 
     @Util
     public static void setActiveProjectId(String activeProjectId) {
-        if (StringUtils.isNotBlank(activeProjectId)
-                && ResourceType.PROJECT.equals(ResourceType.fromResourceId(activeProjectId))) {
             session.put(ACTIVE_PROJECT_ID, activeProjectId);
-        }
     }
 
 }

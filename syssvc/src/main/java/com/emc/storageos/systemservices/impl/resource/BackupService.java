@@ -707,7 +707,6 @@ public class BackupService {
         log.error("Set restore failed backup name:{} error: {} cause: {} ", new Object[] {backupName, msg, cause});
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
         backupOps.setRestoreStatus(backupName, s, msg, false, false);
-        // throw BackupException.fatals.failedToRestoreBackup(backupName, cause);
     }
 
     /**

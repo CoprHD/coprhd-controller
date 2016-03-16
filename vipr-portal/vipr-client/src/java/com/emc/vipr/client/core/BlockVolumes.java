@@ -451,6 +451,22 @@ public class BlockVolumes extends BulkExportResources<VolumeRestRep> implements 
      *            the ID of the block volume.
      * @param input
      *            the copy configurations.
+     * 
+     * @return tasks for monitoring the progress of the operation.
+     */
+    public Tasks<VolumeRestRep> deactivateContinuousCopies(URI id, CopiesParam input) {
+        return deactivateContinuousCopies(id, input, VolumeDeleteTypeEnum.FULL);
+    }
+
+    /**
+     * Begins deactivating a number of continuous copies for the given block volume.
+     * <p>
+     * API Call: <tt>POST /block/volumes/{id}/protection/continuous-copies/deactivate</tt>
+     * 
+     * @param id
+     *            the ID of the block volume.
+     * @param input
+     *            the copy configurations.
      * @param type
      *            {@code FULL} or {@code VIPR_ONLY}
      * 

@@ -22,12 +22,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
+
 
 
 
@@ -50,6 +52,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.BlockSnapshotSession.CopyMode;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -313,7 +316,7 @@ public class BlockSnapshotSessionManager {
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
         String newTargetsName = null;
-        String newTargetsCopyMode = CopyMode.nocopy.name();
+        String newTargetsCopyMode = BlockSnapshot.CopyMode.nocopy.name();
         SnapshotSessionNewTargetsParam linkedTargetsParam = param.getNewLinkedTargets();
         if (linkedTargetsParam != null) {
             newLinkedTargetsCount = linkedTargetsParam.getCount().intValue();
@@ -336,12 +339,25 @@ public class BlockSnapshotSessionManager {
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
 
+        boolean inApplication = false;
+        if (sourceObj instanceof Volume && ((Volume) sourceObj).getApplication(_dbClient) != null) {
+            inApplication = true;
+        } else if (sourceObj instanceof BlockSnapshot) {
+            BlockSnapshot sourceSnap = (BlockSnapshot) sourceObj;
+            NamedURI namedUri = sourceSnap.getParent();
+            if (!NullColumnValueGetter.isNullNamedURI(namedUri)) {
+                Volume source = _dbClient.queryObject(Volume.class, namedUri.getURI());
+                if (source != null && source.getApplication(_dbClient) != null) {
+                    inApplication = true;
+                }
+            }
+        }
         // Prepare the ViPR BlockSnapshotSession instances and BlockSnapshot
         // instances for any new targets to be created and linked to the
         // snapshot sessions.
         List<Map<URI, BlockSnapshot>> snapSessionSnapshots = new ArrayList<>();
         BlockSnapshotSession snapSession = snapSessionApiImpl.prepareSnapshotSession(snapSessionSourceObjList,
-                snapSessionLabel, newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId);
+                snapSessionLabel, newLinkedTargetsCount, newTargetsName, snapSessionSnapshots, taskId, inApplication);
 
         // Populate the preparedObjects list and create tasks for each snapshot session.
         TaskList response = new TaskList();
@@ -367,10 +383,16 @@ public class BlockSnapshotSessionManager {
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
 
         for (Map<URI, BlockSnapshot> snapshotMap : snapSessionSnapshots) {
+            //Set Copy Mode
+            for (Entry<URI, BlockSnapshot> entry : snapshotMap.entrySet()) {
+                entry.getValue().setCopyMode(newTargetsCopyMode);
+            }
             preparedObjects.addAll(snapshotMap.values());
             Set<URI> uris = snapshotMap.keySet();
             snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
+        // persist copyMode changes
+        _dbClient.updateObject(preparedObjects);
 
         preparedObjects.add(snapSession);
 
@@ -422,12 +444,25 @@ public class BlockSnapshotSessionManager {
 
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
+        boolean inApplication = false;
+        if (snapSessionSourceObj instanceof Volume && ((Volume) snapSessionSourceObj).getApplication(_dbClient) != null) {
+            inApplication = true;
+        } else if (snapSessionSourceObj instanceof BlockSnapshot) {
+            BlockSnapshot sourceSnap = (BlockSnapshot) snapSessionSourceObj;
+            NamedURI namedUri = sourceSnap.getParent();
+            if (!NullColumnValueGetter.isNullNamedURI(namedUri)) {
+                Volume source = _dbClient.queryObject(Volume.class, namedUri.getURI());
+                if (source != null && source.getApplication(_dbClient) != null) {
+                    inApplication = true;
+                }
+            }
+        }
         // Get the target information.
         int newLinkedTargetsCount = param.getNewLinkedTargets().getCount();
         String newTargetsName = param.getNewLinkedTargets().getTargetName();
         String newTargetsCopyMode = param.getNewLinkedTargets().getCopyMode();
         if (newTargetsCopyMode == null) {
-            newTargetsCopyMode = CopyMode.nocopy.name();
+            newTargetsCopyMode = BlockSnapshot.CopyMode.nocopy.name();
         }
 
         // Validate that the requested new targets can be linked to the snapshot session.
@@ -437,7 +472,8 @@ public class BlockSnapshotSessionManager {
         // Prepare the BlockSnapshot instances to represent the new linked targets.
         List<Map<URI, BlockSnapshot>> snapshots = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObjs, 0,
                 newLinkedTargetsCount,
-                newTargetsName);
+                newTargetsName,
+                inApplication);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
@@ -454,10 +490,16 @@ public class BlockSnapshotSessionManager {
 
         List<List<URI>> snapSessionSnapshotURIs = new ArrayList<>();
         for (Map<URI, BlockSnapshot> snapshotMap : snapshots) {
+            //Set Copy Mode
+            for (Entry<URI, BlockSnapshot> entry : snapshotMap.entrySet()) {
+                entry.getValue().setCopyMode(newTargetsCopyMode);
+            }
             preparedObjects.addAll(snapshotMap.values());
             Set<URI> uris = snapshotMap.keySet();
             snapSessionSnapshotURIs.add(Lists.newArrayList(uris));
         }
+        // persist copyMode changes
+        _dbClient.updateObject(preparedObjects);
 
         // Create and link new targets to the snapshot session.
         try {

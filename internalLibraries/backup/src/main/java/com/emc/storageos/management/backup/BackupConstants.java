@@ -101,15 +101,15 @@ public interface BackupConstants {
     int LOCK_TIMEOUT = 1000;
 
     //constants for restore
-    int DOWNLOAD_BUFFER_SIZE=KILOBYTE*4; //4k
+    int DOWNLOAD_BUFFER_SIZE=0x10000;
 
     // The directory to persist downloaded backup files from FTP server
     String RESTORE_DIR= "/data/restore";
 
-    String BACKUP_RESTORE_STATUS = "restorestatus";
-    String LOCAL_RESTORE_KIND_PREFIX=BACKUP_RESTORE_STATUS + "/local";
-    String REMOTE_RESTORE_KIND_PREFIX=BACKUP_RESTORE_STATUS + "/remote";
-    String DOWNLOAD_OWNER_SUFFIX="/owner";
+    String PULL_RESTORE_STATUS = "pull-restore-status";
+    String LOCAL_RESTORE_KIND_PREFIX= PULL_RESTORE_STATUS + "/local";
+    String REMOTE_RESTORE_KIND_PREFIX= PULL_RESTORE_STATUS + "/remote";
+    String DOWNLOAD_OWNER_SUFFIX="/downloaders";
     String RESTORE_LOCK="restore";
     String RESTORE_STATUS_UPDATE_LOCK="restore-status-update";
     String BACKUP_LOCK = "backup";

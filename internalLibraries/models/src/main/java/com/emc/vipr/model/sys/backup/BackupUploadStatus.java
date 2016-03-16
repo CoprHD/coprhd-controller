@@ -121,6 +121,7 @@ public class BackupUploadStatus implements Serializable {
         }
         switch (this.status) {
             case NOT_STARTED:
+            case PENDING:
                 this.progress = null;
                 this.errorCode = null;
                 break;
@@ -149,7 +150,8 @@ public class BackupUploadStatus implements Serializable {
         IN_PROGRESS,  // in progress
         FAILED,       // failed
         DONE,         // success
-        CANCELLED     // upload was cancelled
+        CANCELLED,    // upload was cancelled
+        PENDING,      // the upload task has been accepted but not started yet
     }
 
     /**
@@ -160,7 +162,7 @@ public class BackupUploadStatus implements Serializable {
         FTP_NOT_CONFIGURED,      // FTP server has not been configured
         BACKUP_NOT_EXIST,        // Can not find the target backup files on disk
         INVALID_BACKUP,          // Target backup is invalid
-        UPLOAD_FAILURE           // internal failures during the upload
+        UPLOAD_FAILURE,          // internal failures during the upload
     }
 
 

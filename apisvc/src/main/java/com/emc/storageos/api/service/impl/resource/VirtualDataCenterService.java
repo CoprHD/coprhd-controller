@@ -31,8 +31,10 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.helpers.SecurityUtil;
+import com.emc.vipr.model.sys.ClusterInfo;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.BooleanUtils;
@@ -510,6 +512,14 @@ public class VirtualDataCenterService extends TaskResourceService {
 
         if (!coordinator.isClusterUpgradable()) {
             throw SecurityException.retryables.updatingKeystoreWhileClusterIsUnstable();
+        }
+
+        if (!drUtil.isActiveSite()) {
+            SiteState state = drUtil.getLocalSite().getState();
+            if (state == SiteState.STANDBY_PAUSING ||
+                    state == SiteState.STANDBY_PAUSED || state == SiteState.STANDBY_RESUMING) {
+                throw SecurityException.retryables.failToUpdateKeyStoreDueToStandbyPause();
+            }
         }
 
         Boolean selfsigned = rotateKeyAndCertParam.getSystemSelfSigned();

@@ -10,7 +10,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DrUtil;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
-import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ipsec.IPsecStatus;
 import com.emc.storageos.model.ipsec.IpsecParam;
@@ -244,34 +243,34 @@ public class IPsecManager {
     /**
      * make sure cluster is in stable status
      */
-    public void verifyClusterIsStable() {
+    public void verifyIPsecOpAllowable() {
+        verifyIPsecOpAllowableOverGeo();
+        drUtil.verifyIPsecOpAllowableWithinDR();
+    }
 
-        // in GEO env, check if other vdcs are stable
-        if (drUtil.isMultivdc()) {
-            List<String> vdcIds = drUtil.getOtherVdcIds();
-            for (String peerVdcId : vdcIds) {
-                if (!geoClientManager.getGeoClient(peerVdcId).isVdcStable()) {
-                    log.error(vdcIds + " is not stable");
-                    throw APIException.serviceUnavailable.clusterStateNotStable();
-                }
+    private void verifyIPsecOpAllowableOverGeo() {
+        if (!drUtil.isMultivdc()) {
+            return;
+        }
+
+        // Other VDCs are stable
+        List<String> vdcIds = drUtil.getOtherVdcIds();
+        for (String peerVdcId : vdcIds) {
+            if (!geoClientManager.getGeoClient(peerVdcId).isVdcStable()) {
+                log.error(vdcIds + " is not stable");
+                throw APIException.serviceUnavailable.vdcNotStable(peerVdcId);
             }
         }
 
-        // check if local vdc is stable
-        if (drUtil.isAllSitesStable() && !hasOngoingVdcOp()) {
-            // cluster is stable for ipsec change
-            return;
-        } else {
-            throw APIException.serviceUnavailable.clusterStateNotStable();
-        }
-    }
-
-    private boolean hasOngoingVdcOp() {
+        // No ongoing jobs
         VdcUtil.setDbClient(dbClient);
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
         VirtualDataCenter.ConnectionStatus vdcStatus = localVdc.getConnectionStatus();
-        return ! (vdcStatus.equals(VirtualDataCenter.ConnectionStatus.CONNECTED) ||
-                vdcStatus.equals(VirtualDataCenter.ConnectionStatus.ISOLATED));
+
+        if (! vdcStatus.equals(VirtualDataCenter.ConnectionStatus.CONNECTED) &&
+                ! vdcStatus.equals(VirtualDataCenter.ConnectionStatus.ISOLATED)) {
+            throw APIException.serviceUnavailable.vdcOngingJob(localVdc.getShortId(), vdcStatus.name());
+        }
     }
 
     /**

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration.cg;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -21,6 +22,8 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
  * This Decorator is responsible for decorating CG with the VPLEX Volume properties.
@@ -38,7 +41,7 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
 
     @Override
     public void decorateCG(BlockConsistencyGroup cg, Collection<BlockObject> associatedObjects,
-            IngestionRequestContext requestContext)
+            IngestionRequestContext requestContext, UnManagedVolume unManagedVolume)
             throws Exception {
 
         if (null == associatedObjects || associatedObjects.isEmpty()) {
@@ -55,7 +58,7 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             }
 
             // This volume is not in a CG of this type
-            if (blockObj.getReplicationGroupInstance() == null) {
+            if (NullColumnValueGetter.isNullValue(blockObj.getReplicationGroupInstance())) {
                 logger.info("BlockObject {} doesn't have replicationGroup name {}. No need to set system cg information.",
                         blockObj.getNativeGuid());
                 continue;
@@ -78,10 +81,52 @@ public class BlockVplexCGIngestDecorator extends BlockCGIngestDecorator {
             if (!found) {
                 logger.info(String.format("Adding BlockObject %s/%s in CG %s", blockObj.getNativeGuid(),
                         blockObj.getReplicationGroupInstance(), cg.getLabel()));
-                cg.addSystemConsistencyGroup(blockObj.getStorageController().toString(),
-                        blockObj.getReplicationGroupInstance());
+                if (blockObj instanceof Volume) {
+                    Volume volume = (Volume) blockObj;
+                    if (volume.getAssociatedVolumes() != null                             
+                            && volume.getAssociatedVolumes().size() > 1) {                        
+                        // Since this is a distributed volume, ensure there is a CG entry for each cluster
+                        String cgName = BlockConsistencyGroupUtils.fetchCgName(volume.getReplicationGroupInstance());
+                        cg.addSystemConsistencyGroup(volume.getStorageController().toString(),
+                                BlockConsistencyGroupUtils.buildClusterCgName(BlockConsistencyGroupUtils.CLUSTER_1, cgName));
+                        cg.addSystemConsistencyGroup(volume.getStorageController().toString(),
+                                BlockConsistencyGroupUtils.buildClusterCgName(BlockConsistencyGroupUtils.CLUSTER_2, cgName));
+                        logger.info(String.format("Found BlockObject [%s] is a Distributed VPLEX volume. "
+                                + "Adding cg entry [%s] for both cluster1 and cluster2.", blockObj.getNativeGuid(), cgName));
+                    } else {
+                        cg.addSystemConsistencyGroup(volume.getStorageController().toString(),
+                                volume.getReplicationGroupInstance());
+                    }
+                }
             }
 
+            // VPLEX ingestion process uses the virtual volume's replicationGroupInstance as a transient variable to
+            // identify CGs along the way so when the BlockConsistencyGroup is created, we can create the correct
+            // systemConsistencyGroups on the BlockConsistencyGroup.  
+            //
+            // Now that we've added the proper replicationGroupInstance to the cg's systemConsistencyGroup, we can remove
+            // the virtual volume's replicationGroupInstance reference.  This does not impact the backing volumes.
+            if (blockObj instanceof Volume) {
+                Volume volume = (Volume) blockObj;
+                if (volume.getAssociatedVolumes() != null) {                             
+                    logger.info(String.format("Removing replication group instance information from volume %s", volume.getLabel()));
+                    volume.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                    requestContext.addDataObjectToUpdate(volume, unManagedVolume);
+
+                    // setting BlockConsistencyGroup on the backend volumes
+                    for (String volumeUriStr : volume.getAssociatedVolumes()) {
+                        BlockObject backendVolume = requestContext.findDataObjectByType(Volume.class, URI.create(volumeUriStr), true);
+                        if (backendVolume != null) {
+                            logger.info("Setting BlockConsistencyGroup {} on VPLEX backend Volume {}",
+                                    cg.forDisplay(), backendVolume.forDisplay());
+                            backendVolume.setConsistencyGroup(cg.getId());
+                            // this volume is already set for creation by its parent volume context
+                            // so there's no need to add it into an updated objects collection at this point
+                        }
+                    }
+                }
+            }
+            
             if (!cg.getTypes().contains(Types.VPLEX.toString())) {
                 cg.getTypes().add(Types.VPLEX.toString());
             }

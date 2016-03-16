@@ -675,6 +675,12 @@ public class BackupOps {
     }
 
     private boolean canBeUpdated(BackupRestoreStatus.Status status, BackupRestoreStatus s) {
+        if (status == BackupRestoreStatus.Status.RESTORE_FAILED
+                || status == BackupRestoreStatus.Status.RESTORING
+                || status == BackupRestoreStatus.Status.RESTORE_SUCCESS) {
+            return true;
+        }
+
         if (s.getStatus() == BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
             return false;
         }

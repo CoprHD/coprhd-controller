@@ -51,10 +51,10 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_SNAPSHOT_GET_COPY_SETS= URI_VOLUME_GROUP_SNAPSHOT + "/copy-sets"
 
     # URIs for VolumeGroup Snapshot Session Operations
-    URI_VOLUME_GROUP_SNAPSESSION = "/volume-groups/block/{0}/protection/snapshot-sessions"
-    URI_VOLUME_GROUP_SNAPSESSION_LIST = URI_VOLUME_GROUP_SNAPSESSION
-    URI_VOLUME_GROUP_SNAPSESSION_SHOW= URI_VOLUME_GROUP_SNAPSESSION + "/{1}"
-    URI_VOLUME_GROUP_SNAPSESSION_GET_COPY_SETS = URI_VOLUME_GROUP_SNAPSESSION + "/copy-sets"
+    URI_VOLUME_GROUP_SNAPSHOT_SESSION = "/volume-groups/block/{0}/protection/snapshot-sessions"
+    URI_VOLUME_GROUP_SNAPSHOT_SESSION_LIST = URI_VOLUME_GROUP_SNAPSHOT_SESSION
+    URI_VOLUME_GROUP_SNAPSHOT_SESSION_SHOW= URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/{1}"
+    URI_VOLUME_GROUP_SNAPSHOT_SESSION_GET_COPY_SETS = URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/copy-sets"
 
     def __init__(self, ipAddr, port):
         '''
@@ -488,7 +488,7 @@ class VolumeGroup(object):
         Parameters:
             name: name with which snapshot to be created
             create_inactive: with this flag, created snapshot will not be activated
-            partial: Enable the flag to create clones for subset of VolumeGroup.
+            partial: Enable the flag to create snapshot for subset of VolumeGroup.
                      Please specify one volume from each Array Replication Group
             volumes: A list of volumes specifying their Array Replication Groups.
                     This field is valid only when partial flag is provided
@@ -626,12 +626,52 @@ class VolumeGroup(object):
             return []
 
     # snapshot session
+
+    # Creates snapshot session for the given volume group
+    def snapshotsession(self, name, snapshotsession_name, copy_on_ha, partial, volumeUris, sync):
+        '''
+        Makes REST API call to create volume group snapshot session
+        Parameters:
+            name: name with which snapshot session to be created
+            copy_on_ha: with this flag, create snapshot session on HA side of VPLEX Distributed volumes
+            partial: Enable the flag to create snapshot session for subset of VolumeGroup.
+                     Please specify one volume from each Array Replication Group
+            volumes: A list of volumes specifying their Array Replication Groups.
+                    This field is valid only when partial flag is provided
+        Returns:
+            response of the create operation
+        '''
+
+        volumeGroupUri = self.query_by_name(name)
+
+        request = {
+            'name': snapshotsession_name,
+            'copy_on_high_availability_side': copy_on_ha
+        }
+
+        # if partial request
+        if (partial):
+            request["partial"] = partial
+            request["volumes"] = volumeUris.split(',')
+
+        body = json.dumps(request)
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port,
+                                             "POST",
+                                             VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION.format(volumeGroupUri),
+                                             body)
+        o = common.json_decode(s)
+        if(sync):
+            task = o["task"][0]
+            return self.check_for_sync(task, sync)
+        else:
+            return o
+
     def volume_group_snapshotsession_list(self, name):
         volumeGroupUri = self.query_by_name(name)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
-            VolumeGroup.URI_VOLUME_GROUP_SNAPSESSION_LIST.format(volumeGroupUri), None)
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_LIST.format(volumeGroupUri), None)
 
         o = common.json_decode(s)
 
@@ -663,7 +703,7 @@ class VolumeGroup(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
-            VolumeGroup.URI_VOLUME_GROUP_SNAPSESSION_SHOW.format(volumeGroupUri, snapshotsessionUri), None)
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_SHOW.format(volumeGroupUri, snapshotsessionUri), None)
 
         o = common.json_decode(s)
         return o
@@ -674,7 +714,7 @@ class VolumeGroup(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
-            VolumeGroup.URI_VOLUME_GROUP_SNAPSESSION_GET_COPY_SETS.format(volumeGroupUri), None)
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_GET_COPY_SETS.format(volumeGroupUri), None)
 
         o = common.json_decode(s)
         return o
@@ -688,7 +728,7 @@ class VolumeGroup(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
-            VolumeGroup.URI_VOLUME_GROUP_SNAPSESSION_GET_COPY_SETS.format(volumeGroupUri), json.dumps(request))
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_GET_COPY_SETS.format(volumeGroupUri), json.dumps(request))
 
         o = common.json_decode(s)
 
@@ -1547,12 +1587,12 @@ def snapshot_parser(subcommand_parsers, common_parser):
     snapshot_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
-                              help='To create clones for subset of VolumeGroup. ' +
+                              help='To create snapshot for subset of VolumeGroup. ' +
                               'Please specify one volume from each Array Replication Group')
     snapshot_parser.add_argument('-volumes', '-v',
                             metavar='<volume_label,...>',
                             dest='volumes',
-                            help='A list of volumes specifying their Array Replication Groups to be cloned.' +
+                            help='A list of volumes specifying their Array Replication Groups.' +
                             ' This field is valid only when partial flag is provided')
     snapshot_parser.add_argument('-tenant', '-tn',
                              metavar='<tenantname>',
@@ -1925,7 +1965,72 @@ def volume_group_snapshot_get(args):
                 e.err_text,
                 e.err_code)
 
-# snapshot session
+# volume group snapshot session routines
+def snapshotsession_parser(subcommand_parsers, common_parser):
+    snapshotsession_parser = subcommand_parsers.add_parser(
+        'snapshotsession',
+        description='ViPR VolumeGroup Snapshot Session CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='VolumeGroup Snapshot Session')
+
+    mandatory_args = snapshotsession_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-project', '-pr',
+                                metavar='<projectname>',
+                                dest='project',
+                                help='Name of project',
+                                required=True)
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    mandatory_args.add_argument('-snapshotsessionname', '-ssn',
+                                metavar='<snapshotsessionname>',
+                                dest='snapshotsessionname',
+                                help='Name of Snapshot Session',
+                                required=True)
+    snapshotsession_parser.add_argument('-copyonha', '-ha',
+                              action='store_true',
+                              help='Create snapshot session on HA side of VPLEX Distributed volumes')
+    snapshotsession_parser.add_argument('-readonly', '-ro',
+                              dest='readonly',
+                              action='store_true',
+                              help='Create read only snapshot session')
+    snapshotsession_parser.add_argument('-partial',
+                              dest='partial',
+                              action='store_true',
+                              help='To create snapshot session for subset of VolumeGroup. ' +
+                              'Please specify one volume from each Array Replication Group')
+    snapshotsession_parser.add_argument('-volumes', '-v',
+                            metavar='<volume_label,...>',
+                            dest='volumes',
+                            help='A list of volumes specifying their Array Replication Groups.' +
+                            ' This field is valid only when partial flag is provided')
+    snapshotsession_parser.add_argument('-tenant', '-tn',
+                             metavar='<tenantname>',
+                             dest='tenant',
+                             help='Name of tenant')
+
+    snapshotsession_parser.set_defaults(func=volume_group_snapshotsession)
+
+def volume_group_snapshotsession(args):
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        volumeUris = query_volumes_for_partial_request(args)
+        obj.snapshotsession(args.name, args.snapshotsessionname, args.copyonha, args.partial, ",".join(volumeUris), False)
+        return
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "create",
+            "volume group snapshot session",
+            e.err_text,
+            e.err_code)
+
 # snapshotsession_list_parser
 def snapshotsession_list_parser(subcommand_parsers, common_parser):
     snapshotsession_list_parser = subcommand_parsers.add_parser(
@@ -2086,7 +2191,6 @@ def volume_group_snapshotsession_get_sets(args):
                 e.err_text,
                 e.err_code)
 
-
 # snapshotsession_get_parser
 def snapshotsession_get_parser(subcommand_parsers, common_parser):
     snapshotsession_get_parser = subcommand_parsers.add_parser(
@@ -2230,6 +2334,9 @@ def volume_group_parser(parent_subparser, common_parser):
     snapshot_get_parser(subcommand_parsers, common_parser)
 
     # snapshot session
+    # snapshot session create command parser
+    snapshotsession_parser(subcommand_parsers, common_parser)
+
     # Get snapshot session list of a volume group command parser
     snapshotsession_list_parser(subcommand_parsers, common_parser)
 

@@ -948,10 +948,10 @@ public class NetworkDeviceController implements NetworkController {
     public boolean zoneExportMasksCreate(URI exportGroupURI,
             List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
         ExportGroup exportGroup = null;
-        try {
-            exportGroup = _dbClient
-                    .queryObject(ExportGroup.class, exportGroupURI);
-            _log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
+        try {    	
+        	exportGroup = _dbClient
+                    .queryObject(ExportGroup.class, exportGroupURI);   	            
+        	_log.info(String.format("Entering zoneExportMasksCreate for ExportGroup: %s (%s)",
                     exportGroup.getLabel(), exportGroup.getId()));
             if (exportMaskURIs == null && exportGroup.getExportMasks() != null) {
                 // If the ExportMasks aren't specified, do all in the ExportGroup.

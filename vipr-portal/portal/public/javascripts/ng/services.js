@@ -56,6 +56,15 @@ angular.module("services", []).directive({
 
                     if (params) {
                         item.loading = true;
+                        // disable all field that we depend on 
+                        angular.forEach(fieldDescriptor.fieldsWeDependOn, function(dependencyName) {
+                        	$scope[dependencyName].disabled = true;
+                        	if ($scope[dependencyName].disableCount === undefined) {
+                        		// keep track of how many dependencies to avoid enabling while fields are still being populated
+                        		$scope[dependencyName].disableCount = 0; 
+                        	}
+                        	$scope[dependencyName].disableCount += 1;
+                        });
                         $http.get("/api/options/" + fieldDescriptor.assetType, {params: params }).success(function(data) {
                             item.disabled = false;
                             if (item.select == 'field') {
@@ -72,6 +81,14 @@ angular.module("services", []).directive({
                                 item.label, details);
                         }).finally(function() {
                             item.loading = false;
+                            // enable all dependency field
+                            angular.forEach(fieldDescriptor.fieldsWeDependOn, function(dependencyName) {
+                            	$scope[dependencyName].disableCount -= 1;
+                            	// only enable if no more fields are populating and dependency isn't loading (will enable itself once done)
+                            	if (!$scope[dependencyName].disableCount > 0 && !$scope[dependencyName].loading) {
+                            		$scope[dependencyName].disabled = false;
+                            	}
+                            });
                         });
                     } else {
                     	item.options = "";

@@ -56,10 +56,10 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
@@ -92,26 +92,26 @@ import com.emc.storageos.model.application.VolumeGroupList;
 import com.emc.storageos.model.application.VolumeGroupRestRep;
 import com.emc.storageos.model.application.VolumeGroupSnapshotCreateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotOperationParam;
-import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionCreateParam;
-import com.emc.storageos.model.application.VolumeGroupSnapshotSessionOperationParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionDeactivateParam;
-import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionLinkTargetsParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionOperationParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRelinkTargetsParam;
+import com.emc.storageos.model.application.VolumeGroupSnapshotSessionRestoreParam;
 import com.emc.storageos.model.application.VolumeGroupSnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.model.application.VolumeGroupUpdateParam;
 import com.emc.storageos.model.block.BlockConsistencyGroupSnapshotCreate;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
-import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.BlockSnapshotSessionList;
+import com.emc.storageos.model.block.BlockSnapshotSessionRestRep;
 import com.emc.storageos.model.block.NamedVolumeGroupsList;
 import com.emc.storageos.model.block.NamedVolumesList;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
 import com.emc.storageos.security.audit.AuditLogManager;
@@ -476,7 +476,6 @@ public class VolumeGroupService extends TaskResourceService {
         if (volumeGroup.getInactive()) {
             throw APIException.badRequests.volumeGroupCantBeUpdated(volumeGroup.getLabel(), "The Volume Group has been deleted");
         }
-        checkForApplicationPendingTasks(volumeGroup);
         boolean isChanged = false;
         String vgName = param.getName();
         if (vgName != null && !vgName.isEmpty() && !vgName.equalsIgnoreCase(volumeGroup.getLabel())) {
@@ -2566,7 +2565,7 @@ public class VolumeGroupService extends TaskResourceService {
     }
 
     /**
-     * The method implements the API to re-link a target to either it's current snapshot sessions
+     * The method implements the API to re-link a target to either its current snapshot sessions
      * or to a different snapshot sessions of the same source in the volume group.
      * - Re-links targets for all the array replication groups within this Application.
      * - If partial flag is specified, it re-links targets only for set of array replication groups.
@@ -3162,7 +3161,7 @@ public class VolumeGroupService extends TaskResourceService {
                             String.format("Consistency group %s does not exist", cgUri));
                 }
 
-                validateAddVolumeToApplication(volume, volumeGroup, dbClient);
+                BlockServiceUtils.validateVolumeNoReplica(volume, volumeGroup, dbClient);
 
                 URI systemUri = volume.getStorageController();
                 StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
@@ -3305,40 +3304,6 @@ public class VolumeGroupService extends TaskResourceService {
             }
 
             return volumes;
-        }
-
-        /**
-         * validate volume can be added to an application
-         *
-         * @param volume
-         * @param application
-         * @param dbClient
-         */
-        private void validateAddVolumeToApplication(Volume volume, VolumeGroup application, DbClient dbClient) {
-            // check if the volume has any replica
-            // no need to check backing volumes for vplex virtual volumes because for full copies
-            // there will be a virtual volume for the clone
-            boolean hasReplica = volume.getFullCopies() != null && !volume.getFullCopies().isEmpty() ||
-                        volume.getMirrors() != null && !volume.getMirrors().isEmpty();
-
-            // check for snaps only if no full copies
-            if (!hasReplica) {
-                Volume snapSource = volume;
-                if (volume.isVPlexVolume(dbClient)) {
-                    snapSource = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-                    if (snapSource == null || snapSource.getInactive()) {
-                        return;
-                    }
-                }
-
-                hasReplica = ControllerUtils.checkIfVolumeHasSnapshot(snapSource, dbClient) ||
-                        ControllerUtils.checkIfVolumeHasSnapshotSession(snapSource.getId(), dbClient); // only for volumes not in RG
-            }
-
-            if (hasReplica) {
-                throw APIException.badRequests.volumeGroupCantBeUpdated(application.getLabel(),
-                        String.format("the volume %s has replica. please remove all replicas from the volume", volume.getLabel()));
-            }
         }
 
         /**

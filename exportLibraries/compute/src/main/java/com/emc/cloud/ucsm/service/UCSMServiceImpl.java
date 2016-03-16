@@ -71,7 +71,7 @@ public class UCSMServiceImpl implements UCSMService {
 
     /**
      * In the UCSM XML API the only way to delete a managed object, is to set
-     * it's status value to "deleted" - hence this constant is used in many
+     * its status value to "deleted" - hence this constant is used in many
      * decommissioning operations
      */
     private static final String MO_DELETED_STATUS = "deleted";

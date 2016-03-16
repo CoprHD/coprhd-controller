@@ -15,6 +15,7 @@ import com.emc.vipr.model.sys.backup.BackupUploadStatus.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -206,7 +207,7 @@ public class UploadExecutor {
         this.cfg.persistBackupUploadStatus(uploadStatus);
     }
 
-    public BackupUploadStatus getUploadStatus(String backupTag) throws Exception {
+    public BackupUploadStatus getUploadStatus(String backupTag, File backupDir) throws Exception {
         if (backupTag == null) {
             log.error("Query parameter of backupTag is null");
             throw new IllegalStateException("Invalid query parameter");
@@ -218,6 +219,13 @@ public class UploadExecutor {
             return new BackupUploadStatus(backupTag, Status.DONE, 100, null);
         }
         if (!getIncompleteUploads().contains(backupTag)) {
+            File backup = new File(backupDir, backupTag);
+
+            if (backup.exists()) {
+                log.info("The {} will be reclaimed");
+                return new BackupUploadStatus(backupTag, Status.FAILED, 0, ErrorCode.TO_BE_RECLAIMED);
+            }
+
             return new BackupUploadStatus(backupTag, Status.FAILED, 0, ErrorCode.BACKUP_NOT_EXIST);
         }
         if (cfg.uploadUrl == null) {

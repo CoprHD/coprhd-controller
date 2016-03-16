@@ -380,7 +380,8 @@ public class BackupService {
     public BackupUploadStatus getBackupUploadStatus(@QueryParam("tag") String backupTag) {
         log.info("Received get upload status request, backup tag={}", backupTag);
         try {
-            BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag);
+            File backupDir = backupOps.getBackupDir();
+            BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag, backupDir);
             log.info("Current upload status is: {}", uploadStatus);
             return uploadStatus;
         } catch (Exception e) {

@@ -69,5 +69,7 @@ public interface ExternalDeviceErrors {
     @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_ADD_EXPORT_MASK_INITIATORS_ERROR)
     public ServiceError addInitiatorsToExportMaskFailed(String method, String errorMsg);
 
+    @DeclareServiceCode(ServiceCode.EXTERNALDEVICE_REMOVE_EXPORT_MASK_INITIATORS_ERROR)
+    public ServiceError removeInitiatorsFromExportMaskFailed(String method, String errorMsg);
 
 }

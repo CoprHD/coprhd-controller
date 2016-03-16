@@ -977,6 +977,24 @@ public class ExternalBlockStorageDevice extends DefaultBlockStorageDevice {
         _log.info("{} doExportAddInitiators END ...", storage.getSerialNumber());
     }
 
+    @Override
+    public void doExportRemoveInitiator(StorageSystem storage,
+                                        ExportMask exportMask, Initiator initiator, List<URI> targets,
+                                        TaskCompleter taskCompleter) throws DeviceControllerException {
+        _log.info("{} doExportRemoveInitiator START ...", storage.getSerialNumber());
+        exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(), Arrays.asList(initiator), targets, taskCompleter);
+        _log.info("{} doExportRemoveInitiator END ...", storage.getSerialNumber());
+    }
+
+    @Override
+    public void doExportRemoveInitiators(StorageSystem storage,
+                                         ExportMask exportMask, List<Initiator> initiators,
+                                         List<URI> targets, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        _log.info("{} doExportRemoveInitiators START ...", storage.getSerialNumber());
+        exportMaskOperationsHelper.removeInitiator(storage, exportMask.getId(), initiators, targets, taskCompleter);
+        _log.info("{} doExportRemoveInitiators END ...", storage.getSerialNumber());
+    }
 
     @Override
     public void doExportGroupDelete(StorageSystem storage,

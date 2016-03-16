@@ -1238,7 +1238,7 @@ public class BlockStorageScheduler {
      * @param existingZoningMap -- StringSetMap
      * @return Map<Initiator, List<StoragePort>> existing assignment map with Objects
      */
-    Map<Initiator, List<StoragePort>> generateInitiatorsToStoragePortsMap(StringSetMap existingZoningMap, URI varray) {
+    public Map<Initiator, List<StoragePort>> generateInitiatorsToStoragePortsMap(StringSetMap existingZoningMap, URI varray) {
         Map<Initiator, List<StoragePort>> initiatorsToStoragePortsMap = new HashMap<Initiator, List<StoragePort>>();
         if (existingZoningMap == null) {
             return initiatorsToStoragePortsMap;

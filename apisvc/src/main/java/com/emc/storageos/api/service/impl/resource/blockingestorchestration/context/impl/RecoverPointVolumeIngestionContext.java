@@ -19,12 +19,14 @@ import com.emc.storageos.api.service.impl.resource.blockingestorchestration.cont
 import com.emc.storageos.api.service.impl.resource.blockingestorchestration.context.VolumeIngestionContext;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -71,6 +73,10 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     private List<UnManagedVolume> _unmanagedSourceVolumesToUpdate;
     private List<UnManagedVolume> _unmanagedTargetVolumesToUpdate;
     private UnManagedProtectionSet _unManagedProtectionSet;
+
+    // flags to help with final ingestion
+    private boolean _managedPsetWasCreatedByAnotherContext = false;
+    private boolean _managedBcgWasCreatedByAnotherContext = false;
 
     /**
      * Constructor.
@@ -201,6 +207,24 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     }
 
     /**
+     * Sets whether or not the managed ProtectionSet was created by another context already.
+     * 
+     * @param managedPsetWasCreatedByAnotherContext true if the ProtectionSet was created by another context
+     */
+    public void setManagedPsetWasCreatedByAnotherContext(boolean managedPsetWasCreatedByAnotherContext) {
+        this._managedPsetWasCreatedByAnotherContext = managedPsetWasCreatedByAnotherContext;
+    }
+
+    /**
+     * Sets whether or not the managed BlockConsistencyGroup was created by another context already.
+     * 
+     * @param managedBcgWasCreatedByAnotherContext true if the BlockConsistencyGroup was created by another context
+     */
+    public void setManagedBcgWasCreatedByAnotherContext(boolean managedBcgWasCreatedByAnotherContext) {
+        this._managedBcgWasCreatedByAnotherContext = managedBcgWasCreatedByAnotherContext;
+    }
+
+    /**
      * Adds a source Volume to the list of Volumes that should be updated
      * when this RecoverPoint ingestion process is committed.
      *
@@ -259,20 +283,25 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
             _dbClient.createObject(bo);
         }
 
-        for (Set<DataObject> dos : getDataObjectsToBeCreatedMap().values()) {
-            for (DataObject dob : dos) {
-                _logger.info("Creating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
-                _dbClient.createObject(dob);
+        for (Set<DataObject> createdObjects : getDataObjectsToBeCreatedMap().values()) {
+            if (createdObjects != null && !createdObjects.isEmpty()) {
+                for (DataObject dob : createdObjects) {
+                    _logger.info("Creating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                    _dbClient.createObject(dob);
+                }
             }
         }
-        for (Set<DataObject> dos : getDataObjectsToBeUpdatedMap().values()) {
-            for (DataObject dob : dos) {
-                if (dob.getInactive()) {
-                    _logger.info("Deleting DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
-                } else {
-                    _logger.info("Updating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+
+        for (Set<DataObject> updatedObjects : getDataObjectsToBeUpdatedMap().values()) {
+            if (updatedObjects != null && !updatedObjects.isEmpty()) {
+                for (DataObject dob : updatedObjects) {
+                    if (dob.getInactive()) {
+                        _logger.info("Deleting DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                    } else {
+                        _logger.info("Updating DataObject {} (hash {})", dob.forDisplay(), dob.hashCode());
+                    }
+                    _dbClient.updateObject(dob);
                 }
-                _dbClient.updateObject(dob);
             }
         }
 
@@ -296,11 +325,17 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         // commit the ProtectionSet, if created, and remove the UnManagedProtectionSet
-        if (null != _managedProtectionSet) {
-            _logger.info("Creating ProtectionSet {} (hash {})", 
-                    _managedProtectionSet.forDisplay(), _managedProtectionSet.hashCode());
-            _managedProtectionSet.getVolumes().add(_managedBlockObject.getId().toString());
-            _dbClient.createObject(_managedProtectionSet);
+        ProtectionSet managedProtectionSet = getManagedProtectionSet();
+        if (null != managedProtectionSet) {
+            if (getManagedBlockObject() != null) {
+                managedProtectionSet.getVolumes().add(_managedBlockObject.getId().toString());
+            }
+
+            if (!_managedPsetWasCreatedByAnotherContext) {
+                _logger.info("Creating ProtectionSet {} (hash {})", 
+                        managedProtectionSet.forDisplay(), managedProtectionSet.hashCode());
+                _dbClient.createObject(managedProtectionSet);
+            }
 
             // the protection set was created, so delete the unmanaged one
             _logger.info("Deleting UnManagedProtectionSet {} (hash {})", 
@@ -309,10 +344,12 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
         }
 
         // commit the BlockConsistencyGroup, if created
-        if (null != _managedBlockConsistencyGroup) {
-            _logger.info("Creating BlockConsistencyGroup {} (hash {})" + 
-                    _managedBlockConsistencyGroup.forDisplay(), _managedBlockConsistencyGroup.hashCode());
-            _dbClient.createObject(_managedBlockConsistencyGroup);
+        if (null != getManagedBlockConsistencyGroup()) {
+            if (!_managedBcgWasCreatedByAnotherContext) {
+                _logger.info("Creating BlockConsistencyGroup {} (hash {})" + 
+                        _managedBlockConsistencyGroup.forDisplay(), _managedBlockConsistencyGroup.hashCode());
+                _dbClient.createObject(_managedBlockConsistencyGroup);
+            }
         }
 
         ExportGroup exportGroup = getExportGroup();
@@ -608,7 +645,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public BlockObject getProcessedBlockObject(String unmanagedVolumeGuid) {
         String objectGUID = unmanagedVolumeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME);
-        return findCreatedBlockObject(objectGUID);
+        return getRootIngestionRequestContext().findCreatedBlockObject(objectGUID);
     }
 
     /*
@@ -838,12 +875,7 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public BlockObject findCreatedBlockObject(String nativeGuid) {
-
         BlockObject blockObject = getBlockObjectsToBeCreatedMap().get(nativeGuid);
-        if (blockObject == null) {
-            blockObject = _parentRequestContext.getBlockObjectsToBeCreatedMap().get(nativeGuid);
-        }
-
         return blockObject;
     }
 
@@ -879,7 +911,20 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
      */
     @Override
     public BlockObject findCreatedBlockObject(URI uri) {
-        return _parentRequestContext.findCreatedBlockObject(uri);
+
+        if (!URIUtil.isValid(uri)) {
+            _logger.warn("URI ({}) for findCreatedBlockObject is null or invalid", uri);
+            return null;
+        }
+
+        for (BlockObject bo : getBlockObjectsToBeCreatedMap().values()) {
+            if (bo.getId() != null && uri.toString().equals(bo.getId().toString())) {
+                _logger.info("\tfound block object in RP request context: " + bo.forDisplay());
+                return bo;
+            }
+        }
+
+        return null;
     }
 
     /*
@@ -1012,6 +1057,64 @@ public class RecoverPointVolumeIngestionContext extends BlockVolumeIngestionCont
     @Override
     public <T extends DataObject> T findDataObjectByType(Class<T> clazz, URI id, boolean fallbackToDatabase) {
         return getRootIngestionRequestContext().findDataObjectByType(clazz, id, fallbackToDatabase);
+    }
+
+    /**
+     * Finds an existing ProtectionSet in any RecoverPoint volume ingestion context within the scope of this ingestion request.
+     * 
+     * @param psetLabel the label for the ProtectionSet
+     * @param rpProtectionId the RecoverPoint protection set id
+     * @param protectionSystemUri the RecoverPoint device URI
+     * @param umpsetNativeGuid the nativeGuid for the discovered UnManagedProtectionSet
+     * @return an existing ProtectionSet matching the arguments
+     */
+    public ProtectionSet findExistingProtectionSet(String psetLabel, String rpProtectionId, URI protectionSystemUri, String umpsetNativeGuid) {
+        for (VolumeIngestionContext volumeContext : getRootIngestionRequestContext().getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext != null && volumeContext instanceof RecoverPointVolumeIngestionContext) {
+                RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) volumeContext;
+                ProtectionSet pset = rpContext.getManagedProtectionSet();
+                if (pset != null) {
+                    if ((pset.getLabel().equals(psetLabel)) 
+                     && (pset.getProtectionId().equals(rpProtectionId))
+                     && (pset.getProtectionSystem().equals(protectionSystemUri))
+                     && (pset.getNativeGuid().equals(umpsetNativeGuid))) {
+                        _logger.info("found already-instantiated ProtectionSet {} (hash {})", pset.getLabel(), pset.hashCode());
+                        return pset;
+                    }
+                }
+            }
+        }
+
+        _logger.info("did not find an already-instantiated ProtectionSet for ", psetLabel);
+        return null;
+    }
+
+    /**
+     * Finds an existing BlockConsistencyGroup in any RecoverPoint volume ingestion context within the scope of this ingestion request.
+     * 
+     * @param psetLabel the label of the associated ProtectionSet
+     * @param projectNamedUri the NamedUri of the Project for the BlockConsistencyGroup
+     * @param tenantOrg the Tenant for the BlockConsistencyGroup
+     * @return an existing BlockConsistencyGroup matching the arguments
+     */
+    public BlockConsistencyGroup findExistingBlockConsistencyGroup(String psetLabel, NamedURI projectNamedUri, NamedURI tenantOrg) {
+        for (VolumeIngestionContext volumeContext : getRootIngestionRequestContext().getProcessedUnManagedVolumeMap().values()) {
+            if (volumeContext instanceof RecoverPointVolumeIngestionContext) {
+                RecoverPointVolumeIngestionContext rpContext = (RecoverPointVolumeIngestionContext) volumeContext;
+                BlockConsistencyGroup bcg = rpContext.getManagedBlockConsistencyGroup();
+                if (bcg != null) {
+                    if ((bcg.getLabel().equals(psetLabel)) 
+                     && (bcg.getProject().equals(projectNamedUri))
+                     && (bcg.getTenant().equals(tenantOrg))) {
+                        _logger.info("found already-instantiated BlockConsistencyGroup {} (hash {})", bcg.getLabel(), bcg.hashCode());
+                        return bcg;
+                    }
+                }
+            }
+        }
+
+        _logger.info("did not find an already-instantiated BlockConsistencyGroup for ", psetLabel);
+        return null;
     }
 
 }

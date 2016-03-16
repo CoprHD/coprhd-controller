@@ -972,7 +972,7 @@ public class BlockStorageScheduler {
                     notInVarray.add(portName(sp));
                 }
             } else {
-                _log.debug("Storage port {} not selected because it's network {} " +
+                _log.debug("Storage port {} not selected because its network {} " +
                         "is not the requested network {}",
                         new Object[] { sp.getNativeGuid(), sp.getNetwork(), networkURI });
                 wrongNetwork.add(portName(sp));
@@ -1049,7 +1049,7 @@ public class BlockStorageScheduler {
                         routedPorts.add(portName(sp));
                     }
                 } else {
-                    _log.debug("Storage port {} not selected because it's network {} " +
+                    _log.debug("Storage port {} not selected because its network {} " +
                             "is not the requested network {}",
                             new Object[] { sp.getNativeGuid(), sp.getNetwork(), networkURI });
                     wrongNetwork.add(portName(sp));

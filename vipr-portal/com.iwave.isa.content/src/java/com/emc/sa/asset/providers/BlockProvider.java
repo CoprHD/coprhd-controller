@@ -2190,21 +2190,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createBaseResourceOptions(volumeGroups);
     }
 
-    private List<String> stripRPTargetFromReplicationGroup(Collection<String> groups) {
-        List<String> stripped = new ArrayList<String>();
-
-        for (String group : groups) {
-            String[] parts = StringUtils.split(group, '-');
-            if (parts.length > 1 && parts[parts.length - 1].equals("RPTARGET")) {
-                stripped.add(StringUtils.join(parts, '-', 0, parts.length - 1));
-            } else {
-                stripped.add(group);
-            }
-        }
-
-        return stripped;
-    }
-
     @Asset("applicationBlockVolume")
     @AssetDependencies("application")
     public List<AssetOption> getApplicationVolumes(AssetOptionsContext ctx, URI application) {
@@ -2244,7 +2229,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         final ViPRCoreClient client = api(ctx);
         List<VolumeRestRep> allCopyVols = client.blockVolumes()
                 .getByRefs(client.application().getFullCopiesByApplication(applicationId).getVolumes());
-        return createStringOptions(stripRPTargetFromReplicationGroup(groupFullCopyByApplicationSubGroup(ctx,
+        return createStringOptions(BlockStorageUtils.stripRPTargetFromReplicationGroup(
+                groupFullCopyByApplicationSubGroup(ctx,
                 filterByCopyName(allCopyVols, copyName)).keySet()));
     }
 
@@ -3125,7 +3111,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     }
 
     /**
-     * Add the volume and it's snapshots to the 'blockObjects' list.
+     * Add the volume and its snapshots to the 'blockObjects' list.
      * 
      * When the method completes the snapshots that have been added to the blockObjects list will be removed from the snapshots list.
      */

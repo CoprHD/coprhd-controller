@@ -21,7 +21,7 @@ public class RestoreApplicationFullCopyService extends ViPRService {
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
 
-    @Param(ServiceParams.COPY_NAME)
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
     private String copyName;
 
     @Param(value = ServiceParams.APPLICATION_SUB_GROUP, required = false)

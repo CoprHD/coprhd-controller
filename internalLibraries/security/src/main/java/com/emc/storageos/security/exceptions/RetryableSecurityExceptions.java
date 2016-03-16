@@ -40,4 +40,6 @@ public interface RetryableSecurityExceptions {
     @DeclareServiceCode(ServiceCode.SECURITY_KEYSTORE_UNAVAILABLE)
     public RetryableSecurityException updatingKeystoreWhileClusterIsUnstable();
 
+    @DeclareServiceCode(ServiceCode.SECURITY_REQUIRED_SERVICE_UNAVAILABLE)
+    public RetryableSecurityException failToUpdateKeyStoreDueToStandbyPause();
 }

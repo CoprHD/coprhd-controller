@@ -14,6 +14,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 
 /**
@@ -127,7 +128,12 @@ public class ConsistencyGroupUtils {
                 volume = dbClient.queryObject(Volume.class, volume.getAssociatedSourceVolume());
             }
         }
-        return (volume == null ? null : volume.getReplicationGroupInstance());
+        
+        if (volume == null || NullColumnValueGetter.isNullValue(volume.getReplicationGroupInstance())) {
+            return null;
+        }
+                
+        return volume.getReplicationGroupInstance();
     }
     
     /**

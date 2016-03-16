@@ -37,8 +37,6 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
 </div>
 
 <script type="text/javascript">
-    stop = false;
-    request = null;
     type = "${type}";
     LOCAL = "${models.datatable.BackupDataTable.Type.LOCAL}";
     REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
@@ -47,44 +45,70 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
         //update remote backups detail info
         if (type == REMOTE) {
             var dataTable = table.backup.dataTable.getDataTable();
-            var itemsJson = #{jsAction @externalItemsJson(':ids')/};
-            var checkUpdate = window.setInterval(function () {
-                if (stop) {
-                    console.info("stop");
-                    clearInterval(checkUpdate);
+            var interval = 1000; // 1 second
+
+            var restoreStatusJson = #{jsAction @externalStatusJson(':ids')/};
+            var backupInfoJson = #{jsAction @externalItemsJson(':ids')/};
+            stop = new Array();
+            request = new Array();
+            count = new Array();
+            field = new Array();
+            stop[0] = false;
+            stop[1] = false
+            request[0] = null;
+            request[1] = null;
+            count[0] = 0;
+            count[1] = 0;
+            field[0] = ['status', 'error'];
+            field[1] = ['creationtime'];
+            var updateRestoreStatus = window.setInterval(function () {
+                if (stop[0] === true) {
+                    console.info("To stop update restore status");
+                    clearInterval(updateRestoreStatus);
                     return;
                 }
-                updateRemoteListDetails(dataTable, itemsJson);
-            }, 1000); // Check every 1 seconds
+                updateRemoteListDetails(dataTable, restoreStatusJson, 0);
+            }, interval);
+            var updateBackupInfo = window.setInterval(function () {
+                if (stop[1] === true) {
+                    console.info("To stop update backup info");
+                    clearInterval(updateBackupInfo);
+                    return;
+                }
+                updateRemoteListDetails(dataTable, backupInfoJson, 1);
+            }, interval);
+
         }
     });
 
-    function updateRemoteListDetails(dataTable, itemsJson) {
-        var ids = new Array();
+    function updateRemoteListDetails(dataTable, itemsJson, number) {
         var data = dataTable.fnGetData();
-        for (var i = 0; i < data.length; i++) {
-            var row = data[i];
-            ids.push(row.id);
-        }
+        var update = function (table, id) {
+            console.info("In update %s, id: %s.\nCurrent time: %s.", number, JSON.stringify(id), new Date($.now()) );
+            var url = itemsJson({ids: id});
+            request[number] = $.get(url, function (results) {
+                console.info("Get request: %s, %s.\nCurrent time: %s.", number, JSON.stringify(results), new Date($.now()) );
+                updateDatatableRows(table, results, field[number]);
+                request[number] = null;
+                count[number]++;
+            });
 
-        console.info("ids: %s", ids);
-        if (ids.length > 0) {
-            var update = function (table) {
-                var url = itemsJson({ids: ids.join(",")});
-                request = $.get(url, function (results) {
-                    console.info("request: %s", results);
-                    stop = true;
-                    var field = ['creationtime', 'actionstatus', 'error', 'status'];
-                    updateDatatableRows(table, results, field);
-                });
-            };
-            if (request == null) {
-                update(dataTable);
-            } else if (stop) {
-                request.abort();
+        };
+
+        if (data.length > 0) {
+            for (var i = count[number]; i < data.length; i++) {
+                var row = data[i];
+                //send new request after the previous is finished
+                if (request[number] == null) {
+                    update(dataTable, row.id);
+                } else if (stop[number]) {
+                    request[number].abort();
+                }
+            }
+            if(data.length == count[number]) {
+                stop[number] = true;
             }
         }
-
     }
 
 render.uploadAndRestoreBtn = function(o, val) {
@@ -120,6 +144,7 @@ render.uploadAndRestoreProgressIcon = function(o, val) {
 	    }
 	    var labels = {
 	        'NOT_STARTED': 'label-default',
+	        'PENDING': 'label-default',
 	        'READY': 'label-default',
 	        'IN_PROGRESS': 'label-info',
 	        'FAILED':   'label-danger',
@@ -131,11 +156,13 @@ render.uploadAndRestoreProgressIcon = function(o, val) {
             'DOWNLOAD_SUCCESS':    'label-success',
             'DOWNLOAD_FAILED':    'label-danger',
             'DOWNLOAD_CANCELLED':    'label-danger',
+            'RESTORING':    'label-info',
             'RESTORE_FAILED':    'label-danger',
             'RESTORE_SUCCESS':    'label-success'
         }
 	    var icons = {
 	        'NOT_STARTED':     'glyphicon glyphicon-time',
+	        'PENDING':     'glyphicon glyphicon-time',
 	        'READY':     'glyphicon glyphicon-time',
 	        'IN_PROGRESS': 'glyphicon glyphicon-refresh rotate',
 	        'DONE':    'glyphicon glyphicon-ok',
@@ -147,6 +174,7 @@ render.uploadAndRestoreProgressIcon = function(o, val) {
             'DOWNLOAD_SUCCESS':    'glyphicon glyphicon-ok',
             'DOWNLOAD_FAILED':    'glyphicon glyphicon-remove',
             'DOWNLOAD_CANCELLED':    'glyphicon glyphicon-warning-sign',
+            'RESTORING':    'glyphicon glyphicon-refresh rotate',
             'RESTORE_FAILED':    'glyphicon glyphicon-remove',
             'RESTORE_SUCCESS':    'glyphicon glyphicon-ok'
 	    };
@@ -161,17 +189,19 @@ render.uploadAndRestoreProgressMessage = function(o, val) {
     }
     var messages = {
         'NOT_STARTED':     Messages.get("renderFunctions.backupupload.status.notstarted"),
+        'PENDING':     Messages.get("renderFunctions.backupupload.status.pending"),
         'READY':     Messages.get("renderFunctions.backupupload.status.ready"),
         'IN_PROGRESS':   Messages.get("renderFunctions.backupupload.status.progress"),
         'FAILED': Messages.get("renderFunctions.backupupload.status.failed"),
         'DONE':    Messages.get("renderFunctions.backupupload.status.done"),
         'CANCELLED':    Messages.get("renderFunctions.backupupload.status.cancel"),
         //Restore Status
-        'LOADING':    Messages.get("renderFunctions.restore.status.loading"),
+        'LOADING':    '',
         'DOWNLOADING':    Messages.get("renderFunctions.restore.status.downloading"),
         'DOWNLOAD_SUCCESS':    Messages.get("renderFunctions.restore.status.downloadsuccess"),
         'DOWNLOAD_FAILED':    Messages.get("renderFunctions.restore.status.downloadfailed"),
         'DOWNLOAD_CANCELLED':    Messages.get("renderFunctions.restore.status.downloadcancel"),
+        'RESTORING':    Messages.get("renderFunctions.restore.status.restoring"),
         'RESTORE_FAILED':    Messages.get("renderFunctions.restore.status.restorefailed"),
         'RESTORE_SUCCESS':    Messages.get("renderFunctions.restore.status.restoresuccess")
     };
@@ -188,14 +218,23 @@ render.uploadAndRestoreProgressMessage = function(o, val) {
     if (!message) {
         message = defaultValue(messages[o.aData.status], Messages.get("renderFunction.discovery.status.unknown"));
     }
-    if (errorMsg != null){
-    	return '<span>' + messages[o.aData.status] +' - '+errors[o.aData.error] + '</span>';
+    if (errorMsg != null) {
+        var detailError = o.aData.status === 'RESTORE_FAILED' ? errorMsg : errors[o.aData.error];
+        return '<span>' + messages[o.aData.status] + ' - ' + detailError + '</span>';
     }
     return '<span>' + messages[o.aData.status] + '</span>';
 }
 
 render.uploadAndRestoreProgress = function(o, val) {
     return render.uploadAndRestoreProgressIcon(o, val) + " " + render.uploadAndRestoreProgressMessage(o, val);
+}
+
+render.externalLoading = function(o, val) {
+    if (o.aData.creationtime == '-1') {
+        return '<span class="label label-info"><span class="glyphicon glyphicon-refresh rotate"></span></span>';
+    } else {
+        return render.localDate(o, val);
+    }
 }
 
 render.backupSize = function (o, val) {

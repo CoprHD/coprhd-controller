@@ -224,25 +224,37 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath syncObjectPath = _cimPath.getSyncObject(storage, snap);
             if (_helper.checkExists(storage, syncObjectPath, false, false) != null) {
                 deactivateSnapshot(storage, snap, syncObjectPath);
+                boolean copyModeTarget = false;
                 if (storage.checkIfVmax3()) {
                     _helper.removeVolumeFromParkingSLOStorageGroup(storage, snap.getNativeId(), false);
                     _log.info("Done invoking remove volume {} from parking SLO storage group", snap.getNativeId());
 
-                    // If COPY mode snapshot, detach the element synchronization before deleting it.
-                    // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
                     if (BlockSnapshot.CopyMode.copy.toString().equals(snap.getCopyMode())) {
-                        CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
-                        CIMArgument[] outArgsDetach = new CIMArgument[5];
-                        CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
-                        _helper.invokeMethodSynchronously(storage, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
-                                inArgsDetach, outArgsDetach, null);
+                        copyModeTarget = true;
                     }
                 }
-                CIMArgument[] outArgs = new CIMArgument[5];
-                _helper.callModifyReplica(storage, _helper.getDeleteSnapshotSynchronousInputArguments(syncObjectPath), outArgs);
+                // If COPY mode snapshot target, detach the element synchronization before deleting it.
+                // TODO enhance ReplicaDeviceController to handle remove single session & target while removing volume from group.
+                if (copyModeTarget) {
+                    CIMArgument[] inArgsDetach = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
+                    CIMArgument[] outArgsDetach = new CIMArgument[5];
+                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
+                    _helper.invokeMethodSynchronously(storage, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION,
+                            inArgsDetach, outArgsDetach, null);
+
+                    // delete the target snapshot device
+                    CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storage);
+                    CIMArgument[] inArgs = _helper.getDeleteVolumesInputArguments(storage, new String[] { snap.getNativeId() });
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    _helper.invokeMethodSynchronously(storage, configSvcPath,
+                            SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL, inArgs, outArgs, null);
+                } else {
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    _helper.callModifyReplica(storage, _helper.getDeleteSnapshotSynchronousInputArguments(syncObjectPath), outArgs);
+                }
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             } else {
                 // Perhaps, it's already been deleted or was deleted on the array.
@@ -250,7 +262,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 // is idempotent.
                 snap.setInactive(true);
                 snap.setIsSyncActive(false);
-                _dbClient.persistObject(snap);
+                _dbClient.updateObject(snap);
                 taskCompleter.ready(_dbClient);
             }
         } catch (WBEMException e) {
@@ -1439,7 +1451,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionCreateJob(jobPath, system.getId(), completer)));
             } catch (Exception e) {
-                _log.info("Exception creating snapshot session ", e);
+                _log.error("Exception creating snapshot session ", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
                 completer.error(_dbClient, error);
             }
@@ -1478,7 +1490,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 ControllerServiceImpl.enqueueJob(new QueueJob(
                         new SmisBlockSnapshotSessionCGCreateJob(jobPath, system.getId(), completer)));
             } catch (Exception e) {
-                _log.info("Exception creating group snapshot session ", e);
+                _log.error("Exception creating group snapshot session ", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
                 completer.error(_dbClient, error);
             }
@@ -1561,7 +1573,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionLinkTargetJob(jobPath,
                         system.getId(), snapshotURI, copyMode, completer)));
             } catch (Exception e) {
-                _log.info("Exception creating and linking snapshot session target", e);
+                _log.error("Exception creating and linking snapshot session target", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
                 completer.error(_dbClient, error);
             }
@@ -1690,7 +1702,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             ControllerServiceImpl.enqueueJob(new QueueJob(job));
             _log.info("Link new target group to snapshot session group FINISH");
         } catch (Exception e) {
-            _log.info("Exception creating and linking snapshot session targets", e);
+            _log.error("Exception creating and linking snapshot session targets", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
             completer.error(_dbClient, error);
         }
@@ -1730,7 +1742,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
                     system.getId(), completer)));
         } catch (Exception e) {
-            _log.info("Exception restoring snapshot session", e);
+            _log.error("Exception re-linking snapshot session", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
             completer.error(_dbClient, error);
         }
@@ -1753,7 +1765,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             BlockSnapshotSession tgtSnapSession = _dbClient.queryObject(BlockSnapshotSession.class, tgtSnapSessionURI);
             String syncAspectPath = tgtSnapSession.getSessionInstance();
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            String groupName = _helper.extractGroupName(snapshot.getReplicationGroupInstance());
+            String groupName = ControllerUtils.extractGroupName(snapshot.getReplicationGroupInstance());
             CIMObjectPath replicationGroupPath = _cimPath.getReplicationGroupPath(system, groupName);
 
             // get source group name from the session.
@@ -1774,7 +1786,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
                     system.getId(), completer)));
         } catch (Exception e) {
-            _log.info("Exception restoring snapshot session", e);
+            _log.error("Exception re-linking snapshot session", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
             completer.error(_dbClient, error);
         }
@@ -1887,7 +1899,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 completer.ready(_dbClient);
             }
         } catch (Exception e) {
-            _log.info("Exception unlinking snapshot session target", e);
+            _log.error("Exception unlinking snapshot session target", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
             completer.error(_dbClient, error);
         }
@@ -2002,7 +2014,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRestoreJob(jobPath,
                         system.getId(), completer)));
             } catch (Exception e) {
-                _log.info("Exception restoring snapshot session", e);
+                _log.error("Exception restoring snapshot session", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
                 completer.error(_dbClient, error);
             }
@@ -2049,7 +2061,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                             system.getId(), completer)));
                 }
             } catch (Exception e) {
-                _log.info("Exception restoring snapshot session", e);
+                _log.error("Exception deleting snapshot session", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
                 completer.error(_dbClient, error);
             }

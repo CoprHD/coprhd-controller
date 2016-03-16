@@ -1428,12 +1428,12 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             String replicationGroup, String taskId) throws InternalException {
         log.info("addStepsForAddingVolumesToCG {}", cgURI);
         List<Volume> volumes = ControllerUtils.queryVolumesByIterativeQuery(_dbClient, volumeListToAdd);
-        Volume firstVolume = volumes.get(0);
-        if (!ControllerUtils.isVmaxVolumeUsing803SMIS(firstVolume, _dbClient)) {
+
+        if (volumes.isEmpty() || !ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
             return waitFor;
         }
 
-        URI storage = firstVolume.getStorageController();
+        URI storage = volumes.get(0).getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
 
         if (checkIfCGHasSnapshotSessions(volumes)) {

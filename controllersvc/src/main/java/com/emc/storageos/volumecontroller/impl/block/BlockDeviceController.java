@@ -4312,11 +4312,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             // check if cg is created, if not create it
             if (!cg.created()) {
                 _log.info("Consistency group not created. Creating it");
+                String groupName = ControllerUtils.generateReplicationGroupName(storageSystem, cg, null, _dbClient);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Creating consistency group %s", consistencyGroup),
                         waitFor, storage, storageSystem.getSystemType(),
                         this.getClass(),
-                        createConsistencyGroupMethod(storage, consistencyGroup),
+                        createConsistencyGroupMethod(storage, consistencyGroup, groupName),
                         rollbackMethodNullMethod(), null);
             }
 
@@ -4378,10 +4379,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    private static Workflow.Method createConsistencyGroupMethod(URI storage, URI consistencyGroup) {
-        return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, null);
-    }
-
     private static Workflow.Method createConsistencyGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName) {
         return new Workflow.Method("createConsistencyGroupStep", storage, consistencyGroup, replicationGroupName);
     }
@@ -4396,7 +4393,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     _dbClient);
 
             // Lock the CG for the step duration.
-            List<String> lockKeys = new ArrayList<String>();
+            List<String> lockKeys = new ArrayList<>();
             lockKeys.add(ControllerLockingUtil.getReplicationGroupStorageKey(_dbClient, replicationGroupName, storage));
             _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
 
@@ -4556,11 +4553,12 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem targetSystem = _dbClient.queryObject(StorageSystem.class, targetVolume.getStorageController());
             if (createGroup || !targetCG.created()) {
                 _log.info("Creating target Consistency group on Array.");
+                String groupName = ControllerUtils.generateReplicationGroupName(targetSystem, targetCG, null, _dbClient);
                 waitFor = workflow.createStep(UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                         String.format("Creating consistency group %s", targetCG.getId()),
                         waitFor, targetSystem.getId(), targetSystem.getSystemType(),
                         this.getClass(),
-                        createConsistencyGroupMethod(targetSystem.getId(), targetCG.getId()),
+                        createConsistencyGroupMethod(targetSystem.getId(), targetCG.getId(), groupName),
                         rollbackMethodNullMethod(), null);
             }
 

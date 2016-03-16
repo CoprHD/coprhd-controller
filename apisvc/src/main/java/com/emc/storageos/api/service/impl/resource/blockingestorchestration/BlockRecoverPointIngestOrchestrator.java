@@ -381,7 +381,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         for (String rpManagedTargetVolumeIdStr : rpManagedTargetVolumeIdStrs) {
             // Check to make sure the target volume is legit.
             Volume managedTargetVolume = null;
-            BlockObject bo = volumeContext.findCreatedBlockObject(URI.create(rpManagedTargetVolumeIdStr));
+            BlockObject bo = volumeContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(rpManagedTargetVolumeIdStr));
             if (bo != null && bo instanceof Volume) {
                 managedTargetVolume = (Volume) bo;
             }
@@ -470,7 +470,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         if (rpManagedSourceVolume != null) {
             // (1) Add the new managed target volume ID to the source volume's RP target list
             Volume sourceVolume = null;
-            BlockObject bo = volumeContext.findCreatedBlockObject(URI.create(rpManagedSourceVolume));
+            BlockObject bo = volumeContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(rpManagedSourceVolume));
             if (bo != null && bo instanceof Volume) {
                 sourceVolume = (Volume) bo;
             }
@@ -572,7 +572,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
 
         List<Volume> volumes = new ArrayList<Volume>();
         for (String volId : pset.getVolumes()) {
-            BlockObject volume = volumeContext.findCreatedBlockObject(URI.create(volId));
+            BlockObject volume = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(URI.create(volId));
             if (volume != null && volume instanceof Volume) {
                 volumes.add((Volume) volume);
             }
@@ -583,7 +583,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
         Set<DataObject> updatedObjects = new HashSet<DataObject>();
 
         VolumeIngestionUtil.decorateRPVolumesCGInfo(volumes, pset, cg, updatedObjects, _dbClient, requestContext);
-        VolumeIngestionUtil.clearPersistedReplicaFlags(volumes, updatedObjects, _dbClient);
+        VolumeIngestionUtil.clearPersistedReplicaFlags(requestContext, volumes, updatedObjects, _dbClient);
         clearReplicaFlagsInIngestionContext(volumeContext);
 
         for (DataObject volume : updatedObjects) {
@@ -852,7 +852,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private ProtectionSet createProtectionSet(RecoverPointVolumeIngestionContext volumeContext) {
         UnManagedProtectionSet umpset = volumeContext.getUnManagedProtectionSet();
-        ProtectionSet pset = VolumeIngestionUtil.createProtectionSet(volumeContext, umpset, _dbClient);
+        ProtectionSet pset = VolumeIngestionUtil.findOrCreateProtectionSet(
+                volumeContext, volumeContext.getUnmanagedVolume(), umpset, _dbClient);
         volumeContext.setManagedProtectionSet(pset);
         return pset;
     }
@@ -865,7 +866,8 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
      */
     private BlockConsistencyGroup createBlockConsistencyGroup(RecoverPointVolumeIngestionContext volumeContext) {
         ProtectionSet pset = volumeContext.getManagedProtectionSet();
-        BlockConsistencyGroup cg = VolumeIngestionUtil.createRPBlockConsistencyGroup(pset, _dbClient);
+        BlockConsistencyGroup cg = VolumeIngestionUtil.findOrCreateRPBlockConsistencyGroup(
+                volumeContext, volumeContext.getUnmanagedVolume(), pset, _dbClient);
         volumeContext.setManagedBlockConsistencyGroup(cg);
         return cg;
     }
@@ -1043,7 +1045,7 @@ public class BlockRecoverPointIngestOrchestrator extends BlockIngestOrchestrator
             sb.append("\n\nIngested Volumes:\n");
             for (URI volumeId : URIUtil.toURIList(umpset.getManagedVolumeIds())) {
                 Volume volume = null;
-                BlockObject bo = volumeContext.findCreatedBlockObject(volumeId);
+                BlockObject bo = volumeContext.getRootIngestionRequestContext().findCreatedBlockObject(volumeId);
                 if (bo != null && bo instanceof Volume) {
                     volume = (Volume) bo;
                 }

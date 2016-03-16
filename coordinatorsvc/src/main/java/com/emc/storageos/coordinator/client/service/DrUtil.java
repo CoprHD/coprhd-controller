@@ -652,21 +652,38 @@ public class DrUtil {
      * Check if all sites of local vdc are
      */
     public boolean isAllSitesStable() {
-        boolean bStable = true;
+        try {
+            verifyIPsecOpAllowableWithinDR();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
-        for (Site site : listSites()) {
-            if (site.getState().isDROperationOngoing()) {
-                return false;
+    public void verifyIPsecOpAllowableWithinDR() {
+        List<Site> allSites = listSites();
+
+        for (Site site : allSites) {
+            if (site.getState().equals(SiteState.STANDBY_PAUSED)) {
+                log.info("IPsec is disallowed since site {} is paused.", site.getName());
+                throw APIException.serviceUnavailable.sitePaused(site.getName());
             }
+        }
 
-            int nodeCount = site.getNodeCount();
+        for (Site site : allSites) {
+            if (site.getState().isDROperationOngoing()) {
+                log.info("Site {} has onging job {}", site.getName(), site.getState());
+                throw APIException.serviceUnavailable.siteOnGoingJob(site.getName(), site.getState().name());
+            }
+        }
+
+        for (Site site : allSites) {
             ClusterInfo.ClusterState state = coordinator.getControlNodesState(site.getUuid());
             if (state != ClusterInfo.ClusterState.STABLE) {
                 log.info("Site {} is not stable {}", site.getUuid(), state);
-                bStable = false;
+                throw APIException.serviceUnavailable.siteClusterStateNotStable(site.getName(), state.name());
             }
         }
-        return bStable;
     }
 
     /**

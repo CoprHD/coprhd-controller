@@ -629,8 +629,7 @@ public class BackupService {
     }
 
     private Response doRestore(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
-        log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
-                new Object[] {backupName, isLocal, password, isGeoFromScratch});
+        log.info("Do restore with backup name={} isLocal={} isGeoFromScratch={}", new Object[] {backupName, isLocal, isGeoFromScratch});
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, backupName);
 
         if (!backupOps.isActiveSite()) {
@@ -667,7 +666,8 @@ public class BackupService {
                 backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
                 restoreLog};
 
-        log.info("The restore command={} {} password=*** {} {}", new Object[] {restoreCommand[0], restoreCommand[1], restoreCommand[3], restoreCommand[4]});
+        log.info("The restore command parameters: {} {} {} {}",
+                new Object[] {restoreCommand[0], restoreCommand[1], restoreCommand[3], restoreCommand[4]});
 
         Exec.Result result = Exec.exec(120 * 1000, restoreCommand);
         switch (result.getExitValue()) {
@@ -704,7 +704,7 @@ public class BackupService {
     }
 
     private void setRestoreFailed(String backupName, String msg, Throwable cause) {
-        log.error("Set restore failed backup name:{} error: {} cause: {} ", new Object[] {backupName, msg, cause});
+        log.error("Set restore failed backup name:{} error: {} cause:", new Object[] {backupName, msg, cause});
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
         backupOps.setRestoreStatus(backupName, s, msg, false, false);
     }

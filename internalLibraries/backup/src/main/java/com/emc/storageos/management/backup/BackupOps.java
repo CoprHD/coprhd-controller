@@ -579,16 +579,16 @@ public class BackupOps {
      * Persist download status to ZK
      */
     public void setBackupFileNames(String backupName, List<String> filenames) {
-        updateRestoreStatus(backupName, null, null, null, 0, false, filenames, true, false);
+        updateRestoreStatus(backupName, false, null, null, null, 0, false, filenames, true, false);
     }
 
-    public void setRestoreStatus(String backupName, BackupRestoreStatus.Status s, String details,
+    public void setRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status s, String details,
                                  boolean increaseCompleteNumber, boolean doLock) {
-        updateRestoreStatus(backupName, s, details, null, 0, increaseCompleteNumber, null, true, doLock);
+        updateRestoreStatus(backupName, isLocal, s, details, null, 0, increaseCompleteNumber, null, true, doLock);
     }
 
     public void updateDownloadedSize(String backupName, long size, boolean doLock) {
-        updateRestoreStatus(backupName, null, null, null, size, false, null, false, doLock);
+        updateRestoreStatus(backupName, false, null, null, null, size, false, null, false, doLock);
     }
 
     public long getSizeToDownload(String backupName) throws UnknownHostException {
@@ -600,7 +600,7 @@ public class BackupOps {
         return map.get(localHostName);
     }
 
-    public void updateRestoreStatus(String backupName, BackupRestoreStatus.Status status, String details,
+    public void updateRestoreStatus(String backupName, boolean isLocal, BackupRestoreStatus.Status status, String details,
                                      Map<String, Long>downloadSize, long increasedSize, boolean increaseCompletedNodeNumber,
                                      List<String> backupfileNames, boolean doLog, boolean doLock) {
         InterProcessLock lock = null;
@@ -614,7 +614,7 @@ public class BackupOps {
                 log.info("get lock {}", BackupConstants.RESTORE_STATUS_UPDATE_LOCK);
             }
 
-            BackupRestoreStatus s = queryBackupRestoreStatus(backupName, false);
+            BackupRestoreStatus s = queryBackupRestoreStatus(backupName, isLocal);
 
             if (!canBeUpdated(status, s)) {
                 return;
@@ -649,7 +649,7 @@ public class BackupOps {
 
             updateBackupRestoreStatus(s);
 
-            persistBackupRestoreStatus(s, false, doLog);
+            persistBackupRestoreStatus(s, isLocal, doLog);
 
             if (doLog) {
                 log.info("Persist backup restore status {} to zk successfully", s);
@@ -801,7 +801,7 @@ public class BackupOps {
         }
 
         if (!isLocal) {
-            setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, null, false, true);
+            setRestoreStatus(backupName, false, BackupRestoreStatus.Status.DOWNLOAD_CANCELLED, null, false, true);
             log.info("Persist the cancel flag into ZK");
         }
     }

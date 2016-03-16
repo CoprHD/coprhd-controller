@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.block;
 
 import static com.emc.storageos.db.client.constraint.AlternateIdConstraint.Factory.getVolumesByAssociatedId;
 import static com.emc.storageos.db.client.util.CommonTransformerFunctions.fctnDataObjectToID;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_URI_TO_STRING;
 import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -43,6 +44,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -66,7 +68,7 @@ import com.google.common.base.Joiner;
  */
 public class ReplicaDeviceController implements Controller, BlockOrchestrationInterface {
     private static final Logger log = LoggerFactory.getLogger(ReplicaDeviceController.class);
-    private static final String MARK_SNAP_SESSIONS_INACTIVE = "markSnapSessionsInactive";
+    private static final String MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID = "markSnapSessionsInactiveOrRemoveTargetId";
     private DbClient _dbClient;
     private BlockDeviceController _blockDeviceController;
 
@@ -395,10 +397,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     addStepToCreateSnapshotSession(workflow, systemURI, session.getId(), repGroupName, waitFor);
             
             // add step to delete the newly created session object from DB
-            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
+            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID,
                     String.format("marking snap session %s inactive", session.getLabel()), waitFor, systemURI,
                     _blockDeviceController.getDeviceType(systemURI), this.getClass(),
-                    markSnapSessionsInactiveMethod(Arrays.asList(session.getId())),
+                    markSnapSessionInactiveOrRemoveTargetIdsMethod(session.getId(), null),
                     _blockDeviceController.rollbackMethodNullMethod(), null);
         }
 
@@ -459,10 +461,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                         blockSnapshot.getId(), copyMode, waitFor);
             }
             // add step to delete the newly created session object from DB
-            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE,
+            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID,
                     String.format("marking snap session %s inactive", session.getLabel()), waitFor, systemURI,
                     _blockDeviceController.getDeviceType(systemURI), this.getClass(),
-                    markSnapSessionsInactiveMethod(Arrays.asList(session.getId())),
+                    markSnapSessionInactiveOrRemoveTargetIdsMethod(session.getId(), null),
                     _blockDeviceController.rollbackMethodNullMethod(), null);
 
             // Add step to add back the source volume to its group which was removed before linking target
@@ -484,26 +486,40 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         return waitFor;
     }
 
-    public Workflow.Method markSnapSessionsInactiveMethod(List<URI> snapSessions) {
-        return new Workflow.Method(MARK_SNAP_SESSIONS_INACTIVE, snapSessions);
+    public Workflow.Method markSnapSessionInactiveOrRemoveTargetIdsMethod(URI snapSession, List<URI> targetIds) {
+        return new Workflow.Method(MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID, snapSession, targetIds);
     }
 
     /**
-     * A workflow step that marks volume's snap sessions inactive after
-     * the completion of adding the new volumes to the group session step.
+     * A workflow step that
+     * removes the given target ids from snap session object
+     * if no target ids provided or the linked target set is empty after removing given targets, it marks the snap session inactive.
      *
-     * @param snapSessions -- List<URI> of snapSessions
+     * @param snapSessionURI the snap session uri
+     * @param targetIds the target ids
      * @param stepId -- Workflow Step Id.
      */
-    public void markSnapSessionsInactive(List<URI> snapSessions, String stepId) {
+    public void markSnapSessionsInactiveOrRemoveTargetId(URI snapSessionURI, List<URI> targetIds, String stepId) {
         try {
-            for (URI uri : snapSessions) {
-                BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, uri);
-                if (snapSession != null && !snapSession.getInactive()) {
-                    log.info("Marking snapshot session in-active: {}", snapSession.getLabel());
-                    snapSession.setInactive(true);
-                    _dbClient.updateObject(snapSession);
+            BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+            StringSet linkedTargets = null;
+            if (snapSession != null && !snapSession.getInactive()) {
+                if (targetIds != null) {
+                    log.info("Removing target ids {} from snap session {}",
+                            Joiner.on(", ").join(targetIds), snapSession.getLabel());
+                    List<String> targets = newArrayList(transform(targetIds, FCTN_URI_TO_STRING));
+                    linkedTargets = snapSession.getLinkedTargets();
+                    if (linkedTargets != null) {
+                        log.info("target ids present: {}", Joiner.on(", ").join(linkedTargets));
+                        linkedTargets.removeAll(targets);
+                    }
                 }
+
+                if (targetIds == null || (linkedTargets == null || linkedTargets.isEmpty())) {
+                    log.info("Marking snap session in-active: {}", snapSession.getLabel());
+                    snapSession.setInactive(true);
+                }
+                _dbClient.updateObject(snapSession);
             }
         } finally {
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -697,7 +713,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         List<URI> mirrorList = new ArrayList<URI>();
         for (Volume volume : volumes) {
             String mirrorLabel = volume.getLabel() + "-" + repGroupName;
-            BlockMirror mirror = createMirror(volume, volume.getVirtualPool(), volume.getPool(), mirrorLabel);
+            BlockMirror mirror = createMirror(volume, volume.getVirtualPool(), volume.getPool(), mirrorLabel, repGroupName);
             URI mirrorId = mirror.getId();
             mirrorList.add(mirrorId);
         }
@@ -722,9 +738,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      * @param vPoolURI
      * @param recommendedPoolURI Pool that should be used to create the mirror
      * @param volumeLabel
+     * @param repGroupName
      * @return BlockMirror (persisted)
      */
-    private BlockMirror createMirror(Volume volume, URI vPoolURI, URI recommendedPoolURI, String volumeLabel) {
+    private BlockMirror createMirror(Volume volume, URI vPoolURI, URI recommendedPoolURI, String volumeLabel, String repGroupName) {
         BlockMirror createdMirror = new BlockMirror();
         createdMirror.setSource(new NamedURI(volume.getId(), volume.getLabel()));
         createdMirror.setId(URIUtil.createId(BlockMirror.class));
@@ -745,6 +762,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
         createdMirror.setThinlyProvisioned(volume.getThinlyProvisioned());
+        createdMirror.setReplicationGroupInstance(repGroupName);
         _dbClient.createObject(createdMirror);
         addMirrorToVolume(volume, createdMirror);
         return createdMirror;
@@ -1099,6 +1117,39 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         log.info(String.format("Step created for remove snapshots [%s] to group on device [%s]",
                 Joiner.on("\t").join(snapshots), storage));
 
+        BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapshots.get(0));
+        Volume sourceVol = _dbClient.queryObject(Volume.class, snap.getParent());
+
+        // delete replication group from array if no more snapshots in the group.
+        boolean rgHasNoOtherSnapshot = ControllerUtils.replicationGroupHasNoOtherSnapshot(_dbClient, repGroupName, snapshots, storage);
+        if (rgHasNoOtherSnapshot) {
+            log.info(String.format("Adding step to delete the replication group %s", repGroupName));
+            String sourceRepGroupName = sourceVol.getReplicationGroupInstance();
+            waitFor = workflow.createStep(BlockDeviceController.DELETE_GROUP_STEP_GROUP,
+                    String.format("Deleting replication group  %s", repGroupName),
+                    waitFor, storage, storageSystem.getSystemType(),
+                    BlockDeviceController.class,
+                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI,
+                            ControllerUtils.extractGroupName(repGroupName), true, false, sourceRepGroupName),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
+        }
+
+        // get snap session associated if any
+        List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                BlockSnapshotSession.class,
+                ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(snap.getId()));
+        Iterator<BlockSnapshotSession> itr = sessions.iterator();
+        if (itr.hasNext()) {
+            BlockSnapshotSession session = itr.next();
+            // add step to remove target ids from snap session object
+            // snap session will be marked inactive when removing last target
+            waitFor = workflow.createStep(MARK_SNAP_SESSIONS_INACTIVE_OR_REMOVE_TARGET_ID,
+                    String.format("marking snap session %s inactive or removing target ids", session.getLabel()), waitFor, storage,
+                    _blockDeviceController.getDeviceType(storage), this.getClass(),
+                    markSnapSessionInactiveOrRemoveTargetIdsMethod(session.getId(), snapshots),
+                    _blockDeviceController.rollbackMethodNullMethod(), null);
+        }
+
         return waitFor;
     }
 
@@ -1125,7 +1176,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     String.format("Deleting replication group  %s", repGroupName),
                     waitFor, storage, storageSystem.getSystemType(),
                     BlockDeviceController.class,
-                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, false, false, sourceRepGroupName),
+                    _blockDeviceController.deleteReplicationGroupMethod(storage, cgURI, repGroupName, true, false, sourceRepGroupName),
                     _blockDeviceController.rollbackMethodNullMethod(), null);
         }
         return waitFor;
@@ -1607,7 +1658,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     }
                 }
 
-                // add steps to removed snapshots from the replication group
+                // add steps to remove snapshots from the replication group
                 for (Entry<String, List<URI>> entry : snapGroupCloneURIMap.entrySet()) {
                     waitFor = removeSnapshotsFromReplicationGroupStep(workflow, waitFor, system, cgURI, entry.getValue(), entry.getKey());
                 }

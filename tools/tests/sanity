@@ -8055,7 +8055,7 @@ assert_ipsec_status()
     local result=1
 
     sleep 1
-    for i in {1..5}; do
+    for i in {1..10}; do
         ipsec_status=$(./ipsec check)
         [[ "${ipsec_status}" == *"${expect_status}"* ]] && { result=0; break; }
         sleep 5

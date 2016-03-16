@@ -27,7 +27,7 @@ public class CreateCloneOfApplicationService extends ViPRService {
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
 
-    @Param(ServiceParams.NAME)
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
     private String name;
 
     @Param(value = ServiceParams.APPLICATION_SITE, required = false)

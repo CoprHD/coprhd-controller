@@ -148,6 +148,11 @@ public class DisasterRecoveryUtils {
         SiteActive siteCheck = checkActiveSite();
         return siteCheck.getLocalSiteName();
     }
+    
+    public static String getLocalUuid() {
+        SiteActive siteCheck = checkActiveSite();
+        return siteCheck.getLocalUuid();
+    }
 
     public static SiteErrorResponse getSiteError(String uuid) {
         return getViprClient().site().getSiteError(uuid);

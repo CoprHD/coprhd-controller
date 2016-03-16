@@ -8,7 +8,6 @@ import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
-import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -291,7 +290,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     }
 
     @Override
-    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+    public ClusterInfo.ClusterState getControlNodesState(String siteId) {
         return null;
     }
 
@@ -325,12 +324,6 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
     @Override
     public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
         
-    }
-    
-    @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws CoordinatorException {
-        throw new UnsupportedOperationException();
     }
 
     @Override

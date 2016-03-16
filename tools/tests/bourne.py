@@ -4065,10 +4065,15 @@ class Bourne:
     # Block Consistency Groups
     #
 
-    def block_consistency_group_create(self, project, label):
+    def block_consistency_group_create(self, project, label, arrayconsistency):
+	arrayconsistencyvalue = "false"
+	if (arrayconsistency):
+	    arrayconsistencyvalue=arrayconsistency
+	    
         parms = {
             'name'  : label,
             'project' : project,
+	    'array_consistency' : arrayconsistencyvalue,
         }
 
         return self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_CREATE, parms)
@@ -4092,12 +4097,15 @@ class Bourne:
         for consistencyGroup in resource:
              if (consistencyGroup.get('match') == name):
                  return consistencyGroup.get('id')
+	raise Exception('bad consistency group name')
 
-    def block_consistency_group_delete(self, group_uri):
-        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_DELETE.format(group_uri))
+    def block_consistency_group_delete(self, group_uri, vipronly):
+        posturi = URI_BLOCK_CONSISTENCY_GROUP_DELETE.format(group_uri)
+        if (vipronly):
+            posturi = posturi + '?type=VIPR_ONLY'
+	o = self.api('POST', posturi);
         self.assert_is_dict(o)
         s = self.api_sync_2(o['resource']['id'], o['op_id'], self.block_consistency_group_show_task)
-
         return (o, s)
 
     def block_consistency_group_update(self, group, add, remove):

@@ -252,6 +252,8 @@ _reload() {
             exec /usr/bin/systemctl restart nginx ;;
         firewall)
             exec /usr/bin/systemctl restart SuSEfirewall2 ;;
+        ipsec)
+            echo "skip reload ipsec in oss platform" ;;
         *)
             _fatal2 2 "Unsupported service type ${1}" ;;
     esac

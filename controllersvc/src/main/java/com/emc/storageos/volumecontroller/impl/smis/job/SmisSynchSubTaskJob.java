@@ -4,20 +4,22 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
+import java.net.URI;
+
+import javax.cim.CIMObjectPath;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
-
-import javax.cim.CIMObjectPath;
-import java.net.URI;
 
 /**
  * This is a job that can be used when running
- * SmisCommandHelper#invokeMethodSynchronously. The job will generate it's own
+ * SmisCommandHelper#invokeMethodSynchronously. The job will generate its own
  * completer, which will not tie into a ViPR object's status. Doing this allows
  * multiple invokeMethodSynchronously calls to be made, without affecting the overall
  * task, sub-workflow, or the workflow. The job object can then be use to check if the

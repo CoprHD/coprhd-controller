@@ -1032,4 +1032,20 @@ public interface BlockStorageDevice {
             throws DeviceControllerException;
 
     void doAddSnapshotSessionsToConsistencyGroup(StorageSystem storageSystem, URI consistencyGroup, List<URI> addVolumesList, TaskCompleter taskCompleter);
+
+    /**
+     * Delete a replica replication group in the given StorageSystem
+     * 
+     * @param storage
+     * @param consistencyGroup
+     * @param replicationGroupName name of the replication group to be deleted
+     * @param keepRGName Boolean if true, ViPR will keep group name for CG
+     * @param markInactive
+     * @param sourceReplicationGroup name of the source replication group
+     * @param taskCompleter
+     */
+    public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup,
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive, 
+            String sourceReplicationGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
+    
 }

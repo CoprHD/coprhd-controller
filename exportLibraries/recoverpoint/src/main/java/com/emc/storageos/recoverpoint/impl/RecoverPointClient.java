@@ -746,8 +746,15 @@ public class RecoverPointClient {
         } catch (Exception e) {
             for (CreateRSetParams rsetParam : request.getRsets()) {
                 for (CreateVolumeParams volumeParam : rsetParam.getVolumes()) {
-                    RecoverPointVolumeProtectionInfo volProtectionInfo = this.getProtectionInfoForVolume(volumeParam.getWwn());
-                    replicationSetsRollback.add(volProtectionInfo);
+                    try {
+                        RecoverPointVolumeProtectionInfo volProtectionInfo = this.getProtectionInfoForVolume(volumeParam.getWwn());
+                        replicationSetsRollback.add(volProtectionInfo);
+                    } catch (Exception e1) {
+                        // unable to find protection info for volume
+                        logger.warn(e1.getMessage(), e1);
+                        // skip the volume
+                        continue;
+                    }
                 }
             }
             deleteReplicationSets(replicationSetsRollback);
@@ -3271,6 +3278,10 @@ public class RecoverPointClient {
 
                 logger.info("Checking for volumes unattached to splitters");
                 RecoverPointUtils.verifyCGVolumesAttachedToSplitter(functionalAPI, cgID);
+
+                RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
+                logger.info("Waiting for links to become active for CG ");
+                rpiMgmt.waitForCGLinkState(functionalAPI, cgID, RecoverPointImageManagementUtils.getPipeActiveState(functionalAPI, cgID));
             } catch (FunctionalAPIActionFailedException_Exception e) {
                 throw RecoverPointException.exceptions.failedToRecreateReplicationSet(volumeWWNs.toString(), e);
             } catch (FunctionalAPIInternalError_Exception e) {

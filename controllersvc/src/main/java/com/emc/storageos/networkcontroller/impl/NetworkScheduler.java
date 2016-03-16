@@ -896,8 +896,9 @@ public class NetworkScheduler {
      */
     private List<Initiator> getInitiators(List<URI> initiatorURIs) {
         List<Initiator> initiators = new ArrayList<Initiator>();
-        List<Initiator> queryInitiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-        for (Initiator initiator : queryInitiators) {
+        Iterator<Initiator> queryIterativeInitiators = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);    
+        while (queryIterativeInitiators.hasNext()) {
+        	Initiator initiator = queryIterativeInitiators.next();
             if (initiator == null || initiator.getInactive() == true) {
                 continue;
             }

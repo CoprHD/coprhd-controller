@@ -2539,7 +2539,8 @@ public class RecoverPointScheduler implements Scheduler {
                             + "RecoverPoint consistency group [%s]. Required capacity is %s and we can't re-use storage pool [%s] "
                             + "as it only has %s free capacity.",
                             storagePoolErrorDetail.get(storagePool.getId()), sourceVolume.getLabel(), 
-                            cg.getLabel(), requiredCapacity, storagePool.getLabel(), freeCapacity));
+                            cg.getLabel(), SizeUtil.translateSize(requiredCapacity, SizeUtil.SIZE_GB), storagePool.getLabel(), 
+                            SizeUtil.translateSize(freeCapacity, SizeUtil.SIZE_GB)));
                     break;
                 } else {
                     _log.info(String.format("Storage pool [%s], used by consistency group [%s], has the required capacity and will be "

@@ -510,6 +510,21 @@ public class FileProvider extends BaseAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
+    
+    
+    @Asset("fileSourceVirtualPool")
+    @AssetDependencies({"unprotectedFilesystem"})
+    public List<AssetOption> getFileSourceVirtualPool(AssetOptionsContext ctx, URI fileSystems) {
+        List<AssetOption> options = Lists.newArrayList();
+        ViPRCoreClient client = api(ctx);
+        
+        URI sourceVpoolId = client.fileSystems().get(fileSystems).getId();
+        FileVirtualPoolRestRep sourceVpool = client.fileVpools().get(sourceVpoolId);
+        options.add(new AssetOption(sourceVpool.getId(), sourceVpool.getName()));
+        
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
 
     private List<SmbShareResponse> listFileShares(AssetOptionsContext ctx, URI filesystem) {
         return api(ctx).fileSystems().getShares(filesystem);

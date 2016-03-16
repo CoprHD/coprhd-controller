@@ -11,6 +11,10 @@
       type:"assetType.vipr.unprotectedFilesystem"
     },
     
+    sourceVirtualPool:{
+      type:"assetType.vipr.fileSourceVirtualPool",
+    },
+    
     virtualPoolChangeOperation:{
       type:"assetType.vipr.fileVirtualPoolChangeOperation",
       lockable: true

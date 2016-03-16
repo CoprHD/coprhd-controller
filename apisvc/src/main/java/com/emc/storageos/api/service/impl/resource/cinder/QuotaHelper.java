@@ -417,7 +417,7 @@ public class QuotaHelper {
 
         objStats.snapshots = (long)totalSnapshotsUsed;
         objStats.volumes = totalVolumesUsed;
-        objStats.spaceUsed = (long)(Math.ceil(totalSizeUsed));
+        objStats.spaceUsed = (long)(Math.round(totalSizeUsed));
 
         return objStats;
     }

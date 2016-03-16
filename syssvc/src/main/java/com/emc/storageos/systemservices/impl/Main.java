@@ -27,7 +27,7 @@ public class Main {
             ctx.load(args);
 
             // start ipsec monitor
-            IPSecMonitor ipsecMonitor = (IPSecMonitor) ctx.getBean(IPSEC_MONITOR_BEAN);
+            IPSecMonitor ipsecMonitor = new IPSecMonitor();
             ipsecMonitor.setApplicationContext(ctx);
             ipsecMonitor.start();
 

@@ -1761,9 +1761,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     cleanupAnyGroupBackupSnapshots(storage, cgPath);
                 }
 
-                if (storage.checkIfVmax3()) {
+                if (storage.checkIfVmax3() && replicationGroupName != null) {
                     // if deleting snap session replication group, we need to remove the EMCSFSEntries first
                     _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
+
+                    markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
                 }
 
                 if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
@@ -1826,6 +1828,29 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.error(_dbClient, serviceError);
             } else {
                 taskCompleter.ready(_dbClient);
+            }
+        }
+    }
+
+    /**
+     * After clearing the snap session SFS entries in the SMI-S Provider for the replication group,
+     * mark the associated snap sessions inactive in database.
+     *
+     * @param storage the storage
+     * @param cg the consistency group
+     * @param rgName the replication group name
+     */
+    private void markSnapSessionsInactiveForReplicationGroup(URI storage, URI cg, String rgName) {
+        List<BlockSnapshotSession> sessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                BlockSnapshotSession.class,
+                AlternateIdConstraint.Factory.getSnapshotSessionReplicationGroupInstanceConstraint(rgName));
+
+        for (BlockSnapshotSession session : sessionsList) {
+            if (storage.toString().equals(session.getStorageController().toString())
+                    && (cg != null && cg.toString().equals(session.getConsistencyGroup().toString()))) {
+                _log.info("Marking snap session in-active: {}", session.getLabel());
+                session.setInactive(true);
+                _dbClient.updateObject(session);
             }
         }
     }

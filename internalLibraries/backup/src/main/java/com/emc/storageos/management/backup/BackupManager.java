@@ -273,7 +273,7 @@ public class BackupManager implements BackupManagerMBean {
         File backupZip = new File(backupFolder.getParentFile(),
                 backupFolder.getName() + BackupConstants.COMPRESS_SUFFIX);
         try {
-            ZipUtil.pack(backupFolder, backupZip, Deflater.BEST_SPEED);
+            ZipUtil.pack(backupFolder, backupZip, Deflater.NO_COMPRESSION);
         } catch (IOException ex) {
             if (backupZip.exists()) {
                 backupZip.delete();

@@ -355,9 +355,6 @@ public class BackupService {
 
         log.info("Upload job={}", job);
 
-        SchedulerConfig cfg = backupScheduler.getCfg();
-        cfg.persistBackupUploadStatus(job);
-
         jobProducer.enqueue(job);
 
         backupScheduler.getUploadExecutor().addPendingUploadTask(backupTag);

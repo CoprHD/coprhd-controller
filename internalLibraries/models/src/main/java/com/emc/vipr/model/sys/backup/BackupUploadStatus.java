@@ -111,10 +111,6 @@ public class BackupUploadStatus implements Serializable {
         this.errorCode = (errorCode != null) ? errorCode : this.errorCode;
         this.status = (status != null) ? status : this.status;
 
-        if (errorCode == ErrorCode.BACKUP_NOT_EXIST) {
-            log.info("lby stack=", new Throwable());
-        }
-        
         updatePostCheck();
         log.info("Backup upload status after updating: {}", this);
     }

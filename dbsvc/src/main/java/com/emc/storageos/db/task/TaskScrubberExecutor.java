@@ -77,10 +77,10 @@ public class TaskScrubberExecutor {
         startTimeMarker.setTimeInMillis(startTimeMicroSec/MINI_TO_MICROSECS);
 
         List<URI> ids = dbClient.queryByType(Task.class, true);
+        Iterator<Task> tasks = dbClient.queryIterativeObjects(Task.class, ids, true);
         List<Task> toBeDeleted = Lists.newArrayList();
-        for (URI id : ids) {
-            Task task = dbClient.queryObject(Task.class, id);
-            
+        while (tasks.hasNext()) {
+            Task task = tasks.next();
             if (task.getCreationTime().after(startTimeMarker)) {
             	continue;
             }

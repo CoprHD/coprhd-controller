@@ -60,7 +60,7 @@ angular.module("services", []).directive({
                         angular.forEach(fieldDescriptor.fieldsWeDependOn, function(dependencyName) {
                         	$scope[dependencyName].disabled = true;
                         	if ($scope[dependencyName].disableCount === undefined) {
-                        		// keep track of how many dependency to avoid enabling while field are still being populated
+                        		// keep track of how many dependencies to avoid enabling while fields are still being populated
                         		$scope[dependencyName].disableCount = 0; 
                         	}
                         	$scope[dependencyName].disableCount += 1;
@@ -84,7 +84,7 @@ angular.module("services", []).directive({
                             // enable all dependency field
                             angular.forEach(fieldDescriptor.fieldsWeDependOn, function(dependencyName) {
                             	$scope[dependencyName].disableCount -= 1;
-                            	// only enable if no more field are populating and dependency isn't loading (will enable itself once done)
+                            	// only enable if no more fields are populating and dependency isn't loading (will enable itself once done)
                             	if (!$scope[dependencyName].disableCount > 0 && !$scope[dependencyName].loading) {
                             		$scope[dependencyName].disabled = false;
                             	}

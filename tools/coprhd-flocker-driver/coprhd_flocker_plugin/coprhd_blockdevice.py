@@ -129,6 +129,7 @@ class CoprHDCLIDriver(object):
                                   cookiedir,
                                   None)
             CoprHDCLIDriver.AUTHENTICATED = True
+    
     @retry_wrapper
     def get_volume_lunid(self, vol):
         self.authenticate_user()
@@ -154,6 +155,7 @@ class CoprHDCLIDriver(object):
            return 
         except utils.SOSError:
                     Message.new(Debug="coprhd-get_volume_lunid failed").write(_logger)
+    
     @retry_wrapper                
     def get_volume_details(self, vol):
         self.authenticate_user()
@@ -180,6 +182,7 @@ class CoprHDCLIDriver(object):
            return volume_dict[volumedetails['name'][8:]]={'size':volumedetails['provisioned_capacity_gb'],'attached_to':None}
         except utils.SOSError:
                     Message.new(Debug="coprhd get volume details failed").write(_logger)
+    
     @retry_wrapper
     def list_volume(self):
         self.authenticate_user()

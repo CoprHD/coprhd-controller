@@ -114,7 +114,7 @@ public class QosService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param tenant_id the URN of the tenant
+     * @param openstackTenantId the URN of the tenant
      * @param param POST data containing the QoS creation information.
      *
      * @brief Create Qos
@@ -124,7 +124,7 @@ public class QosService extends TaskResourceService {
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public CinderQosDetail createQoS(@PathParam("tenant_id") String openstack_tenant_id, CinderQosCreateRequest param, @Context HttpHeaders header) {
+    public CinderQosDetail createQoS(@PathParam("tenant_id") String openstackTenantId, CinderQosCreateRequest param, @Context HttpHeaders header) {
 
         _log.debug("START create QoS");
 
@@ -137,7 +137,7 @@ public class QosService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param tenant_id the URN of the tenant
+     * @param openstackTenantId the URN of the tenant
      * 
      * @brief List Qos
      * @return Qos list
@@ -145,7 +145,7 @@ public class QosService extends TaskResourceService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public CinderQosListRestResp getQosList(@PathParam("tenant_id") String openstack_tenant_id) {
+    public CinderQosListRestResp getQosList(@PathParam("tenant_id") String openstackTenantId) {
     	CinderQosListRestResp qosListResp= new CinderQosListRestResp();
         _log.debug("START get QoS list");
 
@@ -169,8 +169,8 @@ public class QosService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param tenant_id the URN of the tenant
-     * @param qos_id the URN of the QoS
+     * @param openstackTenantId the URN of the tenant
+     * @param qosId the URN of the QoS
      *
      * @brief List Qos in detail
      * @return Qos detailed list
@@ -179,12 +179,12 @@ public class QosService extends TaskResourceService {
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/{qos_id}")
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public CinderQosDetail getQosDetails(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id) {
+    public CinderQosDetail getQosDetails(@PathParam("tenant_id") String openstackTenantId, @PathParam("qos_id") String qosId) {
         CinderQosDetail qosDetailed = new CinderQosDetail();
         _log.debug("START get QoS specs detailed");
 
-        URI qos_URI = URIUtil.createId(QosSpecification.class, qos_id);
-        QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, qos_URI);
+        URI qosURI = URIUtil.createId(QosSpecification.class, qosId);
+        QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, qosURI);
         if(qosSpecification != null && hasTenantUsageAclOnQos(qosSpecification)){
             _log.debug("Fetched Qos Specification, id: {}", qosSpecification.getId());
             qosDetailed.qos_spec = getDataFromQosSpecification(qosSpecification);
@@ -205,8 +205,8 @@ public class QosService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param tenant_id the URN of the tenant
-     * @param qos_id the URN of the QoS specs to update
+     * @param openstackTenantId the URN of the tenant
+     * @param qosId the URN of the QoS specs to update
      *
      * @brief Set or unset key in Qos specs
      * @return Updated Qos specs
@@ -215,7 +215,7 @@ public class QosService extends TaskResourceService {
     @Path("/{qos_id}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public CinderQosDetail setUnsetQosKey(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id, CinderQosKeyUpdateRequest data) {
+    public CinderQosDetail setUnsetQosKey(@PathParam("tenant_id") String openstackTenantId, @PathParam("qos_id") String qosId, CinderQosKeyUpdateRequest data) {
 
         _log.debug("START set or unset QoS keys");
         throw new UnsupportedOperationException();
@@ -227,8 +227,8 @@ public class QosService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param tenant_id the URN of the tenant
-     * @param qos_id the URN of the QoS specs to delete
+     * @param openstackTenantId the URN of the tenant
+     * @param qosId the URN of the QoS specs to delete
      *
      * @brief Delete Qos specs
      * @return Task result
@@ -237,7 +237,7 @@ public class QosService extends TaskResourceService {
     @Path("/{qos_id}")
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public Response deleteQoS(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id, @QueryParam("force") String force) {
+    public Response deleteQoS(@PathParam("tenant_id") String openstackTenantId, @PathParam("qos_id") String qosId, @QueryParam("force") String force) {
 
         _log.debug("START delete QoS, force = {}", force);
         throw new UnsupportedOperationException();
@@ -248,9 +248,9 @@ public class QosService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param tenant_id the URN of the tenant
-     * @param qos_id the URN of the QoS specs
-     * @param volume_id the URN of the volume
+     * @param openstackTenantId the URN of the tenant
+     * @param qosId the URN of the QoS specs
+     * @param volTypeId the URN of the volume
      *
      * @brief Associates Qos to a Volume Type
      * @return
@@ -259,7 +259,7 @@ public class QosService extends TaskResourceService {
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/{qos_id}/associate")
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public Response associateQosWithVolumeType(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id, @QueryParam("vol_type_id") String vol_type_id) {
+    public Response associateQosWithVolumeType(@PathParam("tenant_id") String openstackTenantId, @PathParam("qos_id") String qosId, @QueryParam("vol_type_id") String volTypeId) {
         _log.debug("START associate qos with volume type(virtual pool)");
         throw new UnsupportedOperationException();
     }
@@ -269,9 +269,9 @@ public class QosService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param tenant_id the URN of the tenant
-     * @param qos_id the URN of the QoS specs
-     * @param volume_id the URN of the volume
+     * @param openstackTenantId the URN of the tenant
+     * @param qosId the URN of the QoS specs
+     * @param volTypeId the URN of the volume
      *
      * @brief Disassociates Qos from a Volume Type
      * @return
@@ -280,7 +280,7 @@ public class QosService extends TaskResourceService {
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/{qos_id}/disassociate")
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public Response disassociateQosFromVolumeType(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id, @QueryParam("vol_type_id") String vol_type_id) {
+    public Response disassociateQosFromVolumeType(@PathParam("tenant_id") String openstackTenantId, @PathParam("qos_id") String qosId, @QueryParam("vol_type_id") String volTypeId) {
         _log.debug("START disassociate qos from volume type(virtual pool)");
         throw new UnsupportedOperationException();
     }
@@ -290,8 +290,8 @@ public class QosService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param tenant_id the URN of the tenant
-     * @param qos_id the URN of the QoS specs
+     * @param openstackTenantId the URN of the tenant
+     * @param qosId the URN of the QoS specs
      *
      * @brief Remove all associations for a given Qos specs
      * @return
@@ -300,7 +300,7 @@ public class QosService extends TaskResourceService {
     @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
     @Path("/{qos_id}/disassociate_all")
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public Response disassociateQosFromAllAssociations(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id) {
+    public Response disassociateQosFromAllAssociations(@PathParam("tenant_id") String openstackTenantId, @PathParam("qos_id") String qosId) {
         _log.debug("START disassociate qos from all associations");
         throw new UnsupportedOperationException();
     }
@@ -312,7 +312,7 @@ public class QosService extends TaskResourceService {
      * 
      * @prereq none
      * 
-     * @param tenant_id the URN of the tenant
+     * @param openstackTenantId the URN of the tenant
      * 
      * @brief List volumes in detail
      * @return Volume detailed list
@@ -321,12 +321,12 @@ public class QosService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{qos_id}/associations")
     @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
-    public QosAssociationsRestResp getQosAssociations(@PathParam("tenant_id") String openstack_tenant_id, @PathParam("qos_id") String qos_id) {
+    public QosAssociationsRestResp getQosAssociations(@PathParam("tenant_id") String openstackTenantId, @PathParam("qos_id") String qosId) {
         _log.debug("START get qos associations");
         QosAssociationsRestResp objQosRestResp= new QosAssociationsRestResp();
 
-        URI qos_URI = URIUtil.createId(QosSpecification.class, qos_id);
-        QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, qos_URI);
+        URI qosURI = URIUtil.createId(QosSpecification.class, qosId);
+        QosSpecification qosSpecification = _dbClient.queryObject(QosSpecification.class, qosURI);
         if (qosSpecification != null && hasTenantUsageAclOnQos(qosSpecification)) {
             objQosRestResp.getAssociation().add(getQosAssociation(qosSpecification));
         }
@@ -453,7 +453,7 @@ public class QosService extends TaskResourceService {
     /**
      * Update QoS specification associated with provided VirtualPool.
      *
-     * @param vpool the VirtualPool object with updated data.
+     * @param virtualPool the VirtualPool object with updated data.
      * @param qosSpecification the QosSpecification to update.
      */
     public static QosSpecification updateQos(VirtualPool virtualPool, QosSpecification qosSpecification, DbClient dbClient) {
@@ -513,7 +513,6 @@ public class QosService extends TaskResourceService {
         }
 
         dbClient.updateObject(qosSpecification);
-        //recordOperation(OperationTypeEnum.UPDATE_QOS, QOS_UPDATED_DESCRIPTION, qosSpecification);
 
         return qosSpecification;
     }

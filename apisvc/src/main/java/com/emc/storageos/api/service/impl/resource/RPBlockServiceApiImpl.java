@@ -366,7 +366,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                         
                     // We only need to validate the MetroPoint type if this is the
                     // first MP volume of a new CG.
-                    if (metroPointEnabled && (allSourceVolumesInCG == null || allSourceVolumesInCG.isEmpty())) {
+                    if (metroPointEnabled && allSourceVolumesInCG.isEmpty()) {
                         validateMetroPointType(sourceRec.getMetroPointType());
                     }
 

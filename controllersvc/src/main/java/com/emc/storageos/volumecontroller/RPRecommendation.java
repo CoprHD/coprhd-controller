@@ -262,19 +262,19 @@ public class RPRecommendation extends Recommendation {
 			siteName = "(no RP protection specified)";
 			siteId = "";
 		}
-		buff.append(printTabs + String.format("Internal Site	: %s %s %n", siteName, siteId));
-		buff.append(printTabs + String.format("RP Copy Name   : %s %n", 
+		buff.append(printTabs + String.format("Internal Site \t\t: %s %s %n", siteName, siteId));
+		buff.append(printTabs + String.format("RP Copy Name \t\t: %s %n", 
 		        (this.getRpCopyName() == null ? "Not determined yet" : this.getRpCopyName())));
-		buff.append(printTabs + String.format("Virtual Array 	: %s %n", varray.getLabel()));
-		buff.append(printTabs + String.format("Virtual Pool  	: %s %n", vpool.getLabel()));
+		buff.append(printTabs + String.format("Virtual Array \t\t: %s %n", varray.getLabel()));
+		buff.append(printTabs + String.format("Virtual Pool \t\t: %s %n", vpool.getLabel()));
 		if (virtualVolumeRecommendation != null && virtualVolumeRecommendation.getVPlexStorageSystem() != null) {
 			StorageSystem vplexStorageSystem = dbClient.queryObject(StorageSystem.class, 
 					virtualVolumeRecommendation.getVPlexStorageSystem());
-			buff.append(printTabs + String.format("VPLEX Storage	: %s %n", vplexStorageSystem.getLabel()));
+			buff.append(printTabs + String.format("VPLEX Storage \t\t: %s %n", vplexStorageSystem.getLabel()));
 		}
-		buff.append(printTabs + String.format("Storage Pool 	: %s %n", storagePool.getLabel()));
-		buff.append(printTabs + String.format("Storage System	: %s %n", storageSystem.getLabel()));
-		buff.append(printTabs + String.format("Resource Size	: %s GB %n", SizeUtil.translateSize(this.getSize(), SizeUtil.SIZE_GB)));
+		buff.append(printTabs + String.format("Storage Pool \t\t: %s %n", storagePool.getLabel()));
+		buff.append(printTabs + String.format("Storage System \t\t: %s %n", storageSystem.getLabel()));
+		buff.append(printTabs + String.format("Resource Size \t\t: %s GB %n", SizeUtil.translateSize(this.getSize(), SizeUtil.SIZE_GB)));
 		buff.append(String.format("----------------------%n"));
 
 		if (this.getHaRecommendation() != null) {

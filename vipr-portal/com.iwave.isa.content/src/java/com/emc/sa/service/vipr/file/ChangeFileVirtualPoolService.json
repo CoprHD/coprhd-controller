@@ -12,7 +12,7 @@
     },
     
     sourceVirtualPool:{
-      type:"assetType.vipr.fileSourceVirtualPool",
+      type:"assetType.vipr.fileSourceVirtualPool"
     },
     
     virtualPoolChangeOperation:{

@@ -518,7 +518,7 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         ViPRCoreClient client = api(ctx);
         
-        URI sourceVpoolId = client.fileSystems().get(fileSystems).getId();
+        URI sourceVpoolId = client.fileSystems().get(fileSystems).getVirtualPool().getId();
         FileVirtualPoolRestRep sourceVpool = client.fileVpools().get(sourceVpoolId);
         options.add(new AssetOption(sourceVpool.getId(), sourceVpool.getName()));
         

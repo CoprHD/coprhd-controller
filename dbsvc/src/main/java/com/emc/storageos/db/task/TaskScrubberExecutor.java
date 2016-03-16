@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -32,8 +34,9 @@ public class TaskScrubberExecutor {
     private static final String TASK_CLEAN_INTERVAL_PROPERTY = "task_clean_interval";
 
     private final static long MIN_TO_MICROSECS = 60 * 1000 * 1000;
-
+    private final static long MINI_TO_MICROSECS = 1000;
     private final static long MINIMUM_PERIOD_MINS = 60;
+    private final static int DELETE_BATCH_SIZE = 100;
 
     private ScheduledExecutorService _executor = new NamedScheduledThreadPoolExecutor("TaskScrubber", 1);
     private DbClient dbClient;
@@ -69,20 +72,25 @@ public class TaskScrubberExecutor {
 
         long taskLifetimeMicroSeconds = getConfigProperty(TASK_TTL_MINS_PROPERTY, MINIMUM_PERIOD_MINS) * MIN_TO_MICROSECS;
         long currentTimeMicroseconds = TimeUUIDUtils.getMicrosTimeFromUUID(TimeUUIDUtils.getUniqueTimeUUIDinMicros());
-        long timeStartMarker = currentTimeMicroseconds - taskLifetimeMicroSeconds;
+        long startTimeMicroSec = currentTimeMicroseconds - taskLifetimeMicroSeconds;
+        Calendar startTimeMarker = Calendar.getInstance();
+        startTimeMarker.setTimeInMillis(startTimeMicroSec/MINI_TO_MICROSECS);
 
-        // Find all Tasks that were completed older than startTimeMarker
-        Constraint constraint = DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(Task.class, "completedFlag",
-                timeStartMarker);
-        URIQueryResultList list = new URIQueryResultList();
-        dbClient.queryByConstraint(constraint, list);
-
+        List<URI> ids = dbClient.queryByType(Task.class, true);
         List<Task> toBeDeleted = Lists.newArrayList();
-        Iterator<URI> it = list.iterator();
-        while (it.hasNext()) {
-            Task task = dbClient.queryObject(Task.class, it.next());
+        for (URI id : ids) {
+            Task task = dbClient.queryObject(Task.class, id);
+            
+            if (task.getCreationTime().after(startTimeMarker)) {
+            	continue;
+            }
             if (task != null && !task.isPending()) {
                 toBeDeleted.add(task);
+            }
+            if (toBeDeleted.size() >= DELETE_BATCH_SIZE) {
+            	log.info("Deleting {} Tasks", toBeDeleted.size());
+            	dbClient.markForDeletion(toBeDeleted);
+            	toBeDeleted.clear();
             }
         }
 
@@ -90,9 +98,8 @@ public class TaskScrubberExecutor {
             log.info("Deleting {} Tasks", toBeDeleted.size());
 
             dbClient.markForDeletion(toBeDeleted);
-        } else {
-            log.info("No Old Tasks Found");
-        }
+        } 
+        log.info("delete completed tasks successfully");
     }
 
     private long getConfigProperty(String propertyName, long minimumValue) {

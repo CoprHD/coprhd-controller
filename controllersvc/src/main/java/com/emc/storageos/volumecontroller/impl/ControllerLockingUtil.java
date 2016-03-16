@@ -164,6 +164,19 @@ public class ControllerLockingUtil {
             return cgURI.toString() + DELIMITER + storageKey;
         }
     }
+
+    /**
+     * Make a replicationGroupInstance / storageSystem duple key.
+     * 
+     * @param rgName
+     *            -- replicationGroupInstance
+     * @param storageURI
+     *            (could be a Protection System or null)
+     * @return
+     */
+    static public String getReplicationGroupStorageKey(DbClient dbClient, String rgName, URI storageURI) {
+        return rgName.replaceAll("\\s", "") + DELIMITER + getStorageKey(dbClient, storageURI);
+    }
     
     /**
      * Returns a string identifier for the Storage or Protection System

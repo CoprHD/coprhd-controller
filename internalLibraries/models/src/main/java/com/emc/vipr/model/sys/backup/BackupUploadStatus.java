@@ -110,6 +110,11 @@ public class BackupUploadStatus implements Serializable {
         this.progress = (progress != null) ? progress : this.progress;
         this.errorCode = (errorCode != null) ? errorCode : this.errorCode;
         this.status = (status != null) ? status : this.status;
+
+        if (errorCode == ErrorCode.BACKUP_NOT_EXIST) {
+            log.info("lby stack=", new Throwable());
+        }
+        
         updatePostCheck();
         log.info("Backup upload status after updating: {}", this);
     }
@@ -121,6 +126,7 @@ public class BackupUploadStatus implements Serializable {
         }
         switch (this.status) {
             case NOT_STARTED:
+            case PENDING:
                 this.progress = null;
                 this.errorCode = null;
                 break;

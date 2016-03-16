@@ -97,7 +97,8 @@ public class BackupDataTable extends DataTable {
                 progress = 100;
             }
             if (status.equals(Status.NOT_STARTED.toString())
-                    || status.equals(Status.FAILED.toString())) {
+                    || status.equals(Status.FAILED.toString())
+                    || status.equals(Status.PENDING.toString())) {
                 action = backup.getName() + "_enable";
             } else {
                 action = backup.getName() + "_disable";

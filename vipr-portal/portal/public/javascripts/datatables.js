@@ -174,7 +174,7 @@ function watchUploadState(datatable, itemsJson, extraFields) {
         fields = fields.concat(extraFields);
     }
     var fieldToWatch = 'status';
-    var triggerValues = ['NOT_STARTED', 'IN_PROGRESS', 'FAILED', 'DONE', 'CANCELLED'];
+    var triggerValues = ['NOT_STARTED', 'IN_PROGRESS', 'FAILED', 'DONE', 'CANCELLED', 'PENDING'];
     watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
 }
 

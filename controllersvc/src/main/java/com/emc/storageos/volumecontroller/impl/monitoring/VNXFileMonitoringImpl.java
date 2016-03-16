@@ -26,6 +26,7 @@ import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
+import com.netflix.astyanax.connectionpool.ConnectionFactory;
 
 /**
  * Handles monitoring for vnxFile device indications
@@ -42,7 +43,7 @@ public class VNXFileMonitoringImpl implements IMonitoringStorageSystem {
     private final Object cacheLock = new Object();
 
     /**
-     * Holds list of unique vnxfile URIs managed by this local bourne node and it's callback instances.
+     * Holds list of unique vnxfile URIs managed by this local bourne node and its callback instances.
      * 1. Key -> vnxFile URI
      * 2. Value -> callback instance of the monitoringJob lock
      */

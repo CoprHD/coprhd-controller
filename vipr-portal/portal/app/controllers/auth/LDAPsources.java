@@ -257,12 +257,6 @@ public class LDAPsources extends ViprResourceController {
             renderArgs.put("groupMemberAttributesString", StringUtils.join(this.groupMemberAttributes, "\n"));
             renderArgs.put("readOnlyGroupAttribute", !isGroupAttributeBlankOrNull(this.groupAttribute));
             renderArgs.put("readOnlyCheckboxForAutomaticRegistration", this.autoRegCoprHDNImportOSProjects);
-            if(this.domains!=null && !this.domains.isEmpty())
-            {
-            	renderArgs.put("readOnlyDomains", true);
-            }else {
-            	renderArgs.put("readOnlyDomains", false);
-            }
         }
 
         public boolean isNew() {

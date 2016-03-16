@@ -134,6 +134,10 @@ public class IsilonSyncPolicy {
         return last_job_state;
     }
 
+    public void setLastJobState(JobState lastJobState) {
+        this.last_job_state = lastJobState;
+    }
+
     public Integer getLastStarted() {
         return last_started;
     }

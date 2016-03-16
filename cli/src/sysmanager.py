@@ -3113,10 +3113,34 @@ def system_parser(parent_subparser, common_parser):
     
     sysmgrcontrolsvc.list_backup_parser(subcommand_parsers, common_parser)
     
-    sysmgrcontrolsvc.download_backup_parser(subcommand_parsers, common_parser)    
-    
+    sysmgrcontrolsvc.download_backup_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.upload_backup_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.upload_backup_status_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.query_backup_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.restore_backup_parser(subcommand_parsers,common_parser)
+
+    sysmgrcontrolsvc.restore_backup_status_parser(subcommand_parsers,common_parser)
+
+    sysmgrcontrolsvc.list_external_backup_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.query_backup_info_parser(subcommand_parsers,common_parser)
+
+    sysmgrcontrolsvc.pull_backup_parser(subcommand_parsers,common_parser)
+
+    sysmgrcontrolsvc.pull_backup_cancel_parser(subcommand_parsers,common_parser)
+
     sysmgrcontrolsvc.delete_tasks_parser(subcommand_parsers, common_parser)
 
+    sysmgrcontrolsvc.dbconsistency_check_cancel_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.dbconsistency_check_status_parser(subcommand_parsers, common_parser)
+
+    sysmgrcontrolsvc.trigger_dbconsistency_check_parser(subcommand_parsers, common_parser)
+    
     upload_file_parser(subcommand_parsers, common_parser)
     
     skip_initial_setup_parser(subcommand_parsers, common_parser)
@@ -3135,30 +3159,6 @@ def system_parser(parent_subparser, common_parser):
     
     add_site_parser(subcommand_parsers,common_parser)
    
-    sysmgrcontrolsvc.dbconsistency_check_cancel_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.dbconsistency_check_status_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.trigger_dbconsistency_check_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.upload_backup_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.upload_backup_status_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.backup_info_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.backupset_restore_parser(subcommand_parsers,common_parser)
-    
-    sysmgrcontrolsvc.backupset_restore_status_parser(subcommand_parsers,common_parser)
-    
-    sysmgrcontrolsvc.get_backupsets_external_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.get_backupsets_info_parser(subcommand_parsers,common_parser)
-    
-    sysmgrcontrolsvc.backupset_pull_parser(subcommand_parsers,common_parser)
-    
-    sysmgrcontrolsvc.backupset_pull_cancel_parser(subcommand_parsers,common_parser)
-    
     list_sites_parser(subcommand_parsers,common_parser)
     
     show_site_parser(subcommand_parsers,common_parser)

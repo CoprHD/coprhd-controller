@@ -67,15 +67,22 @@ public class Backup extends Controller {
         renderJSON(DataTablesSupport.createJSON(backups, params));
     }
 
+    /**
+     * Get local backup info
+     * @param ids
+     */
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void itemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
-                    BackupSet backup = BackupUtils.getBackup(id);
-                    if (backup != null) {
-                        results.add(new BackupDataTable.Backup(backup));
+                    BackupSet backupSet = BackupUtils.getBackup(id);
+                    if (backupSet != null) {
+                        BackupDataTable.Backup backup = new BackupDataTable.Backup(backupSet);
+                        BackupRestoreStatus restoreStatus = BackupUtils.getRestoreStatus(id, true);
+                        backup.alterLocalBackupRestoreStatus(restoreStatus);
+                        results.add(backup);
                     }
                 }
             }
@@ -83,20 +90,42 @@ public class Backup extends Controller {
         renderJSON(results);
     }
 
+    /**
+     * Only get the remote backup info
+     * @param ids
+     */
     public static void externalItemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
                     BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
-                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
-                    if (backupInfo.getCreateTime() != 0) {
-                        backup.creationtime = backupInfo.getCreateTime();
-                    }
-                    backup.status = backupInfo.getRestoreStatus().getStatus().name();
+                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id, false);
+                    backup.creationtime = backupInfo.getCreateTime();
                     results.add(backup);
                 }
             }
+        }
+        renderJSON(results);
+    }
+
+    /**
+     * Only get the remote restore status
+     * @param ids
+     */
+    public static void externalStatusJson(@As(",") String[] ids) {
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        for (String id : ids) {
+            if (StringUtils.isNotBlank(id)) {
+                BackupDataTable.Backup backup = new BackupDataTable.Backup(id, false);
+                BackupRestoreStatus restoreStatus = BackupUtils.getRestoreStatus(id, false);
+                backup.status = restoreStatus.getStatus().name();
+                if (restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORE_FAILED) {
+                    backup.error = restoreStatus.getDetails();
+                }
+                results.add(backup);
+            }
+
         }
         renderJSON(results);
     }

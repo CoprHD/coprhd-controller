@@ -27,7 +27,7 @@ public class CreateSnapshotOfApplicationService extends ViPRService {
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
 
-    @Param(ServiceParams.NAME)
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
     protected String name;
 
     @Param(ServiceParams.APPLICATION_SITE)

@@ -3087,7 +3087,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
              * FullCopy volume will not have CGURI.
              * Added null check to avoid NPE.
              */
-            if (consistencyGroup != null) {
+            if (!NullColumnValueGetter.isNullURI(consistencyGroup)) {
                 // Lock the CG for the step duration.
                 List<String> lockKeys = new ArrayList<String>();
                 lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, consistencyGroup, storage));

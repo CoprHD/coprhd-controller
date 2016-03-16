@@ -4374,7 +4374,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     "Update consistency group successful for %s", consistencyGroup);
             workflow.executePlan(completer, successMessage);
         } catch (Exception e) {
-            _log.info("Error updating consistency group: {}", consistencyGroup, e);
+            _log.error("Error updating consistency group: {}", consistencyGroup, e);
             completer.error(_dbClient, DeviceControllerException.exceptions.failedToUpdateConsistencyGroup(e.getMessage()));
         }
     }

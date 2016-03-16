@@ -360,14 +360,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Prepare the source and targets
             if (rpProtectionRec.getSourceRecommendations() != null) {
                 for (RPRecommendation sourceRec : rpProtectionRec.getSourceRecommendations()) {
-                    // Grab a handle of the haRec, it could be null which is Ok.
-                    RPRecommendation haRec = sourceRec.getHaRecommendation();
-
-                    MetroPointType metroPointType = MetroPointType.INVALID;
-
-                    if (metroPointEnabled) {
-                        metroPointType = sourceRec.getMetroPointType();
-                        validateMetroPointType(metroPointType);
+                    // Get a reference to all existing VPLEX Source volumes (if any)
+                    List<Volume> allSourceVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(consistencyGroup, _dbClient,
+                            Volume.PersonalityTypes.SOURCE);
+                                        
+                    // We only need to validate the MetroPoint type if this is the
+                    // first MP volume of a new CG.
+                    if (metroPointEnabled && (allSourceVolumesInCG == null || allSourceVolumesInCG.isEmpty())) {
+                        validateMetroPointType(sourceRec.getMetroPointType());
                     }
 
                     // Get the number of volumes needed to be created for this recommendation.
@@ -377,11 +377,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // the RSets in the CG. We can't just update one RSet / volume.
                     // So let's get ALL the source volumes in the CG and we will update them all to MetroPoint.
                     // Each source volume will be exported to the HA side of the VPLEX (for MetroPoint visibility).
-                    // All source volumes will share the same secondary journal.
-                    List<Volume> allSourceVolumesInCG = new ArrayList<Volume>();
+                    // All source volumes will share the same secondary journal.                   
                     if (isChangeVpoolForProtectedVolume) {
-                        allSourceVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(consistencyGroup, _dbClient,
-                                Volume.PersonalityTypes.SOURCE);
                         _log.info(String.format("Change Virtual Pool Protected: %d existing source volume(s) in CG [%s](%s) are affected.",
                                 allSourceVolumesInCG.size(),
                                 consistencyGroup.getLabel(),
@@ -390,6 +387,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         volumeCountInRec = allSourceVolumesInCG.size();
                     }
 
+                    // Grab a handle of the haRec, it could be null which is Ok.
+                    RPRecommendation haRec = sourceRec.getHaRecommendation();
+                    
                     for (int volumeCount = 0; volumeCount < volumeCountInRec; volumeCount++) {
                         // Let's not get into multiple of multiples, this class will handle multi volume creates.
                         // So force the incoming VolumeCreate param to be set to 1 always from here on.
@@ -526,8 +526,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             volumeURIs.add(targetVolume.getId());
                         }
 
-                        // /////// METROPOINT TARGET(S) ///////////
-                        if (metroPointEnabled && metroPointType != MetroPointType.SINGLE_REMOTE) {
+                        // /////// METROPOINT LOCAL TARGET(S) ///////////
+                        if (metroPointEnabled 
+                                && haRec.getTargetRecommendations() != null 
+                                && !haRec.getTargetRecommendations().isEmpty()) {
                             // If metropoint is chosen and two local copies are configured, one copy on each side
                             // then we need to create targets for the second (stand-by) leg.
                             for (RPRecommendation standbyTargetRec : haRec.getTargetRecommendations()) {

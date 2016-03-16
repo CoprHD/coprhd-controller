@@ -2121,7 +2121,7 @@ public class RecoverPointScheduler implements Scheduler {
                 vplexRec.setVirtualArray(backingVolume.getVirtualArray());
                 vplexRec.setSourceStoragePool(backingVolume.getPool());
                 vplexRec.setSourceStorageSystem(backingVolume.getStorageController());                    
-                vplexRec.setVPlexStorageSystem(sourceVolume.getStorageController());                                
+                vplexRec.setVPlexStorageSystem(sourceVolume.getStorageController());
                 // Always force count to 1 for a VPLEX rec for RP. VPLEX uses
                 // these recs and they are invoked one at a time even
                 // in a multi-volume request.

@@ -18,6 +18,7 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.zip.Deflater;
 
 import com.google.common.base.Preconditions;
 import com.google.common.hash.Hashing;
@@ -272,7 +273,7 @@ public class BackupManager implements BackupManagerMBean {
         File backupZip = new File(backupFolder.getParentFile(),
                 backupFolder.getName() + BackupConstants.COMPRESS_SUFFIX);
         try {
-            ZipUtil.pack(backupFolder, backupZip);
+            ZipUtil.pack(backupFolder, backupZip, Deflater.BEST_SPEED);
         } catch (IOException ex) {
             if (backupZip.exists()) {
                 backupZip.delete();

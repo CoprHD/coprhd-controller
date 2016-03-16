@@ -232,9 +232,12 @@ public class RPRecommendation extends Recommendation {
 	}
 	
 	/**
-	 * @param dbClient
-	 * @param ps
-	 * @return
+	 * Print the recommendation
+	 * 
+	 * @param dbClient DBClient reference 
+	 * @param ps The protection system in question
+	 * @param noOfTabs Number of tabs to use
+	 * @return Recommendation string output
 	 */
 	public String toString(DbClient dbClient, ProtectionSystem ps, int... noOfTabs) {
 		StringBuffer buff = new StringBuffer();
@@ -242,7 +245,7 @@ public class RPRecommendation extends Recommendation {
 	
 		String printTabs = TAB;		   
     	if (noOfTabs.length> 0 && noOfTabs[0] > 0) {
-    		for(int i=0;i<noOfTabs[0];i++) {
+    		for(int i = 0; i < noOfTabs[0]; i++) {
     			printTabs += TAB;
     		}
     	}
@@ -260,7 +263,7 @@ public class RPRecommendation extends Recommendation {
 			siteId = "";
 		}
 		buff.append(printTabs + String.format("Internal Site	: %s %s %n", siteName, siteId));
-		buff.append(printTabs + String.format("RP Copy Name     : %s %n", 
+		buff.append(printTabs + String.format("RP Copy Name   : %s %n", 
 		        (this.getRpCopyName() == null ? "Not determined yet" : this.getRpCopyName())));
 		buff.append(printTabs + String.format("Virtual Array 	: %s %n", varray.getLabel()));
 		buff.append(printTabs + String.format("Virtual Pool  	: %s %n", vpool.getLabel()));

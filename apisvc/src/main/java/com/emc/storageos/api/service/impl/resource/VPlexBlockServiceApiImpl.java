@@ -195,25 +195,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param vArray - virtual array where volume is create
      * @param vPool - volume's vpool
      * @param vPoolCapabilities - vpool capabilities
-     * @param nhRecomendationsMap - map of virtual array/nh to its list of recommendation
-     * @return
+     * @param varrayRecomendationsMap - map of virtual array to its list of recommendation
      */
     private void validateVolumeLabels(String baseVolumeLabel, Project project,
-            VirtualPoolCapabilityValuesWrapper vPoolCapabilities, Map<String, List<VPlexRecommendation>> nhRecomendationsMap) {
-
-        int nhCount = 0;
-        Iterator<String> nhIter = nhRecomendationsMap.keySet().iterator();
+            VirtualPoolCapabilityValuesWrapper vPoolCapabilities, Map<String, List<VPlexRecommendation>> varrayRecomendationsMap) {
+        int varrayCount = 0;
+        Iterator<String> nhIter = varrayRecomendationsMap.keySet().iterator();
         while (nhIter.hasNext()) {
             String nhId = nhIter.next();
             s_logger.info("Processing recommendations for NH {}", nhId);
             int volumeCounter = 0;
-            Iterator<VPlexRecommendation> recommendationsIter = nhRecomendationsMap.get(nhId).iterator();
+            Iterator<VPlexRecommendation> recommendationsIter = varrayRecomendationsMap.get(nhId).iterator();
             while (recommendationsIter.hasNext()) {
                 VPlexRecommendation recommendation = recommendationsIter.next();
                 URI storagePoolURI = recommendation.getSourceStoragePool();
-                VirtualPool volumeCos = recommendation.getVirtualPool();
-                s_logger.info("Volume Cos is {}", volumeCos.getId().toString());
-                vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeCos.getAutoTierPolicyName());
+                VirtualPool volumeVpool = recommendation.getVirtualPool();
+                s_logger.info("Volume virtual pool is {}", volumeVpool.getId().toString());
+                vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeVpool.getAutoTierPolicyName());
                 int resourceCount = recommendation.getResourceCount();
                 s_logger.info("Recommendation is for {} resources in pool {}", resourceCount, storagePoolURI.toString());
                 for (int i = 0; i < resourceCount; i++) {
@@ -225,7 +223,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     // we will need to update the actual volumes after they
                     // are created to match the names given here. Currently,
                     // this is not implemented.
-                    String volumeLabel = generateVolumeLabel(baseVolumeLabel, nhCount, volumeCounter, resourceCount);
+                    String volumeLabel = generateVolumeLabel(baseVolumeLabel, varrayCount, volumeCounter, resourceCount);
 
                     // throw exception of duplicate found
                     validateVolumeLabel(volumeLabel, project);
@@ -233,7 +231,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
                 volumeCounter++;
             }
-            nhCount++;
+            varrayCount++;
         }
     }
 

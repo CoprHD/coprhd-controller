@@ -674,6 +674,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
     }
     
     private void persistDefaultBucketACEInDb(String bucketOwner, Bucket bucket, ObjectDeviceInputOutput args) {
+        _log.info("Persisting bucket owner as default ACE", bucketOwner);
         BucketACLUpdateParams param = new BucketACLUpdateParams();
         BucketACL acl = new BucketACL();
         BucketACE defaultAce = new BucketACE();

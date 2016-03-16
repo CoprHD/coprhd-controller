@@ -3813,6 +3813,13 @@ public class FileService extends TaskResourceService {
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
+        // This validation is required after stop operation
+        if (fs.getPersonality() == null || !fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is not having any active replication.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
         return true;
     }
 

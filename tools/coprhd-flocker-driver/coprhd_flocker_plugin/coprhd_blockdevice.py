@@ -479,31 +479,24 @@ class CoprHDBlockDeviceAPI(object):
         :param blockdevice_id:
         :return:the device path
         """
-        dataset_id = UUID(blockdevice_id[6:])
-        # Query LunID from CoprHD
-        lunid = self.coprhdcli.get_volume_lunid("flocker-{}".format(dataset_id))
-        output = check_output([b"/usr/bin/lsscsi"])
-        #[1:0:0:0]    cd/dvd  NECVMWar VMware IDE CDR10 1.00  /dev/sr0
-        #[2:0:0:0]    disk    VMware   Virtual disk     1.0   /dev/sda
-        #[3:0:0:0]    disk    DGC      LUNZ             0533  /dev/sdb
-        #[4:0:0:0]    disk    DGC      VRAID            0533  /dev/sdc
-        #[4:0:0:1]    disk    DGC      VRAID            0533  /dev/sdd
-        #[4:0:0:2]    disk    DGC      VRAID            0533  /dev/sde
-        #[4:0:0:3]    disk    DGC      VRAID            0533  /dev/sdf
-        #[4:0:0:4]    disk    DGC      VRAID            0533  /dev/sdg
-        #[4:0:0:5]    disk    DGC      VRAID            0533  /dev/sdh
-        #[4:0:0:6]    disk    DGC      VRAID            0533  /dev/sdi
-        #[4:0:0:7]    disk    DGC      VRAID            0533  /dev/sdj
+        #[1:0:0:0]    cd/dvd                                  /dev/sr0
+        #[2:0:0:0]    disk                                    /dev/sda
+        #[3:0:0:0]    disk    0x600601608d2037004fb79f66c1e5e  /dev/sdb
+        #[3:0:0:3]    disk    0x600601608d20370029ab9a2b1acfe  /dev/sde
+        #[4:0:0:0]    disk                                    /dev/sdc
+        #[4:0:0:3]    disk                                    /dev/sdd
 
-        # We shall parse the output above and give out path /dev/sde as in
-        # this case
+        dataset_id = UUID(blockdevice_id[6:])
+        # Query WWN from CoprHD
+        wwn = self.coprhdcli.get_volume_wwn("flocker-{}".format(dataset_id))
+        wwn = wwn[:len(wwn)-3]
+        output = check_output([b"lsscsi","--wwn"])
         for row in output.split('\n'):
-            if re.search(r'VRAID', row, re.I):
-                if re.search(r'\d:\d:\d:' + str(lunid), row, re.I):
+            if re.search(r'0x', row, re.I):
+                if re.search(str(wwn), row, re.I):
                     device_name = re.findall(r'/\w+', row, re.I)
                     if device_name:
                         return FilePath(device_name[0] + device_name[1])
-
         raise UnknownVolume(blockdevice_id)
         
     def resize_volume(self, blockdevice_id, size):

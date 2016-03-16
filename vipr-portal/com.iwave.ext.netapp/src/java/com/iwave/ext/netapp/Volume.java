@@ -20,7 +20,7 @@ import org.apache.log4j.Logger;
  *         Not to be used directly by users or Orchestrator services. Use NetAppFacade.
  */
 class Volume {
-    private Logger log = Logger.getLogger(getClass());
+    private final Logger log = Logger.getLogger(getClass());
 
     private String name = "";
     private NaServer server = null;
@@ -297,9 +297,72 @@ class Volume {
         return size;
     }
 
+    /*
+     * List<String> listVolumes()
+     * {
+     * Map<String, String> result = null;
+     * NaElement elem = new NaElement("volume-list-info");
+     * elem.addNewChild("verbose", "false");
+     * NaElement resultElem = null;
+     * try {
+     * resultElem = server.invokeElem(elem).getChildByName("volumes");
+     * } catch (Exception e) {
+     * String msg = "Failed to get list of Volumes.";
+     * log.error(msg, e);
+     * throw new NetAppException(msg, e);
+     * }
+     * ArrayList<String> volumes = new ArrayList<String>();
+     * for (NaElement e : (List<NaElement>) resultElem.getChildren()) {
+     * volumes.add(e.getChildContent("name"));
+     * }
+     * return volumes;
+     * }
+     * 
+     * List<Map<String, String>> listVolumeInfo(Collection<String> attrs)
+     * {
+     * NaElement elem = new NaElement("volume-list-info");
+     * 
+     * if (name != null && !name.isEmpty()) {
+     * elem.addNewChild("volume", name);
+     * }
+     * 
+     * elem.addNewChild("verbose", "true");
+     * 
+     * NaElement resultElem = null;
+     * 
+     * try {
+     * resultElem = server.invokeElem(elem).getChildByName("volumes");
+     * } catch (Exception e) {
+     * String msg = "Failed to get list of Volumes.";
+     * log.error(msg, e);
+     * throw new NetAppException(msg, e);
+     * }
+     * 
+     * ArrayList<Map<String, String>> volumes = new ArrayList<Map<String, String>>();
+     * 
+     * for (NaElement e : (List<NaElement>) resultElem.getChildren()) {
+     * Map<String, String> infos = new HashMap<String, String>();
+     * for (NaElement info : (List<NaElement>) e.getChildren()) {
+     * String name = info.getName();
+     * if (attrs == null || attrs.contains(name) || name.equals("name")) {
+     * infos.put(name, info.getContent());
+     * }
+     * }
+     * volumes.add(infos);
+     * }
+     * 
+     * return volumes;
+     * }
+     */
+
     List<String> listVolumes()
     {
         Map<String, String> result = null;
+        Map<String, String> params = new HashMap<String, String>();
+        String cmd = "volume-list-info";
+
+        params.put("verbose", "false");
+
         NaElement elem = new NaElement("volume-list-info");
         elem.addNewChild("verbose", "false");
         NaElement resultElem = null;

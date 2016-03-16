@@ -59,7 +59,7 @@ REMOTE = models.datatable.BackupDataTable.Type.REMOTE
             request[1] = null;
             count[0] = 0;
             count[1] = 0;
-            field[0] = ['status'];
+            field[0] = ['status', 'error'];
             field[1] = ['creationtime'];
             var updateRestoreStatus = window.setInterval(function () {
                 if (stop[0] === true) {
@@ -218,8 +218,9 @@ render.uploadAndRestoreProgressMessage = function(o, val) {
     if (!message) {
         message = defaultValue(messages[o.aData.status], Messages.get("renderFunction.discovery.status.unknown"));
     }
-    if (errorMsg != null){
-    	return '<span>' + messages[o.aData.status] +' - '+errors[o.aData.error] + '</span>';
+    if (errorMsg != null) {
+        var detailError = o.aData.status === 'RESTORE_FAILED' ? errorMsg : errors[o.aData.error];
+        return '<span>' + messages[o.aData.status] + ' - ' + detailError + '</span>';
     }
     return '<span>' + messages[o.aData.status] + '</span>';
 }

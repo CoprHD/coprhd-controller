@@ -568,7 +568,7 @@ public class ECSApi {
             _log.info("ECSApi:getNamespaceDetails for {} ECS response is {}", namespaceId, responseString);
             NamespaceDetailsCommandResult ecsNsResult = new Gson().fromJson(SecurityUtils.sanitizeJsonString(responseString),
                     NamespaceDetailsCommandResult.class);
-            nsRepGroup.setNamespaceName(ecsNsResult.getName());
+            nsRepGroup.setNamespaceName(ecsNsResult.getId());
             nsRepGroup.setRgType(ObjectNamespace.OBJ_StoragePool_Type.NONE);
 
             if (!ecsNsResult.getAllowed_vpools_list().isEmpty()) {

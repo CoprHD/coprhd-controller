@@ -291,6 +291,8 @@ public class TenantsService extends TaggedResource {
     @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SECURITY_ADMIN })
     public TenantOrgRestRep setTenant(@PathParam("id") URI id, TenantUpdateParam param) {
         TenantOrg tenant = getTenantById(id, true);
+        ObjectNamespace namesp = null;
+        boolean namespModified = false;
         if (param.getLabel() != null && !param.getLabel().isEmpty()) {
             if (!tenant.getLabel().equalsIgnoreCase(param.getLabel())) {
                 checkForDuplicateName(param.getLabel(), TenantOrg.class, tenant.getParentTenant()
@@ -322,11 +324,12 @@ public class TenantsService extends TaggedResource {
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
-                ObjectNamespace namesp = nsItr.next();
+                namesp = nsItr.next();
                 if (namesp.getNativeId().equalsIgnoreCase(param.getNamespace())) {
                     namesp.setTenant(tenant.getId());
                     namesp.setMapped(true);
-                    _dbClient.updateObject(namesp);
+                    // There is a chance of exceptions ahead; hence updated db at the end
+                    namespModified = true;
                     break;
                 }
             }
@@ -392,6 +395,9 @@ public class TenantsService extends TaggedResource {
             mapOutProviderTenantCheck(tenant);
         }
 
+        if (namespModified) {
+            _dbClient.updateObject(namesp);
+        }
         _dbClient.updateAndReindexObject(tenant);
 
         recordOperation(OperationTypeEnum.UPDATE_TENANT, tenant.getId(), tenant);
@@ -414,6 +420,8 @@ public class TenantsService extends TaggedResource {
     @CheckPermission(roles = { Role.SECURITY_ADMIN })
     public TenantOrgRestRep createSubTenant(@PathParam("id") URI id,
             TenantCreateParam param) {
+        ObjectNamespace namesp = null;
+        boolean namespModified = false;
         TenantOrg parent = getTenantById(id, true);
         if (!TenantOrg.isRootTenant(parent)) {
             throw APIException.badRequests.parentTenantIsNotRoot();
@@ -433,11 +441,12 @@ public class TenantsService extends TaggedResource {
             List<URI> allNamespaceURI = _dbClient.queryByType(ObjectNamespace.class, true);
             Iterator<ObjectNamespace> nsItr = _dbClient.queryIterativeObjects(ObjectNamespace.class, allNamespaceURI);
             while (nsItr.hasNext()) {
-                ObjectNamespace namesp = nsItr.next();
+                namesp = nsItr.next();
                 if (subtenant.getNamespace().equalsIgnoreCase(namesp.getNativeId())) {
                     namesp.setTenant(subtenant.getId());
                     namesp.setMapped(true);
-                    _dbClient.updateObject(namesp);
+                    // There could be exceptions ahead; update the db at end
+                    namespModified = true;
                     break;
                 }
             }
@@ -457,6 +466,9 @@ public class TenantsService extends TaggedResource {
         // perform user tenant check before persistent
         mapOutProviderTenantCheck(subtenant);
 
+        if (namespModified) {
+            _dbClient.updateObject(namesp);
+        }
         _dbClient.createObject(subtenant);
         // To Do - add attributes to the set of attributes to pull from AD/LDAP
 

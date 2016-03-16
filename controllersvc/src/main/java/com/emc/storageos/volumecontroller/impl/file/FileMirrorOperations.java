@@ -51,17 +51,19 @@ public interface FileMirrorOperations {
             throws DeviceControllerException;
 
     /**
-     * Pause Mirror link
+     * Pause Mirror session between between source and target.
+     * This operation will cancel any running/paused job and then disable the policy
      * 
-     * @param system
-     * @param target
-     * @param completer
+     * @param StorageSystem system
+     * @param FileShare target
+     * @param TaskCompleter completer
      * @throws DeviceControllerException
+     * 
      */
     void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException;
 
     /**
-     * Resume Mirror link
+     * Resume Mirror link , this operation will enable the policy and start the replication job.
      * 
      * @param system
      * @param target

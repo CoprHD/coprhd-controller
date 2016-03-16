@@ -31,14 +31,22 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-import com.emc.storageos.security.helpers.SecurityUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.security.exceptions.SecurityException;
+import com.emc.storageos.security.helpers.SecurityUtil;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.AuthorityKeyIdentifierExtension;
@@ -48,7 +56,6 @@ import sun.security.x509.CertificateSerialNumber;
 import sun.security.x509.CertificateValidity;
 import sun.security.x509.CertificateVersion;
 import sun.security.x509.CertificateX509Key;
-import sun.security.x509.DNSName;
 import sun.security.x509.GeneralName;
 import sun.security.x509.GeneralNames;
 import sun.security.x509.IPAddressName;
@@ -58,9 +65,6 @@ import sun.security.x509.SubjectKeyIdentifierExtension;
 import sun.security.x509.X500Name;
 import sun.security.x509.X509CertImpl;
 import sun.security.x509.X509CertInfo;
-
-import com.emc.storageos.security.exceptions.SecurityException;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
  * Class responsible for generating RSA keys and their certificates.
@@ -370,7 +374,7 @@ public class KeyCertificatePairGenerator {
     }
 
     /**
-     * gets the specified key as it's pem representation
+     * gets the specified key as its pem representation
      * 
      * @param keyToParse
      * @return

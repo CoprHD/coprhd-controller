@@ -61,6 +61,7 @@
         <package name="sudo"/>
         <package name="unzip"/>
         <package name="curl"/>
+        <package name="bind-utils"/>
         <!-- DEV Environment -->
         <!-- archive name="eclipse-java-luna-SR2-linux-gtk-x86_64.tar.gz"/ -->
         <package name="xorg-x11-server"/>

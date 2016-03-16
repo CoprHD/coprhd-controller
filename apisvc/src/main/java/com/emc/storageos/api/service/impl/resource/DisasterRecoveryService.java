@@ -54,7 +54,6 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
-import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -66,10 +65,8 @@ import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.impl.DbClientImpl;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.uimodels.InitialSetup;
-import com.emc.storageos.db.common.DbConfigConstants;
 import com.emc.storageos.model.dr.DRNatCheckParam;
 import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.FailoverPrecheckResponse;
@@ -85,6 +82,7 @@ import com.emc.storageos.model.dr.SiteParam;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.dr.SiteUpdateParam;
 import com.emc.storageos.model.property.PropertyConstants;
+import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -121,6 +119,8 @@ public class DisasterRecoveryService {
 
     private static final int SITE_CONNECT_TEST_TIMEOUT = 10 * 1000;
     private static final int SITE_CONNECTION_TEST_PORT = 443;
+    private static final String LOCAL_HOST = "localhost";
+    private static final String SYSTEM_ENABLE_FIREWALL = "system_enable_firewall";
 
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
@@ -727,6 +727,7 @@ public class DisasterRecoveryService {
 
         // This String is only used to output human readable message to user when Exception is thrown
         String siteNameStr = StringUtils.join(siteNameList, ',');
+        precheckForPause(siteNameStr);
 
         try {
             // the site(s) to be paused must be checked as well
@@ -778,6 +779,21 @@ public class DisasterRecoveryService {
             } catch (Exception ignore) {
                 log.error(String.format("Lock release failed when pausing standby site: %s", siteIdStr));
             }
+        }
+    }
+
+    private void precheckForPause(String siteNames) {
+        PropertyInfo targetProperty = coordinator.getPropertyInfo();
+        String firewallEnabled = targetProperty.getProperty(SYSTEM_ENABLE_FIREWALL);
+        if (firewallEnabled != null && firewallEnabled.equals("no")) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "firewall has been disabled." +
+                    "Please make sure to keep it enabled until every standby site has been resumed");
+        }
+
+        String ipsecEnabled = ipsecConfig.getIpsecStatus();
+        if (ipsecEnabled != null && !ipsecEnabled.equals("enabled")) {
+            throw APIException.internalServerErrors.pauseStandbyPrecheckFailed(siteNames, "ipsec has been disabled." +
+                    "Please make sure to keep it enabled until every standby site has been resumed");
         }
     }
 
@@ -1466,6 +1482,7 @@ public class DisasterRecoveryService {
                 standbyDetails.setClusterState(ClusterInfo.ClusterState.UNKNOWN.toString());
             }
 
+            standbyDetails.setSiteState(standby.getState().toString());
         } catch (CoordinatorException e) {
             log.error("Can't find site {} from ZK", uuid);
             throw APIException.badRequests.siteIdNotFound();
@@ -1475,12 +1492,11 @@ public class DisasterRecoveryService {
 
         return standbyDetails;
     }
-
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/internal/list")
-    public SiteList getSitesInternally() {
-        return this.getSites();
+    @Path("/internal/{uuid}/details")
+    public SiteDetailRestRep getSiteDetailsInternally(@PathParam("uuid") String uuid) {
+        return this.getSiteDetails(uuid);
     }
 
     /**
@@ -1699,12 +1715,6 @@ public class DisasterRecoveryService {
     protected void precheckForFailoverLocally(String standbyUuid) {
         Site standby = drUtil.getLocalSite();
 
-        SiteMonitorResult siteMonitorResult = coordinator.getTargetInfo(standby.getUuid(), SiteMonitorResult.class);
-        if (siteMonitorResult == null || siteMonitorResult.isActiveSiteLeaderAlive() || siteMonitorResult.isActiveSiteStable()) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
-                    "Active site is available now, can't do failover");
-        }
-
         // API should be only send to local site
         if (!standby.getUuid().equals(standbyUuid)) {
             throw APIException.internalServerErrors.failoverPrecheckFailed(standby.getName(),
@@ -1741,6 +1751,7 @@ public class DisasterRecoveryService {
 
         // this is standby site and NOT in ZK read-only or observer mode,
         // it means active is down and local ZK has been reconfig to participant
+        // this precheck implies that the active site is unreachable
         CoordinatorClientInetAddressMap addrLookupMap = coordinator.getInetAddessLookupMap();
         String myNodeId = addrLookupMap.getNodeId();
         String coordinatorMode = drUtil.getLocalCoordinatorMode(myNodeId);
@@ -2006,39 +2017,29 @@ public class DisasterRecoveryService {
         @Override
         public void run() {
             try {
-                if (!needCheckFailback()) {
+                if (!needCheckFailback() || !hasActiveSiteInRemote()) {
+                    log.info("No need to check failback locally or there's no remote active site, return");
                     return;
                 }
 
                 Site localSite = drUtil.getLocalSite();
-                for (Site site : drUtil.listStandbySites()) {
-                    if (drUtil.isSiteUp(site.getUuid())) {
-                        log.info("Site {} is up, ignore to check it", site.getUuid());
-                        continue;
-                    } else {
-                        if (hasActiveSiteInRemote(site, localSite.getUuid())) {
-                            localSite.setState(SiteState.ACTIVE_DEGRADED);
-                            coordinator.persistServiceConfiguration(localSite.toConfiguration());
-                            // At this moment this site is disconnected with others, so ok to have own vdc version.
-                            drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE, DrUtil.newVdcConfigVersion());
-                            return;
-                        }
-                    }
-                }
+                localSite.setState(SiteState.ACTIVE_DEGRADED);
+                coordinator.persistServiceConfiguration(localSite.toConfiguration());
+                // At this moment this site is disconnected with others, so ok to have own vdc version.
+                drUtil.updateVdcTargetVersion(coordinator.getSiteId(), SiteInfo.DR_OP_FAILBACK_DEGRADE, DrUtil.newVdcConfigVersion());
 
-                log.info("No another active site detect for failback");
             } catch (Exception e) {
-                log.error("Error occurs during failback detect monitor", e);
+                log.error("Error occured during failback detect monitor", e);
             }
         }
 
         private boolean needCheckFailback() {
-            if (drUtil.getLocalSite().getState().equals(SiteState.ACTIVE)) {
-                log.info("Current site is active site, need to detail failback");
+            Site localSite = drUtil.getLocalSite();
+            if (localSite.getState().equals(SiteState.ACTIVE)) {
+                log.info("Current site is active site, need to check failback");
                 return true;
             }
 
-            Site localSite = drUtil.getLocalSite();
             if (localSite.getState().equals(SiteState.ACTIVE_DEGRADED)) {
                 log.info("Site is already ACTIVE_FAILBACK_DEGRADED");
                 if (!coordinator.locateAllServices(localSite.getUuid(), "controllersvc", "1", null, null).isEmpty()) {
@@ -2057,38 +2058,29 @@ public class DisasterRecoveryService {
                 }
             }
 
+            log.info("Current site is not active, and there is no alive controllersvc/sasvc/vasasvc, so no need to check failback");
             return false;
         }
 
-        private boolean hasActiveSiteInRemote(Site site, String localActiveSiteUUID) {
-            SiteInfo siteInfo = coordinator.getTargetInfo(coordinator.getSiteId(), SiteInfo.class);
-            long localConfigVersion = siteInfo.getVdcConfigVersion();
-            
-            try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
-                boolean hasActiveSite = false;
-                
-                client.setCoordinatorClient(coordinator);
-                client.setKeyGenerator(apiSignatureGenerator);
-                SiteList remoteSiteList = client.getSiteList();
-                long remoteConfigVersion = remoteSiteList.getConfigVersion();
-                for (SiteRestRep siteResp : remoteSiteList.getSites()) {
-                    if (remoteConfigVersion < localConfigVersion) {
-                        log.info("Remote site config version {} is smaller than local {}, no failback", remoteConfigVersion, localConfigVersion);
-                        return false;
-                    }
-                    if (SiteState.ACTIVE.toString().equalsIgnoreCase(siteResp.getState())
-                            && !localActiveSiteUUID.equals(siteResp.getUuid())) {
-                        log.info("Remote site {} is active site, need to failback", siteResp);
-                        hasActiveSite = true;
-                    }
+        private boolean hasActiveSiteInRemote() {
+            String localSiteId = drUtil.getLocalSite().getUuid();
+            for (Site remoteSite : drUtil.listStandbySites()) {
+                if (drUtil.isSiteUp(remoteSite.getUuid()) || remoteSite.getState() == SiteState.ACTIVE_DEGRADED) {
+                    log.info("Site {} is up or in ACTIVE_DEGRADED state, skip checking it", remoteSite.getUuid());
+                    continue;
                 }
-
-                return hasActiveSite;
-            } catch (Exception e) {
-                log.warn("Failed to check remote site information during failback detect", e);
-                return false;
+                try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
+                    SiteDetailRestRep remoteSiteDetails = client.getSiteDetails(localSiteId);
+                    if (SiteState.ACTIVE_DEGRADED.toString().equals(remoteSiteDetails.getSiteState())) {
+                        log.info("Local site {} is in ACTIVE_DEGRADED state according data returned from site {}", localSiteId, remoteSite.getUuid());
+                        return true;
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to check remote site information during failback detect", e);
+                    continue;
+                }
             }
+            return false;
         }
-
     };
 }

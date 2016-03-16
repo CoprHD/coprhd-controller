@@ -23,7 +23,7 @@ public class FileSystemRepliationUtils {
      *            the target virtual pool
      * @param notSuppReasonBuff
      *            the not supported reason string buffer
-     * 
+     * @return
      */
     public static boolean isSupportedFileReplicationCreate(FileShare fs, VirtualPool currentVpool, StringBuffer notSuppReasonBuff) {
         _log.info(String.format("Checking isSupportedFileReplicationCreate for Fs [%s] with vpool [%s]...", fs.getLabel(),
@@ -76,25 +76,19 @@ public class FileSystemRepliationUtils {
         }
         // File system should not be the failover state
         // Failover state, the mirror copy would be in production!!!
-        if (fs.getPersonality() != null
-                && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
+        if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.SOURCE.name())
                 && (MirrorStatus.FAILED_OVER.name().equalsIgnoreCase(fs.getMirrorStatus())
                         || MirrorStatus.SUSPENDED.name().equalsIgnoreCase(fs.getMirrorStatus()))) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request is in active or failover state %s.",
-                                    fs.getLabel()));
+            notSuppReasonBuff.append(String.format("File system given in request is in active or failover state %s.",
+                    fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
 
         // File system should not have any active mirror copies!!
-        if (fs.getMirrorfsTargets() == null
-                || fs.getMirrorfsTargets().isEmpty()) {
-            notSuppReasonBuff
-                    .append(String
-                            .format("File system given in request has no active target file system %s.",
-                                    fs.getLabel()));
+        if (fs.getMirrorfsTargets() == null || fs.getMirrorfsTargets().isEmpty()) {
+            notSuppReasonBuff.append(String.format("File system given in request has no active target file system %s.",
+                    fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
@@ -127,10 +121,9 @@ public class FileSystemRepliationUtils {
                 isSupported = true;
                 break;
 
-            // START operation can be performed only if Mirror status is UNKNOWN or DETACHED
+            // START operation can be performed only if Mirror status is UNKNOWN
             case "start":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.DETACHED.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString()))
                     isSupported = true;
                 break;
 
@@ -148,9 +141,9 @@ public class FileSystemRepliationUtils {
                     isSupported = true;
                 break;
 
-            // RESUME operation can be performed only if Mirror status is SUSPENDED.
+            // RESUME operation can be performed only if Mirror status is PAUSED.
             case "resume":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.SUSPENDED.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.PAUSED.toString()))
                     isSupported = true;
                 break;
 
@@ -198,6 +191,13 @@ public class FileSystemRepliationUtils {
             _log.info(notSuppReasonBuff.toString());
             return false;
         }
+        // This validation is required after stop operation
+        if (fs.getPersonality() == null || !fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is not having any active replication.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
         return true;
     }
 
@@ -224,19 +224,14 @@ public class FileSystemRepliationUtils {
         // For resource delete (forceDelete=false)
         // For VIPR_ONLY type, till we support ingestion of replication file systems
         // avoid deleting file systems if it has active mirrors!!
-        if (forceDelete == false || FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)) {
-            if (fs.getMirrorfsTargets() != null
-                    && !fs.getMirrorfsTargets().isEmpty()) {
-                notSuppReasonBuff
-                        .append(String
-                                .format("File system %s given in request has active target file systems.",
-                                        fs.getLabel()));
+        if (!forceDelete || FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType)) {
+            if (fs.getMirrorfsTargets() != null && !fs.getMirrorfsTargets().isEmpty()) {
+                notSuppReasonBuff.append(String.format("File system %s given in request has active target file systems.",
+                        fs.getLabel()));
                 _log.info(notSuppReasonBuff.toString());
                 return true;
-
             }
         }
-
         return false;
     }
 

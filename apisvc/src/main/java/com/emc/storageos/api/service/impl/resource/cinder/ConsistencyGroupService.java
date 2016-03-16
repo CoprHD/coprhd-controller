@@ -90,9 +90,16 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
     public Response getCosistencyGroup(@PathParam("tenant_id") String openstackTenantId,
             @PathParam("consistencyGroup_id") String consistencyGroupId, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
+        Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
+        if (project == null) {
+            return CinderApiUtils.createErrorResponse(400, "Bad Request: Project not exist for the request");
+        }
         final BlockConsistencyGroup blockConsistencyGroup = findConsistencyGroup(consistencyGroupId, openstackTenantId);
         if (blockConsistencyGroup == null) {
             return CinderApiUtils.createErrorResponse(404, "Invalid Request: No Such Consistency Group Found");
+        }else if (!consistencyGroupId.equals(CinderApiUtils.splitString(blockConsistencyGroup.getId().toString(), ":", 3))) {
+            _log.error("Bad Request : Invalid Snapshot Id {}", consistencyGroupId);
+            return CinderApiUtils.createErrorResponse(400, "Bad Request: No such snapshot id exist");
         } else {
             ConsistencyGroupDetail response = getConsistencyGroupDetail(blockConsistencyGroup);
             return CinderApiUtils.getCinderResponse(response, header, true);
@@ -154,8 +161,11 @@ public class ConsistencyGroupService extends AbstractConsistencyGroupService {
                 getUserFromContext());
         final String volumeTypes = param.consistencygroup.volume_types;
         VirtualPool vPool = getCinderHelper().getVpool(volumeTypes);
-        if (null != project && vPool != null && vPool.getMultivolumeConsistency()) {
-        	
+        if (null != project && vPool != null ) {
+        	if(!vPool.getMultivolumeConsistency()){
+        	    _log.error("Bad Request : Multi volume consistency feature not enabled");
+        	    return CinderApiUtils.createErrorResponse(400, "Bad Request : Multi volume consistency feature not enabled");
+        	}
             // Validate name
             ArgValidator.checkFieldNotEmpty(param.consistencygroup.name, "name");
             

@@ -128,6 +128,10 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
         final String consistencyGroupId = param.cgsnapshot.consistencygroup_id;
         final BlockConsistencyGroup consistencyGroup = findConsistencyGroup(consistencyGroupId, openstackTenantId);
 
+        if(!isSnapshotCreationpermissible(consistencyGroup)){
+            _log.error("Bad Request : ViPR permission needed for snapshot creation");
+            return CinderApiUtils.createErrorResponse(400, "Bad Request : ViPR permission needed for snapshot creation"); 
+        }
         // Ensure that the Consistency Group has been created on all of its defined
         // system types.
         if (!consistencyGroup.created()) {
@@ -260,7 +264,19 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
     public Response getConsistencyGroupSnapshotDetail(@PathParam("tenant_id") String openstackTenantId,
             @PathParam("consistencyGroupSnapshot_id") String consistencyGroupSnapshotId, @HeaderParam("X-Cinder-V1-Call") String isV1Call,
             @Context HttpHeaders header) {
+        Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
+        if (project == null) {
+            _log.error("Bad Request: Project not exist for the request");
+            return CinderApiUtils.createErrorResponse(400, "Bad Request: Project not exist for the request");
+        }
         final BlockSnapshot snapshot = findSnapshot(consistencyGroupSnapshotId, openstackTenantId);
+        if (null == snapshot) {
+            _log.error("Bad Request : Invalid Snapshot Id {}", consistencyGroupSnapshotId);
+            return CinderApiUtils.createErrorResponse(400, "Bad Request: No such snapshot id exist");
+        } else if (!consistencyGroupSnapshotId.equals(CinderApiUtils.splitString(snapshot.getId().toString(), ":", 3))) {
+            _log.error("Bad Request : Invalid Snapshot Id {}", consistencyGroupSnapshotId);
+            return CinderApiUtils.createErrorResponse(400, "Bad Request: No such snapshot id exist");
+        }
         ConsistencyGroupSnapshotDetail cgSnapshotDetail = new ConsistencyGroupSnapshotDetail();
         cgSnapshotDetail.id = consistencyGroupSnapshotId;
         cgSnapshotDetail.name = snapshot.getLabel();
@@ -291,7 +307,6 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                             cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.AVAILABLE.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.updateObject(snapshot);
                         }
                         else if (tsk.getStatus().equals("pending")) {
                             if (tsk.getDescription().equals(ResourceOperationTypeEnum.CREATE_VOLUME_SNAPSHOT.getDescription()))
@@ -307,8 +322,8 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                             cgSnapshotDetail.status = ComponentStatus.ERROR.getStatus().toLowerCase();
                             snapshot.getExtensions().put("status", ComponentStatus.ERROR.getStatus().toLowerCase());
                             snapshot.getExtensions().remove("taskid");
-                            _dbClient.updateObject(snapshot);
                         }
+                        _dbClient.updateObject(snapshot);
                         break;
                     }
                 }
@@ -320,7 +335,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             else
             {
                 // status is available
-                cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase(); 
+                cgSnapshotDetail.status = ComponentStatus.AVAILABLE.getStatus().toLowerCase();
             }
         }
         cgSnapshotDetail.description = (description == null) ? "" : description;
@@ -433,10 +448,9 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
                             .toString(), snapshot.getLabel());
 
             return Response.status(202).build();
-        } else {
-            CinderApiUtils.createErrorResponse(400, "Snapshot not attached to any active consistencygroup");
         }
-        return null;
+
+        return CinderApiUtils.createErrorResponse(400, "Snapshot not attached to any active consistencygroup");
 
     }
 
@@ -504,19 +518,8 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             String openstackTenantId) {
         BlockSnapshot snapshot = (BlockSnapshot) getCinderHelper().queryByTag(
                 URI.create(snapshotId), getUserFromContext(),BlockSnapshot.class );
-        if (snapshot != null) {
-            Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
-            if ((project != null)
-                    && (snapshot.getProject().getURI().toString()
-                            .equalsIgnoreCase(project.getId().toString()))) {
-                // snapshot is part of the project
-                return snapshot;
-            }
-            else {
-                CinderApiUtils.createErrorResponse(400, "Bad Request: Project not exist for the request");
-            }
-        }
-        return null;
+        
+        return snapshot;
     }
 
     // internal function

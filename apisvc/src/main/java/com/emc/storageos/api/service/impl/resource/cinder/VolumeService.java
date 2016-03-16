@@ -335,6 +335,10 @@ public class VolumeService extends TaskResourceService {
         if (consistencygroup_id != null) {
             _log.info("Verifying for consistency group : " + consistencygroup_id);
             blockConsistencyGroup = (BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencygroup_id), getUserFromContext(), BlockConsistencyGroup.class);
+            if(verifyConsistencyGroupHasSnapshot(blockConsistencyGroup)){
+                _log.error("Bad Request : Consistency Group has Snapshot ");
+                return CinderApiUtils.createErrorResponse(400, "Bad Request : Consistency Group has Snapshot ");
+            }
             blockConsistencyGroupId = blockConsistencyGroup.getId();
             if (blockConsistencyGroup.getTag() != null && consistencygroup_id.equals(blockConsistencyGroupId.toString().split(":")[3])) {
                 for (ScopedLabel tag : blockConsistencyGroup.getTag()) {
@@ -1490,4 +1494,22 @@ public class VolumeService extends TaskResourceService {
 
         return BlockService.getBlockServiceImpl("default");
     }
+    
+    /**
+     * If the Consistency Group has Snapshot(s), then Volume can not be created.
+     * 
+     * @param blockConsistencyGroup Block Consistency Grp Instance
+     * @return 
+     */
+    private boolean verifyConsistencyGroupHasSnapshot(BlockConsistencyGroup consistencyGroup) {
+        final URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
+        _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(consistencyGroup.getId()),
+                cgSnapshotsResults);
+        Iterator<BlockSnapshot> blockSnapshotIterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, cgSnapshotsResults);
+        if (blockSnapshotIterator.hasNext()) {
+            return true;
+        }
+        return false;
+    }
+
 }

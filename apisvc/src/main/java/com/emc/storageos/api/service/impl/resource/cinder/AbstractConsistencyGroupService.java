@@ -8,14 +8,22 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.cinder.model.ConsistencyGroupDetail;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.ScopedLabelSet;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -28,6 +36,8 @@ import com.emc.storageos.model.TaskResourceRep;
  * 
  */
 public abstract class AbstractConsistencyGroupService extends TaskResourceService {
+    
+    private static final Logger _log = LoggerFactory.getLogger(AbstractConsistencyGroupService.class);
 
     @Override
     protected DataObject queryResource(URI id) {
@@ -59,17 +69,7 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
             String consistencyGroupId, String openstackTenantId) {
         BlockConsistencyGroup blockConsistencyGroup =(BlockConsistencyGroup) getCinderHelper().queryByTag(URI.create(consistencyGroupId),
                 getUserFromContext(),BlockConsistencyGroup.class);
-        Project project = getCinderHelper().getProject(openstackTenantId, getUserFromContext());
-        if (project == null) {
-            CinderApiUtils.createErrorResponse(400, "Bad Request: Project not exist for the request");
-        }
-        if (blockConsistencyGroup != null) {
-            if ((project != null) &&
-                    (blockConsistencyGroup.getProject().getURI().toString().equalsIgnoreCase(project.getId().toString()))) {
-                return blockConsistencyGroup;
-            }
-        }
-        return null;
+        return blockConsistencyGroup;
     }
 
     /**
@@ -131,6 +131,27 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
         op.setResourceType(ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP);
         Operation status = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, task, op);
         return toTask(consistencyGroup, task, status);
+    }
+    
+    protected boolean isSnapshotCreationpermissible(BlockConsistencyGroup consistencyGroup) {
+        String volType = null;
+        boolean isPermissible = false;
+        ScopedLabelSet tagSet = consistencyGroup.getTag();
+        if (tagSet != null) {
+            for (ScopedLabel tag : tagSet) {
+                if(tag.getScope().equals("volume_types")){
+                    volType = tag.getLabel();
+                    break;
+                }
+            }
+        }
+        if(volType != null){
+            VirtualPool vPool = getCinderHelper().getVpool(volType);
+            if(vPool.getMaxNativeSnapshots() > 0){
+                isPermissible = true;
+            }
+        }
+        return isPermissible;
     }
 
 }

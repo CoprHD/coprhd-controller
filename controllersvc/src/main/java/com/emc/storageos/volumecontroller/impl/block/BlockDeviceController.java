@@ -14,9 +14,7 @@ import static com.google.common.collect.Collections2.transform;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,7 +51,6 @@ import com.emc.storageos.db.client.model.DecommissionedResource;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -394,53 +391,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         List<URI> ids = new ArrayList<URI>();
         ids.add(id);
         doFailTask(clazz, ids, opId, serviceCoded);
-    }
-
-    /**
-     * Create a nice event based on the volume
-     *
-     * @param volume Volume for which the event is about
-     * @param type Type of event such as VolumeCreated or VolumeDeleted
-     * @param description Description for the event if needed
-     * @param extensions The event extension data
-     */
-    public void recordVolumeEvent(Volume volume, String type, String description,
-            String extensions) {
-        // TODO fix the bogus user ID once we have AuthZ working
-
-        RecordableBourneEvent event = ControllerUtils.convertToRecordableBourneEvent(volume, type, description,
-                extensions, _dbClient, EVENT_SERVICE_TYPE, RecordType.Event.name(), EVENT_SERVICE_SOURCE);
-        try {
-            _eventManager.recordEvents(event);
-        } catch (Exception ex) {
-            _log.error("Failed to record event. Event description: {}. Error: ", description, ex);
-        }
-    }
-
-    /**
-     * Workflow step associated with creating volumes.
-     * TODO: RB3294, Do we really need these steps? Can we just call the method directly if that's all its really doing?
-     *
-     * @param systemURI storage system
-     * @param poolURI storage pool
-     * @param volumeURIs list of volume uris that were pre-created in the db
-     * @param stepId the task id from the workflow service
-     * @return true if successful, false otherwise
-     */
-    public boolean createVolumesStep(URI systemURI, URI poolURI, List<URI> volumeURIs,
-            VirtualPoolCapabilityValuesWrapper cosCapabilities, String stepId) throws WorkflowException {
-        boolean status = true;      // no error initially
-        try {
-            WorkflowStepCompleter.stepExecuting(stepId);
-
-            // Now call addZones to add all the required zones.
-            createVolumes(systemURI, poolURI, volumeURIs, cosCapabilities, stepId);
-        } catch (Exception ex) {
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
-            WorkflowStepCompleter.stepFailed(stepId, serviceError);
-            status = false;
-        }
-        return status;
     }
 
     static final String CREATE_VOLUMES_STEP_GROUP = "BlockDeviceCreateVolumes";
@@ -1676,9 +1626,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     public String addStepsForDeleteVolumes(Workflow workflow, String waitFor,
             List<VolumeDescriptor> volumes, String taskId) throws ControllerException {
 
-        // Add steps for deleting any local mirrors that may be present.
-        // waitFor = addStepsForDeleteMirrors(workflow, waitFor, volumes);
-
         // The the list of Volumes that the BlockDeviceController needs to process.
         volumes = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] {
@@ -1950,55 +1897,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             status = false;
         }
         return status;
-    }
-
-    private void exportMaskUpdate(ExportMask exportMask, Map<URI, Integer> volumeMap, List<Initiator> initiators,
-            List<URI> targets) throws Exception {
-        if (volumeMap != null) {
-            for (URI volume : volumeMap.keySet()) {
-                exportMask.addVolume(volume, volumeMap.get(volume));
-            }
-        }
-
-        if (initiators != null) {
-            for (Initiator initiator : initiators) {
-                exportMask.addInitiator(initiator);
-            }
-        }
-
-        if (targets != null) {
-            for (URI target : targets) {
-                exportMask.addTarget(target);
-            }
-        }
-    }
-
-    /**
-     * Select volumes from an export group that resides on a given storage array
-     *
-     * @param exportGroup
-     * @param exportMask
-     * @return
-     * @throws IOException
-     */
-    private Map<URI, Integer> selectExportMaskVolumes(ExportGroup exportGroup, ExportMask exportMask)
-            throws IOException {
-        Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
-
-        for (String uri : exportGroup.getVolumes().keySet()) {
-            URI blockURI;
-            try {
-                blockURI = new URI(uri);
-                BlockObject block = BlockObject.fetch(_dbClient, blockURI);
-                if (!block.getStorageController().equals(exportMask.getStorageDevice())) {
-                    continue;
-                }
-                volumeMap.put(blockURI, Integer.valueOf(exportGroup.getVolumes().get(blockURI.toString())));
-            } catch (URISyntaxException e) {
-                _log.error(e.getMessage(), e);
-            }
-        }
-        return volumeMap;
     }
 
     @Override
@@ -3111,64 +3009,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    public static final String DELETE_MIRROR_STEP_GROUP = "BlockDeviceDeleteMirror";
-
-    /**
-     * Adds the additional steps necessary to delete local mirrors.
-     *
-     * @param workflow
-     * @param waitFor
-     * @param descriptors List<VolumeDescriptor> volumes to be processed
-     * @return
-     */
-    public String addStepsForDeleteMirrors(Workflow workflow, String waitFor,
-            List<VolumeDescriptor> descriptors)
-                    throws ControllerException {
-        // Get only the BLOCK_MIRROR descriptors.
-        descriptors = VolumeDescriptor.filterByType(descriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_MIRROR }, null);
-        if (descriptors.isEmpty()) {
-            return waitFor;
-        }
-
-        List<URI> uris = VolumeDescriptor.getVolumeURIs(descriptors);
-        boolean isCG = isCGMirror(uris.get(0), _dbClient);
-        if (!isCG) {
-            Iterator<BlockMirror> mirrorIterator = _dbClient.queryIterativeObjects(BlockMirror.class, uris);
-            while (mirrorIterator.hasNext()) {
-                BlockMirror mirror = mirrorIterator.next();
-                URI controller = mirror.getStorageController();
-                String stepId = null;
-
-                // Add steps for detaching the mirror
-                stepId = addStepsForDetachMirror(workflow, waitFor, DELETE_MIRROR_STEP_GROUP, asList(mirror.getId()), isCG);
-                // Create a step for deleting the mirror.
-                stepId = workflow.createStep(DELETE_MIRROR_STEP_GROUP,
-                        String.format("Delete mirror: %s", mirror.getId()),
-                        stepId, controller, getDeviceType(controller),
-                        this.getClass(),
-                        deleteMirrorMethod(controller, asList(mirror.getId()), isCG),
-                        null, null);
-            }
-        } else {
-            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, uris.get(0));
-            URI controller = mirror.getStorageController();
-            String stepId = null;
-
-            // Add steps for detaching the mirror
-            stepId = addStepsForDetachMirror(workflow, waitFor, DELETE_MIRROR_STEP_GROUP, uris, isCG);
-            // Create a step for deleting the mirror.
-            stepId = workflow.createStep(DELETE_MIRROR_STEP_GROUP,
-                    String.format("Delete mirror: %s", mirror.getId()),
-                    stepId, controller, getDeviceType(controller),
-                    this.getClass(),
-                    deleteMirrorMethod(controller, uris, isCG),
-                    null, null);
-        }
-
-        return DELETE_MIRROR_STEP_GROUP;
-    }
-
     public Workflow.Method deleteMirrorMethod(URI storage, List<URI> mirrorList, Boolean isCG) {
         return new Workflow.Method("deleteMirror", storage, mirrorList, isCG);
     }
@@ -4240,24 +4080,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             }
         }
         return false;
-    }
-
-    /**
-     * Pending mirrors are mirrors that are pending creation on the physical array
-     *
-     * @param mirrorURIs
-     * @return list of active mirrors, waiting to be created
-     */
-    private List<BlockMirror> getPendingMirrors(StringSet mirrorURIs) {
-        List<BlockMirror> result = new ArrayList<BlockMirror>();
-
-        for (String uri : mirrorURIs) {
-            BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(uri));
-            if (isPending(mirror)) {
-                result.add(mirror);
-            }
-        }
-        return result;
     }
 
     /**

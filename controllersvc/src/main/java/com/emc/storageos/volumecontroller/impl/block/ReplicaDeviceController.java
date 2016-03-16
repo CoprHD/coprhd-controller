@@ -697,7 +697,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         List<URI> mirrorList = new ArrayList<URI>();
         for (Volume volume : volumes) {
             String mirrorLabel = volume.getLabel() + "-" + repGroupName;
-            BlockMirror mirror = createMirror(volume, volume.getVirtualPool(), volume.getPool(), mirrorLabel);
+            BlockMirror mirror = createMirror(volume, volume.getVirtualPool(), volume.getPool(), mirrorLabel, repGroupName);
             URI mirrorId = mirror.getId();
             mirrorList.add(mirrorId);
         }
@@ -722,9 +722,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      * @param vPoolURI
      * @param recommendedPoolURI Pool that should be used to create the mirror
      * @param volumeLabel
+     * @param repGroupName
      * @return BlockMirror (persisted)
      */
-    private BlockMirror createMirror(Volume volume, URI vPoolURI, URI recommendedPoolURI, String volumeLabel) {
+    private BlockMirror createMirror(Volume volume, URI vPoolURI, URI recommendedPoolURI, String volumeLabel, String repGroupName) {
         BlockMirror createdMirror = new BlockMirror();
         createdMirror.setSource(new NamedURI(volume.getId(), volume.getLabel()));
         createdMirror.setId(URIUtil.createId(BlockMirror.class));
@@ -745,6 +746,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         createdMirror.setSyncState(SynchronizationState.UNKNOWN.toString());
         createdMirror.setSyncType(BlockMirror.MIRROR_SYNC_TYPE);
         createdMirror.setThinlyProvisioned(volume.getThinlyProvisioned());
+        createdMirror.setReplicationGroupInstance(repGroupName);
         _dbClient.createObject(createdMirror);
         addMirrorToVolume(volume, createdMirror);
         return createdMirror;

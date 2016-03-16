@@ -34,6 +34,25 @@ dataset:
 A sample vagrant environment help 
 Please refer to ClusterHQ/Flocker documentation for usage. A sample deployment and application can be found at to be updated
 
+Tested the coprHD
+1.	 Ubuntu – 14.04.03 – LTS 
+2.	Flocker – 1.10.2
+3.	Docker – 1.10.1 - build 9e83765
+4.	2 Node setup
+
+The below test case have been tested 
+
+1. Using docker start a application and provision a volume on demand
+2. Using docker move a application from one node to another node with persistent storage 
+
+Docker commands are below 
+
+docker run -v <volume-name>:/data --volume-driver=<driver-name> -ti busybox sh
+
+Debug: 
+
+	The log files are /var/log/flocker  
+
 ## Future
 - Add Chap protocol support for iSCSI
 - Add 

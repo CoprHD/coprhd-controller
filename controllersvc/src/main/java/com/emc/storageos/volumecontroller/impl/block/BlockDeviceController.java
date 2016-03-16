@@ -3083,11 +3083,16 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-
-            // Lock the CG for the step duration.
-            List<String> lockKeys = new ArrayList<String>();
-            lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, consistencyGroup, storage));
-            _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
+            /**
+             * FullCopy volume will not have CGURI.
+             * Added null check to avoid NPE.
+             */
+            if (consistencyGroup != null) {
+                // Lock the CG for the step duration.
+                List<String> lockKeys = new ArrayList<String>();
+                lockKeys.add(ControllerLockingUtil.getConsistencyGroupStorageKey(_dbClient, consistencyGroup, storage));
+                _workflowService.acquireWorkflowStepLocks(opId, lockKeys, LockTimeoutValue.get(LockType.ARRAY_CG));
+            }
 
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockConsistencyGroupDeleteCompleter(consistencyGroup, opId);

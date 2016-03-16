@@ -58,6 +58,10 @@ class VolumeGroup(object):
     # URIs for VolumeGroup Snapshot Session Operations
     URI_VOLUME_GROUP_SNAPSHOT_SESSION = "/volume-groups/block/{0}/protection/snapshot-sessions"
     URI_VOLUME_GROUP_SNAPSHOT_SESSION_DEACTIVATE = URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/deactivate"
+    URI_VOLUME_GROUP_SNAPSHOT_SESSION_RESTORE = URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/restore"
+    URI_VOLUME_GROUP_SNAPSHOT_SESSION_LINK = URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/link-targets"
+    URI_VOLUME_GROUP_SNAPSHOT_SESSION_RELINK = URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/relink-targets"
+    URI_VOLUME_GROUP_SNAPSHOT_SESSION_UNLINK = URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/unlink-targets"
     URI_VOLUME_GROUP_SNAPSHOT_SESSION_LIST = URI_VOLUME_GROUP_SNAPSHOT_SESSION
     URI_VOLUME_GROUP_SNAPSHOT_SESSION_SHOW= URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/{1}"
     URI_VOLUME_GROUP_SNAPSHOT_SESSION_GET_COPY_SETS = URI_VOLUME_GROUP_SNAPSHOT_SESSION + "/copy-sets"
@@ -1756,14 +1760,14 @@ def volume_group_snapshot_operation(args, operation, uri):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshot " + operation + ": " +
+                operation + " snapshot: " +
                 args.name +
                 ", Failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot",
                 operation,
+                "snapshot",
                 e.err_text,
                 e.err_code)
 
@@ -2169,14 +2173,14 @@ def volume_group_snapshotsession_operation(args, operation, uri):
         if (e.err_code == SOSError.SOS_FAILURE_ERR):
             raise SOSError(
                 SOSError.SOS_FAILURE_ERR,
-                "Snapshot Session" + operation + ": " +
+                operation + " snapshot session: " +
                 args.name +
                 ", Failed\n" +
                 e.err_text)
         else:
             common.format_err_msg_and_raise(
-                "snapshot session",
                 operation,
+                "snapshot session",
                 e.err_text,
                 e.err_code)
 
@@ -2196,6 +2200,74 @@ def snapshotsession_deactivate_parser(subcommand_parsers, common_parser):
 # Deactivate Snapshot Session Function
 def volume_group_snapshotsession_deactivate(args):
     volume_group_snapshotsession_operation(args, "deactivate", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_DEACTIVATE)
+
+# snapshotsession_restore_parser
+def snapshotsession_restore_parser(subcommand_parsers, common_parser):
+    snapshotsession_restore_parser = subcommand_parsers.add_parser(
+        'snapshotsession-restore',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Restore snapshot session of a VolumeGroup',
+        description='ViPR Restore Snapshot Session of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot session parser.
+    volume_group_snapshotsession_common_parser(snapshotsession_restore_parser)
+    snapshotsession_restore_parser.set_defaults(func=volume_group_snapshotsession_restore)
+
+# Restore Snapshot Session Function
+def volume_group_snapshotsession_restore(args):
+    volume_group_snapshotsession_operation(args, "restore", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_RESTORE)
+
+# snapshotsession_link_parser
+def snapshotsession_link_parser(subcommand_parsers, common_parser):
+    snapshotsession_link_parser = subcommand_parsers.add_parser(
+        'snapshotsession-link',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Link snapshot session of a VolumeGroup',
+        description='ViPR Link Snapshot Session of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot session parser.
+    volume_group_snapshotsession_common_parser(snapshotsession_link_parser)
+    snapshotsession_link_parser.set_defaults(func=volume_group_snapshotsession_link)
+
+# Link Snapshot Session Function
+def volume_group_snapshotsession_link(args):
+    volume_group_snapshotsession_operation(args, "link", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_LINK)
+
+# snapshotsession_relink_parser
+def snapshotsession_relink_parser(subcommand_parsers, common_parser):
+    snapshotsession_relink_parser = subcommand_parsers.add_parser(
+        'snapshotsession-relink',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Relink snapshot session of a VolumeGroup',
+        description='ViPR Relink Snapshot Session of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot session parser.
+    volume_group_snapshotsession_common_parser(snapshotsession_relink_parser)
+    snapshotsession_relink_parser.set_defaults(func=volume_group_snapshotsession_relink)
+
+# Relink Snapshot Session Function
+def volume_group_snapshotsession_relink(args):
+    volume_group_snapshotsession_operation(args, "relink", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_RELINK)
+
+# snapshotsession_unlink_parser
+def snapshotsession_unlink_parser(subcommand_parsers, common_parser):
+    snapshotsession_unlink_parser = subcommand_parsers.add_parser(
+        'snapshotsession-unlink',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Unlink snapshot session of a VolumeGroup',
+        description='ViPR Unlink Snapshot Session of a VolumeGroup CLI usage.')
+
+    # Add parameter from common snapshot session parser.
+    volume_group_snapshotsession_common_parser(snapshotsession_unlink_parser)
+    snapshotsession_unlink_parser.set_defaults(func=volume_group_snapshotsession_unlink)
+
+# Unlink Snapshot Session Function
+def volume_group_snapshotsession_unlink(args):
+    volume_group_snapshotsession_operation(args, "unlink", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_UNLINK)
 
 # snapshotsession_list_parser
 def snapshotsession_list_parser(subcommand_parsers, common_parser):
@@ -2505,6 +2577,18 @@ def volume_group_parser(parent_subparser, common_parser):
 
     # snapshot session deactivate command parser
     snapshotsession_deactivate_parser(subcommand_parsers, common_parser)
+
+    # snapshot session restore command parser
+    snapshotsession_restore_parser(subcommand_parsers, common_parser)
+
+    # snapshot session link command parser
+    snapshotsession_link_parser(subcommand_parsers, common_parser)
+
+    # snapshot session relink command parser
+    snapshotsession_relink_parser(subcommand_parsers, common_parser)
+
+    # snapshot session unlink command parser
+    snapshotsession_unlink_parser(subcommand_parsers, common_parser)
 
     # Get snapshot session list of a volume group command parser
     snapshotsession_list_parser(subcommand_parsers, common_parser)

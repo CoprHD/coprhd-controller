@@ -351,10 +351,6 @@ public class BackupService {
 
         BackupUploadStatus job = new BackupUploadStatus();
         job.setBackupName(backupTag);
-        job.setStatus(Status.PENDING);
-
-        log.info("Upload job={}", job);
-
         jobProducer.enqueue(job);
 
         backupScheduler.getUploadExecutor().addPendingUploadTask(backupTag);

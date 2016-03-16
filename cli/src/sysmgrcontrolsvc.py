@@ -780,7 +780,7 @@ def trigger_dbconsistency_check_parser(subcommand_parsers, common_parser):
                                                        parents=[common_parser],
                                                        conflict_handler='res' +
                                                        'olve',
-                                                       help='TRIGGER DB Consistency check')
+                                                       help='Trigger DB Consistency check')
 
     trigger_dbconsistency_check_parser.set_defaults(func=db_con_check)
 
@@ -899,7 +899,7 @@ def backupset_restore_status_parser(subcommand_parsers,common_parser):
         description='ViPR: CLI usage to restore a backup set',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Statsus of a Restores a backupset')
+        help='Status of a restore from backup')
 
     mandatory_args = backupset_restore_status_parser.add_argument_group(
         'mandatory arguments')
@@ -939,7 +939,7 @@ def get_backupsets_external_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to get external backups list',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='LIST OF BACKUPS IN EXTERNAL SERVER')
+        help='List of backups in external server')
 
     get_backupsets_external_parser.set_defaults(func=get_backupsets_external)
 
@@ -962,7 +962,7 @@ def get_backupsets_info_parser(subcommand_parsers,common_parser):
         description='ViPR: CLI usage to get info of a specific backup',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='To get the backup info of a specific backup')
+        help='Get the backup info of a specific backup')
     
     mandatory_args = get_backupsets_info_parser.add_argument_group(
         'mandatory arguments')
@@ -994,7 +994,7 @@ def backupset_pull_parser(subcommand_parsers,common_parser):
         description='ViPR: CLI usage to pull a specific backup',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='To pull a specific backup')
+        help='Pull backup data from the backup ftp server')
     
     mandatory_args = backupset_pull_parser.add_argument_group(
         'mandatory arguments')
@@ -1028,7 +1028,7 @@ def backupset_pull_cancel_parser(subcommand_parsers,common_parser):
         description='ViPR: CLI usage to cancel the pull a specific backup',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='To cancel the pull a specific backup')
+        help='Cancel the pull a specific backup')
 
     backupset_pull_cancel_parser.set_defaults(func=backupset_pull_cancel)
 

@@ -1386,7 +1386,7 @@ def get_log_level_parser(subcommand_parsers, common_parser):
         ' the logging level',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get log level')
+        help='Get logging level')
 
     get_log_level_parser.add_argument('-logs', '-lg',
                                       metavar='<logs>',
@@ -1569,16 +1569,16 @@ def update_cluster_version_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         help='Updates target version. Version can only be updated' +
-        ' incrementally. Ex: storageos-1.0.0.2.xx can only be' +
-        ' updated to sotrageos-1.0.0.3.xx and not to storageos-1.0.0.4.xx')
+        ' incrementally. Ex: vipr-3.0.0.2.x can only be' +
+        ' updated to vipr-3.0.0.3.x and not to vipr-3.0.0.4.x')
     update_cluster_version_parser.add_argument('-f', '-force',
                                                action='store_true',
                                                dest='force',
                                                help='Version numbers' +
                                                ' will not be verified.' +
                                                ' Can be updated from' +
-                                               ' storageos-1.0.0.2.xx to' +
-                                               ' storageos-1.0.0.4.xx')
+                                               ' vipr-3.0.0.2.x to' +
+                                               ' vipr-3.0.0.4.x')
 
     mandatory_args = update_cluster_version_parser.add_argument_group(
         'mandatory arguments')
@@ -1830,7 +1830,7 @@ def get_license_parser(subcommand_parsers, common_parser):
                                                        parents=[common_parser],
                                                        conflict_handler='res' +
                                                        'olve',
-                                                       help='Get License.')
+                                                       help='Get License')
 
     get_license_parser.set_defaults(func=get_license)
 
@@ -2182,7 +2182,7 @@ def get_storage_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to get storage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Storage.')
+        help='Get managed storage capacity')
 
     get_storage_parser.set_defaults(func=get_storage)
 
@@ -2259,7 +2259,7 @@ def get_dbrepair_status_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to check dbrepair status',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='DBREPAIR STATUS')
+        help='Get dbrepair status')
 
     get_dbrepair_status_parser.set_defaults(func=get_dbrepair_status)
 
@@ -2281,10 +2281,10 @@ def get_properties_parser(subcommand_parsers, common_parser):
 
     get_properties_parser = subcommand_parsers.add_parser(
         'get-properties',
-        description='ViPR: CLI usage to get properties',
+        description='ViPR: CLI usage to get system properties',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Get Properties.')
+        help='Get system properties')
     get_properties_parser.add_argument(
         '-type', '-t',
         choices=Configuration.URI_CONFIG_PROPERTY_TYPE,
@@ -2447,7 +2447,7 @@ def disable_update_check_parser(subcommand_parsers, common_parser):
         description='ViPR: CLI usage to disable check for updates',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Disable Update Check')
+        help='Disable Update Check for system configuration')
 
     disable_update_check_parser.set_defaults(func=disable_update_check)
 
@@ -2712,7 +2712,7 @@ def show_site_parser(subcommand_parsers,common_parser):
         description='ViPR: CLI usage to show a site details',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Show a site')
+        help='Show a standby site')
 
     mandatory_args = show_site_parser.add_argument_group(
         'mandatory arguments')
@@ -3107,14 +3107,6 @@ def system_parser(parent_subparser, common_parser):
 
     sysmgrcontrolsvc.cluster_poweroff_parser(subcommand_parsers, common_parser)
     
-    sysmgrcontrolsvc.create_backup_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.delete_backup_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.list_backup_parser(subcommand_parsers, common_parser)
-    
-    sysmgrcontrolsvc.download_backup_parser(subcommand_parsers, common_parser)    
-    
     sysmgrcontrolsvc.delete_tasks_parser(subcommand_parsers, common_parser)
 
     upload_file_parser(subcommand_parsers, common_parser)
@@ -3132,8 +3124,6 @@ def system_parser(parent_subparser, common_parser):
     cluster_ipreconfig_status_parser(subcommand_parsers,common_parser)
 
     cluster_ipinfo_parser(subcommand_parsers,common_parser)
-    
-    add_site_parser(subcommand_parsers,common_parser)
    
     sysmgrcontrolsvc.dbconsistency_check_cancel_parser(subcommand_parsers, common_parser)
     
@@ -3141,6 +3131,14 @@ def system_parser(parent_subparser, common_parser):
     
     sysmgrcontrolsvc.trigger_dbconsistency_check_parser(subcommand_parsers, common_parser)
     
+    sysmgrcontrolsvc.create_backup_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.delete_backup_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.list_backup_parser(subcommand_parsers, common_parser)
+    
+    sysmgrcontrolsvc.download_backup_parser(subcommand_parsers, common_parser)
+
     sysmgrcontrolsvc.upload_backup_parser(subcommand_parsers, common_parser)
     
     sysmgrcontrolsvc.upload_backup_status_parser(subcommand_parsers, common_parser)
@@ -3159,6 +3157,8 @@ def system_parser(parent_subparser, common_parser):
     
     sysmgrcontrolsvc.backupset_pull_cancel_parser(subcommand_parsers,common_parser)
     
+    add_site_parser(subcommand_parsers,common_parser)
+
     list_sites_parser(subcommand_parsers,common_parser)
     
     show_site_parser(subcommand_parsers,common_parser)

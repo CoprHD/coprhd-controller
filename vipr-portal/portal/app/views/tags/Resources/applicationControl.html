@@ -51,14 +51,19 @@
 function changeover(val) {
 	if (val == true) {
 		$('.application-select *').attr("disabled", true);
-		$('.application-select *').addClass("disable-dropdown");
+		$('.application-select *').attr("style", "background-color:#eeeeee;cursor : not-allowed;pointer-events : none;opacity : 1;");
+		$('.application-select select').attr("style", "display:none");
 		$('.project-select *').removeAttr("disabled");
-		$('.project-select *').removeClass("disable-dropdown");	
+		$('.project-select *').removeAttr("style");
+		$('.project-select select').attr("style", "display:none");
+		
 	} else {
 		$('.application-select *').removeAttr("disabled");
-		$('.application-select *').removeClass("disable-dropdown");	
+		$('.application-select *').removeAttr("style");
+		$('.application-select select').attr("style", "display:none");
 		$('.project-select *').attr("disabled", true);
-		$('.project-select *').addClass("disable-dropdown");
+		$('.project-select *').attr("style", "background-color:#eeeeee;cursor : not-allowed;pointer-events : none;opacity : 1;");
+		$('.project-select select').attr("style", "display:none");
 	}
 }
 </script>

@@ -105,6 +105,11 @@ class CoprHDCLIDriver(object):
         self.network_obj = network.Network(
             self.host,
             self.port)
+        
+        create_project("project1")
+        create_export_group("exportgroup1")
+        create_host("host1","172.1.30.23","Windows")
+        create_network("network1","IP")
          
             
     def authenticate_user(self):
@@ -299,13 +304,13 @@ class CoprHDCLIDriver(object):
         except utils.SOSError as e:
             Message.new(Debug="Export group creation Failed").write(_logger)
 
-    def create_host(self,name,label1,hosttype1="Windows"):
+    def create_host(self,name,host_label,host_type="Others"):
         self.authenticate_user()
         try:
             self.host_obj.create(
                  name,
-                 hosttype=hosttype1,
-                 label=label1,
+                 hosttype=host_type,
+                 label=host_label,
                  tenant=self.tenant,
                  port=5985,
                  username="root",
@@ -328,8 +333,8 @@ class CoprHDCLIDriver(object):
         initiatorname=None
         for line in f:
             if ( line[0] != '#' ):
-                s1=line.split('=')
-                initiatorname=s1[1]
+                initiator_info=line.split('=')
+                initiatorname=initiator_info[1]
                 break
 
         self.hostinitiator_obj.create(
@@ -357,17 +362,17 @@ class CoprHDCLIDriver(object):
         storagesystem_name = []
         storagesystem_list = []
         port_list = []
-        for st in storage_ports:
-            if st['storage_system'] not in storagesystem_name:
-                storagesystem_name.append(st['storage_system'])
-                storagesystem_list.append(self.storagesystem_obj.show_by_name(st['storage_system']))
-        for st in storagesystem_list:
+        for port in storage_ports:
+            if port['storage_system'] not in storagesystem_name:
+                storagesystem_name.append(port['storage_system'])
+                storagesystem_list.append(self.storagesystem_obj.show_by_name(port['storage_system']))
+        for st_sys in storagesystem_list:
             storage_port=self.storageport_obj.storageport_list(
-                storagedeviceName=st['name'],
-                serialNumber=st['serial_number'],
-                storagedeviceType=st['system_type'])
-            for ps in storage_port:
-            	port = ps['name'].split('+')[3]
+                storagedeviceName=st_sys['name'],
+                serialNumber=st_sys['serial_number'],
+                storagedeviceType=st_sys['system_type'])
+            for st_ports in storage_port:
+            	port = st_ports['name'].split('+')[3]
                 #to find all ports starting with 'i'.as IP port start with iqn
                 if port[0]=='i':
                     try:

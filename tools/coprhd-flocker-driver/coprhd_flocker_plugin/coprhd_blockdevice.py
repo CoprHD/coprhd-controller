@@ -202,7 +202,7 @@ class CoprHDCLIDriver(object):
                   if evolumes['id'] == v_uri:
                     attach_to = socket.gethostbyaddr(groupdetails['name'])
                     attach_to = attach_to[0]
-                    attach_to = unicode(attach_to[0:8])                    
+                    attach_to = unicode(attach_to.split('.')[0])
                     Message.new(Debug="coprhd list_volume attached to" + attach_to).write(_logger)
                     showvolume = self.volume_obj.show_by_uri(v_uri)
                     if showvolume['name'].startswith('flocker'):

@@ -81,15 +81,7 @@ public class Backup extends Controller {
                     if (backupSet != null) {
                         BackupDataTable.Backup backup = new BackupDataTable.Backup(backupSet);
                         BackupRestoreStatus restoreStatus = BackupUtils.getRestoreStatus(id, true);
-                        // need combine restore_failed/restoring status
-                        if (restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORE_FAILED
-                                || restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORING) {
-                            backup.status = restoreStatus.getStatus().name();
-                            if (restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORE_FAILED) {
-                                backup.error = restoreStatus.getDetails();
-                            }
-                        }
-
+                        backup.alterLocalBackupRestoreStatus(restoreStatus);
                         results.add(backup);
                     }
                 }

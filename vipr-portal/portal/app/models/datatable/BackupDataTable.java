@@ -8,6 +8,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.List;
 
+import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import play.Logger;
 import util.BackupUtils;
 import util.datatable.DataTable;
@@ -50,8 +51,11 @@ public class BackupDataTable extends DataTable {
     public static List<Backup> fetch(Type type) {
         List<Backup> results = Lists.newArrayList();
         if (type == Type.LOCAL) {
-            for (BackupSet backup : BackupUtils.getBackups()) {
-                results.add(new Backup(backup));
+            for (BackupSet backupSet : BackupUtils.getBackups()) {
+                Backup backup = new Backup(backupSet);
+                BackupRestoreStatus restoreStatus = BackupUtils.getRestoreStatus(backupSet.getName(), true);
+                backup.alterLocalBackupRestoreStatus(restoreStatus);
+                results.add(backup);
             }
         } else if (type == Type.REMOTE) {
             try {
@@ -115,6 +119,16 @@ public class BackupDataTable extends DataTable {
             if (isSettingLoadingStatus) {
                 status = "LOADING";
                 creationtime = -1; // means Loading
+            }
+        }
+        
+        public void alterLocalBackupRestoreStatus(BackupRestoreStatus restoreStatus) {
+            if (restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORE_FAILED
+                    || restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORING) {
+                this.status = restoreStatus.getStatus().name();
+                if (restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORE_FAILED) {
+                    this.error = restoreStatus.getDetails();
+                }
             }
         }
     }

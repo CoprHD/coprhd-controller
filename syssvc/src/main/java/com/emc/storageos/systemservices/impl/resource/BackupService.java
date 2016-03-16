@@ -354,6 +354,8 @@ public class BackupService {
         job.setStatus(Status.NOT_STARTED);
         jobProducer.enqueue(job);
 
+        backupScheduler.getUploadExecutor().addPendingUploadTask(backupTag);
+
         return Response.status(ASYNC_STATUS).build();
     }
 
@@ -460,7 +462,7 @@ public class BackupService {
         downloadThread.setName("PullBackupFromOtherNode");
         downloadThread.start();
 
-        return Response.status(202).build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
     @GET
@@ -504,9 +506,10 @@ public class BackupService {
             String curBackupName = backupOps.getCurrentBackupName();
             if (!backupName.equals(curBackupName)) {
                 String errmsg = curBackupName + " is downloading";
-                throw BackupException.fatals.pullBackupFailed(backupName, errmsg);
+                backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.DOWNLOAD_FAILED, errmsg, false, false);
+            }else {
+                log.info("The backup {} is downloading, no need to trigger again", backupName);
             }
-            log.info("The backup {} is downloading, no need to trigger again", backupName);
         }else {
             initDownload(backupName);
 
@@ -520,7 +523,7 @@ public class BackupService {
             auditBackup(OperationTypeEnum.PULL_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, backupName);
         }
 
-        return Response.status(202).build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
     private void checkExternalServer() {
@@ -612,7 +615,7 @@ public class BackupService {
 
         auditBackup(OperationTypeEnum.PULL_BACKUP_CANCEL, AuditLogManager.AUDITLOG_SUCCESS, null);
         log.info("done");
-        return Response.status(202).build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
     @POST
@@ -626,18 +629,17 @@ public class BackupService {
     }
 
     private Response doRestore(String backupName, boolean isLocal, String password, boolean isGeoFromScratch) {
-        log.info("Received restore backup request, backup name={} isLocal={} password={} isGeoFromScratch={}",
-                new Object[] {backupName, isLocal, password, isGeoFromScratch});
+        log.info("Do restore with backup name={} isLocal={} isGeoFromScratch={}", new Object[] {backupName, isLocal, isGeoFromScratch});
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_BEGIN, null, backupName);
 
         if (!backupOps.isActiveSite()) {
             setRestoreFailed(backupName, "The current site is not an active site", null);
-            //no return here
+            return Response.status(ASYNC_STATUS).build();
         }
 
         if (!backupOps.isClusterStable()) {
             setRestoreFailed(backupName, "The cluster is not stable", null);
-            //no return here
+            return Response.status(ASYNC_STATUS).build();
         }
 
         File backupDir= backupOps.getBackupDir(backupName, isLocal);
@@ -651,30 +653,32 @@ public class BackupService {
                 String errMsg = String.format("Invalid backup the node %s: %s", myNodeId, e.getMessage());
                 setRestoreFailed(backupName, errMsg, e);
                 auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, backupName);
-                //no return here
+                return Response.status(ASYNC_STATUS).build();
             }
 
             log.info("The current node doesn't have valid backup data {} so redirect to virp1", backupDir.getAbsolutePath());
             redirectRestoreRequest(backupName, isLocal, password, isGeoFromScratch);
-            return Response.status(202).build();
+            return Response.status(ASYNC_STATUS).build();
         }
 
+        backupOps.setRestoreStatus(backupName, BackupRestoreStatus.Status.RESTORING, null, false, false);
         String[] restoreCommand=new String[]{restoreCmd,
                 backupDir.getAbsolutePath(), password, Boolean.toString(isGeoFromScratch),
                 restoreLog};
 
-        log.info("The restore command={} {} password=*** {} {}", new Object[] {restoreCommand[0], restoreCommand[1], restoreCommand[3], restoreCommand[4]});
+        log.info("The restore command parameters: {} {} {} {}",
+                new Object[] {restoreCommand[0], restoreCommand[1], restoreCommand[3], restoreCommand[4]});
 
         Exec.Result result = Exec.exec(120 * 1000, restoreCommand);
         switch (result.getExitValue()) {
             case 1:
                 setRestoreFailed(backupName, "Invalid password", null);
-                //no return
+                break;
         }
 
         auditBackup(OperationTypeEnum.RESTORE_BACKUP, AuditLogManager.AUDITOP_END, null, backupName);
         log.info("done");
-        return Response.status(202).build();
+        return Response.status(ASYNC_STATUS).build();
     }
 
     /**
@@ -699,11 +703,10 @@ public class BackupService {
         return doRestore(backupName, isLocal, password, isGeoFromScratch);
     }
 
-    private Response setRestoreFailed(String backupName, String msg, Throwable cause) {
-        log.error("Set restore failed backup name:{} error: {} cause: {} ", new Object[] {backupName, msg, cause});
+    private void setRestoreFailed(String backupName, String msg, Throwable cause) {
+        log.error("Set restore failed backup name:{} error: {} cause:", new Object[] {backupName, msg, cause});
         BackupRestoreStatus.Status s = BackupRestoreStatus.Status.RESTORE_FAILED;
         backupOps.setRestoreStatus(backupName, s, msg, false, false);
-        throw BackupException.fatals.failedToRestoreBackup(backupName, cause);
     }
 
     /**

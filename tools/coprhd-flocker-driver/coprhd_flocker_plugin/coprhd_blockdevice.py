@@ -71,7 +71,6 @@ def retry_wrapper(func):
 
 class CoprHDCLIDriver(object):
 
-    OPENSTACK_TAG = 'coprhdflocker'
     AUTHENTICATED = False
     def __init__(self, coprhdhost, 
                  port, username, password, tenant, 
@@ -92,13 +91,6 @@ class CoprHDCLIDriver(object):
         self.hostexportgroup = hostexportgroup
         self.coprhdcli_security_file = coprhdcli_security_file
         self.host = unicode(socket.gethostname())
-        self.stats = {'driver_version': '1.0',
-                      'free_capacity_gb': 'unknown',
-                      'reserved_percentage': '0',
-                      'storage_protocol': 'unknown',
-                      'total_capacity_gb': 'unknown',
-                      'vendor_name': 'CoprHD',
-                      'volume_backend_name': 'CoprHD'}
         self.volume_obj = volume.Volume(
             self.coprhdhost,
             self.port )
@@ -117,7 +109,7 @@ class CoprHDCLIDriver(object):
         # doing it again
         if CoprHDCLIDriver.AUTHENTICATED is False:
             utils.COOKIE = None
-            obj = auth.Authentication(
+            objAuth = auth.Authentication(
                 self.coprhdhost,
                 self.port)
             cookiedir = self.cookiedir
@@ -125,14 +117,14 @@ class CoprHDCLIDriver(object):
                and (self.coprhdcli_security_file is not None)):
                 from Crypto.Cipher import ARC4
                 import getpass
-                obj1 = ARC4.new(getpass.getuser())
+                objARC = ARC4.new(getpass.getuser())
                 security_file = open(self.coprhdcli_security_file, 'r')
                 cipher_text = security_file.readline().rstrip()
-                self.username = obj1.decrypt(cipher_text)
+                self.username = objARC.decrypt(cipher_text)
                 cipher_text = security_file.readline().rstrip()
-                self.password = obj1.decrypt(cipher_text)
+                self.password = objARC.decrypt(cipher_text)
                 security_file.close()
-            obj.authenticate_user(self.username,
+            objAuth.authenticate_user(self.username,
                                   self.password,
                                   cookiedir,
                                   None)

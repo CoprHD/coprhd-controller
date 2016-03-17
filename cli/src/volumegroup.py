@@ -662,7 +662,7 @@ class VolumeGroup(object):
     # snapshot session
 
     # Creates snapshot session for the given volume group
-    def snapshotsession(self, name, snapshotsession_name, copy_on_ha, partial, volumeUris, sync):
+    def snapshotsession(self, name, snapshotsession_name, copy_on_ha, partial, volumeUris, count, target_name, copymode, sync):
         '''
         Makes REST API call to create volume group snapshot session
         Parameters:
@@ -682,6 +682,15 @@ class VolumeGroup(object):
             'name': snapshotsession_name,
             'copy_on_high_availability_side': copy_on_ha
         }
+
+        if (count and target_name and copymode):
+            new_linked_targets_dict = {
+                'count' : count,
+                'target_name' : target_name,
+                'copy_mode' : copymode
+            }
+
+            request["new_linked_targets"] = new_linked_targets_dict
 
         # if partial request
         if (partial):
@@ -829,7 +838,7 @@ class VolumeGroup(object):
             return o
 
     # link target
-    def snapshotsession_link(self, name, snapsession_label, target_name, count, copymode, partial):
+    def volume_group_snapshotsession_link(self, name, snapsession_label, count, target_name, copymode, partial):
         volume_group_uri = self.query_by_name(name)
         snapshotsession_uri = self.query_snapshotsession_uri_by_name(name, snapsession_label)
 
@@ -837,8 +846,8 @@ class VolumeGroup(object):
         request["snapshot_sessions"] = [ snapshotsession_uri ]
 
         new_linked_targets_dict = {
-            'target_name' : target_name,
             'count' : count,
+            'target_name' : target_name,
             'copy_mode' : copymode
             }
 
@@ -2184,6 +2193,21 @@ def snapshotsession_parser(subcommand_parsers, common_parser):
                              metavar='<tenantname>',
                              dest='tenant',
                              help='Name of tenant')
+    snapshotsession_parser.add_argument('-count', '-ct',
+                               dest='count',
+                               metavar='<count>',
+                               help='Number of target volumes. Optional, if provided, targetname and copymode need to be provided',
+                               required=False)
+    snapshotsession_parser.add_argument('-targetname', '-tgn',
+                               help='This option specifies the target name. Optional, if provided, count and copymode need to be provided',
+                               dest='target_name',
+                               metavar='<target_name>',
+                               required=False)
+    snapshotsession_parser.add_argument('-copymode', '-cm',
+                               help='Whether to create in copy or nocopy mode. Optional, if provided, count and targetname need to be provided' ,
+                               dest='copymode',
+                               choices=SnapshotSession.COPY_MODE,
+                               required=False)
 
     snapshotsession_parser.set_defaults(func=volume_group_snapshotsession)
 
@@ -2194,7 +2218,15 @@ def volume_group_snapshotsession(args):
 
     try:
         volumeUris = query_volumes_for_partial_request(args)
-        obj.snapshotsession(args.name, args.snapshotsessionname, args.copyonha, args.partial, ",".join(volumeUris), False)
+        obj.snapshotsession(args.name,
+            args.snapshotsessionname,
+            args.copyonha,
+            args.partial,
+            ",".join(volumeUris),
+            args.count,
+            args.target_name,
+            args.copymode,
+            False)
         return
 
     except SOSError as e:
@@ -2322,15 +2354,15 @@ def snapshotsession_link_parser(subcommand_parsers, common_parser):
                                 dest='snapshotsessionname',
                                 help='Name of Snapshot Session',
                                 required=True)
+    snapshotsession_link_parser.add_argument('-count', '-ct',
+                               dest='count',
+                               metavar='<count>',
+                               help='Number of target volumes',
+                               required=True)
     snapshotsession_link_parser.add_argument('-targetname', '-tgn',
                                help='This option specifies the target name',
                                dest='target_name',
                                metavar='<target_name>',
-                               required=True)
-    snapshotsession_link_parser.add_argument('-count', '-ct',
-                               dest='count',
-                               metavar='<count>',
-                               help='Number of target volumes ',
                                required=True)
     snapshotsession_link_parser.add_argument('-copymode', '-cm',
                                help='Whether to create in copy or nocopy mode' ,
@@ -2349,7 +2381,12 @@ def volume_group_snapshotsession_link(args):
         args.tenant = ""
 
     try:
-        obj.snapshotsession_link(args.name, args.snapshotsessionname, args.target_name, args.count, args.copymode, args.partial)
+        obj.volume_group_snapshotsession_link(args.name,
+            args.snapshotsessionname,
+            args.count,
+            args.target_name,
+            args.copymode,
+            args.partial)
         return
 
     except SOSError as e:

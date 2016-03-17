@@ -7,7 +7,6 @@ package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 import com.emc.storageos.management.backup.BackupFileSet;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.services.util.Strings;
 
 import org.apache.commons.lang.StringUtils;
 import com.emc.vipr.model.sys.backup.BackupUploadStatus;
@@ -16,8 +15,10 @@ import com.emc.vipr.model.sys.backup.BackupUploadStatus.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -34,6 +35,7 @@ public class UploadExecutor {
     private BackupScheduler cli;
     protected SchedulerConfig cfg;
     protected Uploader uploader;
+    private Set<String> pendingUploadTasks = new HashSet();
 
     public UploadExecutor(SchedulerConfig cfg, BackupScheduler cli) {
         this.cfg = cfg;
@@ -74,10 +76,14 @@ public class UploadExecutor {
     private String tryUpload(String tag) throws InterruptedException {
         String lastErrorMessage = null;
 
-        setUploadStatus(tag, Status.NOT_STARTED, null, null);
+        setUploadStatus(tag, Status.PENDING, null, null);
         for (int i = 0; i < UPLOAD_RETRY_TIMES; i++) {
             try {
                 setUploadStatus(tag, Status.IN_PROGRESS, 0, null);
+
+                log.info("To remove {} from pending upload tasks:{}", tag, pendingUploadTasks);
+
+                pendingUploadTasks.remove(tag);
                 BackupFileSet files = this.cli.getDownloadFiles(tag);
                 if (files.isEmpty()) {
                     setUploadStatus(null, Status.FAILED, null, ErrorCode.BACKUP_NOT_EXIST);
@@ -201,7 +207,7 @@ public class UploadExecutor {
         this.cfg.persistBackupUploadStatus(uploadStatus);
     }
 
-    public BackupUploadStatus getUploadStatus(String backupTag) throws Exception {
+    public BackupUploadStatus getUploadStatus(String backupTag, File backupDir) throws Exception {
         if (backupTag == null) {
             log.error("Query parameter of backupTag is null");
             throw new IllegalStateException("Invalid query parameter");
@@ -213,6 +219,13 @@ public class UploadExecutor {
             return new BackupUploadStatus(backupTag, Status.DONE, 100, null);
         }
         if (!getIncompleteUploads().contains(backupTag)) {
+            File backup = new File(backupDir, backupTag);
+
+            if (backup.exists()) {
+                log.info("The {} will be reclaimed");
+                return new BackupUploadStatus(backupTag, Status.FAILED, 0, ErrorCode.TO_BE_RECLAIMED);
+            }
+
             return new BackupUploadStatus(backupTag, Status.FAILED, 0, ErrorCode.BACKUP_NOT_EXIST);
         }
         if (cfg.uploadUrl == null) {
@@ -222,7 +235,20 @@ public class UploadExecutor {
         if (backupTag.equals(uploadStatus.getBackupName())) {
             return uploadStatus;
         }
+
+        if (isPendingUploadTask(backupTag)) {
+            return new BackupUploadStatus(backupTag, Status.PENDING, null, null);
+        }
+
         return new BackupUploadStatus(backupTag, Status.NOT_STARTED, null, null);
+    }
+
+    public void addPendingUploadTask(String tagName) {
+        pendingUploadTasks.add(tagName);
+    }
+
+    public boolean isPendingUploadTask(String tagName) {
+        return pendingUploadTasks.contains(tagName);
     }
 
     /**

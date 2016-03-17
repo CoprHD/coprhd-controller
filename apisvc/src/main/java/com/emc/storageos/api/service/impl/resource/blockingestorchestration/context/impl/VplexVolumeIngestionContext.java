@@ -939,12 +939,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
      */
     @Override
     public BlockObject findCreatedBlockObject(String nativeGuid) {
-
         BlockObject blockObject = getBlockObjectsToBeCreatedMap().get(nativeGuid);
-        if (blockObject == null) {
-            blockObject = _parentRequestContext.findCreatedBlockObject(nativeGuid);
-        }
-
         return blockObject;
     }
 
@@ -1045,7 +1040,7 @@ public class VplexVolumeIngestionContext extends VplexBackendIngestionContext im
             }
         }
 
-        return _parentRequestContext.findCreatedBlockObject(uri);
+        return null;
     }
 
     /*

@@ -375,7 +375,7 @@ public class QuotaHelper {
             for (URI voluri : volUris) {
                 Volume volume = _dbClient.queryObject(Volume.class, voluri);
                 if (volume != null && !volume.getInactive() && (volume.getProject().getURI().toString().equals(projectId.toString())) ) {
-                    totalSizeUsed +=  ((double)volume.getAllocatedCapacity() / GB);
+                    totalSizeUsed +=  ((double)volume.getCapacity() / GB);
                     totalVolumesUsed++;
                 }
 
@@ -398,7 +398,7 @@ public class QuotaHelper {
             for (URI volUri : uris) {
                 Volume volume = _dbClient.queryObject(Volume.class, volUri);
                 if (volume != null && !volume.getInactive()) {
-                    totalSizeUsed += ((double)volume.getAllocatedCapacity() / GB);
+                    totalSizeUsed += ((double)volume.getCapacity() / GB);
                     totalVolumesUsed++;
                 }
 

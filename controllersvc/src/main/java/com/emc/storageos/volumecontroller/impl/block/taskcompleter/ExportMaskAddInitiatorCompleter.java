@@ -88,7 +88,7 @@ public class ExportMaskAddInitiatorCompleter extends ExportMaskInitiatorComplete
     }
 
 
-    public void setTargetURIs(List<URI> _targetURIs) {
-        this._targetURIs = _targetURIs;
+    public void setTargetURIs(List<URI> targetURIs) {
+        this._targetURIs = targetURIs;
     }
 }

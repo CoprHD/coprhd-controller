@@ -1295,7 +1295,7 @@ def volume_clone_list_parser(cc_common_parser):
                              help='Name of tenant')    
 
 # Common Parser for clone 
-def volume_clone_get_parser(cc_common_parser):
+def volume_clone_show_parser(cc_common_parser):
     mandatory_args = cc_common_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
@@ -1676,8 +1676,8 @@ def volume_group_clone_list(args):
                 e.err_text,
                 e.err_code)     
 
-def clone_get_parser(subcommand_parsers, common_parser):
-    clone_get_parser = subcommand_parsers.add_parser(
+def clone_show_parser(subcommand_parsers, common_parser):
+    clone_show_parser = subcommand_parsers.add_parser(
         'clone-show',
         parents=[common_parser],
         conflict_handler='resolve',
@@ -1685,8 +1685,8 @@ def clone_get_parser(subcommand_parsers, common_parser):
         description='ViPR Clone show of a VolumeGroup CLI usage.')
     
     # Add parameter from common clone parser.
-    volume_clone_get_parser(clone_get_parser)
-    clone_get_parser.set_defaults(func=volume_group_clone_get)
+    volume_clone_show_parser(clone_show_parser)
+    clone_show_parser.set_defaults(func=volume_group_clone_get)
     
 # Get Clone Function
 def volume_group_clone_get(args):
@@ -2571,7 +2571,7 @@ def volume_group_parser(parent_subparser, common_parser):
     clone_list_parser(subcommand_parsers, common_parser)
     
     # GET full-copy volume of a volume group command parser
-    clone_get_parser(subcommand_parsers, common_parser)
+    clone_show_parser(subcommand_parsers, common_parser)
     
     #snapshot
     # snapshot create command parser

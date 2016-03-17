@@ -14,7 +14,6 @@ import static com.emc.storageos.db.client.util.NullColumnValueGetter.isNullURI;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -160,6 +159,21 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.srdf.name(),
             DiscoveredDataObject.Type.ibmxiv.name()));
 
+    private static final Set<String> PENDING_TASK_NAMES = new HashSet<String>(Arrays.asList(
+            ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP.name(), 
+            ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_FULL_COPY.name(), 
+            ResourceOperationTypeEnum.RESTORE_VOLUME_FULL_COPY.name(), 
+            ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT.name(),
+            ResourceOperationTypeEnum.RESTORE_VOLUME_SNAPSHOT.name(),
+            ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION.name(),
+            ResourceOperationTypeEnum.DEACTIVATE_VOLUME_SNAPSHOT.name(),
+            ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT.name(),
+            ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION.name(),
+            ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION.name(),
+            ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY.name(),
+            ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY.name(),
+            ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME.name()));
+            
     private static final String BLOCK = "block";
     private static final String ID_FIELD = "id";
     private static final String NAME_FIELD = "name";
@@ -521,6 +535,7 @@ public class VolumeGroupService extends TaskResourceService {
         for (VolumeGroupUtils util : utils) {
             util.validateUpdateVolumesInVolumeGroup(_dbClient, param, volumeGroup);
         }
+        checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
         for (VolumeGroupUtils util : utils) {
             util.updateVolumesInVolumeGroup(_dbClient, param, volumeGroup, taskId, taskList);
         }
@@ -586,14 +601,12 @@ public class VolumeGroupService extends TaskResourceService {
             // validate that provided volumes
             Set<String> arrayGroupNames = new HashSet<String>();
             List<Volume> volumesInRequest = new ArrayList<Volume>();
-            List<Volume> allVolumesInRequest = new ArrayList<Volume>();
             for (URI volumeURI : param.getVolumes()) {
                 ArgValidator.checkFieldUriType(volumeURI, Volume.class, "volume");
                 // Get the Volume.
                 Volume volume = (Volume) BlockFullCopyUtils.queryFullCopyResource(volumeURI,
                         uriInfo, true, _dbClient);
 
-                allVolumesInRequest.add(volume);
                 String arrayGroupName = volume.getReplicationGroupInstance();
                 if (volume.isVPlexVolume(_dbClient)) {
                     // get backend source volume to get RG name
@@ -626,7 +639,7 @@ public class VolumeGroupService extends TaskResourceService {
                 volumesInRequest.add(volume);
             }
             
-            checkForApplicationPendingTasks(volumeGroup, allVolumesInRequest, _dbClient);
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
             
             for (Volume volume : volumesInRequest) {
                 // set Flag in Volume so that we will know about partial request during processing.
@@ -652,8 +665,7 @@ public class VolumeGroupService extends TaskResourceService {
             }
         } else {
             log.info("Full Copy requested for entire Application");
-            List<Volume> allVols = ControllerUtils.getVolumeGroupVolumes(_dbClient, volumeGroup);
-            checkForApplicationPendingTasks(volumeGroup, allVols, _dbClient);
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
             auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_FULL_COPY, true, AuditLogManager.AUDITOP_BEGIN, volumeGroup.getId().toString(),
                     param.getName(), param.getCount());
 
@@ -968,7 +980,7 @@ public class VolumeGroupService extends TaskResourceService {
             log.info("Full Copy operation requested for subset of array replication groups in Application.");
         }
 
-        checkForApplicationFullCopyPendingTasks(volumeGroup, fullCopyVolumesInRequest, _dbClient);
+        checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
         Map<String, Volume> repGroupToFullCopyMap = groupFullCopiesByReplicationGroup(fullCopyVolumesInRequest);
         for (Map.Entry<String, Volume> entry : repGroupToFullCopyMap.entrySet()) {
             String replicationGroup = entry.getKey();
@@ -1060,7 +1072,7 @@ public class VolumeGroupService extends TaskResourceService {
             log.info("Full Copy operation requested for subset of array replication groups in Application.");
         }
 
-        checkForApplicationFullCopyPendingTasks(volumeGroup, fullCopyVolumesInRequest, _dbClient);
+        checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
         
         Map<String, Volume> repGroupToFullCopyMap = groupFullCopiesByReplicationGroup(fullCopyVolumesInRequest);
         for (Map.Entry<String, Volume> entry : repGroupToFullCopyMap.entrySet()) {
@@ -1153,7 +1165,7 @@ public class VolumeGroupService extends TaskResourceService {
             log.info("Full Copy operation requested for subset of array replication groups in Application.");
         }
 
-        checkForApplicationFullCopyPendingTasks(volumeGroup, fullCopyVolumesInRequest, _dbClient);
+        checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
         
         Map<String, Volume> repGroupToFullCopyMap = groupFullCopiesByReplicationGroup(fullCopyVolumesInRequest);
         for (Map.Entry<String, Volume> entry : repGroupToFullCopyMap.entrySet()) {
@@ -1469,7 +1481,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
         
         // Check for pending tasks
-        checkForApplicationPendingTasks(volumeGroup, volumes, _dbClient);
+        checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
         
         auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN, volumeGroupId.toString(),
                 name);
@@ -1788,7 +1800,11 @@ public class VolumeGroupService extends TaskResourceService {
             allSnaps.addAll(snaps);
         }
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
-        checkForApplicationPendingTasks(volumeGroup, allSnaps, _dbClient);
+        if (opType == OperationTypeEnum.RESTORE_VOLUME_GROUP_SNAPSHOT) {
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
+        } else {
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
+        }
         
         auditOp(opType, true, AuditLogManager.AUDITOP_BEGIN,
                 volumeGroupId.toString(), param.getSnapshots());
@@ -2088,7 +2104,7 @@ public class VolumeGroupService extends TaskResourceService {
         }
 
         // Check for pending tasks
-        checkForApplicationPendingTasks(volumeGroup, volumes, _dbClient);
+        checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
         
         auditOp(OperationTypeEnum.CREATE_VOLUME_GROUP_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN, volumeGroupId.toString(),
                 name);
@@ -2359,19 +2375,12 @@ public class VolumeGroupService extends TaskResourceService {
 
         // Check for pending tasks       
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
-        checkForApplicationPendingTasks(volumeGroup);
-        Set<URI> cgs = new HashSet<URI>();
-        for (BlockSnapshotSession snapSession : snapSessions) {
-            checkForPendingTask(snapSession.getId(), _dbClient);
-            URI cg = snapSession.getConsistencyGroup();
-            if (!NullColumnValueGetter.isNullURI(cg)) {
-                cgs.add(cg);
-            }
+        if (opType == OperationTypeEnum.RESTORE_VOLUME_GROUP_SNAPSHOT_SESSION) {
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, true);
+        } else {
+            checkForApplicationPendingTasks(volumeGroup, _dbClient, false);
         }
-        for (URI cg : cgs) {
-            checkForPendingTask(cg, _dbClient);
-        }
-        
+         
         auditOp(opType, true, AuditLogManager.AUDITOP_BEGIN,
                 volumeGroupId.toString(), param.getSnapshotSessions());
         TaskList taskList = new TaskList();
@@ -3045,14 +3054,6 @@ public class VolumeGroupService extends TaskResourceService {
                     firstVol = removeVols.get(0);
                 }
             }
-            Set<Volume> allVols = new HashSet<Volume>();
-            if (addVols != null && !addVols.isEmpty()) {
-                allVols.addAll(addVols);
-            }
-            if (removeVols != null && !removeVols.isEmpty()) {
-                allVols.addAll(removeVols);
-            }
-            checkForApplicationPendingTasks(volumeGroup, allVols, dbClient);
             validated = true;
         }
 
@@ -3478,26 +3479,12 @@ public class VolumeGroupService extends TaskResourceService {
      * @return The list of clusters in volume group
      */
     private static List<Cluster> getVolumeGroupClusters(DbClient dbClient, VolumeGroup volumeGroup) {
-        List<Cluster> result = new ArrayList<Cluster>();
         final List<Cluster> clusters = CustomQueryUtility
                 .queryActiveResourcesByConstraint(dbClient, Cluster.class,
                         AlternateIdConstraint.Factory.getClustersByVolumeGroupId(volumeGroup.getId().toString()));
         return clusters;
     }
 
-    /**
-     * Check if the application has any pending task
-     * 
-     * @param application
-     */
-    private void checkForApplicationPendingTasks(VolumeGroup volumeGroup) {
-        List<Task> newTasks = TaskUtils.findResourceTasks(_dbClient, volumeGroup.getId());
-        for (Task task : newTasks) {
-            if (task != null && !task.getInactive() && task.isPending()) {
-                throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(volumeGroup.getLabel());
-            }
-        }
-    }
 
     private String setParent(VolumeGroup volumeGroup, String parent) {
         String errorMsg = null;
@@ -3611,64 +3598,82 @@ public class VolumeGroupService extends TaskResourceService {
     }
     
     /**
-     * Check if the application and its volumes/snapshots has any pending task
+     * Check if the application and its CGs/volumes/snapshots/snapshotSessions have any pending tasks
      * 
-     * @param volumeGroup The volume group URI
-     * @param volumes volumes or snapshots.
+     * @param volumeGroup The volume group
+     * @param dbClient
+     * @param preventAnyPendingTask If throw error when there is any pending task
      */
-    static private void checkForApplicationPendingTasks(VolumeGroup volumeGroup, Collection<? extends BlockObject> volumes, DbClient dbClient) {
-        checkForPendingTask(volumeGroup.getId(), dbClient);
+    private void checkForApplicationPendingTasks(VolumeGroup volumeGroup, DbClient dbClient, boolean preventAnyPendingTask) {
+        checkForPendingTask(volumeGroup.getId(), dbClient, preventAnyPendingTask);
         Set<URI> cgs = new HashSet<URI>();
 
-        if (volumes == null) {
-            return;
-        }
-        for (BlockObject vol : volumes) {
-            checkForPendingTask(vol.getId(), dbClient);
+        List<Volume> allVolumes = ControllerUtils.getVolumeGroupVolumes(dbClient, volumeGroup);
+        for (Volume vol : allVolumes) {
+            checkForPendingTask(vol.getId(), dbClient, preventAnyPendingTask);
             URI cg = vol.getConsistencyGroup();
             if (!NullColumnValueGetter.isNullURI(cg)) {
                 cgs.add(vol.getConsistencyGroup());
             }
         }
         for (URI cg : cgs) {
-            checkForPendingTask(cg, dbClient);
+            checkForPendingTask(cg, dbClient, preventAnyPendingTask);
+        }
+        
+        // Get the snapshots for each volume in the group
+        // we don't need the similar logic for clone, since if there is any clone operation in the application, 
+        // it has a corresponding task in CG. so the above checking on CG should cover the case for clone.
+        for (Volume volume : allVolumes) {
+            if (volume.isVPlexVolume(dbClient)) {
+                volume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (volume == null || volume.getInactive()) {
+                    log.warn("Cannot find backend volume for VPLEX volume {}", volume.getLabel());
+                }
+            }
+    
+            URIQueryResultList snapshotURIs = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
+                    volume.getId()), snapshotURIs);
+            Iterator<URI> it = snapshotURIs.iterator();
+            while (it.hasNext()) {
+                URI snapURI = it.next();
+                checkForPendingTask(snapURI, dbClient, preventAnyPendingTask);
+            }
+        }
+        
+        // Get snapshotSessions
+        List<BlockSnapshotSession> sessions = getVolumeGroupSnapshotSessions(volumeGroup);
+        for (BlockSnapshotSession session : sessions) {
+            checkForPendingTask(session.getId(), dbClient, preventAnyPendingTask);
         }
     }
     
     /**
-     * Check if the resource has any pending task
-     * @param id
+     * Check pending tasks. if preventAnyPendingTask is true, it will throw exception if there is any pending task
+     * if preventAnyPendingTask is false, it will only throw exception if the pending task is in the PENDING_TASK_NAMES
+     * (restore, delete snapshot and snapshotSession, detach full copy and delete volume)
+     * 
+     * @param id the resource URI
+     * @param dbClient
+     * @param preventAnyPendingTask If throw error when there is any pending task
      */
-    static private void checkForPendingTask(URI id, DbClient dbClient) {
+    private void checkForPendingTask(URI id, DbClient dbClient, boolean preventAnyPendingTask) {
         List<Task> newTasks = TaskUtils.findResourceTasks(dbClient, id);
         if (newTasks != null) {
             for (Task task : newTasks) {
                 if (task != null && !task.getInactive() && task.isPending()) {
-                    throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(id.toString());
+                    if (preventAnyPendingTask) {
+                        throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(id.toString());
+                    } else {
+                        String taskName = task.getLabel();
+                        log.info(String.format("The pending task is %s", taskName));
+                        if (taskName != null && PENDING_TASK_NAMES.contains(taskName)) {
+                            throw APIException.badRequests.cannotExecuteOperationWhilePendingTask(id.toString());
+                        }
+                    }
                 }
             }
         }
     }
     
-    /**
-     * Check application and its full copies and source volumes pending tasks
-     * @param volumeGroup
-     * @param fullCopies
-     * @param dbClient
-     */
-    static private void checkForApplicationFullCopyPendingTasks(VolumeGroup volumeGroup, Collection<Volume> fullCopies, DbClient dbClient) {
-        // check for fullcopies pending tasks
-        if (fullCopies == null || fullCopies.isEmpty()) {
-            return;
-        }
-        Set<Volume> sourceVolumes = new HashSet<Volume>();
-        for (Volume fullCopy : fullCopies) {
-            checkForPendingTask(fullCopy.getId(), dbClient);
-            URI source = fullCopy.getAssociatedSourceVolume();
-            if (!NullColumnValueGetter.isNullURI(source)) {
-                sourceVolumes.add(dbClient.queryObject(Volume.class, source));
-            }
-        }
-        checkForApplicationPendingTasks(volumeGroup, sourceVolumes, dbClient);
-    }
 }

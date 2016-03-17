@@ -536,6 +536,12 @@ public class VdcManager extends AbstractManager {
             case STANDBY_FAILING_OVER:
                 operationType = OperationTypeEnum.STANDBY_FAILOVER;
                 break;
+            case STANDBY_DEGRADING:
+                operationType = OperationTypeEnum.STANDBY_DEGRADE;
+                break;
+            case STANDBY_REJOINING:
+                operationType = OperationTypeEnum.STANDBY_REJOIN;
+                break;
         }
         return operationType;
     }

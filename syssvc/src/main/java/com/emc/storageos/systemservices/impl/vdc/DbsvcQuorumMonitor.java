@@ -94,6 +94,7 @@ public class DbsvcQuorumMonitor implements Runnable {
                 standbySite.setState(SiteState.STANDBY_DEGRADING);
                 coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_DEGRADE_STANDBY, vdcVersion);
+                drUtil.recordDrOperationStatus(standbySite);
             }
 
             // Update all other connected sites
@@ -169,6 +170,8 @@ public class DbsvcQuorumMonitor implements Runnable {
                 } else {
                     drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY, vdcVersion);
                 }
+
+                drUtil.recordDrOperationStatus(standbySite.getUuid(), SiteState.STANDBY_REJOINING);
 
                 // Update version on other connected standby sites if any
                 for (Site site : drUtil.listSites()) {

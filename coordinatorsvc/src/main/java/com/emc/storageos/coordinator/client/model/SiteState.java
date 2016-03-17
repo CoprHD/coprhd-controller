@@ -120,6 +120,17 @@ public enum SiteState {
     },
 
     /**
+     * Intermediate status when degraded standby site comes back
+     * It won't be set into Site object, just used record DR operation status.
+     */
+    STANDBY_REJOINING {
+        @Override
+        public boolean isDROperationOngoing() {
+            return true;
+        }
+    },
+
+    /**
      *  Standby site. Run DR testing
      */
     STANDBY_TESTING {

@@ -465,10 +465,6 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterConsistencyGroupAlreadyContainsVolume(URI volumeURI);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameterConsistencyGroupCannotAddProtectedVolume(
-            URI volumeURI);
-
-    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterConsistencyGroupNotForVplexStorageSystem(
             URI consistencyGroup);
 
@@ -2520,6 +2516,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException operationNotAllowedOnActiveSite();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException operationOnlyAllowedOnActiveSite();
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidQuotaRequestForObjectStorage(String type);
 
@@ -2923,4 +2922,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException mustDeleteTargetsOnUnlinkForVPlex();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException singleVolumeReplicationNotAllowedOnCG(final String volumeLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgReplicationNotAllowedMissingReplicationGroupNoVols(final String cgLabel);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cgReplicationNotAllowedMissingReplicationGroup(final String volumeLabel);
 }

@@ -933,8 +933,25 @@ public class Volume extends BlockObject implements ProjectResource {
         StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageController());
         return DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType());
     }
+    
+    /**
+     * Check whether the given volume is vmax3 volume
+     * 
+     * @param volume
+     * @return {@link Boolean}
+     */
+    public boolean isVmax3Volume(DbClient dbClient) {
+        StorageSystem storage = dbClient.queryObject(StorageSystem.class, this.getStorageController());
+        return (storage != null && storage.checkIfVmax3());
+    }
 
-    public static boolean isSRDFProtectedTargetVolume(Volume volume) {
+    /**
+     * Check whether the given volume is SRDF volume or not
+     * 
+     * @param volume
+     * @return boolean
+     */
+    public static boolean isSRDFProtectedVolume(Volume volume) {
         return (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent()) || null != volume.getSrdfTargets());
     }
 

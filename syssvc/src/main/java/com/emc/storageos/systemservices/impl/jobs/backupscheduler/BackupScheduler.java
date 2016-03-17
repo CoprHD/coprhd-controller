@@ -368,17 +368,9 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
             isLeader = false;
 
-            // Stop scheduler thread
+            // Stop scheduler thread.
             service.shutdown();
-            try {
-                while (!service.awaitTermination(30, TimeUnit.SECONDS)) {
-                    log.info("Waiting scheduler thread pool to shutdown for another 30s");
-                }
-            } catch (InterruptedException e) {
-                log.error("Interrupted while waiting to shutdown scheduler thread pool.", e);
-                Thread.currentThread().interrupt();
-                return;
-            }
+            // Never block here. It may block all other node listeners 
         }
     }
 }

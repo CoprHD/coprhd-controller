@@ -18,15 +18,12 @@ public class CreateSnapshotForApplication extends WaitForTasks<TaskResourceRep> 
     private final String name;
     private final Boolean readOnly;
     private final List<URI> volumes;
-    private final Boolean copyOnHighAvailabilitySide;
 
-    public CreateSnapshotForApplication(URI applicationId, List<URI> volumes, String name, Boolean readOnly,
-            Boolean copyOnHighAvailabilitySide) {
+    public CreateSnapshotForApplication(URI applicationId, List<URI> volumes, String name, Boolean readOnly) {
         this.applicationId = applicationId;
         this.name = name;
         this.readOnly = readOnly;
         this.volumes = volumes;
-        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
         provideDetailArgs(applicationId, name);
     }
 
@@ -37,7 +34,6 @@ public class CreateSnapshotForApplication extends WaitForTasks<TaskResourceRep> 
         input.setVolumes(volumes);
         input.setPartial(true);
         input.setReadOnly(readOnly);
-        input.setCopyOnHighAvailabilitySide(copyOnHighAvailabilitySide);
 
         TaskList taskList = getClient().application().createSnapshotOfApplication(applicationId, input);
 

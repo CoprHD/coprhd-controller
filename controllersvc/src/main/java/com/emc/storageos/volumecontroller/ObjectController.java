@@ -7,6 +7,7 @@ package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
 
+import com.emc.storageos.model.object.BucketACL;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.ObjectUserSecretKey;
 import com.emc.storageos.model.object.BucketParam;
@@ -73,6 +74,15 @@ public interface ObjectController extends StorageController {
      * @throws InternalException
      */
     public void deleteBucketACL(URI storage, URI bucket, String opId) throws InternalException;
+    
+    /**
+     * Get the ACl for the bucket from Object storage and persist in coprhd DB.
+     * @param storage
+     * @param bucketId
+     * @param opId
+     * @throws InternalException
+     */
+    public void syncBucketACL(URI storage, URI bucketId, String opId ) throws InternalException;
     
     /**
      * Get all object user secret keys

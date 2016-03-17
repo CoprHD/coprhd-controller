@@ -28,10 +28,7 @@ import org.apache.curator.framework.recipes.queue.QueueSerializer;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
-import com.emc.storageos.coordinator.client.model.SiteState;
-import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
 import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
@@ -395,7 +392,7 @@ public class TestCoordinator extends CoordinatorClientImpl {
     }
 
     @Override
-    public ClusterInfo.ClusterState getControlNodesState(String siteId, int nodeCount) {
+    public ClusterInfo.ClusterState getControlNodesState(String siteId) {
         return null;
     }
 
@@ -428,12 +425,6 @@ public class TestCoordinator extends CoordinatorClientImpl {
     @Override
     public void setTargetInfo(final CoordinatorSerializable info) throws CoordinatorException {
         
-    }
-    
-    @Override
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws CoordinatorException {
-        return null;
     }
 
     @Override

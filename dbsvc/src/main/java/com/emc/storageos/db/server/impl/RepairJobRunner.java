@@ -5,6 +5,7 @@
 package com.emc.storageos.db.server.impl;
 
 import com.emc.storageos.services.util.JmxServerWrapper;
+import com.emc.storageos.services.util.TimeUtils;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.service.ActiveRepairService;
 import org.apache.cassandra.service.StorageServiceMBean;
@@ -45,6 +46,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             .getLogger(RepairJobRunner.class);
     private final SimpleDateFormat format = new SimpleDateFormat(
             "yyyy-MM-dd HH:mm:ss,SSS");
+    private static final int MIN_MINUTE_FOR_REPAIR_TIME_IN_LOG = 5;
 
     private final Condition condition = new SimpleCondition();
 
@@ -255,7 +257,9 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             _lastToken = null;
         }
 
-        _log.info("Db repair consumes {} minutes", (System.currentTimeMillis() - _startTimeInMillis) / 60000);
+        long repairMillis = System.currentTimeMillis() - _startTimeInMillis;
+        _log.info("Db repair consumes {} ",repairMillis > MIN_MINUTE_FOR_REPAIR_TIME_IN_LOG * TimeUtils.MINUTES ?
+                repairMillis / TimeUtils.MINUTES + " minutes" : repairMillis / TimeUtils.SECONDS + " seconds");
         return _success;
     }
 

@@ -20,6 +20,7 @@ import com.emc.storageos.api.mapper.TaskMapper;
 import com.emc.storageos.api.service.impl.placement.Scheduler;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.placement.VolumeRecommendation;
+import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -29,6 +30,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VolumeGroup;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
@@ -107,7 +109,19 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             aFCSource = fcSourceObj;
             // volumes in VolumeGroup can be from different vArrays
             varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
-            String copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+            String copyName = null;
+            boolean inApplication = false;
+            if (aFCSource instanceof Volume && ((Volume) aFCSource).getApplication(_dbClient) != null) {
+                inApplication = true;
+            }
+
+            if (NullColumnValueGetter.isNotNullValue(fcSourceObj.getReplicationGroupInstance()) && inApplication) {
+            	copyName = name + "-" + fcSourceObj.getReplicationGroupInstance() 
+            			+ (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+            }  else {
+            	copyName = name + (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
+            }
+             
             VirtualPool vpool = BlockFullCopyUtils.queryFullCopySourceVPool(fcSourceObj, _dbClient);
             VirtualPoolCapabilityValuesWrapper capabilities = getCapabilitiesForFullCopyCreate(
                     fcSourceObj, vpool, count);
@@ -307,10 +321,9 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
         // Invoke the controller.
         try {
-            BlockController controller = getController(BlockController.class,
-                    sourceSystem.getSystemType());
-            controller.restoreFromFullCopy(sourceSystemURI, new ArrayList<URI>(
-                    fullCopyURIs), Boolean.TRUE, taskId);
+            BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+            controller.restoreFromFullCopy(sourceSystemURI, new ArrayList<URI>(fullCopyURIs), taskId);
         } catch (InternalException ie) {
             s_logger.error(String.format("Failed to restore source %s from full copy %s",
                     sourceVolumeURI, fullCopyVolume.getId()), ie);

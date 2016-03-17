@@ -347,6 +347,11 @@ public class XtremIOProvUtils {
             // Find the # volumes in folder, if the Volume folder is empty,
             // then delete the folder too
             XtremIOTag tag = client.getTagDetails(volumeFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), xioClusterName);
+            if (tag == null) {
+                _log.info("Tag {} not found on the array", volumeFolderName);
+                return;
+            }
+            _log.info("Got back tag details {}", tag.toString());
             String numOfVols = isVersion2 ? tag.getNumberOfDirectObjs() : tag.getNumberOfVolumes();
             int numberOfVolumes = Integer.parseInt(numOfVols);
             if (numberOfVolumes == 0) {
@@ -458,9 +463,9 @@ public class XtremIOProvUtils {
 
     /**
      * Returns the XtremIO supported OS based on the initiator Host OS type.
-     * 
+     *
      * From API Doc: solaris, aix, windows, esx, other, linux, hpux
-     * 
+     *
      * @param hostURI - Host URI of the Initiator.
      * @return operatingSystem type.
      */

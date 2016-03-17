@@ -7,8 +7,13 @@
       type:"assetType.vipr.application"
     },
     
-    copyName:{
+    applicationCopySets:{
       type:"assetType.vipr.fullCopyName"
+    },
+    
+    applicationSubGroup:{
+      type:"assetType.vipr.copyReplicationGroup",
+      select:"many"
     }
   }
 }

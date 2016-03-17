@@ -49,12 +49,15 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.ecs.api.ECSException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -484,6 +487,10 @@ public class BucketService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Bucket.class, "id");
         bucket = _dbClient.queryObject(Bucket.class, id);
         ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
+        
+        if (bucket.getVersion() == null) {
+            syncBucketACL(bucket);
+        }
 
         // Verify the Bucket ACL Settings
         BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
@@ -521,7 +528,7 @@ public class BucketService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/acl")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
-    public BucketACL getBucketACL(@PathParam("id") URI id) {
+    public BucketACL getBucketACL(@PathParam("id") URI id) throws InternalException {
         _log.info("Request recieved to get Bucket ACL with Id: {}", id);
 
         // Validate the Bucket
@@ -529,6 +536,9 @@ public class BucketService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Bucket.class, "id");
         bucket = _dbClient.queryObject(Bucket.class, id);
         ArgValidator.checkEntity(bucket, id, isIdEmbeddedInURL(id));
+        if (bucket.getVersion() == null) {
+            syncBucketACL(bucket);
+        }
 
         BucketACL bucketAcl = new BucketACL();
         BucketACLUtility bucketACLUtil = new BucketACLUtility(_dbClient, bucket.getName(), bucket.getId());
@@ -633,5 +643,61 @@ public class BucketService extends TaskResourceService {
         if (softQuota < 0 || hardQuota < 0 || softQuota > hardQuota) {
             throw APIException.badRequests.invalidQuotaRequestForObjectStorage(bucketName);
         }
+    }
+    
+    private void syncBucketACL(Bucket bucket) throws InternalException {
+
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
+        ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
+        String task = UUID.randomUUID().toString();
+        _log.info(String.format(
+                "SYNC Bucket ACL  --- Bucket id: %1$s, Task: %2$s", bucket.getId(), task));
+
+        Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
+                task, ResourceOperationTypeEnum.SYNC_BUCKET_ACL);
+        op.setDescription("Sync Bucket ACL");
+        controller.syncBucketACL(bucket.getStorageDevice(), bucket.getId(), task);
+
+        auditOp(OperationTypeEnum.SYNC_BUCKET_ACL, true, AuditLogManager.AUDITOP_BEGIN,
+                bucket.getId().toString(), bucket.getStorageDevice().toString());
+
+        toTask(bucket, task, op);
+        // Waiting till the task is ready to proceed.
+        boolean breakLoop = false;
+        boolean failedOp = true;
+        long startTime = System.currentTimeMillis();
+        String READY = "ready";
+        String ERROR = "error";
+        String message = "";
+        int MAX_SYNC_TIMEOUT = 8000;
+        while (!breakLoop) {
+            Task dbTask = TaskUtils.findTaskForRequestId(_dbClient, bucket.getId(), task);
+            if (READY.equals(dbTask.getStatus())) {
+                breakLoop = true;
+                failedOp = false;
+            }
+            if (ERROR.equals(dbTask.getStatus())) {
+                breakLoop = true;
+                message = dbTask.getMessage();
+            }
+            if ((System.currentTimeMillis() - startTime) > MAX_SYNC_TIMEOUT) {
+                breakLoop = true;
+                message = "Request Time-Out  Wait untill bucket sync task is finished.";
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ex) {
+                // When we catch the InterruptException and swallow it, we essentially prevent any higher level methods/thread groups from
+                // noticing the interrupt. Which may cause problems.
+                // By calling Thread.currentThread().interrupt(), we set the interrupt flag of the thread, so higher level interrupt
+                // handlers will notice it and can handle it appropriately.
+                Thread.currentThread().interrupt();
+            }
+        }
+        if (failedOp) {
+            throw ECSException.exceptions.bucketACLUpdateFailed(bucket.getName(),
+                    "Could not get ACL from ECS {} " + message + " Please try again later.");
+        }
+
     }
 }

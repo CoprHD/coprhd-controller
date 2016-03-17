@@ -610,7 +610,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     _log.info("Done invoking remove volume from storage group");
                 }
                 // For clones, 'replicationgroupinstance' property contains the Replication Group name.
-                if (volume.getReplicationGroupInstance() != null) {
+                if (NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
                     removeVolumeFromConsistencyGroup(storageSystem, volume);
                 }
                 if (volume.getConsistencyGroup() != null) {
@@ -623,6 +623,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             cleanupAnyGroupBackupSnapshots(storageSystem, volume);
                         }
                         removeVolumeFromConsistencyGroup(storageSystem, volume);
+                    }
+                    // for VMAX3, delete the associated snapshot sessions before deleting the volume
+                    // volume may be removed from CG which has group session
+                    if (storageSystem.checkIfVmax3()) {
+                        cleanupAnyBackupSnapshots(storageSystem, volume);
                     }
                 } else {
                     // for VMAX3, clean up unlinked snapshot session, which is possible for ingested volume
@@ -1687,6 +1692,29 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
             String replicationGroupName, Boolean keepRGName, Boolean markInactive, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        doDeleteConsistencyGroup(storage, consistencyGroupId, replicationGroupName, keepRGName, markInactive, null, taskCompleter);
+    }
+    /**
+     * Attempts to delete a system consistency group via an SMI-S provider, if it exists.
+     * Since a {@link BlockConsistencyGroup} may reference multiple system consistency groups, attempt to remove its
+     * reference, in addition to updating the types field.
+     * 
+     * This method may be called as part of a workflow rollback.
+     * 
+     * @param storage StorageSystem
+     * @param consistencyGroupId BlockConsistencyGroup URI
+     * @param replicationGroupName name of the replication group to be deleted
+     * @param keepRGName Boolean if true, ViPR will keep group name for CG
+     * @param markInactive True, if the user initiated removal of the BlockConsistencyGroup
+     * @param sourceReplicatoinGroup source replication group name
+     * @param taskCompleter TaskCompleter
+
+     * @throws DeviceControllerException
+     */
+    //@Override
+    public void doDeleteConsistencyGroup(StorageSystem storage, final URI consistencyGroupId,
+            String replicationGroupName, Boolean keepRGName, Boolean markInactive,  String sourceReplicationGroup, 
+            final TaskCompleter taskCompleter) throws DeviceControllerException {
 
         ServiceError serviceError = null;
         URI systemURI = storage.getId();
@@ -1733,6 +1761,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     cleanupAnyGroupBackupSnapshots(storage, cgPath);
                 }
 
+                if (storage.checkIfVmax3() && replicationGroupName != null) {
+                    // if deleting snap session replication group, we need to remove the EMCSFSEntries first
+                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName);
+
+                    markSnapSessionsInactiveForReplicationGroup(systemURI, consistencyGroupId, replicationGroupName);
+                }
+
+                if (sourceReplicationGroup != null && !sourceReplicationGroup.isEmpty()) {
+                    //  if deleting full copy replication group, we need to remove the EMCSFSEntries first
+                    _helper.removeSFSEntryForReplicaReplicationGroup(storage, replicationSvc, replicationGroupName,
+                            sourceReplicationGroup);
+                    
+                }
                 // Invoke the deletion of the consistency group
                 CIMArgument[] inArgs;
                 CIMArgument[] outArgs = new CIMArgument[5];
@@ -1787,6 +1828,29 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.error(_dbClient, serviceError);
             } else {
                 taskCompleter.ready(_dbClient);
+            }
+        }
+    }
+
+    /**
+     * After clearing the snap session SFS entries in the SMI-S Provider for the replication group,
+     * mark the associated snap sessions inactive in database.
+     *
+     * @param storage the storage
+     * @param cg the consistency group
+     * @param rgName the replication group name
+     */
+    private void markSnapSessionsInactiveForReplicationGroup(URI storage, URI cg, String rgName) {
+        List<BlockSnapshotSession> sessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                BlockSnapshotSession.class,
+                AlternateIdConstraint.Factory.getSnapshotSessionReplicationGroupInstanceConstraint(rgName));
+
+        for (BlockSnapshotSession session : sessionsList) {
+            if (storage.toString().equals(session.getStorageController().toString())
+                    && (cg != null && cg.toString().equals(session.getConsistencyGroup().toString()))) {
+                _log.info("Marking snap session in-active: {}", session.getLabel());
+                session.setInactive(true);
+                _dbClient.updateObject(session);
             }
         }
     }
@@ -2464,7 +2528,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         try {
             if (!storage.deviceIsType(Type.vnxblock)) {
                 BlockObject replica = BlockObject.fetch(_dbClient, blockObjects.get(0));
-                CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage, replica.getReplicationGroupInstance(),
+                CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storage,
+                        ControllerUtils.extractGroupName(replica.getReplicationGroupInstance()),
                         SmisConstants.MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
 
                 List<URI> replicasPartOfGroup = _helper.findVolumesInReplicationGroup(storage, maskingGroupPath, blockObjects);

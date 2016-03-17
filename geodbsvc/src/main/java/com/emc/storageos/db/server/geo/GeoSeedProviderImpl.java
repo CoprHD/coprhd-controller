@@ -46,7 +46,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
-    private boolean useSeedsInLocalSite;
+
     /**
      * 
      * @param args
@@ -114,9 +114,6 @@ public class GeoSeedProviderImpl implements SeedProvider {
         client.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
         client.start();
         
-        DrUtil drUtil = new DrUtil(client);
-        useSeedsInLocalSite = drUtil.isActiveSite() ||  SiteState.ACTIVE_DEGRADED.equals(drUtil.getLocalSite().getState());
-        
         coordinator = client;
     }
 
@@ -145,22 +142,19 @@ public class GeoSeedProviderImpl implements SeedProvider {
                 seeds.add(ip);
             }
         }
-        // On DR standby site, only use seeds from active site. On active site
-        // we use local seeds
-        if (useSeedsInLocalSite) {
-            // add local seed(s):
-            // -For fresh install and upgraded system from 1.1,
-            // get the first started node via the AUTOBOOT flag.
-            // -For geodb restore/recovery,
-            // get the active nodes by checking geodbsvc beacon in zk,
-            // successfully booted node will register geodbsvc beacon in zk and remove the REINIT flag.
-            List<Configuration> configs = getAllConfigZNodes();
-            if (hasRecoveryReinitFlag(configs)) {
-                seeds.addAll(getAllActiveNodes(configs));
-            }
-            else {
-                seeds.add(getNonAutoBootNode(configs));
-            }
+        
+        // add local seed(s):
+        // -For fresh install and upgraded system from 1.1,
+        // get the first started node via the AUTOBOOT flag.
+        // -For geodb restore/recovery,
+        // get the active nodes by checking geodbsvc beacon in zk,
+        // successfully booted node will register geodbsvc beacon in zk and remove the REINIT flag.
+        List<Configuration> configs = getAllConfigZNodes();
+        if (hasRecoveryReinitFlag(configs)) {
+            seeds.addAll(getAllActiveNodes(configs));
+        }
+        else {
+            seeds.add(getNonAutoBootNode(configs));
         }
     }
 

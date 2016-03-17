@@ -98,7 +98,7 @@ import com.emc.sa.service.vipr.tasks.GetVirtualArray;
 import com.emc.sa.util.DiskSizeConversionUtils;
 import com.emc.sa.util.ResourceType;
 import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
 import com.emc.storageos.db.client.model.Initiator;
@@ -668,7 +668,7 @@ public class BlockStorageUtils {
         if (volumeType == ResourceType.VOLUME) {
             VolumeRestRep volume = (VolumeRestRep) getVolume(blockResourceId);
             if (volume.getConsistencyGroup() != null
-                    && (volume.getSystemType().equalsIgnoreCase(Type.vmax.name()) || volume.getSystemType().equalsIgnoreCase("vmax3"))) {
+                    && (volume.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.name()) || volume.getSystemType().equalsIgnoreCase("vmax3"))) {
                 return false;
             }
         }

@@ -2949,11 +2949,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         for (URI volumeURI : volumesToDelete) {
             Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
             if (volume.getProtectionSet() != null) {
-                ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet().getURI());
-                if (psetToVolumesToDelete.get(pset.getId()) == null) {
-                    psetToVolumesToDelete.put(pset.getId(), new HashSet<URI>());
+                if (psetToVolumesToDelete.get(volume.getProtectionSet().getURI()) == null) {
+                    psetToVolumesToDelete.put(volume.getProtectionSet().getURI(), new HashSet<URI>());
                 }
-                psetToVolumesToDelete.get(pset.getId()).add(volumeURI);
+                psetToVolumesToDelete.get(volume.getProtectionSet().getURI()).add(volumeURI);
             }
         }
 
@@ -2966,6 +2965,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 psetVolumeEntry.getValue().size() == pset.getVolumes().size()) {
                 _dbClient.markForDeletion(pset);
                 psetsDeleted.add(pset.getId());
+            } else if (pset.getVolumes() == null) {
+                _dbClient.markForDeletion(pset);
+                psetsDeleted.add(pset.getId());
+                _log.info(String.format("Deleting protection %s because there are no volumes in it any longer", pset.getLabel()));
             } else if (volumesToDelete.size() != pset.getVolumes().size()) {
                 // For debugging: log conditions that caused us to not delete the protection set
                 _log.info(String

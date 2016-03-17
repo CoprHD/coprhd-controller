@@ -15,6 +15,8 @@ import netapp.manage.NaServer;
 
 import org.apache.log4j.Logger;
 
+import com.sun.jersey.api.client.ClientResponse;
+
 /**
  * @author sdorcas
  *         Not to be used directly by users or Orchestrator services. Use NetAppFacade.
@@ -25,9 +27,17 @@ class Volume {
     private String name = "";
     private NaServer server = null;
 
+    private NetAppClient _netappClient = null;
+
     public Volume(NaServer server, String volumeName)
     {
         this.server = server;
+        name = volumeName;
+    }
+
+    public Volume(NetAppClient netappClient, String volumeName)
+    {
+        this._netappClient = netappClient;
         name = volumeName;
     }
 
@@ -357,43 +367,42 @@ class Volume {
 
     List<String> listVolumes()
     {
-        Map<String, String> result = null;
         Map<String, String> params = new HashMap<String, String>();
-        String cmd = "volume-list-info";
+        ClientResponse result = null;
 
+        String cmd = "volume-list-info";
         params.put("verbose", "false");
 
-        NaElement elem = new NaElement("volume-list-info");
-        elem.addNewChild("verbose", "false");
-        NaElement resultElem = null;
         try {
-            resultElem = server.invokeElem(elem).getChildByName("volumes");
+            result = _netappClient.sendRequest(cmd, params);
         } catch (Exception e) {
             String msg = "Failed to get list of Volumes.";
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }
         ArrayList<String> volumes = new ArrayList<String>();
-        for (NaElement e : (List<NaElement>) resultElem.getChildren()) {
-            volumes.add(e.getChildContent("name"));
-        }
+        /*
+         * for (NaElement e : (List<NaElement>) resultElem.getChildren()) {
+         * volumes.add(e.getChildContent("name"));
+         * }
+         */
         return volumes;
     }
 
     List<Map<String, String>> listVolumeInfo(Collection<String> attrs)
     {
-        NaElement elem = new NaElement("volume-list-info");
 
+        Map<String, String> params = new HashMap<String, String>();
+        ClientResponse result = null;
+
+        String cmd = "volume-list-info";
         if (name != null && !name.isEmpty()) {
-            elem.addNewChild("volume", name);
+            params.put("volume", name);
         }
-
-        elem.addNewChild("verbose", "true");
-
-        NaElement resultElem = null;
+        params.put("verbose", "true");
 
         try {
-            resultElem = server.invokeElem(elem).getChildByName("volumes");
+            result = _netappClient.sendRequest(cmd, params);
         } catch (Exception e) {
             String msg = "Failed to get list of Volumes.";
             log.error(msg, e);
@@ -402,16 +411,18 @@ class Volume {
 
         ArrayList<Map<String, String>> volumes = new ArrayList<Map<String, String>>();
 
-        for (NaElement e : (List<NaElement>) resultElem.getChildren()) {
-            Map<String, String> infos = new HashMap<String, String>();
-            for (NaElement info : (List<NaElement>) e.getChildren()) {
-                String name = info.getName();
-                if (attrs == null || attrs.contains(name) || name.equals("name")) {
-                    infos.put(name, info.getContent());
-                }
-            }
-            volumes.add(infos);
-        }
+        /*
+         * for (NaElement e : (List<NaElement>) resultElem.getChildren()) {
+         * Map<String, String> infos = new HashMap<String, String>();
+         * for (NaElement info : (List<NaElement>) e.getChildren()) {
+         * String name = info.getName();
+         * if (attrs == null || attrs.contains(name) || name.equals("name")) {
+         * infos.put(name, info.getContent());
+         * }
+         * }
+         * volumes.add(infos);
+         * }
+         */
 
         return volumes;
     }

@@ -23,7 +23,7 @@ import com.sun.jersey.api.client.WebResource;
  * Generic REST client over HTTP
  */
 public class RestClient {
-    private final Client _client;
+    private Client _client;
 
     /**
      * Constructor

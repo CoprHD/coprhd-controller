@@ -6,6 +6,7 @@
 package com.iwave.ext.netapp;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -18,14 +19,14 @@ import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.httpclient.protocol.Protocol;
 
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
 /*
- *  VNXe (KittyHawk) API client factory
+ *  NetApp API client factory
  */
 public class NetAppApiClientFactory {
-    // client map
 
     private static final int DEFAULT_MAX_CONN = 300;
     private static final int DEFAULT_MAX_CONN_PER_HOST = 100;
@@ -39,6 +40,7 @@ public class NetAppApiClientFactory {
     private final int _socketConnTimeout = DEFAULT_SOCKET_CONN_TIMEOUT;
     private final int connManagerTimeout = DEFAULT_CONN_MGR_TIMEOUT;
 
+    // client map
     private ConcurrentMap<String, NetAppClient> clientMap;
     private ApacheHttpClientHandler _clientHandler;
     private MultiThreadedHttpConnectionManager _connectionManager;
@@ -73,20 +75,15 @@ public class NetAppApiClientFactory {
     /*
      * get NetAppClient based on the netapp system details!!
      */
-    public NetAppClient getClient(String host, int port, String user, String password) {
-        StringBuilder builder = new StringBuilder();
-        builder.append(host);
-        builder.append("_");
-        builder.append("port");
-        builder.append("_");
-        builder.append("user");
-        String key = builder.toString();
+    public NetAppClient getClient(URI endpoint, String username, String password) {
+        String key = endpoint.toString() + ":" + username + ":" + password;
         NetAppClient apiClient = null;
         if (clientMap.get(key) != null) {
             apiClient = clientMap.get(key);
         } else {
 
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
+            jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
             RestClient restClient = new RestClient(jerseyClient);
             apiClient = new NetAppClient(restClient);
             clientMap.putIfAbsent(key, apiClient);

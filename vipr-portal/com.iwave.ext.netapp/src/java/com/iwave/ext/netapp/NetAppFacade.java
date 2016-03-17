@@ -7,6 +7,8 @@
  */
 package com.iwave.ext.netapp;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -36,9 +38,12 @@ import com.iwave.ext.netapp.utils.ExportRule;
  */
 public class NetAppFacade {
 
-    private Logger log = Logger.getLogger(getClass());
+    private final Logger log = Logger.getLogger(getClass());
     Server server = null;
     String _vFilerName = null;
+
+    private NetAppApiClientFactory _factory;
+    private NetAppClient _netappClient = null;
 
     public NetAppFacade(String host, int port, String username, String password, boolean useHTTPS) {
         this(host, port, username, password, useHTTPS, null);
@@ -52,6 +57,23 @@ public class NetAppFacade {
         }
         _vFilerName = vFilerName;
         server = new Server(host, port, username, password, useHTTPS, vFilerName, false);
+
+        // Initialize the client factory!!!
+        if (_factory == null) {
+            _factory = new NetAppApiClientFactory();
+        }
+        _factory.init();
+        URI baseUrl = null;
+        try {
+            baseUrl = new URI("https", null, host, port, "/", null, null);
+        } catch (URISyntaxException e) {
+            log.error("Could not create URI using host :" + host, e);
+        }
+        _netappClient = _factory.getClient(baseUrl, username, password);
+    }
+
+    public NetAppClient getNetAppClient() {
+        return _netappClient;
     }
 
     public static NetAppFacade create(Map<String, String> connectionParams) {
@@ -739,7 +761,8 @@ public class NetAppFacade {
         if (log.isDebugEnabled()) {
             log.debug("List all volumes");
         }
-        Volume vol = new Volume(server.getNaServer(), ""); // Vol name is not needed for this
+        // Volume vol = new Volume(server.getNaServer(), ""); // Vol name is not needed for this
+        Volume vol = new Volume(getNetAppClient(), ""); // Vol name is not needed for this
         List<String> volumes = vol.listVolumes();
         return volumes;
     }

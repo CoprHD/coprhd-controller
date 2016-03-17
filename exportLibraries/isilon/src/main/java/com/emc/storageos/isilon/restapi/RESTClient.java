@@ -13,7 +13,7 @@ import java.net.URI;
  * Generic REST client over HTTP
  */
 public class RESTClient {
-    private Client _client;
+    private Client _client; 
 
     /**
      * Constructor

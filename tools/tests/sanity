@@ -8379,7 +8379,7 @@ tune_dr_config()
     fi
 
     echo "VIP=${VIP} OPT=${OPT} KEY=${CONFIG_KEY} VALUE=${CONFIG_VALUE}"
-    SSH ${VIP} "/opt/storageos/bin/zkutils tune_dr_config ${CONFIG_KEY} ${CONFIG_VALUE}"" ${OPT}
+    SSH ${VIP} "/opt/storageos/bin/zkutils tune_dr_config ${CONFIG_KEY} ${CONFIG_VALUE}" ${OPT}
 }
 
 stop_vdc_services()

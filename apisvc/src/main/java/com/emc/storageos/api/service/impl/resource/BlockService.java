@@ -2722,7 +2722,7 @@ public class BlockService extends TaskResourceService {
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
         _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
 
-        if (Volume.isSRDFProtectedTargetVolume(copyVolume)) {
+        if (Volume.isSRDFProtectedVolume(copyVolume)) {
 
             if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                     op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp())) {
@@ -3263,7 +3263,7 @@ public class BlockService extends TaskResourceService {
             taskList.getTaskList().add(volumeTask);
         }
 
-        // if this vpool request change has a consistency group, set it's requested types
+        // if this vpool request change has a consistency group, set its requested types
         if (param.getConsistencyGroup() != null) {
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, param.getConsistencyGroup());
             if (cg != null && !cg.getInactive()) {

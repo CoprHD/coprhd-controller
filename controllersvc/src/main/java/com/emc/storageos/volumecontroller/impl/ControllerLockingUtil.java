@@ -34,7 +34,7 @@ public class ControllerLockingUtil {
      * Returns a list of lock keys for export of Hosts to StorageSystems.
      * This is constructed from a list of Initiators.
      * All the host URIs are collected from the Initiators.
-     * If an Initiator does not have a host URI, it's hostName is converted to a URI and used.
+     * If an Initiator does not have a host URI, its hostName is converted to a URI and used.
      * iF export type is Cluster, the clusters are looked up, and all hosts in the
      * cluster are used.
      * The keys are constructed from a concatenation of the host URI and the storage system URI.
@@ -163,6 +163,19 @@ public class ControllerLockingUtil {
         } else {
             return cgURI.toString() + DELIMITER + storageKey;
         }
+    }
+
+    /**
+     * Make a replicationGroupInstance / storageSystem duple key.
+     * 
+     * @param rgName
+     *            -- replicationGroupInstance
+     * @param storageURI
+     *            (could be a Protection System or null)
+     * @return
+     */
+    static public String getReplicationGroupStorageKey(DbClient dbClient, String rgName, URI storageURI) {
+        return rgName.replaceAll("\\s", "") + DELIMITER + getStorageKey(dbClient, storageURI);
     }
     
     /**

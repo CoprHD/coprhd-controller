@@ -11,6 +11,7 @@ import jobs.UpdateCertificateJob;
 
 import org.apache.commons.io.FileUtils;
 
+import play.Logger;
 import play.data.validation.Validation;
 import play.mvc.With;
 import util.BourneUtil;
@@ -32,6 +33,7 @@ import controllers.util.FlashException;
         @Restrict("RESTRICTED_SECURITY_ADMIN") })
 public class Keystores extends ViprResourceController {
 
+
     private static Keystore api() {
         return BourneUtil.getViprClient().keystore();
     }
@@ -49,7 +51,13 @@ public class Keystores extends ViprResourceController {
             handleError(keystore);
         }
         if (keystore.rotate) {
-            new RegenerateCertificateJob(api()).in(3);
+            try {
+                // Here we need a sync call. Else no way to catch exception
+                api().regenerateKeyAndCertificate();
+            } catch (Exception e) {
+                flash.error(e.getMessage());
+                handleError(keystore);
+            }
         } else {
 
             String key = null;

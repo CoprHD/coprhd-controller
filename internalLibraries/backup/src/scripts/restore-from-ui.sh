@@ -33,4 +33,7 @@ check_password() {
 
 check_password "$2"
 
+#wait for 10 seconds for the UI to jump to the maintenance mode
+sleep 10s 
+
 nohup ${DIR}/restore-internal.sh "$1" "$2" "$3" "$4"& 

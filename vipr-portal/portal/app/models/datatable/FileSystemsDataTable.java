@@ -23,7 +23,7 @@ public class FileSystemsDataTable extends DataTable {
 
     public FileSystemsDataTable() {
         addColumn("name");
-        addColumn("capacity");
+        addColumn("capacity").setRenderFunction("render.markSoftLimitExceeded");
         addColumn("varray");
         addColumn("vpool");
         addColumn("protocols");
@@ -54,6 +54,7 @@ public class FileSystemsDataTable extends DataTable {
         public URI id;
         public String name;
         public String capacity;
+        public Boolean exceeded;
         public String varray;
         public String vpool;
         public Collection<String> protocols;
@@ -70,6 +71,7 @@ public class FileSystemsDataTable extends DataTable {
                 vpool = vpoolMap.get(bourneFs.getVirtualPool().getId());
             }
             protocols = bourneFs.getProtocols();
+            exceeded = bourneFs.getSoftLimitExceeded();
         }
     }
 }

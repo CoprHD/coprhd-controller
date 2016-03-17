@@ -110,7 +110,12 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
             // volumes in VolumeGroup can be from different vArrays
             varray = getVarrayFromCache(vArrayCache, fcSourceObj.getVirtualArray());
             String copyName = null;
-            if (NullColumnValueGetter.isNotNullValue(fcSourceObj.getReplicationGroupInstance())) {
+            boolean inApplication = false;
+            if (aFCSource instanceof Volume && ((Volume) aFCSource).getApplication(_dbClient) != null) {
+                inApplication = true;
+            }
+
+            if (NullColumnValueGetter.isNotNullValue(fcSourceObj.getReplicationGroupInstance()) && inApplication) {
             	copyName = name + "-" + fcSourceObj.getReplicationGroupInstance() 
             			+ (sortedSourceObjectList.size() > 1 ? "-" + ++sourceCounter : "");
             }  else {

@@ -106,6 +106,8 @@ public class DistributedPersistentLockImpl implements DistributedPersistentLock 
             String lockPath = ZKPaths.makePath(lockRootPath, versionId);
             byte[] currOwnerNameInBytes = _zkClient.getData().forPath(lockPath);
             currOwnerName = new String(currOwnerNameInBytes, Charset.forName("UTF-8"));
+        } catch (KeeperException.NoNodeException e) {
+            _log.debug("getLockOwner(): lock {} doesn't exist", _persistentLockName);
         } catch (Exception e) {
             _log.debug("getLockOwner(): Problem getting ZNodes for Lock {} ... could not determine owner",
                     _persistentLockName, e);

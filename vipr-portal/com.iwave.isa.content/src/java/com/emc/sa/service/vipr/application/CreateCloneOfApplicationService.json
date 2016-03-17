@@ -16,7 +16,7 @@
       select:"many"
     },
     
-    name:{
+    applicationCopySets:{
       type:"text",
       validation:{
         min:2,

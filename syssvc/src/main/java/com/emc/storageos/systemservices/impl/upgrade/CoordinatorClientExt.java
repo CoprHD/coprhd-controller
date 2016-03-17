@@ -466,20 +466,6 @@ public class CoordinatorClientExt {
     }
 
     /**
-     * Get target info
-     * 
-     * @param clazz
-     * @param id
-     * @param kind
-     * @return
-     * @throws Exception
-     */
-    public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
-            throws CoordinatorException {
-        return _coordinator.getTargetInfo(clazz,id,kind);
-    }
-
-    /**
      * Get all target properties - include global(shared by active/standby), or site specific properties
      * 
      * @return
@@ -487,7 +473,7 @@ public class CoordinatorClientExt {
      */
     public PropertyInfoExt getTargetProperties() throws Exception {
         PropertyInfoExt targetPropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class);
-        PropertyInfoExt siteScopePropInfo = _coordinator.getTargetInfo(PropertyInfoExt.class, _coordinator.getSiteId(), PropertyInfoExt.TARGET_PROPERTY);
+        PropertyInfoExt siteScopePropInfo = _coordinator.getTargetInfo(_coordinator.getSiteId(), PropertyInfoExt.class);
         if (targetPropInfo != null && siteScopePropInfo != null) {
             PropertyInfoExt combinedProps = new PropertyInfoExt();
             for (Entry<String, String> entry : targetPropInfo.getAllProperties().entrySet()) {
@@ -579,7 +565,7 @@ public class CoordinatorClientExt {
      * @param siteId
      */
     public PropertyInfoExt getSiteSpecificProperties(String siteId) {
-        return _coordinator.getTargetInfo(PropertyInfoExt.class, siteId, PropertyInfoExt.TARGET_PROPERTY);
+        return _coordinator.getTargetInfo(siteId, PropertyInfoExt.class);
     }
     
     /**
@@ -1549,9 +1535,16 @@ public class CoordinatorClientExt {
                     checkLocalSiteZKModes();
                 }
 
+                /*
+                 *  If local ZK (in the standby site) is running on its own independently (leader, follower or standby mode)
+                 *  or it could not startup at all (state == null),
+                 *  We will try to switch local ZK to observe mode if the active site is running well.
+                */
                 if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
                         DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state) ||
-                        DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state)) {
+                        DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state) ||
+                        state == null) {
+
                     // node is in participant mode, update the local site state accordingly
                     checkAndUpdateLocalSiteState();
 
@@ -1827,16 +1820,6 @@ public class CoordinatorClientExt {
             isActiveSiteStable =  isActiveSiteStable(activeSite);
             _log.info("Active site ZK is alive: {}, active site stable is :{}", isActiveSiteLeaderAlive, isActiveSiteStable);
         }
-        
-        
-        SiteMonitorResult monitorResult = _coordinator.getTargetInfo(SiteMonitorResult.class);
-        if (monitorResult == null) {
-            monitorResult = new SiteMonitorResult();
-        }
-        monitorResult.setActiveSiteLeaderAlive(isActiveSiteLeaderAlive);
-        monitorResult.setActiveSiteStable(isActiveSiteStable);
-        _coordinator.setTargetInfo(monitorResult);
-        
         return isActiveSiteLeaderAlive && isActiveSiteStable;
     }
     

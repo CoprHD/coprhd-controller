@@ -146,7 +146,7 @@ public class BlockMapper {
                     to.setSupportsSnapshotSessions(Boolean.TRUE);
                 }
             }
-            // Set xio3xvolume in virtual volume only if it's backend volume belongs to xtremio & version is 3.x
+            // Set xio3xvolume in virtual volume only if its backend volume belongs to xtremio & version is 3.x
             for (String backendVolumeuri : from.getAssociatedVolumes()) {
                 Volume backendVol = dbClient.queryObject(Volume.class, URIUtil.uri(backendVolumeuri));
                 if (null != backendVol) {

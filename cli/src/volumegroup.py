@@ -14,6 +14,7 @@ from common import SOSError
 import json
 import tag
 from volume import Volume
+from snapshotsession import SnapshotSession
 # temporary fix to suppress "InsecureRequestWarning: Unverified HTTPS request is being made"
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
@@ -713,7 +714,7 @@ class VolumeGroup(object):
         else:
             return []
 
-    def query_snapshotsession_by_name(self, name, snapshotsessionname):
+    def query_snapshotsession_uri_by_name(self, name, snapshotsessionname):
         '''
         This function will take the snapshot session name and volume group name
         as input and get uri of the first occurrence of snapshot session.
@@ -755,7 +756,7 @@ class VolumeGroup(object):
 
     def volume_group_snapshotsession_show(self, name, snapshotsessionname):
         volumeGroupUri = self.query_by_name(name)
-        snapshotsessionUri = self.snapshotsession_query(name, snapshotsessionname)
+        snapshotsessionUri = self.query_snapshotsession_uri_by_name(name, snapshotsessionname)
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
@@ -826,6 +827,36 @@ class VolumeGroup(object):
             return self.check_for_sync(task,sync)
         else:
             return o
+
+    # link target
+    def snapshotsession_link(self, name, snapsession_label, target_name, count, copymode, partial):
+        volume_group_uri = self.query_by_name(name)
+        snapshotsession_uri = self.query_snapshotsession_uri_by_name(name, snapsession_label)
+
+        request = dict()
+        request["snapshot_sessions"] = [ snapshotsession_uri ]
+
+        new_linked_targets_dict = {
+            'target_name' : target_name,
+            'count' : count,
+            'copy_mode' : copymode
+            }
+
+        request["new_linked_targets"] = new_linked_targets_dict
+
+        # if partial request
+        if (partial):
+            request["partial"] = partial
+
+        body = json.dumps(request)
+
+        # REST api call
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_LINK.format(volume_group_uri), body)
+        o = common.json_decode(s)
+        return o
 
     # Blocks the operation until the task is complete/error out/timeout
     def check_for_sync(self, result, sync):
@@ -2075,7 +2106,7 @@ def snapshotsession_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-snapshotsessionname', '-ssn',
+    mandatory_args.add_argument('-snapshotsessionname', '-sn',
                                 metavar='<snapshotsessionname>',
                                 dest='snapshotsessionname',
                                 help='Name of Snapshot Session',
@@ -2139,13 +2170,6 @@ def volume_group_snapshotsession_common_parser(cc_common_parser):
                               action='store_true',
                               help='To operate on snapshots for subset of VolumeGroup. ' +
                               'Please specify one snapshot from each Array Replication Group')
-    mandatory_args.add_argument('-snapshotsessions', '-s',
-                            metavar='<snapshotsessionname,...>',
-                            dest='snapshotsessions',
-                            help='A snapshot session of a volume group specifying which snapshot session set to act on. ' +
-                            'For partial operation, specify one snapshot session from each Array Replication Group',
-                            required=True)
-
     cc_common_parser.add_argument('-tenant', '-tn',
                              metavar='<tenantname>',
                              dest='tenant',
@@ -2193,6 +2217,13 @@ def snapshotsession_deactivate_parser(subcommand_parsers, common_parser):
         help='Deactivate snapshot session of a VolumeGroup',
         description='ViPR Deactivate Snapshot Session of a VolumeGroup CLI usage.')
 
+    snapshotsession_deactivate_parser.add_argument('-snapshotsessions', '-s',
+                            metavar='<snapshotsessionname,...>',
+                            dest='snapshotsessions',
+                            help='A snapshot session of a volume group specifying which snapshot session set to act on. ' +
+                            'For partial operation, specify one snapshot session from each Array Replication Group',
+                            required=True)
+
     # Add parameter from common snapshot session parser.
     volume_group_snapshotsession_common_parser(snapshotsession_deactivate_parser)
     snapshotsession_deactivate_parser.set_defaults(func=volume_group_snapshotsession_deactivate)
@@ -2209,6 +2240,13 @@ def snapshotsession_restore_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Restore snapshot session of a VolumeGroup',
         description='ViPR Restore Snapshot Session of a VolumeGroup CLI usage.')
+
+    snapshotsession_restore_parser.add_argument('-snapshotsessions', '-s',
+                            metavar='<snapshotsessionname,...>',
+                            dest='snapshotsessions',
+                            help='A snapshot session of a volume group specifying which snapshot session set to act on. ' +
+                            'For partial operation, specify one snapshot session from each Array Replication Group',
+                            required=True)
 
     # Add parameter from common snapshot session parser.
     volume_group_snapshotsession_common_parser(snapshotsession_restore_parser)
@@ -2227,13 +2265,47 @@ def snapshotsession_link_parser(subcommand_parsers, common_parser):
         help='Link snapshot session of a VolumeGroup',
         description='ViPR Link Snapshot Session of a VolumeGroup CLI usage.')
 
+    snapshotsession_link_parser.add_argument('-snapshotsessionname', '-sn',
+                                metavar='<snapshotsessionname>',
+                                dest='snapshotsessionname',
+                                help='Name of Snapshot Session',
+                                required=True)
+    snapshotsession_link_parser.add_argument('-targetname', '-tgn',
+                               help='This option specifies the target name',
+                               dest='target_name',
+                               metavar='<target_name>',
+                               required=True)
+    snapshotsession_link_parser.add_argument('-count', '-ct',
+                               dest='count',
+                               metavar='<count>',
+                               help='Number of target volumes ',
+                               required=True)
+    snapshotsession_link_parser.add_argument('-copymode', '-cm',
+                               help='Whether to create in copy or nocopy mode' ,
+                               dest='copymode',
+                               choices=SnapshotSession.COPY_MODE,
+                               required=True)
+
     # Add parameter from common snapshot session parser.
     volume_group_snapshotsession_common_parser(snapshotsession_link_parser)
     snapshotsession_link_parser.set_defaults(func=volume_group_snapshotsession_link)
 
 # Link Snapshot Session Function
 def volume_group_snapshotsession_link(args):
-    volume_group_snapshotsession_operation(args, "link", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_LINK)
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        obj.snapshotsession_link(args.name, args.snapshotsessionname, args.target_name, args.count, args.copymode, args.partial)
+        return
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "snapshot session",
+            "link",
+            e.err_text,
+            e.err_code)
 
 # snapshotsession_relink_parser
 def snapshotsession_relink_parser(subcommand_parsers, common_parser):

@@ -138,16 +138,15 @@ public class DbBackupHandler extends BackupHandler {
                             DB_SNAPSHOT_SUBDIR + File.separator + fullBackupTag);
                     // Filters ignored Column Family
                     if (ignoreCfList != null) {
-                        boolean isCfIgnore = false;
-                        for (String ignoreStr : ignoreCfList) {
-                            if (cfDir.getName().startsWith(ignoreStr)) {
-                                FileUtils.deleteQuietly(snapshotFolder);
-                                cfBackupFolder.mkdir();
-                                isCfIgnore = true;
-                                break;
-                            }
+                        String cfName = cfDir.getName();
+                        if (cfDir.getName().contains(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)) {
+                            cfName = cfDir.getName().split(BackupConstants.COLLECTED_BACKUP_NAME_DELIMITER)[0];
                         }
-                        if (isCfIgnore) continue;
+                        if (ignoreCfList.contains(cfName)) {
+                            FileUtils.deleteQuietly(snapshotFolder);
+                            cfBackupFolder.mkdir();
+                            continue;
+                        }
                     }
                     if (!snapshotFolder.exists()) {
                         // Handles stale Column Family

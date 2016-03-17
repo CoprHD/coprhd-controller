@@ -5242,8 +5242,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         URIQueryResultList exportGroupIdsForSnapshot = new URIQueryResultList();
         _dbClient.queryByConstraint(constraint, exportGroupIdsForSnapshot);
+        
+        Iterator<URI> exportGroupIdsForSnapshotIter = exportGroupIdsForSnapshot.iterator();
+        List<URI> exportGroupURIs = new ArrayList<URI>();
+        while (exportGroupIdsForSnapshotIter.hasNext()) {
+            exportGroupURIs.add(exportGroupIdsForSnapshotIter.next());
+        }
                    
-        if (exportGroupIdsForSnapshot.size() > 1) {
+        if (exportGroupURIs.size() > 1) {
             _log.info(String.format("Snapshot %s is in %d active exportGroups. Not safe to disable the CG", snapshot.getEmName(),
                     exportGroupIdsForSnapshot.size()));
             return false;

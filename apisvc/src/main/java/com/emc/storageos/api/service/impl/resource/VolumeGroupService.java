@@ -2995,7 +2995,23 @@ public class VolumeGroupService extends TaskResourceService {
             impactedCGs = new HashSet<URI>();
 
             if (param.hasVolumesToAdd()) {
-                ArgValidator.checkFieldNotEmpty(param.getAddVolumesList().getReplicationGroupName(), RG_NAME_FIELD);
+                // if the volume is RP or VPlex, replicationGroupName is required input; otherwise it's not
+                Iterator<Volume> volumes = dbClient.queryIterativeObjects(Volume.class, param.getAddVolumesList().getVolumes());
+                if (volumes.hasNext()) {
+                    Volume vol = volumes.next();
+                    if (!NullColumnValueGetter.isNullURI(vol.getProtectionController())
+                            || vol.getAssociatedVolumes() != null && !vol.getAssociatedVolumes().isEmpty()) {
+                        ArgValidator.checkFieldNotEmpty(param.getAddVolumesList().getReplicationGroupName(), RG_NAME_FIELD);
+                    } else {
+                        if (param.getAddVolumesList().getReplicationGroupName() != null) {
+                            throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(vol.getLabel(),
+                                    String.format("because %s is specified for volumes already in a replication group", RG_NAME_FIELD));
+                        }
+                        // for non-RP and non-VPlex, ignore any incoming replication group name and use the one that's already there on the
+                        // volume
+                        param.getAddVolumesList().setReplicationGroupName(vol.getReplicationGroupInstance());
+                    }
+                }
                 addVols = validateAddVolumes(dbClient, param, volumeGroup, impactedCGs);
                 firstVol = addVols.get(0);
             }

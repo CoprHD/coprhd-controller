@@ -290,8 +290,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             if (cg == null) {
                 _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
-                        .consistencyGroupNotFound(cgName,
-                                group.getCgNameOnStorageSystem(storage.getId())));
+                        .consistencyGroupNotFound(cgName, group.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
 
@@ -344,6 +343,24 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
             }
 
             client.refreshSnapshotFromCG(clusterName, cgName, snapshotObj.getReplicationGroupInstance());
+
+            String newSnapsetName = null;
+            // Now get the new snapshot set name by querying back the snapshot
+            XtremIOVolume xioSnap = client.getSnapShotDetails(snapshotObj.getDeviceLabel(), clusterName);
+            if (xioSnap.getSnapSetList() != null && !xioSnap.getSnapSetList().isEmpty()) {
+                List<Object> snapsetDetails = xioSnap.getSnapSetList().get(0);
+                newSnapsetName = snapsetDetails.get(1).toString();
+            }
+
+            // Update the new snapshot set name in all the CG snapshots
+            List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(snapshotObj, dbClient);
+            for (BlockSnapshot snap : snapshots) {
+                if (!NullColumnValueGetter.isNotNullValue(newSnapsetName)) {
+                    _log.info("Updating replicationGroupInstance to {} in snapshot- {}:{}", newSnapsetName, snap.getLabel(), snap.getId());
+                    snap.setReplicationGroupInstance(newSnapsetName);
+                }
+            }
+
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             _log.error("Snapshot resync failed", e);

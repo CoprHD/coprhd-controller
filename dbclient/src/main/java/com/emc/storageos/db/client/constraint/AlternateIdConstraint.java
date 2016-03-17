@@ -401,6 +401,13 @@ public interface AlternateIdConstraint extends Constraint {
                     replicaGroupInstance);
         }
 
+        public static AlternateIdConstraint getSnapshotSessionReplicationGroupInstanceConstraint(
+                String replicaGroupInstance) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
+                    replicaGroupInstance);
+        }
+
         /**
          * Policy Names matching an Array will be returned.
          * Policy ID format : serialID-PolicyName

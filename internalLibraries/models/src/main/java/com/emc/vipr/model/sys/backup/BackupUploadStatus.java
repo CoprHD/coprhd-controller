@@ -110,6 +110,7 @@ public class BackupUploadStatus implements Serializable {
         this.progress = (progress != null) ? progress : this.progress;
         this.errorCode = (errorCode != null) ? errorCode : this.errorCode;
         this.status = (status != null) ? status : this.status;
+
         updatePostCheck();
         log.info("Backup upload status after updating: {}", this);
     }
@@ -163,6 +164,7 @@ public class BackupUploadStatus implements Serializable {
         BACKUP_NOT_EXIST,        // Can not find the target backup files on disk
         INVALID_BACKUP,          // Target backup is invalid
         UPLOAD_FAILURE,          // internal failures during the upload
+        TO_BE_RECLAIMED,        // the backup is to be reclaimed
     }
 
 

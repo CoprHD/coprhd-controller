@@ -1913,17 +1913,15 @@ public class RPHelper {
     /**
      * Creates an export group with the proper settings for RP usage
      *
-     * @param internalSiteName internal site name of export
+     * @param exportGroupGeneratedName the generated ExportGroup name to use
      * @param virtualArray virtual array
      * @param project project
-     * @param protectionSystem protection system
-     * @param storageSystem storage system
      * @param numPaths number of paths
+     * @param isJournalExport flag indicating if this is an ExportGroup intended only for journal volumes
      * @return an export group
      */
-    public static ExportGroup createRPExportGroup(String internalSiteName, VirtualArray virtualArray, Project project,
-            ProtectionSystem protectionSystem,
-            StorageSystem storageSystem, Integer numPaths, boolean isJournalExport) {
+    public static ExportGroup createRPExportGroup(String exportGroupGeneratedName, VirtualArray virtualArray, Project project,
+            Integer numPaths, boolean isJournalExport) {
         ExportGroup exportGroup;
         exportGroup = new ExportGroup();
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
@@ -1931,14 +1929,6 @@ public class RPHelper {
         exportGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
         exportGroup.setVirtualArray(virtualArray.getId());
         exportGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), project.getTenantOrg().getName()));
-        // This name generation needs to match ingestion code found in RPDeviceController until
-        // we come up with better export group matching criteria.
-        String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
-        String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
-                + "_"
-                + virtualArray.getLabel();
-        // Remove all non alpha-numeric characters, excluding "_".
-        exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
         exportGroup.setGeneratedName(exportGroupGeneratedName);
         // When created by CoprHD natively, it's usually the CG name.
         exportGroup.setLabel(exportGroupGeneratedName);
@@ -1958,6 +1948,30 @@ public class RPHelper {
         }
 
         return exportGroup;
+    }
+
+    /**
+     * Generates a RecoverPoint ExportGroup name based on the standard
+     * ViPR RecoverPoint ExportGroup label pattern.
+     * 
+     * @param protectionSystem the ProtectionSystem for the ExportGroup
+     * @param storageSystem the StorageSystem for the ExportGroup
+     * @param internalSiteName the RecoverPoint internal site name
+     * @param virtualArray the VirtualArray for the ExportGroup
+     * @return a RecoverPoint ExportGroup name String
+     */
+    public static String generateExportGroupName(ProtectionSystem protectionSystem, 
+            StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray) {
+        // This name generation needs to match ingestion code found in RPDeviceController until
+        // we come up with better export group matching criteria.
+        String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);
+        String exportGroupGeneratedName = protectionSystem.getNativeGuid() + "_" + storageSystem.getLabel() + "_" + protectionSiteName
+                + "_"
+                + virtualArray.getLabel();
+        // Remove all non alpha-numeric characters, excluding "_".
+        exportGroupGeneratedName = exportGroupGeneratedName.replaceAll("[^A-Za-z0-9_]", "");
+        _log.info("ExportGroup generated name is " + exportGroupGeneratedName);
+        return exportGroupGeneratedName;
     }
 
     /**

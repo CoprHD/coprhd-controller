@@ -153,7 +153,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.name(),
                                 "The snapshot cannot be ingested because the snapshot target volume is linked to an unsupported "
                                         + "array snapshot whose name is used by multiple array snapshots for the same source volume. The "
-                                        + "storage system likely uses generation numbers to differentiate these snapshots, and the controller "
+                                        + "storage system may use generation numbers to differentiate these snapshots, and the controller "
                                         + "does not currently support generation numbers");
                         modifiedUnManagedVolumes.add(unManagedVolume);
                     } else {

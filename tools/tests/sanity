@@ -2074,6 +2074,7 @@ rpvplex_ha()
         --provisionType 'Thin' \
         --multiVolumeConsistency \
         --neighborhoods $RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3 $RECOVERPOINT_VARRAY4 \
+        --max_snapshots 10 \
         --highavailability vplex_local
 }
 
@@ -2098,6 +2099,7 @@ rpvplex_local_regular()
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --max_snapshots 10 \
         --highavailability vplex_local
 }
 
@@ -2112,6 +2114,7 @@ rpvplex_dist_regular()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
+        --max_snapshots 10 \
         --haCos rpvplex_ha
 }
 
@@ -2250,8 +2253,8 @@ rpvplex_cdp()
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
-	--journalVpool rp_targets \
-	--journalVarray $RECOVERPOINT_VARRAY1 \
+        --journalVpool rp_targets \
+        --journalVarray $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 
     run cos create block rpvplex_cdp$1-sync $POOLS_AUTO_MATCH \
@@ -2262,11 +2265,12 @@ rpvplex_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
-	--journalVpool rp_targets \
-	--journalVarray $RECOVERPOINT_VARRAY1 \
+        --journalVpool rp_targets \
+        --journalVarray $RECOVERPOINT_VARRAY1 \
         --highavailability vplex_local
 }
 
@@ -2297,6 +2301,7 @@ rpvplex_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2322,8 +2327,8 @@ rpvplex_clr()
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
-	--journalVpool rp_targets \
-	--journalVarray $RECOVERPOINT_VARRAY1 \
+        --journalVpool rp_targets \
+        --journalVarray $RECOVERPOINT_VARRAY1 \
         --haCos rpvplex_ha
 
     run cos create block rpvplex_clr$1-sync $POOLS_AUTO_MATCH \
@@ -2334,13 +2339,14 @@ rpvplex_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
-	--journalVpool rp_targets \
-	--journalVarray $RECOVERPOINT_VARRAY1 \
+        --journalVpool rp_targets \
+        --journalVarray $RECOVERPOINT_VARRAY1 \
         --haCos rpvplex_ha
 }
 
@@ -2355,6 +2361,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2372,6 +2379,7 @@ rpmp_cdp()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2393,6 +2401,7 @@ rpmp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2410,6 +2419,7 @@ rpmp_crr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2431,6 +2441,7 @@ rpmp_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2448,6 +2459,7 @@ rpmp_clr()
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
         --protectionCoS $RECOVERPOINT_VARRAY1':rp_targets'$1':min',$RECOVERPOINT_VARRAY2':rp_targets'$1':min',$RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --max_snapshots 10 \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2467,6 +2479,7 @@ rp_noprotection()
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --max_snapshots 10 \
         --multiVolumeConsistency
 }
 
@@ -2479,6 +2492,7 @@ rpvplexlocal_noprotection()
         --numpaths 2 \
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
+        --max_snapshots 10 \
         --multiVolumeConsistency \
         --highavailability vplex_local
 }
@@ -2493,6 +2507,7 @@ rpvplexdist_noprotection()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
+        --max_snapshots 10 \
         --highavailability vplex_distributed \
         --haNeighborhood $RECOVERPOINT_VARRAY2 \
         --haCos rpvplex_ha

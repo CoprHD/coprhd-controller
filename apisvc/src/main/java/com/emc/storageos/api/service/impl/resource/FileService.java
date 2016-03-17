@@ -3743,10 +3743,9 @@ public class FileService extends TaskResourceService {
                 isSupported = true;
                 break;
 
-            // START operation can be performed only if Mirror status is UNKNOWN or DETACHED
+            // START operation can be performed only if Mirror status is UNKNOWN
             case "start":
-                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString())
-                        || currentMirrorStatus.equalsIgnoreCase(MirrorStatus.DETACHED.toString()))
+                if (currentMirrorStatus.equalsIgnoreCase(MirrorStatus.UNKNOWN.toString()))
                     isSupported = true;
                 break;
 
@@ -3810,6 +3809,13 @@ public class FileService extends TaskResourceService {
         // File system should not be the target file system..
         if (fs.getPersonality() != null && fs.getPersonality().equalsIgnoreCase(PersonalityTypes.TARGET.name())) {
             notSuppReasonBuff.append(String.format("File system - %s given in request is an active Target file system.",
+                    fs.getLabel()));
+            _log.info(notSuppReasonBuff.toString());
+            return false;
+        }
+        // This validation is required after stop operation
+        if (fs.getPersonality() == null || !fs.getPersonality().equals(PersonalityTypes.SOURCE.name())) {
+            notSuppReasonBuff.append(String.format("File system - %s given in request is not having any active replication.",
                     fs.getLabel()));
             _log.info(notSuppReasonBuff.toString());
             return false;

@@ -18,15 +18,15 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 
+import models.datatable.ApplicationSnapSessionDataTable;
+import models.datatable.ApplicationSnapshotDataTable;
 import models.datatable.ApplicationSupportDataTable;
 import models.datatable.BlockSnapshotSessionsDataTable;
 import models.datatable.BlockSnapshotSessionsDataTable.BlockSnapshotSession;
 import models.datatable.BlockSnapshotsDataTable;
 import models.datatable.BlockVolumesDataTable.Volume;
 import models.datatable.BlockVolumesDataTable;
-
 import models.datatable.BlockSnapshotsDataTable.BlockSnapshot;
-
 import play.mvc.With;
 import util.AppSupportUtil;
 import util.BourneUtil;
@@ -90,7 +90,7 @@ public class BlockApplications extends ResourceController {
     }
 
     public static void getAssociatedSnapshots(String id, String snapSet) {
-        renderArgs.put("dataTable", new BlockSnapshotsDataTable());
+        renderArgs.put("dataTable", new ApplicationSnapshotDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
         String snapLabel = id + "~~~" + snapSet;
         render(application,snapLabel,snapSet);
@@ -108,7 +108,7 @@ public class BlockApplications extends ResourceController {
     }
 
     public static void getAssociatedSnapSession(String id, String sessionSet) {
-        renderArgs.put("dataTable", new BlockSnapshotSessionsDataTable());
+        renderArgs.put("dataTable", new ApplicationSnapSessionDataTable());
         VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
         String sessionLabel = id + "~~~" + sessionSet;
         render(application, sessionLabel, sessionSet);

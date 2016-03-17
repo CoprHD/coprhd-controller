@@ -3682,6 +3682,10 @@ snapshots.lun=Lun
 snapshots.actions=Action
 snapshots.expires=Date Expires
 snapshots.created=Date Created
+snapshots.capacity=Size
+snapshots.varray=Virtual Array
+snapshots.vpool=Virtual Pool
+snapshots.subGroup=Sub Group
 
 exportGroups.name=Export Group Name
 exportGroups.type=Type

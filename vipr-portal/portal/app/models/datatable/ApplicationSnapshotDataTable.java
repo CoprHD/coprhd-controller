@@ -33,13 +33,17 @@ public class ApplicationSnapshotDataTable extends DataTable {
 		public String capacity;
 		public String varray;
 		public String vpool;
+		public String subGroup;
 		
 		public ApplicationSnapshots(BlockSnapshotRestRep blockSnapshot, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
 			id = blockSnapshot.getId();
 			name = blockSnapshot.getName();
+			capacity="2.0";
 			if (blockSnapshot.getVirtualArray() != null) {
                 varray = varrayMap.get(blockSnapshot.getVirtualArray().getId());
             }
+			subGroup = blockSnapshot.getReplicationGroupInstance();
+			vpool = "testPool";
 		}
 		
 	}

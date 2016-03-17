@@ -243,8 +243,8 @@ function standbyStatusIcon(o, val) {
     var label = defaultValue(labels[o.aData.status], 'label-default');
     var icon = defaultValue(icons[o.aData.status], 'glyphicon glyphicon-question-sign');
     
-	if (o.aData.networkHealth == "BROKEN") {
-	    label = 'label-danger';
+	if (o.aData.runningState == "FALSE" && (o.aData.status == "ACTIVE" || o.aData.status == "STANDBY_SYNCED")) {
+	    label = 'label-warning';
 	    icon = 'glyphicon glyphicon-warning-sign'
 	}
 	

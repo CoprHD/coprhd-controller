@@ -28,7 +28,6 @@ import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
-import com.emc.storageos.cinder.model.CinderOsVolumeTransferRestResp;
 import com.emc.storageos.cinder.model.VolumeType;
 import com.emc.storageos.cinder.model.VolumeTypeEncryption;
 import com.emc.storageos.cinder.model.VolumeTypeEncryptionResponse;
@@ -162,7 +161,7 @@ public class TypeService extends TaskResourceService {
     }
 
     /**
-     * Get information about a specified volume type
+     * Set information about a specified volume type
      * 
      * 
      * @prereq none
@@ -170,8 +169,8 @@ public class TypeService extends TaskResourceService {
      * @param tenant_id the URN of the tenant
      * @param volume_type_id the URN of the volume type
      * 
-     * @brief Show volume type
-     * @return Volume type details
+     * @brief Set volume type
+     * @return error
      */
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -189,15 +188,16 @@ public class TypeService extends TaskResourceService {
      * NOTE: This operation is not supported on current version of enterprise cinder.
      *
      * @prereq none
-     * @param type_id the URN of the tenant
+     * @param tenant_id the URN of the tenant
+     * @param volume_type_id the URN of the volume type
      * @return error
      */
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{type_id}")
+    @Path("/{volume_type_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response deleteVolumeType(@PathParam("tenant_id") String openstackTenantId,
-    		@PathParam("type_id") String typeId) {
+    		@PathParam("volume_type_id") String typeId) {
         _log.info("VolumeType deletion is not supported");
         return CinderApiUtils.createErrorResponse(400, "Bad Request : Unable to delete volumetype");
     }    

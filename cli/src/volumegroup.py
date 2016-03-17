@@ -45,7 +45,8 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_CLONE_RESYNCRONIZE = "/volume-groups/block/{0}/protection/full-copies/resynchronize"
     URI_VOLUME_GROUP_CLONE_LIST = URI_VOLUME_GROUP_CLONE
     URI_VOLUME_GROUP_CLONE_SHOW= "/volume-groups/block/{0}/protection/full-copies/{1}"
-    
+    URI_VOLUME_GROUP_CLONE_GET_COPY_SETS= URI_VOLUME_GROUP_CLONE + "/copy-sets"
+
     # URIs for VolumeGroup Snapshot Operations
     URI_VOLUME_GROUP_SNAPSHOT = "/volume-groups/block/{0}/protection/snapshots"
     URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE = URI_VOLUME_GROUP_SNAPSHOT + "/deactivate"
@@ -444,7 +445,36 @@ class VolumeGroup(object):
 
         o = common.json_decode(s)
         return o                            
-        
+
+    def volume_group_clone_get_sets(self, name):
+        volumeGroupUri = self.query_by_name(name)
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "GET",
+            VolumeGroup.URI_VOLUME_GROUP_CLONE_GET_COPY_SETS.format(volumeGroupUri), None)
+
+        o = common.json_decode(s)
+        return o
+
+    def volume_group_clone_get(self, name, setname):
+        volumeGroupUri = self.query_by_name(name)
+
+        request = dict()
+        request["copy_set_name"] = setname
+
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            VolumeGroup.URI_VOLUME_GROUP_CLONE_GET_COPY_SETS.format(volumeGroupUri), json.dumps(request))
+
+        o = common.json_decode(s)
+
+        if('volume' in o):
+            return o['volume']
+        else:
+            return []
+
     # Creates clone(s) for the given volume group
     def clone(self, name, clone_name, count, create_inactive, partial, volumeUris, sync):
         '''
@@ -1717,6 +1747,94 @@ def volume_group_clone_show(args):
                 e.err_text,
                 e.err_code)   
 
+
+# clone_get_sets_parser
+def clone_get_sets_parser(subcommand_parsers, common_parser):
+    clone_get_sets_parser = subcommand_parsers.add_parser(
+        'clone-get-sets',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get clone copy set names of a VolumeGroup',
+        description='ViPR Get Copy Set Names of a VolumeGroup CLI usage.')
+
+    mandatory_args = clone_get_sets_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    clone_get_sets_parser.set_defaults(func=volume_group_clone_get_sets)
+
+# Get Clone Sets Function
+def volume_group_clone_get_sets(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+        res= obj.volume_group_clone_get_sets(args.name)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Clone get sets: " +
+                args.name +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "clone",
+                "get sets",
+                e.err_text,
+                e.err_code)
+
+# clone_get_parser
+def clone_get_parser(subcommand_parsers, common_parser):
+    clone_get_parser = subcommand_parsers.add_parser(
+        'clone-get',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Get clones of a VolumeGroup by set name',
+        description='ViPR Get Clones of a VolumeGroup by Copy Set Name CLI usage.')
+
+    mandatory_args = clone_get_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of volume group',
+                                required=True)
+    clone_get_parser.add_argument('-setname', '-s',
+                              metavar='<setname>',
+                              dest='setname',
+                              help='Copy set name',
+                              required=True)
+    clone_get_parser.set_defaults(func=volume_group_clone_get)
+
+# Get Clones by Copy Set Name Function
+def volume_group_clone_get(args):
+    obj = VolumeGroup(args.ip, args.port)
+
+    try:
+        res= obj.volume_group_clone_get(args.name, args.setname)
+
+        return common.format_json_object(res)
+
+    except SOSError as e:
+        if (e.err_code == SOSError.SOS_FAILURE_ERR):
+            raise SOSError(
+                SOSError.SOS_FAILURE_ERR,
+                "Clones get" +
+                args.name + " with " + args.setname +
+                ", Failed\n" +
+                e.err_text)
+        else:
+            common.format_err_msg_and_raise(
+                "clone",
+                "get clones by set name",
+                e.err_text,
+                e.err_code)
+
 # volume group snapshot routines
 def snapshot_parser(subcommand_parsers, common_parser):
     snapshot_parser = subcommand_parsers.add_parser(
@@ -1962,7 +2080,7 @@ def snapshot_get_sets_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         help='Get copy set names of a VolumeGroup',
-        description='ViPR Get Copy Set Names of a VolumeGroup CLI usage.')
+        description='ViPR Get Snapshot Copy Set Names of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshot_get_sets_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
@@ -2572,6 +2690,12 @@ def volume_group_parser(parent_subparser, common_parser):
     
     # GET full-copy volume of a volume group command parser
     clone_show_parser(subcommand_parsers, common_parser)
+
+    # Get full-copy set names of a volume group command parser
+    clone_get_sets_parser(subcommand_parsers, common_parser)
+
+    # Get full-copy volumes with set name of a volume group command parser
+    clone_get_parser(subcommand_parsers, common_parser)
     
     #snapshot
     # snapshot create command parser

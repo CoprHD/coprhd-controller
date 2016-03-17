@@ -1232,8 +1232,7 @@ public class BlockStorageUtils {
             return true;
         }
 
-        StorageSystemRestRep storageSystem = execute(new GetStorageSystem(volume.getStorageController()));
-        return isVplexVolume(volume, storageSystem.getSystemType());
+        return isVplexVolume(volume, volume.getSystemType());
     }
 
     public static String stripRPTargetFromReplicationGroup(String group) {

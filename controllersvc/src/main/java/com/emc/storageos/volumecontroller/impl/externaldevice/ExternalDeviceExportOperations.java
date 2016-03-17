@@ -90,9 +90,8 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
             BlockStorageDriver driver = externalDevice.getDriver(storage.getSystemType());
             ExportMask exportMask = (ExportMask)dbClient.queryObject(exportMaskUri);
 
-            // Load export group from context
-            String stepId = taskCompleter.getOpId();
-            URI exportGroupUri = (URI)WorkflowService.getInstance().loadStepData(stepId);
+            // Get export group uri from task completer
+            URI exportGroupUri = taskCompleter.getId();
             ExportGroup exportGroup = (ExportGroup)dbClient.queryObject(exportGroupUri);
             Set<URI> volumeUris = new HashSet<>();
             for (VolumeURIHLU volumeURIHLU : volumeURIHLUs) {
@@ -413,10 +412,9 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 portList.add(URI.create(portUri));
             }
             log.info("Export mask existing storage ports: {} ", portList);
-
-            // Load export group from context
-            String stepId = taskCompleter.getOpId();
-            URI exportGroupUri = (URI)WorkflowService.getInstance().loadStepData(stepId);
+            
+            // Get export group uri from task completer
+            URI exportGroupUri = taskCompleter.getId();
             ExportGroup exportGroup = (ExportGroup)dbClient.queryObject(exportGroupUri);
             Set<URI> volumeUris = new HashSet<>();
             for (VolumeURIHLU volumeURIHLU : volumeURIHLUs) {

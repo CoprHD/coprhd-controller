@@ -69,6 +69,10 @@ public interface FatalBackupExceptions {
     public FatalBackupException failedToDeleteBackupFile(final String backupFile,
             final Throwable cause);
 
+    @DeclareServiceCode(ServiceCode.BACKUP_INTERNAL_ERROR)
+    public FatalBackupException failedToGetBackupSize(final String backupName,
+                                                      final Throwable cause);
+
     @DeclareServiceCode(ServiceCode.BACKUP_CONNECTION_FAILED)
     public FatalBackupException failedToGetHost(final String host, final Throwable cause);
 
@@ -120,4 +124,10 @@ public interface FatalBackupExceptions {
 
     @DeclareServiceCode(ServiceCode.BACKUP_DISABLED_AS_ON_STANDBY)
     public FatalBackupException forbidBackupOnStandbySite();
+
+    @DeclareServiceCode(ServiceCode.BACKUP_PULL_FAILED)
+    public FatalBackupException pullBackupFailed(final String backupName, final String details);
+
+    @DeclareServiceCode(ServiceCode.BACKUP_CONNECTION_FAILED)
+    public FatalBackupException externalBackupServerError(final String details);
 }

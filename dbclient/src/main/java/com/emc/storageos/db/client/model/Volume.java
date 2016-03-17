@@ -20,7 +20,6 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 
 /**
@@ -946,7 +945,13 @@ public class Volume extends BlockObject implements ProjectResource {
         return (storage != null && storage.checkIfVmax3());
     }
 
-    public static boolean isSRDFProtectedTargetVolume(Volume volume) {
+    /**
+     * Check whether the given volume is SRDF volume or not
+     * 
+     * @param volume
+     * @return boolean
+     */
+    public static boolean isSRDFProtectedVolume(Volume volume) {
         return (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent()) || null != volume.getSrdfTargets());
     }
 

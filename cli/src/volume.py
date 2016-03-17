@@ -882,7 +882,7 @@ class Volume(object):
     # Creates a volume given label, project, vpool and size
     def create(self, project, label, size, varray, vpool,
                protocol, sync, number_of_volumes, thin_provisioned,
-               consistencygroup,synctimeout):
+               consistencygroup,synctimeout=0):
         '''
         Makes REST API call to create volume under a project
         Parameters:
@@ -952,7 +952,7 @@ class Volume(object):
             return o
         
     #Routine to add additional journal capacity 
-    def rp_journal_create(self,consistencygroup, number_of_volumes ,label,project,  size, varray, vpool, sync,synctimeout):
+    def rp_journal_create(self,consistencygroup, number_of_volumes ,label,project,  size, varray, vpool, sync,synctimeout=0):
         '''
         Makes REST API call to create additional journal space under a project
         Parameters:
@@ -1296,7 +1296,7 @@ class Volume(object):
         self.isTimeout = True
 
     # Blocks the opertaion until the task is complete/error out/timeout
-    def check_for_sync(self, result, sync,synctimeout):
+    def check_for_sync(self, result, sync,synctimeout=0):
         if(sync):
             if(len(result["resource"]) > 0):
                 resource = result["resource"]
@@ -1409,7 +1409,7 @@ class Volume(object):
             storageresTypeName = None
         return (storageresType, storageresTypeName)
 
-    def volume_clone_restore(self, resourceUri, name, sync, synctimeout):
+    def volume_clone_restore(self, resourceUri, name, sync, synctimeout=0):
         
         volumeUri = self.volume_query(name)
         
@@ -1434,7 +1434,7 @@ class Volume(object):
         else:
             return o
         
-    def volume_clone_resync(self, resourceUri, name, sync, synctimeout):
+    def volume_clone_resync(self, resourceUri, name, sync, synctimeout=0):
         
         volumeUri = self.volume_query(name)
         
@@ -1459,7 +1459,7 @@ class Volume(object):
         else:
             return o   
  
-    def volume_clone_activate(self, resourceUri, name, sync, synctimeout):
+    def volume_clone_activate(self, resourceUri, name, sync, synctimeout=0):
         
         volumeUri = self.volume_query(name)
         
@@ -1484,7 +1484,7 @@ class Volume(object):
         else:
             return o 
 
-    def volume_clone_detach(self, resourceUri, name, sync, synctimeout):
+    def volume_clone_detach(self, resourceUri, name, sync, synctimeout=0):
         
         volumeUri = self.volume_query(name)
         
@@ -1528,7 +1528,7 @@ class Volume(object):
             return False
         
         
-    def volume_clone_deactivate(self, resourceUri, name, sync, synctimeout):
+    def volume_clone_deactivate(self, resourceUri, name, sync, synctimeout=0):
         
         volumeUri = self.volume_query(name)
         
@@ -1610,7 +1610,7 @@ class Volume(object):
         return o                            
         
      # Creates volume(s) from given source volume
-    def clone(self, new_vol_name, number_of_volumes, resourceUri, sync, synctimeout):
+    def clone(self, new_vol_name, number_of_volumes, resourceUri, sync, synctimeout=0):
         '''
         Makes REST API call to clone volume
         Parameters:

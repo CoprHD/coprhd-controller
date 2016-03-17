@@ -1419,9 +1419,10 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      * @param workflow
      * @param waitFor
      * @param cgURI
-     * @param volumeList
+     * @param volumeListToAdd
+     * @param replicationGroup
      * @param taskId
-     * @return
+     * @return Workflow step id
      * @throws InternalException
      */
     public String addStepsForAddingSessionsToCG(Workflow workflow, String waitFor, URI cgURI, List<URI> volumeListToAdd,
@@ -1429,7 +1430,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         log.info("addStepsForAddingVolumesToCG {}", cgURI);
         List<Volume> volumes = ControllerUtils.queryVolumesByIterativeQuery(_dbClient, volumeListToAdd);
 
-        if (volumes.isEmpty() || !ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)) {
+        if (volumes.isEmpty()
+                || !ControllerUtils.isVmaxVolumeUsing803SMIS(volumes.get(0), _dbClient)
+                || !volumes.get(0).isVmax3Volume(_dbClient)) {
             return waitFor;
         }
 

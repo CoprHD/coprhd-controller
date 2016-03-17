@@ -48,7 +48,6 @@ class VolumeGroup(object):
     
     # URIs for VolumeGroup Snapshot Operations
     URI_VOLUME_GROUP_SNAPSHOT = "/volume-groups/block/{0}/protection/snapshots"
-    URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE = URI_VOLUME_GROUP_SNAPSHOT + "/activate"
     URI_VOLUME_GROUP_SNAPSHOT_DEACTIVATE = URI_VOLUME_GROUP_SNAPSHOT + "/deactivate"
     URI_VOLUME_GROUP_SNAPSHOT_RESTORE = URI_VOLUME_GROUP_SNAPSHOT + "/restore"
     URI_VOLUME_GROUP_SNAPSHOT_RESYNCHRONIZE = URI_VOLUME_GROUP_SNAPSHOT + "/resynchronize"
@@ -498,11 +497,11 @@ class VolumeGroup(object):
         Makes REST API call to create volume group snapshot
         Parameters:
             name: name with which snapshot to be created
-            create_inactive: with this flag, created snapshot will not be activated
+            readonly: with this flag, created snapshot will be read only.
             partial: Enable the flag to create snapshot for subset of VolumeGroup.
-                     Please specify one volume from each Array Replication Group
+                     Please specify one volume from each Array Replication Group.
             volumes: A list of volumes specifying their Array Replication Groups.
-                    This field is valid only when partial flag is provided
+                    This field is valid only when partial flag is provided.
         Returns:
             response of the create operation
         '''
@@ -623,7 +622,7 @@ class VolumeGroup(object):
 
     def volume_group_snapshot_operation(self, name, snapshots, partial, uri):
         '''
-        Makes REST API call to activate/deactivate/restore/resync volume group snapshot
+        Makes REST API call to deactivate/restore/resync volume group snapshot
         Parameters:
             partial: Enable the flag to operate on snapshots for subset of VolumeGroup.
                      Please specify one snapshot from each Array Replication Group
@@ -1816,23 +1815,6 @@ def volume_group_snapshot_operation(args, operation, uri):
                 e.err_text,
                 e.err_code)
 
-# snapshot_activate_parser
-def snapshot_activate_parser(subcommand_parsers, common_parser):
-    snapshot_activate_parser = subcommand_parsers.add_parser(
-        'snapshot-activate',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Activate snapshot of a VolumeGroup',
-        description='ViPR Activate Snapshot of a VolumeGroup CLI usage.')
-
-    # Add parameter from common snapshot parser.
-    volume_group_snapshot_common_parser(snapshot_activate_parser)
-    snapshot_activate_parser.set_defaults(func=volume_group_snapshot_activate)
-
-# Activate Snapshot Function
-def volume_group_snapshot_activate(args):
-    volume_group_snapshot_operation(args, "activate", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_ACTIVATE)
-
 # snapshot_deactivate_parser
 def snapshot_deactivate_parser(subcommand_parsers, common_parser):
     snapshot_deactivate_parser = subcommand_parsers.add_parser(
@@ -2594,9 +2576,6 @@ def volume_group_parser(parent_subparser, common_parser):
     #snapshot
     # snapshot create command parser
     snapshot_parser(subcommand_parsers, common_parser)
-
-    # snapshot activate command parser
-    snapshot_activate_parser(subcommand_parsers, common_parser)
 
     # snapshot deactivate command parser
     snapshot_deactivate_parser(subcommand_parsers, common_parser)

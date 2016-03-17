@@ -15,8 +15,8 @@ def emc_coprhd_blockdeviceapi_for_test(test_case=None):
 
 
 class EMCCoprHDBlockDeviceAPIImplementationTests(SynchronousTestCase):
-      global block_device_api
-      block_device_api = emc_coprhd_blockdeviceapi_for_test()
+      global block_device_api,cli_obj
+      block_device_api,cli_obj = emc_coprhd_blockdeviceapi_for_test()
       global id
       id ='85b3ca5e-d8d9-4333-8f4b-894df979be4f'
       def test_list_volumes(self):
@@ -29,6 +29,75 @@ class EMCCoprHDBlockDeviceAPIImplementationTests(SynchronousTestCase):
              volumes = block_device_api.list_volumes()
              self.assertIsNotNone(volumes,msg='Volumes are available')
              return volumes
+          except Exception as e:
+             traceback.print_exc()
+             self.fail(e.message)
+
+      def test_create_project(self):
+          '''
+          Creates a project , Using coprhd cli method create_project
+          '''
+          name='test-project'
+          try:
+             project = cli_obj.create_project(name)
+             print project
+          except Exception as e:
+             traceback.print_exc()
+             self.fail(e.message)
+
+      def test_create_export_group(self):
+          '''
+          Creates an Export Group
+          '''
+          name = '10.110.110.119'
+          exportgrouptype = 'Host'
+          try:
+             export_group = cli_obj.create_export_group(name,exportgrouptype)
+             print export_group
+          except Exception as e:
+             traceback.print_exc()
+             self.fail(e.message)
+       
+      def test_create_host(self):
+          '''
+          Creates a Host Using coprhd cli 
+          '''
+          name = 'test-host'
+          label = 'test-host'
+          hosttype = "Windows"
+          
+          try:
+             create_host = cli_obj.create_host(name,label,hosttype)
+          
+          except Exception as e:
+             traceback.print_exc()
+             self.fail(e.message)
+      
+      def test_add_initiator(self):
+          '''
+          Add Initiator to the Host(test-host) , Assuming host was created before calling this method 
+          '''
+          sync = False
+          hostlabel = 'test-host'
+          protocol = 'iSCSI'
+          initiatorwwn = None
+          portwwn = None
+
+          try:
+             create_initiator = cli_obj.add_initiators(sync, hostlabel, protocol, initiatorwwn, portwwn)
+
+          except Exception as e:
+             traceback.print_exc()
+             self.fail(e.message)
+
+      def test_create_network(self):
+          '''
+          Create a network using coprhd cli API
+          '''
+          name = 'test-network'
+          nwtype = 'IP'
+          try:
+             create_network = cli_obj.create_network(name,nwtype) 
           except Exception as e:
              traceback.print_exc()
              self.fail(e.message)

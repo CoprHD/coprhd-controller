@@ -1,7 +1,7 @@
 #from coprhd_blockdevice import configuration
 import os
 import yaml
-from coprhd_flocker_plugin.coprhd_blockdevice import configuration
+from coprhd_flocker_plugin.coprhd_blockdevice import configuration,CoprHDCLIDriver
 
 def _read_coprhd_yaml():
     '''
@@ -33,7 +33,8 @@ def coprhd_client_for_test():
     hostexportgroup = dataset['hostexportgroup']
     
     config = configuration(coprhdhost, port, username, password, tenant,project, varray, cookiedir, vpool, hostexportgroup)
-    return config
+    cli_obj = CoprHDCLIDriver(coprhdhost,port, username, password, tenant,project, varray, cookiedir, vpool, hostexportgroup)
+    return config,cli_obj
 
 #coprhd_client_for_test()
 def tidy_coprhd_client_for_test(test_case):
@@ -41,6 +42,6 @@ def tidy_coprhd_client_for_test(test_case):
     This Method calls coprhd_client_for_test for CoprHD Plugin API 
     Returns API of CoprHD Plugin
     '''
-    client = coprhd_client_for_test()
-    return client
+    client,cli= coprhd_client_for_test()
+    return client,cli
 

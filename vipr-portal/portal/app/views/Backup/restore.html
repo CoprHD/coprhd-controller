@@ -89,7 +89,7 @@
 
         type = "${type}";
         REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
-        if (type == REMOTE) {
+        if (type == REMOTE && "${status.status}" != "DOWNLOAD_SUCCESS") {
             $("#restoreBtn").prop("disabled", true);
             checkPullStatusUpdates();
         }

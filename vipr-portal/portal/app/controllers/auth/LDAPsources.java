@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.model.AuthnProvider;
 
 import models.SearchScopes;
@@ -83,7 +84,10 @@ public class LDAPsources extends ViprResourceController {
     public static final String EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT = AuthnProvider.getExpectedGeoVDCVersionForLDAPGroupSupport();
     private static final String[] DEFAULT_GROUP_OBJECT_CLASSES = { "groupOfNames", "groupOfUniqueNames", "posixGroup", "organizationalRole" };
     private static final String[] DEFAULT_GROUP_MEMBER_ATTRIBUTES = { "member", "uniqueMember", "memberUid", "roleOccupant" };
-
+    private static final String KEYSTONE_SERVER_URL = CinderConstants.HTTP_URL + "[IP Address]" + CinderConstants.COLON
+            + CinderConstants.OS_ADMIN_PORT
+            + CinderConstants.REST_API_VERSION_2;
+    
     //
     // Add reference data so that they can be reference in html template
     //
@@ -96,7 +100,7 @@ public class LDAPsources extends ViprResourceController {
 
         renderArgs.put("ldapType", AuthSourceType.ldap);
         renderArgs.put("keyStoneType", AuthSourceType.keystone);
-
+        renderArgs.put("keystoneServerURL", KEYSTONE_SERVER_URL);
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
 
         renderArgs.put("showLdapGroup", VCenterUtils.checkCompatibleVDCVersion(EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT));

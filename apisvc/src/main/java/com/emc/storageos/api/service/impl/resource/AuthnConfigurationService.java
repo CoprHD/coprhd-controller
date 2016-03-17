@@ -384,9 +384,9 @@ public class AuthnConfigurationService extends TaggedResource {
 
         // Checks whether url should point to cinderv2 or to cinder service.
         if(isCinderv2){
-            url = CinderConstants.HTTP_URL + clusterVIP + CinderConstants.COPRHD_URL_V2;
+            url = CinderConstants.HTTPS_URL + clusterVIP + CinderConstants.COPRHD_URL_V2;
         }else{
-            url = CinderConstants.HTTP_URL + clusterVIP + CinderConstants.COPRHD_URL_V1;
+            url = CinderConstants.HTTPS_URL + clusterVIP + CinderConstants.COPRHD_URL_V1;
         }
 
         EndpointV2 endpoint = new EndpointV2();

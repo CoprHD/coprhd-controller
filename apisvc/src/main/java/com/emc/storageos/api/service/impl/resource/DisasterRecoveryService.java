@@ -54,6 +54,7 @@ import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.client.model.SiteMonitorResult;
 import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
@@ -1440,8 +1441,14 @@ public class DisasterRecoveryService {
         if (networkState.getNetworkHealth() == NetworkHealth.BROKEN) {
             return null;
         }
+        
         if (site.getState() == SiteState.STANDBY_PAUSED) {
             return new Date(site.getLastStateUpdateTime());
+        } 
+
+        SiteMonitorResult monitorResult = coordinator.getTargetInfo(site.getUuid(), SiteMonitorResult.class);
+        if (monitorResult != null && monitorResult.getDbQuorumLostSince() > 0) {
+            return new Date(monitorResult.getDbQuorumLostSince());
         } else if (site.getState() == SiteState.STANDBY_DEGRADED) {
             return new Date(site.getLastLostQuorumTime());
         }
@@ -1467,7 +1474,8 @@ public class DisasterRecoveryService {
             Site standby = drUtil.getSiteFromLocalVdc(uuid);
 
             standbyDetails.setCreationTime(new Date(standby.getCreationTime()));
-            standbyDetails.setNetworkLatencyInMs(drUtil.getSiteNetworkState(uuid).getNetworkLatencyInMs());
+            Double latency = drUtil.getSiteNetworkState(uuid).getNetworkLatencyInMs();
+            standbyDetails.setNetworkLatencyInMs(latency);
             Date lastSyncTime = getLastSyncTime(standby);
             if (lastSyncTime != null) {
                 standbyDetails.setLastSyncTime(lastSyncTime);

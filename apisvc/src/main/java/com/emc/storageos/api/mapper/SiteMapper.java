@@ -28,10 +28,16 @@ public class SiteMapper {
         }
         SiteRestRep to = new SiteRestRep();
         map(from, to);
-        NetworkHealth networkHealth = drUtil.getSiteNetworkState(from.getUuid()).getNetworkHealth();
-        if ( networkHealth != null ) {
-            to.setNetworkHealth(networkHealth.toString());
+        if (drUtil.isSiteUp(from.getUuid())) {
+            NetworkHealth networkHealth = drUtil.getSiteNetworkState(from.getUuid()).getNetworkHealth();
+            if ( networkHealth != null ) {
+                to.setNetworkHealth(networkHealth.toString());
+            }
+        } else {
+            // Set it as broken if we cannot see this beacons of this site
+            to.setNetworkHealth(NetworkHealth.BROKEN.toString());
         }
+        
         return to;
     }
     

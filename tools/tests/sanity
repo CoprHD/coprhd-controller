@@ -7483,6 +7483,8 @@ dr_basic_tests()
     project show ${projectid_new}
 
     echo "---PREPARING STANDBY_DEGRADED TEST---"
+    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
     tune_dr_config ${DR_SITE_A_IP} degrade_standby_threshold_millis 0
     stop_vdc_services "$DR_SITE_B_IP"
     BOURNE_IPADDR=$DR_SITE_A_IP
@@ -7500,8 +7502,6 @@ dr_basic_tests()
     # wait both active and standby to be stable, ready to do switchover
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     # there's no point in updating the property on both active and standby since they are shared
-    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
-    dr waitforstable 10 600
     BOURNE_IPADDR=$DR_SITE_B_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
     dr waitforstable 10 600

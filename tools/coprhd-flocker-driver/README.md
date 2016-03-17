@@ -6,8 +6,35 @@ The plugin for COPRHD Flocker integration.
 ClusterHQ/Flocker provides an efficient and easy way to connect persistent store with Docker containers. This project provides a plugin to provision resillient storage from COPRHD.
 
 ## COPRHD Flocker Intergration Block Diagram
-![COPRHD Flocker Intergration Block Diagram Missing] 
-(to be updated)
+
+
+
+Tested the coprHD
+1.	 Ubuntu – 14.04.03 – LTS 
+2.	Flocker – 1.10.2
+3.	Docker – 1.10.1 - build 9e83765
+4.	2 Node setup
+
+
+
+Pre-requsities
+---------------
+
+1. Install scsi tools
+
+sudo apt-get update
+sudo apt-get install -y open-iscsi
+sudo apt-get install -y lsscsi
+sudo apt-get -y install scsitools
+
+2. Install ClusterHQ/Flocker
+Refer to ubuntu install notes -> https://docs.clusterhq.com/en/0.4.0/
+
+3. Install EMC Plugin 
+
+git clone https://github.com/emccode/flocker-drivers
+cd copr-hd
+sudo /opt/flocker/bin/python setup.py install
 
 ## Usage Instructions
 To start the plugin on a node, a configuration file must exist on the node at /etc/flocker/agent.yml.
@@ -34,11 +61,12 @@ dataset:
 A sample vagrant environment help 
 Please refer to ClusterHQ/Flocker documentation for usage. A sample deployment and application can be found at to be updated
 
-Tested the coprHD
-1.	 Ubuntu – 14.04.03 – LTS 
-2.	Flocker – 1.10.2
-3.	Docker – 1.10.1 - build 9e83765
-4.	2 Node setup
+
+
+
+
+
+
 
 The below test case have been tested 
 

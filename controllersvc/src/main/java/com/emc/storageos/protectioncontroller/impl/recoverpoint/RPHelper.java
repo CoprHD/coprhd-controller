@@ -1951,15 +1951,17 @@ public class RPHelper {
     }
 
     /**
+     * Generates a RecoverPoint ExportGroup name based on the standard
+     * ViPR RecoverPoint ExportGroup label pattern.
      * 
-     * @param protectionSystem
-     * @param storageSystem
-     * @param internalSiteName
-     * @param virtualArray
-     * @return
+     * @param protectionSystem the ProtectionSystem for the ExportGroup
+     * @param storageSystem the StorageSystem for the ExportGroup
+     * @param internalSiteName the RecoverPoint internal site name
+     * @param virtualArray the VirtualArray for the ExportGroup
+     * @return a RecoverPoint ExportGroup name String
      */
-    public static String generateExportGroupName(ProtectionSystem protectionSystem, StorageSystem storageSystem, String internalSiteName,
-            VirtualArray virtualArray) {
+    public static String generateExportGroupName(ProtectionSystem protectionSystem, 
+            StorageSystem storageSystem, String internalSiteName, VirtualArray virtualArray) {
         // This name generation needs to match ingestion code found in RPDeviceController until
         // we come up with better export group matching criteria.
         String protectionSiteName = protectionSystem.getRpSiteNames().get(internalSiteName);

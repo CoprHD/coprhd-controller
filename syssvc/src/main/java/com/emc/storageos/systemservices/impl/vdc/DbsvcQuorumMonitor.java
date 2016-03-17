@@ -171,8 +171,6 @@ public class DbsvcQuorumMonitor implements Runnable {
                     drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_REJOIN_STANDBY, vdcVersion);
                 }
 
-                drUtil.recordDrOperationStatus(standbySite.getUuid(), SiteState.STANDBY_REJOINING);
-
                 // Update version on other connected standby sites if any
                 for (Site site : drUtil.listSites()) {
                     if (site.equals(standbySite) ||

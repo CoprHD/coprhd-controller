@@ -620,6 +620,7 @@ public abstract class VdcOpHandler {
                         log.info("Setting local site {} to STANDBY_SYNCING", localSite.getUuid());
                         localSite.setState(SiteState.STANDBY_SYNCING);
                         coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
+                        drUtil.recordDrOperationStatus(localSite.getUuid(), SiteState.STANDBY_REJOINING);
                     }
                 } finally {
                     try {

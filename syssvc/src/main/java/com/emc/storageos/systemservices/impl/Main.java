@@ -16,7 +16,6 @@ public class Main {
     private static final Logger _log = LoggerFactory.getLogger(Main.class);
     private static final String BUILD_TYPE = "buildType";
     private static final String SERVICE_BEAN = "syssvcserver";
-    private static final String IPSEC_MONITOR_BEAN = "ipsecMonitor";
     private static final String IPSEC_ROTATE_BEAN = "ipsecInitialRotate";
 
     public static void main(String[] args) {

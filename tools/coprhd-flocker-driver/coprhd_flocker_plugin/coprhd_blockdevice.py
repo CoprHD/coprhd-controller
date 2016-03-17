@@ -439,71 +439,31 @@ class CoprHDBlockDeviceAPI(object):
             - Possibly creation of new volumes
         :return:none
         """
-        channel_number = self._get_channel_number()
-        # Check for error condition
-        if channel_number < 0:
-            Message.new(error="iSCSI login not done for coprhd bailing out").write(_logger)
-            raise DeviceException
-        else:
-            check_output(["rescan-scsi-bus", "-r", "-c", channel_number])
+        check_output([b"rescan-scsi-bus", "-r", "-c"])
 
-    def _get_channel_number(self):
-        """
-        Query scsi to get channel number of coprhd devices.
-        Right now it supports only one coprhd connected array
-        :return: channel number
-        """
-        output = check_output([b"/usr/bin/lsscsi"])
-        # lsscsi gives output in the following form:
-        # [0:0:0:0]    disk    ATA      ST91000640NS     SN03  /dev/sdp
-        # [1:0:0:0]    disk    DGC      LUNZ             0532  /dev/sdb
-        # [1:0:1:0]    disk    DGC      LUNZ             0532  /dev/sdc
-        # [8:0:0:0]    disk    MSFT     Virtual HD       6.3   /dev/sdd
-        # [9:0:0:0]    disk    VRAID    VRAID            2400  /dev/sde
-
-        # We shall parse the output above and to give out channel number
-        # as 9
-        for row in output.split('\n'):
-            if re.search(r'VRAID', row, re.I):
-                channel_row = re.search('\d+', row)
-                if channel_row:
-                    channel_number = channel_row.group()
-                    return channel_number
-
-        # Did not find channel number of coprhd
-        # The number cannot be negative
-        return -1
-        
     def get_device_path(self, blockdevice_id):
         """
         :param blockdevice_id:
         :return:the device path
         """
-        dataset_id = UUID(blockdevice_id[6:])
-        # Query LunID from CoprHD
-        lunid = self.coprhdcli.get_volume_lunid("flocker-{}".format(dataset_id))
-        output = check_output([b"/usr/bin/lsscsi"])
-        #[1:0:0:0]    cd/dvd  NECVMWar VMware IDE CDR10 1.00  /dev/sr0
-        #[2:0:0:0]    disk    VMware   Virtual disk     1.0   /dev/sda
-        #[3:0:0:0]    disk    DGC      LUNZ             0533  /dev/sdb
-        #[4:0:0:0]    disk    DGC      VRAID            0533  /dev/sdc
-        #[4:0:0:1]    disk    DGC      VRAID            0533  /dev/sdd
-        #[4:0:0:2]    disk    DGC      VRAID            0533  /dev/sde
-        #[4:0:0:3]    disk    DGC      VRAID            0533  /dev/sdf
-        #[4:0:0:4]    disk    DGC      VRAID            0533  /dev/sdg
-        #[4:0:0:5]    disk    DGC      VRAID            0533  /dev/sdh
-        #[4:0:0:6]    disk    DGC      VRAID            0533  /dev/sdi
-        #[4:0:0:7]    disk    DGC      VRAID            0533  /dev/sdj
+        #[1:0:0:0]    cd/dvd                                  /dev/sr0
+        #[2:0:0:0]    disk                                    /dev/sda
+        #[3:0:0:0]    disk    0x600601608d2037004fb79f66c1e5e  /dev/sdb
+        #[3:0:0:3]    disk    0x600601608d20370029ab9a2b1acfe  /dev/sde
+        #[4:0:0:0]    disk                                    /dev/sdc
+        #[4:0:0:3]    disk                                    /dev/sdd
 
-        # We shall parse the output above and give out path /dev/sde as in
-        # this case
+        dataset_id = UUID(blockdevice_id[6:])
+        # Query WWN from CoprHD
+        wwn = self.coprhdcli.get_volume_wwn("flocker-{}".format(dataset_id))
+        wwn = wwn[:len(wwn)-3]
+        output = check_output([b"lsscsi","--wwn"])
         for row in output.split('\n'):
-            if re.search(r'VRAID', row, re.I):
-                if re.search(r'\d:\d:\d:' + str(lunid), row, re.I):
+            if re.search(r'0x', row, re.I):
+                if re.search(str(wwn), row, re.I):
                     device_name = re.findall(r'/\w+', row, re.I)
                     if device_name:
                         return FilePath(device_name[0] + device_name[1])
-
         raise UnknownVolume(blockdevice_id)
         
     def resize_volume(self, blockdevice_id, size):

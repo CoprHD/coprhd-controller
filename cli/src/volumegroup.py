@@ -44,7 +44,7 @@ class VolumeGroup(object):
     URI_VOLUME_GROUP_CLONE_RESTORE = "/volume-groups/block/{0}/protection/full-copies/restore"
     URI_VOLUME_GROUP_CLONE_RESYNCRONIZE = "/volume-groups/block/{0}/protection/full-copies/resynchronize"
     URI_VOLUME_GROUP_CLONE_LIST = URI_VOLUME_GROUP_CLONE
-    URI_VOLUME_GROUP_CLONE_GET= "/volume-groups/block/{0}/protection/full-copies/{1}"
+    URI_VOLUME_GROUP_CLONE_SHOW= "/volume-groups/block/{0}/protection/full-copies/{1}"
     
     # URIs for VolumeGroup Snapshot Operations
     URI_VOLUME_GROUP_SNAPSHOT = "/volume-groups/block/{0}/protection/snapshots"
@@ -433,14 +433,14 @@ class VolumeGroup(object):
         o = common.json_decode(s)
         return o      
     
-    def volume_group_clone_get(self, name, cloneURI):
+    def volume_group_clone_show(self, name, cloneURI):
         
         volumeGroupUri = self.query_by_name(name)
         
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "GET",
-            VolumeGroup.URI_VOLUME_GROUP_CLONE_GET.format(volumeGroupUri, cloneURI), None)
+            VolumeGroup.URI_VOLUME_GROUP_CLONE_SHOW.format(volumeGroupUri, cloneURI), None)
 
         o = common.json_decode(s)
         return o                            
@@ -1686,10 +1686,10 @@ def clone_show_parser(subcommand_parsers, common_parser):
     
     # Add parameter from common clone parser.
     volume_clone_show_parser(clone_show_parser)
-    clone_show_parser.set_defaults(func=volume_group_clone_get)
+    clone_show_parser.set_defaults(func=volume_group_clone_show)
     
 # Get Clone Function
-def volume_group_clone_get(args):
+def volume_group_clone_show(args):
     obj = VolumeGroup(args.ip, args.port)
     if(not args.tenant):
         args.tenant = ""
@@ -1697,7 +1697,7 @@ def volume_group_clone_get(args):
     try:
         vol = Volume(args.ip, args.port)
         cloneURI = vol.volume_query(args.tenant + "/" + args.project + "/" + args.clone)
-        res= obj.volume_group_clone_get(args.name,
+        res= obj.volume_group_clone_show(args.name,
             cloneURI)
         
         return common.format_json_object(res)

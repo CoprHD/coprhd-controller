@@ -858,6 +858,31 @@ class VolumeGroup(object):
         o = common.json_decode(s)
         return o
 
+    # relink target
+    def snapshotsession_relink(self, name, snapsession_label, target_names, partial):
+        volume_group_uri = self.query_by_name(name)
+        snapshotsession_uri = self.query_snapshotsession_uri_by_name(name, snapsession_label)
+
+        request = dict()
+        request["snapshot_sessions"] = [ snapshotsession_uri ]
+
+        target_ids = self.query_snapshot_uris_by_names(name, target_names)
+        request["ids"] = target_ids
+
+        # if partial request
+        if (partial):
+            request["partial"] = partial
+
+        body = json.dumps(request)
+
+        # REST api call
+        (s, h) = common.service_json_request(
+            self.__ipAddr, self.__port,
+            "POST",
+            VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_RELINK.format(volume_group_uri), body)
+        o = common.json_decode(s)
+        return o
+
     # Blocks the operation until the task is complete/error out/timeout
     def check_for_sync(self, result, sync):
         if(sync):
@@ -2316,13 +2341,36 @@ def snapshotsession_relink_parser(subcommand_parsers, common_parser):
         help='Relink snapshot session of a VolumeGroup',
         description='ViPR Relink Snapshot Session of a VolumeGroup CLI usage.')
 
+    snapshotsession_relink_parser.add_argument('-snapshotsessionname', '-sn',
+                                metavar='<snapshotsessionname>',
+                                dest='snapshotsessionname',
+                                help='Name of Snapshot Session',
+                                required=True)
+    snapshotsession_relink_parser.add_argument('-targetvolumes', '-tgnames',
+                               dest='target_names', nargs='+',
+                               help='List of target volumes',
+                               required=True)
+
     # Add parameter from common snapshot session parser.
     volume_group_snapshotsession_common_parser(snapshotsession_relink_parser)
     snapshotsession_relink_parser.set_defaults(func=volume_group_snapshotsession_relink)
 
 # Relink Snapshot Session Function
 def volume_group_snapshotsession_relink(args):
-    volume_group_snapshotsession_operation(args, "relink", VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION_RELINK)
+    obj = VolumeGroup(args.ip, args.port)
+    if(not args.tenant):
+        args.tenant = ""
+
+    try:
+        obj.snapshotsession_relink(args.name, args.snapshotsessionname, args.target_names, args.partial)
+        return
+
+    except SOSError as e:
+        common.format_err_msg_and_raise(
+            "snapshot session",
+            "link",
+            e.err_text,
+            e.err_code)
 
 # snapshotsession_unlink_parser
 def snapshotsession_unlink_parser(subcommand_parsers, common_parser):

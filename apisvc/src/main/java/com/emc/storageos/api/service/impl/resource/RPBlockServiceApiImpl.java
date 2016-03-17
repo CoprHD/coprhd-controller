@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -2940,24 +2941,38 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         // If we're deleting the last volume, we can delete the ProtectionSet object.
+        // This list of volumes may contain volumes from many protection sets
         Set<URI> volumesToDelete = _rpHelper.getVolumesToDelete(sourceVolumeURIs);
-        Set<URI> psetsDeleted = new HashSet<URI>();
-        for (URI sourceVolumeURI : sourceVolumeURIs) {
-            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-            if (sourceVolume.getProtectionSet() != null) {
-                ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet().getURI());
-                if (!psetsDeleted.contains(sourceVolume.getProtectionSet().getURI()) &&
-                        volumesToDelete.size() == pset.getVolumes().size()) {
-                    _dbClient.markForDeletion(pset);
-                    psetsDeleted.add(sourceVolume.getProtectionSet().getURI());
-                } else if (volumesToDelete.size() != pset.getVolumes().size()) {
-                    // For debugging: log conditions that caused us to not delete the protection set
-                    _log.info(String
-                            .format("Not deleting protection %s because there are %d volumes to delete in the request, however there are %d volumes in the pset",
-                                    pset.getLabel(),
-                                    _rpHelper.getVolumesToDelete(sourceVolumeURIs).size(),
-                                    pset.getVolumes().size()));
+        Map<URI, Set<URI>> psetToVolumesToDelete = new HashMap<URI, Set<URI>>();
+        
+        // Group volumes to delete by their protectionsets
+        for (URI volumeURI : volumesToDelete) {
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            if (volume.getProtectionSet() != null) {
+                ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, volume.getProtectionSet().getURI());
+                if (psetToVolumesToDelete.get(pset.getId()) == null) {
+                    psetToVolumesToDelete.put(pset.getId(), new HashSet<URI>());
                 }
+                psetToVolumesToDelete.get(pset.getId()).add(volumeURI);
+            }
+        }
+
+        // Go through all protection sets and verify we have all of the volumes accounted for
+        // and delete the protection set if necessary.  Log otherwise.
+        Set<URI> psetsDeleted = new HashSet<URI>();
+        for (Entry<URI, Set<URI>> psetVolumeEntry : psetToVolumesToDelete.entrySet()) {
+            ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, psetVolumeEntry.getKey());
+            if (pset != null && !psetsDeleted.contains(pset.getId()) &&
+                psetVolumeEntry.getValue().size() == pset.getVolumes().size()) {
+                _dbClient.markForDeletion(pset);
+                psetsDeleted.add(pset.getId());
+            } else if (volumesToDelete.size() != pset.getVolumes().size()) {
+                // For debugging: log conditions that caused us to not delete the protection set
+                _log.info(String
+                        .format("Not deleting protection %s because there are %d volumes to delete in the request, however there are %d volumes in the pset",
+                                pset.getLabel(),
+                                _rpHelper.getVolumesToDelete(sourceVolumeURIs).size(),
+                                pset.getVolumes().size()));
             }
         }
     }

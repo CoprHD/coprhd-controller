@@ -36,6 +36,11 @@ git clone https://github.com/emccode/flocker-drivers
 cd copr-hd
 sudo /opt/flocker/bin/python setup.py install
 
+4. Install vipr-cli 2.4 or above
+
+Refer the below link for more information
+http://www.emc.com/collateral/TechnicalDocument/docu62079.pdf
+
 ## Usage Instructions
 To start the plugin on a node, a configuration file must exist on the node at /etc/flocker/agent.yml.
 ```bash
@@ -94,32 +99,32 @@ Debug:
 ```
    python encrypt_password.py -user <vipruser> -password <viprpassword>
             -securityfile <filepath where encrypted security is stored>
-               -cinderuser <User account which runs the cinder service>
+               -coprhduser <User account which runs the coprhd service>
 ```
 * The security file generation can be done in two ways
    1. The admin can login as root user and then run the above command to
       generate a security file at a location, which is accessible to only
-      "cinder" user account.
+      "coprhd" user account.
 
                         OR
 
    2. Login as the root user and then open /etc/passwd and then go to the
-      entry named cinder.
+      entry named coprhd.
 
       Change the last entry from /sbin/nologin to /bin/bash and you will 
-      be able to run commands through the account "cinder"
+      be able to run commands through the account "coprhd"
 
       Make sure that the encrypt_password.py is placed in a location, which
-      has permission for cinder user and run the below command and run the
+      has permission for coprhd user and run the below command and run the
       below command
 
       ```
-       su -l cinder -c "python <appropriatefolder>/encrypt_password.py 
+       su -l coprhd -c "python <appropriatefolder>/encrypt_password.py 
                               -user <vipruser> -password <viprpassword> 
             -securityfile <filepath_where_encrypted_security_is_stored> 
-               -cinderuser <User_account_which_runs_the_cinder_service>"
+               -coprhduser <User_account_which_runs_the_coprhd_service>"
       ```
-* open /etc/cinder/cinder.conf and make following changes
+* open /etc/coprhd/coprhd.conf and make following changes
    ```
    vipr_security_file=<filepath_where_encrypted_security_is_stored>
    ```

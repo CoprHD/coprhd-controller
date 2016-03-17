@@ -6,7 +6,9 @@ package controllers;
 
 import static controllers.Common.flashException;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.emc.vipr.model.sys.backup.BackupRestoreStatus;
 import com.emc.vipr.model.sys.backup.BackupInfo;
@@ -15,6 +17,8 @@ import models.datatable.BackupDataTable.Type;
 
 import org.apache.commons.lang.StringUtils;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import play.data.binding.As;
 import play.data.validation.Required;
 import play.data.validation.Validation;
@@ -40,6 +44,7 @@ import controllers.util.FlashException;
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class Backup extends Controller {
+    private static final Logger log = LoggerFactory.getLogger(Backup.class);
 
     protected static final String SAVED_SUCCESS = "backup.save.success";
     protected static final String DELETED_SUCCESS = "backup.delete.success";
@@ -62,15 +67,22 @@ public class Backup extends Controller {
         renderJSON(DataTablesSupport.createJSON(backups, params));
     }
 
+    /**
+     * Get local backup info
+     * @param ids
+     */
     @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("SYSTEM_MONITOR"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void itemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
-                    BackupSet backup = BackupUtils.getBackup(id);
-                    if (backup != null) {
-                        results.add(new BackupDataTable.Backup(backup));
+                    BackupSet backupSet = BackupUtils.getBackup(id);
+                    if (backupSet != null) {
+                        BackupDataTable.Backup backup = new BackupDataTable.Backup(backupSet);
+                        BackupRestoreStatus restoreStatus = BackupUtils.getRestoreStatus(id, true);
+                        backup.alterLocalBackupRestoreStatus(restoreStatus);
+                        results.add(backup);
                     }
                 }
             }
@@ -78,20 +90,42 @@ public class Backup extends Controller {
         renderJSON(results);
     }
 
+    /**
+     * Only get the remote backup info
+     * @param ids
+     */
     public static void externalItemsJson(@As(",") String[] ids) {
         List<BackupDataTable.Backup> results = Lists.newArrayList();
         if (ids != null) {
             for (String id : ids) {
                 if (StringUtils.isNotBlank(id)) {
                     BackupInfo backupInfo = BackupUtils.getExternalBackup(id);
-                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id);
-                    if (backupInfo.getCreateTime() != 0) {
-                        backup.creationtime = backupInfo.getCreateTime();
-                    }
-                    backup.status = backupInfo.getRestoreStatus().getStatus().name();
+                    BackupDataTable.Backup backup = new BackupDataTable.Backup(id, false);
+                    backup.creationtime = backupInfo.getCreateTime();
                     results.add(backup);
                 }
             }
+        }
+        renderJSON(results);
+    }
+
+    /**
+     * Only get the remote restore status
+     * @param ids
+     */
+    public static void externalStatusJson(@As(",") String[] ids) {
+        List<BackupDataTable.Backup> results = Lists.newArrayList();
+        for (String id : ids) {
+            if (StringUtils.isNotBlank(id)) {
+                BackupDataTable.Backup backup = new BackupDataTable.Backup(id, false);
+                BackupRestoreStatus restoreStatus = BackupUtils.getRestoreStatus(id, false);
+                backup.status = restoreStatus.getStatus().name();
+                if (restoreStatus.getStatus() == BackupRestoreStatus.Status.RESTORE_FAILED) {
+                    backup.error = restoreStatus.getDetails();
+                }
+                results.add(backup);
+            }
+
         }
         renderJSON(results);
     }
@@ -156,15 +190,16 @@ public class Backup extends Controller {
     }
 
     public static void restore(String id, Type type) {
-        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
-        renderArgs.put("status", status);
-        renderArgs.put("id", id);
-        renderArgs.put("type", type);
-
         if (type == Type.REMOTE) { // pull first if remote backup set
             BackupUtils.pullBackup(id);
         }
-        
+
+        BackupRestoreStatus status = BackupUtils.getRestoreStatus(id, type == Type.LOCAL);
+        renderArgs.put("status", status);
+        renderArgs.put("percentages", new RestoreStatus(status).percentageMap);
+        renderArgs.put("id", id);
+        renderArgs.put("type", type);
+
         render();
     }
 
@@ -257,22 +292,27 @@ public class Backup extends Controller {
 
     public static class RestoreStatus {
         private String backupName;
-        private long backupSize;
-        private long downloadSize;
         private BackupRestoreStatus.Status status;
         private boolean isGeo;
-
-        private String message;
+        private Map<String, Long> sizeToDownload;
+        private Map<String, Long> downloadedSize;
+        private Map<String, Integer> percentageMap;
+        private String details;
 
         public RestoreStatus(BackupRestoreStatus origin) {
             this.backupName = origin.getBackupName();
-            this.backupSize = origin.getBackupSize();
-            this.downloadSize = origin.getDownoadSize();
+            this.sizeToDownload = origin.getSizeToDownload();
+            this.downloadedSize = origin.getDownloadedSize();
             this.status = origin.getStatus();
             this.isGeo = origin.isGeo();
-            this.message = origin.getStatus().getMessage();
+            this.details = origin.getDetails();
+
+            percentageMap = new HashMap<String, Integer>(sizeToDownload.size());
+            for (String hostname : sizeToDownload.keySet()) {
+                int percentage = sizeToDownload.get(hostname) == 0L ? 0
+                        : (int) (downloadedSize.get(hostname) * 100 / sizeToDownload.get(hostname));
+                percentageMap.put(hostname, percentage);
+            }
         }
-
     }
-
 }

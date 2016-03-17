@@ -1933,7 +1933,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<VolumeRestRep> volumes = client.blockVolumes().findByProject(project, new DefaultResourceFilter<VolumeRestRep>() {
                 @Override
                 public boolean accept(VolumeRestRep volume) {
-                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty() && !isInConsistencyGroup(volume)) {
+                    if (!client.blockVolumes().getFullCopies(volume.getId()).isEmpty()
+                            && StringUtils.isEmpty(volume.getReplicationGroupInstance())) {
                         return true;
                     } else {
                         return false;

@@ -32,6 +32,7 @@ import util.BlockConsistencyGroupUtils;
 import util.BourneUtil;
 import util.MessagesUtils;
 import util.StorageSystemUtils;
+import util.StringOption;
 import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
@@ -75,21 +76,23 @@ public class BlockVolumes extends ResourceController {
 
     private static BlockVolumesDataTable blockVolumesDataTable = new BlockVolumesDataTable();
     private static Set<String> roles = new HashSet(Arrays.asList("COPY"));
+    public static final StringOption[] FILTER_OPTIONS = StringOption.options(new String[]{"Application","Project"});
 
     public static void volumes(String projectId) {
         setActiveProjectId(projectId);
         renderArgs.put("dataTable", blockVolumesDataTable);
-        renderArgs.put("application", getApplications());
+        renderArgs.put("applications", getApplications());
+        renderArgs.put("filterOptions", FILTER_OPTIONS);
         addReferenceData();
         render();
     }
 
     public static void volumesJson(String projectId, String applicationId) {
-        if (StringUtils.isNotBlank(projectId)) {
-            setActiveProjectId(projectId);
-        } else {
-            projectId = getActiveProjectId();
-        }
+//        if (StringUtils.isNotBlank(projectId)) { remove the comment once Roshni's changes goes to master
+//            setActiveProjectId(projectId);
+//        } else {
+//            projectId = getActiveProjectId();
+//        }
         List<BlockVolumesDataTable.Volume> volumes = BlockVolumesDataTable.fetch(uri(projectId), uri(applicationId));
         renderJSON(DataTablesSupport.createJSON(volumes, params));
     }

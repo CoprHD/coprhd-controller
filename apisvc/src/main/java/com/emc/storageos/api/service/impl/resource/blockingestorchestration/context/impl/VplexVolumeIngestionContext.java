@@ -43,7 +43,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCon
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 
 /**

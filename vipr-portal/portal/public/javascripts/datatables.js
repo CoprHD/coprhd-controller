@@ -43,9 +43,15 @@ function watchDatatableField(datatable, itemsJson, fieldName, triggerValues, fie
         }
         
         if (ids.length > 0) {
+            // Use an associative array instead of Array.protocol.indexOf to support IE7/8.
+            var requestIdMap = [];
+            for (i = 0; i < ids.length; i++) {
+                requestIdMap[ids[i]] = true;
+            }
+
             var url = itemsJson({ids: ids.join(",")});
             var request = $.get(url, function(results) {
-                updateDatatableRows(datatable, results, fieldsToUpdate);
+                updateDatatableRows(datatable, results, fieldsToUpdate, requestIdMap);
             }).always(function () {
                 window.setTimeout(update, frequency);
             });
@@ -56,18 +62,20 @@ function watchDatatableField(datatable, itemsJson, fieldName, triggerValues, fie
 
 /**
  * Updates the datatable rows with the provided items, updating only the fields specified for the matching row.
+ * Also remove the obsolete rows from the datatable.
  * 
  * @param datatable the datatable.
  * @param items the items to update.
  * @param fields the fields to update.
+ * @param ids a bitmap of ids in the request. (optional)
  */
-function updateDatatableRows(datatable, items, fields) {
+function updateDatatableRows(datatable, items, fields, ids) {
     // Convert items to associative array (by ID)
-    var data = new Array();
+    var data = [];
     for (var i = 0; i < items.length; i++) {
         data[items[i].id] = items[i];
     }
-    
+
     var updates = false;
     var rows = datatable.fnGetData();
     for (var i = 0; i < rows.length; i++) {
@@ -88,6 +96,10 @@ function updateDatatableRows(datatable, items, fields) {
                 updates = true;
                 datatable.fnUpdate(row, i, undefined, false, false);
             }
+        } else if (ids && ids[row.id]) {
+            // if the server data doesn't contain an id specified in the request, delete the corresponding row from datatable
+            updates = true;
+            datatable.fnDeleteRow(i, null, false);
         }
     }
     
@@ -174,8 +186,8 @@ function watchUploadState(datatable, itemsJson, extraFields) {
         fields = fields.concat(extraFields);
     }
     var fieldToWatch = 'status';
-    var triggerValues = ['NOT_STARTED', 'IN_PROGRESS', 'FAILED', 'DONE', 'CANCELLED'];
-    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields);
+    var triggerValues = ['NOT_STARTED', 'IN_PROGRESS', 'FAILED', 'DONE', 'CANCELLED', 'PENDING', 'RESTORE_FAILED', 'RESTORING'];
+    watchDatatableField(datatable, itemsJson, fieldToWatch, triggerValues, fields, 5000);
 }
 
 /**

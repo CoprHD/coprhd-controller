@@ -2722,7 +2722,7 @@ public class BlockService extends TaskResourceService {
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
         _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
 
-        if (Volume.isSRDFProtectedTargetVolume(copyVolume)) {
+        if (Volume.isSRDFProtectedVolume(copyVolume)) {
 
             if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                     op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp())) {

@@ -493,7 +493,7 @@ class VolumeGroup(object):
             return o   
 
     # Creates snapshot for the given volume group
-    def snapshot(self, name, snapshot_name, create_inactive, partial, volumeUris, sync):
+    def snapshot(self, name, snapshot_name, readonly, partial, volumeUris):
         '''
         Makes REST API call to create volume group snapshot
         Parameters:
@@ -511,7 +511,7 @@ class VolumeGroup(object):
 
         request = {
             'name': snapshot_name,
-            'create_inactive': create_inactive
+            'read_only': readonly
         }
 
         # if partial request
@@ -525,11 +525,7 @@ class VolumeGroup(object):
                                              VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT.format(volumeGroupUri),
                                              body)
         o = common.json_decode(s)
-        if(sync):
-            task = o["task"][0]
-            return self.check_for_sync(task, sync)
-        else:
-            return o
+        return o
 
     def volume_group_snapshot_list(self, name):
         volume_group_uri = self.query_by_name(name)
@@ -625,7 +621,7 @@ class VolumeGroup(object):
         else:
             return []
 
-    def volume_group_snapshot_operation(self, name, snapshots, partial, sync, uri):
+    def volume_group_snapshot_operation(self, name, snapshots, partial, uri):
         '''
         Makes REST API call to activate/deactivate/restore/resync volume group snapshot
         Parameters:
@@ -653,16 +649,12 @@ class VolumeGroup(object):
                 uri.format(volumeGroupUri), body)
 
         o = common.json_decode(s)
-        if(sync):
-            task = o["task"][0]
-            return self.check_for_sync(task,sync)
-        else:
-            return o
+        return o
 
     # snapshot session
 
     # Creates snapshot session for the given volume group
-    def snapshotsession(self, name, snapshotsession_name, copy_on_ha, partial, volumeUris, count, target_name, copymode, sync):
+    def snapshotsession(self, name, snapshotsession_name, partial, volumeUris, count, target_name, copymode):
         '''
         Makes REST API call to create volume group snapshot session
         Parameters:
@@ -680,7 +672,6 @@ class VolumeGroup(object):
 
         request = {
             'name': snapshotsession_name,
-            'copy_on_high_availability_side': copy_on_ha
         }
 
         if (count and target_name and copymode):
@@ -703,11 +694,7 @@ class VolumeGroup(object):
                                              VolumeGroup.URI_VOLUME_GROUP_SNAPSHOT_SESSION.format(volumeGroupUri),
                                              body)
         o = common.json_decode(s)
-        if(sync):
-            task = o["task"][0]
-            return self.check_for_sync(task, sync)
-        else:
-            return o
+        return o
 
     def volume_group_snapshotsession_list(self, name):
         volumeGroupUri = self.query_by_name(name)
@@ -803,7 +790,7 @@ class VolumeGroup(object):
         else:
             return []
 
-    def volume_group_snapshotsession_operation(self, name, snapshotsessionnames, partial, sync, uri):
+    def volume_group_snapshotsession_operation(self, name, snapshotsessionnames, partial, uri):
         '''
         Makes REST API call to deactivate/restore volume group snapshot sessions
         Parameters:
@@ -831,11 +818,7 @@ class VolumeGroup(object):
                 uri.format(volume_group_uri), body)
 
         o = common.json_decode(s)
-        if(sync):
-            task = o["task"][0]
-            return self.check_for_sync(task,sync)
-        else:
-            return o
+        return o
 
     # link target
     def volume_group_snapshotsession_link(self, name, snapsession_label, count, target_name, copymode, partial):
@@ -1378,8 +1361,10 @@ def query_volumes_for_partial_request(args):
             SOSError.CMD_LINE_ERR,
             'error: At least one volume should be specified for partial operation')
         for item in args.volumes.split(','):
-            name = args.tenant + "/" + args.project + "/" + item
-            volid = vol.show(name, False, False)['id']
+            if '/' not in item:
+                item = args.tenant + "/" + args.project + "/" + item
+
+            volid = vol.show(item, False, False)['id']
             volumeUris.append(volid)
             
     return volumeUris
@@ -1743,25 +1728,16 @@ def snapshot_parser(subcommand_parsers, common_parser):
         help='VolumeGroup Snapshot')
 
     mandatory_args = snapshot_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-snapshotname', '-ssn',
-                                metavar='<snapshotname>',
+    mandatory_args.add_argument('-snapshotname', '-s',
+                                metavar='<snapshot name>',
                                 dest='snapshotname',
                                 help='Name of Snapshot',
                                 required=True)
-    snapshot_parser.add_argument('-createinactive', '-ci',
-                              dest='createinactive',
-                              action='store_true',
-                              help='Create snapshot with inactive state')
     snapshot_parser.add_argument('-readonly', '-ro',
                               dest='readonly',
                               action='store_true',
@@ -1772,25 +1748,19 @@ def snapshot_parser(subcommand_parsers, common_parser):
                               help='To create snapshot for subset of VolumeGroup. ' +
                               'Please specify one volume from each Array Replication Group')
     snapshot_parser.add_argument('-volumes', '-v',
-                            metavar='<volume_label,...>',
+                            metavar='<tenant/project/volume_label,...>',
                             dest='volumes',
                             help='A list of volumes specifying their Array Replication Groups.' +
-                            ' This field is valid only when partial flag is provided')
-    snapshot_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
+                            'This field is valid only when partial flag is provided')
 
     snapshot_parser.set_defaults(func=volume_group_snapshot)
 
 def volume_group_snapshot(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         volumeUris = query_volumes_for_partial_request(args)
-        obj.snapshot(args.name, args.snapshotname, args.createinactive, args.partial, ",".join(volumeUris), False)
+        obj.snapshot(args.name, args.snapshotname, args.readonly, args.partial, ",".join(volumeUris))
         return
 
     except SOSError as e:
@@ -1808,11 +1778,6 @@ def volume_group_snapshot_common_parser(cc_common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     cc_common_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
@@ -1825,26 +1790,14 @@ def volume_group_snapshot_common_parser(cc_common_parser):
                             'For partial operation, specify one snapshot from each Array Replication Group',
                             required=True)
 
-    cc_common_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
-    cc_common_parser.add_argument('-synchronous', '-sync',
-                                  dest='sync',
-                                  action='store_true',
-                                  help='Synchronous mode enabled')
-
 def volume_group_snapshot_operation(args, operation, uri):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         obj.volume_group_snapshot_operation(
             args.name,
             set(args.snapshots.split(',')),
             args.partial,
-            args.sync,
             uri)
         return
 
@@ -1941,20 +1894,12 @@ def snapshot_list_parser(subcommand_parsers, common_parser):
         description='ViPR List Snapshot of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshot_list_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    snapshot_list_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
+
     snapshot_list_parser.set_defaults(func=volume_group_snapshot_list)
 
 # List Snapshot Function
@@ -1990,11 +1935,6 @@ def snapshot_show_parser(subcommand_parsers, common_parser):
         description='ViPR Show Snapshot of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshot_show_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
@@ -2005,18 +1945,12 @@ def snapshot_show_parser(subcommand_parsers, common_parser):
                                 dest='snapshotname',
                                 help='Name of Snapshot',
                                 required=True)
-    snapshot_show_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
 
     snapshot_show_parser.set_defaults(func=volume_group_snapshot_show)
 
 # Get Snapshot Function
 def volume_group_snapshot_show(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         res= obj.volume_group_snapshot_show(args.name,
@@ -2049,27 +1983,16 @@ def snapshot_get_sets_parser(subcommand_parsers, common_parser):
         description='ViPR Get Copy Set Names of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshot_get_sets_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    snapshot_get_sets_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
     snapshot_get_sets_parser.set_defaults(func=volume_group_snapshot_get_sets)
 
 # Get Snapshot Sets Function
 def volume_group_snapshot_get_sets(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         res= obj.volume_group_snapshot_get_sets(args.name)
@@ -2101,21 +2024,13 @@ def snapshot_get_parser(subcommand_parsers, common_parser):
         description='ViPR Get Snapshots of a VolumeGroup by Copy Set Name CLI usage.')
 
     mandatory_args = snapshot_get_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    snapshot_get_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
-    snapshot_get_parser.add_argument('-setname', '-sn',
+    snapshot_get_parser.add_argument('-setname', '-s',
+                              metavar='<setname>',
                               dest='setname',
                               help='Copy set name',
                               required=True)
@@ -2124,8 +2039,6 @@ def snapshot_get_parser(subcommand_parsers, common_parser):
 # Get Snapshots by Copy Set Name Function
 def volume_group_snapshot_get(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         res= obj.volume_group_snapshot_get(args.name, args.setname)
@@ -2157,24 +2070,16 @@ def snapshotsession_parser(subcommand_parsers, common_parser):
         help='VolumeGroup Snapshot Session')
 
     mandatory_args = snapshotsession_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-snapshotsessionname', '-sn',
-                                metavar='<snapshotsessionname>',
+    mandatory_args.add_argument('-snapshotsessionname', '-s',
+                                metavar='<snapshot session name>',
                                 dest='snapshotsessionname',
                                 help='Name of Snapshot Session',
                                 required=True)
-    snapshotsession_parser.add_argument('-copyonha', '-ha',
-                              action='store_true',
-                              help='Create snapshot session on HA side of VPLEX Distributed volumes')
     snapshotsession_parser.add_argument('-readonly', '-ro',
                               dest='readonly',
                               action='store_true',
@@ -2185,14 +2090,10 @@ def snapshotsession_parser(subcommand_parsers, common_parser):
                               help='To create snapshot session for subset of VolumeGroup. ' +
                               'Please specify one volume from each Array Replication Group')
     snapshotsession_parser.add_argument('-volumes', '-v',
-                            metavar='<volume_label,...>',
+                            metavar='<tenant/project/volume_label,...>',
                             dest='volumes',
                             help='A list of volumes specifying their Array Replication Groups.' +
                             ' This field is valid only when partial flag is provided')
-    snapshotsession_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
     snapshotsession_parser.add_argument('-count', '-ct',
                                dest='count',
                                metavar='<count>',
@@ -2213,20 +2114,16 @@ def snapshotsession_parser(subcommand_parsers, common_parser):
 
 def volume_group_snapshotsession(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         volumeUris = query_volumes_for_partial_request(args)
         obj.snapshotsession(args.name,
             args.snapshotsessionname,
-            args.copyonha,
             args.partial,
             ",".join(volumeUris),
             args.count,
             args.target_name,
-            args.copymode,
-            False)
+            args.copymode)
         return
 
     except SOSError as e:
@@ -2244,36 +2141,20 @@ def volume_group_snapshotsession_common_parser(cc_common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     cc_common_parser.add_argument('-partial',
                               dest='partial',
                               action='store_true',
                               help='To operate on snapshots for subset of VolumeGroup. ' +
                               'Please specify one snapshot from each Array Replication Group')
-    cc_common_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
-    cc_common_parser.add_argument('-synchronous', '-sync',
-                                  dest='sync',
-                                  action='store_true',
-                                  help='Synchronous mode enabled')
 
 def volume_group_snapshotsession_operation(args, operation, uri):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         obj.volume_group_snapshotsession_operation(
             args.name,
             set(args.snapshotsessions.split(',')),
             args.partial,
-            args.sync,
             uri)
         return
 
@@ -2377,8 +2258,6 @@ def snapshotsession_link_parser(subcommand_parsers, common_parser):
 # Link Snapshot Session Function
 def volume_group_snapshotsession_link(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         obj.volume_group_snapshotsession_link(args.name,
@@ -2409,8 +2288,6 @@ def snapshotsession_target_common_parser(common_parser):
 # Snapshot Session Target Operation (relink/unlink) Function
 def volume_group_snapshotsession_target_operation(args, operation, uri):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         obj.volume_group_snapshotsession_target_operation(
@@ -2491,20 +2368,11 @@ def snapshotsession_list_parser(subcommand_parsers, common_parser):
         description='ViPR List Snapshot Session of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshotsession_list_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    snapshotsession_list_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
     snapshotsession_list_parser.set_defaults(func=volume_group_snapshotsession_list)
 
 # List Snapshot Session Function
@@ -2540,11 +2408,6 @@ def snapshotsession_show_parser(subcommand_parsers, common_parser):
         description='ViPR Show Snapshot Session of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshotsession_show_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
@@ -2555,18 +2418,12 @@ def snapshotsession_show_parser(subcommand_parsers, common_parser):
                                 dest='snapshotsessionname',
                                 help='Name of Snapshot Session',
                                 required=True)
-    snapshotsession_show_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
 
     snapshotsession_show_parser.set_defaults(func=volume_group_snapshotsession_show)
 
-# Show Snapsnot Session Function
+# Show Snapshot Session Function
 def volume_group_snapshotsession_show(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         res= obj.volume_group_snapshotsession_show(args.name,
@@ -2599,27 +2456,16 @@ def snapshotsession_get_sets_parser(subcommand_parsers, common_parser):
         description='ViPR Get Snapshot Session Copy Set Names of a VolumeGroup CLI usage.')
 
     mandatory_args = snapshotsession_get_sets_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    snapshotsession_get_sets_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
     snapshotsession_get_sets_parser.set_defaults(func=volume_group_snapshotsession_get_sets)
 
 # Get Snapshot Session Copy Sets Function
 def volume_group_snapshotsession_get_sets(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         res= obj.volume_group_snapshotsession_get_sets(args.name)
@@ -2651,21 +2497,13 @@ def snapshotsession_get_parser(subcommand_parsers, common_parser):
         description='ViPR Get Snapshot Session of a VolumeGroup by Copy Set Name CLI usage.')
 
     mandatory_args = snapshotsession_get_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-project', '-pr',
-                                metavar='<projectname>',
-                                dest='project',
-                                help='Name of project',
-                                required=True)
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    snapshotsession_get_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='Name of tenant')
     snapshotsession_get_parser.add_argument('-setname', '-sn',
+                              metavar='<setname>',
                               dest='setname',
                               help='Copy set name',
                               required=True)
@@ -2674,8 +2512,6 @@ def snapshotsession_get_parser(subcommand_parsers, common_parser):
 # Get Snapshot Session by Copy Set Name Function
 def volume_group_snapshotsession_get(args):
     obj = VolumeGroup(args.ip, args.port)
-    if(not args.tenant):
-        args.tenant = ""
 
     try:
         res= obj.volume_group_snapshotsession_get(args.name, args.setname)

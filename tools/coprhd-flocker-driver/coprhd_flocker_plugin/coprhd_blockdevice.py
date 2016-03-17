@@ -439,41 +439,8 @@ class CoprHDBlockDeviceAPI(object):
             - Possibly creation of new volumes
         :return:none
         """
-        channel_number = self._get_channel_number()
-        # Check for error condition
-        if channel_number < 0:
-            Message.new(error="iSCSI login not done for coprhd bailing out").write(_logger)
-            raise DeviceException
-        else:
-            check_output(["rescan-scsi-bus", "-r", "-c", channel_number])
+        check_output([b"rescan-scsi-bus", "-r", "-c"])
 
-    def _get_channel_number(self):
-        """
-        Query scsi to get channel number of coprhd devices.
-        Right now it supports only one coprhd connected array
-        :return: channel number
-        """
-        output = check_output([b"/usr/bin/lsscsi"])
-        # lsscsi gives output in the following form:
-        # [0:0:0:0]    disk    ATA      ST91000640NS     SN03  /dev/sdp
-        # [1:0:0:0]    disk    DGC      LUNZ             0532  /dev/sdb
-        # [1:0:1:0]    disk    DGC      LUNZ             0532  /dev/sdc
-        # [8:0:0:0]    disk    MSFT     Virtual HD       6.3   /dev/sdd
-        # [9:0:0:0]    disk    VRAID    VRAID            2400  /dev/sde
-
-        # We shall parse the output above and to give out channel number
-        # as 9
-        for row in output.split('\n'):
-            if re.search(r'VRAID', row, re.I):
-                channel_row = re.search('\d+', row)
-                if channel_row:
-                    channel_number = channel_row.group()
-                    return channel_number
-
-        # Did not find channel number of coprhd
-        # The number cannot be negative
-        return -1
-        
     def get_device_path(self, blockdevice_id):
         """
         :param blockdevice_id:

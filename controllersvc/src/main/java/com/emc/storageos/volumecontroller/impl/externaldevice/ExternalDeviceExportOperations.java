@@ -332,7 +332,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 taskCompleter.error(dbClient, serviceError);
             }
         }  catch (Exception ex) {
-            log.error("Problem in addInitiator: ", ex);
             log.error("addInitiator -- Failed to add initiators to export mask. ", ex);
             ServiceError serviceError = ExternalDeviceException.errors.addInitiatorsToExportMaskFailed("addInitiator", ex.getMessage());
             taskCompleter.error(dbClient, serviceError);
@@ -412,7 +411,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
                 portList.add(URI.create(portUri));
             }
             log.info("Export mask existing storage ports: {} ", portList);
-            
+
             // Get export group uri from task completer
             URI exportGroupUri = taskCompleter.getId();
             ExportGroup exportGroup = (ExportGroup)dbClient.queryObject(exportGroupUri);
@@ -578,6 +577,16 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         return null;
     }
 
+    /**
+     * Prepare new driver volumes for driver export request (Ex. in context of create a new export mask,
+     * or add new volumes to the existing mask).
+     *
+     * @param storage storage sytem
+     * @param volumeURIHLUs mapping of volume uri to volume hlu
+     * @param driverVolumes driver volumes (output)
+     * @param driverVolumeToHLUMap map of driver volumes to hlu values
+     * @param volumeNativeIdToUriMap map of volume native id to uri
+     */
     private void prepareVolumes(StorageSystem storage, VolumeURIHLU[] volumeURIHLUs, List<StorageVolume> driverVolumes,
                                 Map<String, String> driverVolumeToHLUMap, Map<String, URI> volumeNativeIdToUriMap) {
 
@@ -602,6 +611,14 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         log.info("prepareVolumes: volume-HLU pairs for driver: {}", driverVolumeToHLUMap);
     }
 
+    /**
+     * Prepare existing export mask volumes to driver export request (Ex. in context of add/remove initiators for export masks.)
+     *
+     * @param storage storage system
+     * @param driverVolumes driver volumes (output)
+     * @param driverVolumeToHLUMap map of driver volumes to hlu values
+     * @param volumeNativeIdToUriMap map of volume native id to uri
+     */
     private void prepareVolumes(StorageSystem storage, Map<String, String> volumeUriToHluMap, List<StorageVolume> driverVolumes,
                                 Map<String, String> driverVolumeToHLUMap, Map<String, String> volumeNativeIdToUriMap) {
 
@@ -685,10 +702,9 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         StringSetMap zoningMap = new StringSetMap();
         // Calculate existing paths (without new initiators).
         int existingPaths = 0;
-        List<URI> initiatorUris = toUris(initiators);
+        List<URI> initiatorUris = URIUtil.toUris(initiators);
         for(Map.Entry<String, AbstractChangeTrackingSet<String >> entry : existingZoningMap.entrySet()) {
             if(!initiatorUris.contains(URIUtil.uri(entry.getKey()))) {
-                //existingPaths +=assignment.getValue().size();
                 zoningMap.put(entry.getKey(), entry.getValue());
             }
         }
@@ -697,7 +713,11 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         existingPaths = assignments.values().size();
         log.info("Existing path number in the export mask is {}", existingPaths);
         
-        // calculate maxPath for the driver request
+        // Calculate maxPath for the driver request.
+        // We try to balance two requirements: not violate maxPaths and to allocate at least enough paths
+        // for one new initiator.  If we are over max path already or will be over max paths, when we allocate
+        // ppi number of new paths, we allocate only ppi new paths (a minimum).
+        // Otherwise we allocate the difference between max paths and existing paths
         if(existingPaths + pathParams.getPathsPerInitiator() > pathParams.getMaxPaths()) {
             driverMaxPath = pathParams.getPathsPerInitiator(); // we always need at least path-per-initiator ports
         } else {
@@ -803,7 +823,7 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
 
         // update zoning map entries for new initiators
         // remove old entries for the initiators from the zoning map
-        List<URI> initiatorUris = toUris(initiatorList);
+        List<URI> initiatorUris = URIUtil.toUris(initiatorList);
         for (URI initiatorUri : initiatorUris) {
             exportMask.removeZoningMapEntry(initiatorUri.toString());
         }
@@ -818,14 +838,6 @@ public class ExternalDeviceExportOperations implements ExportMaskOperations {
         dbClient.updateObject(exportMask);
     }
 
-    // Todo: move to uriutils.java
-    public List<URI> toUris(List<? extends DataObject> dataObjects) {
-        List<URI> uris = new ArrayList<>();
-        for (DataObject dataObject : dataObjects) {
-           uris.add(dataObject.getId());
-        }
-        return uris;
-    }
 
     /**
      * Create driver block object

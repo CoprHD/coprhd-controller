@@ -21,6 +21,7 @@ import com.emc.storageos.coordinator.client.model.Site;
 import com.emc.storageos.coordinator.client.model.SiteError;
 import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.model.SiteState;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.coordinator.client.service.DistributedDoubleBarrier;
 import com.emc.storageos.coordinator.client.service.DrPostFailoverHandler.Factory;
 import com.emc.storageos.coordinator.client.service.DrUtil;
@@ -620,7 +621,7 @@ public abstract class VdcOpHandler {
                         log.info("Setting local site {} to STANDBY_SYNCING", localSite.getUuid());
                         localSite.setState(SiteState.STANDBY_SYNCING);
                         coordinator.getCoordinatorClient().persistServiceConfiguration(localSite.toConfiguration());
-                        drUtil.recordDrOperationStatus(localSite.getUuid(), SiteState.STANDBY_REJOINING);
+                        drUtil.recordDrOperationStatus(localSite.getUuid(), InterState.REJOINING_STANDBY);
                     }
                 } finally {
                     try {
@@ -700,7 +701,7 @@ public abstract class VdcOpHandler {
                 
                 updateSwitchoverSiteState(site, SiteState.STANDBY_SYNCED, Constants.SWITCHOVER_BARRIER_SET_STATE_TO_SYNCED, site.getNodeCount());
                 Site newActiveSite = drUtil.getSiteFromLocalVdc(siteInfo.getTargetSiteUUID());
-                drUtil.recordDrOperationStatus(newActiveSite.getUuid(), SiteState.STANDBY_SWITCHING_OVER);
+                drUtil.recordDrOperationStatus(newActiveSite.getUuid(), InterState.SWITCHINGOVER_STANDBY);
                 updateSwitchoverSiteState(newActiveSite, SiteState.STANDBY_SWITCHING_OVER,
                         Constants.SWITCHOVER_BARRIER_SET_STATE_TO_STANDBY_SWITCHINGOVER, site.getNodeCount());
                 waitForBarrierRemovedToRestart(site);

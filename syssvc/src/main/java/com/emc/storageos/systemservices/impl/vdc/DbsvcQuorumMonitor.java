@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.emc.storageos.coordinator.client.model.*;
+import com.emc.storageos.coordinator.client.model.DrOperationStatus.InterState;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
@@ -94,7 +95,7 @@ public class DbsvcQuorumMonitor implements Runnable {
                 standbySite.setState(SiteState.STANDBY_DEGRADING);
                 coordinatorClient.persistServiceConfiguration(standbySite.toConfiguration());
                 drUtil.updateVdcTargetVersion(standbySite.getUuid(), SiteInfo.DR_OP_DEGRADE_STANDBY, vdcVersion);
-                drUtil.recordDrOperationStatus(standbySite);
+                drUtil.recordDrOperationStatus(standbySite.getUuid(), InterState.DEGRADING_STANDBY);
             }
 
             // Update all other connected sites

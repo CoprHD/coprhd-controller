@@ -2342,8 +2342,8 @@
     },
     {
         key : "backup_scheduler_interval",
-        label : "Backup Interval",
-        description : "The time interval in unit of Day(or Week/Month) between scheduled backups",
+        label : "Backup Interval per Day",
+        description : "The frequency scheduled backup starts per day",
         type : "string",
         maxLen : 15,
         tag : "Backup",

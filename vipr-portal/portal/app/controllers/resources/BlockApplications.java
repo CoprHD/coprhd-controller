@@ -56,14 +56,17 @@ public class BlockApplications extends ResourceController {
         renderJSON(DataTablesSupport.createJSON(applications, params));
     }
 
-    public static void blockApplicationDetails(String id) {
-        renderArgs.put("dataTable", new VolumeApplicationDataTable());
-        renderArgs.put("cloneDataTable", new ApplicationFullCopySetsDataTable());
-        renderArgs.put("snapshotDataTable", new ApplicationSnapshotSetDataTable());
-        renderArgs.put("snapsessionDataTable", new ApplicationSnapSetDataTable());
-        VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
-        render(application);
-    }
+	public static void blockApplicationDetails(String id) {
+		renderArgs.put("dataTable", new VolumeApplicationDataTable());
+		renderArgs
+				.put("cloneDataTable", new ApplicationFullCopySetsDataTable());
+		renderArgs.put("snapshotDataTable",
+				new ApplicationSnapshotSetDataTable());
+		renderArgs.put("snapsessionDataTable",
+				new ApplicationSnapSetDataTable());
+		VolumeGroupRestRep application = AppSupportUtil.getApplication(id);
+		render(application);
+	}
 
 	public static void applicationCloneJson(String id) {
 		List<ApplicationFullCopySets> cloneDetails = Lists.newArrayList();

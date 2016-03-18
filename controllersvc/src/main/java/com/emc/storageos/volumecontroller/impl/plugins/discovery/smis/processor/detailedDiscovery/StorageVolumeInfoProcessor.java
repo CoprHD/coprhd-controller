@@ -382,7 +382,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                             SupportedVolumeCharacterstics.IS_NONRP_EXPORTED.toString(),
                             "true");
                 } else {
-                    _logger.info(
+                    _logger.debug(
                             "unmanaged volume {} is not exported OR not exported to something other than RP.  Not marking IS_NONRP_EXPORTED.",
                             unManagedVolume.getLabel());
                     unManagedVolume.putVolumeCharacterstics(

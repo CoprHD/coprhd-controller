@@ -82,6 +82,7 @@ public class VmaxGroupOperationsUtils {
             CIMObjectPath cgPath = cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
             CIMInstance replicaSettingData = null;
+            CIMObjectPath targetPoolPath = null;
             if (syncType == SYNC_TYPE.CLONE && storage.checkIfVmax3() && ControllerUtils.isVmaxUsing81SMIS(storage, dbClient)) {
                 /**
                  * VMAX3 using SMI 8.1 provider needs to send DesiredCopyMethodology=32770
@@ -105,10 +106,12 @@ public class VmaxGroupOperationsUtils {
                 replicaSettingData = ReplicationUtils.getReplicationSettingForGroupMirrors(storage, helper, cimPath);
             } else {
                 replicaSettingData = ReplicationUtils.getReplicationSettingForGroupSnapshots(storage, helper, cimPath, thinProvisioning);
+                targetPoolPath = ReplicationUtils.getTargetPoolForVPSnapCreation(storage, groupName, null, thinProvisioning, dbClient,
+                        helper, cimPath);
             }
 
             CIMArgument[] inArgs = helper.getCreateGroupReplicaInputArgumentsForVMAX(storage, cgPath, createInactive, replicaLabel,
-                    targetGroupPath,
+                    targetGroupPath, targetPoolPath,
                     replicaSettingData, syncType);
             CIMArgument[] outArgs = new CIMArgument[5];
             helper.invokeMethod(storage, replicationSvc, CREATE_GROUP_REPLICA, inArgs, outArgs);

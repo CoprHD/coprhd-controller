@@ -424,8 +424,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                         _dbClient, _helper, _cimPath,
                         SYNC_TYPE.SNAPSHOT);
             }
-            // Create CG snapshot
 
+            // Create CG snapshot
             CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName,
                     snapLabelToUse, targetGroupPath, createInactive, thinProvisioning,
                     taskCompleter, SYNC_TYPE.SNAPSHOT, _dbClient, _helper, _cimPath);

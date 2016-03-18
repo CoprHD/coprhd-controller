@@ -1,6 +1,8 @@
 package com.iwave.ext.netapp;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import netapp.manage.NaElement;
@@ -328,7 +330,7 @@ public class SnapMirror {
      * 
      * @return
      */
-    boolean getSnapMirrorStatus() {
+    public boolean getSnapMirrorStatus() {
         NaElement elem = new NaElement("snapmirror-get-status");
 
         NaElement resultElem = null;
@@ -353,7 +355,7 @@ public class SnapMirror {
      * 
      * @return
      */
-    boolean setSnapMirrorOn() {
+    public boolean setSnapMirrorOn() {
         NaElement elem = new NaElement("snapmirror-on");
         try {
             server.invokeElem(elem);
@@ -363,6 +365,38 @@ public class SnapMirror {
             throw new NetAppException(msg, e);
         }
         return true;
+    }
+
+    /**
+     * Checks if license exists for SnapMirror
+     * 
+     * @return true if license exists for SnapMirror; false otherwise
+     */
+    @SuppressWarnings("unchecked")
+    public boolean checkLicense() {
+
+        boolean licenseValid = false;
+        NaElement elem = new NaElement("license-v2-list-info");
+        try {
+            List<NaElement> licences = server.invokeElem(elem).getChildByName("licenses").getChildren();
+            if (licences != null) {
+                for (Iterator<NaElement> iterator = licences.iterator(); iterator.hasNext();) {
+                    NaElement licenceElement = iterator.next();
+                    NaElement packageElement = licenceElement.getChildByName("package");
+                    NaElement typeElement = licenceElement.getChildByName("type");
+                    if ("SnapMirror".equals(packageElement.getContent())
+                            && "license".equals(typeElement.getContent())) {
+                        licenseValid = true;
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            String msg = "Failed to check snapmirror license.";
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return licenseValid;
     }
 
 }

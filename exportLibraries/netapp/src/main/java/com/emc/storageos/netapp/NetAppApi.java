@@ -1091,22 +1091,6 @@ public class NetAppApi {
         }
     }
 
-    public Boolean destorySnapMirror(String sourcePath, String destPath, String vfilerName)
-            throws NetAppException {
-        boolean failedStatus = false;
-        try {
-            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
-                    _password, _https, vfilerName);
-
-            failedStatus = netAppFacade.destroyAsyncSnapMirror(sourcePath, destPath);
-
-            return failedStatus;
-
-        } catch (Exception e) {
-            throw NetAppException.exceptions.createFSFailed("snapmirror", e.getMessage());
-        }
-    }
-
     public Boolean resyncSnapMirror(String sourcePath, String destPath, String vfilerName)
             throws NetAppException {
         boolean failedStatus = false;
@@ -1206,6 +1190,20 @@ public class NetAppApi {
 
         } catch (Exception e) {
             throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
+        }
+    }
+
+    public Boolean checkSnapMirrorLicense() throws NetAppException {
+        Boolean licenseExists = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, null);
+
+            licenseExists = netAppFacade.checkSnapMirrorLicense();
+            return licenseExists;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.checkSnapMirrorLicenseFailed(_ipAddress, e.getMessage());
         }
     }
 

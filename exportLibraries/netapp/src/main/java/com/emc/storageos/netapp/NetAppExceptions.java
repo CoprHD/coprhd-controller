@@ -150,4 +150,7 @@ public interface NetAppExceptions {
     @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
     public NetAppException resyncSnapMirrorFailed(final String sourceLocation, final String destLocation, final String message);
 
+    @DeclareServiceCode(ServiceCode.NETAPP_ERROR)
+    public NetAppException checkSnapMirrorLicenseFailed(final String ip, final String message);
+
 }

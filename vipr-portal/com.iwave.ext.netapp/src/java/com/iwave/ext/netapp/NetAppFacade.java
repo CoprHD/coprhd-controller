@@ -1751,4 +1751,24 @@ public class NetAppFacade {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
         return snapMirror.deleteSnapMirrorSchedule(destinationLocation);
     }
+
+    /**
+     * Checks whether SnapMirror license exists or not.
+     * 
+     * @return true if SnapMirror license exists; false otherwise
+     */
+    public boolean checkSnapMirrorLicense() {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Checking SnapMirror license");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.checkLicense();
+    }
+
+    public static void main(String[] args) {
+        NetAppFacade facade = new NetAppFacade("10.247.96.204", 80, "root", "dangerous1", false);
+        System.out.println(facade.checkSnapMirrorLicense());
+    }
 }

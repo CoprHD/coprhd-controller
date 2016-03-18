@@ -19,7 +19,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.codehaus.jettison.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +53,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.isilon.restapi.IsilonException;
 import com.emc.storageos.netapp.NetAppApi;
 import com.emc.storageos.netapp.NetAppException;
 import com.emc.storageos.plugins.AccessProfile;
@@ -111,9 +109,6 @@ public class NetAppFileCommunicationInterface extends
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String MANAGEMENT_INTERFACE = "e0M";
     private static final String SNAPSHOT = ".snapshot";
-
-    private static final String LICENSE_ACTIVATED = "Activated";
-    private static final String LICENSE_EVALUATION = "Evaluation";
 
     private static final Logger _logger = LoggerFactory
             .getLogger(NetAppFileCommunicationInterface.class);
@@ -398,29 +393,6 @@ public class NetAppFileCommunicationInterface extends
         return portGroups;
     }
 
-    /**
-     * Check license is valid or not
-     * 
-     * @param licenseStatus
-     *            Status of the license
-     * @param system
-     *            Storage System
-     * @return true/false
-     * @throws IsilonException
-     * @throws JSONException
-     */
-    private boolean isValidLicense(String licenseStatus, StorageSystem system)
-            throws IsilonException, JSONException {
-        Set<String> validLicenseStatus = new HashSet<String>();
-        validLicenseStatus.add(LICENSE_ACTIVATED);
-        validLicenseStatus.add(LICENSE_EVALUATION);
-
-        if (validLicenseStatus.contains(licenseStatus)) {
-            return true;
-        }
-        return false;
-    }
-
     private Map<String, List<StoragePool>> discoverStoragePools(StorageSystem system, List<StoragePool> poolsToMatchWithVpool)
             throws NetAppFileCollectionException, NetAppException {
 
@@ -429,22 +401,23 @@ public class NetAppFileCommunicationInterface extends
         List<StoragePool> newPools = new ArrayList<StoragePool>();
         List<StoragePool> existingPools = new ArrayList<StoragePool>();
 
-        boolean syncLicenseValid = true; // isValidLicense("Licnece", system);
-
-        // Set file replication type for Isilon storage system!!!
-        if (syncLicenseValid) {
-            StringSet supportReplicationTypes = new StringSet();
-            supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
-            supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
-            system.setSupportedReplicationTypes(supportReplicationTypes);
-        }
-
-        _logger.info("Start storage pool discovery for storage system {}",
-                system.getId());
         try {
             NetAppApi netAppApi = new NetAppApi.Builder(system.getIpAddress(),
                     system.getPortNumber(), system.getUsername(),
                     system.getPassword()).https(true).build();
+
+            boolean snapMirrorLicenseExists = netAppApi.checkSnapMirrorLicense();
+
+            // Set file replication type for NetApp storage system
+            if (snapMirrorLicenseExists) {
+                StringSet supportReplicationTypes = new StringSet();
+                supportReplicationTypes.add(SupportedFileReplicationTypes.REMOTE.name());
+                supportReplicationTypes.add(SupportedFileReplicationTypes.LOCAL.name());
+                system.setSupportedReplicationTypes(supportReplicationTypes);
+            }
+
+            _logger.info("Start storage pool discovery for storage system {}",
+                    system.getId());
 
             List<AggregateInfo> pools = netAppApi.listAggregates(null);
 
@@ -499,7 +472,7 @@ public class NetAppFileCommunicationInterface extends
                 // Add the Copy type ASYNC & SYNC, if the Isilon is enabled with SyncIQ service!!
                 StringSet copyTypesSupported = new StringSet();
 
-                if (syncLicenseValid) {
+                if (snapMirrorLicenseExists) {
                     copyTypesSupported.add(CopyTypes.ASYNC.name());
                     copyTypesSupported.add(CopyTypes.SYNC.name());
                     pool.setSupportedCopyTypes(copyTypesSupported);

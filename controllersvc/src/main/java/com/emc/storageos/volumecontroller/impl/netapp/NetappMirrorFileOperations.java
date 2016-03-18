@@ -29,7 +29,7 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     }
 
     public NetappMirrorFileOperations() {
-        // TODO Auto-generated constructor stub
+
     }
 
     @Override
@@ -58,13 +58,13 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFs.getStorageDevice());
 
         String portGroup = findVfilerName(sourceFileShare);
-        BiosCommandResult cmdResult = doReleaseSnapMirror(sourceStorage, sourceFileShare, completer);
+        BiosCommandResult cmdResult = doReleaseSnapMirror(sourceStorage, targetStorage,
+                sourceFileShare, targetFs, completer);
         if (cmdResult.getCommandSuccess()) {
             completer.ready(_dbClient);
         } else {
             completer.error(_dbClient, cmdResult.getServiceCoded());
         }
-
     }
 
     @Override
@@ -96,13 +96,11 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
     @Override
     public void pauseMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
-        // TODO Auto-generated method stub
 
     }
 
     @Override
     public void resumeMirrorFileShareLink(StorageSystem system, FileShare target, TaskCompleter completer) throws DeviceControllerException {
-        // TODO Auto-generated method stub
 
     }
 
@@ -151,7 +149,19 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     @Override
     public void deleteMirrorFileShareLink(StorageSystem system, URI source, URI target, TaskCompleter completer)
             throws DeviceControllerException {
-        // TODO Auto-generated method stub
+
+        FileShare sourceFileShare = _dbClient.queryObject(FileShare.class, source);
+        FileShare targetFileShare = _dbClient.queryObject(FileShare.class, source);
+        StorageSystem targetStorage = _dbClient.queryObject(StorageSystem.class, targetFileShare.getStorageDevice());
+
+        String portGroup = findVfilerName(sourceFileShare);
+        BiosCommandResult cmdResult = doReleaseSnapMirror(system, targetStorage,
+                sourceFileShare, targetFileShare, completer);
+        if (cmdResult.getCommandSuccess()) {
+            completer.ready(_dbClient);
+        } else {
+            completer.error(_dbClient, cmdResult.getServiceCoded());
+        }
 
     }
 
@@ -168,34 +178,6 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
     }
 
-    /**
-     * Return the vFiler name associated with the file system. If a vFiler is not associated with
-     * this file system, then it will return null.
-     */
-    private String findVfilerName(FileShare fs) {
-        String portGroup = null;
-
-        URI port = fs.getStoragePort();
-        if (port == null) {
-            _log.info("No storage port URI to retrieve vFiler name");
-        } else {
-            StoragePort stPort = _dbClient.queryObject(StoragePort.class, port);
-            if (stPort != null) {
-                URI haDomainUri = stPort.getStorageHADomain();
-                if (haDomainUri == null) {
-                    _log.info("No Port Group URI for port {}", port);
-                } else {
-                    StorageHADomain haDomain = _dbClient.queryObject(StorageHADomain.class, haDomainUri);
-                    if (haDomain != null && haDomain.getVirtual() == true) {
-                        portGroup = stPort.getPortGroup();
-                        _log.debug("using port {} and vFiler {}", stPort.getPortNetworkId(), portGroup);
-                    }
-                }
-            }
-        }
-        return portGroup;
-    }
-
     BiosCommandResult doCreateSnapMirror(StorageSystem storage, String portGroup, String sourcePath, String destPath) {
         NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
                 storage.getPortNumber(), storage.getUsername(),
@@ -205,6 +187,16 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         return BiosCommandResult.createSuccessfulResult();
     }
 
+    /**
+     * Initialize Snapmirror and state will be set to "SnapMirrored"
+     * 
+     * @param sourceStorage
+     * @param targetStorage
+     * @param sourceFs
+     * @param targetFs
+     * @param taskCompleter
+     * @return
+     */
     public BiosCommandResult doInitializeSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
             FileShare targetFs, TaskCompleter taskCompleter) {
         // netapp source client
@@ -229,19 +221,51 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         return BiosCommandResult.createSuccessfulResult();
     }
 
-    public BiosCommandResult doReleaseSnapMirror(StorageSystem storage, FileShare share,
-            TaskCompleter taskCompleter) {
+    /**
+     * Removes Snapmiror relation ship between source and target
+     * 
+     * @param sourceStorage
+     * @param targetStorage
+     * @param sourceFs
+     * @param targetFs
+     * @param taskCompleter
+     * @return
+     */
+    public BiosCommandResult doReleaseSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
+            FileShare targetFs, TaskCompleter taskCompleter) {
 
-        String portGroup = findVfilerName(share);
-        NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
-                storage.getPortNumber(), storage.getUsername(),
-                storage.getPassword()).https(true).vFiler(portGroup).build();
-        // make api call
-        String location = getLocation(nApi, share);
-        nApi.releaseSnapMirror(location, portGroup);
+        // netapp source client
+        String portGroupSource = findVfilerName(sourceFs);
+        NetAppApi nApiSource = new NetAppApi.Builder(sourceStorage.getIpAddress(),
+                sourceStorage.getPortNumber(), sourceStorage.getUsername(),
+                sourceStorage.getPassword()).https(true).vFiler(portGroupSource).build();
+
+        // get source system name
+        String sourceLocation = getLocation(nApiSource, sourceFs);
+
+        // target netapp
+        String portGroupTarget = findVfilerName(targetFs);
+        NetAppApi nApiTarget = new NetAppApi.Builder(targetStorage.getIpAddress(),
+                targetStorage.getPortNumber(), sourceStorage.getUsername(),
+                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+
+        String destLocation = getLocation(nApiTarget, sourceFs);
+
+        // make api call on source
+        nApiSource.releaseSnapMirror(sourceLocation, destLocation, portGroupSource);
         return BiosCommandResult.createSuccessfulResult();
     }
 
+    /**
+     * resync the replication between source and target volumes
+     * 
+     * @param storage
+     * @param portGroup
+     * @param sourcePath
+     * @param destPath
+     * @param taskCompleter
+     * @return
+     */
     public BiosCommandResult doResyncSnapMirror(StorageSystem storage, String portGroup, String sourcePath, String destPath,
             TaskCompleter taskCompleter) {
         NetAppApi nApi = new NetAppApi.Builder(storage.getIpAddress(),
@@ -252,6 +276,16 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         return BiosCommandResult.createSuccessfulResult();
     }
 
+    /**
+     * breaks replication seesion make target write enabled and source read only
+     * 
+     * @param sourceStorage
+     * @param targetStorage
+     * @param sourceFs
+     * @param targetFs
+     * @param taskCompleter
+     * @return
+     */
     public BiosCommandResult
             doFailoverSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
                     FileShare targetFs, TaskCompleter taskCompleter) {
@@ -267,6 +301,53 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
     }
 
     /**
+     * Pause mirror relation
+     * 
+     * @param sourceStorage
+     * @param targetStorage
+     * @param sourceFs
+     * @param targetFs
+     * @param taskCompleter
+     * @return
+     */
+    public BiosCommandResult doPauseSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
+            FileShare targetFs, TaskCompleter taskCompleter) {
+        // get vfiler
+        String portGroupTarget = findVfilerName(targetFs);
+        NetAppApi nApi = new NetAppApi.Builder(targetStorage.getIpAddress(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
+                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+        // make api call
+        String destLocation = getLocation(targetStorage, targetFs);
+        nApi.quiesceSnapMirror(destLocation, portGroupTarget);
+        return BiosCommandResult.createSuccessfulResult();
+    }
+
+    /**
+     * resume the mirror relation
+     * 
+     * @param sourceStorage
+     * @param targetStorage
+     * @param sourceFs
+     * @param targetFs
+     * @param taskCompleter
+     * @return
+     */
+    public BiosCommandResult doResumeSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
+            FileShare targetFs, TaskCompleter taskCompleter) {
+        // get vfiler
+        String portGroupTarget = findVfilerName(targetFs);
+        NetAppApi nApi = new NetAppApi.Builder(targetStorage.getIpAddress(),
+                targetStorage.getPortNumber(), targetStorage.getUsername(),
+                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
+        // make api call destination system
+        String destLocation = getLocation(targetStorage, targetFs);
+        nApi.resumeSnapMirror(destLocation, portGroupTarget);
+        return BiosCommandResult.createSuccessfulResult();
+    }
+
+    /**
+     * set the mirror schedule policy
      * 
      * @param storage -target file system
      * @param portGroup - vfiler name
@@ -314,9 +395,9 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
         StringBuilder builderLoc = new StringBuilder();
 
         Map<String, String> systeminfo = nApi.systemInfo();
-        String systemTargetName = systeminfo.get("system-name");
+        String systemName = systeminfo.get("system-name");
 
-        builderLoc.append(systemTargetName);
+        builderLoc.append(systemName);
         builderLoc.append(":");
         builderLoc.append(share.getName());
         return builderLoc.toString();
@@ -330,6 +411,34 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
 
         return getLocation(nApi, share);
 
+    }
+
+    /**
+     * Return the vFiler name associated with the file system. If a vFiler is not associated with
+     * this file system, then it will return null.
+     */
+    private String findVfilerName(FileShare fs) {
+        String portGroup = null;
+
+        URI port = fs.getStoragePort();
+        if (port == null) {
+            _log.info("No storage port URI to retrieve vFiler name");
+        } else {
+            StoragePort stPort = _dbClient.queryObject(StoragePort.class, port);
+            if (stPort != null) {
+                URI haDomainUri = stPort.getStorageHADomain();
+                if (haDomainUri == null) {
+                    _log.info("No Port Group URI for port {}", port);
+                } else {
+                    StorageHADomain haDomain = _dbClient.queryObject(StorageHADomain.class, haDomainUri);
+                    if (haDomain != null && haDomain.getVirtual() == true) {
+                        portGroup = stPort.getPortGroup();
+                        _log.debug("using port {} and vFiler {}", stPort.getPortNetworkId(), portGroup);
+                    }
+                }
+            }
+        }
+        return portGroup;
     }
 
 }

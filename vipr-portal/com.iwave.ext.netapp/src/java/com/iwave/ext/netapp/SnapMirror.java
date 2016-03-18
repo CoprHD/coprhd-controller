@@ -77,10 +77,10 @@ public class SnapMirror {
         // Remaining params are optional
         if (sourceLocation != null && !sourceLocation.isEmpty()) {
 
-            elem.addNewChild("destination-location", sourceLocation);
+            elem.addNewChild("source-location", sourceLocation);
         }
         if (destLocation != null && !destLocation.isEmpty()) {
-            elem.addNewChild("source-location", destLocation);
+            elem.addNewChild("destination-location", destLocation);
         }
 
         try {
@@ -126,11 +126,11 @@ public class SnapMirror {
         // Remaining params are optional
         if (sourceLocation != null && !sourceLocation.isEmpty()) {
 
-            elem.addNewChild("destination-location", sourceLocation);
+            elem.addNewChild("source-location", sourceLocation);
         }
 
         if (destLocation != null && !destLocation.isEmpty()) {
-            elem.addNewChild("source-location", destLocation);
+            elem.addNewChild("destination-location", destLocation);
         }
 
         try {
@@ -146,15 +146,15 @@ public class SnapMirror {
     }
 
     /**
-     * The snapmirror-destroy-async API removes only the SnapMirror relationship of a source and a destination Infinite Volume
+     * delete source and target relation ship
      * 
      * @param sourceLocation
      * @param destLocation
      * @return
      */
-    public boolean deleteAsyncSnapMirror(String sourceLocation, String destLocation) {
+    public boolean releaseSnapMirror(String sourceLocation, String destLocation) {
         Map<String, String> result = null;
-        NaElement elem = new NaElement("snapmirror-destroy-async");
+        NaElement elem = new NaElement("snapmirror-release");
 
         // Remaining params are optional
         if (sourceLocation != null && !sourceLocation.isEmpty()) {
@@ -168,13 +168,9 @@ public class SnapMirror {
 
         try {
             result = new HashMap<String, String>();
-            NaElement resultElem = server.invokeElem(elem);
-            for (Map.Entry entry : result.entrySet()) {
-
-            }
-
+            server.invokeElem(elem);
         } catch (Exception e) {
-            String msg = "Failed to delete snapmirror of source-location=" + sourceLocation + "and destLocation=" + destLocation;
+            String msg = "Failed to release snapmirror of source-location=" + sourceLocation + "and destLocation=" + destLocation;
             log.error(msg, e);
             throw new NetAppException(msg, e);
         }
@@ -182,38 +178,13 @@ public class SnapMirror {
 
     }
 
-    /* delete source and target relation ship */
-    public boolean releaseSnapMirror(String sourceLocation, String destLocation) {
-        Map<String, String> result = null;
-        NaElement elem = new NaElement("snapmirror-release");
-
-        // Remaining params are optional
-        if (sourceLocation != null && !sourceLocation.isEmpty()) {
-
-            elem.addNewChild("destination-location", sourceLocation);
-        }
-
-        if (destLocation != null && !destLocation.isEmpty()) {
-            elem.addNewChild("source-location", destLocation);
-        }
-
-        try {
-            result = new HashMap<String, String>();
-            NaElement resultElem = server.invokeElem(elem);
-            for (Map.Entry entry : result.entrySet()) {
-
-            }
-
-        } catch (Exception e) {
-            String msg = "Failed to delete snapmirror of source-location=" + sourceLocation + "and destLocation=" + destLocation;
-            log.error(msg, e);
-            throw new NetAppException(msg, e);
-        }
-        return true;
-
-    }
-
-    /* sync source and target relation ship */
+    /**
+     * sync source and target relation ship
+     * 
+     * @param sourceLocation
+     * @param destLocation
+     * @return
+     */
     public boolean resyncSnapMirror(String sourceLocation, String destLocation) {
         Map<String, String> result = null;
         NaElement elem = new NaElement("snapmirror-resync");
@@ -221,11 +192,11 @@ public class SnapMirror {
         // Remaining params are optional
         if (sourceLocation != null && !sourceLocation.isEmpty()) {
 
-            elem.addNewChild("destination-location", sourceLocation);
+            elem.addNewChild("source-location", sourceLocation);
         }
 
         if (destLocation != null && !destLocation.isEmpty()) {
-            elem.addNewChild("source-location", destLocation);
+            elem.addNewChild("destination-location", destLocation);
         }
 
         try {
@@ -273,6 +244,90 @@ public class SnapMirror {
 
     }
 
+    /**
+     * Disables future transfers to a SnapMirror destination
+     * 
+     * @param destLocation
+     * @return
+     */
+    public boolean quiesceSnapMirror(String destLocation) {
+        NaElement elem = new NaElement("snapmirror-quiesce");
+
+        // Remaining params are optional
+        if (destLocation != null && !destLocation.isEmpty()) {
+            elem.addNewChild("destination-location", destLocation);
+        }
+
+        try {
+            server.invokeElem(elem);
+
+        } catch (Exception e) {
+            String msg = "Failed to quiesce snapmirror - destLocation=" + destLocation;
+
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return true;
+    }
+
+    /**
+     * Enables future transfers for a SnapMirror relationship that has been quiesced
+     * 
+     * @param destLocation
+     * @return
+     */
+    public boolean resumeSnapMirror(String destLocation) {
+        NaElement elem = new NaElement("snapmirror-resume");
+
+        // Remaining params are optional
+        if (destLocation != null && !destLocation.isEmpty()) {
+            elem.addNewChild("destination-location", destLocation);
+        }
+
+        try {
+            server.invokeElem(elem);
+
+        } catch (Exception e) {
+            String msg = "Failed to resume snapmirror - destLocation=" + destLocation;
+
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return true;
+    }
+
+    /**
+     * Deletes a connection specified by connection
+     * 
+     * @param destLocation
+     * @return
+     */
+    public String deleteSnapMirrorConnection(String destLocation) {
+        NaElement resultElem = null;
+        NaElement elem = new NaElement("snapmirror-set-connection");
+
+        // Remaining params are optional
+        if (destLocation != null && !destLocation.isEmpty()) {
+            elem.addNewChild("destination-location", destLocation);
+        }
+
+        try {
+            resultElem = server.invokeElem(elem);
+            return resultElem.getContent();
+
+        } catch (Exception e) {
+            String msg = "Failed to resume snapmirror - destLocation=" + destLocation;
+
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+    }
+
+    /**
+     * get the Snap mirror Status either on or off mode
+     * 
+     * @return
+     */
     boolean getSnapMirrorStatus() {
         NaElement elem = new NaElement("snapmirror-get-status");
 
@@ -293,6 +348,11 @@ public class SnapMirror {
         }
     }
 
+    /**
+     * Enables snap mirror
+     * 
+     * @return
+     */
     boolean setSnapMirrorOn() {
         NaElement elem = new NaElement("snapmirror-on");
         try {

@@ -1633,7 +1633,7 @@ public class NetAppFacade {
     }
 
     /**
-     * Initialize the snap mirror and state will be snapmirrored
+     * Initialize the snap mirror and state will be snap mirrored
      * 
      * @param sourceLocation
      * @param destLocation
@@ -1674,11 +1674,35 @@ public class NetAppFacade {
     }
 
     /**
-     * Breaks a SnapMirror relationship between a source and destination volume of a data protection mirror
+     * Disables future transfers to a SnapMirror destination
      * 
      * @param destinationLocation
      * @return
      */
+    public boolean quiesceSnapMirror(String location) {
+        if (log.isDebugEnabled()) {
+            log.debug("quiesce snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.quiesceSnapMirror(location);
+    }
+
+    /**
+     * Enables future transfers for a SnapMirror relationship that has been Paused
+     * 
+     * @param destinationLocation
+     * @return
+     */
+    public boolean resumeSnapMirror(String location) {
+        if (log.isDebugEnabled()) {
+            log.debug("resume snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.resumeSnapMirror(location);
+    }
+
     public boolean breakSnapMirrorSchedule(String location) {
         if (log.isDebugEnabled()) {
             log.debug("break snap mirror");
@@ -1704,6 +1728,15 @@ public class NetAppFacade {
         return snapMirror.resyncSnapMirror(sourceLocation, destLocation);
     }
 
+    public boolean releaseSnapMirror(String sourceLocation, String destLocation) {
+        if (log.isDebugEnabled()) {
+            log.debug("release snap mirror");
+        }
+
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.releaseSnapMirror(sourceLocation, destLocation);
+    }
+
     /**
      * The snapmirror-release API removes a SnapMirror relationship on the source endpoint.
      * 
@@ -1718,21 +1751,4 @@ public class NetAppFacade {
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
         return snapMirror.deleteSnapMirrorSchedule(destinationLocation);
     }
-
-    /**
-     * The snapmirror-destroy-async API removes only the SnapMirror relationship of a source and a destination Infinite Volume
-     * 
-     * @param sourceLocation
-     * @param destLocation
-     * @return
-     */
-    public boolean destroyAsyncSnapMirror(String sourceLocation, String destLocation) {
-        if (log.isDebugEnabled()) {
-            log.debug("delete snap mirror");
-        }
-
-        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.deleteAsyncSnapMirror(sourceLocation, destLocation);
-    }
-
 }

@@ -1122,7 +1122,22 @@ public class NetAppApi {
         }
     }
 
-    public Boolean releaseSnapMirror(String sourcePath, String vfilerName)
+    public Boolean releaseSnapMirror(String sourcePath, String destPath, String vfilerName)
+            throws NetAppException {
+        boolean failedStatus = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            failedStatus = netAppFacade.releaseSnapMirror(sourcePath, destPath);
+            return failedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.resyncSnapMirrorFailed(sourcePath, destPath, e.getMessage());
+        }
+    }
+
+    public Boolean releaseSnapMirrorSchedule(String sourcePath, String vfilerName)
             throws NetAppException {
         boolean failedStatus = false;
         try {
@@ -1161,4 +1176,37 @@ public class NetAppApi {
             throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
         }
     }
+
+    public Boolean resumeSnapMirror(String pathLocation, String vfilerName)
+            throws NetAppException {
+        boolean failedStatus = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            failedStatus = netAppFacade.resumeSnapMirror(pathLocation);
+
+            return failedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
+        }
+    }
+
+    public Boolean quiesceSnapMirror(String pathLocation, String vfilerName)
+            throws NetAppException {
+        boolean failedStatus = false;
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https, vfilerName);
+
+            failedStatus = netAppFacade.quiesceSnapMirror(pathLocation);
+
+            return failedStatus;
+
+        } catch (Exception e) {
+            throw NetAppException.exceptions.breakSnapMirrorFailed(pathLocation, _ipAddress, e.getMessage());
+        }
+    }
+
 }

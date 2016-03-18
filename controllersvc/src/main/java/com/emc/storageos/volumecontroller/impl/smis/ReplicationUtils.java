@@ -55,18 +55,14 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
-import com.emc.storageos.volumecontroller.impl.monitoring.cim.event.CIMInstanceRecordableDeviceEvent;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.utils.ConsistencyGroupUtils;
 import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Iterables;
 
 /**
  * Class to contain common utilities for Replication related operations
@@ -358,14 +354,14 @@ public class ReplicationUtils {
         try {
             if (!storage.checkIfVmax3() && thinProvisioning) {
                 if (targetGroupName != null) {
-                    existingTarget = getexistingTargetForTargetReplicationGroup(storage, targetGroupName, dbClient);
+                    existingTarget = getExistingTargetForTargetReplicationGroup(storage, targetGroupName, dbClient);
                 } else if (sourceGroupName != null) {
                     List<Volume> rgVolumes = ControllerUtils.getVolumesPartOfRG(storage.getId(), sourceGroupName, dbClient);
                     Set<String> targetGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(rgVolumes, dbClient);
                     if (!targetGroupNames.isEmpty()) {
                         targetGroupName = targetGroupNames.iterator().next();
                         _log.info("Taking target pool from one of existing snapshot group {}", targetGroupName);
-                        existingTarget = getexistingTargetForTargetReplicationGroup(storage, targetGroupName, dbClient);
+                        existingTarget = getExistingTargetForTargetReplicationGroup(storage, targetGroupName, dbClient);
                     } else if (!rgVolumes.isEmpty()) {
                         existingVolume = rgVolumes.get(0);
                     }
@@ -414,7 +410,7 @@ public class ReplicationUtils {
      * @param dbClient the db client
      * @return the existing target for target replication group
      */
-    private static BlockSnapshot getexistingTargetForTargetReplicationGroup(StorageSystem storage, String targetGroupName,
+    private static BlockSnapshot getExistingTargetForTargetReplicationGroup(StorageSystem storage, String targetGroupName,
             DbClient dbClient) {
         List<BlockSnapshot> existingSnapshots = ControllerUtils.
                 getSnapshotsPartOfReplicationGroup(targetGroupName, storage.getId(), dbClient);

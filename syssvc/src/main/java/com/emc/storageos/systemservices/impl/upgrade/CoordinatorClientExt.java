@@ -1545,7 +1545,7 @@ public class CoordinatorClientExt {
                         DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state) ||
                         state == null) {
 
-                    if (state != null && isVirtualIPHolder()) {
+                    if (state != null) {
                         // node is in participant mode, update the local site state accordingly
                         checkAndUpdateLocalSiteState();
                     }

@@ -160,19 +160,19 @@ public class VolumeGroupService extends TaskResourceService {
             DiscoveredDataObject.Type.ibmxiv.name()));
 
     private static final Set<String> PENDING_TASK_NAMES = new HashSet<String>(Arrays.asList(
-            ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP.name(), 
-            ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_FULL_COPY.name(), 
-            ResourceOperationTypeEnum.RESTORE_VOLUME_FULL_COPY.name(), 
-            ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT.name(),
-            ResourceOperationTypeEnum.RESTORE_VOLUME_SNAPSHOT.name(),
-            ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION.name(),
-            ResourceOperationTypeEnum.DEACTIVATE_VOLUME_SNAPSHOT.name(),
-            ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT.name(),
-            ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION.name(),
-            ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION.name(),
-            ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY.name(),
-            ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY.name(),
-            ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME.name()));
+            ResourceOperationTypeEnum.UPDATE_VOLUME_GROUP.getName(), 
+            ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_FULL_COPY.getName(), 
+            ResourceOperationTypeEnum.RESTORE_VOLUME_FULL_COPY.getName(), 
+            ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT.getName(),
+            ResourceOperationTypeEnum.RESTORE_VOLUME_SNAPSHOT.getName(),
+            ResourceOperationTypeEnum.RESTORE_SNAPSHOT_SESSION.getName(),
+            ResourceOperationTypeEnum.DEACTIVATE_VOLUME_SNAPSHOT.getName(),
+            ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT.getName(),
+            ResourceOperationTypeEnum.DELETE_SNAPSHOT_SESSION.getName(),
+            ResourceOperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT_SESSION.getName(),
+            ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY.getName(),
+            ResourceOperationTypeEnum.DETACH_CONSISTENCY_GROUP_FULL_COPY.getName(),
+            ResourceOperationTypeEnum.DELETE_BLOCK_VOLUME.getName()));
             
     private static final String BLOCK = "block";
     private static final String ID_FIELD = "id";

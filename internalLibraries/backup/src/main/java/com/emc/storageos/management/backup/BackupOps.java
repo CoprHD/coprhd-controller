@@ -1009,6 +1009,14 @@ public class BackupOps {
             properties.setProperty(BackupConstants.BACKUP_INFO_VERSION, getCurrentVersion());
             properties.setProperty(BackupConstants.BACKUP_INFO_HOSTS, getHostsWithDualInetAddrs().values().toString());
             properties.setProperty(BackupConstants.BACKUP_INFO_CREATE_TIME, Long.toString(now.getTime()));
+
+            DrUtil drutil = new DrUtil();
+            drutil.setCoordinator(coordinatorClient);
+            String siteId= drutil.getLocalSite().getUuid();
+            properties.setProperty(BackupConstants.BACKUP_INFO_SITE_ID, siteId);
+            String siteName= drutil.getLocalSite().getName();
+            properties.setProperty(BackupConstants.BACKUP_INFO_SITE_NAME, siteName);
+
             properties.store(fos, null);
             // Guarantee ower/group owner/permissions of infoFile is consistent with other backup files
             FileUtils.chown(infoFile, BackupConstants.STORAGEOS_USER, BackupConstants.STORAGEOS_GROUP);
@@ -1391,6 +1399,130 @@ public class BackupOps {
         }
     }
 
+    class QueryBackupCallable extends BackupCallable<BackupInfo> {
+        @Override
+        public BackupInfo sendRequest() throws Exception {
+            return queryBackupFromNode(backupTag, host, port);
+        }
+    }
+
+    private BackupInfo queryBackupFromNode(String backupName, String host, int port) {
+        JMXConnector conn = connect(host, port);
+        try {
+            BackupManagerMBean backupMBean = getBackupManagerMBean(conn);
+            BackupInfo backupInfo = backupMBean.queryBackupInfo(backupName);
+
+            if (backupInfo == null) {
+                throw new IllegalStateException(String.format("Get backup info of %s returns null", backupName));
+            }
+
+            log.info("Node({}:{}) - Get backup info {} success", host, port, backupName);
+            log.info("backupInfo={}", backupInfo);
+
+            return backupInfo;
+        } catch (BackupException e) {
+            log.error("Node({}:{}) - Query backup info {} failed", host, port, backupName);
+            throw e;
+        } finally {
+            close(conn);
+        }
+    }
+
+    public BackupInfo queryLocalBackupInfo(String backupTag) {
+        BackupInfo backupInfo = new BackupInfo();
+        backupInfo.setBackupName(backupTag);
+
+        for (int retryCnt = 0; retryCnt < BackupConstants.RETRY_MAX_CNT; retryCnt++) {
+            List<String> errorList = new ArrayList<String>();
+            Throwable result = null;
+            try {
+                List<BackupProcessor.BackupTask<BackupInfo>> backupTasks =
+                        (new BackupProcessor(getHosts(), ports, backupTag))
+                                .process(new QueryBackupCallable(), true);
+                for (BackupProcessor.BackupTask task : backupTasks) {
+                    try {
+                        BackupInfo backupInfoFromNode =(BackupInfo)task.getResponse().getFuture().get();
+                        log.info("Query backup({}) success", backupTag);
+                        mergeBackupInfo(backupInfo, backupInfoFromNode);
+                    } catch (CancellationException e) {
+                        log.warn("The task of query backup {} was canceled", backupTag, e);
+                    } catch (InterruptedException e) {
+                        BackupProcessor.BackupRequest req = task.getRequest();
+                        errorList.add(String.format(IP_ADDR_FORMAT, req.getHost(), req.getPort()));
+                        log.error("Query backup on node({}:{}) failed.e=", req.getHost(), req.getPort(), e);
+                        result = ((result == null) ? e : result);
+                    } catch (ExecutionException e) {
+                        Throwable cause = e.getCause();
+                        if (ignoreError(cause)) {
+                            errorList.add(String.format(IP_ADDR_FORMAT, "follower", task.getRequest().getPort()));
+                        } else {
+                            BackupProcessor.BackupRequest req = task.getRequest();
+                            errorList.add(String.format(IP_ADDR_FORMAT, req.getHost(), req.getPort()));
+                            log.error("Query backup on node({}:{}) failed.", req.getHost(), req.getPort(), cause);
+                        }
+                        boolean retry = (cause instanceof RetryableBackupException);
+                        boolean exist = (cause instanceof BackupException) &&
+                                (((BackupException) cause).getServiceCode()
+                                        == ServiceCode.BACKUP_CREATE_EXSIT);
+                        result = (result == null || retry || exist || ignoreError(result))
+                                ? cause : result;
+                    }
+                }
+
+                if (result != null) {
+                    if (result instanceof Exception) {
+                        throw (Exception) result;
+                    }
+                    throw new Exception(result);
+                }
+
+                return backupInfo;
+            } catch (Exception e) {
+                log.info("lby0 e=", e);
+                boolean retry = (e instanceof RetryableBackupException) &&
+                        (retryCnt < BackupConstants.RETRY_MAX_CNT - 1);
+                if (retry) {
+                    log.info("Retry to query backup {}", backupTag);
+                    continue;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private void mergeBackupInfo(BackupInfo dst, BackupInfo info) {
+        long size = dst.getBackupSize() + info.getBackupSize();
+        dst.setBackupSize(size);
+
+        if (!info.getSiteId().isEmpty()) {
+            dst.setSiteId(info.getSiteId());
+            dst.setSiteName(info.getSiteName());
+            dst.setCreateTime(info.getCreateTime());
+            dst.setVersion(info.getVersion());
+        }
+        log.info("lby merged backup info {}", dst);
+    }
+
+    /*
+    private BackupInfo toBackupInfo(List<BackupSetInfo> backupSetInfos) {
+        BackupSetInfo info = new BackupSetInfo();
+
+        long size = 0;
+        for (BackupSetInfo fileInfo: backupSetInfos) {
+            size += fileInfo.getSize();
+
+            if (fileInfo.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
+                info.setCreateTime(fileInfo.getCreateTime());
+            }
+
+        }
+
+        info.setSize(size);
+
+    }
+    */
+
     private List<BackupSetInfo> filterToCreateBackupsetList(BackupFileSet clusterBackupFiles) {
         List<BackupSetInfo> backupSetList = new ArrayList<>();
         for (String backupTag : clusterBackupFiles.uniqueTags()) {
@@ -1547,7 +1679,7 @@ public class BackupOps {
         }
 
         BackupInfo backupInfo = new BackupInfo();
-        backupInfo.setFileName(backupName);
+        // backupInfo.setFileName(backupName);
 
         FtpClient client = new FtpClient(serverUri, username, password);
         InputStream in = client.download(backupName);
@@ -1557,7 +1689,7 @@ public class BackupOps {
         while (zentry != null) {
             if (isPropEntry(zentry)) {
                 log.info("Found the property file={}", zentry.getName());
-                setBackupInfo(zin, backupInfo);
+                setBackupInfo(backupInfo, backupName, zin);
                 break;
             }
             zentry = zin.getNextEntry();
@@ -1579,12 +1711,17 @@ public class BackupOps {
         return zentry.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX);
     }
 
-    private void setBackupInfo(ZipInputStream zin, BackupInfo backupInfo) throws IOException {
+    private void setBackupInfo(ZipInputStream zin, String backupName, BackupInfo backupInfo) throws IOException {
+        setBackupInfo(backupInfo, backupName, zin);
+        /*
         Properties properties = loadProperties(zin);
 
         backupInfo.setVersion(getBackupVersion(properties));
         backupInfo.setCreateTime(getCreateTime(properties, backupInfo.getFileName()));
+        backupInfo.setSiteId(getSiteIDFromProperties(properties));
+        backupInfo.setSiteName(getSiteNameFromProperties(properties));
         backupInfo.setRestoreStatus(queryBackupRestoreStatus(backupInfo.getFileName(), false));
+        */
     }
 
     /**
@@ -1609,19 +1746,26 @@ public class BackupOps {
         BackupInfo backupInfo = new BackupInfo();
 
         String backupName = backupFolder.getName();
-        backupInfo.setFileName(backupName);
+        // backupInfo.setFileName(backupName);
 
         try (FileInputStream in = new FileInputStream(propFile)) {
-            Properties properties = loadProperties(in);
-            backupInfo.setVersion(getBackupVersion(properties));
-            backupInfo.setCreateTime(getCreateTime(properties, backupName));
+            setBackupInfo(backupInfo, backupName, in);
         }catch (IOException e) {
             log.error("Failed to get backup info from {} e=", propFile.getName(), e);
         }
 
-        backupInfo.setFileSize(size);
+        backupInfo.setBackupSize(size);
 
         return backupInfo;
+    }
+
+    public void setBackupInfo(BackupInfo backupInfo, String backupName, InputStream in) {
+        Properties properties = loadProperties(in);
+        backupInfo.setVersion(getBackupVersion(properties));
+        backupInfo.setCreateTime(getCreateTime(properties, backupName));
+        backupInfo.setSiteId(getSiteIDFromProperties(properties));
+        backupInfo.setSiteName(getSiteNameFromProperties(properties));
+        backupInfo.setBackupName(backupName);
     }
 
     private String getBackupVersion(Properties properties) {
@@ -1657,6 +1801,14 @@ public class BackupOps {
         }
 
         return time;
+    }
+
+    private String getSiteIDFromProperties(Properties properties) {
+        return properties.getProperty(BackupConstants.BACKUP_INFO_SITE_ID);
+    }
+
+    private String getSiteNameFromProperties(Properties properties) {
+        return properties.getProperty(BackupConstants.BACKUP_INFO_SITE_NAME);
     }
 
     private Properties loadProperties(InputStream in) {

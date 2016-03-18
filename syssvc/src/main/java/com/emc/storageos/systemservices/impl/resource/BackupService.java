@@ -242,13 +242,16 @@ public class BackupService {
     @Path("backup/info/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public BackupInfo queryBackupInfo(@QueryParam("name") String backupFileName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
-        log.info("Query backup info backupFileName={} isLocal={}", backupFileName, isLocal);
+    public BackupInfo queryBackupInfo(@QueryParam("name") String backupName, @QueryParam("local") @DefaultValue("false") boolean isLocal) {
+        log.info("Query backup info backupFileName={} isLocal={}", backupName, isLocal);
         try {
             if (isLocal) {
                 //query info of a local backup
+                /*
                 File localBackupFolder = backupOps.getBackupDir(backupFileName, true);
                 return backupOps.getBackupInfo(localBackupFolder, true);
+                */
+                return backupOps.queryLocalBackupInfo(backupName);
             }
 
             checkExternalServer();
@@ -259,7 +262,7 @@ public class BackupService {
             String username = cfg.getExternalServerUserName();
             String password = cfg.getExternalServerPassword();
 
-            BackupInfo backupInfo =  backupOps.getBackupInfo(backupFileName, serverUri, username, password);
+            BackupInfo backupInfo =  backupOps.getBackupInfo(backupName, serverUri, username, password);
 
             log.info("The backupInfo={}", backupInfo);
             return backupInfo;

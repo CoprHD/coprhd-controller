@@ -737,7 +737,7 @@ public class BackupService {
                 backupFiles = ftpClient.listFiles(backupName);
                 log.info("The backupFiles={}", backupFiles);
             }catch (Exception e) {
-                log.error("Failed to list {} from server {} e=", backupName, externalServerUrl, e);
+                //log.error("Failed to list {} from server {} e=", backupName, externalServerUrl, e);
                 throw BackupException.fatals.externalBackupServerError(backupName);
             }
 

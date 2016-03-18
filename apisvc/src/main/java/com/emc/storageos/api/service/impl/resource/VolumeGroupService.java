@@ -3640,16 +3640,18 @@ public class VolumeGroupService extends TaskResourceService {
         // we don't need the similar logic for clone, since if there is any clone operation in the application, 
         // it has a corresponding task in CG. so the above checking on CG should cover the case for clone.
         for (Volume volume : allVolumes) {
+            Volume theVol = volume;
             if (volume.isVPlexVolume(dbClient)) {
-                volume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
-                if (volume == null || volume.getInactive()) {
+                theVol = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+                if (theVol == null || theVol.getInactive()) {
                     log.warn("Cannot find backend volume for VPLEX volume {}", volume.getLabel());
+                    continue;
                 }
             }
     
             URIQueryResultList snapshotURIs = new URIQueryResultList();
             dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-                    volume.getId()), snapshotURIs);
+                    theVol.getId()), snapshotURIs);
             Iterator<URI> it = snapshotURIs.iterator();
             while (it.hasNext()) {
                 URI snapURI = it.next();

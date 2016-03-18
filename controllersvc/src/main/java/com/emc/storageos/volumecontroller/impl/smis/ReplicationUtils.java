@@ -375,7 +375,7 @@ public class ReplicationUtils {
                     // verify that a storage pool exists in DB for this snapshot's pool
                     if (poolPathItr != null && poolPathItr.hasNext()) {
                         CIMObjectPath poolPath = poolPathItr.next();
-                        _log.info("storage pool path {}", poolPath);
+                        _log.debug("storage pool path {}", poolPath);
                         String nativeGuid = NativeGUIDGenerator.generateNativeGuidForPool(poolPath);
                         List<StoragePool> poolInDB = CustomQueryUtility.getActiveStoragePoolByNativeGuid(dbClient, nativeGuid);
                         if (poolInDB != null && !poolInDB.isEmpty()) {

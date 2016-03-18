@@ -1017,6 +1017,13 @@ system.noderecovery.title=Node Recovery
 systemHealth.startNodeRecovery=Start Node Recovery
 systemHealth.downloadConfigParameters=Download Config Parameters
 systemHealth.fetchingRecoveryStatus=Fetching Node Recovery Status
+nodeRecovery.steps.heading=Recovery Steps
+nodeRecovery.steps.lists=<ol><li>Remove the virtual machine (VM) for each of the failed nodes from your hypervisor environment.</li><li>Save the network configuration parameters to a local properties file using the download button below.</li><li>Use the ViPR deployment script to redeploy a VM for each of the failed nodes, using the properties file created in step 2 as the file argument.  Do not power on the redeployed VM(s).</li><li>Activate the recovery process using the Start Node Recovery button.</li><li>Power on the redeployed VM(s).</li><li>Monitor this page for status updates until the process completes.</li>  </ol>
+nodeRecovery.status.heading=Recovery Status
+nodeRecovery.status=Status
+nodeRecovery.start.time=Start Time
+nodeRecovery.end.time=End Time
+
 
 # System Health Dashboard
 system.healthdashboard.title=System Health

@@ -6,16 +6,8 @@
     </div>
            
 	<div>
-	<h4>Recovery Steps</h4>
-	<ol>
-	  <li>Remove the virtual machine (VM) for each of the failed nodes from your hypervisor environment.</li>
-	  <li>Save the network configuration parameters to a local properties file using the download button below.</li>
-	  <li>Use the ViPR deployment script to redeploy a VM for each of the failed nodes, using the properties file created in
-	      step 2 as the file argument.  Do not power on the redeployed VM(s).</li>
-	  <li>Activate the recovery process using the Start Node Recovery button.</li>
-	  <li>Power on the redeployed VM(s).</li>
-	  <li>Monitor this page for status updates until the process completes.</li>  
-	</ol>
+	<h4>&{'nodeRecovery.steps.heading'}</h4>
+		&{'nodeRecovery.steps.lists'}
 	</div>
 	<p>
 
@@ -26,11 +18,11 @@
 
     <div id="recoveryResults">
       <table style="margin-top:25px;width:100%">
-          <caption style="display: table-caption;text-align: left;"><h3>Recovery Status</h3></caption>
+          <caption style="display: table-caption;text-align: left;"><h3>&{'nodeRecovery.status.heading'}</h3></caption>
 		  <tr>
-		    <th>Status</th>
-		    <th>Start Time</th> 
-		    <th>End Time</th>
+		    <th>&{'nodeRecovery.status'}</th>
+		    <th>&{'nodeRecovery.start.time'}</th> 
+		    <th>&{'nodeRecovery.end.time'}</th>
 		  </tr>
 		  <tr>
 		    <td>

@@ -5,8 +5,10 @@
 package com.emc.storageos.api.service.impl.resource.cinder;
 
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
 
 import java.net.URI;
+import java.util.Iterator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,15 +16,13 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.service.impl.resource.TaskResourceService;
 import com.emc.storageos.api.service.impl.resource.utils.CinderApiUtils;
 import com.emc.storageos.cinder.model.ConsistencyGroupDetail;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.client.model.ScopedLabelSet;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -133,6 +133,11 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
         return toTask(consistencyGroup, task, status);
     }
     
+    /**
+     * To Chaeck Snapshot creation allowed on ViPR or not
+     * @param consistencyGroup consistency grp instance
+     * @return
+     */
     protected boolean isSnapshotCreationpermissible(BlockConsistencyGroup consistencyGroup) {
         String volType = null;
         boolean isPermissible = false;
@@ -153,5 +158,22 @@ public abstract class AbstractConsistencyGroupService extends TaskResourceServic
         }
         return isPermissible;
     }
-
+    
+    /**
+     * If the Consistency Group has Snapshot(s), then Volume can not be created.
+     * 
+     * @param blockConsistencyGroup Block Consistency Grp Instance
+     * @return 
+     */
+    protected boolean verifyConsistencyGroupHasSnapshot(BlockConsistencyGroup consistencyGroup) {
+        final URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
+        _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(consistencyGroup.getId()),
+                cgSnapshotsResults);
+        Iterator<BlockSnapshot> blockSnapshotIterator = _dbClient.queryIterativeObjects(BlockSnapshot.class, cgSnapshotsResults);
+        if (blockSnapshotIterator.hasNext()) {
+            return true;
+        }
+        return false;
+    }
+  
 }

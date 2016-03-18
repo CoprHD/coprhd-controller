@@ -274,13 +274,14 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             _log.error("Bad Request : Invalid Snapshot Id {}", consistencyGroupSnapshotId);
             return CinderApiUtils.createErrorResponse(400, "Bad Request: No such snapshot id exist");
         } else if (!consistencyGroupSnapshotId.equals(CinderApiUtils.splitString(snapshot.getId().toString(), ":", 3))) {
-            _log.error("Bad Request : Invalid Snapshot Id {}", consistencyGroupSnapshotId);
-            return CinderApiUtils.createErrorResponse(400, "Bad Request: No such snapshot id exist");
+            _log.error("Bad Request : Invalid Snapshot Id {} : Please enter valid or full Id", consistencyGroupSnapshotId);
+            return CinderApiUtils.createErrorResponse(400, "Bad Request: No such snapshot id exist, Please enter valid or full Id");
         }
         ConsistencyGroupSnapshotDetail cgSnapshotDetail = new ConsistencyGroupSnapshotDetail();
         cgSnapshotDetail.id = consistencyGroupSnapshotId;
         cgSnapshotDetail.name = snapshot.getLabel();
         cgSnapshotDetail.created_at = CinderApiUtils.timeFormat(snapshot.getCreationTime());
+        cgSnapshotDetail.consistencygroup_id = CinderApiUtils.splitString(snapshot.getConsistencyGroup().toString(), ":", 3);
         StringMap extensions = snapshot.getExtensions();
         String description = null;
 
@@ -531,7 +532,7 @@ public class ConsistencyGroupSnapshotService extends AbstractConsistencyGroupSer
             response.name = blockSnapshot.getLabel();
             response.created_at = CinderApiUtils.timeFormat(blockSnapshot.getCreationTime());
             response.status = blockSnapshot.getExtensions().get("status");
-            response.consistencygroup_id = blockSnapshot.getConsistencyGroup().toString();
+            response.consistencygroup_id = CinderApiUtils.splitString(blockSnapshot.getConsistencyGroup().toString(), ":", 3);
         }
         return response;
     }

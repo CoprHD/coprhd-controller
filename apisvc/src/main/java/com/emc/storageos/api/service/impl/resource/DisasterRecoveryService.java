@@ -2051,9 +2051,7 @@ public class DisasterRecoveryService {
         }
 
         /**
-         * @return true when:
-         *     1. Local site is in ACTIVE_DEGRADED state according returned result from other site;
-         *     2. Local site can't be found in new active site.
+         * @return true when Local site is in ACTIVE_DEGRADED state or can't be found according returned result from other site
          */
         private boolean isLocalSiteDiscarded() {
             String localSiteId = drUtil.getLocalSite().getUuid();
@@ -2064,11 +2062,8 @@ public class DisasterRecoveryService {
                 }
                 try (InternalSiteServiceClient client = new InternalSiteServiceClient(remoteSite, coordinator, apiSignatureGenerator)) {
                     SiteList sites = client.getSiteList();
-                    if (isSiteInState(localSiteId, SiteState.ACTIVE_DEGRADED, sites)) {
-                        log.info("Local site {} is in ACTIVE_DEGRADED state according data returned from site {}", localSiteId, remoteSite.getUuid());
-                        return true;
-                    }
-                    if (isSiteInState(remoteSite.getUuid(), SiteState.ACTIVE, sites) && isSiteRemoved(localSiteId, sites)) {
+                    if (isSiteRemoved(localSiteId, sites) || isSiteDegraded(localSiteId, sites)) {
+                        log.info("Local site {} is in ACTIVE_DEGRADED state or removed according data returned from site {}", localSiteId, remoteSite.getUuid());
                         return true;
                     }
                 } catch (Exception e) {
@@ -2085,12 +2080,14 @@ public class DisasterRecoveryService {
                     return false;
                 }
             }
+            log.info("Site {} is removed", siteId);
             return true;
         }
 
-        private boolean isSiteInState(String siteId, SiteState state, SiteList sites) {
+        private boolean isSiteDegraded(String siteId, SiteList sites) {
             for (SiteRestRep site : sites.getSites()) {
-                if (siteId.equals(site.getUuid()) && state.toString().equals(site.getState())) {
+                if (siteId.equals(site.getUuid()) && SiteState.ACTIVE_DEGRADED.toString().equals(site.getState())) {
+                    log.info("Site {} is ACTIVE_DEGRADED", siteId);
                     return true;
                 }
             }

@@ -3594,6 +3594,7 @@ public class VolumeIngestionUtil {
             cg.setId(URIUtil.createId(BlockConsistencyGroup.class));
             cg.setLabel(pset.getLabel());
             cg.setProject(projectNamedUri);
+            cg.addConsistencyGroupTypes(Types.RP.name());
             // By default, the array consistency is false. However later when we iterate over volumes in the BCG and we
             // see any replicationGroupInstance information, we'll flip this bit to true. (See decorateRPVolumesCGInfo())
             cg.setArrayConsistency(false);

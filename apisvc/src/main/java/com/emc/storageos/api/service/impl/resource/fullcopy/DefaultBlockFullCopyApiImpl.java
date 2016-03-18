@@ -323,7 +323,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
         try {
             BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                     BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-            //controller.restoreFromFullCopy(sourceSystemURI, new ArrayList<URI>(fullCopyURIs), taskId);
+            controller.restoreFromFullCopy(sourceSystemURI, new ArrayList<URI>(fullCopyURIs), taskId);
         } catch (InternalException ie) {
             s_logger.error(String.format("Failed to restore source %s from full copy %s",
                     sourceVolumeURI, fullCopyVolume.getId()), ie);

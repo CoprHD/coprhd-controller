@@ -53,7 +53,10 @@ public class Backup {
     }
 
     public void createBackup(String name, boolean force) {
-		UriBuilder builder = client.uriBuilder(BACKUP_CREATE_URL);
+        int specialTimeout = 30 * 60 * 1000; // 30 minutes
+        client.getConfig().withReadTimeout(specialTimeout);
+        client.getConfig().withConnectionTimeout(specialTimeout);
+        UriBuilder builder = client.uriBuilder(BACKUP_CREATE_URL);
 		addQueryParam(builder, "tag", name);
 		if (force) {
 			addQueryParam(builder, "force", true);

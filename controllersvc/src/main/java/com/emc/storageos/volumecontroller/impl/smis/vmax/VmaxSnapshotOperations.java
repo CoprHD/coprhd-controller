@@ -1404,9 +1404,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
-            _log.error(
-                    "Failed to establish group relation between volume group and snapshot group. Volume: {}, Snapshot: {}",
+            String msg =
+                    String.format("Failed to establish group relation between volume group and snapshot group. Volume: %s, Snapshot: %s",
                     sourceVolume, snapshot);
+            _log.error(msg, e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
         }

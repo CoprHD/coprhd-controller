@@ -3277,7 +3277,7 @@ public class VolumeGroupService extends TaskResourceService {
                 // check to make sure the new volumes are the same tenant as existing volumes
                 if (!firstVolume.getTenant().getURI().equals(tenantId)) {
                     throw APIException.badRequests.volumeCantBeAddedToVolumeGroup(firstVolLabel,
-                            "volume does not have the same tenant as existing volumes in the application");
+                            "the volume does not have the same tenant as existing volumes in the application");
                 }
 
                 // if volumes are vplex, make sure local vs distributed matches

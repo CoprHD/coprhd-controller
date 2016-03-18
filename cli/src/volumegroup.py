@@ -1850,10 +1850,10 @@ def snapshot_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-snapshotname', '-s',
-                                metavar='<snapshot name>',
+    mandatory_args.add_argument('-snapshotsetname', '-s',
+                                metavar='<snapshotsetname>',
                                 dest='snapshotname',
-                                help='Name of Snapshot',
+                                help='Name of snapshot set',
                                 required=True)
     snapshot_parser.add_argument('-readonly', '-ro',
                               dest='readonly',
@@ -1903,7 +1903,7 @@ def volume_group_snapshot_common_parser(cc_common_parser):
     mandatory_args.add_argument('-snapshots', '-s',
                             metavar='<snapshotname,...>',
                             dest='snapshots',
-                            help='A snapshot of a volume group specifying which snapshot Set to act on. ' +
+                            help='A snapshot of a volume group specifying which snapshot set to act on. ' +
                             'For partial operation, specify one snapshot from each Array Replication Group',
                             required=True)
 
@@ -2040,10 +2040,10 @@ def snapshot_show_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-snapshotname', '-ssn',
-                                metavar='<snapshotname>',
+    mandatory_args.add_argument('-snapshotname', '-s',
+                                metavar='<snapshot name>',
                                 dest='snapshotname',
-                                help='Name of Snapshot',
+                                help='Name of snapshot',
                                 required=True)
 
     snapshot_show_parser.set_defaults(func=volume_group_snapshot_show)
@@ -2130,9 +2130,9 @@ def snapshot_get_parser(subcommand_parsers, common_parser):
                                 help='Name of volume group',
                                 required=True)
     snapshot_get_parser.add_argument('-setname', '-s',
-                              metavar='<setname>',
+                              metavar='<snapshot set name>',
                               dest='setname',
-                              help='Copy set name',
+                              help='Snapshot set name',
                               required=True)
     snapshot_get_parser.set_defaults(func=volume_group_snapshot_get)
 
@@ -2175,10 +2175,10 @@ def snapshotsession_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-snapshotsessionname', '-s',
-                                metavar='<snapshot session name>',
+    mandatory_args.add_argument('-snapshotsessionsetname', '-s',
+                                metavar='<snapshot session set name>',
                                 dest='snapshotsessionname',
-                                help='Name of Snapshot Session',
+                                help='Name of snapshot session set',
                                 required=True)
     snapshotsession_parser.add_argument('-readonly', '-ro',
                               dest='readonly',
@@ -2199,10 +2199,10 @@ def snapshotsession_parser(subcommand_parsers, common_parser):
                                metavar='<count>',
                                help='Number of target volumes. Optional, if provided, targetname and copymode need to be provided',
                                required=False)
-    snapshotsession_parser.add_argument('-targetname', '-tgn',
+    snapshotsession_parser.add_argument('-targetname', '-t',
                                help='This option specifies the target name. Optional, if provided, count and copymode need to be provided',
                                dest='target_name',
-                               metavar='<target_name>',
+                               metavar='<target name>',
                                required=False)
     snapshotsession_parser.add_argument('-copymode', '-cm',
                                help='Whether to create in copy or nocopy mode. Optional, if provided, count and targetname need to be provided' ,
@@ -2330,17 +2330,17 @@ def snapshotsession_link_parser(subcommand_parsers, common_parser):
         help='Link snapshot session of a VolumeGroup',
         description='ViPR Link Snapshot Session of a VolumeGroup CLI usage.')
 
-    snapshotsession_link_parser.add_argument('-snapshotsessionname', '-sn',
+    snapshotsession_link_parser.add_argument('-snapshotsession', '-s',
                                 metavar='<snapshotsessionname>',
                                 dest='snapshotsessionname',
-                                help='Name of Snapshot Session',
+                                help='Name of snapshot session',
                                 required=True)
     snapshotsession_link_parser.add_argument('-count', '-ct',
                                dest='count',
                                metavar='<count>',
                                help='Number of target volumes',
                                required=True)
-    snapshotsession_link_parser.add_argument('-targetname', '-tgn',
+    snapshotsession_link_parser.add_argument('-targetname', '-t',
                                help='This option specifies the target name',
                                dest='target_name',
                                metavar='<target_name>',
@@ -2377,10 +2377,10 @@ def volume_group_snapshotsession_link(args):
 
 # snapshotsession_target_common_parser
 def snapshotsession_target_common_parser(common_parser):
-    common_parser.add_argument('-snapshotsessionname', '-sn',
+    common_parser.add_argument('-snapshotsession', '-s',
                                 metavar='<snapshotsessionname>',
                                 dest='snapshotsessionname',
-                                help='Name of Snapshot Session',
+                                help='Name of snapshot session',
                                 required=True)
 
     volume_group_snapshotsession_common_parser(common_parser)
@@ -2423,7 +2423,8 @@ def snapshotsession_relink_parser(subcommand_parsers, common_parser):
         help='Relink snapshot session of a VolumeGroup',
         description='ViPR Relink Snapshot Session of a VolumeGroup CLI usage.')
 
-    snapshotsession_relink_parser.add_argument('-targetvolumes', '-tgnames',
+    snapshotsession_relink_parser.add_argument('-targets', '-t',
+                               metavar='<target,...>',
                                dest='target_names',
                                help='List of target volumes',
                                required=True)
@@ -2445,7 +2446,8 @@ def snapshotsession_unlink_parser(subcommand_parsers, common_parser):
         help='Unlink snapshot session of a VolumeGroup',
         description='ViPR Unlink Snapshot Session of a VolumeGroup CLI usage.')
 
-    snapshotsession_unlink_parser.add_argument('-targetvolumes', '-tgnames',
+    snapshotsession_unlink_parser.add_argument('-targets', '-t',
+                               metavar='<target:delete,...>',
                                dest='target_names',
                                help='List of target volumes in the format <target_name>:delete, delete part is optional',
                                required=True)
@@ -2513,7 +2515,7 @@ def snapshotsession_show_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    mandatory_args.add_argument('-snapshotsessionname', '-ssn',
+    mandatory_args.add_argument('-snapshotsessionname', '-s',
                                 metavar='<snapshotsessionname>',
                                 dest='snapshotsessionname',
                                 help='Name of Snapshot Session',
@@ -2602,10 +2604,10 @@ def snapshotsession_get_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='Name of volume group',
                                 required=True)
-    snapshotsession_get_parser.add_argument('-setname', '-sn',
+    snapshotsession_get_parser.add_argument('-setname', '-s',
                               metavar='<setname>',
                               dest='setname',
-                              help='Copy set name',
+                              help='Snapshot session set name',
                               required=True)
     snapshotsession_get_parser.set_defaults(func=volume_group_snapshotsession_get)
 

@@ -430,7 +430,6 @@ public class NetworkScheduler {
         	}	
         } else {
         	_log.info("No FC Zone References for key found");
-        	return null;
         }
         return list;
     }

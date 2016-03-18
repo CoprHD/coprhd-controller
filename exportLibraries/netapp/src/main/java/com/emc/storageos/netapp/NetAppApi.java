@@ -260,6 +260,18 @@ public class NetAppApi {
         }
     }
 
+    public Boolean setVolumeRestricted(String volName) throws NetAppException {
+        try {
+            netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
+                    _password, _https);
+            netAppFacade.setVolumeOffline(volName, 1);
+            return true;
+        } catch (Exception e) {
+            throw NetAppException.exceptions.deleteFSFailed(volName,
+                    _ipAddress, e.getMessage());
+        }
+    }
+
     public Boolean deleteAllQTrees(String volName) throws NetAppException {
         String qtreeName = null;
         try {
@@ -1031,7 +1043,7 @@ public class NetAppApi {
     }
 
     // snap mirror functions
-    public boolean createSnapMirror(String sourcePath, String destPath, String vfilerName)
+    public Boolean createSnapMirror(String sourcePath, String destPath, String vfilerName)
             throws NetAppException {
         boolean failedStatus = false;
         try {
@@ -1048,7 +1060,7 @@ public class NetAppApi {
         }
     }
 
-    public boolean initializeSnapMirror(String sourcePath, String destPath, String vfilerName)
+    public Boolean initializeSnapMirror(String sourcePath, String destPath, String vfilerName)
             throws NetAppException {
         boolean failedStatus = false;
         try {
@@ -1064,7 +1076,7 @@ public class NetAppApi {
         }
     }
 
-    public boolean setScheduleSnapMirror(String type, String scheduleTime, String sourceLocation, String destLocation, String vfilerName) {
+    public Boolean setScheduleSnapMirror(String type, String scheduleTime, String sourceLocation, String destLocation, String vfilerName) {
         boolean failedStatus = false;
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
@@ -1079,7 +1091,7 @@ public class NetAppApi {
         }
     }
 
-    public boolean destorySnapMirror(String sourcePath, String destPath, String vfilerName)
+    public Boolean destorySnapMirror(String sourcePath, String destPath, String vfilerName)
             throws NetAppException {
         boolean failedStatus = false;
         try {
@@ -1095,7 +1107,7 @@ public class NetAppApi {
         }
     }
 
-    public boolean resyncSnapMirror(String sourcePath, String destPath, String vfilerName)
+    public Boolean resyncSnapMirror(String sourcePath, String destPath, String vfilerName)
             throws NetAppException {
         boolean failedStatus = false;
         try {
@@ -1110,7 +1122,7 @@ public class NetAppApi {
         }
     }
 
-    public boolean releaseSnapMirror(String sourcePath, String vfilerName)
+    public Boolean releaseSnapMirror(String sourcePath, String vfilerName)
             throws NetAppException {
         boolean failedStatus = false;
         try {
@@ -1134,7 +1146,7 @@ public class NetAppApi {
      * @return
      * @throws NetAppException
      */
-    public boolean breakSnapMirror(String pathLocation, String vfilerName)
+    public Boolean breakSnapMirror(String pathLocation, String vfilerName)
             throws NetAppException {
         boolean failedStatus = false;
         try {

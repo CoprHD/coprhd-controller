@@ -358,6 +358,7 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
                 if (!NullColumnValueGetter.isNotNullValue(newSnapsetName)) {
                     _log.info("Updating replicationGroupInstance to {} in snapshot- {}:{}", newSnapsetName, snap.getLabel(), snap.getId());
                     snap.setReplicationGroupInstance(newSnapsetName);
+                    dbClient.updateObject(snap);
                 }
             }
 

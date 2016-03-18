@@ -587,10 +587,27 @@ public class LocalRepository {
         final String prefix = "checkIpsecConnection(): ";
         _log.debug(prefix);
 
-        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_CONNECTION };
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_CHECK_CONNECTION};
         String[] ips = exec(prefix, cmd);
 
         _log.debug(prefix + "ips without ipsec connection: ", Strings.repr(ips));
+        return ips;
+    }
+
+    /**
+     * get all remote nodes in the cluster, includes nodes in standby sites
+     *
+     * @return
+     * @throws LocalRepositoryException
+     */
+    public String[] getAllRemoteNodesIncluster() throws LocalRepositoryException {
+        final String prefix = "getAllRemoteNodesIncluster(): ";
+        _log.debug(prefix);
+
+        final String[] cmd = { _IPSECTOOL_CMD, IPSEC_GET_ALL_REMOTE_NODES };
+        String[] ips = exec(prefix, cmd);
+
+        _log.debug(prefix + "all remote ips the cluster: ", Strings.repr(ips));
         return ips;
     }
 

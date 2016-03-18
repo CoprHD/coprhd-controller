@@ -1046,11 +1046,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             throw APIException.badRequests.noVolumesToSnap();
         }
 
-        // Validate VNX. Cannot create snapshot if volume is not in a real replication group
-        if (ControllerUtils.isNotInRealVNXRG(reqVolume, _dbClient)) {
-            throw APIException.badRequests.snapshotsNotSupportedForNonRealVNXRG();
-        }
-
         // Verify the vpools of the volumes to be snapped support
         // snapshots and the maximum snapshots has not been reached.
         // Also, check for a duplicate name.
@@ -1179,6 +1174,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         for (Volume volume : volumes) {
             // Attempt to create distinct labels here when creating >1 volumes (ScaleIO requirement)
             String rgName = volume.getReplicationGroupInstance();
+            VolumeGroup application = volume.getApplication(_dbClient);
             if (volume.isVPlexVolume(_dbClient)) {
                 Volume backendVol = VPlexUtil.getVPLEXBackendVolume(volumes.get(0), true, _dbClient);
                 if (backendVol != null && !backendVol.getInactive()) {
@@ -1187,7 +1183,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             }
 
             String label = snapshotName;
-            if (NullColumnValueGetter.isNotNullValue(rgName)) {
+            if (NullColumnValueGetter.isNotNullValue(rgName) && application != null) {
                 // There can be multiple RGs in a CG, in such cases generate unique name
                 if (volumes.size() > 1) {
                     label = String.format("%s-%s-%s", snapshotName, rgName, count++);

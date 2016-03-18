@@ -827,7 +827,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 String backendVolumeNativeGuid = vplexBackendUmvNativeGuid.replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                         VolumeIngestionUtil.VOLUME);
 
-                BlockObject blockObject = requestContext.findCreatedBlockObject(backendVolumeNativeGuid);
+                BlockObject blockObject = requestContext.getRootIngestionRequestContext().findCreatedBlockObject(backendVolumeNativeGuid);
                 if (blockObject == null) {
                     // Next look in the updated objects.
                     blockObject = (BlockObject) requestContext.findInUpdatedObjects(URI.create(backendVolumeNativeGuid));

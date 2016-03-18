@@ -19,6 +19,7 @@ _usage() {
     set +Ex
     echo "Usage: $0 check-connection           return IPs with NO ipsec connections"       >&2
     echo "   or: $0 check-local                check if local ipsec configuration files matches"    >&2
+    echo "   or: $0 get-remote-nodes           return all remote nodes in the cluster"     >&2
     echo "   or: $0 get-props  <ip>            get version and ipsec_key from given node"  >&2
     echo "   or: $0 sync-key   <ipsec-key>     write given key to vdc property file"       >&2
     echo "   or: $0 sync-status <ipsec-status> write given status to vdc property file"    >&2
@@ -227,11 +228,25 @@ _check_local_config() {
     [[ ${key_vdc} = ${key_ipsec} ]]
 }
 
+#
+# get all the remotes nodes of the cluster
+#
+_get_remote_nodes() {
+    local local_ip=$(_get_local_ip)
+    local ips=$(_get_all_nodes)
+    for ip in ${ips} ; do
+        if [[ ${ip} != "${local_ip}" && ${ip} != "127.0.0.1" ]] ; then
+            echo "${ip}"
+        fi
+    done
+}
+
 case ${#} in
     0) _usage ;;
     1) case ${1} in
         check-connection)  _check_connection ;;
         check-local)       _check_local_config ;;
+        get-remote-nodes)     _get_remote_nodes ;;
         *)                 _usage
        esac ;;
     2) case ${1} in

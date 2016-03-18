@@ -20,6 +20,7 @@ public class SiteDetailRestRep {
     private Double networkLatencyInMs;
     private String clusterState;
     private boolean dataSynced;
+    private String siteState;
 
     @XmlElement(name = "dataSynced")
     public boolean isDataSynced() {
@@ -75,6 +76,15 @@ public class SiteDetailRestRep {
         this.clusterState = clusterState;
     }
 
+    @XmlElement(name = "siteState")
+    public String getSiteState() {
+        return siteState;
+    }
+
+    public void setSiteState(String siteState) {
+        this.siteState = siteState;
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -88,6 +98,8 @@ public class SiteDetailRestRep {
         builder.append(networkLatencyInMs);
         builder.append(", clusterState=");
         builder.append(clusterState);
+        builder.append(", siteState=");
+        builder.append(siteState);
         builder.append("]");
         return builder.toString();
     }

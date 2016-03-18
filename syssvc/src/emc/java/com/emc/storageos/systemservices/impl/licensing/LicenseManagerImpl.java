@@ -303,8 +303,7 @@ public class LicenseManagerImpl implements LicenseManager {
      */
     public LicenseInfoListExt getLicenseInfoListFromCoordinator() {
         try {
-            return _coordinator.getTargetInfo(LicenseInfoListExt.class,
-                    TARGET_PROPERTY_ID, LicenseInfo.LICENSE_INFO_TARGET_PROPERTY);
+            return _coordinator.getTargetInfo(LicenseInfoListExt.class);
 
         } catch (Exception e) {
             throw APIException.internalServerErrors.getObjectFromError("license info list",
@@ -320,8 +319,7 @@ public class LicenseManagerImpl implements LicenseManager {
      */
     public LicenseInfoExt getLicenseInfoFromCoordinator(LicenseType licenseType) {
         try {
-            LicenseInfoListExt licInfoList = _coordinator.getTargetInfo(LicenseInfoListExt.class,
-                    TARGET_PROPERTY_ID, LicenseInfo.LICENSE_INFO_TARGET_PROPERTY);
+            LicenseInfoListExt licInfoList = _coordinator.getTargetInfo(LicenseInfoListExt.class);
 
             if (licInfoList != null) {
                 for (LicenseInfoExt licenseInfo : licInfoList.getLicenseList()) {

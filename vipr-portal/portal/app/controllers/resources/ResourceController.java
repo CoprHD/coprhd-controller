@@ -31,7 +31,6 @@ public class ResourceController extends Controller {
         TenantSelector.addRenderArgs();
         String tenantId = Models.currentAdminTenant();
         renderArgs.put("projects", getProjects(tenantId));
-        //renderArgs.put("applications", getApplications(tenantId)); add this once API available
         getActiveProjectId(); // called here to make sure active project id is init
     }
 

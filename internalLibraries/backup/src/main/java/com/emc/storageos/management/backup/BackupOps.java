@@ -1433,58 +1433,26 @@ public class BackupOps {
         backupInfo.setBackupName(backupTag);
 
         for (int retryCnt = 0; retryCnt < BackupConstants.RETRY_MAX_CNT; retryCnt++) {
-            List<String> errorList = new ArrayList<String>();
-            Throwable result = null;
             try {
                 List<BackupProcessor.BackupTask<BackupInfo>> backupTasks =
-                        (new BackupProcessor(getHosts(), ports, backupTag))
-                                .process(new QueryBackupCallable(), true);
+                        new BackupProcessor(getHosts(), ports, backupTag).process(new QueryBackupCallable(), true);
+
                 for (BackupProcessor.BackupTask task : backupTasks) {
-                    try {
-                        BackupInfo backupInfoFromNode =(BackupInfo)task.getResponse().getFuture().get();
-                        log.info("Query backup({}) success", backupTag);
-                        mergeBackupInfo(backupInfo, backupInfoFromNode);
-                    } catch (CancellationException e) {
-                        log.warn("The task of query backup {} was canceled", backupTag, e);
-                    } catch (InterruptedException e) {
-                        BackupProcessor.BackupRequest req = task.getRequest();
-                        errorList.add(String.format(IP_ADDR_FORMAT, req.getHost(), req.getPort()));
-                        log.error("Query backup on node({}:{}) failed.e=", req.getHost(), req.getPort(), e);
-                        result = ((result == null) ? e : result);
-                    } catch (ExecutionException e) {
-                        Throwable cause = e.getCause();
-                        if (ignoreError(cause)) {
-                            errorList.add(String.format(IP_ADDR_FORMAT, "follower", task.getRequest().getPort()));
-                        } else {
-                            BackupProcessor.BackupRequest req = task.getRequest();
-                            errorList.add(String.format(IP_ADDR_FORMAT, req.getHost(), req.getPort()));
-                            log.error("Query backup on node({}:{}) failed.", req.getHost(), req.getPort(), cause);
-                        }
-                        boolean retry = (cause instanceof RetryableBackupException);
-                        boolean exist = (cause instanceof BackupException) &&
-                                (((BackupException) cause).getServiceCode()
-                                        == ServiceCode.BACKUP_CREATE_EXSIT);
-                        result = (result == null || retry || exist || ignoreError(result))
-                                ? cause : result;
-                    }
+                    BackupInfo backupInfoFromNode = (BackupInfo) task.getResponse().getFuture().get();
+                    log.info("Query backup({}) success", backupTag);
+                    mergeBackupInfo(backupInfo, backupInfoFromNode);
                 }
 
-                if (result != null) {
-                    if (result instanceof Exception) {
-                        throw (Exception) result;
-                    }
-                    throw new Exception(result);
-                }
+                BackupRestoreStatus s = queryBackupRestoreStatus(backupTag, true);
+                backupInfo.setRestoreStatus(s);
 
                 return backupInfo;
+            }catch (RetryableBackupException e) {
+                log.info("Retry to query backup {}", backupTag);
+                continue;
             } catch (Exception e) {
-                log.info("lby0 e=", e);
-                boolean retry = (e instanceof RetryableBackupException) &&
-                        (retryCnt < BackupConstants.RETRY_MAX_CNT - 1);
-                if (retry) {
-                    log.info("Retry to query backup {}", backupTag);
-                    continue;
-                }
+                log.error("e=", e);
+                break;
             }
         }
 
@@ -1501,7 +1469,8 @@ public class BackupOps {
             dst.setCreateTime(info.getCreateTime());
             dst.setVersion(info.getVersion());
         }
-        log.info("lby merged backup info {}", dst);
+
+        log.info("merged backup info {}", dst);
     }
 
     /*
@@ -1667,6 +1636,7 @@ public class BackupOps {
     public BackupInfo getBackupInfo(String backupName, String serverUri, String username, String password) throws IOException {
         log.info("To get backup info of {} from server={} ", backupName, serverUri);
 
+        /*
         File backupFolder= getDownloadDirectory(backupName);
         try {
             checkBackup(backupFolder);
@@ -1677,6 +1647,7 @@ public class BackupOps {
         } catch (Exception e) {
             // The backup has not been downloaded yet or is invalid, query from the server
         }
+        */
 
         BackupInfo backupInfo = new BackupInfo();
         // backupInfo.setFileName(backupName);
@@ -1703,6 +1674,9 @@ public class BackupOps {
             // it's a known issue to use curl
             //it's safe to ignore this exception here.
         }
+
+        BackupRestoreStatus s = queryBackupRestoreStatus(backupName, true);
+        backupInfo.setRestoreStatus(s);
 
         return backupInfo;
     }

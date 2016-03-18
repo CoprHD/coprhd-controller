@@ -397,12 +397,11 @@ public class BackupManager implements BackupManagerMBean {
 
         long size = 0;
         for (File file : backupFiles) {
-            long createTime = 0;
             if (file.getName().endsWith(BackupConstants.BACKUP_INFO_SUFFIX)) {
                 log.info("Get the create time from info file {}", file.getName());
                 BackupOps ops = new BackupOps();
                 try (FileInputStream in = new FileInputStream(file)) {
-                    ops.setBackupInfo(backupInfo,backupName, in);
+                    ops.setBackupInfo(backupInfo, backupName, in);
                 }catch (IOException e) {
                     log.error("Failed to read info file {}", file.getAbsolutePath());
                     return null;
@@ -413,7 +412,7 @@ public class BackupManager implements BackupManagerMBean {
 
         backupInfo.setBackupSize(size);
 
-        log.info("Query backup {} successfully: {}", backupInfo);
+        log.info("Query backup successfully: {}", backupInfo);
         return backupInfo;
     }
 

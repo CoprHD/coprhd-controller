@@ -4184,7 +4184,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     waitFor = _replicaDeviceController.addStepsForAddingSessionsToCG(workflow, waitFor, consistencyGroup, addVolumesList,
                             groupName, task);
                     
-                    // Group together target volumes by storage system
+                    // Group together target volumes by storage system.  If any volume doesn't belong to vmax, throw out that set of targets
                     for (URI volUri : allAddTargetVolumes) {
                         Volume vol = _dbClient.queryObject(Volume.class, volUri);
                         if (storageSystemToVolumesMap.get(vol.getStorageController()) == null) {
@@ -4197,8 +4197,26 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                     for (Entry<URI, List<URI>> entry : storageSystemToVolumesMap.entrySet()) {
                         URI storageSystemId = entry.getKey();
                         List<URI> volumesToAdd = entry.getValue();
+
+                        // Verify there are as many volumes in this target as there in the source.  This will catch issues where:
+                        // 1. There's a "straggler" volume on another VMAX than the other target volumes for that RP Copy
+                        // 2. There's more than one target RP Copy on the same VMAX
+                        //
+                        // We passively warn in the logs why we can't group them, but we continue to group others as possible.
+                        if (volumesToAdd.size() != addVolumesList.size()) {
+                            _log.error(String.format("Can't add target volumes %s to VMAX CG because we found %d volumes associated with this storage array in the RP CG versus %d RP Source volumes.",
+                                    Joiner.on(',').join(volumesToAdd), volumesToAdd.size(), addVolumesList.size()));
+                            continue;                            
+                        }
                         
                         StorageSystem targetStorageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+                        
+                        // Validation to ensure we're dealing with VMAX
+                        if (!targetStorageSystem.deviceIsType(Type.vmax)) {
+                            _log.error(String.format("Can't add target volumes %s to VMAX CG because the storage array %s is not VMAX",
+                                    Joiner.on(',').join(volumesToAdd), targetStorageSystem.forDisplay()));
+                            continue;                                                        
+                        }
                         
                         // Generate groupName and create step for source storage system
                         groupName = ControllerUtils.generateReplicationGroupName(targetStorageSystem, cg, null, _dbClient) + RPHelper.REPLICATION_GROUP_RPTARGET_SUFFIX;

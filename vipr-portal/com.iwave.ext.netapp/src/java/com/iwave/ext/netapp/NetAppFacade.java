@@ -533,6 +533,24 @@ public class NetAppFacade {
     }
 
     /**
+     * Takes a volume restricted. Note this call does *not* wait for the specified
+     * number of minutes. The delay occurs on the device.
+     * 
+     * @param volumeName - name of volume to restricted
+     * @param delayInMinutes - number of minutes to wait on the device before
+     *            the volume is offline.
+     */
+    public void setVolumeRestricted(String volumeName, int delayInMinutes)
+    {
+        if (log.isDebugEnabled()) {
+            log.debug("Taking volume restricted with params[name,delayInMinutes]: " +
+                    volumeName + "," + delayInMinutes);
+        }
+        Volume vol = new Volume(server.getNaServer(), volumeName);
+        vol.setVolumeRestrict(delayInMinutes);
+    }
+
+    /**
      * Creates a new flexible volume, enables and configures SiS.
      * Only parameters for flexible volumes are provided.
      * Note the volume may not be operational immediately after this method returns. Use
@@ -1598,6 +1616,22 @@ public class NetAppFacade {
         return snapMirror.createSnapMirror(sourceLocation, destLocation);
     }
 
+    public boolean getSnapMirrorStatus() {
+        if (log.isDebugEnabled()) {
+            log.debug("get snap mirror status");
+        }
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.getSnapMirrorStatus();
+    }
+
+    public boolean setSnapMirrorOn() {
+        if (log.isDebugEnabled()) {
+            log.debug("set snap mirror on");
+        }
+        SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
+        return snapMirror.setSnapMirrorOn();
+    }
+
     /**
      * Initialize the snap mirror and state will be snapmirrored
      * 
@@ -1645,13 +1679,13 @@ public class NetAppFacade {
      * @param destinationLocation
      * @return
      */
-    public boolean breakSnapMirrorSchedule(String destinationLocation) {
+    public boolean breakSnapMirrorSchedule(String location) {
         if (log.isDebugEnabled()) {
             log.debug("break snap mirror");
         }
 
         SnapMirror snapMirror = new SnapMirror(server.getNaServer(), null);
-        return snapMirror.breakSnapMirror(destinationLocation);
+        return snapMirror.breakSnapMirror(location);
     }
 
     /**

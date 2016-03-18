@@ -272,4 +272,37 @@ public class SnapMirror {
         return true;
 
     }
+
+    boolean getSnapMirrorStatus() {
+        NaElement elem = new NaElement("snapmirror-get-status");
+
+        NaElement resultElem = null;
+        try {
+            resultElem = server.invokeElem(elem).getChildByName("is-available");
+            log.info(resultElem);
+            String value = resultElem.getContent();
+            if (value.equals("false")) {
+                return false;
+            } else {
+                return true;
+            }
+        } catch (Exception e) {
+            String msg = "Failed to get snapmirror status";
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+    }
+
+    boolean setSnapMirrorOn() {
+        NaElement elem = new NaElement("snapmirror-on");
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to get snapmirror on";
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+        return true;
+    }
+
 }

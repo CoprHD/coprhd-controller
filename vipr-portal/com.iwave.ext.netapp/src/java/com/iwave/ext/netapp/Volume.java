@@ -62,6 +62,35 @@ class Volume {
     }
 
     /**
+     * Takes a volume Restrict
+     * 
+     * @param delayInMinutes - number of minutes to wait before the volume goes restrict.
+     *            Use zero to take restrict immediately.
+     */
+    void setVolumeRestrict(int delayInMinutes) {
+        if (!isRestrict()) {
+            log.info("volume " + name + " is already restrict.");
+            return;
+        }
+
+        NaElement elem = new NaElement("volume-restrict");
+        elem.addNewChild("cifs-delay", Integer.toString(delayInMinutes));
+        elem.addNewChild("name", name);
+
+        try {
+            server.invokeElem(elem);
+        } catch (Exception e) {
+            String msg = "Failed to volume restrict: " + name;
+            log.error(msg, e);
+            throw new NetAppException(msg, e);
+        }
+    }
+
+    boolean isRestrict() {
+        return "restricted".equals(getVolumeInfo(false).get("state"));
+    }
+
+    /**
      * Creates a new flexible volume. Only parameters for flexible volumes are provided.
      * Note the volume may not be operational immediately after this method returns. Use
      * getVolumeInfo() to query the status of the new volume.

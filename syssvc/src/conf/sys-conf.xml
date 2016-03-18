@@ -448,8 +448,6 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
 
-    <bean id="ipsecMonitor" class="com.emc.storageos.systemservices.impl.security.IPSecMonitor" />
-
     <bean id="ipsecInitialRotate" class="com.emc.storageos.systemservices.impl.security.IPSecInitialRotate">
         <property name="coordinator" ref="coordinatorclientext" />
         <property name="ipsecConfig" ref="ipsecConfig" />

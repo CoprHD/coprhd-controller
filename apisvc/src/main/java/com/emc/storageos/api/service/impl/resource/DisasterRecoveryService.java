@@ -1218,30 +1218,17 @@ public class DisasterRecoveryService {
         precheckForFailoverLocally(uuid);
 
         List<Site> allStandbySites = drUtil.listStandbySites();
-        List<SiteRestRep> responseSiteFromRemote = new ArrayList<SiteRestRep>(allStandbySites.size());
 
         for (Site site : allStandbySites) {
             if (!site.getUuid().equals(uuid)) {
                 try (InternalSiteServiceClient client = new InternalSiteServiceClient(site)) {
                     client.setCoordinatorClient(coordinator);
                     client.setKeyGenerator(apiSignatureGenerator);
-                    FailoverPrecheckResponse precheckResponse = client.failoverPrecheck();
-                    if (precheckResponse != null) {
-                        responseSiteFromRemote.add(precheckResponse.getSite());
-                    } else {
-                        log.warn("Failed to do failover precheck for site {}, ignore it for failover", site.toBriefString());
-                    }
+                    client.failoverPrecheck();
                 } catch (Exception e){
                     log.error("Failed to do failover precheck for site {}, ignore it for failover", site.toBriefString());
                 }
             }
-        }
-
-        SiteRestRep recommendSite = findRecommendFailoverSite(responseSiteFromRemote, currentSite);
-        if (!recommendSite.getUuid().equals(currentSite.getUuid())) {
-            throw APIException.internalServerErrors.failoverPrecheckFailed(currentSite.getName(),
-                    String.format("Another site %s state is %s with latest data. Please failover to site %s",
-                            recommendSite.getName(), recommendSite.getState(), recommendSite.getName()));
         }
 
         try {

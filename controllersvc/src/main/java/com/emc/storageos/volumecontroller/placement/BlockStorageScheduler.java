@@ -328,7 +328,7 @@ public class BlockStorageScheduler {
             NetworkLite network = networkMap.get(netURI);
             Integer portsNeeded = net2PortsNeeded.get(netURI);
             if (portsNeeded == null || portsNeeded == 0) {
-                _log.info("No ports to be assigned for net: " + netURI);
+                _log.info("No ports to be assigned for network: " + netURI);
                 continue;
             }
 
@@ -336,14 +336,13 @@ public class BlockStorageScheduler {
             // Check that there are initiators to get assignments. This check is
             // needed for when initiators were eliminate by #filterRemoteInitiators
             if (initiators == null || initiators.isEmpty()) {
-                _log.info("No initiators to be assigned for net: " + netURI);
+                _log.info("No initiators to be assigned for network: " + netURI);
                 continue;
             }
 
             if (portUsageMap.get(netURI).isEmpty()) {
-                _log.info("No ports available for allocation net: " + netURI);
-                throw PlacementException.exceptions.cannotAllocateRequestedPorts(
-                        network.getLabel(), system.getNativeGuid(), portsNeeded, 0, 0);
+                _log.warn(String.format("No ports available for network: %s. Hence skipping allocation of ports in this network", netURI));
+                continue;                
             }
             // Allocate the storage ports.
             portsAllocated.put(network, allocatePortsFromNetwork(
@@ -1796,7 +1795,7 @@ public class BlockStorageScheduler {
         }
 
         // Save the updated ExportMask
-        _dbClient.updateAndReindexObject(mask);
+        _dbClient.updateObject(mask);
     }
 
     /**

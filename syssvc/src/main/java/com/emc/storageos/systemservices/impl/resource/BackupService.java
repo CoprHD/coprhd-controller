@@ -43,8 +43,6 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.services.util.Exec;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
-import com.emc.storageos.systemservices.exceptions.SysClientException;
-import com.emc.storageos.systemservices.exceptions.SyssvcException;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler;
 import com.emc.storageos.systemservices.impl.jobs.backupscheduler.SchedulerConfig;
 import com.emc.storageos.systemservices.impl.restore.DownloadExecutor;
@@ -374,7 +372,8 @@ public class BackupService {
     public BackupUploadStatus getBackupUploadStatus(@QueryParam("tag") String backupTag) {
         log.info("Received get upload status request, backup tag={}", backupTag);
         try {
-            BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag);
+            File backupDir = backupOps.getBackupDir();
+            BackupUploadStatus uploadStatus = backupScheduler.getUploadExecutor().getUploadStatus(backupTag, backupDir);
             log.info("Current upload status is: {}", uploadStatus);
             return uploadStatus;
         } catch (Exception e) {
@@ -700,7 +699,30 @@ public class BackupService {
                                   @QueryParam("password") String password,
                                   @QueryParam("isgeofromscratch") @DefaultValue("false") boolean isGeoFromScratch) {
         log.info("Receive restore request");
+
+        if (!canDoRestore(backupName, isLocal)) {
+            return Response.status(ASYNC_STATUS).build();
+        }
+
         return doRestore(backupName, isLocal, password, isGeoFromScratch);
+    }
+
+    private boolean canDoRestore(String backupName, boolean isLocal) {
+        BackupRestoreStatus s = backupOps.queryBackupRestoreStatus(backupName, isLocal);
+        log.info("{} : {}", backupName, s);
+
+        BackupRestoreStatus.Status status = s.getStatus();
+        if (isLocal && status == BackupRestoreStatus.Status.RESTORING) {
+            log.info("The restore from the {} is in progress");
+            return false;
+        }
+
+        if (!isLocal && status != BackupRestoreStatus.Status.DOWNLOAD_SUCCESS) {
+            log.info("The restore from the remote {} is in {} status so can't be restored", status);
+            return false;
+        }
+
+        return true;
     }
 
     private void setRestoreFailed(String backupName, boolean isLocal, String msg, Throwable cause) {

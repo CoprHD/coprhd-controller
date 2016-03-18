@@ -1541,7 +1541,13 @@ public class CoordinatorClientExt {
                 */
                 if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
                         DrUtil.ZOOKEEPER_MODE_FOLLOWER.equals(state) ||
-                        DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state)) {
+                        DrUtil.ZOOKEEPER_MODE_STANDALONE.equals(state) ||
+                        state == null) {
+
+                    if (state != null && isVirtualIPHolder()) {
+                        // quorum nodes are in participant mode, update the local site state accordingly
+                        checkAndUpdateLocalSiteState();
+                    }
 
                     // check if active site is back
                     if (isActiveSiteHealthy()) {
@@ -1628,10 +1634,6 @@ public class CoordinatorClientExt {
             else if (readOnlyNodes.size() == numOnline && numOnline >= quorum){
                 _log.info("A quorum of nodes are read-only, Reconfiguring nodes to participant: {}",readOnlyNodes);
                 reconfigZKToWritable(observerNodes,readOnlyNodes);
-            }
-            else if (numParticipants == numOnline && numOnline >= quorum){
-                // quorum nodes are in participant mode, update the local site state accordingly
-                checkAndUpdateLocalSiteState();
             }
         }
 

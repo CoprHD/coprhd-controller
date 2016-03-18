@@ -7901,14 +7901,14 @@ dr_multisite_tests()
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
 
-    echo "---WAIT FOR $standby_site TO BECOME DEGRADED---"
-    dr waitforstate $standby_site STANDBY_DEGRADED 30 1200
+    echo "---WAIT FOR $standby_site_b TO BECOME DEGRADED---"
+    dr waitforstate $standby_site_b STANDBY_DEGRADED 30 1200
 
     echo "---PREPARING STANDBY REJOIN TEST---"
     start_vdc_services "$DR_SITE_B_IP"
 
-    echo "---WAIT FOR RESYNC $standby_site---"
-    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
+    echo "---WAIT FOR RESYNC $standby_site_b---"
+    dr waitforstate $standby_site_b STANDBY_SYNCED 30 1200
 
     # switchover test part
     echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"

@@ -1537,6 +1537,7 @@ public class CoordinatorClientExt {
 
                 /*
                  *  If local ZK (in the standby site) is running on its own independently (leader, follower or standby mode)
+                 *  or it could not startup at all (state == null),
                  *  We will try to switch local ZK to observe mode if the active site is running well.
                 */
                 if (DrUtil.ZOOKEEPER_MODE_LEADER.equals(state) ||
@@ -1545,7 +1546,7 @@ public class CoordinatorClientExt {
                         state == null) {
 
                     if (state != null && isVirtualIPHolder()) {
-                        // quorum nodes are in participant mode, update the local site state accordingly
+                        // node is in participant mode, update the local site state accordingly
                         checkAndUpdateLocalSiteState();
                     }
 
@@ -1624,7 +1625,7 @@ public class CoordinatorClientExt {
             _log.debug("nodes Online: {}",numOnline);
 
             // if there is a participant we need to reconfigure or it will be stuck there
-            // if there are only participants no need to reconfigure, set to STANDBY_PAUSED
+            // if there are only participants no need to reconfigure
             // if there are only read only nodes and we have quorum we need to reconfigure
             if(0 < numParticipants && numParticipants < numOnline) {
                 _log.info("Nodes must have consistent zk mode. Reconfiguring all nodes to participant: {}",

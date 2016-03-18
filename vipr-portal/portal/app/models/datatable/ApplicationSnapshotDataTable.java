@@ -4,18 +4,16 @@
  */
 package models.datatable;
 
-import static util.BourneUtil.getViprClient;
 
 import java.net.URI;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.vipr.client.core.util.ResourceUtils;
 
+import util.BourneUtil;
 import util.datatable.DataTable;
-import controllers.resources.BlockApplications;
 
 public class ApplicationSnapshotDataTable extends DataTable {
 	public ApplicationSnapshotDataTable() {
@@ -34,16 +32,26 @@ public class ApplicationSnapshotDataTable extends DataTable {
 		public String varray;
 		public String vpool;
 		public String subGroup;
+		public VolumeRestRep sourceVolume;
+		public Map<URI, String> virtualArrays = ResourceUtils.mapNames(BourneUtil.getViprClient().varrays().list());
+        public Map<URI, String> virtualPools = ResourceUtils.mapNames(BourneUtil.getViprClient().blockVpools().list());
 		
-		public ApplicationSnapshots(BlockSnapshotRestRep blockSnapshot, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
+		public ApplicationSnapshots(BlockSnapshotRestRep blockSnapshot) {
 			id = blockSnapshot.getId();
 			name = blockSnapshot.getName();
-			capacity="2.0";
+			capacity = blockSnapshot.getProvisionedCapacity();
 			if (blockSnapshot.getVirtualArray() != null) {
-                varray = varrayMap.get(blockSnapshot.getVirtualArray().getId());
+                varray = virtualArrays.get(blockSnapshot.getVirtualArray().getId());
             }
 			subGroup = blockSnapshot.getReplicationGroupInstance();
-			vpool = "testPool";
+			if(blockSnapshot.getParent()!=null) {
+				sourceVolume = BourneUtil.getViprClient().blockVolumes().get(blockSnapshot.getParent().getId());
+			}
+			if(sourceVolume!=null) {
+				if(sourceVolume.getVirtualPool()!=null) {
+					vpool = virtualPools.get(sourceVolume.getVirtualPool().getId());
+				}
+			}
 		}
 		
 	}

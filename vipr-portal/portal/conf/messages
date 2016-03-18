@@ -3349,7 +3349,17 @@ cloneApplication.name=Copy Name
 cloneApplication.size=Size
 cloneApplication.status=Status
 cloneApplication.protocol=Protocol
-cloneApplication.cloneGroups=Clone Groups
+cloneApplication.cloneGroups=Clone Sets
+cloneApplication.createdTime= Creation Time
+cloneApplication.subGroup=Replication Group
+
+snapsessionApplication.snapsetGroups=SnapSets
+snapsessionApplication.createdTime=Creation Time
+snapsessionApplication.subGroup=Replication Group
+
+snapshotApplication.snapshotGroups=Snapshot Sets
+snapshotApplication.createdTime=Creation Time
+snapshotApplication.subGroup=Replication Group
 
 resources.snapshots=Block Snapshots
 resources.snapshots.none=No Snapshots

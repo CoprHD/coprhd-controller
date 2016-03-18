@@ -12,7 +12,8 @@
                   selectable:true/}
 
 <script type="text/javascript">
-function renderLink(ovar data = o.aData;
+function renderLink(o, val) {
+var data = o.aData;
 var url = #{jsAction @resources.BlockSnapshotSessions.snapshotSessionDetails(':id') /};
 var href = url(data);
 

@@ -12,21 +12,32 @@
             checkIsZero(this.value, 'manual');
         });
 
-        $backup_interval = $("#backup_scheduler_interval");
-        $selector_interval = $("#backup_scheduler_interval_selector");
-
-        // check $backup_interval.val()
-
+        var intervalId = "backup_scheduler_interval";
+        $backup_interval = $("#" + intervalId);
+        $selector_interval = $("#" + intervalId + "_selector");
+        var isValidInterval = false; //check $backup_interval.val()
         $intervals = {};
-        $intervals['1'] = '1day';//only support 1/2 times per day now
+        $intervals['1'] = '1day'; //only support 1/2 times per day now
         $intervals['2'] = '12hour';
         for (var key in $intervals) {
             var value = $intervals[key];
             var $option = $("<option value=" + key + ">" + key + "</option>");
-            if ($backup_interval.val() == value) {
+            if ($backup_interval.val() === value) {
+                isValidInterval = true;
                 $option.prop("selected", "selected");
             }
             $option.appendTo($selector_interval);
+        }
+
+        if (!isValidInterval) {
+            var $option = $("<option selected='selected'></option>");
+            $option.appendTo($selector_interval);
+
+            var controlGrp = $("#" + intervalId + "ControlGroup");
+            controlGrp.addClass('has-error');
+            $('.help-inline', controlGrp).text("&{'configProperties.backup.interval.invalid.inline'}");
+            $('#alerts_error .message').html("&{'configProperties.backup.interval.invalid'}");
+            $('#alerts_error').slideDown('fast');
         }
     });
 

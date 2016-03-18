@@ -217,10 +217,6 @@ public class Backup extends Controller {
         RestoreForm restoreForm = new RestoreForm(name, params.get("restoreForm.password"), isLocal, params.get("restoreForm.isGeoFromScratch", boolean.class));
         restoreForm.restore();
 
-        BackupRestoreStatus status = BackupUtils.getRestoreStatus(name, isLocal);
-        if (status.isNotSuccess()) {
-            list(type);
-        }
         Maintenance.maintenance(Common.reverseRoute(Backup.class, "list", "type", type));
     }
 

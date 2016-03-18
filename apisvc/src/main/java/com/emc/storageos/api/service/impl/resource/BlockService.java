@@ -3294,6 +3294,8 @@ public class BlockService extends TaskResourceService {
             String errorMsg = String.format(
                     "Volume VirtualPool change error: %s", e.getMessage());
             _log.error(errorMsg);
+            String stackTrace = ((e.getStackTrace() != null) ? e.getStackTrace().toString() : "");
+            _log.error(stackTrace);
             for (TaskResourceRep volumeTask : taskList.getTaskList()) {
                 volumeTask.setState(Operation.Status.error.name());
                 volumeTask.setMessage(errorMsg);

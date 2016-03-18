@@ -177,7 +177,7 @@ public class TypeService extends TaskResourceService {
     @Path("/{volume_type_id}/extra_specs")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response setVolumeTypeKey(@PathParam("tenant_id") URI openstacktenant_id,
-            @PathParam("volume_type_id") URI volume_type_id, @Context HttpHeaders header) {       
+            @PathParam("volume_type_id") URI volumeTypeId, @Context HttpHeaders header) {       
         _log.info("VolumeType updation is not supported");
         return CinderApiUtils.createErrorResponse(400, "Bad Request: Unable to update volumetype");
     }
@@ -197,7 +197,7 @@ public class TypeService extends TaskResourceService {
     @Path("/{volume_type_id}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public Response deleteVolumeType(@PathParam("tenant_id") String openstackTenantId,
-    		@PathParam("volume_type_id") String typeId) {
+    		@PathParam("volume_type_id") String volumeTypeId) {
         _log.info("VolumeType deletion is not supported");
         return CinderApiUtils.createErrorResponse(400, "Bad Request : Unable to delete volumetype");
     }    

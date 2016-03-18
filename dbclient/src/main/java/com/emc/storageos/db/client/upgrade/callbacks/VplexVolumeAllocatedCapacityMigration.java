@@ -43,16 +43,13 @@ public class VplexVolumeAllocatedCapacityMigration extends BaseCustomMigrationCa
 
                 StringSet associatedVolumes = volume.getAssociatedVolumes();
                 if ((associatedVolumes != null) && (!associatedVolumes.isEmpty())) {
-
                     // associated volumes indicate that this is a vplex volume
                     Long allocatedCapacity = volume.getAllocatedCapacity();
-                    Long provisionedCapacity = volume.getProvisionedCapacity();
-
-                    if (allocatedCapacity != null && provisionedCapacity != null &&
-                            !allocatedCapacity.equals(provisionedCapacity)) {
-                        log.info("migrating allocated capacity from {} to {} on VPLEX volume {}",
-                                new Object[] { allocatedCapacity, provisionedCapacity, volume.getLabel() });
-                        volume.setAllocatedCapacity(provisionedCapacity);
+                    // For Vplex virtual volumes set allocated capacity to 0 (cop-18608)
+                    if (allocatedCapacity != null && allocatedCapacity != 0) {
+                        log.info("migrating allocated capacity from {} to 0 on VPLEX volume {}",
+                                allocatedCapacity, volume.getLabel());
+                        volume.setAllocatedCapacity(0L);
                         dbClient.persistObject(volume);
                     }
                 }

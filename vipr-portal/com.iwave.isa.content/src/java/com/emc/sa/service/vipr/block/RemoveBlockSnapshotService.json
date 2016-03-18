@@ -21,7 +21,6 @@
 
     consistencyGroup:{
       type:"assetType.vipr.consistencyGroupByProjectAndType",
-      required: "false",
       omitNone: "true"
     },
     

@@ -358,7 +358,7 @@ public class DCNMDialog extends BaseSANCIMObject {
     }
 
     /**
-     * Returns the zonesets in a VSAN as given by it's CIMInstance.
+     * Returns the zonesets in a VSAN as given by its CIMInstance.
      * This generates the nested objects Zone and ZoneMember in the Zonesets.
      * 
      * @param vsanIns CIMInstance of vsan

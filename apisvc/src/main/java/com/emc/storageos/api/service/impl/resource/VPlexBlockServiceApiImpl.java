@@ -60,6 +60,7 @@ import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -194,25 +195,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param vArray - virtual array where volume is create
      * @param vPool - volume's vpool
      * @param vPoolCapabilities - vpool capabilities
-     * @param nhRecomendationsMap - map of virtual array/nh to its list of recommendation
-     * @return
+     * @param varrayRecomendationsMap - map of virtual array to its list of recommendation
      */
     private void validateVolumeLabels(String baseVolumeLabel, Project project,
-            VirtualPoolCapabilityValuesWrapper vPoolCapabilities, Map<String, List<VPlexRecommendation>> nhRecomendationsMap) {
-
-        int nhCount = 0;
-        Iterator<String> nhIter = nhRecomendationsMap.keySet().iterator();
+            VirtualPoolCapabilityValuesWrapper vPoolCapabilities, Map<String, List<VPlexRecommendation>> varrayRecomendationsMap) {
+        int varrayCount = 0;
+        Iterator<String> nhIter = varrayRecomendationsMap.keySet().iterator();
         while (nhIter.hasNext()) {
             String nhId = nhIter.next();
             s_logger.info("Processing recommendations for NH {}", nhId);
             int volumeCounter = 0;
-            Iterator<VPlexRecommendation> recommendationsIter = nhRecomendationsMap.get(nhId).iterator();
+            Iterator<VPlexRecommendation> recommendationsIter = varrayRecomendationsMap.get(nhId).iterator();
             while (recommendationsIter.hasNext()) {
                 VPlexRecommendation recommendation = recommendationsIter.next();
                 URI storagePoolURI = recommendation.getSourceStoragePool();
-                VirtualPool volumeCos = recommendation.getVirtualPool();
-                s_logger.info("Volume Cos is {}", volumeCos.getId().toString());
-                vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeCos.getAutoTierPolicyName());
+                VirtualPool volumeVpool = recommendation.getVirtualPool();
+                s_logger.info("Volume virtual pool is {}", volumeVpool.getId().toString());
+                vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeVpool.getAutoTierPolicyName());
                 int resourceCount = recommendation.getResourceCount();
                 s_logger.info("Recommendation is for {} resources in pool {}", resourceCount, storagePoolURI.toString());
                 for (int i = 0; i < resourceCount; i++) {
@@ -224,7 +223,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     // we will need to update the actual volumes after they
                     // are created to match the names given here. Currently,
                     // this is not implemented.
-                    String volumeLabel = generateVolumeLabel(baseVolumeLabel, nhCount, volumeCounter, resourceCount);
+                    String volumeLabel = generateVolumeLabel(baseVolumeLabel, varrayCount, volumeCounter, resourceCount);
 
                     // throw exception of duplicate found
                     validateVolumeLabel(volumeLabel, project);
@@ -232,7 +231,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
                 volumeCounter++;
             }
-            nhCount++;
+            varrayCount++;
         }
     }
 
@@ -340,7 +339,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // this case, if the LOCAL type isn't specified, we can create backend
         // CGs.
         BlockConsistencyGroup backendCG = null;
-        if ((consistencyGroup != null) && (!consistencyGroup.created() ||
+        if (consistencyGroup != null && (!consistencyGroup.created() ||
                 !cgContainsVolumes || consistencyGroup.getTypes().contains(Types.LOCAL.toString()))) {
             backendCG = consistencyGroup;
         }
@@ -402,7 +401,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                     // Set replicationGroupInstance if CG's arrayConsistency is true
                     if (backendCG != null && backendCG.getArrayConsistency() && !isRPTargetOrJournal) {
-                        volume.setReplicationGroupInstance(consistencyGroup.getLabel());
+                    	String repGroupInstance = consistencyGroup.getCgNameOnStorageSystem(storageDeviceURI);
+                    	if (NullColumnValueGetter.isNullValue(repGroupInstance)) {
+                    		repGroupInstance = consistencyGroup.getLabel();
+                    	}
+                    	volume.setReplicationGroupInstance(repGroupInstance);
                     }
                     
                     if (consistencyGroup != null) {
@@ -469,7 +472,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 s_logger.info("Associating volume {}", varrayVolumeURIs[1][i].toString());
             }
             volume.setAssociatedVolumes(associatedVolumes);
-            _dbClient.persistObject(volume);
+            _dbClient.updateObject(volume);
             URI volumeId = volume.getId();
             s_logger.info("Prepared virtual volume {}", volumeId);
             virtualVolumeURIs.add(volumeId);
@@ -715,7 +718,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         StringSet protocols = new StringSet();
         protocols.add(StorageProtocol.Block.FC.name());
         volume.setProtocol(protocols);
-        _dbClient.persistObject(volume);
+        _dbClient.updateObject(volume);
 
         return volume;
     }
@@ -771,7 +774,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         mirrors.add(mirror.getId().toString());
         volume.setMirrors(mirrors);
         // Persist changes
-        dbClient.persistObject(volume);
+        dbClient.updateObject(volume);
     }
 
     private static Volume prepareVolume(VplexMirror mirror, Volume backendVolume, VirtualPool vPool,
@@ -793,13 +796,13 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Add INTERNAL_OBJECT flag to the volume created
         volume.addInternalFlags(Flag.INTERNAL_OBJECT);
-        dbClient.persistObject(volume);
+        dbClient.updateObject(volume);
 
         // Associate backend volume created to the mirror
         StringSet associatedVolumes = new StringSet();
         associatedVolumes.add(volume.getId().toString());
         mirror.setAssociatedVolumes(associatedVolumes);
-        dbClient.persistObject(mirror);
+        dbClient.updateObject(mirror);
         return volume;
     }
 
@@ -847,7 +850,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         URI projectId = projectElement.getId();
         Project project = dbClient.queryObject(Project.class, projectId);
         project.addInternalFlags(DataObject.Flag.INTERNAL_OBJECT);
-        dbClient.persistObject(project);
+        dbClient.updateObject(project);
         return project;
     }
 
@@ -951,7 +954,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     vplexRecommendation.getSourceStoragePool(), importVolume.getLabel() + "-1",
                     ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
-            _dbClient.persistObject(createVolume);
+            _dbClient.updateObject(createVolume);
             VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                     createVolume.getStorageController(), createVolume.getId(),
                     createVolume.getPool(), cosCapabilities);
@@ -973,7 +976,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             vplexVolume.getAssociatedVolumes().add(createVolume.getId().toString());
         }
         vplexVolume.setVirtualPool(vpool.getId());
-        _dbClient.persistObject(vplexVolume);
+        _dbClient.updateObject(vplexVolume);
         // Add a descriptor for the VPLEX_VIRT_VOLUME
         VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.VPLEX_VIRT_VOLUME,
                 vplexURI, vplexVolume.getId(), null, null);
@@ -1078,7 +1081,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     vplexRecommendation.getSourceStoragePool(), vplexVolume.getLabel() + "-1",
                     ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
-            _dbClient.persistObject(createVolume);
+            _dbClient.updateObject(createVolume);
             VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                     createVolume.getStorageController(), createVolume.getId(), createVolume.getPool(), cosCapabilities);
             descriptors.add(desc);
@@ -1134,10 +1137,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // volume varray.
             notSuppReasonBuff.append("The VirtualPool is not available to the volume's varray");
         } else if (VirtualPool.vPoolSpecifiesRPVPlex(newVirtualPool)) {
-            if (VirtualPoolChangeAnalyzer.isSupportedRPVPlexVolumeVirtualPoolChange(volume, currentVirtualPool, newVirtualPool,
+            if (VirtualPoolChangeAnalyzer.isSupportedAddRPProtectionVirtualPoolChange(volume, currentVirtualPool, newVirtualPool,
                     _dbClient, notSuppReasonBuff)) {
                 if (VirtualPool.vPoolSpecifiesRPVPlex(currentVirtualPool)) {
-                    allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED_CHANGE);
+                    allowedOperations.add(VirtualPoolChangeOperationEnum.RP_UPGRADE_TO_METROPOINT);
                 } else {
                     allowedOperations.add(VirtualPoolChangeOperationEnum.RP_PROTECTED);
                 }
@@ -1199,7 +1202,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 URI originalVirtualPool = volume.getVirtualPool();
                 // Update the volume with the new virtual pool
                 volume.setVirtualPool(vpool.getId());
-                _dbClient.persistObject(volume);
+                _dbClient.updateObject(volume);
                 // Update the task
                 String msg = format("VirtualPool changed from %s to %s for Volume %s",
                         originalVirtualPool, vpool.getId(), volume.getId());
@@ -1591,7 +1594,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             targetVolume.setConsistencyGroup(cgURI);
         }
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
-        _dbClient.persistObject(targetVolume);
+        _dbClient.updateObject(targetVolume);
 
         s_logger.info("Prepared volume {}", targetVolume.getId());
 
@@ -1744,7 +1747,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
 
         targetVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
-        _dbClient.persistObject(targetVolume);
+        _dbClient.updateObject(targetVolume);
 
         s_logger.info("Prepared volume {}", targetVolume.getId());
 
@@ -1877,7 +1880,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         Operation op = _dbClient.createTaskOpStatus(Migration.class, migration.getId(),
                 token, ResourceOperationTypeEnum.MIGRATE_BLOCK_VOLUME);
         migration.getOpStatus().put(token, op);
-        _dbClient.persistObject(migration);
+        _dbClient.updateObject(migration);
 
         return migration;
     }
@@ -3559,11 +3562,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     }
                 }
             }
-        }
 
-        addVols.setVolumes(addVolumes.getVolumes());
-        addVols.setReplicationGroupName(addVolumes.getReplicationGroupName());
-        addVols.setConsistencyGroup(addVolumes.getConsistencyGroup());
+            addVols.setVolumes(addVolumes.getVolumes());
+            addVols.setReplicationGroupName(addVolumes.getReplicationGroupName());
+            addVols.setConsistencyGroup(addVolumes.getConsistencyGroup());
+        }
 
         return systemURI;
     }
@@ -3585,7 +3588,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             if (backingVolumes != null) {
                 for (String backingVolId : backingVolumes) {
                     Volume backingVol = _dbClient.queryObject(Volume.class, URI.create(backingVolId));
-                    if (backingVol != null && !backingVol.getInactive() && backingVol.getReplicationGroupInstance() != null) {
+                    if (backingVol != null && !backingVol.getInactive() && NullColumnValueGetter.isNotNullValue(backingVol.getReplicationGroupInstance())) {
                         groupNames.add(backingVol.getReplicationGroupInstance());
                     }
                 }
@@ -3618,16 +3621,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 break;
             }
             URI storage = volume.getStorageController();
-            String rpName = srcVol.getReplicationGroupInstance();
+            String rgName = srcVol.getReplicationGroupInstance();
             if (count == 0) {
-                replicationGroup = rpName;
+                replicationGroup = rgName;
                 storageUri = storage;
             }
             if (replicationGroup == null || replicationGroup.isEmpty()) {
                 result = false;
                 break;
             }
-            if (rpName == null || !replicationGroup.equals(rpName)) {
+            if (rgName == null || !replicationGroup.equals(rgName)) {
                 result = false;
                 break;
             }

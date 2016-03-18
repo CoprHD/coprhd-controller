@@ -95,6 +95,9 @@ public class SizeUtil {
      * @return converted size
      */
     public static Double translateSize(Long size, String to) {
+        if (size == null || size.longValue() == 0) {
+            return 0.0;
+        }
         long multiplier = 1L;
         if (to.endsWith(SIZE_TB)) {
             multiplier = 1024 * 1024 * 1024 * 1024L;

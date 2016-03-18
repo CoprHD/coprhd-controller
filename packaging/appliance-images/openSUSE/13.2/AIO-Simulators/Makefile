@@ -8,7 +8,7 @@
 ##################################################
 WORKSPACE := $(shell dirname $(MAKEFILE_LIST))
 NAME := AIO-Simulators
-VERSION := 2.5.0.0
+VERSION := 3.0.0.0
 JOB := 999
 VENDOR := EMC
 ISO_FILE := openSUSE-13.2-DVD-x86_64.iso

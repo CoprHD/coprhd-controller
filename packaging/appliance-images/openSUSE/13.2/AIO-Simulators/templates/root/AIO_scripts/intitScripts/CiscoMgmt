@@ -19,18 +19,19 @@ DELAY=60
 
 start() {
         echo -n $"Starting Cisco Management:..hold on 10sec .."
-		cd ${CISCO_HOME}
+    cd ${CISCO_HOME}
         
-	ip="$(ifconfig | grep -A 1 'eth0' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)"
-	hostname="$(host $ip| cut -d ' ' -f 5 |cut -d '.' -f 1)"
-	hostname $hostname
+  interface="$(/sbin/ifconfig -a | grep Ethernet | awk '{print $1}' | head -1)"
 
-	sh startMgmtServer.sh >/var/log/CiscoMgmt.log 2>&1 &
+  ip="$(/sbin/ifconfig | grep -A 1 $interface'\s' | tail -1 | cut -d ':' -f 2 | cut -d ' ' -f 1)" 
+  hostname="$(host $ip| cut -d ' ' -f 5 |cut -d '.' -f 1)"
+  hostname $hostname
+
+  java -jar ../lib/cisco-sim.jar -Dlogback.configurationFile=../config/logback.xml com.emc.vipr.qe.ciscosim.CiscoSimServer >/var/log/CiscoMgmt.log 2>&1 &
         RETVAL=$?
 
         while [ $DELAY -gt 0 ]; do
-        #echo "delay $DELAY"
-	 START=`pgrep -f cisco-sim.jar | wc -l`
+   START=`pgrep -f cisco-sim.jar | wc -l`
          if [ "${START}" != "" ] ; then
            echo "${START}" >> /var/log/CiscoMgmt.log 2>&1  
            echo "..OK"
@@ -48,7 +49,7 @@ stop() {
         echo -n $"Stopping MgmtServer: "
         pkill -9 -f cisco-sim.jar >> /var/log/CiscoMgmt.log 2>&1
         RETVAL=$?
-	echo  "..Done"
+  echo  "..Done"
 }
 
 
@@ -61,17 +62,17 @@ case "$1" in
         stop
         ;;
   status)
-    	cnt=`pgrep -f cisco-sim.jar | wc -l`
-	if(test $cnt -eq 1) ;
-	then
-		echo "Cisco Management server already running..."
-	else
-		echo "Cisco Management server not running."
-	fi 
+      cnt=`pgrep -f cisco-sim.jar | wc -l`
+  if(test $cnt -eq 1) ;
+  then
+    echo "Cisco Management server already running..."
+  else
+    echo "Cisco Management server not running."
+  fi 
     #    rc_status -v
         ;;
   *)
-	echo $"Usage: CiscoMgmt {start|stop|status}"
+  echo $"Usage: CiscoMgmt {start|stop|status}"
         exit 1
         exit 1
 esac

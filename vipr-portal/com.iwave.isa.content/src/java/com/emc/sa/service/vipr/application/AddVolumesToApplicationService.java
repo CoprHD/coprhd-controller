@@ -7,6 +7,8 @@ package com.emc.sa.service.vipr.application;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+
 import com.emc.sa.asset.providers.BlockProviderUtils;
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Param;
@@ -14,6 +16,7 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.ServiceParams;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.application.tasks.AddVolumesToApplication;
+import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.vipr.client.Tasks;
 
@@ -42,6 +45,11 @@ public class AddVolumesToApplicationService extends ViPRService {
             ExecutionUtils.fail("failTask.AddVolumesToApplicationService.subGroupUnique.precheck", new Object[] {});
         }
         replicationGroup = fieldIsPopulated(newApplicationSubGroup) ? newApplicationSubGroup : existingApplicationSubGroup;
+        if (StringUtils.isEmpty(replicationGroup) && BlockStorageUtils.isVplexOrRPVolume(volumeIds.iterator().next())) {
+            ExecutionUtils.fail("failTask.AddVolumesToApplicationService.subGroupRequired.precheck", new Object[] {});
+        } else if (!StringUtils.isEmpty(replicationGroup) && !BlockStorageUtils.isVplexOrRPVolume(volumeIds.iterator().next())) {
+            ExecutionUtils.fail("failTask.AddVolumesToApplicationService.subGroupInvalid.precheck", new Object[] {});
+        }
     }
 
     @Override

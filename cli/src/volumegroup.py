@@ -15,11 +15,6 @@ import json
 import tag
 from volume import Volume
 from snapshotsession import SnapshotSession
-# temporary fix to suppress "InsecureRequestWarning: Unverified HTTPS request is being made"
-import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 class VolumeGroup(object):
 

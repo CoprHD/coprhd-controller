@@ -7893,10 +7893,25 @@ dr_multisite_tests()
     dr waitforstable 30 1200
     project show ${projectid_new}
 
-    # switchover test part
-    echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
+    echo "---PREPARING STANDBY_DEGRADED TEST---"
+    syssvc $CONFIG_FILE "$DR_SITE_A_IP" set_prop system_permit_root_ssh yes
+    dr waitforstable 10 600
+    tune_dr_config ${DR_SITE_A_IP} degrade_standby_threshold_millis 0
+    stop_vdc_services "$DR_SITE_B_IP"
     BOURNE_IPADDR=$DR_SITE_A_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600
+
+    echo "---WAIT FOR $standby_site TO BECOME DEGRADED---"
+    dr waitforstate $standby_site STANDBY_DEGRADED 30 1200
+
+    echo "---PREPARING STANDBY REJOIN TEST---"
+    start_vdc_services "$DR_SITE_B_IP"
+
+    echo "---WAIT FOR RESYNC $standby_site---"
+    dr waitforstate $standby_site STANDBY_SYNCED 30 1200
+
+    # switchover test part
+    echo "---WAIT BOTH ACTIVE AND STANBY TO BE STABLE, READY FOR SWITCHOVER---"
     dr waitforstable 10 800
     BOURNE_IPADDR=$DR_SITE_C_IP
     security login $LOCAL_LDAP_GROUPUSER_USERNAME $LOCAL_LDAP_GROUPUSER_PASSWORD 10 600

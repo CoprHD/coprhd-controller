@@ -1374,7 +1374,17 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     	if (exportGroup.checkInternalFlags(Flag.RECOVERPOINT) && !exportGroup.checkInternalFlags(Flag.RECOVERPOINT_JOURNAL) 
     			&& exportGroup.getHosts() == null && exportGroup.getClusters() == null) {
     		_log.info("ExportGroup doesnt specify any hosts/clusters to which the volumes are exported, follow normal guidelines");
-    		return masksMap;
+    		
+    		//To follow the normal guidelines, make sure we dont accidentally pick a Journal MV for a non-journal volume
+    		for (Entry<ExportMask, ExportMaskPolicy> maskMap : masksMap.entrySet()) {
+    			ExportMask rpMaskingView = maskMap.getKey();    	     	    	     
+    	     	if (rpMaskingView.getMaskName().toLowerCase().contains(RECOVERPOINT_JOURNAL)) {
+    	     		_log.info(String.format("Not considering %s for this RP export", rpMaskingView.getMaskName()));
+    	     		continue;
+    	     	}
+    	     	matchingMaskMap.put(maskMap.getKey(), maskMap.getValue());
+    		}
+    		return matchingMaskMap;
     	}
     	
     	//If this is a RP Journal export operation, try to find an existing ExportMask that contains "Journal" keyword in the name. 

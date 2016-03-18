@@ -38,7 +38,7 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeAlreadyIngested(String unManagedVolume);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException unmanagedVolumeNotIngestable(String unManagedVolume);
+    public IngestionException unmanagedVolumeNotIngestable(String unManagedVolume, String reason);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException couldNotCreateVolume(String message);

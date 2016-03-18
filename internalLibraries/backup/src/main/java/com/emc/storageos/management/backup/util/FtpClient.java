@@ -56,8 +56,6 @@ public class FtpClient {
         builder.command().add("-I");
         builder.command().add(uri + fileName);
 
-        log.info("command={}", builder.command());
-
         long length = 0;
 
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
@@ -80,7 +78,7 @@ public class FtpClient {
         return length;
     }
 
-     public OutputStream upload(String fileName, long offset) throws Exception {
+    public OutputStream upload(String fileName, long offset) throws Exception {
         ProcessBuilder builder = getBuilder();
 
         // We should send a "REST offset" command, but the earliest stage we can --quote it is before PASV/EPSV
@@ -99,7 +97,6 @@ public class FtpClient {
         builder.command().add("-");
         builder.command().add(uri + fileName);
 
-         log.info("command={}", builder.command());
         return new ProcessOutputStream(builder.start());
     }
 
@@ -107,8 +104,6 @@ public class FtpClient {
         ProcessBuilder builder = getBuilder();
         builder.command().add("-l");
         builder.command().add(uri);
-
-        log.info("cmd={}", builder.command());
 
         List<String> fileList = new ArrayList<String>();
         try (ProcessRunner processor = new ProcessRunner(builder.start(), false)) {
@@ -140,7 +135,7 @@ public class FtpClient {
         return listFiles(null);
     }
 
-     public void rename(String sourceFileName, String destFileName) throws Exception {
+    public void rename(String sourceFileName, String destFileName) throws Exception {
         ProcessBuilder builder = getBuilder();
         builder.command().add(uri);
         builder.command().add("-Q");
@@ -159,11 +154,17 @@ public class FtpClient {
         }
     }
 
-     public InputStream download(String backupFileName) throws IOException {
+    public InputStream download(String backupFileName) throws IOException {
         ProcessBuilder builder = getBuilder();
         String remoteBackupFile = uri + backupFileName;
         builder.command().add(remoteBackupFile);
 
         return new ProcessInputStream(builder.start());
+    }
+
+    // just show the first letter of password
+    private String hidePassword(List<String> command) {
+        String credential = command.get(3);
+        return command.toString().replace(credential, credential.substring(0, (credential.indexOf(":") + 2)) + "***");
     }
 }

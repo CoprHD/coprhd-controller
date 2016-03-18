@@ -23,7 +23,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.client.EnumerateResponse;
 import javax.wbem.client.WBEMClient;
 
-import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +49,7 @@ import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.plugins.SMICommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
@@ -69,7 +69,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     private DbClient _dbClient;
     private static final String SVUSAGE = "SVUsage";
     private static final String USAGE = "Usage";
-    private static final String TWELVE = "12";
     private static final String TWO = "2";
     private static final String NINE = "9";
     private static final String SEVEN = "7";
@@ -79,7 +78,6 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
     private static final String UNMANAGED_VOLUME = "UnManagedVolume";
     private static final String UNMANAGED_EXPORT_MASK = "UnManagedExportMask";
     private static final String SVELEMENT_NAME = "SVElementName";
-    private static final String NAME = "Name";
     private static final String THINLY_PROVISIONED = "ThinlyProvisioned";
     private AccessProfile _profile;
 
@@ -120,6 +118,9 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             @SuppressWarnings("unchecked")
             Map<String, Map<String, String>> volumeToSyncAspectMap = (Map<String, Map<String, String>>) keyMap
                     .get(Constants.SNAPSHOT_NAMES_SYNCHRONIZATION_ASPECT_MAP);
+            @SuppressWarnings("unchecked")
+            Map<String, Set<String>> duplicateSyncAspectElementNameMap = (Map<String, Set<String>>) keyMap
+                    .get(Constants.DUPLICATE_SYNC_ASPECT_ELEMENT_NAME_MAP);
             @SuppressWarnings("unchecked")
             Map<String, Set<String>> vmax2ThinPoolToBoundVolumesMap = (Map<String, Set<String>>) keyMap
                     .get(Constants.VMAX2_THIN_POOL_TO_BOUND_VOLUMES);
@@ -166,17 +167,15 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
             Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
             processVolumes(volumeInstances, keyMap, operation, pool, system, exportedVolumes,
-                    existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, volumeToSyncAspectMap, poolSupportedSLONames,
-                    boundVolumes,
-                    srdfEnabledTargetVPools);
+                    existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, volumeToSyncAspectMap,
+                    poolSupportedSLONames, boundVolumes, srdfEnabledTargetVPools, duplicateSyncAspectElementNameMap);
             while (!volumeInstanceChunks.isEnd()) {
                 _logger.info("Processing Next Volume Chunk of size {}", BATCH_SIZE);
                 volumeInstanceChunks = client.getInstancesWithPath(storagePoolPath,
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
                 processVolumes(volumeInstanceChunks.getResponses(), keyMap, operation, pool, system, exportedVolumes,
-                        existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, volumeToSyncAspectMap, poolSupportedSLONames,
-                        boundVolumes,
-                        srdfEnabledTargetVPools);
+                        existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, volumeToSyncAspectMap,
+                        poolSupportedSLONames, boundVolumes, srdfEnabledTargetVPools, duplicateSyncAspectElementNameMap);
             }
             if (null != _unManagedVolumesUpdate && !_unManagedVolumesUpdate.isEmpty()) {
                 _partitionManager.updateAndReIndexInBatches(_unManagedVolumesUpdate, getPartitionSize(keyMap),
@@ -230,12 +229,14 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * @param poolSupportedSLONames
      * @param boundVolumes
      * @param srdfEnabledTargetVPools
+     * @param duplicateSyncAspectElementNameMap
      */
     private void processVolumes(Iterator<CIMInstance> it, Map<String, Object> keyMap, Operation operation,
             StoragePool pool, StorageSystem system, Map<String, VolHostIOObject> exportedVolumes,
             Set<String> existingVolumesInCG, Map<String, RemoteMirrorObject> volumeToRAGroupMap,
             Map<String, LocalReplicaObject> volumeToLocalReplicaMap, Map<String, Map<String, String>> volumeToSyncAspectMap,
-            Set<String> poolSupportedSLONames, Set<String> boundVolumes, Set<URI> srdfEnabledTargetVPools) {
+            Set<String> poolSupportedSLONames, Set<String> boundVolumes, Set<URI> srdfEnabledTargetVPools,
+            Map<String, Set<String>> duplicateSyncAspectElementNameMap) {
 
         List<CIMObjectPath> metaVolumes = new ArrayList<CIMObjectPath>();
         List<CIMObjectPath> metaVolumeViews = new ArrayList<CIMObjectPath>();
@@ -295,7 +296,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolume = createUnManagedVolume(unManagedVolume, volumeViewInstance,
                         unManagedVolumeNativeGuid, pool, system, volumeNativeGuid,
                         exportedVolumes, existingVolumesInCG, volumeToRAGroupMap,
-                        volumeToLocalReplicaMap, volumeToSyncAspectMap, poolSupportedSLONames, keyMap, srdfEnabledTargetVPools);
+                        volumeToLocalReplicaMap, volumeToSyncAspectMap, poolSupportedSLONames, keyMap,
+                        srdfEnabledTargetVPools, duplicateSyncAspectElementNameMap);
 
                 // set up UnManagedExportMask information
                 boolean nonRpExported = false;
@@ -569,21 +571,16 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * @param poolSupportedSLONames
      * @param keyMap
      * @param srdfEnabledTargetVPools
+     * @param duplicateSyncAspectElementNameMap
      * @return
      */
-    private UnManagedVolume createUnManagedVolume(UnManagedVolume unManagedVolume,
-            CIMInstance volumeInstance,
-            String unManagedVolumeNativeGuid,
-            StoragePool pool,
-            StorageSystem system,
-            String volumeNativeGuid,
-            // to make the code uniform, passed in all the below sets as
-            // arguments
-            Map<String, VolHostIOObject> exportedVolumes,
-            Set<String> existingVolumesInCG, Map<String, RemoteMirrorObject> volumeToRAGroupMap,
-            Map<String, LocalReplicaObject> volumeToLocalReplicaMap, Map<String, Map<String, String>> volumeToSyncAspectMap,
-            Set<String> poolSupportedSLONames, Map<String, Object> keyMap, Set<URI> srdfEnabledTargetVPools) {
-        _logger.info("Process UnManagedVolume {}", unManagedVolumeNativeGuid);
+    private UnManagedVolume createUnManagedVolume(UnManagedVolume unManagedVolume, CIMInstance volumeInstance,
+            String unManagedVolumeNativeGuid, StoragePool pool, StorageSystem system, String volumeNativeGuid,
+            Map<String, VolHostIOObject> exportedVolumes, Set<String> existingVolumesInCG,
+            Map<String, RemoteMirrorObject> volumeToRAGroupMap, Map<String, LocalReplicaObject> volumeToLocalReplicaMap,
+            Map<String, Map<String, String>> volumeToSyncAspectMap, Set<String> poolSupportedSLONames,
+            Map<String, Object> keyMap, Set<URI> srdfEnabledTargetVPools, Map<String, Set<String>> duplicateSyncAspectElementNameMap) {
+        _logger.info("Create UnManagedVolume {}", unManagedVolumeNativeGuid);
         try {
             String volumeType = Types.REGULAR.toString();
             Map<String, StringSet> unManagedVolumeInformation = null;
@@ -734,13 +731,13 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         SupportedVolumeCharacterstics.IS_VOLUME_ADDED_TO_CONSISTENCYGROUP.toString(), FALSE);
             }
 
+            // Set the attributes for new smis version.
             Object raidLevelObj;
-            boolean isIngestable;
+            String isNotIngestableReason;
             String isBound;
             String isThinlyProvisioned;
             String isMetaVolume;
             String allocCapacity;
-            // Set the attributes for new smis version.
             if (keyMap.containsKey(Constants.IS_NEW_SMIS_PROVIDER)
                     && Boolean.valueOf(keyMap.get(Constants.IS_NEW_SMIS_PROVIDER).toString())) {
                 unManagedVolume.setLabel(getCIMPropertyValue(volumeInstance, "ElementName"));
@@ -748,7 +745,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         .getAlternateKey());
                 isBound = getCIMPropertyValue(volumeInstance,
                         SupportedVolumeCharacterstics.IS_BOUND.getAlterCharacterstic());
-                isIngestable = isVolumeIngestable(volumeInstance, isBound, USAGE);
+                isNotIngestableReason = isVolumeIngestable(volumeInstance, isBound, USAGE, unManagedVolumeNativeGuid,
+                        duplicateSyncAspectElementNameMap);
                 isThinlyProvisioned = getCIMPropertyValue(volumeInstance, THINLY_PROVISIONED);
                 isMetaVolume = getCIMPropertyValue(volumeInstance, SupportedVolumeCharacterstics.IS_METAVOLUME.getAlterCharacterstic());
                 allocCapacity = getAllocatedCapacity(volumeInstance, _volumeToSpaceConsumedMap, system.checkIfVmax3());
@@ -758,7 +756,8 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                         SupportedVolumeCharacterstics.IS_BOUND.getCharacterstic());
                 raidLevelObj = volumeInstance.getPropertyValue(SupportedVolumeInformation.RAID_LEVEL
                         .getInfoKey());
-                isIngestable = isVolumeIngestable(volumeInstance, isBound, SVUSAGE);
+                isNotIngestableReason = isVolumeIngestable(volumeInstance, isBound, SVUSAGE, unManagedVolumeNativeGuid,
+                        duplicateSyncAspectElementNameMap);
                 isThinlyProvisioned = getCIMPropertyValue(volumeInstance, EMC_THINLY_PROVISIONED);
                 isMetaVolume = getCIMPropertyValue(volumeInstance, SupportedVolumeCharacterstics.IS_METAVOLUME.getCharacterstic());
                 allocCapacity = getCIMPropertyValue(volumeInstance, EMC_ALLOCATED_CAPACITY);
@@ -788,12 +787,14 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             // only Volumes with Usage 2 can be ingestable, other volumes
             // [SAVE,VAULT...] apart from replicas have usage other than 2
             // Volumes which are set EMCIsBound as false cannot be ingested
-            if (isIngestable) {
+            if (isNotIngestableReason == null) {
                 unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_INGESTABLE.toString(),
                         TRUE);
             } else {
                 unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_INGESTABLE.toString(),
                         FALSE);
+                unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.IS_NOT_INGESTABLE_REASON.toString(),
+                        isNotIngestableReason);
             }
 
             if (volumeToRAGroupMap.containsKey(unManagedVolume.getNativeGuid())) {
@@ -1137,21 +1138,61 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * replicas have usage other than 2. Volumes which are set EMCSVIsBound as
      * false cannot be ingested
      *
-     * @param volumeInstance
-     * @return
+     * @param volumeInstance A reference to the CIM instance representing the volume.
+     * @param isBound true if the volume is bound, false otherwise.
+     * @param usageProp The name of the SMI-S usage property for the provider managing the volume.
+     * @param unManagedVolumeNativeGuid The native GUID for the discovered unmanaged volume.
+     * @param duplicateSyncAspectElementNameMap A map specifying the names that are used by multiple
+     *            synchronization aspects for the discovered unmanaged volumes.
+     * 
+     * @return A string indicating why the volume in not ingestable, else null.
      */
-    private boolean isVolumeIngestable(CIMInstance volumeInstance, String isBound, String usageProp) {
+    private String isVolumeIngestable(CIMInstance volumeInstance, String isBound, String usageProp,
+            String unManagedVolumeNativeGuid, Map<String, Set<String>> duplicateSyncAspectElementNameMap) {
         String usage = getCIMPropertyValue(volumeInstance, usageProp);
-        if (Boolean.valueOf(isBound)
-                && (TWO.equalsIgnoreCase(usage) || NINE.equalsIgnoreCase(usage)
-                        || SEVEN.equalsIgnoreCase(usage) || ELEVEN.equalsIgnoreCase(usage)
-                        || USAGE_LOCAL_REPLICA_TARGET.equalsIgnoreCase(usage)
-                        || USAGE_DELTA_REPLICA_TARGET.equalsIgnoreCase(usage)
-                        || USGAE_LOCAL_REPLICA_SOURCE.equalsIgnoreCase(usage)
-                        || USAGE_LOCAL_REPLICA_SOURCE_OR_TARGET.equalsIgnoreCase(usage))) {
-            return true;
+        if (!Boolean.valueOf(isBound)) {
+            return "The volume is not ingestable because it is not bound and the controller only supports bound volumes";
         }
-        return false;
+
+        if (!(TWO.equalsIgnoreCase(usage) || NINE.equalsIgnoreCase(usage)
+                || SEVEN.equalsIgnoreCase(usage) || ELEVEN.equalsIgnoreCase(usage)
+                || USAGE_LOCAL_REPLICA_TARGET.equalsIgnoreCase(usage)
+                || USAGE_DELTA_REPLICA_TARGET.equalsIgnoreCase(usage)
+                || USGAE_LOCAL_REPLICA_SOURCE.equalsIgnoreCase(usage)
+                || USAGE_LOCAL_REPLICA_SOURCE_OR_TARGET.equalsIgnoreCase(usage))) {
+            return "The volume is not ingestable because it has a usage that is not supported by the controller";
+        }
+
+        // ViPR currently requires array snapshots to have unique names. In most cases this
+        // is the case. However, with the support of SnapVx for VMAX3, array snapshots can
+        // have the same name, and they are distinguished by a unique generation identifier.
+        // As such, any volume that has array snapshots using the same name cannot be ingested
+        // into ViPR as the array snapshots are not supported in ViPR. If these array
+        // snapshots have associated target volumes, then the associated target volumes would
+        // not be ingestable and because they are not ingestable, the source volume would also
+        // not be ingestable. Code in VolumeDiscoveryPostProcessor prevents these target volumes
+        // from being ingested, and the general ingestion mechanism prevents a source from being
+        // ingested if its replicas are not ingested. However if there are no associated target
+        // volumes for these array snapshots, then there is nothing to prevent the source volume
+        // from being ingested. Because these array snapshot sessions are not supported, they do
+        // not appear in the list of snapshots(i.e., sync aspects) for the volume, and it would
+        // just appear as a volume with no snapshots and it would be ingestable. This check
+        // ensures the volume will not be ingestable if we discovered any array snapshots for
+        // the unmanaged source volume that reuse a name.
+        boolean hasUnsupportedSnapshotSessions = false;
+        if (duplicateSyncAspectElementNameMap.containsKey(unManagedVolumeNativeGuid)) {
+            Set<String> duplicateSyncAspectElementNames = duplicateSyncAspectElementNameMap.get(unManagedVolumeNativeGuid);
+            if ((duplicateSyncAspectElementNames != null) && (!duplicateSyncAspectElementNames.isEmpty())) {
+                hasUnsupportedSnapshotSessions = true;
+            }
+        }
+        if (hasUnsupportedSnapshotSessions) {
+            return "The volume is not ingestable because it has multiple array snapshots with the same name, "
+                    + "which is not supported by the controller. The storage system may use generation numbers "
+                    + "to differentiate these snapshots, and the controller does not currently support generation numbers";
+        }
+
+        return null;
     }
 
     @Override

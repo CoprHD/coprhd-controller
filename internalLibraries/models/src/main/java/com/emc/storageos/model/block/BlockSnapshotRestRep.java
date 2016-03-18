@@ -21,6 +21,7 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
     private Boolean syncActive;
     private String replicaState;
     private Boolean readOnly;
+    private String snapsetLabel;
 
     /**
      * URI and reference link to the volume that is the
@@ -109,5 +110,17 @@ public class BlockSnapshotRestRep extends BlockObjectRestRep {
 
     public void setReadOnly(Boolean readOnly) {
         this.readOnly = readOnly;
+    }
+
+    /**
+     * Label for snapshots generated at the same time, with the same consistency group or volume group.
+     */
+    @XmlElement(name = "snapset_label")
+    public String getSnapsetLabel() {
+        return snapsetLabel;
+    }
+
+    public void setSnapsetLabel(String snapsetLabel) {
+        this.snapsetLabel = snapsetLabel;
     }
 }

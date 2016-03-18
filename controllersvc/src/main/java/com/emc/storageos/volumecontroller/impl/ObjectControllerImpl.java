@@ -156,6 +156,11 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
+    public void syncBucketACL(URI storage, URI bucketId, String opId) throws InternalException {
+        execOb("syncBucketACL", storage, bucketId, opId);
+    }
+    
+    
     public ObjectUserSecretKey getUserSecretKeys(URI storage, String userId) throws InternalException {
         _log.debug("ObjectControllerImpl:getUserSecretKey start");
         // Synchronous call than queuing

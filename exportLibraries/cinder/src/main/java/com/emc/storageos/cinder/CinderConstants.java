@@ -17,9 +17,22 @@ public interface CinderConstants {
 
     public static String CINDER_SSH_PORT = "22";
     public static String CINDER_REST_PORT = "8776";
+    public static String OS_ADMIN_PORT = "35357";
     public static String AUTH_TOKEN_HEADER = "X-Auth-Token";
     public static String REST_API_VERSION_2 = "/v2";
     public static String DEFAULT_API_VERSION = REST_API_VERSION_2; // By default using v2
+
+    String COPRHD_URL_V2 = ":8776/v2/%(tenant_id)s";
+    String COPRHD_URL_V1 = ":8776/v1/%(tenant_id)s";
+    String PROJECT_NAME_SUFFIX = "Project"; // with appended OpenStack tenant name
+    String TENANT_NAME_PREFIX = "OpenStack"; // with appended OpenStack tenant name
+
+    String SERVICE_DESCRIPTION = "OpenStack Block Storage";
+    String SERVICE_TYPE_VOLUME = "volume";
+    String SERVICE_TYPE_VOLUMEV2 = "volumev2";
+
+    String USERNAME = "username";
+    String TENANTNAME = "tenantname";
 
     public final static String KEY_CINDER_HOST_NAME = "CINDER_HOST_NAME";
     public final static String KEY_CINDER_REST_PASSWORD = "REST_PASSWORD";           

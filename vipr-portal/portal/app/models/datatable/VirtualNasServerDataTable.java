@@ -119,7 +119,9 @@ public class VirtualNasServerDataTable extends DataTable {
                             }
                         }
                     }
-                    this.project = projectList.substring(0, projectList.length() - 2);
+                    if ((projectList.length() - 2) >= 0) {
+                        this.project = projectList.substring(0, projectList.length() - 2);
+                    }
                 }
             }
 

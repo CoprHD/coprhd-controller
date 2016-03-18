@@ -187,11 +187,12 @@ public class RestoreManager {
                         && name.endsWith(BackupConstants.COMPRESS_SUFFIX);
             }
         });
-        String errorMessage = String.format("Need db, geodb and zk backup files under folder");
+        String errorMessage = String.format("Need db, geodb and zk backup files under folder %s", backupPath);
         if (backupFiles == null) {
             throw new IllegalArgumentException(errorMessage);
         }
-        if (!onlyRestoreSiteId && backupFiles.length < BackupType.values().length - 1) {
+
+        if (!onlyRestoreSiteId && backupFiles.length < BackupType.values().length - 2) {
             throw new IllegalArgumentException(errorMessage);
         }
 
@@ -199,7 +200,7 @@ public class RestoreManager {
         boolean backupInMultiVdc = false;
         for (File backupFile : backupFiles) {
             String backupFileName = backupFile.getName();
-            log.debug("Checking backup file: {}", backupFileName);
+            log.info("Checking backup file: {}", backupFileName);
             if (!backupFileName.contains(nodeId)
                     && !backupFileName.contains(BackupType.zk.name())) {
                 continue;
@@ -221,15 +222,15 @@ public class RestoreManager {
                     backupInMultiVdc = true;
                 }
             } else {
-                log.debug("Invalid backup file: {}", backupFile.getName());
+                log.info("Invalid backup file: {}", backupFile.getName());
                 continue;
             }
-            log.debug("Found backup file: {}", backupFile.getName());
+            log.info("Found backup file: {}", backupFile.getName());
         }
 
         // When restoring 5-node cluster using 3-node backup, should only restore site id on vipr4 and vipr5.
         // There's no need to validate backup files on nodes where only site id will be restored, so skip it.
-        if (!onlyRestoreSiteId && matched != BackupType.values().length - 1) {
+        if (!onlyRestoreSiteId && matched != BackupType.values().length - 2) {
             throw new IllegalArgumentException(errorMessage);
         }
 

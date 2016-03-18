@@ -9,7 +9,7 @@
     },
     
     fileSystems:{
-      type:"assetType.vipr.fileUnmountedFilesystem",
+      type:"assetType.vipr.fileUnmountedFilesystemNoTarget",
       select:"many"
     },
 

@@ -93,17 +93,32 @@ public class PortMetricsProcessor {
     /**
      * Process a cpu metric sample.
      * In this method, the cpu percent busy is passed directly as a double.
-     * 
-     * @param cpuPercentBusy -- double from 0 to 100.0 indicating percent busy
+     *
+     * @param percentBusy   -- double from 0 to 100.0 indicating percent busy
+     * @param iops          -- a cumulative count of the I/O operations (read and write). This counter is ever increasing (but rolls over).
+     * @param haDomain      -- the StorageHADomain corresponding to this cpu.
+     * @param statisticTime -- The statistic time that the collection was made on the array.
+     */
+    public void processFEAdaptMetrics(Double percentBusy, Long iops, StorageHADomain haDomain, String statisticTime) {
+        processFEAdaptMetrics(percentBusy, iops, haDomain, statisticTime, true);
+    }
+
+    /**
+     * Process a cpu metric sample.
+     * In this method, the cpu percent busy is passed directly as a double.
+     *
+     * @param percentBusy -- double from 0 to 100.0 indicating percent busy
      * @param iops -- a cumulative count of the I/O operations (read and write). This counter is ever increasing (but rolls over).
      * @param haDomain -- the StorageHADomain corresponding to this cpu.
      * @param statisticTime -- The statistic time that the collection was made on the array. Given as a string, see convertCimStatisticTime.
+     * @param usingCIMTime -- Indicates if 'statisticsTime' is in UTC. If false, it will be assumed to be CIM StatisticTime and converted
+     *            (see convertCimStatisticTime)
      */
-    public void processFEAdaptMetrics(Double percentBusy, Long iops,
-            StorageHADomain haDomain, String statisticTime) {
+    public void processFEAdaptMetrics(Double percentBusy, Long iops, StorageHADomain haDomain, String statisticTime,
+            boolean usingCIMTime) {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, haDomain.getStorageDeviceURI());
         StringMap dbMetrics = haDomain.getMetrics();
-        Long sampleTime = convertCIMStatisticTime(statisticTime);
+        Long sampleTime = (usingCIMTime) ? convertCIMStatisticTime(statisticTime) : Long.valueOf(statisticTime);
         _log.info(String.format("FEAdaptMetrics %s %s percentBusy %f  iops %d sampleTime %d",
                 haDomain.getAdapterName(), haDomain.getNativeGuid(), percentBusy, iops, sampleTime));
 
@@ -209,8 +224,8 @@ public class PortMetricsProcessor {
         }
         Long iopsDelta = iops - iopsValue;
         Long portSpeed = port.getPortSpeed();
-        if (portSpeed == 0) {
-            _log.error("Port speed is zero- assuming 8 GBit: " + port.getNativeGuid());
+        if (portSpeed == null || portSpeed == 0) {
+            _log.error("Port speed is zero or null- assuming 8 GBit: " + port.getNativeGuid());
             portSpeed = 8L;
         }
         // portSpeed is in Gbit/sec. Compute kbytes/sec.

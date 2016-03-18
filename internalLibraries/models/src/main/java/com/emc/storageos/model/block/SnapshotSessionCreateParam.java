@@ -4,7 +4,12 @@
  */
 package com.emc.storageos.model.block;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
@@ -19,6 +24,13 @@ public class SnapshotSessionCreateParam {
 
     // The new linked target information.
     private SnapshotSessionNewTargetsParam newLinkedTargets;
+
+    // flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes
+    // By default, create copy on source back end side
+    private Boolean copyOnHighAvailabilitySide = Boolean.FALSE;
+
+    // field for Application API
+    private List<URI> volumes;
 
     /**
      * Default constructor.
@@ -35,6 +47,18 @@ public class SnapshotSessionCreateParam {
     public SnapshotSessionCreateParam(String name, SnapshotSessionNewTargetsParam newLinkedTargets) {
         this.name = name;
         this.newLinkedTargets = newLinkedTargets;
+    }
+
+    /**
+     * Constructor.
+     * 
+     * @param name The name for the snapshot session.
+     * @param newLinkedTargets A reference to the linked target information.
+     */
+    public SnapshotSessionCreateParam(String name, SnapshotSessionNewTargetsParam newLinkedTargets,
+            List<URI> volumes) {
+        this(name, newLinkedTargets);
+        this.volumes = volumes;
     }
 
     /**
@@ -80,5 +104,39 @@ public class SnapshotSessionCreateParam {
      */
     public void setNewLinkedTargets(SnapshotSessionNewTargetsParam newLinkedTargets) {
         this.newLinkedTargets = newLinkedTargets;
+    }
+
+    /**
+     * Flag to specify if the copy needs to be taken on HA side of VPLEX Distributed volumes.
+     * By default, it is considered as false which means copy is requested on source backend side.
+     */
+    @XmlElement(name = "copy_on_high_availability_side", defaultValue = "false")
+    public Boolean getCopyOnHighAvailabilitySide() {
+        return copyOnHighAvailabilitySide;
+    }
+
+    public void setCopyOnHighAvailabilitySide(Boolean copyOnHighAvailabilitySide) {
+        this.copyOnHighAvailabilitySide = copyOnHighAvailabilitySide;
+    }
+
+    @XmlElementWrapper(required = false, name = "volumes")
+    /**
+     * List of Volume IDs.
+     * This field is applicable only if volume is part of an application.
+     * Snapshot sessions of the replication groups (could be subset or full set of replication groups of an application)
+     *  that the volumes belong to, will be created.
+     *
+     * Example: list of valid URIs
+     */
+    @XmlElement(required = false, name = "volume")
+    public List<URI> getVolumes() {
+        if (volumes == null) {
+            volumes = new ArrayList<URI>();
+        }
+        return volumes;
+    }
+
+    public void setVolumes(List<URI> volumes) {
+        this.volumes = volumes;
     }
 }

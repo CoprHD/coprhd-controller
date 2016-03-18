@@ -1319,23 +1319,8 @@ abstract public class AbstractBasicMaskingOrchestrator extends AbstractDefaultMa
                         // remove the whole mask.
                         if (!initiatorsToRemove.isEmpty() && // If there are initiators to remove
                                 ((!deleteEntireMask) ||          // And either the entire mask isn't being deleted (then go for it)
-                                (initiatorsToRemove.size() != ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient).size()))) { // or
-                                                                                                                                        // we
-                                                                                                                                        // are
-                                                                                                                                        // deleting
-                                                                                                                                        // the
-                                                                                                                                        // entire
-                                                                                                                                        // mask
-                                                                                                                                        // and
-                                                                                                                                        // we
-                                                                                                                                        // need
-                                                                                                                                        // to
-                                                                                                                                        // delete
-                                                                                                                                        // only
-                                                                                                                                        // a
-                                                                                                                                        // subset
-                                                                                                                                        // of
-                                                                                                                                        // initiators
+                                (initiatorsToRemove.size() != ExportUtils.getExportMaskAllInitiators(exportMask, _dbClient).size()))) { 
+                            // or we are deleting the entire mask and we need to delete only a subset of initiators
                             _log.info(String.format("mask %s - going to remove the "
                                     + "following initiators %s", exportMask.getMaskName(),
                                     Joiner.on(',').join(initiatorsToRemove)));

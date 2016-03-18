@@ -243,6 +243,25 @@ public class CIMConnectionFactory {
     }
 
     /**
+     * This will be an indication to the ConnectionManager that we need the connection to remain alive
+     * until there is a call to unsetKeepAliveForConnection.
+     *
+     * @param storageSystem [IN] - StorageSystem
+     */
+    public void setKeepAliveForConnection(StorageSystem storageSystem) {
+        _connectionManager.pinConnection(storageSystem.getSmisProviderIP(), storageSystem.getSmisPortNumber());
+    }
+
+    /**
+     * This will be an indication to the ConnectionManager that we may no longer need to keep the connection alive.
+     *
+     * @param storageSystem [IN] - StorageSystem
+     */
+    public void unsetKeepAliveForConnection(StorageSystem storageSystem) {
+        _connectionManager.unpinConnection(storageSystem.getSmisProviderIP(), storageSystem.getSmisPortNumber());
+    }
+
+    /**
      * Validates the connection active status and liveness.
      * 
      * @param smisProvider

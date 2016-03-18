@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,21 +27,19 @@ import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.FCEndpoint;
 import com.emc.storageos.db.client.model.FCZoneReference;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
@@ -309,10 +308,7 @@ public class NetworkScheduler {
                 networkFabricInfo.getEndPoints().addAll(endPoints);
                 networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
                 nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
-            } else {
-                // This should not happen unless the transport zones were manually entered
-                throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToInitiator();
-            }
+            } 
             return networkFabricInfo;
         }
     }
@@ -423,10 +419,19 @@ public class NetworkScheduler {
     public List<FCZoneReference> getFCZoneReferencesForKey(String key) {
         List<FCZoneReference> list = new ArrayList<FCZoneReference>();
         URIQueryResultList uris = new URIQueryResultList();
+        Iterator<FCZoneReference> itFCZoneReference = null;
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                 getFCZoneReferenceKeyConstraint(key), uris);
-        list.addAll(_dbClient.queryObject(FCZoneReference.class,
-                DataObjectUtils.iteratorToList(uris), true));
+        itFCZoneReference = _dbClient.queryIterativeObjects(FCZoneReference.class,
+                DataObjectUtils.iteratorToList(uris), true);
+        if (itFCZoneReference.hasNext()) {
+        	while (itFCZoneReference.hasNext()) {
+        		list.add(itFCZoneReference.next());        		
+        	}	
+        } else {
+        	_log.info("No FC Zone References for key found");
+        	return null;
+        }
         return list;
     }
 
@@ -505,37 +510,6 @@ public class NetworkScheduler {
 
         }
         return orderedNetworkSystems;
-    }
-
-    /**
-     * Returns all the FCEndpoint instances discovered on a network system
-     * filtered by an initiator and storage port
-     * 
-     * @param ns the network system
-     * @param initiator the initiator
-     * @param port the storage port
-     * @return
-     */
-    private List<FCEndpoint> getFCEndpointsForNetworkSystem(NetworkSystem ns,
-            String initiator, String port) {
-        List<FCEndpoint> eps = new ArrayList<FCEndpoint>();
-        URIQueryResultList result = new URIQueryResultList();
-        _dbClient.queryByConstraint(
-                ContainmentConstraint.Factory
-                        .getNetworkSystemFCPortConnectionConstraint(ns.getId()), result);
-        // loop thru the connections and get all those we need
-        for (URI uriFcPortConnection : result) {
-            FCEndpoint connection = _dbClient.queryObject(
-                    FCEndpoint.class, uriFcPortConnection);
-            if (connection == null) {
-                continue;
-            }
-            if (port.equals(connection.getRemotePortName()) ||
-                    initiator.equals(connection.getRemotePortName())) {
-                eps.add(connection);
-            }
-        }
-        return eps;
     }
 
     /**
@@ -884,8 +858,9 @@ public class NetworkScheduler {
      */
     private List<Initiator> getInitiators(List<URI> initiatorURIs) {
         List<Initiator> initiators = new ArrayList<Initiator>();
-        List<Initiator> queryInitiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
-        for (Initiator initiator : queryInitiators) {
+        Iterator<Initiator> queryIterativeInitiators = _dbClient.queryIterativeObjects(Initiator.class, initiatorURIs);    
+        while (queryIterativeInitiators.hasNext()) {
+        	Initiator initiator = queryIterativeInitiators.next();
             if (initiator == null || initiator.getInactive() == true) {
                 continue;
             }
@@ -1108,7 +1083,6 @@ public class NetworkScheduler {
      * @return List<NetworkFCZoneInfo> detailing zones to be removed or at least unreferenced
      * @throws IOException
      */
-    @SuppressWarnings("deprecation")
     public List<NetworkFCZoneInfo> unexportVolumes(URI nbrUri, Collection<URI> volUris, URI exportGroupUri,
             URI storagePortUri, String initiatorPort) {
         List<NetworkFCZoneInfo> ourReferences = new ArrayList<NetworkFCZoneInfo>();
@@ -1311,7 +1285,7 @@ public class NetworkScheduler {
         }
         if (changed) {
             // Update the mask to save the zoningMap entries.
-            dbClient.persistObject(mask);
+            dbClient.updateObject(mask);
         }
     }
 

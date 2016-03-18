@@ -14,6 +14,7 @@ public class IsilonSnapshot {
     private String name;
     private String schedule;
     private String timestamp; /* timestamp */
+    private String created; /* timestamp */
     private String expires; /* timestamp */
     private String path;
     private String size; /* bytes as int */
@@ -41,7 +42,7 @@ public class IsilonSnapshot {
             alias = a;
         }
         if (exp != null && !exp.isEmpty()) {
-            expires = exp;
+            setExpires(exp);
         }
     }
 
@@ -74,13 +75,33 @@ public class IsilonSnapshot {
         return size;
     }
 
+    public String getCreated() {
+        return created;
+    }
+
+    public void setCreated(String created) {
+        this.created = created;
+    }
+
+    public String getExpires() {
+        return expires;
+    }
+
+    public void setExpires(String expires) {
+        this.expires = expires;
+    }
+
+    @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
         str.append(" Snapshot( Name: " + name);
         str.append(" , id: " + id);
         str.append(" , path: " + path);
         str.append((timestamp != null) ? " , timestamp: " + timestamp : "");
+        str.append((created != null) ? " , created: " + created : "");
+        str.append((expires != null) ? " , expires: " + expires : "");
         str.append(")");
         return str.toString();
     }
+
 }

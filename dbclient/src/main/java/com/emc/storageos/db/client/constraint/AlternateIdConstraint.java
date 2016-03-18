@@ -299,6 +299,11 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("snapsetLabel"), label);
         }
 
+        public static AlternateIdConstraint getBlockSnapshotSessionsBySetName(String setName) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("sessionSetName"), setName);
+        }
+
         public static AlternateIdConstraint getFullCopiesBySetName(String setName) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("fullCopySetName"), setName);
@@ -392,6 +397,13 @@ public interface AlternateIdConstraint extends Constraint {
         public static AlternateIdConstraint getSnapshotReplicationGroupInstanceConstraint(
                 String replicaGroupInstance) {
             DataObjectType doType = TypeMap.getDoType(BlockSnapshot.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
+                    replicaGroupInstance);
+        }
+
+        public static AlternateIdConstraint getSnapshotSessionReplicationGroupInstanceConstraint(
+                String replicaGroupInstance) {
+            DataObjectType doType = TypeMap.getDoType(BlockSnapshotSession.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
                     replicaGroupInstance);
         }

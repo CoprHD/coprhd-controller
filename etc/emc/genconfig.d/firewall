@@ -57,6 +57,8 @@ _get_firewall_props() {
             ipaddr6="${!var}"
             if [ "${ipaddr6}" == "::0" ]; then
                 ipaddr6=""
+            else
+                ipaddr6=$(_get_ipv6_uncompressed ${ipaddr6})
             fi
             list+=" ${ipaddr6}"
         done
@@ -83,6 +85,8 @@ _get_firewall_props() {
             ipaddr6="${!var}"
             if [ "${ipaddr6}" == "::0" ]; then
                ipaddr6=""
+            else
+               ipaddr6=$(_get_ipv6_uncompressed ${ipaddr6})
             fi
             list6+=" ${ipaddr6}"
         done

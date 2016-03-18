@@ -18,18 +18,25 @@
         #{Form.subheader titleKey:"restore.download.progress", descriptionKey:"restore.download.progress.description"/}
         <br/>
 
-        <table class="database-check-progress-table">
+        <table class="download-progress-table">
+            #{list items:percentages.entrySet(), as:'nodeEntry'}
+                #{set progressBarId:'hostname-'+nodeEntry.getKey() /}
+                <tr>
+                    <td>Node ${nodeEntry.getKey()}&nbsp;</td>
+                    <td style="width: 300px;">
+                    %{
+                        style = "success"
+                        if (status.isNotSuccess()) {
+                        style = "danger"
+                        }
+                        }%
+                        #{progressBar name:progressBarId, percentage:nodeEntry.getValue(), style:style/}
+                    </td>
+                </tr>
+            #{/list}
             <tr>
-                <td width="300">
-                %{
-                    style = "success"
-                    }%
-                    #{progressBar name:"Status", style:style/}
-                </td>
-            </tr>
-            <tr>
-                <td width="300">
-		        <span id="errorInfo"></span>
+                <td style="width: 300px;" colspan="2">
+		        <span id="errorInfo" style="color: #d9534f; font-weight: bold"></span>
                 </td>
             </tr>
         </table>
@@ -39,7 +46,7 @@
 #{/if}
 
 #{form @doRestore(), id:'restoreForm',class:'form form-horizontal', autocomplete:"off"}
-    <div style="width: 500px;">
+    <div style="width: 650px;">
         #{field 'restoreForm.password'}
         %{
             field.required = true
@@ -63,7 +70,7 @@
     #{/if}
 
     #{if status.isNotSuccess()}
-        <div class="alert alert-danger">${status.getStatus()}</div>
+        <div class="alert alert-danger">${String.format("%s:%s", status.getStatus().getMessage(), status.getDetails())}</div>
     #{/if}
 
     <div class="alert alert-info"> &{'restore.prompt'} </div>
@@ -82,7 +89,7 @@
 
         type = "${type}";
         REMOTE = "${models.datatable.BackupDataTable.Type.REMOTE}";
-        if (type == REMOTE) {
+        if (type == REMOTE && "${status.status}" != "DOWNLOAD_SUCCESS") {
             $("#restoreBtn").prop("disabled", true);
             checkPullStatusUpdates();
         }
@@ -105,12 +112,12 @@
     function checkPullStatusUpdates() {
         var checkUpdate = window.setInterval(function () {
             if (stop) {
-                console.info("stop interval");
+                console.info("Stop interval");
                 clearInterval(checkUpdate);
                 return;
             }
             checkPullProgressUpdate();
-        }, 2000); // Check every 2 seconds
+        }, 10 * 1000); // Check every 10 seconds
     }
 
     function checkPullProgressUpdate() {
@@ -123,40 +130,32 @@
                 var description = "";
                 for (var i in result) {
                     var property = result[i];
-                    description += i + " = " + property + "\n";
-                }
-                var totalSize = result.backupSize;
-                var downloadSize = result.downloadSize;
-                if (totalSize != 0) {
-                    var realPercent = downloadSize / totalSize * 100;
-                }
-                var basePercent = 50;
-                var progress = 0;
-                if(realPercent >= 100) {
-                    progress = basePercent + realPercent / 10;
-                    if(progress >= 100) {
-                        progress = 99;
-                    }
-                } else if(realPercent != null){
-                    progress = realPercent;
-                    if (progress >= basePercent) {
-                        progress = basePercent;
-                    }
+                    description += i + " = " + JSON.stringify(property) + "\n";
                 }
 
-                console.info("progress=%s \n info=%s ", progress, description);
-                updateProgressBar("Status", parseInt(progress));
+                console.info("description=%s ", description);
+
+                $.each(result.percentageMap, function(hostname, percent){
+                    var progressBarId = 'hostname-' + hostname;
+                    updateProgressBar(progressBarId, percent);
+                    if (result.status == "DOWNLOAD_SUCCESS") {
+                        updateProgressBar(progressBarId, 100);
+                    }else if (result.status == "DOWNLOAD_FAILED") {
+                        //updateProgressBar(progressBarId, 100);
+                        updateProgressBarStyle("Status", "danger");
+                    }
+
+
+                });
+
 
                 if (result.status == "DOWNLOAD_SUCCESS") {
-                    updateProgressBar("Status", 100);
                     $("#restoreBtn").prop("disabled", false);
                     disableEnter(false);
                     stop = true;
                 }
                 else if (result.status == "DOWNLOAD_FAILED") {
-                    updateProgressBar("Status",100);
-                    updateProgressBarStyle("Status", "danger");
-                    $("#errorInfo").text(result.status+': '+result.message);
+                    $("#errorInfo").text("Download failed: "+result.details);
                     stop = true;
                 }
             },

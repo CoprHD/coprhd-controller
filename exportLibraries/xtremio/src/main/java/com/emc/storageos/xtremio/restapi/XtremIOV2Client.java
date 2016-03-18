@@ -210,13 +210,18 @@ public class XtremIOV2Client extends XtremIOClient {
 
     @Override
     public List<String> getTagNames(String clusterName) throws Exception {
+        // No need to throw exception if we are not able to get tag names.
         List<String> tagNames = new ArrayList<String>();
-        ClientResponse response = get(XtremIOConstants.XTREMIO_V2_TAGS_URI);
-        XtremIOTagsInfo responseObjs = getResponseObject(XtremIOTagsInfo.class, response);
-        for (XtremIOObjectInfo objectInfo : responseObjs.getTagsInfo()) {
-            tagNames.add(objectInfo.getName());
+        try {
+            ClientResponse response = get(XtremIOConstants.XTREMIO_V2_TAGS_URI);
+            XtremIOTagsInfo responseObjs = getResponseObject(XtremIOTagsInfo.class, response);
+            for (XtremIOObjectInfo objectInfo : responseObjs.getTagsInfo()) {
+                tagNames.add(objectInfo.getName());
+            }
+        } catch (Exception ex) {
+            log.warn("Error getting tag names", ex.getMessage());
+            log.info("Ignoring this as we again check if the tag is present before creating a new tag");
         }
-
         return tagNames;
     }
 

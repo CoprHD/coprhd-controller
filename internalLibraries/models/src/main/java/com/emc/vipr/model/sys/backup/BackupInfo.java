@@ -11,15 +11,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @XmlRootElement(name = "external_backup_info")
-public class ExternalBackupInfo {
+public class BackupInfo {
     private static final Logger log = LoggerFactory.getLogger(BackupSets.class);
 
     private String fileName;
-    private Long createTime;
-    private Integer fileSize;
+    private long createTime;
+    private long fileSize;
+    private String version;
     private BackupRestoreStatus restoreStatus;
 
-    public ExternalBackupInfo() {
+    public BackupInfo() {
     }
 
     @XmlElement(name = "file_name")
@@ -32,21 +33,21 @@ public class ExternalBackupInfo {
     }
 
     @XmlElement(name = "create_time")
-    public Long getCreateTime() {
+    public long getCreateTime() {
         return this.createTime;
     }
 
-    public void setCreateTime(Long createTime) {
+    public void setCreateTime(long createTime) {
         this.createTime = createTime;
     }
 
     @XmlElement(name = "file_size")
-    public Integer getFileSize() {
+    public long getFileSize() {
         return this.fileSize;
     }
 
-    public void setFileSize(Integer fileSize) {
-        this.fileSize = fileSize;
+    public void setFileSize(long size) {
+        this.fileSize = size;
     }
 
     @XmlElement(name = "restore_status")
@@ -58,11 +59,22 @@ public class ExternalBackupInfo {
         this.restoreStatus = restoreStatus;
     }
 
+    @XmlElement(name = "version")
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("FileName:");
         sb.append(getFileName());
+        sb.append(", version:");
+        sb.append(getVersion());
         sb.append(", CreateTime:");
         sb.append(getCreateTime());
         sb.append(", FileSize:");

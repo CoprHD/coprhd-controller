@@ -1,6 +1,19 @@
 /*
- * Copyright (c) 2013-2014 EMC Corporation
- * All Rights Reserved
+ * Copyright 2013-2014 EMC Corporation
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -432,8 +445,6 @@ public enum ServiceCode {
     SYS_DR_SITE_CONNECTION_BROKEN(30059),
 
     SYS_BACKUP_EXTERNAL_SERVER_ERROR(30060),
-    SYS_BACKUP_PULL_FAILED(30061),
-    SYS_BACKUP_RESTORE_FAILED(30062),
 
     
 
@@ -530,6 +541,7 @@ public enum ServiceCode {
     BACKUP_DISABLED_AS_DISK_FULL(61011),
     BACKUP_DISABLED_AS_REACH_LIMIT(61012),
     BACKUP_DISABLED_AS_ON_STANDBY(61013),
+    BACKUP_PULL_FAILED(61014),
 
     // ScaleIO errors (60000 - 60999)
     SCALEIO_UNSUPPORTED_OPERATION(60000),
@@ -549,9 +561,12 @@ public enum ServiceCode {
 
     // customConfig controller errors (62000 - 62099)
     CONTROLLER_CUSTOMCONFIG_ERROR(62000),
+
+    // Keystone errors (62100-62199)
     KEYSTONE_API_ERROR(62100),
     KEYSTONE_REQUEST_PARSE_ERRORS(62101),
     KEYSTONE_RESPONSE_PARSE_ERROR(62102),
+    KEYSTONE_CONFIGURATION_ERROR(62103),
 
     // NetApp Cluster errors (63000 - 63099):
     NETAPPC_ERROR(63000),

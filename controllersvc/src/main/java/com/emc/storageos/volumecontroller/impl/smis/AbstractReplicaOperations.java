@@ -90,7 +90,7 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
                 labels.add(replica.getLabel());
                 replicaGroupName = replica.getReplicationGroupInstance();
                 if (sessionName == null) {
-                    sessionName = getSnapshotSessionNameFromReplicaGroupName(replicaGroupName);
+                    sessionName = getSnapshotSessionNameFromReplicaGroupName(replicaGroupName, storage.getId());
                 }
                 Volume source = (Volume) _helper.getSource(replica);
                 String sourceNativeId = source.getNativeId();
@@ -297,8 +297,8 @@ public abstract class AbstractReplicaOperations implements ReplicaOperations {
      * @param replicaGroupName  Linked target replication group name.
      * @return                  SnapVx session name.
      */
-    private String getSnapshotSessionNameFromReplicaGroupName(String replicaGroupName) {
-        List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicaGroupName, _dbClient);
+    private String getSnapshotSessionNameFromReplicaGroupName(String replicaGroupName, URI storage) {
+        List<BlockSnapshot> snapshots = ControllerUtils.getSnapshotsPartOfReplicationGroup(replicaGroupName, storage, _dbClient);
 
         for (BlockSnapshot snapshot : snapshots) {
             List<BlockSnapshotSession> sessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,

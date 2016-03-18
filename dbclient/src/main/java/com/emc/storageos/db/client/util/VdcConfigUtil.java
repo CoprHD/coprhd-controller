@@ -27,7 +27,7 @@ import com.emc.storageos.coordinator.exceptions.RetryableCoordinatorException;
  * 
  * The VDC/Site configurations are stored in ZK as follows:
  * /config/disasterRecoverySites/<vdc_short_id>/<site_uuid>     has all the VDC/site configurations
- * /config/disasterRecoveryActive/<vdc_short_id>               specifies which site is the acitve in each VDC
+ * /config/disasterRecoveryActive/<vdc_short_id>               specifies which site is the active in each VDC
  * /config/geoLocalVDC/global                                   specifies the local VDC in the geo federation
  * 
  * The vdcconfig.properties includes the node IPs as the following
@@ -154,7 +154,8 @@ public class VdcConfigUtil {
                     && (site.getState().equals(SiteState.STANDBY_PAUSING)
                     || site.getState().equals(SiteState.STANDBY_PAUSED)
                     || site.getState().equals(SiteState.STANDBY_REMOVING)
-                    || site.getState().equals(SiteState.ACTIVE_FAILING_OVER))) {
+                    || site.getState().equals(SiteState.ACTIVE_FAILING_OVER)
+                    || site.getState().equals(SiteState.ACTIVE_DEGRADED))) {
 
                 continue;
             }

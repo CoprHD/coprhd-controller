@@ -264,7 +264,7 @@ public class NetAppApi {
         try {
             netAppFacade = new NetAppFacade(_ipAddress, _portNumber, _userName,
                     _password, _https);
-            netAppFacade.setVolumeOffline(volName, 1);
+            netAppFacade.setVolumeRestricted(volName, 1);
             return true;
         } catch (Exception e) {
             throw NetAppException.exceptions.setVolumeRestrictFailed(volName,

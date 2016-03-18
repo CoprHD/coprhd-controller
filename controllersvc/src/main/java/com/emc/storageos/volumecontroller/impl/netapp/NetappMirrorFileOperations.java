@@ -256,13 +256,13 @@ public class NetappMirrorFileOperations implements FileMirrorOperations {
             doFailoverSnapMirror(StorageSystem sourceStorage, StorageSystem targetStorage, FileShare sourceFs,
                     FileShare targetFs, TaskCompleter taskCompleter) {
         // get vfiler
-        String portGroup = findVfilerName(targetFs);
+        String portGroupTarget = findVfilerName(targetFs);
         NetAppApi nApi = new NetAppApi.Builder(targetStorage.getIpAddress(),
                 targetStorage.getPortNumber(), targetStorage.getUsername(),
-                targetStorage.getPassword()).https(true).vFiler(portGroup).build();
+                targetStorage.getPassword()).https(true).vFiler(portGroupTarget).build();
         // make api call
         String destLocation = getLocation(targetStorage, targetFs);
-        nApi.breakSnapMirror(destLocation, portGroup);
+        nApi.breakSnapMirror(destLocation, portGroupTarget);
         return BiosCommandResult.createSuccessfulResult();
     }
 

@@ -1795,10 +1795,6 @@ public class VolumeGroupService extends TaskResourceService {
         Map<String, List<BlockSnapshot>> snapsetToSnapshots = getSnapshotsGroupedBySnapset(volumeGroupId, param);
         
         // Check for pending tasks
-        List<BlockSnapshot> allSnaps = new ArrayList<BlockSnapshot>();
-        for (List<BlockSnapshot> snaps : snapsetToSnapshots.values() ) {
-            allSnaps.addAll(snaps);
-        }
         VolumeGroup volumeGroup = _dbClient.queryObject(VolumeGroup.class, volumeGroupId);
         if (opType == OperationTypeEnum.RESTORE_VOLUME_GROUP_SNAPSHOT) {
             checkForApplicationPendingTasks(volumeGroup, _dbClient, true);

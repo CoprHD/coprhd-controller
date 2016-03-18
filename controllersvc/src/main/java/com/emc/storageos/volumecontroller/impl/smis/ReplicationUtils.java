@@ -354,7 +354,7 @@ public class ReplicationUtils {
         BlockSnapshot existingTarget = null;
         Volume existingVolume = null;
         CIMObjectPath targetpoolPath = null;
-        CloseableIterator<CIMInstance> poolInstanceItr = null;
+        CloseableIterator<CIMObjectPath> poolPathItr = null;
         try {
             if (!storage.checkIfVmax3() && thinProvisioning) {
                 if (targetGroupName != null) {
@@ -363,7 +363,9 @@ public class ReplicationUtils {
                     List<Volume> rgVolumes = ControllerUtils.getVolumesPartOfRG(storage.getId(), sourceGroupName, dbClient);
                     Set<String> targetGroupNames = ControllerUtils.getSnapshotReplicationGroupNames(rgVolumes, dbClient);
                     if (!targetGroupNames.isEmpty()) {
-                        existingTarget = getexistingTargetForTargetReplicationGroup(storage, targetGroupNames.iterator().next(), dbClient);
+                        targetGroupName = targetGroupNames.iterator().next();
+                        _log.info("Taking target pool from one of existing snapshot group {}", targetGroupName);
+                        existingTarget = getexistingTargetForTargetReplicationGroup(storage, targetGroupName, dbClient);
                     } else if (!rgVolumes.isEmpty()) {
                         existingVolume = rgVolumes.get(0);
                     }
@@ -371,20 +373,14 @@ public class ReplicationUtils {
 
                 if (existingTarget != null) {
                     CIMObjectPath targetDevicePath = cimPath.getBlockObjectPath(storage, existingTarget);
-                    CIMInstance instance = helper.getInstance(storage, targetDevicePath, false, false, null);
-                    poolInstanceItr = helper.getAssociatorInstances(storage, targetDevicePath, null,
-                            SYMM_VIRTUAL_PROVISIONING_POOL, null, null, new String[] { CP_INSTANCE_ID });
+                    poolPathItr = helper.getAssociatorNames(storage, targetDevicePath, null,
+                            SYMM_VIRTUAL_PROVISIONING_POOL, null, null);
 
                     // verify that a storage pool exists in DB for this snapshot's pool
-                    if (poolInstanceItr != null && poolInstanceItr.hasNext()) {
-                        CIMInstance poolInstance = poolInstanceItr.next();
-                        String instanceId = poolInstance.getPropertyValue(CP_INSTANCE_ID).toString();
-                        // Get the poolId by splitting the instanceID.
-                        Iterable<String> poolIDItr = Splitter.on(Constants.PATH_DELIMITER_PATTERN).limit(3)
-                                .split(instanceId);
-                        String nativeId = Iterables.getLast(poolIDItr);
-                        String nativeGuid = NativeGUIDGenerator
-                                .generateNativeGuid(storage, nativeId, NativeGUIDGenerator.POOL);
+                    if (poolPathItr != null && poolPathItr.hasNext()) {
+                        CIMObjectPath poolPath = poolPathItr.next();
+                        _log.info("storage pool path {}", poolPath);
+                        String nativeGuid = NativeGUIDGenerator.generateNativeGuidForPool(poolPath);
                         List<StoragePool> poolInDB = CustomQueryUtility.getActiveStoragePoolByNativeGuid(dbClient, nativeGuid);
                         if (poolInDB != null && !poolInDB.isEmpty()) {
                             StoragePool storagePool = poolInDB.get(0);
@@ -396,13 +392,15 @@ public class ReplicationUtils {
                 } else if (existingVolume != null) {
                     StoragePool storagePool = dbClient.queryObject(StoragePool.class, existingVolume.getPool());
                     targetpoolPath = helper.getPoolPath(storage, storagePool);
+                } else {
+                    _log.warn("Neither existing snapshot nor volume found to get target storage pool");
                 }
             }
         } catch (Exception ex) {
-            _log.info("Exception while trying to get target storage pool path for VPSnap creation", ex);
+            _log.error("Exception while trying to get target storage pool path for VPSnap creation", ex);
         } finally {
-            if (poolInstanceItr != null) {
-                poolInstanceItr.close();
+            if (poolPathItr != null) {
+                poolPathItr.close();
             }
         }
         return targetpoolPath;
@@ -425,6 +423,7 @@ public class ReplicationUtils {
             BlockSnapshot snapshot = itr.next();
             // skip the new snapshot to be created
             if (snapshot != null && snapshot.getNativeId() != null) {
+                _log.info("considering snapshot {}", snapshot.getLabel());
                 return snapshot;
             }
         }

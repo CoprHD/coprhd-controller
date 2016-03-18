@@ -665,7 +665,7 @@ public class BlockStorageUtils {
 
     public static boolean canRemoveReplicas(URI blockResourceId) {
         BlockObjectRestRep volume = getVolume(blockResourceId);
-        if (volume.getConsistencyGroup() != null && volume.getReplicationGroupInstance() != null) {
+        if (volume.getConsistencyGroup() != null && NullColumnValueGetter.isNotNullValue(volume.getReplicationGroupInstance())) {
             StorageSystemRestRep storageSystem = getStorageSystem(volume.getStorageController());
             if (storageSystem != null
                     && storageSystem.getSystemType() != null

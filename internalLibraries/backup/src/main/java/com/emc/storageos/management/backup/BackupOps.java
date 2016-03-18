@@ -1324,8 +1324,13 @@ public class BackupOps {
                     errorList.add(task.getRequest().getNode());
                 } catch (ExecutionException e) {
                     Throwable cause = e.getCause();
-                    log.error(String.format("List backup on node(%s:%d) failed.",
-                            task.getRequest().getHost(), task.getRequest().getPort()), cause);
+                    if (ignore) {
+                        log.warn(String.format("List backup on node(%s:%d) failed.",
+                                task.getRequest().getHost(), task.getRequest().getPort()), cause);
+                    }else {
+                        log.error(String.format("List backup on node(%s:%d) failed.",
+                                task.getRequest().getHost(), task.getRequest().getPort()), cause);
+                    }
                     result = ((result == null) ? cause : result);
                     errorList.add(task.getRequest().getNode());
                 }
@@ -1338,15 +1343,13 @@ public class BackupOps {
                 }
             }
         } catch (Exception e) {
-            log.error("Exception when listing backups", e);
-            if (!errorList.isEmpty()) {
-                Throwable cause = (e.getCause() == null ? e : e.getCause());
-                if (ignore) {
-                    log.warn("List backup on nodes({}) failed, but ignore the errors",
-                            errorList.toString(), cause);
-                } else {
-                    throw BackupException.fatals.failedToListBackup(errorList.toString(), cause);
-                }
+            Throwable cause = (e.getCause() == null ? e : e.getCause());
+            if (ignore) {
+                log.warn("List backup on nodes({}) failed, but ignore the errors",
+                        errorList.toString(), cause);
+            } else {
+                log.error("Exception when listing backups", e);
+                throw BackupException.fatals.failedToListBackup(errorList.toString(), cause);
             }
         }
 

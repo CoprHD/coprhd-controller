@@ -52,7 +52,6 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
     private static final Logger log = LoggerFactory.getLogger(BackupScheduler.class);
     private static final long SCHEDULE_BACKUP_RETRY_OFFSITE = 5 * 60 * 1000L;
     private volatile boolean isLeader = false;
-    private boolean isBackupReconfig = false;
 
     private static volatile BackupScheduler singletonInstance;
 
@@ -184,16 +183,12 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             log.info("Backup scheduler thread goes live");
 
             this.cfg.reload();
-            if (this.coordinator.getCoordinatorClient().isClusterUpgradable() || isBackupReconfig) {
-                // If we made any new backup, notify uploader thread to perform upload
-                this.backupExec.create();
-                this.uploadExec.upload();
-                this.backupExec.reclaim();
 
-                isBackupReconfig = false;
-            } else {
-                log.info("Backup schedule can't run as cluster is not in upgradable state,will schedule next run");
-            }
+            // If we made any new backup, notify uploader thread to perform upload
+            this.backupExec.create();
+            this.uploadExec.upload();
+            this.backupExec.reclaim();
+
         } catch (Exception e) {
             log.error("Exception occurred in scheduler", e);
             if (e instanceof InterruptedException) {
@@ -318,7 +313,6 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
         ScheduledExecutorService svc = service;
         if (svc != null) {
             try {
-                isBackupReconfig = true;
                 svc.schedule((Callable<Object>) this, 0L, TimeUnit.MICROSECONDS);
             } catch (RejectedExecutionException ex) {
                 if (svc.isShutdown()) {

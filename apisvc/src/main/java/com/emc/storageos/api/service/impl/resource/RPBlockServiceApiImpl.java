@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -361,14 +362,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Prepare the source and targets
             if (rpProtectionRec.getSourceRecommendations() != null) {
                 for (RPRecommendation sourceRec : rpProtectionRec.getSourceRecommendations()) {
-                    // Grab a handle of the haRec, it could be null which is Ok.
-                    RPRecommendation haRec = sourceRec.getHaRecommendation();
-
-                    MetroPointType metroPointType = MetroPointType.INVALID;
-
-                    if (metroPointEnabled) {
-                        metroPointType = sourceRec.getMetroPointType();
-                        validateMetroPointType(metroPointType);
+                    // Get a reference to all existing VPLEX Source volumes (if any)
+                    List<Volume> allSourceVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(consistencyGroup, _dbClient,
+                            Volume.PersonalityTypes.SOURCE);
+                                        
+                    // We only need to validate the MetroPoint type if this is the
+                    // first MP volume of a new CG.
+                    if (metroPointEnabled && allSourceVolumesInCG.isEmpty()) {
+                        validateMetroPointType(sourceRec.getMetroPointType());
                     }
 
                     // Get the number of volumes needed to be created for this recommendation.
@@ -378,11 +379,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // the RSets in the CG. We can't just update one RSet / volume.
                     // So let's get ALL the source volumes in the CG and we will update them all to MetroPoint.
                     // Each source volume will be exported to the HA side of the VPLEX (for MetroPoint visibility).
-                    // All source volumes will share the same secondary journal.
-                    List<Volume> allSourceVolumesInCG = new ArrayList<Volume>();
+                    // All source volumes will share the same secondary journal.                   
                     if (isChangeVpoolForProtectedVolume) {
-                        allSourceVolumesInCG = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(consistencyGroup, _dbClient,
-                                Volume.PersonalityTypes.SOURCE);
                         _log.info(String.format("Change Virtual Pool Protected: %d existing source volume(s) in CG [%s](%s) are affected.",
                                 allSourceVolumesInCG.size(),
                                 consistencyGroup.getLabel(),
@@ -391,6 +389,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         volumeCountInRec = allSourceVolumesInCG.size();
                     }
 
+                    // Grab a handle of the haRec, it could be null which is Ok.
+                    RPRecommendation haRec = sourceRec.getHaRecommendation();
+                    
                     for (int volumeCount = 0; volumeCount < volumeCountInRec; volumeCount++) {
                         // Let's not get into multiple of multiples, this class will handle multi volume creates.
                         // So force the incoming VolumeCreate param to be set to 1 always from here on.
@@ -527,8 +528,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             volumeURIs.add(targetVolume.getId());
                         }
 
-                        // /////// METROPOINT TARGET(S) ///////////
-                        if (metroPointEnabled && metroPointType != MetroPointType.SINGLE_REMOTE) {
+                        // /////// METROPOINT LOCAL TARGET(S) ///////////
+                        if (metroPointEnabled 
+                                && haRec.getTargetRecommendations() != null 
+                                && !haRec.getTargetRecommendations().isEmpty()) {
                             // If metropoint is chosen and two local copies are configured, one copy on each side
                             // then we need to create targets for the second (stand-by) leg.
                             for (RPRecommendation standbyTargetRec : haRec.getTargetRecommendations()) {
@@ -2938,24 +2941,41 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         // If we're deleting the last volume, we can delete the ProtectionSet object.
+        // This list of volumes may contain volumes from many protection sets
         Set<URI> volumesToDelete = _rpHelper.getVolumesToDelete(sourceVolumeURIs);
-        Set<URI> psetsDeleted = new HashSet<URI>();
-        for (URI sourceVolumeURI : sourceVolumeURIs) {
-            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-            if (sourceVolume.getProtectionSet() != null) {
-                ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, sourceVolume.getProtectionSet().getURI());
-                if (!psetsDeleted.contains(sourceVolume.getProtectionSet().getURI()) &&
-                        volumesToDelete.size() == pset.getVolumes().size()) {
-                    _dbClient.markForDeletion(pset);
-                    psetsDeleted.add(sourceVolume.getProtectionSet().getURI());
-                } else if (volumesToDelete.size() != pset.getVolumes().size()) {
-                    // For debugging: log conditions that caused us to not delete the protection set
-                    _log.info(String
-                            .format("Not deleting protection %s because there are %d volumes to delete in the request, however there are %d volumes in the pset",
-                                    pset.getLabel(),
-                                    _rpHelper.getVolumesToDelete(sourceVolumeURIs).size(),
-                                    pset.getVolumes().size()));
+        Map<URI, Set<URI>> psetToVolumesToDelete = new HashMap<URI, Set<URI>>();
+        
+        // Group volumes to delete by their protectionsets
+        for (URI volumeURI : volumesToDelete) {
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            if (volume.getProtectionSet() != null) {
+                if (psetToVolumesToDelete.get(volume.getProtectionSet().getURI()) == null) {
+                    psetToVolumesToDelete.put(volume.getProtectionSet().getURI(), new HashSet<URI>());
                 }
+                psetToVolumesToDelete.get(volume.getProtectionSet().getURI()).add(volumeURI);
+            }
+        }
+
+        // Go through all protection sets and verify we have all of the volumes accounted for
+        // and delete the protection set if necessary.  Log otherwise.
+        Set<URI> psetsDeleted = new HashSet<URI>();
+        for (Entry<URI, Set<URI>> psetVolumeEntry : psetToVolumesToDelete.entrySet()) {
+            ProtectionSet pset = _dbClient.queryObject(ProtectionSet.class, psetVolumeEntry.getKey());
+            if (pset != null && !psetsDeleted.contains(pset.getId()) &&
+                psetVolumeEntry.getValue().size() == pset.getVolumes().size()) {
+                _dbClient.markForDeletion(pset);
+                psetsDeleted.add(pset.getId());
+            } else if (pset.getVolumes() == null) {
+                _dbClient.markForDeletion(pset);
+                psetsDeleted.add(pset.getId());
+                _log.info(String.format("Deleting protection %s because there are no volumes in it any longer", pset.getLabel()));
+            } else if (volumesToDelete.size() != pset.getVolumes().size()) {
+                // For debugging: log conditions that caused us to not delete the protection set
+                _log.info(String
+                        .format("Not deleting protection %s because there are %d volumes to delete in the request, however there are %d volumes in the pset",
+                                pset.getLabel(),
+                                _rpHelper.getVolumesToDelete(sourceVolumeURIs).size(),
+                                pset.getVolumes().size()));
             }
         }
     }

@@ -149,6 +149,7 @@ public class BackupRestoreStatus {
         DOWNLOAD_SUCCESS (false, true, "Download success"),
         DOWNLOAD_FAILED (false, true, "Download failed"),
         DOWNLOAD_CANCELLED (false, true, "Download Canceled"),
+        RESTORING(false, false, "Restoring"),
         RESTORE_FAILED (false, false, "Restore failed"),
         RESTORE_SUCCESS (false, false, "Restore success");
 

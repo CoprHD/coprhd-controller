@@ -131,7 +131,7 @@ def dr_check_standby(args):
     # check if API exception is thrown on standby for POST 
     uri="/tenants/%s/projects" % bourne.tenant_getid()
     errcode=3002
-    message="Disallowed operation on standby site. Please redirect your request to active site %s." % args.activeSiteVip
+    message="Disallowed operation on the current standby site. Please redirect your request to active site %s." % args.activeSiteVip
     bourne.api_check_error("POST", uri, 403, errcode, message)
     print "PASS. Successfully catch API exception for POST %s" % uri
     try:

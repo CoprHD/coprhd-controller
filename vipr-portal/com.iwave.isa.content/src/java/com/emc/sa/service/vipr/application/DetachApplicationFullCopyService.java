@@ -22,7 +22,7 @@ public class DetachApplicationFullCopyService extends ViPRService {
     @Param(ServiceParams.APPLICATION)
     private URI applicationId;
 
-    @Param(ServiceParams.COPY_NAME)
+    @Param(ServiceParams.APPLICATION_COPY_SETS)
     protected String fullCopyName;
 
     @Param(ServiceParams.APPLICATION_SUB_GROUP)
